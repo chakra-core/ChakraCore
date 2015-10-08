@@ -364,7 +364,7 @@ BailoutConstantValue Opnd::GetConstValue()
     BailoutConstantValue value;
     if (this->IsIntConstOpnd())
     {
-        value.InitIntConstValue(this->AsIntConstOpnd()->GetValue());
+        value.InitIntConstValue(this->AsIntConstOpnd()->GetValue(), this->m_type);
     }
     else if (this->IsFloatConstOpnd())
     {

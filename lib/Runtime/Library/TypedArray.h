@@ -341,7 +341,7 @@ namespace Js
             {
                 const size_t byteSize = sizeof(TypeName) * newLength;
                 Assert(byteSize >= newLength); // check for overflow
-                memset(typedBuffer + newStart, typedValue, byteSize);
+                memset(typedBuffer + newStart, (int)typedValue, byteSize);
             }
             else
             {
