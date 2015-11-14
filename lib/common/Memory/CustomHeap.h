@@ -16,6 +16,7 @@ namespace Memory
     Output::Flush(); \
 }
 
+
 namespace CustomHeap
 {
 
@@ -37,7 +38,6 @@ BucketId GetBucketForSize(size_t bytes);
 struct PageAllocatorAllocation
 {
     bool isDecommitted;
-    bool isReadWrite;
 };
 
 struct Page: public PageAllocatorAllocation
@@ -70,7 +70,6 @@ struct Page: public PageAllocatorAllocation
     {
         // Initialize PageAllocatorAllocation fields
         this->isDecommitted = false;
-        this->isReadWrite = true;
     }
 
     // Each bit in the bit vector corresponds to 128 bytes of memory
@@ -200,16 +199,16 @@ public:
         }
     }
 
-    BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag)
+    BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag)
     {
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            return this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+            return this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
         }
         else
         {
-            return this->GetPageAllocator<VirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+            return this->GetPageAllocator<VirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
         }
     }
 
@@ -302,22 +301,9 @@ public:
         return page->HasNoSpace() || (allocXdata && !((Segment*)(page->segment))->CanAllocSecondary());
     }
 
-    BOOL ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag);
-    BOOL ProtectAllocationPage(__in Allocation* allocation, __in char* addressInPage, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag);
-
-    DWORD EnsureAllocationProtection(Allocation* allocation, bool readWrite)
-    {
-        if (readWrite)
-        {
-            // this only call from InterpreterThunkEmitter
-            return EnsureAllocationReadWrite<true, PAGE_READWRITE>(allocation);
-        }
-        else
-        {
-            return EnsureAllocationReadWrite<false, PAGE_READWRITE>(allocation);
-        }
-
-    }
+    BOOL ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag, __in char* addressInPage = nullptr);
+    BOOL ProtectAllocationWithExecuteReadWrite(Allocation *allocation, char* addressInPage = nullptr);
+    BOOL ProtectAllocationWithExecuteReadOnly(Allocation *allocation, char* addressInPage = nullptr);
 
     ~Heap();
 
@@ -367,90 +353,39 @@ private:
         FreeLargeObject<true>(nullptr);
     }
 
-    DWORD EnsurePageWriteable(Page* page)
-    {
-        return EnsurePageReadWrite<true, PAGE_READWRITE>(page);
-    }
+    //Called during Free
+    DWORD EnsurePageWriteable(Page* page);
 
     // this get called when freeing the whole page
-    DWORD EnsureAllocationWriteable(Allocation* allocation)
-    {
-        return EnsureAllocationReadWrite<true, PAGE_READWRITE>(allocation);
-    }
+    DWORD EnsureAllocationWriteable(Allocation* allocation);
 
     // this get called when only freeing a part in the page
-    DWORD EnsureAllocationExecuteWriteable(Allocation* allocation)
-    {
-        return EnsureAllocationReadWrite<true, PAGE_EXECUTE_READWRITE>(allocation);
-    }
+    DWORD EnsureAllocationExecuteWriteable(Allocation* allocation);
 
-    template<bool readWrite, DWORD readWriteFlags>
+    template<DWORD readWriteFlags>
     DWORD EnsurePageReadWrite(Page* page)
     {
-        if (readWrite)
-        {
-            if (!page->isReadWrite && !page->isDecommitted)
-            {
-                DWORD dwOldProtectFlags = 0;
-                BOOL result = this->ProtectPages(page->address, 1, page->segment, readWriteFlags, &dwOldProtectFlags, PAGE_EXECUTE);
-                page->isReadWrite = true;
-                Assert(result && (dwOldProtectFlags & readWriteFlags) == 0);
-                return dwOldProtectFlags;
-            }
-        }
-        else
-        {
-            if (page->isReadWrite && !page->isDecommitted)
-            {
-                DWORD dwOldProtectFlags = 0;
-                BOOL result = this->ProtectPages(page->address, 1, page->segment, PAGE_EXECUTE, &dwOldProtectFlags, readWriteFlags);
-                page->isReadWrite = false;
-                Assert(result && (dwOldProtectFlags & PAGE_EXECUTE) == 0);
-                return dwOldProtectFlags;
-            }
-        }
+        Assert(!page->isDecommitted);
 
-        return 0;
+        BOOL result = this->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
+        Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+        return PAGE_EXECUTE;
     }
 
-    template<bool readWrite, DWORD readWriteFlags>
+    template<DWORD readWriteFlags>
     DWORD EnsureAllocationReadWrite(Allocation* allocation)
     {
         if (allocation->IsLargeAllocation())
         {
-            if (readWrite)
-            {
-                if (!allocation->largeObjectAllocation.isReadWrite)
-                {
-                    DWORD dwOldProtectFlags;
-                    BOOL result = this->ProtectAllocation(allocation, readWriteFlags, &dwOldProtectFlags, PAGE_EXECUTE);
-                    Assert(result && (dwOldProtectFlags & readWriteFlags) == 0);
-                    return dwOldProtectFlags;
-                }
-            }
-            else
-            {
-                if (allocation->largeObjectAllocation.isReadWrite)
-                {
-                    DWORD dwOldProtectFlags;
-                    this->ProtectAllocation(allocation, PAGE_EXECUTE, &dwOldProtectFlags, readWriteFlags);
-                    Assert((dwOldProtectFlags & PAGE_EXECUTE) == 0);
-                    return dwOldProtectFlags;
-                }
-            }
-
+            BOOL result = this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
+            Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+            return PAGE_EXECUTE;
         }
         else
         {
-            return EnsurePageReadWrite<readWrite, readWriteFlags>(allocation->page);
+            return EnsurePageReadWrite<readWriteFlags>(allocation->page);
         }
-
-        // 0 is safe to return as its not a memory protection constant
-        // so it indicates that nothing was changed
-        return 0;
     }
-
-    BOOL ProtectAllocationInternal(__in Allocation* allocation, __in_opt char* addressInPage, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag);
 
     /**
      * Freeing Methods

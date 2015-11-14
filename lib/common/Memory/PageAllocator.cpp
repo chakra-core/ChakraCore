@@ -2193,13 +2193,12 @@ void PageAllocatorBase<TVirtualAlloc>::ReleaseSegmentList(DListBase<T> * segment
 
 template<typename T>
 BOOL
-HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in void* segmentParam, DWORD dwVirtualProtectFlags, DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag)
+HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in void* segmentParam, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag)
 {
     SegmentBase<T> * segment = (SegmentBase<T>*)segmentParam;
 #if DBG
     Assert(address >= segment->GetAddress());
     Assert(((uint)(((char *)address) - segment->GetAddress()) <= (segment->GetPageCount() - pageCount) * AutoSystemInfo::PageSize));
-    Assert(dwOldVirtualProtectFlags != NULL);
 
     if (IsPageSegment(segment))
     {
@@ -2231,17 +2230,26 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
     size_t bytes = VirtualQuery(address, &memBasicInfo, sizeof(memBasicInfo));
     if (bytes == 0
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
-        || desiredOldProtectFlag != memBasicInfo.Protect
-        )
+        || desiredOldProtectFlag != memBasicInfo.Protect)
     {
         CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
         return FALSE;
     }
-    *dwOldVirtualProtectFlags = memBasicInfo.Protect;
+
+    /*Verify if we always pass the PAGE_TARGETS_NO_UPDATE flag, if the protect flag is EXECUTE*/
+#if defined(_CONTROL_FLOW_GUARD)
+    if (AutoSystemInfo::Data.IsCFGEnabled() &&
+        (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) &&
+        ((dwVirtualProtectFlags & PAGE_TARGETS_NO_UPDATE) == 0))
+    {
+        CustomHeap_BadPageState_fatal_error((ULONG_PTR)this);
+        return FALSE;
+    }
+#endif
 
     DWORD oldProtect; // this is only for first page
     BOOL retVal = ::VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
-    Assert(oldProtect == *dwOldVirtualProtectFlags);
+    Assert(oldProtect == desiredOldProtectFlag);
 
     return retVal;
 }

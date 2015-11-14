@@ -246,8 +246,8 @@ bool EmitBufferManager<SyncObject>::FinalizeAllocation(EmitBufferAllocation *all
     DWORD bytes = allocation->BytesFree();
     if(bytes > 0)
     {
-        BYTE* buffer;
-        this->GetBuffer(allocation, bytes, &buffer, false /*readWrite*/);
+        BYTE* buffer = nullptr;
+        this->GetBuffer(allocation, bytes, &buffer);
         if (!this->CommitBuffer(allocation, buffer, 0, /*sourceBuffer=*/ nullptr, /*alignPad=*/ bytes))
         {
             return false;
@@ -262,11 +262,10 @@ bool EmitBufferManager<SyncObject>::FinalizeAllocation(EmitBufferAllocation *all
 }
 
 template <typename SyncObject>
-EmitBufferAllocation* EmitBufferManager<SyncObject>::GetBuffer(EmitBufferAllocation *allocation, __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, bool readWrite)
+EmitBufferAllocation* EmitBufferManager<SyncObject>::GetBuffer(EmitBufferAllocation *allocation, __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer)
 {
     Assert(this->criticalSection.IsLocked());
 
-    this->allocationHeap.EnsureAllocationProtection(allocation->allocation, readWrite);
     Assert(allocation->BytesFree() >= bytes);
 
     // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
@@ -288,7 +287,7 @@ EmitBufferAllocation* EmitBufferManager<SyncObject>::GetBuffer(EmitBufferAllocat
 //      to modify this buffer one page at a time.
 //----------------------------------------------------------------------------
 template <typename SyncObject>
-EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, bool readWrite /*= false*/, ushort pdataCount /*=0*/, ushort xdataSize  /*=0*/, bool canAllocInPreReservedHeapPageSegment /*=false*/,
+EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount /*=0*/, ushort xdataSize  /*=0*/, bool canAllocInPreReservedHeapPageSegment /*=false*/,
     bool isAnyJittedCode /* = false*/)
 {
     AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
@@ -297,7 +296,13 @@ EmitBufferAllocation* EmitBufferManager<SyncObject>::AllocateBuffer(__in size_t 
 
     EmitBufferAllocation * allocation = this->NewAllocation(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode);
 
-    GetBuffer(allocation, bytes, ppBuffer, readWrite);
+    GetBuffer(allocation, bytes, ppBuffer);
+
+#if DBG
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+#endif
 
     return allocation;
 }
@@ -327,6 +332,14 @@ bool EmitBufferManager<SyncObject>::CheckCommitFaultInjection()
 
 #endif
 
+template <typename SyncObject>
+bool EmitBufferManager<SyncObject>::ProtectBufferWithExecuteReadWriteForInterpreter(EmitBufferAllocation* allocation)
+{
+    Assert(this->criticalSection.IsLocked());
+    Assert(allocation != nullptr);
+    return (this->allocationHeap.ProtectAllocationWithExecuteReadWrite(allocation->allocation) == TRUE);
+}
+
 // Returns true if we successfully commit the buffer
 // Returns false if we OOM
 template <typename SyncObject>
@@ -340,8 +353,6 @@ bool EmitBufferManager<SyncObject>::CommitReadWriteBufferForInterpreter(EmitBuff
     this->totalBytesCode += bufferSize;
 #endif
 
-    DWORD oldProtect;
-
     VerboseHeapTrace(L"Setting execute permissions on 0x%p, allocation: 0x%p\n", pBuffer, allocation->allocation->address);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -351,14 +362,13 @@ bool EmitBufferManager<SyncObject>::CommitReadWriteBufferForInterpreter(EmitBuff
     }
 #endif
 
-    if (!this->allocationHeap.ProtectAllocation(allocation->allocation, PAGE_EXECUTE, &oldProtect, PAGE_READWRITE))
+    if (!this->allocationHeap.ProtectAllocationWithExecuteReadOnly(allocation->allocation))
     {
         return false;
     }
 
     FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), pBuffer, bufferSize);
 
-    Assert(oldProtect == PAGE_READWRITE);
     return true;
 }
 
@@ -377,8 +387,6 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
 
     Assert(destBuffer != nullptr);
     Assert(allocation != nullptr);
-
-    DWORD oldProtect;
 
     BYTE *currentDestBuffer = allocation->GetUnused();
     BYTE *bufferToFlush = currentDestBuffer;
@@ -404,11 +412,11 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
             return false;
         }
 #endif
-        if (!this->allocationHeap.ProtectAllocationPage(allocation->allocation, (char*)readWriteBuffer, PAGE_EXECUTE_READWRITE, &oldProtect, PAGE_EXECUTE))
+
+        if (!this->allocationHeap.ProtectAllocationWithExecuteReadWrite(allocation->allocation, (char*)readWriteBuffer))
         {
             return false;
         }
-        Assert(oldProtect == PAGE_EXECUTE);
 
         if (alignPad != 0)
         {
@@ -440,11 +448,11 @@ EmitBufferManager<SyncObject>::CommitBuffer(EmitBufferAllocation* allocation, __
         }
 
         Assert(readWriteBuffer + readWriteBytes == currentDestBuffer);
-        if (!this->allocationHeap.ProtectAllocationPage(allocation->allocation, (char*)readWriteBuffer, PAGE_EXECUTE, &oldProtect, PAGE_EXECUTE_READWRITE))
+
+        if (!this->allocationHeap.ProtectAllocationWithExecuteReadOnly(allocation->allocation, (char*)readWriteBuffer))
         {
             return false;
         }
-        Assert(oldProtect == PAGE_EXECUTE_READWRITE);
     }
 
     FlushInstructionCache(AutoSystemInfo::Data.GetProcessHandle(), bufferToFlush, sizeToFlush);
