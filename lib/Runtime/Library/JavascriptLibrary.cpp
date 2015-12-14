@@ -3316,6 +3316,12 @@ namespace Js
         case PropertyIds::trimRight:
             return BuiltinFunction::String_TrimRight;
 
+        case PropertyIds::padStart:
+            return BuiltinFunction::String_PadStart;
+
+        case PropertyIds::padEnd:
+            return BuiltinFunction::String_PadEnd;
+
         case PropertyIds::exec:
             return BuiltinFunction::RegExp_Exec;
 
@@ -3817,6 +3823,12 @@ namespace Js
         {
             library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator,
                 &JavascriptString::EntryInfo::SymbolIterator, 0);
+        }
+
+        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
+        {
+            builtinFuncs[BuiltinFunction::String_PadStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padStart, &JavascriptString::EntryInfo::PadStart, 1);
+            builtinFuncs[BuiltinFunction::String_PadEnd] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::padEnd, &JavascriptString::EntryInfo::PadEnd, 1);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
@@ -6477,6 +6489,12 @@ namespace Js
         if (config.IsES6IteratorsEnabled())
         {
             REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptString::EntrySymbolIterator);
+        }
+
+        if (config.IsES7BuiltinsEnabled())
+        {
+            REG_OBJECTS_LIB_FUNC(padStart, JavascriptString::EntryPadStart);
+            REG_OBJECTS_LIB_FUNC(padEnd, JavascriptString::EntryPadEnd);
         }
 
         return hr;

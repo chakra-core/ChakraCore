@@ -441,6 +441,8 @@ bool InliningDecider::GetBuiltInInfo(
     case Js::JavascriptBuiltInFunction::JavascriptString_Trim:
     case Js::JavascriptBuiltInFunction::JavascriptString_TrimLeft:
     case Js::JavascriptBuiltInFunction::JavascriptString_TrimRight:
+    case Js::JavascriptBuiltInFunction::JavascriptString_PadStart:
+    case Js::JavascriptBuiltInFunction::JavascriptString_PadEnd:
         *returnType = ValueType::String;
         goto CallDirectCommon;
 

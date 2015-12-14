@@ -3168,6 +3168,13 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_TrimRight, callInstr->m_func));
         break;
 
+    case Js::BuiltinFunction::String_PadStart:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadStart, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::String_PadEnd:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadEnd, callInstr->m_func));
+        break;
 
     case Js::BuiltinFunction::GlobalObject_ParseInt:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperGlobalObject_ParseInt, callInstr->m_func));

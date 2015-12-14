@@ -684,6 +684,8 @@ ENTRY(location)
 ENTRY(navigator)
 ENTRY(screen)
 
+ENTRY(padStart)
+ENTRY(padEnd)
 
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.

@@ -28,6 +28,12 @@
   </test>
   <test>
     <default>
+      <files>stringpad.js</files>
+      <compile-flags>-ES7Builtins -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>asyncawait-apis.js</files>
       <compile-flags>-es7asyncawait -es6tostringtag -args summary -endargs</compile-flags>
     </default>

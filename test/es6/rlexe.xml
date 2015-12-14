@@ -1103,13 +1103,13 @@
         <compile-flags>-args summary -endargs</compile-flags>
     </default>
 </test>
-  <test>
+<test>
     <default>
       <files>object_literal_bug.js</files>
       <compile-flags>-ES6Destructuring -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-  </test>
+</test>
   <test>
     <default>
       <files>OS_5403724.js</files>
