@@ -2221,10 +2221,10 @@ namespace Js
                 switch (asmSlot->varType)
                 {
                 case AsmJsVarType::Double:
-                    value = JavascriptNumber::New(asmDoubleVars[asmSlot->location], scriptContext);
+                    value = JavascriptNumber::NewWithCheck(asmDoubleVars[asmSlot->location], scriptContext);
                     break;
                 case AsmJsVarType::Float:
-                    value = JavascriptNumber::New(asmFloatVars[asmSlot->location], scriptContext);
+                    value = JavascriptNumber::NewWithCheck(asmFloatVars[asmSlot->location], scriptContext);
                     break;
                 case AsmJsVarType::Int:
                     value = JavascriptNumber::ToVar(asmIntVars[asmSlot->location], scriptContext);
@@ -2272,7 +2272,7 @@ namespace Js
                 value = asmFuncs[asmSlot->location];
                 break;
             case AsmJsSymbol::MathConstant:
-                value = JavascriptNumber::New(asmSlot->mathConstVal, scriptContext);
+                value = JavascriptNumber::NewWithCheck(asmSlot->mathConstVal, scriptContext);
                 break;
             case AsmJsSymbol::ArrayView:
             {
