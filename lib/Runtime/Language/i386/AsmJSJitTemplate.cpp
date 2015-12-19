@@ -3145,7 +3145,7 @@ namespace Js
             size += SUB::EncodeInstruction<int>( buffer, InstrParamsRegImm<int8>( RegESP, 8 ) );
             size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsAddrReg( RegESP, 0, regVariable ) );
 
-            size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegImm<int32>( RegEAX, (int32)(Var(*)(double,ScriptContext*))JavascriptNumber::New) );
+            size += MOV::EncodeInstruction<int>( buffer, InstrParamsRegImm<int32>( RegEAX, (int32)(Var(*)(double,ScriptContext*))JavascriptNumber::NewWithCheck) );
             size += CALL::EncodeInstruction<int>( buffer, InstrParamsReg( RegEAX ) );
 
             size += MOV::EncodeInstruction<int>( buffer, InstrParamsAddrReg( RegESP, argIndex << 2, RegEAX ) );
