@@ -2091,7 +2091,7 @@ namespace Js
     inline void InterpreterStackFrame::OP_SetOutAsmDb( RegSlot outRegisterID, double val )
     {
         Assert( m_outParams + outRegisterID < m_outSp );
-        m_outParams[outRegisterID] = JavascriptNumber::New( val, scriptContext );
+        m_outParams[outRegisterID] = JavascriptNumber::NewWithCheck( val, scriptContext );
     }
 
     inline void InterpreterStackFrame::OP_SetOutAsmInt( RegSlot outRegisterID, int val )
