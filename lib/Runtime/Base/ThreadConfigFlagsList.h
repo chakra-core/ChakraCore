@@ -7,7 +7,6 @@
 FLAG(IsCollectGarbageEnabled, CollectGarbage)
 FLAG(IsErrorStackTraceEnabled, errorStackTrace)
 FLAG(Is__proto__Enabled, __proto__)
-FLAG(IsDefineGetterSetterEnabled, DefineGetterSetter)
 FLAG(IsLetAndConstEnabled, LetConst)
 FLAG(IsES6UnicodeVerboseEnabled, ES6UnicodeVerbose)
 FLAG_RELEASE(IsIntlEnabled, Intl)

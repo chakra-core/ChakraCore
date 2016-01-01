@@ -277,7 +277,6 @@
   <test>
     <default>
       <files>definegettersetter.js</files>
-      <compile-flags>-DefineGetterSetter</compile-flags>
       <baseline>definegettersetter.baseline</baseline>
     </default>
   </test>
