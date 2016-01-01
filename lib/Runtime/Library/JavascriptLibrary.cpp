@@ -417,10 +417,6 @@ namespace Js
             DeferredTypeHandler<InitializeFunctionPrototype>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
         symbolPrototype = nullptr;
-        mapPrototype = nullptr;
-        setPrototype = nullptr;
-        weakMapPrototype = nullptr;
-        weakSetPrototype = nullptr;
         arrayIteratorPrototype = nullptr;
         mapIteratorPrototype = nullptr;
         setIteratorPrototype = nullptr;
@@ -439,33 +435,21 @@ namespace Js
                 DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
         }
 
-        if (scriptContext->GetConfig()->IsES6MapEnabled())
-        {
-            mapPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
-        }
+        mapPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6SetEnabled())
-        {
-            setPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
-        }
+        setPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6WeakMapEnabled())
-        {
-            weakMapPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
-        }
+        weakMapPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6WeakSetEnabled())
-        {
-            weakSetPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
-        }
+        weakSetPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
 
         if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
         {
@@ -771,39 +755,23 @@ namespace Js
         // Initialize Throw error object type
         throwErrorObjectType = StaticType::New(scriptContext, TypeIds_Undefined, nullValue, ThrowErrorObject::DefaultEntryPoint);
 
-        mapType = nullptr;
-        setType = nullptr;
-        weakMapType = nullptr;
-        weakSetType = nullptr;
         iteratorResultType = nullptr;
         arrayIteratorType = nullptr;
         mapIteratorType = nullptr;
         setIteratorType = nullptr;
         stringIteratorType = nullptr;
 
-        if (config->IsES6MapEnabled())
-        {
-            mapType = DynamicType::New(scriptContext, TypeIds_Map, mapPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        mapType = DynamicType::New(scriptContext, TypeIds_Map, mapPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6SetEnabled())
-        {
-            setType = DynamicType::New(scriptContext, TypeIds_Set, setPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        setType = DynamicType::New(scriptContext, TypeIds_Set, setPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6WeakMapEnabled())
-        {
-            weakMapType = DynamicType::New(scriptContext, TypeIds_WeakMap, weakMapPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        weakMapType = DynamicType::New(scriptContext, TypeIds_WeakMap, weakMapPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6WeakSetEnabled())
-        {
-            weakSetType = DynamicType::New(scriptContext, TypeIds_WeakSet, weakSetPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        weakSetType = DynamicType::New(scriptContext, TypeIds_WeakSet, weakSetPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
         if (config->IsES6IteratorsEnabled())
         {
@@ -1480,40 +1448,23 @@ namespace Js
 #endif
 #endif
 
-        mapConstructor = nullptr;
-        setConstructor = nullptr;
-        weakMapConstructor = nullptr;
-        weakSetConstructor = nullptr;
+        mapConstructor = CreateBuiltinConstructor(&JavascriptMap::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeMapConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Map, mapConstructor);
+
+        setConstructor = CreateBuiltinConstructor(&JavascriptSet::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeSetConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Set, setConstructor);
+
+        weakMapConstructor = CreateBuiltinConstructor(&JavascriptWeakMap::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWeakMapConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::WeakMap, weakMapConstructor);
+
+        weakSetConstructor = CreateBuiltinConstructor(&JavascriptWeakSet::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWeakSetConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::WeakSet, weakSetConstructor);
+
         generatorFunctionConstructor = nullptr;
-        asyncFunctionConstructor = nullptr;
-
-        if (scriptContext->GetConfig()->IsES6MapEnabled())
-        {
-            mapConstructor = CreateBuiltinConstructor(&JavascriptMap::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeMapConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Map, mapConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6SetEnabled())
-        {
-            setConstructor = CreateBuiltinConstructor(&JavascriptSet::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeSetConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Set, setConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6WeakMapEnabled())
-        {
-            weakMapConstructor = CreateBuiltinConstructor(&JavascriptWeakMap::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWeakMapConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::WeakMap, weakMapConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6WeakSetEnabled())
-        {
-            weakSetConstructor = CreateBuiltinConstructor(&JavascriptWeakSet::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWeakSetConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::WeakSet, weakSetConstructor);
-        }
 
         if (scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
@@ -1522,6 +1473,8 @@ namespace Js
                 functionConstructor);
             // GeneratorFunction is not a global property by ES6 spec so don't add it to the global object
         }
+
+        asyncFunctionConstructor = nullptr;
 
         if (scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
@@ -6040,25 +5993,10 @@ namespace Js
         REGISTER_OBJECT(RegExp);
         REGISTER_OBJECT(JSON);
 
-        if (config.IsES6MapEnabled())
-        {
-            REGISTER_OBJECT(Map);
-        }
-
-        if (config.IsES6SetEnabled())
-        {
-            REGISTER_OBJECT(Set);
-        }
-
-        if (config.IsES6WeakMapEnabled())
-        {
-            REGISTER_OBJECT(WeakMap);
-        }
-
-        if (config.IsES6WeakSetEnabled())
-        {
-            REGISTER_OBJECT(WeakSet);
-        }
+        REGISTER_OBJECT(Map);
+        REGISTER_OBJECT(Set);
+        REGISTER_OBJECT(WeakMap);
+        REGISTER_OBJECT(WeakSet);
 
         if (config.IsES6SymbolEnabled())
         {
