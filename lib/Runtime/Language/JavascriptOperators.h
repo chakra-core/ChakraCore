@@ -47,7 +47,6 @@ namespace Js
     } \
     if (scriptContext->IsUndeclBlockVar(var)) \
     { \
-        Assert(scriptContext->GetConfig()->IsLetAndConstEnabled()); \
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
     }
 

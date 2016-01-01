@@ -355,7 +355,6 @@ namespace Js
         }
 
         Assert(scriptContext->IsUndeclBlockVar(value));
-        Assert(scriptContext->GetConfig()->IsLetAndConstEnabled());
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
     }
 
@@ -2699,22 +2698,19 @@ CommonNumber:
             // with implicit calls disabled will always "succeed").
             if (JavascriptOperators::HasProperty(object, propertyId))
             {
-                if (scriptContext->GetConfig()->IsLetAndConstEnabled())
+                DisableImplicitFlags disableImplicitFlags = scriptContext->GetThreadContext()->GetDisableImplicitFlags();
+                scriptContext->GetThreadContext()->SetDisableImplicitFlags(DisableImplicitCallAndExceptionFlag);
+
+                Var value;
+                BOOL result = JavascriptOperators::GetProperty(object, propertyId, &value, scriptContext, nullptr);
+
+                scriptContext->GetThreadContext()->SetDisableImplicitFlags(disableImplicitFlags);
+
+                if (result && scriptContext->IsUndeclBlockVar(value) && !allowUndecInConsoleScope && !isLexicalThisSlotSymbol)
                 {
-                    DisableImplicitFlags disableImplicitFlags =
-                        scriptContext->GetThreadContext()->GetDisableImplicitFlags();
-                    scriptContext->GetThreadContext()->SetDisableImplicitFlags(DisableImplicitCallAndExceptionFlag);
-
-                    Var value;
-                    BOOL result = JavascriptOperators::GetProperty(object, propertyId, &value, scriptContext, nullptr);
-
-                    scriptContext->GetThreadContext()->SetDisableImplicitFlags(disableImplicitFlags);
-
-                    if (result && scriptContext->IsUndeclBlockVar(value) && !allowUndecInConsoleScope && !isLexicalThisSlotSymbol)
-                    {
-                        JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
-                    }
+                    JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
+
                 PropertyValueInfo info;
                 PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
                 PropertyOperationFlags setPropertyOpFlags = allowUndecInConsoleScope ? PropertyOperation_AllowUndeclInConsoleScope : PropertyOperation_None;

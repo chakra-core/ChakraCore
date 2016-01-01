@@ -463,8 +463,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_MinProfileCacheSize        (5)   // Minimum number of functions before profile is saved.
 #define DEFAULT_CONFIG_ProfileDifferencePercent   (15)  // If 15% of the functions have different profile we will trigger a save.
 
-#define DEFAULT_CONFIG_LetConst                (true)
-
 #define DEFAULT_CONFIG_Intl                    (true)
 #define DEFAULT_CONFIG_IntlBuiltIns            (true)
 
@@ -836,8 +834,6 @@ FLAGR(Boolean, SkipSplitOnNoResult, "If the result of Regex split isn't used, sk
 #ifdef TEST_ETW_EVENTS
 FLAGNR(String,  TestEtwDll            , "Path of the TestEtwEventSink DLL", nullptr)
 #endif
-
-FLAGNR(Boolean, LetConst              , "Enable support of 'let' and 'const' keyword", DEFAULT_CONFIG_LetConst)
 
 FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CONFIG_CollectGarbage)
 

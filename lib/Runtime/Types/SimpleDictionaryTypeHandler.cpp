@@ -1380,7 +1380,6 @@ namespace Js
         {
             if ((descriptor->Attributes & PropertyNoRedecl) && !(flags & PropertyOperation_AllowUndecl))
             {
-                Assert(scriptContext->GetConfig()->IsLetAndConstEnabled());
                 if (scriptContext->IsUndeclBlockVar(instance->GetSlot(descriptor->propertyIndex)) && !(flags & PropertyOperation_AllowUndeclInConsoleScope))
                 {
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
