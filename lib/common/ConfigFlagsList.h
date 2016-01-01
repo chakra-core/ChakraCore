@@ -467,9 +467,6 @@ PHASE(All)
 // ES6 - BLUE
 #define DEFAULT_CONFIG___proto__               (true)
 #define DEFAULT_CONFIG_LetConst                (true)
-#define DEFAULT_CONFIG_WeakMap                 (true)
-#define DEFAULT_CONFIG_Map                     (true)
-#define DEFAULT_CONFIG_Set                     (true)
 
 #define DEFAULT_CONFIG_Intl                    (true)
 #define DEFAULT_CONFIG_IntlBuiltIns            (true)
@@ -515,7 +512,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
 #define DEFAULT_CONFIG_ES6Unscopables          (true)
-#define DEFAULT_CONFIG_ES6WeakSet              (true)
 #define DEFAULT_CONFIG_ES6RegExSticky          (true)
 #define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
 #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
@@ -853,9 +849,6 @@ FLAGNR(String,  TestEtwDll            , "Path of the TestEtwEventSink DLL", null
 // ES6 (BLUE-shipped) features/flags
 FLAGNR(Boolean, __proto__             , "__proto__ support", DEFAULT_CONFIG___proto__)
 FLAGNR(Boolean, LetConst              , "Enable support of 'let' and 'const' keyword", DEFAULT_CONFIG_LetConst)
-FLAGNR(Boolean, Map                   , "Enable ES6 Map feature", DEFAULT_CONFIG_Map)
-FLAGNR(Boolean, Set                   , "Enable ES6 Set feature", DEFAULT_CONFIG_Set)
-FLAGNR(Boolean, WeakMap               , "Enable ES6 WeakMap feature", DEFAULT_CONFIG_WeakMap)
 
 FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CONFIG_CollectGarbage)
 
@@ -912,7 +905,6 @@ FLAGPR           (Boolean, ES6, ES6TypedArrayExtensions, "Enable ES6 TypedArray 
 FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0 extensions"                        , DEFAULT_CONFIG_ES6Unicode)
 FLAGPR           (Boolean, ES6, ES6UnicodeVerbose      , "Enable ES6 Unicode 6.0 verbose failure output"            , DEFAULT_CONFIG_ES6UnicodeVerbose)
 FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statement Unscopables"                    , DEFAULT_CONFIG_ES6Unscopables)
-FLAGPR           (Boolean, ES6, ES6WeakSet             , "Enable ES6 WeakSet"                                       , DEFAULT_CONFIG_ES6WeakSet)
 FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx sticky flag"                             , DEFAULT_CONFIG_ES6RegExSticky)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype"         , DEFAULT_CONFIG_ES6RegExPrototypeProperties)
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
