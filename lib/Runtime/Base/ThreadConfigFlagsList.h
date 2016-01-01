@@ -6,7 +6,6 @@
 // Format: FLAG*(ThreadFlag, GlobalFlag)
 FLAG(IsCollectGarbageEnabled, CollectGarbage)
 FLAG(IsErrorStackTraceEnabled, errorStackTrace)
-FLAG(IsLetAndConstEnabled, LetConst)
 FLAG(IsES6UnicodeVerboseEnabled, ES6UnicodeVerbose)
 FLAG_RELEASE(IsIntlEnabled, Intl)
 FLAG_RELEASE(IsES6SpeciesEnabled, ES6Species)

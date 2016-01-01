@@ -3092,7 +3092,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             }
         }
 
-        if (scriptContext->GetConfig()->IsLetAndConstEnabled() && funcInfo->IsGlobalFunction())
+        if (funcInfo->IsGlobalFunction())
         {
             EnsureNoRedeclarations(pnode->sxFnc.pnodeScopes, funcInfo);
         }
@@ -6815,10 +6815,7 @@ void EmitCallTargetNoEvalComponents(
             *thisLocation = funcInfo->undefinedConstantRegister;
         }
 
-        if (byteCodeGenerator->GetScriptContext()->GetConfig()->IsLetAndConstEnabled())
-        {
-            EmitUseBeforeDeclaration(pnodeTarget, byteCodeGenerator, funcInfo);
-        }
+        EmitUseBeforeDeclaration(pnodeTarget, byteCodeGenerator, funcInfo);
         break;
 
     default:

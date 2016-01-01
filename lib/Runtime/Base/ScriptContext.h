@@ -188,7 +188,7 @@ namespace Js
 
         bool SupportsCollectGarbage() const { return true; }
         bool IsTypedArrayEnabled() const { return true; }
-        bool BindDeferredPidRefs() const { return IsLetAndConstEnabled(); }
+        bool BindDeferredPidRefs() const { return true; } // todo remove?
 
         void ForceNoNative() { this->NoNative = true; }
         void ForceNative() { this->NoNative = false; }

@@ -1789,12 +1789,6 @@ void Parser::PopBlockInfo()
 
 void Parser::PushDynamicBlock()
 {
-    if (!m_scriptContext->GetConfig()->IsLetAndConstEnabled())
-    {
-        // Shortcut: we only need to track dynamically-bound blocks for const reassignment.
-        return;
-    }
-
     Assert(GetCurrentBlock());
     int blockId = GetCurrentBlock()->sxBlock.blockId;
     if (m_currentDynamicBlock && m_currentDynamicBlock->id == blockId)
@@ -1820,7 +1814,6 @@ void Parser::PopDynamicBlock()
         return;
     }
     Assert(m_currentDynamicBlock);
-    AssertMsg(m_scriptContext->GetConfig()->IsLetAndConstEnabled(), "Should only do this if let/const is enabled since only needed for const reassignment error checking");
     for (BlockInfoStack *blockInfo = m_currentBlockInfo; blockInfo; blockInfo = blockInfo->pBlockInfoOuter)
     {
         for (ParseNodePtr pnodeDecl = blockInfo->pnodeBlock->sxBlock.pnodeLexVars;
@@ -8404,7 +8397,7 @@ LFunctionStatement:
         break;
 
     case tkID:
-        if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let && m_scriptContext->GetConfig()->IsLetAndConstEnabled())
+        if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let)
         {
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
@@ -8439,18 +8432,11 @@ LFunctionStatement:
 
     case tkCONST:
     case tkLET:
-        if (m_scriptContext->GetConfig()->IsLetAndConstEnabled())
-        {
-            ichMin = m_pscan->IchMinTok();
+        ichMin = m_pscan->IchMinTok();
 
-            m_pscan->Scan();
-            pnode = ParseVariableDeclaration<buildAST>(tok, ichMin);
-            goto LNeedTerminator;
-        }
-        else
-        {
-            goto LDefaultToken;
-        }
+        m_pscan->Scan();
+        pnode = ParseVariableDeclaration<buildAST>(tok, ichMin);
+        goto LNeedTerminator;
 
     case tkVAR:
         ichMin = m_pscan->IchMinTok();
@@ -8483,7 +8469,7 @@ LFunctionStatement:
         switch (tok)
         {
         case tkID:
-            if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let && m_scriptContext->GetConfig()->IsLetAndConstEnabled())
+            if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.let)
             {
                 // We see "let" in the init part of a for loop. This could either be a declaration or an identifier
                 // reference. The next token determines which.
@@ -8512,10 +8498,6 @@ LFunctionStatement:
             goto LDefaultTokenFor;
         case tkLET:
         case tkCONST:
-            if (!m_scriptContext->GetConfig()->IsLetAndConstEnabled())
-            {
-                goto LDefaultTokenFor;
-            }
         case tkVAR:
             {
                 auto ichMin = m_pscan->IchMinTok();
