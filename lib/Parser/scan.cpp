@@ -2078,11 +2078,8 @@ LIdentifier:
                 }
                 break;
             case '>':
-                if (m_scriptContext->GetConfig()->IsES6LambdaEnabled())
-                {
-                    p++;
-                    token = tkDArrow;
-                }
+                p++;
+                token = tkDArrow;
                 break;
             }
             break;
