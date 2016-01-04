@@ -3169,16 +3169,12 @@ CommonNumber:
         }
 
         JavascriptArray* arrayPrototype = JavascriptArray::FromVar(prototype); //Prototype must be Array.prototype (unless changed through __proto__)
-        AssertMsg(scriptContext->GetConfig()->Is__proto__Enabled()
-            || arrayPrototype->GetScriptContext()->GetLibrary()->GetArrayPrototype() == arrayPrototype, "This function is supported only for [[class]] Array");
         if (arrayPrototype->GetLength() && arrayPrototype->GetItem(arrayPrototype, (uint32)indexInt, result, scriptContext))
         {
             return true;
         }
 
         prototype = arrayPrototype->GetPrototype(); //Its prototype must be Object.prototype (unless changed through __proto__)
-        AssertMsg(scriptContext->GetConfig()->Is__proto__Enabled()
-            || prototype->GetScriptContext()->GetLibrary()->GetObjectPrototype() == prototype, "This function is supported only for [[class]] Array");
         if (prototype->GetScriptContext()->GetLibrary()->GetObjectPrototype() != prototype)
         {
             return false;
@@ -6398,7 +6394,6 @@ CommonNumber:
 
     //
     // Used by object literal {..., __proto__: ..., }.
-    // When __proto__ is enabled, it is effectively same as StFld. However when __proto__ is disabled, it functions same as InitFld.
     //
     void JavascriptOperators::OP_InitProto(Var instance, PropertyId propertyId, Var value)
     {
@@ -6408,21 +6403,14 @@ CommonNumber:
         RecyclableObject* object = RecyclableObject::FromVar(instance);
         ScriptContext* scriptContext = object->GetScriptContext();
 
-        if (scriptContext->GetConfig()->Is__proto__Enabled())
+        // B.3.1    __proto___ Property Names in Object Initializers
+        //6.If propKey is the string value "__proto__" and if isComputedPropertyName(propKey) is false, then
+        //    a.If Type(v) is either Object or Null, then
+        //        i.Return the result of calling the [[SetInheritance]] internal method of object with argument propValue.
+        //    b.Return NormalCompletion(empty).
+        if (JavascriptOperators::IsObjectOrNull(value))
         {
-            // B.3.1    __proto___ Property Names in Object Initializers
-            //6.If propKey is the string value "__proto__" and if isComputedPropertyName(propKey) is false, then
-            //    a.If Type(v) is either Object or Null, then
-            //        i.Return the result of calling the [[SetInheritance]] internal method of object with argument propValue.
-            //    b.Return NormalCompletion(empty).
-            if (JavascriptOperators::IsObjectOrNull(value))
-            {
-                JavascriptObject::ChangePrototype(object, RecyclableObject::FromVar(value), /*validate*/false, scriptContext);
-            }
-        }
-        else
-        {
-            object->InitProperty(propertyId, value);
+            JavascriptObject::ChangePrototype(object, RecyclableObject::FromVar(value), /*validate*/false, scriptContext);
         }
     }
 
