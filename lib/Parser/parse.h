@@ -70,13 +70,6 @@ class HashTbl;
 typedef void (*ParseErrorCallback)(void *data, charcount_t position, charcount_t length, HRESULT hr);
 
 struct PidRefStack;
-struct CatchPidRef
-{
-    IdentPtr pid;
-    PidRefStack *ref;
-};
-
-typedef SListBase<CatchPidRef> CatchPidRefList;
 
 struct DeferredFunctionStub;
 
@@ -200,7 +193,6 @@ private:
     size_t      m_originalLength;             // source length in characters excluding comments and literals
     Js::LocalFunctionId * m_nextFunctionId;
     SourceContextInfo*    m_sourceContextInfo;
-    CatchPidRefList *m_catchPidRefList;
 
     ParseErrorCallback  m_errorCallback;
     void *              m_errorCallbackData;
@@ -241,10 +233,6 @@ private:
 
 
     void InitPids();
-
-    CatchPidRefList *GetCatchPidRefList() const { return m_catchPidRefList; }
-    void SetCatchPidRefList(CatchPidRefList *list) { m_catchPidRefList = list; }
-    CatchPidRefList *EnsureCatchPidRefList();
 
     /***********************************************************************
     Members needed just for parsing.
