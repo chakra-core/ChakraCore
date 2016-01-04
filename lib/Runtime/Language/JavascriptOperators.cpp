@@ -6591,10 +6591,7 @@ CommonNumber:
         argsObj->SetNumberOfArguments(actualsCount);
 
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::length, JavascriptNumber::ToVar(actualsCount, scriptContext), scriptContext);
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
-        }
+        JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
             PropertyDescriptor propertyDescriptorCaller;
