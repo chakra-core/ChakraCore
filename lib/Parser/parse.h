@@ -246,10 +246,6 @@ private:
     void SetCatchPidRefList(CatchPidRefList *list) { m_catchPidRefList = list; }
     CatchPidRefList *EnsureCatchPidRefList();
 
-    // True if we need to create PID's and bind names to decls in deferred functions.
-    // Do this if we need to support early let/const errors.
-    bool BindDeferredPidRefs() const;
-
     /***********************************************************************
     Members needed just for parsing.
     ***********************************************************************/

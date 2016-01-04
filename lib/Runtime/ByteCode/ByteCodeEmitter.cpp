@@ -2867,8 +2867,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
     if (funcInfo->root->sxFnc.pnodeBody == nullptr)
     {
-        if (scriptContext->GetConfig()->BindDeferredPidRefs() &&
-            !PHASE_OFF1(Js::SkipNestedDeferredPhase))
+        if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
         {
             deferParseFunction->BuildDeferredStubs(funcInfo->root);
         }
