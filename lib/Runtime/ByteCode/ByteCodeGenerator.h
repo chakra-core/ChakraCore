@@ -131,9 +131,9 @@ public:
         return this->propertyRecords;
     }
 
-    bool IsEvalWithBlockScopingNoParentScopeInfo()
+    bool IsEvalWithNoParentScopeInfo()
     {
-        return (flags & fscrEvalCode) && !HasParentScopeInfo() && scriptContext->GetConfig()->IsBlockScopeEnabled();
+        return (flags & fscrEvalCode) && !HasParentScopeInfo();
     }
 
     Js::ProfileId GetNextCallSiteId(Js::OpCode op)

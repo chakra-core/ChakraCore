@@ -196,7 +196,6 @@ namespace Js
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ this->fCanOptimizeGlobalLookup = f;}
         BOOL CanOptimizeGlobalLookup() const { return this->fCanOptimizeGlobalLookup;}
         bool IsOptimizedForManyInstances() const { return isOptimizedForManyInstances; }
-        bool IsBlockScopeEnabled() const { return true; }
         void CopyFrom(ScriptConfiguration& other)
         {
             this->NoNative = other.NoNative;
