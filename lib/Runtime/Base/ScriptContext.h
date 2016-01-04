@@ -170,7 +170,6 @@ namespace Js
         }
 
         // Version
-        bool SupportsES3()                      const { return true; }
         bool SupportsES3Extensions()            const {
 #ifdef ENABLE_PROJECTION
             return HostType != HostTypeApplication;

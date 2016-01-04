@@ -1655,11 +1655,8 @@ namespace Js
         /* No inlining                Array_ReduceRight    */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduceRight,     &JavascriptArray::EntryInfo::ReduceRight,       1);
         /* No inlining                Array_Some           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::some,            &JavascriptArray::EntryInfo::Some,              1);
 
-        if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled()) // This is not a typo, Array.prototype.find and .findIndex are part of the ES6 Improved String APIs feature
-        {
-            /* No inlining            Array_Find           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::find,            &JavascriptArray::EntryInfo::Find,              1);
-            /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
-        }
+        /* No inlining                Array_Find           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::find,            &JavascriptArray::EntryInfo::Find,              1);
+        /* No inlining                Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
 
         if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
         {
@@ -2592,26 +2589,24 @@ namespace Js
         builtinFuncs[BuiltinFunction::Math_Sqrt]   = library->AddFunctionToLibraryObject(mathObject, PropertyIds::sqrt,   &Math::EntryInfo::Sqrt,   1);
         builtinFuncs[BuiltinFunction::Math_Tan]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::tan,    &Math::EntryInfo::Tan,    1);
 
-        if (scriptContext->GetConfig()->IsES6MathExtensionsEnabled())
-        {
-            builtinFuncs[BuiltinFunction::Math_Imul] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::imul, &Math::EntryInfo::Imul, 2);
-            builtinFuncs[BuiltinFunction::Math_Fround] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::fround, &Math::EntryInfo::Fround, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Log10] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log10, &Math::EntryInfo::Log10, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Log2]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log2,  &Math::EntryInfo::Log2,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Log1p] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log1p, &Math::EntryInfo::Log1p, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Expm1] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::expm1, &Math::EntryInfo::Expm1, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Cosh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::cosh,  &Math::EntryInfo::Cosh,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Sinh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::sinh,  &Math::EntryInfo::Sinh,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Tanh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::tanh,  &Math::EntryInfo::Tanh,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Acosh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::acosh, &Math::EntryInfo::Acosh, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Asinh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::asinh, &Math::EntryInfo::Asinh, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Atanh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::atanh, &Math::EntryInfo::Atanh, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Hypot] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::hypot, &Math::EntryInfo::Hypot, 2);
-            /*builtinFuncs[BuiltinFunction::Math_Trunc] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::trunc, &Math::EntryInfo::Trunc, 1);
-            /*builtinFuncs[BuiltinFunction::Math_Sign]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::sign,  &Math::EntryInfo::Sign,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Cbrt]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::cbrt,  &Math::EntryInfo::Cbrt,  1);
-            /*builtinFuncs[BuiltinFunction::Math_Clz32] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::clz32, &Math::EntryInfo::Clz32, 1);
-        }
+        // ES6 Math API extentions
+        builtinFuncs[BuiltinFunction::Math_Imul]   = library->AddFunctionToLibraryObject(mathObject, PropertyIds::imul,   &Math::EntryInfo::Imul, 2);
+        builtinFuncs[BuiltinFunction::Math_Fround] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::fround, &Math::EntryInfo::Fround, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Log10] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log10, &Math::EntryInfo::Log10, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Log2]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log2,  &Math::EntryInfo::Log2,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Log1p] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::log1p, &Math::EntryInfo::Log1p, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Expm1] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::expm1, &Math::EntryInfo::Expm1, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Cosh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::cosh,  &Math::EntryInfo::Cosh,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Sinh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::sinh,  &Math::EntryInfo::Sinh,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Tanh]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::tanh,  &Math::EntryInfo::Tanh,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Acosh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::acosh, &Math::EntryInfo::Acosh, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Asinh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::asinh, &Math::EntryInfo::Asinh, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Atanh] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::atanh, &Math::EntryInfo::Atanh, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Hypot] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::hypot, &Math::EntryInfo::Hypot, 2);
+        /*builtinFuncs[BuiltinFunction::Math_Trunc] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::trunc, &Math::EntryInfo::Trunc, 1);
+        /*builtinFuncs[BuiltinFunction::Math_Sign]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::sign,  &Math::EntryInfo::Sign,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Cbrt]  =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::cbrt,  &Math::EntryInfo::Cbrt,  1);
+        /*builtinFuncs[BuiltinFunction::Math_Clz32] =*/ library->AddFunctionToLibraryObject(mathObject, PropertyIds::clz32, &Math::EntryInfo::Clz32, 1);
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
@@ -3428,29 +3423,26 @@ namespace Js
         library->AddMember(numberConstructor, PropertyIds::NEGATIVE_INFINITY, library->negativeInfinite,    PropertyNone);
         library->AddMember(numberConstructor, PropertyIds::POSITIVE_INFINITY, library->positiveInfinite,    PropertyNone);
 
-        if (scriptContext->GetConfig()->IsES6NumberExtensionsEnabled())
-        {
 #ifdef DBG
-            double epsilon = 0.0;
-            for (double next = 1.0; next + 1.0 != 1.0; next = next / 2.0)
-            {
-                epsilon = next;
-            }
-            Assert(epsilon == Math::EPSILON);
-#endif
-            library->AddMember(numberConstructor, PropertyIds::EPSILON,     JavascriptNumber::New(Math::EPSILON,     scriptContext), PropertyNone);
-            library->AddMember(numberConstructor, PropertyIds::MAX_SAFE_INTEGER, JavascriptNumber::New(Math::MAX_SAFE_INTEGER, scriptContext), PropertyNone);
-            library->AddMember(numberConstructor, PropertyIds::MIN_SAFE_INTEGER, JavascriptNumber::New(Math::MIN_SAFE_INTEGER, scriptContext), PropertyNone);
-
-            AssertMsg(library->parseIntFunctionObject != nullptr, "Where is parseIntFunctionObject? Should have been initialized with Global object initialization");
-            AssertMsg(library->parseFloatFunctionObject != nullptr, "Where is parseIntFunctionObject? Should have been initialized with Global object initialization");
-            library->AddMember(numberConstructor, PropertyIds::parseInt, library->parseIntFunctionObject);
-            library->AddMember(numberConstructor, PropertyIds::parseFloat, library->parseFloatFunctionObject);
-            library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isNaN, &JavascriptNumber::EntryInfo::IsNaN, 1);
-            library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isFinite, &JavascriptNumber::EntryInfo::IsFinite, 1);
-            library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isInteger, &JavascriptNumber::EntryInfo::IsInteger, 1);
-            library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isSafeInteger, &JavascriptNumber::EntryInfo::IsSafeInteger, 1);
+        double epsilon = 0.0;
+        for (double next = 1.0; next + 1.0 != 1.0; next = next / 2.0)
+        {
+            epsilon = next;
         }
+        Assert(epsilon == Math::EPSILON);
+#endif
+        library->AddMember(numberConstructor, PropertyIds::EPSILON,     JavascriptNumber::New(Math::EPSILON,     scriptContext), PropertyNone);
+        library->AddMember(numberConstructor, PropertyIds::MAX_SAFE_INTEGER, JavascriptNumber::New(Math::MAX_SAFE_INTEGER, scriptContext), PropertyNone);
+        library->AddMember(numberConstructor, PropertyIds::MIN_SAFE_INTEGER, JavascriptNumber::New(Math::MIN_SAFE_INTEGER, scriptContext), PropertyNone);
+
+        AssertMsg(library->parseIntFunctionObject != nullptr, "Where is parseIntFunctionObject? Should have been initialized with Global object initialization");
+        AssertMsg(library->parseFloatFunctionObject != nullptr, "Where is parseIntFunctionObject? Should have been initialized with Global object initialization");
+        library->AddMember(numberConstructor, PropertyIds::parseInt, library->parseIntFunctionObject);
+        library->AddMember(numberConstructor, PropertyIds::parseFloat, library->parseFloatFunctionObject);
+        library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isNaN, &JavascriptNumber::EntryInfo::IsNaN, 1);
+        library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isFinite, &JavascriptNumber::EntryInfo::IsFinite, 1);
+        library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isInteger, &JavascriptNumber::EntryInfo::IsInteger, 1);
+        library->AddFunctionToLibraryObject(numberConstructor, PropertyIds::isSafeInteger, &JavascriptNumber::EntryInfo::IsSafeInteger, 1);
 
         numberConstructor->SetHasNoEnumerableProperties(true);
     }
@@ -3486,14 +3478,10 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = objectConstructor->GetLibrary();
         ScriptContext* scriptContext = objectConstructor->GetScriptContext();
-        int propertyCount = 17;
+        int propertyCount = 19;
         if (scriptContext->GetConfig()->IsES6SymbolEnabled())
         {
             propertyCount += 1;
-        }
-        if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
-        {
-            propertyCount += 2;
         }
 
         typeHandler->Convert(objectConstructor, mode, propertyCount);
@@ -3537,13 +3525,10 @@ namespace Js
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertySymbols.GetOriginalEntryPoint(),
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertySymbols, &JavascriptObject::EntryInfo::GetOwnPropertySymbols, 1));
         }
-        if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
-        {
-            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Is.GetOriginalEntryPoint(),
-                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::is, &JavascriptObject::EntryInfo::Is, 2));
-            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Assign.GetOriginalEntryPoint(),
-                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::assign, &JavascriptObject::EntryInfo::Assign, 2));
-        }
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Is.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::is, &JavascriptObject::EntryInfo::Is, 2));
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Assign.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::assign, &JavascriptObject::EntryInfo::Assign, 2));
 
         objectConstructor->SetHasNoEnumerableProperties(true);
     }
@@ -3741,15 +3726,12 @@ namespace Js
             /* No inlining                String_Sup           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sup,                &JavascriptString::EntryInfo::Sup,                  0);
         }
 
-        if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled())
-        {
-            /* No inlining                String_Repeat        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::repeat,             &JavascriptString::EntryInfo::Repeat,               1);
-            /* No inlining                String_StartsWith    */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::startsWith,         &JavascriptString::EntryInfo::StartsWith,           1);
-            /* No inlining                String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
-            /* No inlining                String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
-            builtinFuncs[BuiltinFunction::String_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
-            builtinFuncs[BuiltinFunction::String_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
-        }
+        /* No inlining                    String_Repeat        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::repeat,             &JavascriptString::EntryInfo::Repeat,               1);
+        /* No inlining                    String_StartsWith    */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::startsWith,         &JavascriptString::EntryInfo::StartsWith,           1);
+        /* No inlining                    String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
+        /* No inlining                    String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
+        builtinFuncs[BuiltinFunction::String_TrimLeft]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
+        builtinFuncs[BuiltinFunction::String_TrimRight]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
 
         if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
         {
@@ -6085,11 +6067,8 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(__defineGetter__, JavascriptObject::EntryDefineGetter);
         REG_OBJECTS_LIB_FUNC(__defineSetter__, JavascriptObject::EntryDefineSetter);
 
-        if (config.IsES6ObjectExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(is, JavascriptObject::EntryIs);
-            REG_OBJECTS_LIB_FUNC(assign, JavascriptObject::EntryAssign);
-        }
+        REG_OBJECTS_LIB_FUNC(is, JavascriptObject::EntryIs);
+        REG_OBJECTS_LIB_FUNC(assign, JavascriptObject::EntryAssign);
 
         return hr;
     }
@@ -6124,13 +6103,10 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(reduceRight, JavascriptArray::EntryReduceRight);
         REG_OBJECTS_LIB_FUNC(some, JavascriptArray::EntrySome);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.IsES6StringExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(find, JavascriptArray::EntryFind);
-            REG_OBJECTS_LIB_FUNC(findIndex, JavascriptArray::EntryFindIndex);
-        }
+        REG_OBJECTS_LIB_FUNC(find, JavascriptArray::EntryFind);
+        REG_OBJECTS_LIB_FUNC(findIndex, JavascriptArray::EntryFindIndex);
 
+        ScriptConfiguration const& config = *(scriptContext->GetConfig());
         if (config.IsES6IteratorsEnabled())
         {
             REG_OBJECTS_LIB_FUNC(entries, JavascriptArray::EntryEntries)
@@ -6275,26 +6251,23 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(sqrt, Math::Sqrt);
         REG_OBJECTS_LIB_FUNC(tan, Math::Tan);
 
-        if (scriptContext->GetConfig()->IsES6MathExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(log10, Math::Log10);
-            REG_OBJECTS_LIB_FUNC(log2, Math::Log2);
-            REG_OBJECTS_LIB_FUNC(log1p, Math::Log1p);
-            REG_OBJECTS_LIB_FUNC(expm1, Math::Expm1);
-            REG_OBJECTS_LIB_FUNC(cosh, Math::Cosh);
-            REG_OBJECTS_LIB_FUNC(sinh, Math::Sinh);
-            REG_OBJECTS_LIB_FUNC(tanh, Math::Tanh);
-            REG_OBJECTS_LIB_FUNC(acosh, Math::Acosh);
-            REG_OBJECTS_LIB_FUNC(asinh, Math::Asinh);
-            REG_OBJECTS_LIB_FUNC(atanh, Math::Atanh);
-            REG_OBJECTS_LIB_FUNC(hypot, Math::Hypot);
-            REG_OBJECTS_LIB_FUNC(trunc, Math::Trunc);
-            REG_OBJECTS_LIB_FUNC(sign, Math::Sign);
-            REG_OBJECTS_LIB_FUNC(cbrt, Math::Cbrt);
-            REG_OBJECTS_LIB_FUNC(imul, Math::Imul);
-            REG_OBJECTS_LIB_FUNC(clz32, Math::Clz32);
-            REG_OBJECTS_LIB_FUNC(fround, Math::Fround);
-        }
+        REG_OBJECTS_LIB_FUNC(log10, Math::Log10);
+        REG_OBJECTS_LIB_FUNC(log2, Math::Log2);
+        REG_OBJECTS_LIB_FUNC(log1p, Math::Log1p);
+        REG_OBJECTS_LIB_FUNC(expm1, Math::Expm1);
+        REG_OBJECTS_LIB_FUNC(cosh, Math::Cosh);
+        REG_OBJECTS_LIB_FUNC(sinh, Math::Sinh);
+        REG_OBJECTS_LIB_FUNC(tanh, Math::Tanh);
+        REG_OBJECTS_LIB_FUNC(acosh, Math::Acosh);
+        REG_OBJECTS_LIB_FUNC(asinh, Math::Asinh);
+        REG_OBJECTS_LIB_FUNC(atanh, Math::Atanh);
+        REG_OBJECTS_LIB_FUNC(hypot, Math::Hypot);
+        REG_OBJECTS_LIB_FUNC(trunc, Math::Trunc);
+        REG_OBJECTS_LIB_FUNC(sign, Math::Sign);
+        REG_OBJECTS_LIB_FUNC(cbrt, Math::Cbrt);
+        REG_OBJECTS_LIB_FUNC(imul, Math::Imul);
+        REG_OBJECTS_LIB_FUNC(clz32, Math::Clz32);
+        REG_OBJECTS_LIB_FUNC(fround, Math::Fround);
 
         return hr;
     }
@@ -6306,13 +6279,10 @@ namespace Js
 
         DEFINE_OBJECT_NAME(Number);
 
-        if (scriptContext->GetConfig()->IsES6NumberExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(isNaN, JavascriptNumber::EntryIsNaN);
-            REG_OBJECTS_LIB_FUNC(isFinite, JavascriptNumber::EntryIsFinite);
-            REG_OBJECTS_LIB_FUNC(isInteger, JavascriptNumber::EntryIsInteger);
-            REG_OBJECTS_LIB_FUNC(isSafeInteger, JavascriptNumber::EntryIsSafeInteger);
-        }
+        REG_OBJECTS_LIB_FUNC(isNaN, JavascriptNumber::EntryIsNaN);
+        REG_OBJECTS_LIB_FUNC(isFinite, JavascriptNumber::EntryIsFinite);
+        REG_OBJECTS_LIB_FUNC(isInteger, JavascriptNumber::EntryIsInteger);
+        REG_OBJECTS_LIB_FUNC(isSafeInteger, JavascriptNumber::EntryIsSafeInteger);
 
         REG_OBJECTS_LIB_FUNC(toExponential, JavascriptNumber::EntryToExponential);
         REG_OBJECTS_LIB_FUNC(toFixed, JavascriptNumber::EntryToFixed);
@@ -6378,16 +6348,12 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
         }
 
-        if (config.IsES6StringExtensionsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(repeat, JavascriptString::EntryRepeat);
-            REG_OBJECTS_LIB_FUNC(startsWith, JavascriptString::EntryStartsWith);
-            REG_OBJECTS_LIB_FUNC(endsWith, JavascriptString::EntryEndsWith);
-            REG_OBJECTS_LIB_FUNC(includes, JavascriptString::EntryIncludes);
-            REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimLeft);
-            REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimRight);
-
-        }
+        REG_OBJECTS_LIB_FUNC(repeat, JavascriptString::EntryRepeat);
+        REG_OBJECTS_LIB_FUNC(startsWith, JavascriptString::EntryStartsWith);
+        REG_OBJECTS_LIB_FUNC(endsWith, JavascriptString::EntryEndsWith);
+        REG_OBJECTS_LIB_FUNC(includes, JavascriptString::EntryIncludes);
+        REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimLeft);
+        REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimRight);
 
         if (config.IsES6StringTemplateEnabled())
         {

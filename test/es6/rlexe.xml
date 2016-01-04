@@ -334,7 +334,7 @@
   <test>
     <default>
       <files>ES6MathAPIs.js</files>
-      <compile-flags> -ES6Math -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -346,13 +346,13 @@
   <test>
     <default>
       <files>ES6NumberAPIs.js</files>
-      <compile-flags> -ES6Number -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6StringAPIs.js</files>
-      <compile-flags> -ES6String -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

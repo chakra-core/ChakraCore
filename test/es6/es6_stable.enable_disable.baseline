@@ -31,12 +31,6 @@ FLAG ES6 = 1 - setting child flag ES6Iterators = 1
 FLAG ES6Iterators = 1
 FLAG ES6 = 1 - setting child flag ES6IsConcatSpreadable = 0
 FLAG ES6IsConcatSpreadable = 0
-FLAG ES6 = 1 - setting child flag ES6Math = 1
-FLAG ES6Math = 1
-FLAG ES6 = 1 - setting child flag ES6Object = 1
-FLAG ES6Object = 1
-FLAG ES6 = 1 - setting child flag ES6Number = 1
-FLAG ES6Number = 1
 FLAG ES6 = 1 - setting child flag ES6NumericLiterals = 1
 FLAG ES6NumericLiterals = 1
 FLAG ES6 = 1 - setting child flag ES6ObjectLiterals = 1
@@ -49,8 +43,6 @@ FLAG ES6 = 1 - setting child flag ES6Rest = 1
 FLAG ES6Rest = 1
 FLAG ES6 = 1 - setting child flag ES6Spread = 1
 FLAG ES6Spread = 1
-FLAG ES6 = 1 - setting child flag ES6String = 1
-FLAG ES6String = 1
 FLAG ES6 = 1 - setting child flag ES6StringPrototypeFixes = 1
 FLAG ES6StringPrototypeFixes = 1
 FLAG ES6 = 1 - setting child flag ES6StringTemplate = 1
@@ -116,12 +108,6 @@ FLAG ES6 = 0 - setting child flag ES6Iterators = 0
 FLAG ES6Iterators = 0
 FLAG ES6 = 0 - setting child flag ES6IsConcatSpreadable = 0
 FLAG ES6IsConcatSpreadable = 0
-FLAG ES6 = 0 - setting child flag ES6Math = 0
-FLAG ES6Math = 0
-FLAG ES6 = 0 - setting child flag ES6Object = 0
-FLAG ES6Object = 0
-FLAG ES6 = 0 - setting child flag ES6Number = 0
-FLAG ES6Number = 0
 FLAG ES6 = 0 - setting child flag ES6NumericLiterals = 0
 FLAG ES6NumericLiterals = 0
 FLAG ES6 = 0 - setting child flag ES6ObjectLiterals = 0
@@ -134,8 +120,6 @@ FLAG ES6 = 0 - setting child flag ES6Rest = 0
 FLAG ES6Rest = 0
 FLAG ES6 = 0 - setting child flag ES6Spread = 0
 FLAG ES6Spread = 0
-FLAG ES6 = 0 - setting child flag ES6String = 0
-FLAG ES6String = 0
 FLAG ES6 = 0 - setting child flag ES6StringPrototypeFixes = 0
 FLAG ES6StringPrototypeFixes = 0
 FLAG ES6 = 0 - setting child flag ES6StringTemplate = 0
