@@ -1140,8 +1140,7 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
         {
             Js::PropertyId propertyId = sym->GetPosition();
             byteCodeGenerator->EmitGlobalFncDeclInit(pnodeFnc->location, propertyId, funcInfoParent);
-            if (byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled() &&
-                byteCodeGenerator->GetFlags() & fscrEval && !funcInfoParent->GetIsStrictMode())
+            if (byteCodeGenerator->GetFlags() & fscrEval && !funcInfoParent->GetIsStrictMode())
             {
                 byteCodeGenerator->EmitPropStore(pnodeFnc->location, sym, nullptr, funcInfoParent);
             }
@@ -1172,8 +1171,6 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
 
             if (fncScopeSym)
             {
-                Assert(byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
-
                 if (fncScopeSym->GetIsGlobal() && byteCodeGenerator->GetFlags() & fscrEval)
                 {
                     Js::PropertyId propertyId = fncScopeSym->GetPosition();
@@ -1323,7 +1320,7 @@ void ByteCodeGenerator::DefineUserVars(FuncInfo *funcInfo)
                 if (!sym->GetIsCatch())
                 {
                     // Assert that catch cannot be at function scope and let and var at function scope is redeclaration error.
-                    Assert(funcInfo->bodyScope != sym->GetScope() || !this->scriptContext->GetConfig()->IsBlockScopeEnabled());
+                    Assert(funcInfo->bodyScope != sym->GetScope());
                 }
 #endif
                 sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
@@ -1433,25 +1430,25 @@ void ByteCodeGenerator::InitBlockScopedNonTemps(ParseNode *pnode, FuncInfo *func
         switch (pnode->nop)
         {
         case knopFncDecl:
-            if (this->scriptContext->GetConfig()->IsBlockScopeEnabled())
+        {
+            // If this is a block-scoped function, initialize it.
+            ParseNode *pnodeName = pnode->sxFnc.pnodeName;
+            if (!pnode->sxFnc.IsMethod() && pnodeName && pnodeName->nop == knopVarDecl)
             {
-                // If this is a block-scoped function, initialize it.
-                ParseNode *pnodeName = pnode->sxFnc.pnodeName;
-                if (!pnode->sxFnc.IsMethod() && pnodeName && pnodeName->nop == knopVarDecl)
+                Symbol *sym = pnodeName->sxVar.sym;
+                Assert(sym);
+                if (sym->GetLocation() != Js::Constants::NoRegister &&
+                    sym->GetScope()->IsBlockScope(funcInfo) &&
+                    sym->GetScope()->GetFunc() == funcInfo)
                 {
-                    Symbol *sym = pnodeName->sxVar.sym;
-                    Assert(sym);
-                    if (sym->GetLocation() != Js::Constants::NoRegister &&
-                        sym->GetScope()->IsBlockScope(funcInfo) &&
-                        sym->GetScope()->GetFunc() == funcInfo)
-                    {
-                        this->m_writer.Reg1(Js::OpCode::LdUndef, sym->GetLocation());
-                    }
+                    this->m_writer.Reg1(Js::OpCode::LdUndef, sym->GetLocation());
                 }
             }
+
             // No need to recurse to the nested scopes, as they belong to a nested function.
             pnode = pnode->sxFnc.pnodeNext;
             break;
+        }
 
         case knopBlock:
         {
@@ -3116,7 +3113,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         // Note, global eval scope is a fake local scope and is handled as if it were
         // a lexical block instead of a true global scope, so do not define the functions
         // here. They will be defined during BeginEmitBlock.
-        if (!(funcInfo->IsGlobalFunction() && this->IsEvalWithBlockScopingNoParentScopeInfo()))
+        if (!(funcInfo->IsGlobalFunction() && this->IsEvalWithNoParentScopeInfo()))
         {
             DefineFunctions(funcInfo);
         }
@@ -5391,7 +5388,7 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNode *pnodeBlock, FuncInfo *
             // This also applies to a var declaration in the same scope as a let declaration.
 
             // Assert that catch cannot be at function scope and let and var at function scope is redeclaration error.
-            Assert(sym->GetIsCatch() || funcInfo->bodyScope != sym->GetScope() || !this->scriptContext->GetConfig()->IsBlockScopeEnabled());
+            Assert(sym->GetIsCatch() || funcInfo->bodyScope != sym->GetScope());
             sym = funcInfo->bodyScope->FindLocalSymbol(sym->GetName());
             Assert(sym && !sym->GetIsCatch() && !sym->GetIsBlockVar());
         }

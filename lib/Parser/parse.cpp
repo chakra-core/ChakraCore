@@ -766,8 +766,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
 
     BlockInfoStack *blockInfo;
     bool fBlockScope = false;
-    if (m_scriptContext->GetConfig()->IsBlockScopeEnabled() &&
-        (pnode->nop != knopVarDecl || symbolType == STFunction))
+    if (pnode->nop != knopVarDecl || symbolType == STFunction)
     {
         Assert(m_pstmtCur);
         if (m_pstmtCur->isDeferred)
@@ -936,8 +935,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         Scope *scope = blockInfo->pnodeBlock->sxBlock.scope;
         if (scope == nullptr)
         {
-            Assert(blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Regular &&
-                   m_scriptContext->GetConfig()->IsBlockScopeEnabled());
+            Assert(blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Regular);
             scope = Anew(&m_nodeAllocator, Scope, &m_nodeAllocator, ScopeType_Block);
             blockInfo->pnodeBlock->sxBlock.scope = scope;
             PushScope(scope);
@@ -1488,53 +1486,45 @@ void Parser::PopScope(Scope *scope)
 
 void Parser::PushFuncBlockScope(ParseNodePtr pnodeBlock, ParseNodePtr **ppnodeScopeSave, ParseNodePtr **ppnodeExprScopeSave)
 {
-    bool blockHasScope = m_scriptContext->GetConfig()->IsBlockScopeEnabled();
-    if (blockHasScope)
+    // Maintain the scope tree.
+
+    pnodeBlock->sxBlock.pnodeScopes = nullptr;
+    pnodeBlock->sxBlock.pnodeNext = nullptr;
+
+    // Insert this block into the active list of scopes (m_ppnodeExprScope or m_ppnodeScope).
+    // Save the current block's "next" pointer as the new endpoint of that list.
+    if (m_ppnodeExprScope)
     {
-        // Maintain the scope tree.
+        *ppnodeScopeSave = m_ppnodeScope;
 
-        pnodeBlock->sxBlock.pnodeScopes = nullptr;
-        pnodeBlock->sxBlock.pnodeNext = nullptr;
-
-        // Insert this block into the active list of scopes (m_ppnodeExprScope or m_ppnodeScope).
-        // Save the current block's "next" pointer as the new endpoint of that list.
-        if (m_ppnodeExprScope)
-        {
-            *ppnodeScopeSave = m_ppnodeScope;
-
-            Assert(*m_ppnodeExprScope == nullptr);
-            *m_ppnodeExprScope = pnodeBlock;
-            *ppnodeExprScopeSave = &pnodeBlock->sxBlock.pnodeNext;
-        }
-        else
-        {
-            Assert(m_ppnodeScope);
-            Assert(*m_ppnodeScope == nullptr);
-            *m_ppnodeScope = pnodeBlock;
-            *ppnodeScopeSave = &pnodeBlock->sxBlock.pnodeNext;
-
-            *ppnodeExprScopeSave = m_ppnodeExprScope;
-        }
-
-        // Advance the global scope list pointer to the new block's child list.
-        m_ppnodeScope = &pnodeBlock->sxBlock.pnodeScopes;
-        // Set m_ppnodeExprScope to NULL to make that list inactive.
-        m_ppnodeExprScope = nullptr;
+        Assert(*m_ppnodeExprScope == nullptr);
+        *m_ppnodeExprScope = pnodeBlock;
+        *ppnodeExprScopeSave = &pnodeBlock->sxBlock.pnodeNext;
     }
+    else
+    {
+        Assert(m_ppnodeScope);
+        Assert(*m_ppnodeScope == nullptr);
+        *m_ppnodeScope = pnodeBlock;
+        *ppnodeScopeSave = &pnodeBlock->sxBlock.pnodeNext;
+
+        *ppnodeExprScopeSave = m_ppnodeExprScope;
+    }
+
+    // Advance the global scope list pointer to the new block's child list.
+    m_ppnodeScope = &pnodeBlock->sxBlock.pnodeScopes;
+    // Set m_ppnodeExprScope to NULL to make that list inactive.
+    m_ppnodeExprScope = nullptr;
 }
 
 void Parser::PopFuncBlockScope(ParseNodePtr *ppnodeScopeSave, ParseNodePtr *ppnodeExprScopeSave)
 {
-    bool blockHasScope = m_scriptContext->GetConfig()->IsBlockScopeEnabled();
-    if (blockHasScope)
-    {
-        Assert(m_ppnodeExprScope == nullptr || *m_ppnodeExprScope == nullptr);
-        m_ppnodeExprScope = ppnodeExprScopeSave;
+    Assert(m_ppnodeExprScope == nullptr || *m_ppnodeExprScope == nullptr);
+    m_ppnodeExprScope = ppnodeExprScopeSave;
 
-        AssertMem(m_ppnodeScope);
-        Assert(nullptr == *m_ppnodeScope);
-        m_ppnodeScope = ppnodeScopeSave;
-    }
+    AssertMem(m_ppnodeScope);
+    Assert(nullptr == *m_ppnodeScope);
+    m_ppnodeScope = ppnodeScopeSave;
 }
 
 template<bool buildAST>
@@ -1934,11 +1924,7 @@ void Parser::CheckStrictModeFncDeclNotSourceElement(const bool isSourceElement, 
     // The only difference between a SourceElement and a Statement is that a SourceElement can include a FunctionDeclaration, so
     // we just use ParseStmtList and ParseStatement and pass in a flag indicating whether the statements are source elements.
     Assert(!(isSourceElement && !isDeclaration));
-    if(IsStrictMode() && !isSourceElement && isDeclaration &&
-       !this->GetScriptContext()->GetConfig()->IsBlockScopeEnabled())
-    {
-        Error(ERRFncDeclNotSourceElement);
-    }
+    // TODO[ianhall]: Remove this function?
 }
 
 void Parser::ReduceDeferredScriptLength(size_t chars)
@@ -3694,7 +3680,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     long* pAstSizeSave = m_pCurrentAstSize;
     bool noStmtContext = false;
 
-    if (fDeclaration && m_scriptContext->GetConfig()->IsBlockScopeEnabled())
+    if (fDeclaration)
     {
         noStmtContext =
             (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
@@ -3771,7 +3757,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         catchPidRefList = this->GetCatchPidRefList();
         if (catchPidRefList)
         {
-            Assert(!m_scriptContext->GetConfig()->IsBlockScopeEnabled());
+            Assert(false); // TODO[ianhall]: is this really dead code?
             if (fDeclaration)
             {
                 // We're starting a function declaration, and we're inside some number
@@ -3973,7 +3959,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         }
     }
 
-    if (buildAST && fDeclaration && m_scriptContext->GetConfig()->IsBlockScopeEnabled() && !IsStrictMode())
+    if (buildAST && fDeclaration && !IsStrictMode())
     {
         if (pnodeFnc->sxFnc.pnodeName != nullptr && pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
             GetCurrentBlock()->sxBlock.blockType == PnodeBlockType::Regular)
@@ -4164,7 +4150,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
 
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
     if ((!fDeclaration && m_ppnodeExprScope) ||
-        (m_scriptContext->GetConfig()->IsBlockScopeEnabled() && fFunctionInBlock) ||
+        fFunctionInBlock ||
         (isEnclosedInParamScope && pnodeFncParent && pnodeFncParent->sxFnc.pnodeScopes && !pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->GetCanMergeWithBodyScope()) ||
         (flags & (fFncNoName | fFncLambda)))
     {
@@ -8171,7 +8157,8 @@ ParseNodePtr Parser::ParseCatch()
                 pidCatch = m_token.GetIdentifier(m_phtbl);
                 PidRefStack *ref = this->PushPidRef(pidCatch);
 
-                if (!m_scriptContext->GetConfig()->IsBlockScopeEnabled())
+                // TODO[ianhall]: Seems this is related to previous TODO, specifics for catch scope prior to ES6 block scope semantics. Can this all be junked, including CatchPidRefList?
+                if (false)
                 {
                     // Strange case: the catch adds a scope for the catch object, but function declarations
                     // are hoisted out of the catch, so references within a function declaration to "x" do
@@ -8265,7 +8252,8 @@ ParseNodePtr Parser::ParseCatch()
             Assert(*m_ppnodeExprScope == nullptr);
             m_ppnodeExprScope = ppnodeExprScopeSave;
 
-            if (!m_scriptContext->GetConfig()->IsBlockScopeEnabled())
+            // TODO[ianhall]: Again, junk catch scope stuff?
+            if (false)
             {
                 // Remove the catch object from the list.
                 CatchPidRefList *list = this->GetCatchPidRefList();
@@ -9972,7 +9960,6 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     m_ppnodeScope = &pnodeGlobalBlock->sxBlock.pnodeScopes;
 
     if ((this->m_grfscr & fscrEvalCode) &&
-        m_scriptContext->GetConfig()->IsBlockScopeEnabled() &&
         !(this->m_functionBody && this->m_functionBody->GetScopeInfo()))
     {
         pnodeGlobalEvalBlock = StartParseBlock<true>(PnodeBlockType::Regular, ScopeType_GlobalEvalBlock);
