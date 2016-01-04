@@ -1183,14 +1183,11 @@ namespace Js
         throwTypeErrorArgumentsAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorArgumentsAccessor);
         throwTypeErrorArgumentsAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
 
-        if (scriptContext->GetConfig()->Is__proto__Enabled())
-        {
-            __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
-            __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
+        __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
 
-            __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
-            __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
-        }
+        __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
+        __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
 
         if (scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
@@ -3556,9 +3553,7 @@ namespace Js
         JavascriptLibrary* library = objectPrototype->GetLibrary();
         ScriptContext* scriptContext = objectPrototype->GetScriptContext();
 
-        bool hasAccessors = scriptContext->GetConfig()->Is__proto__Enabled();
-
-        typeHandler->Convert(objectPrototype, mode, 11, hasAccessors);
+        typeHandler->Convert(objectPrototype, mode, 11, true);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterObject
         // so that the update is in sync with profiler
         library->AddMember(objectPrototype, PropertyIds::constructor, library->objectConstructor);
@@ -3572,16 +3567,13 @@ namespace Js
 
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::ToString.GetOriginalEntryPoint(), library->objectToStringFunction);
 
-        if (scriptContext->GetConfig()->Is__proto__Enabled())
+        bool hadOnlyWritableDataProperties = objectPrototype->GetDynamicType()->GetTypeHandler()->GetHasOnlyWritableDataProperties();
+        objectPrototype->SetAccessors(PropertyIds::__proto__, library->Get__proto__getterFunction(), library->Get__proto__setterFunction(), PropertyOperation_NonFixedValue);
+        objectPrototype->SetEnumerable(PropertyIds::__proto__, FALSE);
+        // Let's pretend __proto__ is actually writable.  We'll make sure we always go through a special code path when writing to it.
+        if (hadOnlyWritableDataProperties)
         {
-            bool hadOnlyWritableDataProperties = objectPrototype->GetDynamicType()->GetTypeHandler()->GetHasOnlyWritableDataProperties();
-            objectPrototype->SetAccessors(PropertyIds::__proto__, library->Get__proto__getterFunction(), library->Get__proto__setterFunction(), PropertyOperation_NonFixedValue);
-            objectPrototype->SetEnumerable(PropertyIds::__proto__, FALSE);
-            // Let's pretend __proto__ is actually writable.  We'll make sure we always go through a special code path when writing to it.
-            if (hadOnlyWritableDataProperties)
-            {
-                objectPrototype->GetDynamicType()->GetTypeHandler()->SetHasOnlyWritableDataProperties();
-            }
+            objectPrototype->GetDynamicType()->GetTypeHandler()->SetHasOnlyWritableDataProperties();
         }
 
         library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__defineGetter__, &JavascriptObject::EntryInfo::DefineGetter, 2);

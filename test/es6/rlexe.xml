@@ -106,28 +106,25 @@
     <default>
       <files>proto_basic.js</files>
       <baseline>proto_basic.baseline</baseline>
-      <compile-flags>-__proto__</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
-      <compile-flags>-__proto__</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>proto_initializer.js</files>
       <baseline>proto_initializer.baseline</baseline>
-      <compile-flags>-__proto__</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>proto_initializer.js</files>
       <baseline>proto_initializer.baseline</baseline>
-      <compile-flags>-__proto__ -ForceSerialized</compile-flags>
+      <compile-flags>-ForceSerialized</compile-flags>
       <tags>exclude_serialized</tags>
     </default>
   </test>
