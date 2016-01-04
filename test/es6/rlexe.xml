@@ -3,13 +3,13 @@
   <test>
     <default>
       <files>lambda1.js</files>
-      <compile-flags> -es6lambda -off:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>lambda1.js</files>
-      <compile-flags> -es6lambda -force:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -280,54 +280,54 @@
   <test>
     <default>
       <files>classes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Off:Deferparse</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse</compile-flags>
       <baseline>classes.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>classes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Force:Deferparse</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse</compile-flags>
       <baseline>classes.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>classes_bugfixes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableBuiltins.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableAsync.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Off:Deferparse</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Off:Deferparse</compile-flags>
       <baseline>ES6SubclassableAsync.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>ES6SubclassableAsync.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Force:Deferparse</compile-flags>
+      <compile-flags>-ES6Classes -ES6Spread -ES6Generators -Force:Deferparse</compile-flags>
       <baseline>ES6SubclassableAsync.baseline</baseline>
     </default>
   </test>

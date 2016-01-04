@@ -31,8 +31,6 @@ FLAG ES6 = 1 - setting child flag ES6Iterators = 1
 FLAG ES6Iterators = 1
 FLAG ES6 = 1 - setting child flag ES6IsConcatSpreadable = 1
 FLAG ES6IsConcatSpreadable = 1
-FLAG ES6 = 1 - setting child flag ES6Lambda = 1
-FLAG ES6Lambda = 1
 FLAG ES6 = 1 - setting child flag ES6Math = 1
 FLAG ES6Math = 1
 FLAG ES6 = 1 - setting child flag ES6Object = 1
