@@ -105,7 +105,6 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_currentBlockInfo = nullptr;
     m_currentScope = nullptr;
     m_currentDynamicBlock = nullptr;
-    m_catchPidRefList = nullptr;
     m_grfscr = fscrNil;
     m_length = 0;
     m_originalLength = 0;
@@ -224,15 +223,6 @@ void Parser::IdentifierExpectedError(const Token& token)
     }
 
     Error(hr);
-}
-
-CatchPidRefList *Parser::EnsureCatchPidRefList()
-{
-    if (this->m_catchPidRefList == nullptr)
-    {
-        this->m_catchPidRefList = Anew(&m_nodeAllocator, CatchPidRefList);
-    }
-    return this->m_catchPidRefList;
 }
 
 HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
@@ -3635,7 +3625,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     bool fLambda = (flags & fFncLambda) != 0;
     charcount_t ichMin = this->m_pscan->IchMinTok();
     bool wasInDeferredNestedFunc = false;
-    CatchPidRefList *catchPidRefList = nullptr;
 
     uint tryCatchOrFinallyDepthSave = this->m_tryCatchOrFinallyDepth;
     this->m_tryCatchOrFinallyDepth = 0;
@@ -3734,38 +3723,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         }
 
         m_pnestedCount = &pnodeFnc->sxFnc.nestedCount;
-
-        catchPidRefList = this->GetCatchPidRefList();
-        if (catchPidRefList)
-        {
-            Assert(false); // TODO[ianhall]: is this really dead code?
-            if (fDeclaration)
-            {
-                // We're starting a function declaration, and we're inside some number
-                // of catches, and the catch has its own scope but the function gets hoisted
-                // outside it. We have to fiddle with the PidRefStack's to simulate hoisting.
-                // For each catch object in scope here, do the following:
-                // - Remove the portion of the PID ref stack that holds references inside the catch.
-                // - Save that portion of the stack in the catchPidRef list entry. Do this by:
-                //     - Letting the list entry point to the current top of the PID ref stack;
-                //     - Setting the prev pointer of the PID ref at the bottom of the removed portion to null.
-                // Now we can accumulate references inside the function declaration without getting them
-                // interspersed with the references that should bind to the catch variable.
-                FOREACH_SLISTBASE_ENTRY(CatchPidRef, catchPidRef, catchPidRefList)
-                {
-                    IdentPtr pidCatch = catchPidRef.pid;
-                    PidRefStack *topRef = pidCatch->GetTopRef();
-                    PidRefStack *catchScopeRef = catchPidRef.ref;
-                    catchPidRef.ref = topRef;
-                    pidCatch->SetTopRef(catchScopeRef->prev);
-                    catchScopeRef->prev = nullptr;
-                }
-                NEXT_SLISTBASE_ENTRY;
-                catchPidRefList->Reverse();
-            }
-
-            this->SetCatchPidRefList(nullptr);
-        }
     }
     else // if !buildAST
     {
@@ -3900,45 +3857,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     }
 
     m_scopeCountNoAst = scopeCountNoAstSave;
-
-    if (buildAST)
-    {
-        if (catchPidRefList)
-        {
-            if (this->GetCatchPidRefList())
-            {
-                // We may have had catches inside the function we just finished. If so, we should be done
-                // with them all (so the ref list should be empty), and we can throw away the list.
-                Assert(this->GetCatchPidRefList()->Empty());
-                Adelete(&m_nodeAllocator, this->GetCatchPidRefList());
-            }
-            this->SetCatchPidRefList(catchPidRefList);
-
-            if (fDeclaration)
-            {
-                // We're finishing a function declaration inside a catch. For each catch variable that's in
-                // scope here, put the portion of the PID ref stack that we removed and saved back on the top
-                // of the stack. When we finish the catch, the references in this restored portion of the stack
-                // will be bound to the catch variable, but those that belong the function body will
-                // be left behind to be bound to the context outside the catch.
-                FOREACH_SLISTBASE_ENTRY(CatchPidRef, catchPidRef, catchPidRefList)
-                {
-                    IdentPtr pidCatch = catchPidRef.pid;
-                    PidRefStack *oldTopRef = pidCatch->GetTopRef();
-                    PidRefStack *ref = catchPidRef.ref;
-                    pidCatch->SetTopRef(ref);
-                    while (ref->prev)
-                    {
-                        ref = ref->prev;
-                    }
-                    ref->prev = oldTopRef;
-                    catchPidRef.ref = ref;
-                }
-                NEXT_SLISTBASE_ENTRY;
-                catchPidRefList->Reverse();
-            }
-        }
-    }
 
     if (buildAST && fDeclaration && !IsStrictMode())
     {
@@ -8033,18 +7951,6 @@ ParseNodePtr Parser::ParseCatch()
                 pidCatch = m_token.GetIdentifier(m_phtbl);
                 PidRefStack *ref = this->PushPidRef(pidCatch);
 
-                // TODO[ianhall]: Seems this is related to previous TODO, specifics for catch scope prior to ES6 block scope semantics. Can this all be junked, including CatchPidRefList?
-                if (false)
-                {
-                    // Strange case: the catch adds a scope for the catch object, but function declarations
-                    // are hoisted out of the catch, so references within a function declaration to "x" do
-                    // not bind to "catch(x)". Extra bookkeeping is required.
-                    CatchPidRefList *list = this->EnsureCatchPidRefList();
-                    CatchPidRef *catchPidRef = list->PrependNode(&m_nodeAllocator);
-                    catchPidRef->pid = pidCatch;
-                    catchPidRef->ref = ref;
-                }
-
                 ParseNodePtr pnodeParam = CreateNameNode(pidCatch);
                 pnodeParam->sxPid.symRef = ref->GetSymRef();
                 pnode->sxCatch.pnodeParam = pnodeParam;
@@ -8127,17 +8033,6 @@ ParseNodePtr Parser::ParseCatch()
             AssertMem(m_ppnodeExprScope);
             Assert(*m_ppnodeExprScope == nullptr);
             m_ppnodeExprScope = ppnodeExprScopeSave;
-
-            // TODO[ianhall]: Again, junk catch scope stuff?
-            if (false)
-            {
-                // Remove the catch object from the list.
-                CatchPidRefList *list = this->GetCatchPidRefList();
-                Assert(list);
-                Assert(!list->Empty());
-                Assert(list->Head().pid == pidCatch);
-                list->RemoveHead(&m_nodeAllocator);
-            }
         }
     }
     return rootNode;
