@@ -149,7 +149,7 @@
   <test>
     <default>
       <files>map_functionality.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -161,7 +161,7 @@
   <test>
     <default>
       <files>set_functionality.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -173,7 +173,7 @@
   <test>
     <default>
       <files>weakmap_functionality.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -185,7 +185,7 @@
   <test>
     <default>
       <files>weakset_functionality.js</files>
-      <compile-flags>-ES6ObjectLiterals -ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -385,14 +385,14 @@
   <test>
     <default>
       <files>ES6TypedArrayExtensions.js</files>
-      <compile-flags> -ES6 -ES6TypedArrayExtensions -es6tostringtag -ES6ObjectLiterals -ES6Iterators -es7Builtins -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags> -ES6 -ES6TypedArrayExtensions -es6tostringtag -ES6ObjectLiterals -es7Builtins -ES6Species -args summary -endargs</compile-flags>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6ArrayAPI.js</files>
-      <compile-flags>-ES6 -ES6ObjectLiterals -ES6Iterators -ES6TypedArrayExtensions -args summary -endargs</compile-flags>
+      <compile-flags>-ES6 -ES6ObjectLiterals -ES6TypedArrayExtensions -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -430,7 +430,7 @@
     <default>
       <files>ES6PromiseAsync.js</files>
       <baseline>ES6PromiseAsync.baseline</baseline>
-      <compile-flags> -ES6 -ES6Promise -ES6Iterators</compile-flags>
+      <compile-flags> -ES6 -ES6Promise</compile-flags>
     </default>
   </test>
   <test>
@@ -614,13 +614,13 @@
   <test>
     <default>
       <files>ES6Iterators-forof.js</files>
-      <compile-flags>-ES6 -ES6Iterators -Intl- -args summary -endargs</compile-flags>
+      <compile-flags>-ES6 -Intl- -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6Iterators-apis.js</files>
-      <compile-flags>-ES6 -es6tostringtag -ES6Iterators -Intl- -args summary -endargs</compile-flags>
+      <compile-flags>-ES6 -es6tostringtag -Intl- -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -645,7 +645,7 @@
   <test>
     <default>
       <files>proxytest6.js</files>
-      <compile-flags>-ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -662,7 +662,7 @@
   <test>
     <default>
       <files>object-is.js</files>
-      <compile-flags>-ES6Iterators -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

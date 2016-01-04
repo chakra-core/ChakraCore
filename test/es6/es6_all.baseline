@@ -27,8 +27,6 @@ FLAG ES6 = 1 - setting child flag ES7Builtins = 1
 FLAG ES7Builtins = 1
 FLAG ES6 = 1 - setting child flag ES7TrailingComma = 1
 FLAG ES7TrailingComma = 1
-FLAG ES6 = 1 - setting child flag ES6Iterators = 1
-FLAG ES6Iterators = 1
 FLAG ES6 = 1 - setting child flag ES6IsConcatSpreadable = 1
 FLAG ES6IsConcatSpreadable = 1
 FLAG ES6 = 1 - setting child flag ES6NumericLiterals = 1
