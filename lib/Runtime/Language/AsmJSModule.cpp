@@ -589,8 +589,7 @@ namespace Js
 
         if (fncNode->sxFnc.pnodeBody == NULL)
         {
-            if (GetScriptContext()->GetConfig()->BindDeferredPidRefs() &&
-                !PHASE_OFF1(Js::SkipNestedDeferredPhase))
+            if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
             {
                 deferParseFunction->BuildDeferredStubs(fncNode);
             }
