@@ -871,12 +871,15 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             foreground? nullptr : scriptContext->GetThreadContext()->GetCodeGenNumberThreadAllocator(),
             scriptContext->GetRecycler());
 
+        JITTimeWorkItem * jitWorkItem = JitAnew(&funcAlloc, JITTimeWorkItem, workItem->GetJITData());
+
         Func *func =
             JitAnew(
                 (&funcAlloc),
                 Func,
                 (&funcAlloc),
-                workItem,
+                jitWorkItem,
+                workItem->RecyclableData()->JitTimeData(),
                 nullptr,
                 workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo()->GetSelfInfo(),
                 allocators,
@@ -888,7 +891,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         CurrentFunc = func;
 #endif
         func->m_symTable->SetStartingID(static_cast<SymID>(nRegs + 1));
-
+        JITWriteData jitWriteData;
+        HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(workItem->GetJITData(), &jitWriteData);
+        if (hr != S_OK)
+        {
+            __fastfail((uint)-1);
+        }
         try
         {
             // Although we don't need to release the Arena memory, we need to invoke Func destructor.
@@ -2895,7 +2903,6 @@ void NativeCodeGenerator::AddToJitQueue(CodeGenWorkItem *const codeGenWorkItem, 
             workItemRemoved->OnRemoveFromJitQueue(this);
         }
     }
-
     Processor()->AddJob(codeGenWorkItem, prioritize);   // This one can throw (really unlikely though), OOM specifically.
     if(jitMode == ExecutionMode::FullJit)
     {

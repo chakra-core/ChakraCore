@@ -14,13 +14,10 @@ CodeGenWorkItem::CodeGenWorkItem(
     : JsUtil::Job(manager)
     , codeAddress(NULL)
     , functionBody(functionBody)
-    , type(type)
-    , jitMode(ExecutionMode::Interpreter)
     , entryPointInfo(entryPointInfo)
     , recyclableData(nullptr)
     , isInJitQueue(false)
     , isAllocationCommitted(false)
-    , isJitInDebugMode(isJitInDebugMode)
     , queuedFullJitWorkItem(nullptr)
     , allocation(nullptr)
 #ifdef IR_VIEWER
@@ -29,6 +26,14 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
+    this->jitData.type = type;
+    this->jitData.isJitInDebugMode = isJitInDebugMode;
+    this->jitData.bodyData.funcNumber = functionBody->GetFunctionNumber();
+    this->jitData.bodyData.localFuncId = functionBody->GetLocalFunctionId();
+    this->jitData.bodyData.sourceContextId = functionBody->GetSourceContextId();
+    ResetJitMode();
+
+    this->jitData.loopNumber = GetLoopNumber();
 }
 
 CodeGenWorkItem::~CodeGenWorkItem()

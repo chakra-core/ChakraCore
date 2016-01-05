@@ -19,7 +19,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
     }
 
     bool doFixedMethods = !PHASE_OFF(Js::FixedMethodsPhase, func->GetJnFunction());
-    const auto inlinerData = func->m_workItem->RecyclableData()->JitTimeData();
+    const auto inlinerData = func->m_jitTimeData;
 
     bool doInline = (inlinerData->InlineeCount() > 0 || inlinerData->IsLdFldInlineePresent());
     if (PHASE_OFF(Js::InlinePhase, this->topFunc) ||
@@ -1187,7 +1187,7 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
     JsFunctionCodeGen *workItem = JitAnew(this->topFunc->m_alloc, JsFunctionCodeGen,
         funcBody->GetScriptContext()->GetNativeCodeGenerator(), funcBody, functionEntryPointInfo, this->topFunc->IsJitInDebugMode());
     workItem->SetRecyclableData(JitAnew(this->topFunc->m_alloc, Js::CodeGenRecyclableData, inlineeData.inlineeJitTimeData));
-    workItem->SetJitMode(this->topFunc->m_workItem->GetJitMode());
+    workItem->SetJitMode(this->topFunc->GetWorkItem()->GetJitMode());
 
     const auto profileInfo =
         JitAnew(
@@ -1196,11 +1196,14 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
 
-    Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
-    Func *inlinee = JitAnew(this->topFunc->m_alloc,
+    JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
+
+    Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
+    Func * inlinee = JitAnew(this->topFunc->m_alloc,
                             Func,
                             this->topFunc->m_alloc,
-                            workItem,
+                            jitWorkItem,
+                            workItem->RecyclableData()->JitTimeData(),
                             inlineeData.inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                             this->topFunc->GetCodeGenAllocators(),
@@ -1911,7 +1914,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, profileId, builtInId);
+        nullptr, 0, this->topFunc->GetJnFunction(), 0, nullptr, profileId, builtInId);
 #endif
 
     // From now on we are committed to inlining.
@@ -2250,7 +2253,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, builtInId);
+        nullptr, 0, this->topFunc->GetJnFunction(), 0, nullptr, callSiteId, builtInId);
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
@@ -2651,11 +2654,14 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
 
+    JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
+
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
     Func *inlinee = JitAnew(this->topFunc->m_alloc,
                          Func,
                          this->topFunc->m_alloc,
-                         workItem,
+                         jitWorkItem,
+                         workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
                             this->topFunc->GetJnFunction()->GetLdFldInlineeCodeGenRuntimeData(inlineCacheIndex),
@@ -2723,7 +2729,7 @@ Inline::InlineCall(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, const Js::F
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     InliningDecider::TraceInlining(inlinerData->GetFunctionBody(), Js::JavascriptLibrary::GetNameForBuiltIn(builtInId),
-        nullptr, 0, this->topFunc->m_workItem->GetFunctionBody(), 0, nullptr, callSiteId, builtInId);
+        nullptr, 0, this->topFunc->GetJnFunction(), 0, nullptr, callSiteId, builtInId);
 #endif
 
     uint actualCount = 0;
@@ -3382,11 +3388,14 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const Js::FunctionC
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
 
+    JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
+
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
     Func *inlinee = JitAnew(this->topFunc->m_alloc,
                          Func,
                          this->topFunc->m_alloc,
-                         workItem,
+                         jitWorkItem,
+                         workItem->RecyclableData()->JitTimeData(),
                          accessorInstr->m_func->m_runtimeData ?
                             accessorInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
                             this->topFunc->GetJnFunction()->GetLdFldInlineeCodeGenRuntimeData(inlineCacheIndex),
@@ -3694,11 +3703,14 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
         funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
         this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
 
+    JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
+
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
     Func *inlinee = JitAnew(this->topFunc->m_alloc,
                          Func,
                          this->topFunc->m_alloc,
-                         workItem,
+                         jitWorkItem,
+                         workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetInlineeForTargetInlinee(profileId, funcBody) :
                             this->topFunc->GetJnFunction()->GetInlineeCodeGenRuntimeDataForTargetInlinee(profileId, funcBody),

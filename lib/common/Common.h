@@ -132,6 +132,8 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 
 #include "common\SmartFPUControl.h"
 
+
+
 // This class is only used by AutoExp.dat
 class AutoExpDummyClass
 {

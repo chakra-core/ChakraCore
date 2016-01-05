@@ -20702,7 +20702,7 @@ void Lowerer::LowerFunctionBodyCallCountChange(IR::Instr *const insertBeforeInst
     const IR::AutoReuseOpnd autoReuseCountAddressOpnd(countAddressOpnd, func);
     InsertMove(
         countAddressOpnd,
-        IR::AddrOpnd::New(func->GetCallsCountAddress(), IR::AddrOpndKindDynamicMisc, func, true),
+        IR::AddrOpnd::New((Js::Var)func->GetWorkItem()->GetCallsCountAddress(), IR::AddrOpndKindDynamicMisc, func, true),
         insertBeforeInstr);
 
     IR::IndirOpnd *const countOpnd = IR::IndirOpnd::New(countAddressOpnd, 0, TyUint8, func);

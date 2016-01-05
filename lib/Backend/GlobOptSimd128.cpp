@@ -18,7 +18,7 @@ Value **pSrc2Val,
 Value **pDstVal
 )
 {
-    if (func->m_workItem->GetFunctionBody()->GetIsAsmjsMode() || SIMD128_TYPE_SPEC_FLAG == false)
+    if (func->GetJnFunction()->GetIsAsmjsMode() || SIMD128_TYPE_SPEC_FLAG == false)
     {
         // no type-spec for ASMJS code or flag is off.
         return false;

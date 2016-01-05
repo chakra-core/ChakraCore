@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -29,7 +29,9 @@
         $(MSBuildThisFileDirectory)\$(PlatformPathNameAlt);
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\JITClient;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -189,6 +191,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TempTracker.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueRelativeOffset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
+    <ClCompile Include="JITTimeWorkItem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -357,6 +360,7 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />
     <ClInclude Include="JnHelperMethodList.h" />
     <ClInclude Include="Lifetime.h" />
@@ -408,6 +412,11 @@
     <None Include="IR.inl" />
     <None Include="Opnd.inl" />
     <None Include="Sym.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

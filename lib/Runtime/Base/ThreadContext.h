@@ -490,6 +490,19 @@ public:
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
 private:
+    DWORD m_jitProcessId;
+    UUID m_jitConnectionId;
+
+public:
+    JITManager m_codeGenManager;
+    void SetJITConnectionInfo(DWORD processId, UUID connectionId)
+    {
+        m_jitProcessId = processId;
+        m_jitConnectionId = connectionId;
+
+        m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
+    }
+private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
     typedef JsUtil::BaseDictionary<const wchar_t*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
 
@@ -954,6 +967,7 @@ public:
 
     void ShutdownThreads()
     {
+        m_codeGenManager.DisconnectRpcServer();
 #ifdef ENABLE_NATIVE_CODEGEN
         if (jobProcessor)
         {

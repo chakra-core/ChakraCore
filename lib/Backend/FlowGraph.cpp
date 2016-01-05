@@ -2409,13 +2409,13 @@ FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeE
     useOrigBranchSrcInstr->byteCodeUpwardExposedUsed->Set(origBranchSrcSymId);
     newBr->InsertBefore(useOrigBranchSrcInstr);
 
-    uint newBrFnNumber = newBr->m_func->m_workItem->GetFunctionNumber();
-    Assert(newBrFnNumber == origBrFunc->m_workItem->GetFunctionNumber());
+    uint newBrFnNumber = newBr->m_func->GetFunctionNumber();
+    Assert(newBrFnNumber == origBrFunc->GetFunctionNumber());
 
     // The function numbers of the new branch and the inlineeEnd instruction should be different (ensuring that the new branch is not added in the inlinee but in the inliner).
     // Only case when they can be same is recursive calls - inlinee and inliner are the same function
-    Assert(newBrFnNumber != inlineeEndInstr->m_func->m_workItem->GetFunctionNumber() ||
-        newBrFnNumber == inlineeEndInstr->m_func->GetParentFunc()->m_workItem->GetFunctionNumber());
+    Assert(newBrFnNumber != inlineeEndInstr->m_func->GetFunctionNumber() ||
+        newBrFnNumber == inlineeEndInstr->m_func->GetParentFunc()->GetFunctionNumber());
 }
 
 BasicBlock *

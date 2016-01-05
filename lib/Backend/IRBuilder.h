@@ -90,8 +90,8 @@ public:
         }
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
-        m_functionBody = func->m_workItem->GetFunctionBody();
-        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
+        m_functionBody = nullptr; // TODO (michhol): OOP JIT
+        // func->m_workItem->InitializeReader(m_jnReader, m_statementReader); // TODO (michhol): bytecode reader
     };
 
     ~IRBuilder() {

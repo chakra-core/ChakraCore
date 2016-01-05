@@ -66,8 +66,10 @@ typedef HashTable<FrameDisplayCheckRecord*, JitArenaAllocator> FrameDisplayCheck
 
 class Func
 {
+    JITWriteData m_jitWriteData;
 public:
-    Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
+    Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
+        const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
@@ -114,7 +116,7 @@ public:
     bool DoStackScopeSlots() const { return this->stackClosure; }
     bool IsBackgroundJIT() const { return this->m_isBackgroundJIT; }
     bool HasArgumentSlot() const { return this->GetInParamsCount() != 0 && !this->IsLoopBody(); }
-    bool IsLoopBody() const;
+    bool IsLoopBody() const { return m_workItem->IsLoopBody(); }
     bool IsLoopBodyInTry() const;
     bool CanAllocInPreReservedHeapPageSegment();
     void SetDoFastPaths();
@@ -148,11 +150,16 @@ public:
 
     bool CanOptimizeTryCatch() const
     {
-        return !this->HasFinally() && !this->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
+        return !this->HasFinally() && !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
     }
 
     bool DoSimpleJitDynamicProfile() const { return IsSimpleJit() && GetTopFunc()->GetJnFunction()->DoSimpleJitDynamicProfile(); }
     bool IsSimpleJit() const { return m_workItem->GetJitMode() == ExecutionMode::SimpleJit; }
+
+    JITTimeWorkItem * GetWorkItem() const
+    {
+        return m_workItem;
+    }
 
     void BuildIR();
     void Codegen();
@@ -167,14 +174,26 @@ public:
     int32 GetHasLocalVarChangedOffset();
     bool IsJitInDebugMode();
     bool IsNonTempLocalVar(uint32 slotIndex);
-    int32 AdjustOffsetValue(int32 offset);
     void OnAddSym(Sym* sym);
+
+    uint GetLocalFunctionId() const
+    {
+        return m_workItem->GetLocalFunctionId();
+    }
+
+    uint GetSourceContextId() const
+    {
+        return m_workItem->GetLocalFunctionId();
+    }
+
 
 #ifdef MD_GROW_LOCALS_AREA_UP
     void AjustLocalVarSlotOffset();
 #endif
 
     bool DoGlobOptsForGeneratorFunc();
+
+    static int32 AdjustOffsetValue(int32 offset);
 
     static inline uint32 GetDiagLocalSlotSize()
     {
@@ -201,7 +220,13 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #endif
 
     uint32 GetInstrCount();
-    inline Js::ScriptContext* GetScriptContext() const { return m_workItem->GetScriptContext(); }
+    inline Js::ScriptContext* GetScriptContext() const
+    {
+        // TODO (michhol): remove this
+        Assert(UNREACHED);
+
+        return nullptr;
+    }
     void NumberInstrs();
     bool IsTopFunc() const { return this->parentFunc == nullptr; }
     Func const * GetTopFunc() const;
@@ -212,16 +237,9 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     uint GetFunctionNumber() const
     {
         Assert(this->IsTopFunc());
-        return this->m_workItem->GetFunctionNumber();
+        return m_workItem->GetFunctionNumber();
     }
-    uint GetLocalFunctionId() const
-    {
-        return this->m_workItem->GetFunctionBody()->GetLocalFunctionId();
-    }
-    uint GetSourceContextId() const
-    {
-        return this->m_workItem->GetFunctionBody()->GetSourceContextId();
-    }
+
     BOOL HasTry() const
     {
         Assert(this->IsTopFunc());
@@ -269,8 +287,6 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     StackSym *GetLocalFrameDisplaySym() const { return m_localFrameDisplaySym; }
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
-
-    uint8 *GetCallsCountAddress() const;
 
     void EnsurePinnedTypeRefs();
     void PinTypeRef(void* typeRef);
@@ -412,9 +428,9 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #endif
 public:
     JitArenaAllocator *    m_alloc;
-    CodeGenWorkItem*    m_workItem;
     const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;
     const Js::FunctionCodeGenRuntimeData *const m_runtimeData;
+    JITTimeWorkItem * m_workItem;
     Js::PolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
 
     // This indicates how many constructor caches we inserted into the constructorCaches array, not the total size of the array.

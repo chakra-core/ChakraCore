@@ -28,16 +28,16 @@ public:
         , m_switchAdapter(this)
         , m_switchBuilder(&m_switchAdapter)
     {
-        func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
+        //func->m_workItem->InitializeReader(m_jnReader, m_statementReader); TODO (michhol): OOP JIT
         m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfo();
         if (func->IsLoopBody())
         {
-            Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint());
+            /* Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint()); TODO (michhol): OOP JIT
             if (loopEntryPointInfo->GetIsTJMode())
             {
                 m_IsTJLoopBody = true;
                 func->isTJLoopBody = true;
-            }
+            }*/
         }
     }
 

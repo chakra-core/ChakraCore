@@ -119,6 +119,9 @@ enum IRDumpFlags
 // BackEnd includes
 //
 
+#include "ChakraJIT.h"
+#include "CodeGenWorkItemType.h"
+#include "JITTimeWorkItem.h"
 #include "NativeCodeData.h"
 #include "CodeGenAllocators.h"
 #include "IRType.h"
@@ -139,7 +142,6 @@ enum IRDumpFlags
 #include "InductionVariable.h"
 #include "GlobOpt.h"
 #include "GlobOptIntBounds.h"
-#include "CodeGenWorkItemType.h"
 #include "QueuedFullJitWorkItem.h"
 #include "CodeGenWorkItem.h"
 #include "SimpleJitProfilingHelpers.h"

@@ -25,6 +25,8 @@
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\Backend;
+        $(ChakraJITIDLIntDir);
+        $(MSBuildThisFileDirectory)..\..\JITClient;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -52,7 +54,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextProfiler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextOptimizationOverrideInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceHolder.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ScriptMemoryDumper.cpp" />    
+    <ClCompile Include="$(MSBuildThisFileDirectory)ScriptMemoryDumper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackProber.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TestEtwEventSink.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TempArenaAllocatorObject.cpp" />

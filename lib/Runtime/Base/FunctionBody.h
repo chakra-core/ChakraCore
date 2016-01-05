@@ -2008,12 +2008,6 @@ namespace Js
             return (void*)&m_uScriptId;
         }
 
-        uint8 *GetCallsCountAddress(EntryPointInfo* info) const
-        {
-            FunctionEntryPointInfo* entryPoint = (FunctionEntryPointInfo*) info;
-            return &entryPoint->callsCount;
-        }
-
         FunctionEntryPointInfo* GetDefaultFunctionEntryPointInfo() const;
         void SetDefaultFunctionEntryPointInfo(FunctionEntryPointInfo* entryPointInfo, const JavascriptMethod originalEntryPoint);
 

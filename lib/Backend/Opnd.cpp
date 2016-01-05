@@ -3338,7 +3338,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             {
                 WriteToBuffer(&buffer, &n, L" (Recycler)");
             }
-            else if (func->m_workItem->Type() == JsFunctionType && address == func->GetCallsCountAddress())
+            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
             {
                 WriteToBuffer(&buffer, &n, L" (&CallCount)");
             }

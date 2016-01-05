@@ -17,18 +17,16 @@ protected:
         CodeGenWorkItemType type);
     ~CodeGenWorkItem();
 
+    CodeGenWorkItemJITData jitData;
+
     Js::FunctionBody *const functionBody;
     size_t codeAddress;
     ptrdiff_t codeSize;
     ushort pdataCount;
     ushort xdataSize;
 
-    CodeGenWorkItemType type;
-    ExecutionMode jitMode;
-
 public:
     virtual uint GetByteCodeCount() const abstract;
-    virtual uint GetFunctionNumber() const abstract;
     virtual size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) abstract;
     virtual void GetEntryPointAddress(void** entrypoint, ptrdiff_t *size) abstract;
     virtual uint GetInterpretedCount() const abstract;
@@ -42,12 +40,22 @@ public:
 #endif
     virtual void InitializeReader(Js::ByteCodeReader &reader, Js::StatementReader &statementReader) abstract;
 
-    ExecutionMode GetJitMode()
+    uint GetFunctionNumber() const
     {
-        return jitMode;
+        return this->jitData.bodyData.funcNumber;
     }
 
-    CodeGenWorkItemType Type() const { return type; }
+    ExecutionMode GetJitMode() const
+    {
+        return static_cast<ExecutionMode>(this->jitData.jitMode);
+    }
+
+    CodeGenWorkItemJITData * GetJITData()
+    {
+        return &this->jitData;
+    }
+
+    CodeGenWorkItemType Type() const { return static_cast<CodeGenWorkItemType>(this->jitData.type); }
 
     Js::ScriptContext* GetScriptContext()
     {
@@ -86,7 +94,6 @@ protected:
 
 private:
     bool isInJitQueue;                  // indicates if the work item has been added to the global jit queue
-    bool isJitInDebugMode;              // Whether JIT is in debug mode for this work item.
     bool isAllocationCommitted;         // Whether the EmitBuffer allocation has been committed
 
     QueuedFullJitWorkItem *queuedFullJitWorkItem;
@@ -151,20 +158,20 @@ public:
 public:
     void ResetJitMode()
     {
-        jitMode = ExecutionMode::Interpreter;
+        this->jitData.jitMode = static_cast<uint8>(ExecutionMode::Interpreter);
     }
 
     void SetJitMode(const ExecutionMode jitMode)
     {
-        this->jitMode = jitMode;
+        this->jitData.jitMode = static_cast<uint8>(jitMode);
         VerifyJitMode();
     }
 
     void VerifyJitMode() const
     {
-        Assert(jitMode == ExecutionMode::SimpleJit || jitMode == ExecutionMode::FullJit);
-        Assert(jitMode != ExecutionMode::SimpleJit || GetFunctionBody()->DoSimpleJit());
-        Assert(jitMode != ExecutionMode::FullJit || GetFunctionBody()->DoFullJit());
+        Assert(GetJitMode() == ExecutionMode::SimpleJit || GetJitMode() == ExecutionMode::FullJit);
+        Assert(GetJitMode() != ExecutionMode::SimpleJit || GetFunctionBody()->DoSimpleJit());
+        Assert(GetJitMode() != ExecutionMode::FullJit || GetFunctionBody()->DoFullJit());
     }
 
     void OnAddToJitQueue();
@@ -183,7 +190,7 @@ public:
 
     bool IsJitInDebugMode() const
     {
-        return isJitInDebugMode;
+        return jitData.isJitInDebugMode != 0;
     }
 
 #if _M_X64 || _M_ARM
@@ -244,17 +251,27 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         bool isJitInDebugMode)
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsFunctionType)
     {
+        auto funcEPInfo = (Js::FunctionEntryPointInfo*)entryPointInfo;
+        this->jitData.readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+
+        size_t sizeInChars = this->GetDisplayName(nullptr, 256);
+
+        WCHAR * displayName = HeapNewArray(WCHAR, sizeInChars);
+        this->GetDisplayName(displayName, sizeInChars);
+        if (sizeInChars > UINT32_MAX)
+        {
+            Js::Throw::OutOfMemory();
+        }
+        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)sizeInChars);
+        this->jitData.displayName = displayName;
+
+        this->jitData.interpretedCount = GetInterpretedCount();
     }
 
 public:
     uint GetByteCodeCount() const override
     {
         return functionBody->GetByteCodeCount() +  functionBody->GetConstantCount();
-    }
-
-    uint GetFunctionNumber() const override
-    {
-        return functionBody->GetFunctionNumber();
     }
 
     size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) override
@@ -325,6 +342,18 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsLoopBodyWorkItemType)
         , symIdToValueTypeMap(nullptr)
     {
+        size_t sizeInChars = this->GetDisplayName(nullptr, 256);
+
+        WCHAR * displayName = HeapNewArray(WCHAR, sizeInChars);
+        this->GetDisplayName(displayName, sizeInChars);
+        if (sizeInChars > UINT32_MAX)
+        {
+            Js::Throw::OutOfMemory();
+        }
+        this->jitData.nameLength = UInt32Math::Mul<sizeof(WCHAR)>((uint32)sizeInChars);
+        this->jitData.displayName = displayName;
+
+        this->jitData.interpretedCount = GetInterpretedCount();
     }
 
     Js::LoopHeader * loopHeader;
@@ -339,11 +368,6 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
     uint GetByteCodeCount() const override
     {
         return (loopHeader->endOffset - loopHeader->startOffset) + functionBody->GetConstantCount();
-    }
-
-    uint GetFunctionNumber() const override
-    {
-        return functionBody->GetFunctionNumber();
     }
 
     size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars) override

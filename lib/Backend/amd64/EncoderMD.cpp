@@ -1220,7 +1220,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             Js::ArrayAccessDecoder::InstructionData instrData;
             BYTE *tempPc = instrStart;
 
-            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo, instr->m_func->m_workItem->GetFunctionBody());
+            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo, instr->m_func->GetJnFunction());
 
             // Make sure we can decode the instr
             Assert(!instrData.isInvalidInstr);

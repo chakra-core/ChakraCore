@@ -6,7 +6,9 @@
 #include "Base\EtwTrace.h"
 #include "Base\ScriptContextProfiler.h"
 
-Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
+Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
+    const Js::FunctionCodeGenJitTimeData *const jitTimeData,
+    const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
     CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
@@ -14,7 +16,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter) :
     m_alloc(alloc),
     m_workItem(workItem),
-    m_jitTimeData(workItem->RecyclableData()->JitTimeData()),
+    m_jitTimeData(jitTimeData),
     m_runtimeData(runtimeData),
     m_polymorphicInlineCacheInfo(polymorphicInlineCacheInfo),
     m_codeGenAllocators(codeGenAllocators),
@@ -121,6 +123,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
 {
+
     Assert(this->IsInlined() == !!runtimeData);
 
     if (this->IsInlined())
@@ -128,7 +131,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         m_inlineeId = ++(GetTopFunc()->m_inlineeId);
     }
 
-    m_jnFunction = m_workItem->GetFunctionBody();
+    m_jnFunction = nullptr;
     bool doStackNestedFunc = m_jnFunction->DoStackNestedFunc();
     bool doStackClosure = m_jnFunction->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this);
     Assert(!doStackClosure || doStackNestedFunc);
@@ -144,6 +147,10 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         // as determined by the bytecode generator.
         SetHasStackArgs(true);
     }
+
+    // TODO (michhol): update this on EntryPointInfo upon return
+    m_jitWriteData.writeableEPData.hasJittedStackClosure = doStackClosure && this->IsTopFunc();
+
     if (m_workItem->Type() == JsFunctionType)
     {
         if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0)
@@ -155,7 +162,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     }
     else
     {
-        Assert(m_workItem->Type() == JsLoopBodyWorkItemType);
+        Assert(m_workItem->IsLoopBody());
     }
 
     if (m_jnFunction->GetHasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)
@@ -213,12 +220,6 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
 }
 
 bool
-Func::IsLoopBody() const
-{
-    return this->m_workItem->Type() == JsLoopBodyWorkItemType;
-}
-
-bool
 Func::IsLoopBodyInTry() const
 {
     return IsLoopBody() && ((JsLoopBodyCodeGen*)this->m_workItem)->loopHeader->isInTry;
@@ -241,28 +242,15 @@ Func::Codegen()
     {
         if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))
         {
-            WCHAR displayNameBuffer[256];
-            WCHAR* displayName = displayNameBuffer;
-            size_t sizeInChars = this->m_workItem->GetDisplayName(displayName, 256);
-            if(sizeInChars > 256)
-            {
-                displayName = new WCHAR[sizeInChars];
-                this->m_workItem->GetDisplayName(displayName, 256);
-            }
             JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_START(
                 this->GetFunctionNumber(),
-                displayName,
+                this->m_workItem->GetDisplayName(),
                 this->GetScriptContext(),
                 this->m_workItem->GetInterpretedCount(),
                 (const unsigned int)this->m_jnFunction->LengthInBytes(),
                 this->m_jnFunction->GetByteCodeCount(),
                 this->m_jnFunction->GetByteCodeInLoopCount(),
                 (int)this->m_workItem->GetJitMode()));
-
-            if(displayName != displayNameBuffer)
-            {
-                delete[] displayName;
-            }
         }
     }
 
@@ -271,12 +259,11 @@ Func::Codegen()
     {
         if (this->IsLoopBody())
         {
-            Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", this->GetJnFunction()->GetDisplayName(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber());
+            Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", m_workItem->GetDisplayName(), m_workItem->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"---BeginBackEnd: function: %s---\r\n", this->GetJnFunction()->GetDisplayName());
+            Output::Print(L"---BeginBackEnd: function: %s---\r\n", m_workItem->GetDisplayName());
         }
         Output::Flush();
     }
@@ -292,10 +279,10 @@ Func::Codegen()
         {
             Output::Print(
                 L"BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S",
-                GetJnFunction()->GetDisplayName(),
+                m_workItem->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber(),
+                m_workItem->GetLoopNumber(),
                 ExecutionModeName(m_workItem->GetJitMode()));
             if (this->m_jnFunction->GetIsAsmjsMode())
             {
@@ -310,7 +297,7 @@ Func::Codegen()
         {
             Output::Print(
                 L"BeginBackEnd - function: %s (%s, line %u), mode: %S",
-                GetJnFunction()->GetDisplayName(),
+                m_workItem->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
                 ExecutionModeName(m_workItem->GetJitMode()));
@@ -348,7 +335,8 @@ Func::Codegen()
         Output::Flush();
     }
 #endif
-
+    //Js::ByteBlock * block = this->m_jnFunction->GetByteCode()->Clone(GetScriptContext()->GetRecycler());
+    //block = block->Clone(GetScriptContext()->GetRecycler());
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
         // IRBuilder
@@ -548,7 +536,7 @@ Func::Codegen()
                 GetJnFunction()->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber(),
+                m_workItem->GetLoopNumber(),
                 ExecutionModeName(m_workItem->GetJitMode()),
                 (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
 
@@ -586,29 +574,18 @@ Func::Codegen()
     {
         if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
         {
-            WCHAR displayNameBuffer[256];
-            WCHAR* displayName = displayNameBuffer;
-            size_t sizeInChars = this->m_workItem->GetDisplayName(displayName, 256);
-            if(sizeInChars > 256)
-            {
-                displayName = new WCHAR[sizeInChars];
-                this->m_workItem->GetDisplayName(displayName, 256);
-            }
+            // TODO (michhol): OOP JIT work
+            /*
             void* entryPoint;
             ptrdiff_t codeSize;
             this->m_workItem->GetEntryPointAddress(&entryPoint, &codeSize);
             JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_STOP(
                 this->GetFunctionNumber(),
-                displayName,
+                GetDisplayName(),
                 scriptContext,
                 this->m_workItem->GetInterpretedCount(),
                 entryPoint,
-                codeSize));
-
-            if(displayName != displayNameBuffer)
-            {
-                delete[] displayName;
-            }
+                codeSize));*/
         }
     }
 
@@ -716,14 +693,10 @@ Func::EnsureLocalVarSlots()
             m_localVarSlotsOffset = StackAllocate(size);
             m_hasLocalVarChangedOffset = StackAllocate(max(1, MachStackAlignment)); // Can't alloc less than StackAlignment bytes.
 
-            Assert(this->m_workItem->Type() == JsFunctionType);
+            Assert(m_workItem->Type() == JsFunctionType);
 
-            // Store in the entry point info, so that it will later be used when we do the variable inspection.
-            Js::FunctionEntryPointInfo * entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(this->m_workItem->GetEntryPoint());
-            Assert(entryPointInfo != nullptr);
-
-            entryPointInfo->localVarSlotsOffset = AdjustOffsetValue(m_localVarSlotsOffset);
-            entryPointInfo->localVarChangedOffset = AdjustOffsetValue(m_hasLocalVarChangedOffset);
+            m_jitWriteData.writeableEPData.localVarSlotsOffset = AdjustOffsetValue(m_localVarSlotsOffset);
+            m_jitWriteData.writeableEPData.localVarChangedOffset = AdjustOffsetValue(m_hasLocalVarChangedOffset);
         }
     }
 }
@@ -788,9 +761,7 @@ Func::GetHasLocalVarChangedOffset()
 bool
 Func::IsJitInDebugMode()
 {
-    return
-        Js::Configuration::Global.EnableJitInDebugMode() &&
-        this->m_workItem->IsJitInDebugMode();
+    return m_workItem->IsJitInDebugMode();
 }
 
 bool
@@ -1110,13 +1081,18 @@ Func::EndPhase(Js::Phase tag, bool dump)
     {
         Output::Print(L"-----------------------------------------------------------------------------\n");
 
-        if (m_workItem->Type() == JsLoopBodyWorkItemType)
+        if (IsLoopBody())
         {
-            Output::Print(L"************   IR after %s (%S) Loop %d ************\n", Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()), ((JsLoopBodyCodeGen*)m_workItem)->GetLoopNumber());
+            Output::Print(L"************   IR after %s (%S) Loop %d ************\n",
+                Js::PhaseNames[tag],
+                ExecutionModeName(m_workItem->GetJitMode()),
+                m_workItem->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"************   IR after %s (%S)  ************\n", Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()));
+            Output::Print(L"************   IR after %s (%S)  ************\n",
+                Js::PhaseNames[tag],
+                ExecutionModeName(m_workItem->GetJitMode()));
         }
         this->Dump(Js::Configuration::Global.flags.AsmDiff? IRDumpFlags_AsmDumpMode : IRDumpFlags_None);
     }
@@ -1250,16 +1226,6 @@ Func::CreateInlineeStackSym()
     stackSym->m_allocated = true;
 
     return stackSym;
-}
-
-uint8 *
-Func::GetCallsCountAddress() const
-{
-    Assert(this->m_workItem->Type() == JsFunctionType);
-
-    JsFunctionCodeGen * functionCodeGen = static_cast<JsFunctionCodeGen *>(this->m_workItem);
-
-    return functionCodeGen->GetFunctionBody()->GetCallsCountAddress(functionCodeGen->GetEntryPoint());
 }
 
 RecyclerWeakReference<Js::FunctionBody> *

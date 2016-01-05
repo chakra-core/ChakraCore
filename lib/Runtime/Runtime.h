@@ -304,6 +304,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define SDO_ENABLE_LIBRARY_STACK_FRAME ((SCRIPT_DEBUGGER_OPTIONS)0x8)
 #endif
 
+#include "JITClient.h"
+
 #include "Base\SourceHolder.h"
 #include "Base\Utf8SourceInfo.h"
 #include "Base\PropertyRecord.h"
@@ -432,7 +434,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Types\ScriptFunctionType.h"
 #include "Library\ScriptFunction.h"
-
 
 //
 // .inl files

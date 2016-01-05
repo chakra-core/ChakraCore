@@ -175,6 +175,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     maxGlobalFunctionExecTime(0.0),
     isAllJITCodeInPreReservedRegion(true),
     activityId(GUID_NULL),
+    m_codeGenManager(),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
@@ -239,6 +240,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     this->projectionMemoryInformation = nullptr;
 #endif
 #endif
+
     this->InitAvailableCommit();
 }
 

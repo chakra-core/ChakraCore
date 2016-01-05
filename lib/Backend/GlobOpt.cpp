@@ -75,7 +75,7 @@
             this->func->GetJnFunction()->GetLineNumber()); \
         if(this->func->IsLoopBody()) \
         { \
-            Output::Print(L", loop %u", static_cast<JsLoopBodyCodeGen *>(this->func->m_workItem)->GetLoopNumber()); \
+            Output::Print(L", loop %u", this->func->GetWorkItem()->GetLoopNumber()); \
         } \
         if(instr->m_func != this->func) \
         { \
@@ -250,7 +250,7 @@ GlobOpt::GlobOpt(Func * func)
         doBoundCheckHoist &&
         !PHASE_OFF(Js::Phase::LoopCountBasedBoundCheckHoistPhase, func) &&
         !func->GetProfileInfo()->IsLoopCountBasedBoundCheckHoistDisabled(func->IsLoopBody())),
-    isAsmJSFunc(func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
+    isAsmJSFunc(func->GetJnFunction()->GetIsAsmjsMode())
 {
 }
 
@@ -4043,7 +4043,7 @@ GlobOpt::MarkArgumentsUsedForBranch(IR::Instr * instr)
                 if (defSym && defSym->IsSymOpnd() && defSym->AsSymOpnd()->m_sym->IsStackSym()
                     && defSym->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
                 {
-                    Js::FunctionBody *funcBody = this->func->m_workItem->GetFunctionBody();
+                    Js::FunctionBody *funcBody = this->func->GetJnFunction();
                     uint16 param = defSym->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum();
 
                     // We only support functions with 13 arguments to ensure optimal size of callSiteInfo
@@ -7504,7 +7504,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     }
 
     // SIMD_JS
-    if (Js::IsSimd128Opcode(instr->m_opcode) && !func->m_workItem->GetFunctionBody()->GetIsAsmjsMode())
+    if (Js::IsSimd128Opcode(instr->m_opcode) && !func->GetJnFunction()->GetIsAsmjsMode())
     {
         ThreadContext::SimdFuncSignature simdFuncSignature;
         instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(instr->m_opcode, simdFuncSignature);

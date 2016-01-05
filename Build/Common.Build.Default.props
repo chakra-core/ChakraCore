@@ -71,5 +71,6 @@
     <OutputPath>$(OutDir)</OutputPath>
 
     <ChakraParserIntDir>$(IntDir)..\Chakra.Parser</ChakraParserIntDir>
+    <ChakraJITIDLIntDir>$(IntDir)..\Chakra.JITIDL</ChakraJITIDLIntDir>
   </PropertyGroup>
 </Project>

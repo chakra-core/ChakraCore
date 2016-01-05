@@ -1,0 +1,64 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+import "wtypes.idl";
+
+// FunctionBody fields, read only in JIT
+typedef struct FunctionBodyJITData
+{
+    unsigned int funcNumber;
+    unsigned int localFuncId;
+    unsigned int sourceContextId;
+} FunctionBodyJITData;
+
+// EntryPointInfo fields, read/write in JIT
+typedef struct EntryPointInfoJITWriteData
+{
+    int localVarSlotsOffset; // FunctionEntryPointInfo only
+    int localVarChangedOffset; // FunctionEntryPointInfo only
+    boolean hasJittedStackClosure;
+} EntryPointInfoJITWriteData;
+
+// EntryPointInfo fields, read only in JIT
+typedef struct EntryPointInfoJITReadData
+{
+    __int3264 callsCountAddress; // // FunctionEntryPointInfo only
+} EntryPointInfoJITReadData;
+
+// CodeGenWorkItem fields, read only in JIT
+typedef struct CodeGenWorkItemJITData
+{
+    EntryPointInfoJITReadData readOnlyEPData;
+    FunctionBodyJITData bodyData;
+    unsigned int interpretedCount;
+    unsigned int loopNumber;
+    unsigned int nameLength;
+    [size_is(nameLength)] wchar_t * displayName;
+    byte type;
+    char jitMode;
+    boolean isJitInDebugMode;  // Whether JIT is in debug mode for this work item.
+} CodeGenWorkItemJITData;
+
+// Fields that JIT modifies
+typedef struct JITWriteData
+{
+    EntryPointInfoJITWriteData writeableEPData;
+} JITWriteData;
+
+[
+    uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),
+    pointer_default(unique)
+]
+interface IChakraJIT
+{
+
+    HRESULT Shutdown([in] handle_t binding);
+
+    HRESULT RemoteCodeGen(
+        [in] handle_t binding,
+        [in] __int3264 process,
+        [in] CodeGenWorkItemJITData * workItemData,
+        [out] JITWriteData * jitData);
+}

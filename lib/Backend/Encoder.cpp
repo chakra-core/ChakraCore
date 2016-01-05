@@ -54,14 +54,6 @@ Encoder::Encode()
     m_inlineeFrameMap = Anew(m_tempAlloc, InlineeFrameMap, m_tempAlloc);
     m_bailoutRecordMap = Anew(m_tempAlloc, BailoutRecordMap, m_tempAlloc);
 
-    CodeGenWorkItem* workItem = m_func->m_workItem;
-    uint loopNum = Js::LoopHeader::NoLoop;
-
-    if (workItem->Type() == JsLoopBodyWorkItemType)
-    {
-        loopNum = ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber();
-    }
-
     Js::SmallSpanSequenceIter iter;
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
@@ -252,6 +244,8 @@ Encoder::Encode()
         IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
         inst->RecordThrowMap(iter, inst->m_offsetInBuffer);
     }
+
+    JITTimeWorkItem * workItem = m_func->GetWorkItem();
 
     BEGIN_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
