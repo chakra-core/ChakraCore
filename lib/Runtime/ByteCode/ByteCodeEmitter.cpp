@@ -5593,14 +5593,19 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
         case knopName:
         {
             Symbol *sym = pnode->sxCall.pnodeTarget->sxPid.sym;
-            if (!sym || 
-                sym->GetLocation() == Js::Constants::NoRegister || 
-                sym->IsInSlot(funcInfo) ||
-                sym->GetScope()->GetFunc() != funcInfo)
+            if (!sym || sym->GetLocation() == Js::Constants::NoRegister)
             {
                 funcInfo->AcquireLoc(pnode->sxCall.pnodeTarget);
             }
-            EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            if (sym && (sym->IsInSlot(funcInfo) || sym->GetScope()->GetFunc() != funcInfo))
+            {
+                // Can't get the value from the assigned register, so load it here.
+                EmitLoad(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            }
+            else
+            {
+                EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            }
             break;
         }
         default:
