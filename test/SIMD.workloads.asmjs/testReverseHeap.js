@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
 
@@ -57,8 +57,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -101,8 +100,7 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+    
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -270,42 +268,27 @@ function initD2(buffer) {
     }
     return values.length;
 }
-function printBufferD2(buffer, count)
-{
-    var d2;
-    for (var i = 0; i < count/* * 16*/; i += 4)
-    {
-        d2 = SIMD.Float64x2.load(buffer, i);
-        print(d2.toString());
-    }
-}
 
-function printBufferI4(buffer, count)
+function GEN_BASELINE(loadfn, buffer, count)
 {
     var i4;
-    for (var i = 0; i < count/* * 16*/; i += 4)
+    print("[");
+	for (var i = 0; i < count/* * 16*/; i += 4)
     {
-        i4 = SIMD.Int32x4.load(buffer, i);
-        print(i4.toString());
+        i4 = loadfn(buffer, i);
+        print(i4.toString()+",");
     }
+	print("]");
 }
-
-function printBufferF4(buffer, count)
+function verify_results(type, results_ex, buffer, count)
 {
-    var f4;
-    for (var i = 0; i < count/* * 16*/; i += 4)
+    var i4;
+	for (var i = 0, idx = 0; i < count/* * 16*/; i += 4)
     {
-        f4 = SIMD.Float32x4.load(buffer, i);
-        print(f4.toString());
-    }
+        i4 = type.load(buffer, i);
+		equalSimd(results_ex[idx++], i4, type, "Reverse Heap" );
+	}
 }
-
-function printResults(res)
-{
-    print(typeof(res));
-    print(res.toString());
-}
-
 //Module initialization
 var m = asmModule(this, {g0:initI4(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4), g3:SIMD.Float64x2(10, 10, 10, 10)}, buffer);
 var values = new Float32Array(buffer);
@@ -313,26 +296,73 @@ var values = new Float32Array(buffer);
 //Resetting the buffer.
 initI4(buffer);
 
-print("Reversing - Start");
-printBufferI4(values, 8 * 4);
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
+var exp_results = [
+SIMD.Int32x4(0, 10, 20, 30),
+SIMD.Int32x4(40, 50, 60, 70),
+SIMD.Int32x4(80, 90, 100, 110),
+SIMD.Int32x4(120, 130, 140, 150),
+SIMD.Int32x4(160, 170, 180, 190),
+SIMD.Int32x4(200, 210, 220, 230),
+SIMD.Int32x4(240, 250, 260, 270),
+SIMD.Int32x4(280, 290, 300, 310),
+];
+verify_results(SIMD.Int32x4, exp_results, values, 8*4);
+
 m.reverseI4(3, 31);
-print("Reversing - Start");
-printBufferI4(values, 8 * 4);
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
+var exp_results = [
+SIMD.Int32x4(0, 10, 20, 300),
+SIMD.Int32x4(290, 280, 270, 260),
+SIMD.Int32x4(250, 240, 230, 220),
+SIMD.Int32x4(210, 200, 190, 180),
+SIMD.Int32x4(170, 160, 150, 140),
+SIMD.Int32x4(130, 120, 110, 100),
+SIMD.Int32x4(90, 80, 70, 60),
+SIMD.Int32x4(50, 40, 30, 310),
+];
+verify_results(SIMD.Int32x4, exp_results, values, 8*4);
 
 //Resetting the buffer.
 initF4(buffer);
 
-print("Reversing - Start");
-printBufferF4(values, 8 * 4);
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Float32x4.load, values, 8*4);
+var exp_results = [
+SIMD.Float32x4(0, 10, 20, 30),
+SIMD.Float32x4(40, 50, 60, 70),
+SIMD.Float32x4(80, 90, 100, 110),
+SIMD.Float32x4(120, 130, 140, 150),
+SIMD.Float32x4(160, 170, 180, 190),
+SIMD.Float32x4(200, 210, 220, 230),
+SIMD.Float32x4(240, 250, 260, 270),
+SIMD.Float32x4(280, 290, 300, 310),
+];
+verify_results(SIMD.Float32x4, exp_results, values, 8*4);
+
 m.reverseF4(3, 31);
-print("Reversing - Start");
-printBufferF4(values, 8 * 4);
-
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Float32x4.load, values, 8*4);
+var exp_results = [
+SIMD.Float32x4(0, 10, 20, 300),
+SIMD.Float32x4(290, 280, 270, 260),
+SIMD.Float32x4(250, 240, 230, 220),
+SIMD.Float32x4(210, 200, 190, 180),
+SIMD.Float32x4(170, 160, 150, 140),
+SIMD.Float32x4(130, 120, 110, 100),
+SIMD.Float32x4(90, 80, 70, 60),
+SIMD.Float32x4(50, 40, 30, 310),
+];
+verify_results(SIMD.Float32x4, exp_results, values, 8*4);
 //Resetting the buffer.
-initD2(buffer);
+// initD2(buffer);
 
-print("Reversing - Start");
-printBufferD2(values, 10 * 2);
-m.reverseD2(3, 8);
-print("Reversing - Start");
-printBufferD2(values, 10 * 2);
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
+// m.reverseD2(3, 8);
+// print("Reversing - Start");
+// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
+
+print("PASS");

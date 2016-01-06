@@ -19,16 +19,6 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpFloat32x4(const SIMDValue& v)
-    {
-        // overload function with input paramter as SIMDValue for completeness
-        SIMDValue result;
-
-        result = v;
-
-        return result;
-    }
-
     SIMDValue SIMDFloat32x4Operation::OpZero()
     {
         SIMDValue result;
@@ -47,15 +37,6 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpSplat(const SIMDValue& v)
-    {
-        SIMDValue result;
-
-        result.f32[SIMD_X] = result.f32[SIMD_Y] = result.f32[SIMD_Z] = result.f32[SIMD_W] = v.f32[SIMD_X];
-
-        return result;
-    }
-
     // Conversions
     SIMDValue SIMDFloat32x4Operation::OpFromFloat64x2(const SIMDValue& v)
     {
@@ -65,14 +46,6 @@ namespace Js
         result.f32[SIMD_Y] = (float)(v.f64[SIMD_Y]);
         result.f32[SIMD_Z] = result.f32[SIMD_W] = 0;
 
-        return result;
-    }
-
-    SIMDValue SIMDFloat32x4Operation::OpFromFloat64x2Bits(const SIMDValue& v)
-    {
-        SIMDValue result;
-        result.f64[SIMD_X] = v.f64[SIMD_X];
-        result.f64[SIMD_Y] = v.f64[SIMD_Y];
         return result;
     }
 
@@ -88,9 +61,16 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpFromInt32x4Bits(const SIMDValue& v)
+    SIMDValue SIMDFloat32x4Operation::OpFromUint32x4(const SIMDValue& v)
     {
-        return OpFromFloat64x2Bits(v);
+        SIMDValue result;
+
+        result.f32[SIMD_X] = (float)(v.u32[SIMD_X]);
+        result.f32[SIMD_Y] = (float)(v.u32[SIMD_Y]);
+        result.f32[SIMD_Z] = (float)(v.u32[SIMD_Z]);
+        result.f32[SIMD_W] = (float)(v.u32[SIMD_W]);
+
+        return result;
     }
 
     // Unary Ops
@@ -239,27 +219,113 @@ namespace Js
         return result;
     }
 
+    /*
+    Min/Max(a, b) spec semantics:
+    If any value is NaN, return NaN
+    a < b ? a : b; where +0.0 > -0.0 (vice versa for Max)
+
+    MinNum/MaxNum(a, b) spec semantics:
+    If 1st value is NaN, return 2nd
+    If 2nd value is NaN, return 1st
+    return Min/Max(a, b)
+    */
     SIMDValue SIMDFloat32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
-
-        result.f32[SIMD_X] = (aValue.f32[SIMD_X] < bValue.f32[SIMD_X]) ? aValue.f32[SIMD_X] : bValue.f32[SIMD_X];
-        result.f32[SIMD_Y] = (aValue.f32[SIMD_Y] < bValue.f32[SIMD_Y]) ? aValue.f32[SIMD_Y] : bValue.f32[SIMD_Y];
-        result.f32[SIMD_Z] = (aValue.f32[SIMD_Z] < bValue.f32[SIMD_Z]) ? aValue.f32[SIMD_Z] : bValue.f32[SIMD_Z];
-        result.f32[SIMD_W] = (aValue.f32[SIMD_W] < bValue.f32[SIMD_W]) ? aValue.f32[SIMD_W] : bValue.f32[SIMD_W];
-
+        for (uint i = 0; i < 4; i++)
+        {
+            float a = aValue.f32[i];
+            float b = bValue.f32[i];
+            if (Js::NumberUtilities::IsNan(a))
+            {
+                result.f32[i] = a;
+            }
+            else if (Js::NumberUtilities::IsNan(b))
+            {
+                result.f32[i] = b;
+            }
+            else if (Js::NumberUtilities::IsFloat32NegZero(a) && b >= 0.0)
+            {
+                result.f32[i] = a;
+            }
+            else if (Js::NumberUtilities::IsFloat32NegZero(b) && a >= 0.0)
+            {
+                result.f32[i] = b;
+            }
+            else
+            {
+                result.f32[i] = a < b ? a : b;
+            }
+        }
         return result;
     }
 
     SIMDValue SIMDFloat32x4Operation::OpMax(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
+        for (uint i = 0; i < 4; i++)
+        {
+            float a = aValue.f32[i];
+            float b = bValue.f32[i];
+            if (Js::NumberUtilities::IsNan(a))
+            {
+                result.f32[i] = a;
+            }
+            else if (Js::NumberUtilities::IsNan(b))
+            {
+                result.f32[i] = b;
+            }
+            else if (Js::NumberUtilities::IsFloat32NegZero(a) && b >= 0.0)
+            {
+                result.f32[i] = b;
+            }
+            else if (Js::NumberUtilities::IsFloat32NegZero(b) && a >= 0.0)
+            {
+                result.f32[i] = a;
+            }
+            else
+            {
+                result.f32[i] = a < b ? b : a;
+            }
+        }
+        return result;
+    }
 
-        result.f32[SIMD_X] = (aValue.f32[SIMD_X] > bValue.f32[SIMD_X]) ? aValue.f32[SIMD_X] : bValue.f32[SIMD_X];
-        result.f32[SIMD_Y] = (aValue.f32[SIMD_Y] > bValue.f32[SIMD_Y]) ? aValue.f32[SIMD_Y] : bValue.f32[SIMD_Y];
-        result.f32[SIMD_Z] = (aValue.f32[SIMD_Z] > bValue.f32[SIMD_Z]) ? aValue.f32[SIMD_Z] : bValue.f32[SIMD_Z];
-        result.f32[SIMD_W] = (aValue.f32[SIMD_W] > bValue.f32[SIMD_W]) ? aValue.f32[SIMD_W] : bValue.f32[SIMD_W];
+    SIMDValue SIMDFloat32x4Operation::OpMinNum(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result = OpMin(aValue, bValue);
+        for (uint i = 0; i < 4; i++)
+        {
+            float a = aValue.f32[i];
+            float b = bValue.f32[i];
+            if (Js::NumberUtilities::IsNan(a))
+            {
+                result.f32[i] = b;
+            }
+            else if (Js::NumberUtilities::IsNan(b))
+            {
+                result.f32[i] = a;
+            }
+        }
+        return result;
+    }
 
+    SIMDValue SIMDFloat32x4Operation::OpMaxNum(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result = OpMax(aValue, bValue);
+        for (uint i = 0; i < 4; i++)
+        {
+            float a = aValue.f32[i];
+            float b = bValue.f32[i];
+            if (Js::NumberUtilities::IsNan(a))
+            {
+                result.f32[i] = b;
+            }
+            else if (Js::NumberUtilities::IsNan(b))
+            {
+                result.f32[i] = a;
+            }
+        }
         return result;
     }
 

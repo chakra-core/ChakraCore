@@ -5,18 +5,14 @@
 
 function equal(a, b) {
     if (a == b)
-    {
         print("Correct");
-    }
     else
-    {
         print(">> Fail!");
-    }
 }
 
 function testSelect() {
     print("Int32x4 Select");
-    var m = SIMD.Int32x4.bool(true, true, false, false);
+    var m = SIMD.Bool32x4(true, true, false, false);
     var t = SIMD.Int32x4(1, 2, 3, 4);
     var f = SIMD.Int32x4(5, 6, 7, 8);
     var s = SIMD.Int32x4.select(m, t, f);

@@ -170,6 +170,9 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_Shuffle_D2:
         return Simd128LowerShuffle(instr);
 
+    case Js::OpCode::Simd128_FromFloat32x4_I4:
+        return Simd128LowerInt32x4FromFloat32x4(instr);
+
 
     default:
         AssertMsg(UNREACHED, "Unsupported Simd128 instruction");
@@ -868,6 +871,88 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
     return pInstr;
 }
 
+
+IR::Instr* LowererMD::Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr)
+{
+    IR::Opnd *dst, *src, *tmp, *tmp2, *mask1, *mask2;
+    IR::Instr *insertInstr, *pInstr, *newInstr;
+    IR::LabelInstr *doneLabel;
+    dst = instr->GetDst();
+    src = instr->GetSrc1();
+    Assert(dst != nullptr && src != nullptr && dst->IsSimd128() && src->IsSimd128());
+
+    // CVTTPS2DQ dst, src
+    instr->m_opcode = Js::OpCode::CVTTPS2DQ;
+    insertInstr = instr->m_next;
+    pInstr = instr->m_prev;
+    doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    mask1 = IR::RegOpnd::New(TyInt32, m_func);
+    mask2 = IR::RegOpnd::New(TyInt32, m_func);
+
+    // bound checks
+    // check if any value is potentially out of range (0x80000000 in output)
+    // PCMPEQD tmp, dst, X86_NEG_MASK (0x80000000)
+    // MOVMSKPS mask1, tmp
+    // CMP mask1, 0
+    // JNE $doneLabel
+    tmp = IR::RegOpnd::New(TySimd128I4, m_func);
+    tmp2 = IR::RegOpnd::New(TySimd128I4, m_func);
+    newInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, IR::MemRefOpnd::New((void*)&X86_NEG_MASK_F4, TySimd128I4, m_func), m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+    newInstr = IR::Instr::New(Js::OpCode::PCMPEQD, tmp, dst, tmp2, m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+    insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask1, tmp, m_func));
+    newInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
+    newInstr->SetSrc1(mask1);
+    newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
+    insertInstr->InsertBefore(newInstr);
+    insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, doneLabel, m_func));
+
+    // we have potential out of bound. check bounds
+    // MOVAPS tmp2, X86_TWO_31_F4 (0x4f000000)
+    // CMPLEPS tmp, tmp2, src
+    // MOVMSKPS mask1, tmp
+    // MOVAPS tmp2, X86_NEG_TWO_31_F4 (0xcf000000)
+    // CMPLTPS tmp, src, tmp2
+    // MOVMSKPS mask2, tmp
+    // OR mask1, mask1, mask2
+    // CMP mask1, 0
+    // JNE $doneLabel
+    newInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, IR::MemRefOpnd::New((void*)&X86_TWO_31_F4, TySimd128I4, m_func), m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+    newInstr = IR::Instr::New(Js::OpCode::CMPLEPS, tmp, tmp2, src, m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+    insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask1, tmp, m_func));
+
+    newInstr = IR::Instr::New(Js::OpCode::MOVAPS, tmp2, IR::MemRefOpnd::New((void*)&X86_NEG_TWO_31_F4, TySimd128I4, m_func), m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    newInstr = IR::Instr::New(Js::OpCode::CMPLTPS, tmp, src, tmp2, m_func);
+    insertInstr->InsertBefore(newInstr);
+    Legalize(newInstr);
+
+    insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::MOVMSKPS, mask2, tmp, m_func));
+
+    insertInstr->InsertBefore(IR::Instr::New(Js::OpCode::OR, mask1, mask1, mask2, m_func));
+    newInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
+    newInstr->SetSrc1(mask1);
+    newInstr->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
+    insertInstr->InsertBefore(newInstr);
+    insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, doneLabel, m_func));
+
+    // throw range error
+    m_lowerer->GenerateRuntimeError(insertInstr, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
+
+    insertInstr->InsertBefore(doneLabel);
+
+    return pInstr;
+}
+
 IR::Instr* LowererMD::Simd128LowerLoadElem(IR::Instr *instr)
 {
     Assert(instr->m_opcode == Js::OpCode::Simd128_LdArr_I4 ||
@@ -1196,7 +1281,6 @@ void LowererMD::Simd128InitOpcodeMap()
 
     SET_SIMDOPCODE(Simd128_FromFloat64x2_I4     , CVTTPD2DQ);
     SET_SIMDOPCODE(Simd128_FromFloat64x2Bits_I4 , MOVAPS);
-    SET_SIMDOPCODE(Simd128_FromFloat32x4_I4     , CVTTPS2DQ);
     SET_SIMDOPCODE(Simd128_FromFloat32x4Bits_I4 , MOVAPS);
     SET_SIMDOPCODE(Simd128_Add_I4               , PADDD);
     SET_SIMDOPCODE(Simd128_Sub_I4               , PSUBD);

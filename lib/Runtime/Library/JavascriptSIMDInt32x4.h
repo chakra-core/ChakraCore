@@ -4,11 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-class JavascriptSIMDFloat32x4;
-class JavascriptSIMDFloat64x2;
-
 namespace Js
 {
+    class JavascriptSIMDUint32x4;
+
     class JavascriptSIMDInt32x4 sealed : public RecyclableObject
     {
     private:
@@ -34,9 +33,6 @@ namespace Js
 
         static JavascriptSIMDInt32x4* FromBool(SIMDValue *val, ScriptContext* requestContext);
         static JavascriptSIMDInt32x4* FromFloat64x2(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext);
-        static JavascriptSIMDInt32x4* FromFloat64x2Bits(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext);
-        static JavascriptSIMDInt32x4* FromFloat32x4(JavascriptSIMDFloat32x4   *instance, ScriptContext* requestContext);
-        static JavascriptSIMDInt32x4* FromFloat32x4Bits(JavascriptSIMDFloat32x4   *instance, ScriptContext* requestContext);
 
         __inline SIMDValue GetValue() { return value; }
 

@@ -3,21 +3,18 @@
   <test>
     <default>
       <files>testAddSub.js</files>
-      <baseline>testAddSub.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAddSub.js</files>
-      <baseline>testAddSub.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAddSub.js</files>
-      <baseline>testAddSub.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
@@ -26,21 +23,18 @@
   <test>
     <default>
       <files>testAndOrXor.js</files>
-      <baseline>testAndOrXor.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAndOrXor.js</files>
-      <baseline>testAndOrXor.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAndOrXor.js</files>
-      <baseline>testAndOrXor.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
@@ -48,21 +42,18 @@
   <test>
     <default>
       <files>testComparisons.js</files>
-      <baseline>testComparisons.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testComparisons.js</files>
-      <baseline>testComparisons.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testComparisons.js</files>
-      <baseline>testComparisons.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
@@ -92,21 +83,18 @@
   <test>
     <default>
       <files>testConversions.js</files>
-      <baseline>testConversions.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testConversions.js</files>
-      <baseline>testConversions.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testConversions.js</files>
-      <baseline>testConversions.baseline</baseline>
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
@@ -352,5 +340,11 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
     </default>
   </test>
-
+  <test>
+    <default>
+      <files>testStore.js</files>
+      <baseline>testStore.baseline</baseline>
+      <compile-flags>-Simdjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

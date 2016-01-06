@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------------------------------------------
+﻿//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -24,6 +24,7 @@ namespace Js
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
         static const uint32     k_Float32NegPointFive = 0xBF000000ul;
+        static const uint32     k_Float32NegZero   = 0x80000000ul;
 
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;
@@ -57,8 +58,10 @@ namespace Js
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
+        static bool IsFloat32NegZero(float value);
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);
+        static uint32 ToSpecial(float value);
 
         // Convert a given UINT16 into its corresponding string.
         // outBufferSize is in WCHAR elements (and used only for ASSERTs)

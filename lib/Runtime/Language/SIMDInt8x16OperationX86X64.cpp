@@ -21,61 +21,11 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpInt8x16(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-        // Sets the 16 signed 8-bit integer values, note in revised order: starts with x15 below
-        x86Result.m128i_value = _mm_set_epi8(v.i8[15], v.i8[14], v.i8[13], v.i8[12], v.i8[11]
-                                            , v.i8[10], v.i8[9], v.i8[8], v.i8[7], v.i8[6]
-                                            , v.i8[5], v.i8[4], v.i8[3], v.i8[2], v.i8[1], v.i8[0]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpZero()
-    {
-        X86SIMDValue x86Result;
-        // Sets the 128-bit value to zero
-        x86Result.m128i_value = _mm_setzero_si128();
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     SIMDValue SIMDInt8x16Operation::OpSplat(int8 x)
     {
         X86SIMDValue x86Result;
         // set 16 signed 8-bit integers values to input value x
         x86Result.m128i_value = _mm_set1_epi8(x);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpSplat(const SIMDValue& v) // TODO arun: not in spec
-    {
-        X86SIMDValue x86Result;
-        // set 16 signed 8-bit integers values to input value(v.i8[SIMD_X])
-        x86Result.m128i_value = _mm_set1_epi8(v.i8[0]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpFromFloat32x4Bits(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-
-        _mm_store_ps(x86Result.simdValue.f32, v.m128_value);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-    SIMDValue SIMDInt8x16Operation::OpFromInt32x4Bits(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-
-        x86Result.m128i_value = _mm_set_epi8(value.i8[15], value.i8[14], value.i8[13], value.i8[12]
-            , value.i8[11], value.i8[10], value.i8[9], value.i8[8]
-            , value.i8[7], value.i8[6], value.i8[5], value.i8[4]
-            , value.i8[5], value.i8[2], value.i8[1], value.i8[0]);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -93,17 +43,6 @@ namespace Js
         temp.m128i_value = _mm_andnot_si128(v.m128i_value, negativeOnes.m128i_value); // (~value) & (negative ones)
         SIGNMASK.m128i_value = _mm_set1_epi8(0x00000001);                            // set SIGNMASK to 1
         x86Result.m128i_value = _mm_add_epi8(SIGNMASK.m128i_value, temp.m128i_value);// add 16 integers respectively
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpNot(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-
-        X86SIMDValue negativeOnes = { { -1, -1, -1, -1 } };
-        X86SIMDValue temp = X86SIMDValue::ToX86SIMDValue(value);
-        x86Result.m128i_value = _mm_andnot_si128(temp.m128i_value, negativeOnes.m128i_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -132,7 +71,6 @@ namespace Js
 
     SIMDValue SIMDInt8x16Operation::OpMul(const SIMDValue& aValue, const SIMDValue& bValue)
     {
-        SIMDValue result;
         X86SIMDValue x86Result;
         X86SIMDValue x86tmp1;
         X86SIMDValue x86tmp2;
@@ -141,63 +79,59 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
 
-        if (AutoSystemInfo::Data.SSE2Available())
-        {
-            // (ah* 2^8 + al) * (bh *2^8 + bl) = (ah*bh* 2^8 + al*bh + ah* bl) * 2^8 + al * bl
-            x86tmp1.m128i_value = _mm_mullo_epi16(tmpaValue.m128i_value, tmpbValue.m128i_value);
-            x86tmp2.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        // (ah* 2^8 + al) * (bh *2^8 + bl) = (ah*bh* 2^8 + al*bh + ah* bl) * 2^8 + al * bl
+        x86tmp1.m128i_value = _mm_mullo_epi16(tmpaValue.m128i_value, tmpbValue.m128i_value);
+        x86tmp2.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
 
-            tmpaValue.m128i_value = _mm_srli_epi16(tmpaValue.m128i_value, 8);
-            tmpbValue.m128i_value = _mm_srli_epi16(tmpbValue.m128i_value, 8);
-            x86tmp3.m128i_value   = _mm_mullo_epi16(tmpaValue.m128i_value, tmpbValue.m128i_value);
-            x86tmp3.m128i_value   = _mm_slli_epi16(x86tmp3.m128i_value, 8);
+        tmpaValue.m128i_value = _mm_srli_epi16(tmpaValue.m128i_value, 8);
+        tmpbValue.m128i_value = _mm_srli_epi16(tmpbValue.m128i_value, 8);
+        x86tmp3.m128i_value   = _mm_mullo_epi16(tmpaValue.m128i_value, tmpbValue.m128i_value);
+        x86tmp3.m128i_value   = _mm_slli_epi16(x86tmp3.m128i_value, 8);
 
-            x86Result.m128i_value = _mm_or_si128(x86tmp2.m128i_value, x86tmp3.m128i_value);
+        x86Result.m128i_value = _mm_or_si128(x86tmp2.m128i_value, x86tmp3.m128i_value);
 
-            return X86SIMDValue::ToSIMDValue(x86Result);
-        }
-        else
-        {
-            for (uint idx = 0; idx < 16; ++idx)
-            {
-                result.i8[idx] = aValue.i8[idx] * bValue.i8[idx];
-            }
-        }
-
-        return result;
+        return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpAnd(const SIMDValue& aValue, const SIMDValue& bValue)
+    SIMDValue SIMDInt8x16Operation::OpAddSaturate(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
 
-        x86Result.m128i_value = _mm_and_si128(tmpaValue.m128i_value, tmpbValue.m128i_value); // a & b
+        x86Result.m128i_value = _mm_adds_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // a + b
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpOr(const SIMDValue& aValue, const SIMDValue& bValue)
+    SIMDValue SIMDInt8x16Operation::OpSubSaturate(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
 
-        x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, tmpbValue.m128i_value); // a | b
+        x86Result.m128i_value = _mm_subs_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // a - b
 
-        return X86SIMDValue::ToSIMDValue(x86Result);
+        return X86SIMDValue::ToSIMDValue(x86Result);;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpXor(const SIMDValue& aValue, const SIMDValue& bValue)
+
+    SIMDValue SIMDInt8x16Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
-        X86SIMDValue x86Result;
-        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
-        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        //Only available in SSE 4
+        //x86Result.m128i_value = _mm_min_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // min a b
+        //SSE 2
+        SIMDValue selector = SIMDInt8x16Operation::OpLessThan(aValue, bValue);
+        return SIMDInt8x16Operation::OpSelect(selector, aValue, bValue);
+    }
 
-        x86Result.m128i_value = _mm_xor_si128(tmpaValue.m128i_value, tmpbValue.m128i_value); // a ^ b
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
+    SIMDValue SIMDInt8x16Operation::OpMax(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        //Only available in SSE 4
+        //x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // min a b
+        //SSE 2
+        SIMDValue selector = SIMDInt8x16Operation::OpGreaterThan(aValue, bValue);
+        return SIMDInt8x16Operation::OpSelect(selector, aValue, bValue);
     }
 
     SIMDValue SIMDInt8x16Operation::OpLessThan(const SIMDValue& aValue, const SIMDValue& bValue)
@@ -206,6 +140,17 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
         x86Result.m128i_value = _mm_cmplt_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a < b?
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+    SIMDValue SIMDInt8x16Operation::OpLessThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
+        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == a
+        x86Result.m128i_value = _mm_cmpeq_epi8(tmpbValue.m128i_value, x86Result.m128i_value); //
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -220,12 +165,37 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
+    SIMDValue SIMDInt8x16Operation::OpNotEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
+        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        x86Result.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a != b?
+
+        X86SIMDValue negativeOnes = { { -1, -1, -1, -1 } };
+        x86Result.m128i_value = _mm_andnot_si128(x86Result.m128i_value, negativeOnes.m128i_value);
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+
     SIMDValue SIMDInt8x16Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
         x86Result.m128i_value = _mm_cmpgt_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a > b?
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+    SIMDValue SIMDInt8x16Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
+        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == b
+        x86Result.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, x86Result.m128i_value); //
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -242,73 +212,18 @@ namespace Js
         if (count < 0 || count > 8)
             count = 8;
 
-        if (AutoSystemInfo::Data.SSE2Available())
-        {
-            x86tmp1.m128i_value   = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
-            x86tmp1.m128i_value   = _mm_slli_epi16(x86tmp1.m128i_value, count);
+        x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_slli_epi16(x86tmp1.m128i_value, count);
 
-            tmpaValue.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, count);
-            tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, count);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTE_MASK.m128i_value);
 
-            x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
+        x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 
-            return X86SIMDValue::ToSIMDValue(x86Result);
-        }
-        else
-        {
-            SIMDValue result;
-            for (uint idx = 0; idx < 16; ++idx)
-            {
-                result.i8[idx] = value.i8[idx] << count;
-            }
-
-            return result;
-        }
+        return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftRightLogicalByScalar(const SIMDValue& value, int8 count)
-    {
-        X86SIMDValue x86Result;
-        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
-        X86SIMDValue x86tmp1;
-
-        const _x86_SIMDValue X86_LOWBYTE_MASK = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
-        const _x86_SIMDValue X86_HIGHBYTE_MASK = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
-
-        if (count < 0 || count > 8)
-            count = 8;
-
-        if (AutoSystemInfo::Data.SSE2Available())
-        {
-            x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTE_MASK.m128i_value);
-            x86tmp1.m128i_value = _mm_srli_epi16(x86tmp1.m128i_value, count);
-
-            tmpaValue.m128i_value = _mm_srli_epi16(tmpaValue.m128i_value, count);
-            tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
-
-            x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
-
-            return X86SIMDValue::ToSIMDValue(x86Result);
-        }
-        else
-        {
-            SIMDValue result;
-
-            int nIntMin = INT_MIN; // INT_MIN = -2147483648 = 0x80000000
-            int mask = ~((nIntMin >> count) << 1); // now first count bits are 0
-            // right shift count bits and shift in with 0
-
-            result.i8[7] = (value.i8[7] >> count) & mask;
-            for (uint idx = 0; idx < 16; ++idx)
-            {
-                result.i8[idx] = (value.i8[idx] >> count) & mask;
-            }
-
-            return result;
-        }
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpShiftRightArithmeticByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int8 count)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
@@ -322,30 +237,32 @@ namespace Js
             count = 8;
         }
 
-        if (AutoSystemInfo::Data.SSE2Available())
-        {
-            x86tmp1.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, 8);
-            x86tmp1.m128i_value = _mm_srai_epi16(x86tmp1.m128i_value, count + 8);
+        x86tmp1.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, 8);
+        x86tmp1.m128i_value = _mm_srai_epi16(x86tmp1.m128i_value, count + 8);
 
-            x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
 
-            tmpaValue.m128i_value = _mm_srai_epi16(tmpaValue.m128i_value, count);
-            tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_srai_epi16(tmpaValue.m128i_value, count);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
 
-            x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
+        x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 
-            return X86SIMDValue::ToSIMDValue(x86Result);
-        }
-        else
-        {
-            SIMDValue result;
-            for (uint idx = 0; idx < 16; ++idx)
-            {
-                result.i8[idx] = value.i8[idx] >> count;
-            }
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
 
-            return result;
-        }
+    SIMDValue SIMDInt8x16Operation::OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue maskValue  = X86SIMDValue::ToX86SIMDValue(mV);
+        X86SIMDValue trueValue  = X86SIMDValue::ToX86SIMDValue(tV);
+        X86SIMDValue falseValue = X86SIMDValue::ToX86SIMDValue(fV);
+
+        X86SIMDValue tempTrue, tempFalse;
+        tempTrue.m128i_value  = _mm_and_si128(maskValue.m128i_value, trueValue.m128i_value); // mask & T
+        tempFalse.m128i_value = _mm_andnot_si128(maskValue.m128i_value, falseValue.m128i_value); //!mask & F
+        x86Result.m128i_value = _mm_or_si128(tempTrue.m128i_value, tempFalse.m128i_value);  // tempT | temp F
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
     }
 }
 #endif

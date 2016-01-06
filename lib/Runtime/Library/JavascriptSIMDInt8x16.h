@@ -5,8 +5,8 @@
 #pragma once
 
 class JavascriptSIMDFloat32x4;
-
 class JavascriptSIMDInt32x4;
+class JavascriptSIMDInt16x8;
 
 namespace Js
 {
@@ -28,8 +28,6 @@ namespace Js
         static JavascriptSIMDInt8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt8x16* FromVar(Var aValue);
-        static JavascriptSIMDInt8x16* FromFloat32x4Bits(JavascriptSIMDFloat32x4   *instance, ScriptContext* requestContext);
-        static JavascriptSIMDInt8x16* FromInt32x4Bits(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext);
 
         __inline SIMDValue GetValue() { return value; }
 
@@ -40,7 +38,7 @@ namespace Js
         // Entry Points
         /*
         There is one toString per SIMD type. The code is entrant from value objects explicitly (e.g. a.toString()) or on overloaded operations.
-        It will also be a property of SIMD.int32x4.prototype for SIMD dynamic objects.
+        It will also be a property of SIMD.int8x16.prototype for SIMD dynamic objects.
         */
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);

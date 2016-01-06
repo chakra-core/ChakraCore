@@ -21,7 +21,14 @@ namespace Js {
             static FunctionInfo FromFloat64x2;
             static FunctionInfo FromFloat64x2Bits;
             static FunctionInfo FromInt32x4;
+            static FunctionInfo FromUint32x4;
+
+            static FunctionInfo FromInt8x16Bits;
+            static FunctionInfo FromInt16x8Bits;
             static FunctionInfo FromInt32x4Bits;
+            static FunctionInfo FromUint32x4Bits;
+            static FunctionInfo FromUint8x16Bits;
+            static FunctionInfo FromUint16x8Bits;
 
             // UnaryOps
             static FunctionInfo Abs;
@@ -40,6 +47,8 @@ namespace Js {
             static FunctionInfo Xor;
             static FunctionInfo Min;
             static FunctionInfo Max;
+            static FunctionInfo MinNum;
+            static FunctionInfo MaxNum;
             static FunctionInfo Scale;
             // CompareOps
             static FunctionInfo LessThan;
@@ -80,7 +89,13 @@ namespace Js {
         static Var EntryFromFloat64x2(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFromFloat64x2Bits(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFromInt32x4(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromUint32x4(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFromInt32x4Bits(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromInt16x8Bits(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromInt8x16Bits(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromUint32x4Bits(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromUint16x8Bits(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFromUint8x16Bits(RecyclableObject* function, CallInfo callInfo, ...);
 
         // Lane Access
         static Var EntryExtractLane(RecyclableObject* function, CallInfo callInfo, ...);
@@ -103,6 +118,8 @@ namespace Js {
         static Var EntryXor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryMin(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryMax(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryMinNum(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryMaxNum(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryScale(RecyclableObject* function, CallInfo callInfo, ...);
         // CompareOps
         static Var EntryLessThan(RecyclableObject* function, CallInfo callInfo, ...);

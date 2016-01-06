@@ -39,29 +39,6 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDFloat32x4 *>(aValue);
     }
 
-    JavascriptSIMDFloat32x4* JavascriptSIMDFloat32x4::FromFloat64x2(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext)
-    {
-        SIMDValue result = SIMDFloat32x4Operation::OpFromFloat64x2(instance->GetValue());
-
-        return JavascriptSIMDFloat32x4::New(&result, requestContext);
-    }
-
-    JavascriptSIMDFloat32x4* JavascriptSIMDFloat32x4::FromFloat64x2Bits(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDFloat32x4::New(&instance->GetValue(), requestContext);
-    }
-
-    JavascriptSIMDFloat32x4* JavascriptSIMDFloat32x4::FromInt32x4(JavascriptSIMDInt32x4 *instance, ScriptContext* requestContext)
-    {
-        SIMDValue result = SIMDFloat32x4Operation::OpFromInt32x4(instance->GetValue());
-        return JavascriptSIMDFloat32x4::New(&result, requestContext);
-    }
-
-    JavascriptSIMDFloat32x4* JavascriptSIMDFloat32x4::FromInt32x4Bits(JavascriptSIMDInt32x4 *instance, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDFloat32x4::New(&instance->GetValue(), requestContext);
-    }
-
     BOOL JavascriptSIMDFloat32x4::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         return GetPropertyBuiltIns(propertyId, value, requestContext);
@@ -119,10 +96,17 @@ namespace Js
         JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[1024];
-        SIMDValue value = instance->GetValue();
 
-        swprintf_s(stringBuffer, 1024, L"Float32x4(%.1f,%.1f,%.1f,%.1f)", value.f32[SIMD_X], value.f32[SIMD_Y], value.f32[SIMD_Z], value.f32[SIMD_W]);
+        SIMDValue value = instance->GetValue();
+        JavascriptString *s0, *s1, *s2, *s3;
+        s0 = JavascriptNumber::ToStringRadix10((double)value.f32[0], scriptContext);
+        s1 = JavascriptNumber::ToStringRadix10((double)value.f32[1], scriptContext);
+        s2 = JavascriptNumber::ToStringRadix10((double)value.f32[2], scriptContext);
+        s3 = JavascriptNumber::ToStringRadix10((double)value.f32[3], scriptContext);
+
+        wchar_t stringBuffer[1024];
+
+        swprintf_s(stringBuffer, 1024, L"SIMD.Float32x4(%s, %s, %s, %s)", s0->GetSz(), s1->GetSz(), s2->GetSz(), s3->GetSz());
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 

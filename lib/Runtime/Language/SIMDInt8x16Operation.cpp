@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
-#include "SIMDInt8x16Operation.h"
 
 #if defined(_M_ARM32_OR_ARM64)
 
@@ -36,22 +35,6 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpInt8x16(const SIMDValue& v)
-    {// overload function with input parameter as SIMDValue for completeness, may not need
-        SIMDValue result;
-
-        result = v;
-
-        return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpZero()
-    {
-        SIMDValue result;
-        result.i8[0] = result.i8[1] = result.i8[2] = result.i8[3] = result.i8[4] = result.i8[5] = result.i8[6] = result.i8[7] = result.i8[8] = result.i8[9] = result.i8[10] = result.i8[11] = result.i8[12] = result.i8[13] = result.i8[14] = result.i8[15] = 0;
-        return result;
-    }
-
     SIMDValue SIMDInt8x16Operation::OpSplat(int8 x)
     {
         SIMDValue result;
@@ -59,30 +42,6 @@ namespace Js
         result.i8[0] = result.i8[1] = result.i8[2] = result.i8[3] = result.i8[4] = result.i8[5] = result.i8[6]= result.i8[7] = result.i8[8] = result.i8[9]= result.i8[10] = result.i8[11] = result.i8[12]= result.i8[13] = result.i8[14] = result.i8[15] = x;
 
         return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpSplat(const SIMDValue& v) // not in polyfill or spec
-    {
-        SIMDValue result;
-
-        result.i8[0] = result.i8[1] = result.i8[2] = result.i8[3] = result.i8[4] = result.i8[5] = result.i8[6]= result.i8[7] = result.i8[8] = result.i8[9]= result.i8[10] = result.i8[11] = result.i8[12]= result.i8[13] = result.i8[14] = result.i8[15] = v.i8[0];
-
-        return result;
-    }
-
-     SIMDValue SIMDInt8x16Operation::OpFromFloat32x4Bits(const SIMDValue& v)
-    {
-        SIMDValue result;
-
-        result.f64[SIMD_X] = v.f64[SIMD_X];
-        result.f64[SIMD_Y] = v.f64[SIMD_Y];
-
-        return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpFromInt32x4Bits(const SIMDValue& v)
-    {
-        return OpFromFloat32x4Bits(v);
     }
 
     //// Unary Ops
@@ -106,30 +65,6 @@ namespace Js
         result.i8[13] = -1 * value.i8[13];
         result.i8[14] = -1 * value.i8[14];
         result.i8[15] = -1 * value.i8[15];
-
-        return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpNot(const SIMDValue& value)
-    {
-        SIMDValue result;
-
-        result.i8[0]  = ~(value.i8[0]);
-        result.i8[1]  = ~(value.i8[1]);
-        result.i8[2]  = ~(value.i8[2]);
-        result.i8[3]  = ~(value.i8[3]);
-        result.i8[4]  = ~(value.i8[4]);
-        result.i8[5]  = ~(value.i8[5]);
-        result.i8[6]  = ~(value.i8[6]);
-        result.i8[7]  = ~(value.i8[7]);
-        result.i8[8]  = ~(value.i8[8]);
-        result.i8[9]  = ~(value.i8[9]);
-        result.i8[10] = ~(value.i8[10]);
-        result.i8[11] = ~(value.i8[11]);
-        result.i8[12] = ~(value.i8[12]);
-        result.i8[13] = ~(value.i8[13]);
-        result.i8[14] = ~(value.i8[14]);
-        result.i8[15] = ~(value.i8[15]);
 
         return result;
     }
@@ -169,37 +104,63 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpAnd(const SIMDValue& aValue, const SIMDValue& bValue)
+    SIMDValue SIMDInt8x16Operation::OpAddSaturate(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        int mask = 0x80;
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            int8 val1 = aValue.i8[idx];
+            int8 val2 = bValue.i8[idx];
+            int8 sum = val1 + val2;
+
+            result.i8[idx] = sum;
+            if (val1 > 0 && val2 > 0 && sum < 0)
+                result.i8[idx] = 0x7F;
+            else if (val1 < 0 && val2 < 0 && sum > 0)
+                result.i8[idx] = static_cast<int8>(mask);
+        }
+        return result;
+    }
+
+    SIMDValue SIMDInt8x16Operation::OpSubSaturate(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        int mask = 0x80;
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            int8 val1 = aValue.i8[idx];
+            int8 val2 = bValue.i8[idx];
+            int16 diff = val1 + val2;
+
+            result.i8[idx] = static_cast<int8>(diff);
+            if (diff > 0x7F)
+                result.i8[idx] = 0x7F;
+            else if (diff < 0x80)
+                result.i8[idx] = static_cast<int8>(mask);
+        }
+        return result;
+    }
+
+    SIMDValue SIMDInt8x16Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
-        for(uint idx = 0; idx < 16; ++idx)
+        for (uint idx = 0; idx < 16; ++idx)
         {
-            result.i8[idx] = aValue.i8[idx] & bValue.i8[idx];
+            result.i8[idx] = (aValue.i8[idx] < bValue.i8[idx]) ? aValue.i8[idx] : bValue.i8[idx];
         }
 
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpOr(const SIMDValue& aValue, const SIMDValue& bValue)
+    SIMDValue SIMDInt8x16Operation::OpMax(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
-        for(uint idx = 0; idx < 16; ++idx)
+        for (uint idx = 0; idx < 16; ++idx)
         {
-            result.i8[idx] = aValue.i8[idx] | bValue.i8[idx];
-        }
-
-        return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpXor(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        SIMDValue result;
-
-        for(uint idx = 0; idx < 16; ++idx)
-        {
-            result.i8[idx] = aValue.i8[idx] ^ bValue.i8[idx];
+            result.i8[idx] = (aValue.i8[idx] > bValue.i8[idx]) ? aValue.i8[idx] : bValue.i8[idx];
         }
 
         return result;
@@ -216,6 +177,17 @@ namespace Js
         return result;
     }
 
+    SIMDValue SIMDInt8x16Operation::OpLessThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    {
+        SIMDValue result;
+
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            result.i8[idx] = (aValue.i8[idx] <= bValue.i8[idx]) ? 0xff : 0x0;
+        }
+        return result;
+    }
+
     SIMDValue SIMDInt8x16Operation::OpEqual(const SIMDValue& aValue, const SIMDValue& bValue) // TODO arun: return bool types
     {
         SIMDValue result;
@@ -228,13 +200,39 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue) // TODO arun: return bool types
+
+    SIMDValue SIMDInt8x16Operation::OpNotEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    {
+        SIMDValue result;
+
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            result.i8[idx] = (aValue.i8[idx] != bValue.i8[idx]) ? 0xff : 0x0;
+        }
+
+        return result;
+    }
+
+
+    SIMDValue SIMDInt8x16Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
     {
         SIMDValue result;
 
         for(uint idx = 0; idx < 16; ++idx)
         {
             result.i8[idx] = (aValue.i8[idx] > bValue.i8[idx]) ? 0xff : 0x0; //Return should be bool vector according to spec
+        }
+
+        return result;
+    }
+
+    SIMDValue SIMDInt8x16Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    {
+        SIMDValue result;
+
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            result.i8[idx] = (aValue.i8[idx] >= bValue.i8[idx]) ? 0xff : 0x0; //Return should be bool vector accordig to spec
         }
 
         return result;
@@ -256,22 +254,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftRightLogicalByScalar(const SIMDValue& value, int8 count)
-    {
-        SIMDValue result;
-
-        int nIntMin = INT_MIN; // INT_MIN = -2147483648 = 0x80000000
-        int mask = ~((nIntMin >> count) << 1); // now first count bits are 0
-        // right shift count bits and shift in with 0
-
-        for (uint idx = 0; idx < 16; ++idx)
-        {
-            result.i8[idx] = (value.i8[idx] >> count) & mask;
-        }
-        return result;
-    }
-
-    SIMDValue SIMDInt8x16Operation::OpShiftRightArithmeticByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int8 count)
     {
         SIMDValue result;
 
@@ -287,5 +270,17 @@ namespace Js
 
         return result;
     }
+
+    SIMDValue SIMDInt8x16Operation::OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV)
+    {
+        SIMDValue result;
+
+        for (uint idx = 0; idx < 16; ++idx)
+        {
+            result.i8[idx] = (mV.i8[idx] == 1) ? tV.i8[idx] : fV.i8[idx];
+        }
+        return result;
+    }
+
 }
 #endif

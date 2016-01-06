@@ -39,11 +39,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDFloat32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDFloat64x2.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt32x4.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDFloat64x2.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat64x2Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt32x4.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUInt32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Lib.cpp" />
+
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
@@ -129,8 +146,7 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)SubString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt8x16.cpp" />
+
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
@@ -145,12 +161,27 @@
     <ClInclude Include="JavascriptSIMDFloat32x4.h" />
     <ClInclude Include="JavascriptSIMDFloat64x2.h" />
     <ClInclude Include="JavascriptSIMDInt32x4.h" />
+    <ClInclude Include="JavascriptSIMDInt16x8.h" />
     <ClInclude Include="JavascriptSIMDInt8x16.h" />
+    <ClInclude Include="JavascriptSIMDUInt32x4.h" />
+    <ClInclude Include="JavascriptSIMDUint16x8.h" />
+    <ClInclude Include="JavascriptSIMDUint8x16.h" />
+    <ClInclude Include="JavascriptSIMDBool32x4.h" />
+    <ClInclude Include="JavascriptSIMDBool16x8.h" />
+    <ClInclude Include="JavascriptSIMDBool8x16.h" />
+
     <ClInclude Include="SIMDFloat32x4Lib.h" />
     <ClInclude Include="SIMDFloat64x2Lib.h" />
     <ClInclude Include="SIMDInt32x4Lib.h" />
+    <ClInclude Include="SIMDInt16x8Lib.h" />
     <ClInclude Include="SIMDInt8x16Lib.h" />
-    <ClInclude Include="SimdLib.h" />
+    <ClInclude Include="SIMDUInt32x4Lib.h" />
+    <ClInclude Include="SIMDUint16x8Lib.h" />
+    <ClInclude Include="SIMDUint8x16Lib.h" />
+    <ClInclude Include="SIMDBool32x4Lib.h" />
+    <ClInclude Include="SIMDBool16x8Lib.h" />
+    <ClInclude Include="SIMDBool8x16Lib.h" />
+
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />

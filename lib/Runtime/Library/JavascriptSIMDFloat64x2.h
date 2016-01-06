@@ -29,9 +29,8 @@ namespace Js
         static JavascriptSIMDFloat64x2* FromVar(Var aValue);
 
         static JavascriptSIMDFloat64x2* FromFloat32x4(JavascriptSIMDFloat32x4 *instance, ScriptContext* requestContext);
-        static JavascriptSIMDFloat64x2* FromFloat32x4Bits(JavascriptSIMDFloat32x4 *instance, ScriptContext* requestContext);
         static JavascriptSIMDFloat64x2* FromInt32x4(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext);
-        static JavascriptSIMDFloat64x2* FromInt32x4Bits(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext);
+
 
         __inline SIMDValue GetValue() { return value; }
 

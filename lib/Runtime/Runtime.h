@@ -150,8 +150,14 @@ namespace Js
     class JavascriptSIMDFloat64x2;
     class SIMDInt32x4Lib;
     class JavascriptSIMDInt32x4;
+    class SIMDInt16x8Lib;
+    class JavascriptSIMDInt16x8;
     class SIMDInt8x16Lib;
     class JavascriptSIMDInt8x16;
+    class SIMDUint16x8Lib;
+    class JavascriptSIMDUint16x8;
+    class SIMDUint8x16Lib;
+    class JavascriptSIMDUint8x16;
 
     class RecyclableObject;
     class JavascriptRegExp;

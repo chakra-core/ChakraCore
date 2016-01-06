@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
     
@@ -48,8 +48,7 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -82,8 +81,7 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -257,23 +255,15 @@ var ret12 = m.func12();
 
 */
 
-print(typeof(ret1));
-print(ret1.toString());
+equalSimd([-5033.2001953125, 3401, -665.3400268554687, 32234.099609375], ret1, SIMD.Float32x4, "Test SIMDLink2");
+equalSimd([-90934.203125, -123.9000015258789, -419.3900146484375, -449], ret2, SIMD.Float32x4, "Test SIMDLink2");
+equalSimd([5033.2001953125, 3401, -665.3400268554687, -32234.099609375], ret3, SIMD.Float32x4, "Test SIMDLink2");
+equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret4, SIMD.Float32x4, "Test SIMDLink2");
+equalSimd([90934.203125, 123.9000015258789, 419.3900146484375, 449], ret5, SIMD.Float32x4, "Test SIMDLink2");
+equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret6, SIMD.Float32x4, "Test SIMDLink2");
 
-print(typeof(ret2));
-print(ret2.toString());
+print("PASS");
 
-print(typeof(ret3));
-print(ret3.toString());
-
-print(typeof(ret4));
-print(ret4.toString());
-
-print(typeof(ret5));
-print(ret5.toString());
-
-print(typeof(ret6));
-print(ret6.toString());
 
 /*
 print(typeof(ret7));
