@@ -27,3 +27,8 @@ profile.dpl.*
 Build/Chakra.Core.VC.opendb
 test/benchmarks/*.txt
 test/benchmarks/*.dpl
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+cmake_install.cmake
+install_manifest.txt
