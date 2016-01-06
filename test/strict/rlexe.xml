@@ -441,6 +441,7 @@
     <default>
       <files>13.delete.js</files>
       <baseline>13.delete.baseline</baseline>
+      <compile-flags>-ES6RegExPrototypeProperties-</compile-flags>
       <!-- TODO: Delete depends on flag on scriptContext. Add a new opcode for delete 13.delete_sm.js -->
     </default>
   </test>

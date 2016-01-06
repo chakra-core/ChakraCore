@@ -904,6 +904,12 @@
   </test>
   <test>
     <default>
+      <files>regex-prototype-properties.js</files>
+      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regexflags.js</files>
       <baseline>regexflags.baseline</baseline>
       <compile-flags>-version:6 -ES6RegExSticky</compile-flags>

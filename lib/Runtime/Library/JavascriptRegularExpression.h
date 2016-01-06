@@ -46,6 +46,8 @@ namespace Js
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result);
         inline PropertyId const * GetSpecialPropertyIdsInlined() const;
 
+        Var GetOptions();
+
         inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
         inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
 
@@ -107,6 +109,13 @@ namespace Js
             static FunctionInfo Test;
             static FunctionInfo ToString;
             static FunctionInfo GetterSymbolSpecies;
+            static FunctionInfo GetterGlobal;
+            static FunctionInfo GetterIgnoreCase;
+            static FunctionInfo GetterMultiline;
+            static FunctionInfo GetterOptions;
+            static FunctionInfo GetterSource;
+            static FunctionInfo GetterSticky;
+            static FunctionInfo GetterUnicode;
             // v5.8 only
             static FunctionInfo Compile;
         };
@@ -116,6 +125,13 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterOptions(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSource(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSticky(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterUnicode(RecyclableObject* function, CallInfo callInfo, ...);
         // v5.8 only
         static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
 
