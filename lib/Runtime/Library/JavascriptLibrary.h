@@ -550,6 +550,11 @@ namespace Js
         DynamicObject* GetINTLObject() const { return IntlObject; }
         void ResetIntlObject();
         void EnsureIntlObjectReady();
+        template <class Fn>
+        void InitializeIntlForProtototypes(Fn fn);
+        void InitializeIntlForStringPrototype();
+        void InitializeIntlForDatePrototype();
+        void InitializeIntlForNumberPrototype();
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

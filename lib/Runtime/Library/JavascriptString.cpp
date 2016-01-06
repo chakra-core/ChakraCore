@@ -1304,8 +1304,6 @@ case_2:
 #ifdef ENABLE_INTL_OBJECT
         if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled())
         {
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
-
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
@@ -1323,6 +1321,14 @@ case_2:
                     {
                         return func->CallFunction(args);
                     }
+                    // Initialize String.prototype.toLocaleCompare
+                    scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
+                    func = intlExtenionObject->GetStringLocaleCompare();
+                    if (func)
+                    {
+                        return func->CallFunction(args);
+                    }
+                    AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleCompare method.");
                 }
             }
         }

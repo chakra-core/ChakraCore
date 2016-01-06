@@ -4288,8 +4288,7 @@ namespace Js
             try
             {
                 this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
-            }
-            catch (...)
+            } catch (...)
             {
                 // Hosts are required not to pass exceptions back across the callback boundary. If
                 // this happens, it is a bug in the host, not something that we are expected to
@@ -4302,7 +4301,9 @@ namespace Js
         {
             JavascriptFunction* hostPromiseContinuationFunction = this->GetHostPromiseContinuationFunction();
 
-            hostPromiseContinuationFunction->GetEntryPoint()(hostPromiseContinuationFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+            hostPromiseContinuationFunction->GetEntryPoint()(
+                hostPromiseContinuationFunction,
+                Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
                 this->GetUndefined(),
                 taskVar,
                 JavascriptNumber::ToVar(0, scriptContext));
@@ -4312,9 +4313,11 @@ namespace Js
 #ifdef ENABLE_INTL_OBJECT
     void JavascriptLibrary::ResetIntlObject()
     {
-        IntlObject = DynamicObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeIntlObject>::GetDefaultInstance()));
+        IntlObject = DynamicObject::New(
+            recycler,
+            DynamicType::New(scriptContext,
+                             TypeIds_Object, objectPrototype, nullptr,
+                             DeferredTypeHandler<InitializeIntlObject>::GetDefaultInstance()));
     }
 
     void JavascriptLibrary::EnsureIntlObjectReady()
@@ -4327,11 +4330,10 @@ namespace Js
         try
         {
             this->IntlObject->GetTypeHandler()->EnsureObjectReady(this->IntlObject);
-        }
-        catch (JavascriptExceptionObject *e)
+        } catch (JavascriptExceptionObject *e)
         {
             // Propagate the OOM and SOE exceptions only
-            if(e == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
+            if (e == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
                 e == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
             {
                 e = e->CloneIfStaticExceptionObject(scriptContext);
@@ -4344,13 +4346,50 @@ namespace Js
     {
         typeHandler->Convert(IntlObject, mode,  /*initSlotCapacity*/ 2);
 
-        ScriptContext* scriptContext = IntlObject->GetScriptContext();
-        if (scriptContext->VerifyAlive()) // Can't initialize if scriptContext closed, will need to run script
+        auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
-            JavascriptLibrary* library = IntlObject->GetLibrary();
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
+        };
+        IntlObject->GetLibrary()->InitializeIntlForProtototypes(intlInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForStringPrototype()
+    {
+        auto stringPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
+        };
+        InitializeIntlForProtototypes(stringPrototypeInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForDatePrototype()
+    {
+        auto datePrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
+        };
+        InitializeIntlForProtototypes(datePrototypeInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForNumberPrototype()
+    {
+        auto numberPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
+        };
+        InitializeIntlForProtototypes(numberPrototypeInitializer);
+    }
+
+    template <class Fn>
+    void JavascriptLibrary::InitializeIntlForProtototypes(Fn fn)
+    {
+        ScriptContext* scriptContext = this->IntlObject->GetScriptContext();
+        if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
+        {
+            JavascriptLibrary* library = this->IntlObject->GetLibrary();
             Assert(library->engineInterfaceObject != nullptr);
             IntlEngineInterfaceExtensionObject* intlExtension = static_cast<IntlEngineInterfaceExtensionObject*>(library->GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
-            intlExtension->InjectIntlLibraryCode(scriptContext, IntlObject);
+            fn(intlExtension, scriptContext, IntlObject);
         }
     }
 #endif
