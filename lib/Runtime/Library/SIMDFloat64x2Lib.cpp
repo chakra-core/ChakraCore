@@ -108,7 +108,7 @@ namespace Js
             JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[1]);
             Assert(instance);
 
-            return JavascriptSIMDFloat64x2::FromFloat32x4Bits(instance, scriptContext);
+            return SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
         }
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromFloat32x4Bits");
@@ -148,7 +148,7 @@ namespace Js
             JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(instance);
 
-            return JavascriptSIMDFloat64x2::FromInt32x4Bits(instance, scriptContext);
+            return SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(instance, scriptContext);
         }
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, L"fromInt32x4Bits");
@@ -889,10 +889,11 @@ namespace Js
             JavascriptSIMDFloat64x2::Is(args[2]) &&
             JavascriptSIMDFloat64x2::Is(args[3]))
         {
+
             JavascriptSIMDInt32x4 *mask = JavascriptSIMDInt32x4::FromVar(args[1]);
             Assert(mask);
 
-            JavascriptSIMDFloat64x2 *fmask = JavascriptSIMDFloat64x2::FromInt32x4Bits(mask, scriptContext);
+            JavascriptSIMDFloat64x2 *fmask = (JavascriptSIMDFloat64x2*)SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDFloat64x2>(mask, scriptContext);
             JavascriptSIMDFloat64x2 *tvalue = JavascriptSIMDFloat64x2::FromVar(args[2]);
             JavascriptSIMDFloat64x2 *fvalue = JavascriptSIMDFloat64x2::FromVar(args[3]);
             Assert(fmask && tvalue && fvalue);

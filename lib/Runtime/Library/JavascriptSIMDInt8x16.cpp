@@ -29,14 +29,9 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDInt8x16 *>(aValue);
     }
 
-    JavascriptSIMDInt8x16* JavascriptSIMDInt8x16::FromFloat32x4Bits(JavascriptSIMDFloat32x4   *instance, ScriptContext* requestContext)
+    RecyclableObject * JavascriptSIMDInt8x16::CloneToScriptContext(ScriptContext* requestContext)
     {
-        return JavascriptSIMDInt8x16::New(&instance->GetValue(), requestContext);
-    }
-
-    JavascriptSIMDInt8x16* JavascriptSIMDInt8x16::FromInt32x4Bits(JavascriptSIMDInt32x4   *instance, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDInt8x16::New(&instance->GetValue(), requestContext);
+        return JavascriptSIMDInt8x16::New(&value, requestContext);
     }
 
     BOOL JavascriptSIMDInt8x16::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -91,7 +86,9 @@ namespace Js
         wchar_t stringBuffer[1024];
         SIMDValue value = instance->GetValue();
 
-        swprintf_s(stringBuffer, 1024, L"Int8x16(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)", value.i8[0], value.i8[1], value.i8[2], value.i8[3], value.i8[4], value.i8[5], value.i8[6], value.i8[7], value.i8[8], value.i8[9], value.i8[10], value.i8[11], value.i8[12], value.i8[13], value.i8[14], value.i8[15]);
+        swprintf_s(stringBuffer, 1024, L"SIMD.Int8x16(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+            value.i8[0], value.i8[1], value.i8[2], value.i8[3], value.i8[4], value.i8[5], value.i8[6], value.i8[7],
+            value.i8[8], value.i8[9], value.i8[10], value.i8[11], value.i8[12], value.i8[13], value.i8[14], value.i8[15]);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 

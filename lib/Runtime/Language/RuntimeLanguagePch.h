@@ -50,23 +50,9 @@
 #endif
 
 // SIMD_JS
-// SIMD types
-#include "Library\JavascriptSIMDFloat32x4.h"
-#include "Library\JavascriptSIMDFloat64x2.h"
-#include "Library\JavascriptSIMDInt32x4.h"
-#include "Library\JavascriptSIMDInt8x16.h"
-// SIMD operations
-#include "Language\SIMDFloat32x4Operation.h"
-#include "Language\SIMDFloat64x2Operation.h"
-#include "Language\SIMDInt32x4Operation.h"
-#include "Language\SIMDInt8x16Operation.h"
+#include "Library\SimdLib.h"
+#include "Language\SimdOps.h"
 #include "Language\SIMDUtils.h"
-// SIMD libs
-#include "Library\SIMDFloat32x4Lib.h"
-#include "Library\SIMDFloat64x2Lib.h"
-#include "Library\SIMDInt32x4Lib.h"
-#include "Library\SIMDInt8x16Lib.h"
-
 
 #include "Debug\DebuggingFlags.h"
 #include "Debug\DiagProbe.h"
