@@ -132,12 +132,14 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
     }
 
     m_jnFunction = nullptr;
-    bool doStackNestedFunc = m_jnFunction->DoStackNestedFunc();
-    bool doStackClosure = m_jnFunction->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this);
+    bool doStackNestedFunc = GetJITFunctionBody()->DoStackNestedFunc();
+    
+    bool doStackClosure = GetJITFunctionBody()->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this) && !PHASE_OFF(Js::StackClosurePhase, this);
     Assert(!doStackClosure || doStackNestedFunc);
     this->stackClosure = doStackClosure && this->IsTopFunc();
     if (this->stackClosure)
     {
+        // TODO: calculate on runtime side?
         m_workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
 

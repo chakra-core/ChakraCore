@@ -2395,7 +2395,8 @@ namespace Js
         bool GetHasOrParentHasArguments() const { return (flags & Flags_HasOrParentHasArguments) != 0; }
         void SetHasOrParentHasArguments(bool has) { SetFlags(has, Flags_HasOrParentHasArguments); }
 
-        bool DoStackNestedFunc() const { return (flags & Flags_StackNestedFunc) != 0; }
+        static bool DoStackNestedFunc(FunctionBodyFlags flags) { return (flags & Flags_StackNestedFunc) != 0; }
+        bool DoStackNestedFunc() const { return DoStackNestedFunc(flags); }
         void SetStackNestedFunc(bool does) { SetFlags(does, Flags_StackNestedFunc); }
 #if DBG
         bool CanDoStackNestedFunc() const { return m_canDoStackNestedFunc; }

@@ -9,12 +9,9 @@
 class JITTimeWorkItem
 {
 public:
-    JITTimeWorkItem(CodeGenWorkItemJITData * workItemData);
+    JITTimeWorkItem(const CodeGenWorkItemJITData * const workItemData);
 
     CodeGenWorkItemType Type() const;
-    uint GetFunctionNumber() const;
-    uint GetLocalFunctionId() const;
-    uint GetSourceContextId() const;
     ExecutionMode GetJitMode() const;
     WCHAR * GetDisplayName() const;
     size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
@@ -24,8 +21,13 @@ public:
     bool IsJitInDebugMode() const;
     intptr_t GetCallsCountAddress() const;
 
+    const JITTimeFunctionBody * const GetJITFunctionBody() const;
+
 private:
-    CodeGenWorkItemJITData * m_workItemData;
+    const CodeGenWorkItemJITData * const m_workItemData;
+    const JITTimeFunctionBody m_jitBody;
+
+
 
 public: // TODO: (michhol) remove these. currently needed to compile
     Js::EntryPointInfo * GetEntryPoint() { __debugbreak(); return nullptr; }

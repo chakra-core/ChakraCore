@@ -6,8 +6,8 @@
 #include "Backend.h"
 
 
-JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemJITData * workItemData) :
-    m_workItemData(workItemData)
+JITTimeWorkItem::JITTimeWorkItem(const CodeGenWorkItemJITData * const workItemData) :
+    m_workItemData(workItemData), m_jitBody(&workItemData->bodyData)
 {
 }
 
@@ -15,24 +15,6 @@ CodeGenWorkItemType
 JITTimeWorkItem::Type() const
 {
     return static_cast<CodeGenWorkItemType>(m_workItemData->type);
-}
-
-uint
-JITTimeWorkItem::GetFunctionNumber() const
-{
-    return m_workItemData->bodyData.funcNumber;
-}
-
-uint
-JITTimeWorkItem::GetLocalFunctionId() const
-{
-    return m_workItemData->bodyData.localFuncId;
-}
-
-uint
-JITTimeWorkItem::GetSourceContextId() const
-{
-    return m_workItemData->bodyData.sourceContextId;
 }
 
 ExecutionMode
@@ -95,4 +77,10 @@ JITTimeWorkItem::GetCallsCountAddress() const
     Assert(Type() == JsFunctionType);
 
     return m_workItemData->readOnlyEPData.callsCountAddress;
+}
+
+const JITTimeFunctionBody * const
+JITTimeWorkItem::GetJITFunctionBody() const
+{
+    return &m_jitBody;
 }

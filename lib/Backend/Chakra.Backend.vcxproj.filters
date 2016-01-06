@@ -108,6 +108,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SwitchIRBuilder.cpp" />
     <ClCompile Include="JITTimeWorkItem.cpp" />
+    <ClCompile Include="JITTimeFunctionBody.cpp" />
+    <ClCompile Include="JITOutputData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -301,6 +303,8 @@
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="SwitchIRBuilder.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
+    <ClInclude Include="JITTimeFunctionBody.h" />
+    <ClInclude Include="JITOutputData.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

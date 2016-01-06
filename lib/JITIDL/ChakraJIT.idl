@@ -11,6 +11,10 @@ typedef struct FunctionBodyJITData
     unsigned int funcNumber;
     unsigned int localFuncId;
     unsigned int sourceContextId;
+    unsigned int nestedCount;
+    unsigned int scopeSlotArraySize;
+    unsigned short envDepth;
+    byte flags;
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -53,7 +57,6 @@ typedef struct JITWriteData
 ]
 interface IChakraJIT
 {
-
     HRESULT Shutdown([in] handle_t binding);
 
     HRESULT RemoteCodeGen(

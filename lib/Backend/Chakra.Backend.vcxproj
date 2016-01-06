@@ -191,6 +191,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TempTracker.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueRelativeOffset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
+    <ClCompile Include="JITOutputData.cpp" />
+    <ClCompile Include="JITTimeFunctionBody.cpp" />
     <ClCompile Include="JITTimeWorkItem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -360,6 +362,8 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="JITOutputData.h" />
+    <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />
     <ClInclude Include="JnHelperMethodList.h" />

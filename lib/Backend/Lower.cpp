@@ -6126,7 +6126,7 @@ Lowerer::EnsureZeroLastStackFunctionNext()
 IR::Instr *
 Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr)
 {
-    Assert(newScFuncInstr->m_func->DoStackNestedFunc());
+    Assert(newScFuncInstr->m_func->GetJITFunctionBody()->DoStackNestedFunc());
     Func * func = newScFuncInstr->m_func;
     uint index = newScFuncInstr->GetSrc1()->AsIntConstOpnd()->AsUint32();
     Assert(index < func->GetJnFunction()->GetNestedCount());
@@ -6166,7 +6166,7 @@ Lowerer::LowerNewScFunc(IR::Instr * newScFuncInstr)
 {
     IR::Instr *stackNewScFuncInstr = nullptr;
 
-    if (newScFuncInstr->m_func->DoStackNestedFunc())
+    if (newScFuncInstr->m_func->GetJITFunctionBody()->DoStackNestedFunc())
     {
         stackNewScFuncInstr = GenerateNewStackScFunc(newScFuncInstr);
     }

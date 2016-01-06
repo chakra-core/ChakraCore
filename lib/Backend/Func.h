@@ -161,6 +161,11 @@ public:
         return m_workItem;
     }
 
+    const JITTimeFunctionBody * const GetJITFunctionBody() const
+    {
+        return m_workItem->GetJITFunctionBody();
+    }
+
     void BuildIR();
     void Codegen();
 
@@ -178,12 +183,12 @@ public:
 
     uint GetLocalFunctionId() const
     {
-        return m_workItem->GetLocalFunctionId();
+        return m_workItem->GetJITFunctionBody()->GetLocalFunctionId();
     }
 
     uint GetSourceContextId() const
     {
-        return m_workItem->GetLocalFunctionId();
+        return m_workItem->GetJITFunctionBody()->GetLocalFunctionId();
     }
 
 
@@ -237,7 +242,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     uint GetFunctionNumber() const
     {
         Assert(this->IsTopFunc());
-        return m_workItem->GetFunctionNumber();
+        return m_workItem->GetJITFunctionBody()->GetFunctionNumber();
     }
 
     BOOL HasTry() const
