@@ -2686,6 +2686,7 @@ namespace Js
 
         // Float32x4
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Float32x4] = float32x4Function;
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Check] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::check, &SIMDFloat32x4Lib::EntryInfo::Check, 2, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::zero, &SIMDFloat32x4Lib::EntryInfo::Zero, 1, PropertyNone);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Splat] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::splat, &SIMDFloat32x4Lib::EntryInfo::Splat, 2, PropertyNone);
@@ -2734,15 +2735,15 @@ namespace Js
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::clamp,              &SIMDFloat32x4Lib::EntryInfo::Clamp,   4, PropertyNone);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::select,             &SIMDFloat32x4Lib::EntryInfo::Select,  4, PropertyNone);
 
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load,  &SIMDFloat32x4Lib::EntryInfo::Load,  3, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load1, &SIMDFloat32x4Lib::EntryInfo::Load1, 3, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load2, &SIMDFloat32x4Lib::EntryInfo::Load2, 3, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load3, &SIMDFloat32x4Lib::EntryInfo::Load3, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load, &SIMDFloat32x4Lib::EntryInfo::Load, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load1, &SIMDFloat32x4Lib::EntryInfo::Load1, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load2, &SIMDFloat32x4Lib::EntryInfo::Load2, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load3, &SIMDFloat32x4Lib::EntryInfo::Load3, 3, PropertyNone);
 
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store,  &SIMDFloat32x4Lib::EntryInfo::Store,  4, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store1, &SIMDFloat32x4Lib::EntryInfo::Store1, 4, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store2, &SIMDFloat32x4Lib::EntryInfo::Store2, 4, PropertyNone);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store3, &SIMDFloat32x4Lib::EntryInfo::Store3, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store, &SIMDFloat32x4Lib::EntryInfo::Store, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store1, &SIMDFloat32x4Lib::EntryInfo::Store1, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store2, &SIMDFloat32x4Lib::EntryInfo::Store2, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Store3] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::store3, &SIMDFloat32x4Lib::EntryInfo::Store3, 4, PropertyNone);
         // end Float32x4
 
         // Float64x2
@@ -2798,6 +2799,7 @@ namespace Js
 
         // Int32x4
         JavascriptFunction* int32x4Function = library->AddFunctionToLibraryObject(simdObject, PropertyIds::Int32x4, &SIMDInt32x4Lib::EntryInfo::Int32x4, 5, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Int32x4] = int32x4Function;
         builtinFuncs[BuiltinFunction::SIMD_Int32x4_Check] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::check, &SIMDInt32x4Lib::EntryInfo::Check, 2, PropertyNone);
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::zero,         &SIMDInt32x4Lib::EntryInfo::Zero,       1, PropertyNone);
         builtinFuncs[BuiltinFunction::SIMD_Int32x4_Splat] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::splat, &SIMDInt32x4Lib::EntryInfo::Splat, 2, PropertyNone);
@@ -2845,15 +2847,15 @@ namespace Js
         // select
         library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::select, &SIMDInt32x4Lib::EntryInfo::Select, 4, PropertyNone);
 
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load,  &SIMDInt32x4Lib::EntryInfo::Load, 3, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load3, &SIMDInt32x4Lib::EntryInfo::Load3, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load, &SIMDInt32x4Lib::EntryInfo::Load, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load1, &SIMDInt32x4Lib::EntryInfo::Load1, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load2, &SIMDInt32x4Lib::EntryInfo::Load2, 3, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Load3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::load3, &SIMDInt32x4Lib::EntryInfo::Load3, 3, PropertyNone);
 
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store,  &SIMDInt32x4Lib::EntryInfo::Store, 4, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store1, &SIMDInt32x4Lib::EntryInfo::Store1, 4, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store2, &SIMDInt32x4Lib::EntryInfo::Store2, 4, PropertyNone);
-        library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store3, &SIMDInt32x4Lib::EntryInfo::Store3, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store, &SIMDInt32x4Lib::EntryInfo::Store, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store1] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store1, &SIMDInt32x4Lib::EntryInfo::Store1, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store2] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store2, &SIMDInt32x4Lib::EntryInfo::Store2, 4, PropertyNone);
+        builtinFuncs[BuiltinFunction::SIMD_Int32x4_Store3] = library->AddFunctionToLibraryObject(int32x4Function, PropertyIds::store3, &SIMDInt32x4Lib::EntryInfo::Store3, 4, PropertyNone);
 
         // end Int32x4
 

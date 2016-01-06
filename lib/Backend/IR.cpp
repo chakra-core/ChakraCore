@@ -2918,6 +2918,7 @@ Instr::TransferTo(Instr * instr)
     instr->m_src2 = this->m_src2;
     instr->dstIsAlwaysConvertedToInt32 = this->dstIsAlwaysConvertedToInt32;
     instr->dstIsAlwaysConvertedToNumber = this->dstIsAlwaysConvertedToNumber;
+    instr->dataWidth = this->dataWidth;
     IR::Opnd * dst = this->m_dst;
 
     if (dst)

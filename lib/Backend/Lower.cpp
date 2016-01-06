@@ -12957,7 +12957,7 @@ IRType Lowerer::GetArrayIndirType(const ValueType valueType)
     return IndirTypes[static_cast<ValueType::TSize>(valueType.GetObjectType())];
 }
 
-BYTE Lowerer::GetArrayIndirScale(const ValueType valueType) const
+BYTE Lowerer::GetArrayIndirScale(const ValueType valueType)
 {
     Assert(valueType.IsLikelyAnyOptimizedArray());
     if(valueType.IsLikelyArrayOrObjectWithArray())
@@ -12973,6 +12973,16 @@ BYTE Lowerer::GetArrayIndirScale(const ValueType valueType) const
     }
 
     return IndirScales[static_cast<ValueType::TSize>(valueType.GetObjectType())];
+}
+
+int Lowerer::SimdGetElementCountFromBytes(ValueType arrValueType, uint8 dataWidth)
+{
+    Assert(dataWidth == 4 || dataWidth == 8 || dataWidth == 12 || dataWidth == 16);
+    Assert(arrValueType.IsTypedArray());
+    BYTE bpe = 1 << Lowerer::GetArrayIndirScale(arrValueType);
+
+    // round up
+    return (int)::ceil(((float)dataWidth) / bpe);
 }
 
 bool Lowerer::ShouldGenerateArrayFastPath(

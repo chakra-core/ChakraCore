@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
-
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
 
 // The representations below assume little-endian.
@@ -122,6 +120,7 @@ CompileAssert(sizeof(X86SIMDValue) == 16);
 typedef SIMDValue     AsmJsSIMDValue; // alias for asmjs
 CompileAssert(sizeof(SIMDValue) == 16);
 
+class ValueType;
 
 namespace Js {
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index);
@@ -168,6 +167,5 @@ namespace Js {
 
     enum class OpCode : ushort;
     uint32 SimdOpcodeAsIndex(Js::OpCode op);
-
 
 }

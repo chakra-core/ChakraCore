@@ -53,6 +53,9 @@ namespace Js {
 #if ENABLE_NATIVE_CODEGEN
     inline bool IsSimd128Opcode(OpCode o) { return (o > Js::OpCode::Simd128_Start && o < Js::OpCode::Simd128_End) || (o > Js::OpCode::Simd128_Start_Extend && o < Js::OpCode::Simd128_End_Extend); }
     inline uint Simd128OpcodeCount() { return (uint)(Js::OpCode::Simd128_End - Js::OpCode::Simd128_Start) + 1 + (uint)(Js::OpCode::Simd128_End_Extend - Js::OpCode::Simd128_Start_Extend) + 1; }
+    inline bool IsSimd128Load(OpCode o){ return o == Js::OpCode::Simd128_LdArr_I4 || o == Js::OpCode::Simd128_LdArr_F4; }
+    inline bool IsSimd128Store(OpCode o){ return o == Js::OpCode::Simd128_StArr_I4 || o == Js::OpCode::Simd128_StArr_F4; }
+    inline bool IsSimd128LoadStore(OpCode o) { return IsSimd128Load(o) || IsSimd128Store(o); }
 #endif
 
     ///----------------------------------------------------------------------------

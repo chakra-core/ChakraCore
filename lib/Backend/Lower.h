@@ -269,10 +269,9 @@ public:
     static uint32   GetArrayOffsetOfHeadSegment(const ValueType valueType);
     static uint32   GetArrayOffsetOfLength(const ValueType valueType);
     static IRType   GetArrayIndirType(const ValueType valueType);
-
+    static BYTE     GetArrayIndirScale(const ValueType valueType);
+    static int      SimdGetElementCountFromBytes(ValueType arrValueType, uint8 dataWidth);
 private:
-    BYTE            GetArrayIndirScale(const ValueType valueType) const;
-
     bool            ShouldGenerateArrayFastPath(const IR::Opnd *const arrayOpnd, const bool supportsObjectsWithArrays, const bool supportsTypedArrays, const bool requiresSse2ForFloatArrays) const;
     IR::RegOpnd *   LoadObjectArray(IR::RegOpnd *const baseOpnd, IR::Instr *const insertBeforeInstr);
     IR::RegOpnd *   GenerateArrayTest(IR::RegOpnd *const baseOpnd, IR::LabelInstr *const isNotObjectLabel, IR::LabelInstr *const isNotArrayLabel, IR::Instr *const insertBeforeInstr, const bool forceFloat, const bool isStore = false, const bool allowDefiniteArray = false);

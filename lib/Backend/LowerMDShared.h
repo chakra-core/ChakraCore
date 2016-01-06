@@ -315,10 +315,17 @@ public:
     IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
     IR::Instr*          Simd128LowerNegI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
+    IR::Instr*          Simd128AsmJsLowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerLoadElem(IR::Instr *instr);
+    IR::Instr*          Simd128ConvertToLoad(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth, IR::Instr* instr, byte scaleFactor = 0);
+    IR::Instr*          Simd128AsmJsLowerStoreElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerStoreElem(IR::Instr *instr);
+    IR::Instr*          Simd128ConvertToStore(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth, IR::Instr* instr, byte scaleFactor = 0);
+    void                Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, IR::Instr *instr);
+    void                Simd128GenerateUpperBoundCheck(IR::RegOpnd *indexOpnd, IR::IndirOpnd *indirOpnd, ValueType arrType, IR::Instr *instr);
     IR::Instr*          Simd128LowerSwizzle4(IR::Instr *instr);
     IR::Instr*          Simd128LowerShuffle4(IR::Instr *instr);
+    BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
     IR::Opnd *          EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
     void                GenerateCheckedSimdLoad(IR::Instr * instr);
@@ -327,6 +334,7 @@ public:
     void                InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *insertBeforeInstr);
 
 private:
+
     void GenerateFlagInlineCacheCheckForGetterSetter(
         IR::Instr * insertBeforeInstr,
         IR::RegOpnd * opndInlineCache,
