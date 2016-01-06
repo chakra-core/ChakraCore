@@ -8,6 +8,7 @@
 #include "CommonDefines.h"
 #define _CRT_RAND_S         // Enable rand_s in the CRT
 
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 
@@ -21,6 +22,7 @@
 #undef GetClassName
 #undef Yield /* winbase.h defines this but we want to use it for Js::OpCode::Yield; it is Win16 legacy, no harm undef'ing it */
 #pragma warning(pop)
+#endif
 
 // === Core Header Files ===
 #include "Core\api.h"
@@ -32,5 +34,3 @@
 #include "Exceptions\Throw.h"
 #include "Exceptions\ExceptionCheck.h"
 #include "Exceptions\reporterror.h"
-
-

@@ -8,23 +8,45 @@ typedef unsigned short ushort;
 typedef unsigned long ulong;
 
 typedef signed char sbyte;
+
+#ifdef _WIN32
 typedef __int8 int8;
 typedef __int16 int16;
 typedef __int32 int32;
 typedef __int64 int64;
+#else
+typedef __int8_t int8;
+typedef __int16_t int16;
+typedef __int32_t int32;
+typedef __int64_t int64;
+#endif
 
 typedef unsigned char byte;
+#ifdef _WIN32
 typedef unsigned __int8 uint8;
 typedef unsigned __int16 uint16;
 typedef unsigned __int32 uint32;
 typedef unsigned __int64 uint64;
+#else
+typedef __uint8_t uint8;
+typedef __uint16_t uint16;
+typedef __uint32_t uint32;
+typedef __uint64_t uint64;
+
+#endif
 
 #if defined (_WIN64)
 typedef __int64 intptr;
 typedef unsigned __int64 uintptr;
 #else
+#ifdef _WIN32
 typedef __int32 intptr;
 typedef unsigned __int32 uintptr;
+#else
+typedef int64 intptr;
+typedef uint64 uintptr;
+typedef uint64 UINT_PTR
+#endif
 #endif
 
 // charcount_t represents a count of characters in a JavascriptString
