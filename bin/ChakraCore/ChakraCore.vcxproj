@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory);
         $(ChakraCoreRootDirectory)Lib\Common;
         $(ChakraCoreRootDirectory)Lib\Parser;
+        $(ChakraCoreRootDirectory)Lib\WasmReader;
         $(ChakraCoreRootDirectory)Lib\Runtime;
         $(ChakraCoreRootDirectory)Lib\Backend;
         $(ChakraCoreRootDirectory)Lib\Jsrt;
@@ -113,6 +114,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Runtime\Base\Chakra.Runtime.Base.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110ee}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Lib\WasmReader\Chakra.WasmReader.vcxproj">
+      <Project>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\Lib\Runtime\ByteCode\Chakra.Runtime.ByteCode.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f5}</Project>

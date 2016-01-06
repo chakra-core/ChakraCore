@@ -2301,6 +2301,35 @@ namespace Js
 #endif
     }
 
+    void ParseableFunctionInfo::SetSourceInfo(uint sourceIndex)
+    {
+        // TODO (michhol): how do we want to handle wasm source?
+        if (!m_utf8SourceHasBeenSet)
+        {
+            this->m_sourceIndex = sourceIndex;
+            this->m_cchStartOffset = 0;
+            this->m_cchLength = 0;
+            this->m_lineNumber = 0;
+            this->m_columnNumber = 0;
+
+            this->m_cbStartOffset = 0;
+            this->m_cbLength = 0;
+
+            this->m_utf8SourceHasBeenSet = true;
+
+            if (this->IsFunctionBody())
+            {
+                this->GetFunctionBody()->FinishSourceInfo();
+            }
+        }
+#if DBG
+        else
+        {
+            AssertMsg(this->m_sourceIndex == sourceIndex, "Mismatched source index");
+        }
+#endif
+    }
+
     bool FunctionBody::Is(void* ptr)
     {
         if(!ptr)

@@ -58,6 +58,7 @@ LAYOUT_TYPE_WMS_FE  ( AsmReg7          ) // Generic layout with 7 RegSlot
 LAYOUT_TYPE_WMS_FE  ( AsmReg2IntConst1 ) // Generic layout with 2 RegSlots and 1 Int Constant
 LAYOUT_TYPE_WMS     ( Int1Double1      ) // 1 int register and 1 double register
 LAYOUT_TYPE_WMS     ( Int1Float1       ) // 1 int register and 1 float register
+LAYOUT_TYPE_WMS     ( Double1Const1    ) // 1 double register and 1 const double value
 LAYOUT_TYPE_WMS     ( Double1Int1      ) // 1 double register and 1 int register
 LAYOUT_TYPE_WMS     ( Double1Float1    ) // 1 double register and 1 float register
 LAYOUT_TYPE_WMS     ( Double1Reg1      ) // 1 double register and 1 var register
@@ -74,7 +75,8 @@ LAYOUT_TYPE_WMS     ( Int3             ) // 3 int register
 LAYOUT_TYPE_WMS     ( Double2          ) // 2 double register
 LAYOUT_TYPE_WMS     ( Float2           ) // 2 float register
 LAYOUT_TYPE_WMS     ( Float3           ) // 3 float register
-LAYOUT_TYPE_WMS     ( Float1Double1    ) // 2 double register
+LAYOUT_TYPE_WMS     ( Float1Const1    ) // 1 float register and 1 const float value
+LAYOUT_TYPE_WMS     ( Float1Double1    ) // 1 float register and 1 double register
 LAYOUT_TYPE_WMS     ( Float1Int1       ) // 2 double register
 LAYOUT_TYPE_WMS     ( Double3          ) // 3 double register
 LAYOUT_TYPE_WMS     ( BrInt1           ) // Conditional branching with 1 int

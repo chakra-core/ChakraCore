@@ -15,9 +15,14 @@
 
 #include "ByteCode\ByteCodeDumper.h"
 #include "ByteCode\ByteCodeWriter.h"
+#include "ByteCode\AsmJsByteCodeWriter.h"
 #include "ByteCode\ByteCodeGenerator.h"
 
 #include "ByteCode\OpCodeUtilAsmJs.h"
 #include "Language\AsmJsTypes.h"
 
 #include "ByteCode\ByteCodeAPI.h"
+
+#ifdef ENABLE_WASM
+#include "WasmReader.h"
+#endif

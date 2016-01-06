@@ -374,7 +374,8 @@ namespace Js
         char* dst;
         Var returnValue = 0;
 
-        AsmJsModuleInfo::EnsureHeapAttached(func);
+        // TODO (michhol): fix heap checks
+        // AsmJsModuleInfo::EnsureHeapAttached(func);
 
         argSize = ::Math::Align<int32>(argSize, 8);
         // Allocate stack space for args

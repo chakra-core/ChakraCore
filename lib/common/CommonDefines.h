@@ -79,6 +79,8 @@
 // Enabled features
 //----------------------------------------------------------------------------------------------------
 
+#define ENABLE_WASM // SHOULD BE DISABLED
+
 // NOTE: Disabling these might not work and are not fully supported and maintained
 // Even if it builds, it may not work properly. Disable at your own risk
 

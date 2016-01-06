@@ -11,6 +11,7 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
+    JsRunWasmScript
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue

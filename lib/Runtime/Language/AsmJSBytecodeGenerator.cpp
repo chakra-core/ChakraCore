@@ -246,7 +246,7 @@ namespace Js
             functionBody->AllocateLiteralRegexArray();
 
 
-            mWriter.Begin(byteCodeGen, functionBody, alloc, true /* byteCodeGen->DoJitLoopBodies( funcInfo )*/, mInfo->hasLoop);
+            mWriter.Begin(functionBody, alloc, true /* byteCodeGen->DoJitLoopBodies( funcInfo )*/, mInfo->hasLoop, false /* inDebugMode*/);
 
             // for now, emit all constant loads at top of function (should instead put in
             // closest dominator of uses)
@@ -3107,7 +3107,7 @@ namespace Js
             }
         } autoCleanup(functionBody, byteCodeGen);
 
-        byteCodeGen->Writer()->Begin(byteCodeGen, functionBody, byteCodeGen->GetAllocator(), false, false);
+        byteCodeGen->Writer()->Begin(functionBody, byteCodeGen->GetAllocator(), false, false, false);
         byteCodeGen->Writer()->StartStatement(functionNode, 0);
         byteCodeGen->Writer()->Empty(OpCode::Nop);
         byteCodeGen->Writer()->EndStatement(functionNode);

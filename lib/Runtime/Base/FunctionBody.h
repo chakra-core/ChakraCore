@@ -1415,6 +1415,7 @@ namespace Js
         }
 
         void SetSourceInfo(uint sourceIndex, ParseNodePtr node, bool isEval, bool isDynamicFunction);
+        void SetSourceInfo(uint sourceIndex);
         void Copy(FunctionBody* other);
 
         const wchar_t* GetExternalDisplayName() const;
@@ -1475,6 +1476,7 @@ namespace Js
         bool m_isStrictMode : 1;
         bool m_isAsmjsMode : 1;
         bool m_isAsmJsFunction : 1;
+        bool m_isWasmFunction : 1;
         bool m_isGlobalFunc : 1;
         bool m_doBackendArgumentsOptimization :1;
         bool m_isEval : 1;              // Source code is in 'eval'
@@ -1984,6 +1986,16 @@ namespace Js
         const bool GetIsAsmJsFunction() const
         {
             return m_isAsmJsFunction;
+        }
+
+        void SetIsWasmFunction(bool val)
+        {
+            m_isWasmFunction = val;
+        }
+
+        bool IsWasmFunction() const
+        {
+            return m_isWasmFunction;
         }
 
         bool IsHotAsmJsLoop()

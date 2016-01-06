@@ -11,6 +11,7 @@ namespace Js {
     {
     public:
         static void Dump(AsmJsFunc* func, FunctionBody* body);
+        static void DumpBasic(FunctionBody* body);
         static void DumpConstants(AsmJsFunc* func, FunctionBody* body);
         static void DumpOp(OpCodeAsmJs op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction);
 

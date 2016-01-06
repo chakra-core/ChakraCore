@@ -191,6 +191,66 @@ namespace Js
         Output::Flush();
     }
 
+    void AsmJsByteCodeDumper::DumpBasic(FunctionBody* body)
+    {
+        ByteCodeReader reader;
+        reader.Create(body);
+        body->DumpFullFunctionName();
+        while (true)
+        {
+            int byteOffset = reader.GetCurrentOffset();
+            LayoutSize layoutSize;
+            OpCodeAsmJs op = (OpCodeAsmJs)reader.ReadOp(layoutSize);
+            if (op == OpCodeAsmJs::EndOfBlock)
+            {
+                Assert(reader.GetCurrentOffset() == body->GetByteCode()->GetLength());
+                break;
+            }
+            Output::Print(L"    %04x %2s", byteOffset, layoutSize == LargeLayout ? L"L-" : layoutSize == MediumLayout ? L"M-" : L"");
+            DumpOp(op, layoutSize, reader, body);
+            if (Js::Configuration::Global.flags.Verbose)
+            {
+                int layoutStart = byteOffset + 2;       // Account fo the prefix op
+                int endByteOffset = reader.GetCurrentOffset();
+                Output::SkipToColumn(70);
+                if (layoutSize == LargeLayout)
+                {
+                    Output::Print(L"%02X ",
+                        op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
+                        Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::LargeLayoutPrefix);
+                }
+                else if (layoutSize == MediumLayout)
+                {
+                    Output::Print(L"%02X ",
+                        op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
+                        Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix);
+                }
+                else
+                {
+                    Assert(layoutSize == SmallLayout);
+                    if (op > Js::OpCodeAsmJs::MaxByteSizedOpcodes)
+                    {
+                        Output::Print(L"%02X ", Js::OpCodeAsmJs::ExtendedOpcodePrefix);
+                    }
+                    else
+                    {
+                        Output::Print(L"   ");
+                        layoutStart--;          // don't have a prefix
+                    }
+                }
+
+                Output::Print(L"%02x", (byte)op);
+                for (int i = layoutStart; i < endByteOffset; i++)
+                {
+                    Output::Print(L" %02x", reader.GetRawByte(i));
+                }
+            }
+            Output::Print(L"\n");
+        }
+        Output::Print(L"\n");
+        Output::Flush();
+    }
+
     void AsmJsByteCodeDumper::DumpConstants(AsmJsFunc* func, FunctionBody* body)
     {
         const auto& intRegisters = func->GetRegisterSpace<int>();
@@ -622,6 +682,20 @@ namespace Js
     {
         DumpIntReg(data->I0);
         DumpI4(data->C1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpFloat1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpFloatReg(data->F0);
+        DumpR4(data->C1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpDouble1Const1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpDoubleReg(data->D0);
+        DumpR8(data->C1);
     }
 
     template <class T>

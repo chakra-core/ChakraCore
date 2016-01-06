@@ -16,6 +16,8 @@ namespace Js
         void EmptyAsm        ( OpCodeAsmJs op );
         void Conv            ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmInt1Const1   ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        void AsmFloat1Const1 ( OpCodeAsmJs op, RegSlot R0, float C1 );
+        void AsmDouble1Const1( OpCodeAsmJs op, RegSlot R0, double C1 );
         void AsmReg1         ( OpCodeAsmJs op, RegSlot R0 );
         void AsmReg2         ( OpCodeAsmJs op, RegSlot R0, RegSlot R1 );
         void AsmReg3         ( OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2 );
@@ -48,6 +50,8 @@ namespace Js
         template <typename SizePolicy> bool TryWriteAsmReg7         ( OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6 );
         template <typename SizePolicy> bool TryWriteAsmReg2IntConst1( OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2 );
         template <typename SizePolicy> bool TryWriteInt1Const1      ( OpCodeAsmJs op, RegSlot R0, int C1 );
+        template <typename SizePolicy> bool TryWriteFloat1Const1    ( OpCodeAsmJs op, RegSlot R0, float C1 );
+        template <typename SizePolicy> bool TryWriteDouble1Const1   ( OpCodeAsmJs op, RegSlot R0, double C1 );
         template <typename SizePolicy> bool TryWriteAsmBrReg1       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1 );
         template <typename SizePolicy> bool TryWriteAsmBrReg2       ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2 );
         template <typename SizePolicy> bool TryWriteAsmCall         ( OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType );

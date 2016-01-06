@@ -32,10 +32,10 @@ public:
     static void Unload();
     static TestEtwEventSink* Instance;
 
-    typedef void (*RundownFunc)(bool start);
+    typedef void (*RundownFUNC)(bool start);
 
 private:
     static char const * const TestEtwEventSink::CreateEventSinkProcName;
-    typedef TestEtwEventSink * (*CreateEventSink)(RundownFunc rundown, bool trace);
+    typedef TestEtwEventSink * (*CreateEventSink)(RundownFUNC rundown, bool trace);
 };
 #endif

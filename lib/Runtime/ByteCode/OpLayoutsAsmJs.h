@@ -255,6 +255,20 @@ namespace Js
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_Float1Const1
+    {
+        typename SizePolicy::RegSlotType     F0;
+        typename float                       C1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Double1Const1
+    {
+        typename SizePolicy::RegSlotType     D0;
+        typename double                      C1;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_Int3
     {
         typename SizePolicy::RegSlotType     I0;

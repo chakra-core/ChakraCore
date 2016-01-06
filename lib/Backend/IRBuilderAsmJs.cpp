@@ -2123,6 +2123,54 @@ IRBuilderAsmJs::BuildInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
 
 template <typename SizePolicy>
 void
+IRBuilderAsmJs::BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Float1Const1<SizePolicy>>();
+    BuildFloat1Const1(newOpcode, offset, layout->F0, layout->C1);
+}
+
+void
+IRBuilderAsmJs::BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, float constVal)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::Ld_FltConst);
+
+    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dst);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
+    dstOpnd->SetValueType(ValueType::Float);
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(constVal, TyFloat32, m_func), m_func);
+
+    AddInstr(instr, offset);
+}
+
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildDouble1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Double1Const1<SizePolicy>>();
+    BuildDouble1Const1(newOpcode, offset, layout->D0, layout->C1);
+}
+
+void
+IRBuilderAsmJs::BuildDouble1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dst, double constVal)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::Ld_DbConst);
+
+    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dst);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat64);
+    dstOpnd->SetValueType(ValueType::Float);
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::LdC_F8_R8, dstOpnd, IR::FloatConstOpnd::New(constVal, TyFloat64, m_func), m_func);
+
+    AddInstr(instr, offset);
+}
+
+template <typename SizePolicy>
+void
 IRBuilderAsmJs::BuildInt1Double2(Js::OpCodeAsmJs newOpcode, uint32 offset)
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
@@ -2769,6 +2817,8 @@ void
 IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src)
 {
     Assert(newOpcode == Js::OpCodeAsmJs::BrTrue_Int);
+
+    // TODO (michhol): handle BrFalse_Int
 
     Js::RegSlot src1RegSlot = GetRegSlotFromIntReg(src);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyInt32);
