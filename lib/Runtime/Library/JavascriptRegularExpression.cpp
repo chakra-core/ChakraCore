@@ -101,8 +101,14 @@ namespace Js
         return GetPattern()->GetFlags();
     }
 
-    JavascriptRegExp* JavascriptRegExp::GetJavascriptRegExp(Var var, ScriptContext* scriptContext)
+    JavascriptRegExp* JavascriptRegExp::GetJavascriptRegExp(Arguments& args, PCWSTR propertyName, ScriptContext* scriptContext)
     {
+        if (args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
+        }
+
+        Var var = args[0];
         if (JavascriptRegExp::Is(var))
         {
             return JavascriptRegExp::FromVar(var);
@@ -119,7 +125,7 @@ namespace Js
             }
         }
 
-        return nullptr;
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
     }
 
     Var JavascriptRegExp::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -417,17 +423,8 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        // enforce 'this' arg generic
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.compile");
-        }
 
-        JavascriptRegExp* thisRegularExpression = GetJavascriptRegExp(args[0], scriptContext);
-        if (!thisRegularExpression)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.compile");
-        }
+        JavascriptRegExp* thisRegularExpression = GetJavascriptRegExp(args, L"RegExp.prototype.compile", scriptContext);
 
         UnifiedRegex::RegexPattern* pattern;
         UnifiedRegex::RegexPattern* splitPattern = nullptr;
@@ -517,11 +514,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.exec");
         }
 
-        JavascriptRegExp * pRegEx = GetJavascriptRegExp(args[0], scriptContext);
-        if (!pRegEx)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.exec");
-        }
+        JavascriptRegExp * pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.exec", scriptContext);
 
         JavascriptString * pStr;
         if(args.Info.Count == 1)
@@ -554,11 +547,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.test");
         }
 
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args[0], scriptContext);
-        if (!pRegEx)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.test");
-        }
+        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.test", scriptContext);
         JavascriptString * pStr;
 
         if(args.Info.Count == 1)
@@ -594,11 +583,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.toString");
         }
 
-        JavascriptRegExp* obj = GetJavascriptRegExp(args[0], scriptContext);
-        if (!obj)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.toString");
-        }
+        JavascriptRegExp* obj = GetJavascriptRegExp(args, L"RegExp.prototype.toString", scriptContext);
 
         return obj->ToString();
     }

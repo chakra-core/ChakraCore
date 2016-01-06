@@ -39,7 +39,7 @@ namespace Js
         //  3. ToNumber(lastIndexVar) yields NaN, +0, -0 or an integer in range [0, MaxCharCount]
         CharCount lastIndexOrFlag;
 
-        static JavascriptRegExp * GetJavascriptRegExp(Var var, ScriptContext* scriptContext);
+        static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
