@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
-
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
 
 // The representations below assume little-endian.
@@ -113,6 +111,11 @@ const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0x
 const _x86_SIMDValue X86_ALL_ZEROS    = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 const _x86_SIMDValue X86_LANE_W_ZEROS = { 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 };
 
+const _x86_SIMDValue X86_4LANES_MASKS[] = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
+                                           { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
+                                           { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
+                                           { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
+
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);
 #endif
@@ -120,6 +123,7 @@ CompileAssert(sizeof(X86SIMDValue) == 16);
 typedef SIMDValue     AsmJsSIMDValue; // alias for asmjs
 CompileAssert(sizeof(SIMDValue) == 16);
 
+class ValueType;
 
 namespace Js {
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index);
@@ -166,6 +170,5 @@ namespace Js {
 
     enum class OpCode : ushort;
     uint32 SimdOpcodeAsIndex(Js::OpCode op);
-
 
 }

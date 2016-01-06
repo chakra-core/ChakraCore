@@ -17,7 +17,7 @@ function equal(v, ev) {
         return true;
     else if ((ev == 0.0 || v == 0.0) && Math.abs(v - ev) <= eps) // -0.0 covered here
         return true;
-    else if (Math.abs(v - ev) / ev <= eps)
+    else if (Math.abs(v - ev) / Math.abs(ev) <= eps)
         return true;
     else
         return false;

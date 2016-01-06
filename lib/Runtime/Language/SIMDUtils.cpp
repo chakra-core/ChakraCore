@@ -6,7 +6,6 @@
 
 namespace Js
 {
-
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index)
     {
         int32 int32Value;
