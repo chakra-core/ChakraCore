@@ -192,6 +192,25 @@ Test 20: Function declaration in statement context without {}
 1
 0
 
+Test 21: Function declaration in statement context without {}, strict mode
+
+21.1: Syntax error
+21.2: Syntax error
+21.3: Syntax error
+21.4: Syntax error
+
+Test 22: Function declaration in statement context without {}, illegal in sloppy mode
+
+22.1: Syntax error
+22.2: Syntax error
+22.3: Syntax error
+22.4: Syntax error
+22.5: Syntax error
+22.6: Syntax error
+22.7: Syntax error
+22.8: Syntax error
+22.8: Syntax error
+
 Test Global: Global scope has the same semantics for block-scoped function declarations
 
 undefined

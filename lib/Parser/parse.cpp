@@ -3709,19 +3709,25 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     m_scopeCountNoAst = 0;
 
     long* pAstSizeSave = m_pCurrentAstSize;
+    bool noStmtContext = false;
 
     if (buildAST || BindDeferredPidRefs())
     {
         if (fDeclaration && m_scriptContext->GetConfig()->IsBlockScopeEnabled())
         {
-            bool needsBlockNode =
+            noStmtContext =
                 (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
                 (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
 
-            if (needsBlockNode)
+            if (noStmtContext)
             {
                 // We have a function declaration like "if (a) function f() {}". We didn't see
-                // a block scope on the way in, so we need to pretend we did.
+                // a block scope on the way in, so we need to pretend we did. Note that this is a syntax error
+                // in strict mode.
+                if (!this->FncDeclAllowedWithoutContext(flags))
+                {
+                    Error(ERRsyntax);
+                }
                 pnodeFncBlockScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
                 if (buildAST)
                 {
@@ -3853,7 +3859,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     }
 
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, &needScanRCurly);
+    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly);
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -4037,6 +4043,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     return pnodeFnc;
 }
 
+bool Parser::FncDeclAllowedWithoutContext(ushort flags)
+{
+    // Statement context required for strict mode, async functions, and generators.
+    // Note that generators aren't detected yet when this method is called; they're checked elsewhere.
+    return !IsStrictMode() && !(flags & fFncAsync);
+}
+
 uint Parser::CalculateFunctionColumnNumber()
 {
     uint columnNumber;
@@ -4089,7 +4102,7 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodePtr pnodeFnc)
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool *pNeedScanRCurly)
+bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly)
 {
     bool fDeclaration = (flags & fFncDeclaration) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
@@ -4119,6 +4132,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     }
 
     *pHasName = !fLambda && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncParent, flags, &lastNodeRef);
+
+    if (noStmtContext && pnodeFnc->sxFnc.IsGenerator())
+    {
+        // Generator decl not allowed outside stmt context. (We have to wait until we've parsed the '*' to
+        // detect generator.)
+        Error(ERRsyntax, pnodeFnc);
+    }
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
