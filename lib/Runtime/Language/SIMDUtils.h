@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
-
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
 
 // The representations below assume little-endian.
@@ -17,10 +15,14 @@
 struct _SIMDValue
 {
     union{
-        int     i32[4];
+        int32   i32[4];
+        int16   i16[8];
+        int8    i8[16];
+        uint32  u32[4];
+        uint16  u16[8];
+        uint8   u8[16];
         float   f32[4];
         double  f64[2];
-        int8    i8[16];
     };
 
     void SetValue(_SIMDValue value)
@@ -113,6 +115,12 @@ const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0x
 const _x86_SIMDValue X86_ALL_ZEROS    = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 const _x86_SIMDValue X86_LANE_W_ZEROS = { 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 };
 
+const _x86_SIMDValue X86_TWO_31_F4 = { 0x4f000000, 0x4f000000, 0x4f000000, 0x4f000000 }; // f32(2^31), ....
+const _x86_SIMDValue X86_NEG_TWO_31_F4 = { 0xcf000000, 0xcf000000, 0xcf000000, 0xcf000000 }; // f32(-2^31), ....
+const _x86_SIMDValue X86_TWO_32_F4 = { 0x4f800000, 0x4f800000, 0x4f800000, 0x4f800000 }; // f32(2^32), ....
+const _x86_SIMDValue X86_TWO_31_I4 = X86_NEG_MASK_F4;                                    // 2^31, ....
+const _x86_SIMDValue X86_WORD_SIGNBITS = { { 0x80008000, 0x80008000, 0x80008000, 0x80008000 } };
+
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);
 #endif
@@ -127,20 +135,20 @@ namespace Js {
 
     template <int laneCount = 4>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3);
+    SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, const int32* lanes = nullptr);
 
     template <class SIMDType, int laneCount = 4>
     Var SIMD128SlowShuffle(Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
+    template <class SIMDType, int laneCount = 8>
+    Var SIMD128SlowShuffle(Var src1, Var src2, Var *lanes, const uint range, ScriptContext* scriptContext);
+
+    //TypeConvert
+    template<class SIMDType1, class SIMDType2>
+    Var SIMDConvertTypeFromBits(SIMDType1 &instance, ScriptContext& requestContext);
 
     //Lane Access
     template<class SIMDType, int laneCount, typename T>
     inline T SIMD128ExtractLane(Var src, Var lane, ScriptContext* scriptContext);
-    template<class SIMDType, int laneCount, typename T>
-    inline SIMDValue SIMD128ReplaceLane(Var src, Var lane, T value, ScriptContext* scriptContext);
-
-    //Lane Access
-    template<class SIMDType, int laneCount, typename T>
-    inline T SIMD128ExtractLane(Var src, Var lane, ScriptContext* scriptContext);
-
     template<class SIMDType, int laneCount, typename T>
     inline SIMDValue SIMD128ReplaceLane(Var src, Var lane, T value, ScriptContext* scriptContext);
 
@@ -150,19 +158,67 @@ namespace Js {
     SIMDValue SIMD128InnerReplaceLaneI4(const SIMDValue& src1, const int32 lane, const int value);
     int SIMD128InnerExtractLaneI4(const SIMDValue& src1, const int32 lane);
 
+    SIMDValue SIMD128InnerReplaceLaneI8(const SIMDValue& src1, const int32 lane, const int16 value);
+    int16 SIMD128InnerExtractLaneI8(const SIMDValue& src1, const int32 lane);
+
     SIMDValue SIMD128InnerReplaceLaneI16(const SIMDValue& src1, const int32 lane, const int8 value);
     int8 SIMD128InnerExtractLaneI16(const SIMDValue& src1, const int32 lane);
 
-
     int32 SIMDCheckInt32Number(ScriptContext* scriptContext, Var value);
     bool        SIMDIsSupportedTypedArray(Var value);
-    SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint8 dataWidth, ScriptContext *scriptContext);
+    SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);
     AsmJsSIMDValue SIMDLdData(AsmJsSIMDValue *data, uint8 dataWidth);
     void SIMDStData(AsmJsSIMDValue *data, AsmJsSIMDValue simdValue, uint8 dataWidth);
+
     template <class SIMDType>
-    Var   SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext);
+    Var SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext)
+    {
+        Assert(dataWidth >= 4 && dataWidth <= 16);
+
+        TypedArrayBase *tarray = NULL;
+        int32 index = -1;
+        SIMDValue* data = NULL;
+
+        data = SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
+
+        Assert(tarray != NULL);
+        Assert(index >= 0);
+        Assert(data != NULL);
+
+        SIMDValue result = SIMDLdData(data, (uint8)dataWidth);
+
+        return SIMDType::New(&result, scriptContext);
+
+    }
+
     template <class SIMDType>
-    void  SIMD128TypedArrayStore(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext);
+    void SIMD128TypedArrayStore(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext)
+    {
+        Assert(dataWidth >= 4 && dataWidth <= 16);
+
+        TypedArrayBase *tarray = NULL;
+        int32 index = -1;
+        SIMDValue* data = NULL;
+
+        data = SIMDCheckTypedArrayAccess(arg1, arg2, &tarray, &index, dataWidth, scriptContext);
+
+        Assert(tarray != NULL);
+        Assert(index >= 0);
+        Assert(data != NULL);
+
+        SIMDValue simdValue = SIMDType::FromVar(simdVar)->GetValue();
+        SIMDStData(data, simdValue, (uint8)dataWidth);
+    }
+
+    //SIMD Type conversion
+    SIMDValue FromSimdBits(SIMDValue value);
+
+    template<class SIMDType1, class SIMDType2>
+    Var SIMDConvertTypeFromBits(SIMDType1* instance, ScriptContext* requestContext)
+    {
+        SIMDValue result = FromSimdBits(instance->GetValue());
+        return SIMDType2::New(&result, requestContext);
+    }
 
     enum class OpCode : ushort;
     uint32 SimdOpcodeAsIndex(Js::OpCode op);

@@ -13,6 +13,8 @@
 
 #include "ExternalLowerer.h"
 
+#include "ExternalLowerer.h"
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::Lower

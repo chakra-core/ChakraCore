@@ -315,6 +315,7 @@ public:
     IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
     IR::Instr*          Simd128LowerNegI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr);
     IR::Instr*          Simd128LowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerStoreElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerShuffle(IR::Instr *instr);

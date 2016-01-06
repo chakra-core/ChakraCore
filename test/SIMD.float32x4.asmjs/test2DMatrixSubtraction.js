@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function asmModule(stdlib, imports, buffer) {
     "use asm";
@@ -85,27 +86,180 @@ function asmModule(stdlib, imports, buffer) {
     };
 }
 
+////////////////////////////////////////////////////////////////
+//Call GEN_BASELINE() to generate baseline data and initialize RESULTS with it.
+///////////////////////////////////////////////////////////////
+function GEN_BASELINE(buffer, start) {
+    var IntHeap32 = new Int32Array(buffer);
+    var FloatHeap32 = new Float32Array(buffer);
+    var f4;
+    var dim1 = IntHeap32[start];
+    var dim2 = IntHeap32[start + 1];
+    WScript.Echo("[");
+    for (var i = 0; i < Math.imul(dim1, dim2) ; i += 4) {
+        f4 = SIMD.Float32x4.load(FloatHeap32, i + start + 2);
+        WScript.Echo(f4.toString()+",");
+    }
+    if(GEN_BASELINE) WScript.Echo("]");
+}
+
+
 function print2DMatrix(buffer, start) {
     var IntHeap32 = new Int32Array(buffer);
     var FloatHeap32 = new Float32Array(buffer);
     var f4;
     var dim1 = IntHeap32[start];
     var dim2 = IntHeap32[start + 1];
-    print(dim1 + " by " + dim2 + " matrix");
+    WScript.Echo(dim1 + " by " + dim2 + " matrix");
 
     for (var i = 0; i < Math.imul(dim1, dim2) ; i += 4) {
         f4 = SIMD.Float32x4.load(FloatHeap32, i + start + 2);
-        print(f4.toString());
+        WScript.Echo(f4.toString());
+    }
+}
+
+function verify2DMatrix(buffer, start, results) {
+    var IntHeap32 = new Int32Array(buffer);
+    var FloatHeap32 = new Float32Array(buffer);
+    var f4;
+    var dim1 = IntHeap32[start];
+    var dim2 = IntHeap32[start + 1];
+    // WScript.Echo(dim1 + " by " + dim2 + " matrix");
+
+    for (var i = 0, rslt_idx = 0; i < Math.imul(dim1, dim2) ; i += 4) {
+        f4 = SIMD.Float32x4.load(FloatHeap32, i + start + 2);
+        equalSimd(results[rslt_idx++], f4, SIMD.Float32x4, "2d Matrix Subtraction");
     }
 }
 
 var buffer = new ArrayBuffer(16 * 1024 * 1024);
 var m = asmModule(this, null, buffer);
 
-print("2D Matrix Subtraction");
+WScript.Echo("2D Matrix Subtraction");
 m.new2DMatrix(0, 13, 17);
 m.new2DMatrix(500, 13, 17);
 m.matrixSubtraction(0, 500, 1000);
 m.matrixSubtraction(1000, 0, 1500);
-print2DMatrix(buffer, 1000);
-print2DMatrix(buffer, 1500);
+// GEN_BASELINE(buffer, 1000);
+var RESULTS = [
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+SIMD.Float32x4(0, 0, 0, 0),
+];
+verify2DMatrix(buffer, 1000, RESULTS);
+
+// GEN_BASELINE(buffer, 1500);
+var RESULTS = [
+SIMD.Float32x4(-1, -2, -3, -4),
+SIMD.Float32x4(-5, -6, -7, -8),
+SIMD.Float32x4(-9, -10, -11, -12),
+SIMD.Float32x4(-13, -14, -15, -16),
+SIMD.Float32x4(-17, -18, -19, -20),
+SIMD.Float32x4(-21, -22, -23, -24),
+SIMD.Float32x4(-25, -26, -27, -28),
+SIMD.Float32x4(-29, -30, -31, -32),
+SIMD.Float32x4(-33, -34, -35, -36),
+SIMD.Float32x4(-37, -38, -39, -40),
+SIMD.Float32x4(-41, -42, -43, -44),
+SIMD.Float32x4(-45, -46, -47, -48),
+SIMD.Float32x4(-49, -50, -51, -52),
+SIMD.Float32x4(-53, -54, -55, -56),
+SIMD.Float32x4(-57, -58, -59, -60),
+SIMD.Float32x4(-61, -62, -63, -64),
+SIMD.Float32x4(-65, -66, -67, -68),
+SIMD.Float32x4(-69, -70, -71, -72),
+SIMD.Float32x4(-73, -74, -75, -76),
+SIMD.Float32x4(-77, -78, -79, -80),
+SIMD.Float32x4(-81, -82, -83, -84),
+SIMD.Float32x4(-85, -86, -87, -88),
+SIMD.Float32x4(-89, -90, -91, -92),
+SIMD.Float32x4(-93, -94, -95, -96),
+SIMD.Float32x4(-97, -98, -99, -100),
+SIMD.Float32x4(-101, -102, -103, -104),
+SIMD.Float32x4(-105, -106, -107, -108),
+SIMD.Float32x4(-109, -110, -111, -112),
+SIMD.Float32x4(-113, -114, -115, -116),
+SIMD.Float32x4(-117, -118, -119, -120),
+SIMD.Float32x4(-121, -122, -123, -124),
+SIMD.Float32x4(-125, -126, -127, -128),
+SIMD.Float32x4(-129, -130, -131, -132),
+SIMD.Float32x4(-133, -134, -135, -136),
+SIMD.Float32x4(-137, -138, -139, -140),
+SIMD.Float32x4(-141, -142, -143, -144),
+SIMD.Float32x4(-145, -146, -147, -148),
+SIMD.Float32x4(-149, -150, -151, -152),
+SIMD.Float32x4(-153, -154, -155, -156),
+SIMD.Float32x4(-157, -158, -159, -160),
+SIMD.Float32x4(-161, -162, -163, -164),
+SIMD.Float32x4(-165, -166, -167, -168),
+SIMD.Float32x4(-169, -170, -171, -172),
+SIMD.Float32x4(-173, -174, -175, -176),
+SIMD.Float32x4(-177, -178, -179, -180),
+SIMD.Float32x4(-181, -182, -183, -184),
+SIMD.Float32x4(-185, -186, -187, -188),
+SIMD.Float32x4(-189, -190, -191, -192),
+SIMD.Float32x4(-193, -194, -195, -196),
+SIMD.Float32x4(-197, -198, -199, -200),
+SIMD.Float32x4(-201, -202, -203, -204),
+SIMD.Float32x4(-205, -206, -207, -208),
+SIMD.Float32x4(-209, -210, -211, -212),
+SIMD.Float32x4(-213, -214, -215, -216),
+SIMD.Float32x4(-217, -218, -219, -220),
+SIMD.Float32x4(-221, 0, 0, 0),
+];
+verify2DMatrix(buffer, 1500, RESULTS);
+// print2DMatrix(buffer, 1500);
+WScript.Echo("PASS");

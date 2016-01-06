@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
     
@@ -58,8 +58,8 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+
+
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -102,8 +102,8 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
+
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -659,39 +659,45 @@ var ret;
 
 ret = m.func1();
 print("func1");
-print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 20, 30, 40], ret, SIMD.Int32x4, "Test Load Store");
+
 
 ret = m.func2();
 print("func3");
 print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 20, 30, 0], ret, SIMD.Int32x4, "Test Load Store");
+
 
 ret = m.func3();
 print("func3");
-print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 20, 0, 0], ret, SIMD.Int32x4, "Test Load Store");
 
 
 ret = m.func4();
 print("func4");
-print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 0, 0, 0], ret, SIMD.Int32x4, "Test Load Store");
 
 
 ret = m.func5();
 print("func5");
-print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 20, 0, 0], ret, SIMD.Int32x4, "Test Load Store");
+
 
 ret = m.func6();
 print("func6");
-print(typeof(ret));
-print(ret.toString());
+equalSimd([10, 0, 0, 0], ret, SIMD.Int32x4, "Test Load Store");
+
 
 //
 
 var funcOOB1 = [m.func1OOB_1, m.func2OOB_1 ,m.func3OOB_1, m.func4OOB_1, m.func5OOB_1, m.func6OOB_1];
+var RESULTS = [SIMD.Int32x4(10, 20, 30, 40),
+SIMD.Int32x4(20, 30, 40, 0),
+SIMD.Int32x4(30, 40, 0, 0),
+SIMD.Int32x4(40, 0, 0, 0),
+SIMD.Int32x4(30, 40, 0, 0),
+SIMD.Int32x4(40, 0, 0, 0)
+];
 
 for (var i = 0; i < funcOOB1.length; i ++)
 {
@@ -699,8 +705,8 @@ for (var i = 0; i < funcOOB1.length; i ++)
     {
         ret = funcOOB1[i]();
         print("func" + (i+1) + "OOB_1");
-        print(typeof(ret));
-        print(ret.toString());
+        equalSimd(RESULTS[i], ret, SIMD.Int32x4, "Test Load Store");
+
     } catch(e)
     {
         print("Wrong");
@@ -727,3 +733,4 @@ for (var i = 0; i < funcOOB2.length; i ++)
         
     }
 }
+print("PASS");

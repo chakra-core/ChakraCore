@@ -23,27 +23,19 @@
 #include "Language\CodeGenRecyclableData.h"
 #include "Library\JavascriptGenerator.h"
 #include "Library\JavascriptRegularExpression.h"
+#include "Library\StackScriptFunction.h"
+
+#include "Language\InterpreterStackFrame.h"
+#include "Language\ReadOnlyDynamicProfileInfo.h"
 
 #include "Library\StackScriptFunction.h"
 
 #include "Language\InterpreterStackFrame.h"
 #include "Language\ReadOnlyDynamicProfileInfo.h"
 
-// SIMD types
-#include "Library\JavascriptSIMDFloat32x4.h"
-#include "Library\JavascriptSIMDFloat64x2.h"
-#include "Library\JavascriptSIMDInt32x4.h"
-#include "Library\JavascriptSIMDInt8x16.h"
-// SIMD operations
-#include "Language\SIMDFloat32x4Operation.h"
-#include "Language\SIMDFloat64x2Operation.h"
-#include "Language\SIMDInt32x4Operation.h"
-#include "Language\SIMDInt8x16Operation.h"
-// SIMD libs
-#include "Library\SIMDFloat32x4Lib.h"
-#include "Library\SIMDFloat64x2Lib.h"
-#include "Library\SIMDInt32x4Lib.h"
-#include "Library\SIMDInt8x16Lib.h"
+// SIMD_JS
+#include "Library\SimdLib.h"
+#include "Language\SimdOps.h"
 
 // =================
 // Common Includes
