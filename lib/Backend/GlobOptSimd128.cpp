@@ -49,18 +49,15 @@ Value **pDstVal
             if (IsSimd128F4TypeSpecialized(sym, this->currentBlock))
             {
                 type = TySimd128F4;
-                sym->GetSimd128F4EquivSym(func);
             }
             else if (IsSimd128I4TypeSpecialized(sym, this->currentBlock))
             {
                 type = TySimd128I4;
-                sym->GetSimd128I4EquivSym(func);
             }
             else
             {
                 return false;
             }
-
             ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, type, IR::BailOutSimd128F4Only /*not used for Ld_A*/);
             TypeSpecializeSimd128Dst(type, instr, *pSrc1Val, *pSrc1Val, pDstVal);
             return true;
@@ -120,7 +117,7 @@ Value **pDstVal
         {
             // Emit bailout if not loop prepass.
             // The inliner inserts bytecodeUses of original args after the instruction. Bailout is safe.
-            IR::Instr * bailoutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNoSimdTypeSpec, IR::BailOutNoSimdTypeSpec, instr, this->func);
+            IR::Instr * bailoutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNoSimdTypeSpec, IR::BailOutNoSimdTypeSpec, instr, instr->m_func);
             bailoutInstr->SetByteCodeOffset(instr);
             instr->InsertAfter(bailoutInstr);
 
@@ -173,11 +170,11 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
         {
         case 2:
             Assert(src2Val);
-            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src2Val->GetValueInfo()->Type(), simdFuncSignature.args[1]);
+            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src2Val->GetValueInfo()->Type(), simdFuncSignature.args[1]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc2(), 1);
             // fall-through
         case 1:
             Assert(src1Val);
-            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src1Val->GetValueInfo()->Type(), simdFuncSignature.args[0]);
+            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src1Val->GetValueInfo()->Type(), simdFuncSignature.args[0]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc1(), 0);
             break;
         default:
         {
@@ -231,13 +228,18 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                     {
                         return false;
                     }
+                    // Extra check if arg is a lane index
+                    if (!Simd128ValidateIfLaneIndex(instr, opnd, arg))
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
                     Assert(UNREACHED);
                 }
 
-                eaInstr = GetExtendedArg(instr);
+                eaInstr = GetExtendedArg(eaInstr);
                 arg--;
             }
             // all args are type-spec'd
@@ -251,6 +253,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
         // For ExtendArg, the expected type is encoded in the dst(link) operand.
         doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src1Val->GetValueInfo()->Type(), instr->GetDst()->GetValueType());
     }
+
     return doTypeSpec;
 }
 
@@ -258,9 +261,7 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
 // We can type spec an opnd if:
 // Both profiled/propagated and expected types are not Simd128. e.g. expected type is f64/f32/i32 where there is a conversion logic from the incoming type.
 // Opnd type is (Likely) SIMD128 and matches expected type.
-// Opnd type is Object. e.g. possibly result of merging different SIMD types.
-// Simd128 values merged with Undefined/Null are still specialized.
-// Opnd type is LikelyUndefined: we don't have profile info for the operands.
+// Opnd type is Object. e.g. possibly result of merging different SIMD types. We specialize because we don't know which pass is dynamically taken.
 
 bool GlobOpt::Simd128CanTypeSpecOpnd(const ValueType opndType, ValueType expectedType)
 {
@@ -284,6 +285,66 @@ bool GlobOpt::Simd128CanTypeSpecOpnd(const ValueType opndType, ValueType expecte
         return true;
     }
     return false;
+}
+
+/*
+Given an instr, opnd and the opnd position. Return true if opnd is a lane index and valid, or not a lane index all-together..
+*/
+bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos)
+{
+    Assert(instr);
+    Assert(opnd);
+
+    uint laneIndex;
+    uint argPosLo, argPosHi;
+    uint laneIndexLo, laneIndexHi;
+
+    // operation takes a lane index ?
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::Simd128_Swizzle_F4:
+    case Js::OpCode::Simd128_Swizzle_I4:
+        argPosLo = 1; argPosHi = 4;
+        laneIndexLo = 0; laneIndexHi = 3;
+        break;
+    case Js::OpCode::Simd128_Shuffle_F4:
+    case Js::OpCode::Simd128_Shuffle_I4:
+        argPosLo = 2; argPosHi = 5;
+        laneIndexLo = 0; laneIndexHi = 7;
+        break;
+    case Js::OpCode::Simd128_ReplaceLane_F4:
+    case Js::OpCode::Simd128_ReplaceLane_I4:
+    case Js::OpCode::Simd128_ExtractLane_F4:
+    case Js::OpCode::Simd128_ExtractLane_I4:
+        argPosLo = argPosHi = 1;
+        laneIndexLo = 0;  laneIndexHi = 3;
+        break;
+    default:
+        return true; // not a lane index
+    }
+
+    // arg in lanex index pos of operation ?
+    if (argPos < argPosLo || argPos > argPosHi)
+    {
+        return true; // not a lane index
+    }
+
+    // It is a lane index ...
+
+    // Arg is Int constant (literal or const prop'ed) ?
+    if (!opnd->IsIntConstOpnd())
+    {
+        return false;
+    }
+    laneIndex = (uint) opnd->AsIntConstOpnd()->GetValue();
+
+    // In range ?
+    if (laneIndex < laneIndexLo|| laneIndex > laneIndexHi)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 IR::Instr * GlobOpt::GetExtendedArg(IR::Instr *instr)

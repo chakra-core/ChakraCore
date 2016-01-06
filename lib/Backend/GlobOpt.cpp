@@ -1187,7 +1187,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
 
         // For syms we made alive in loop header because of hoisting, use-before-def, or def in Loop body, set their valueInfo to definite.
-        // Made live on header AND in one of forceSimd128* or likelySimd128* vectors.
+        // Make live on header AND in one of forceSimd128* or likelySimd128* vectors.
         tempBv->Or(loop->likelySimd128F4SymsUsedBeforeDefined, loop->symsDefInLoop);
         tempBv->Or(loop->likelySimd128I4SymsUsedBeforeDefined);
         tempBv->Or(loop->forceSimd128F4SymsOnEntry);

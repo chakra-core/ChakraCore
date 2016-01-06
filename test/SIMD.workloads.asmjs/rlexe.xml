@@ -29,7 +29,7 @@
       <files>testReverseHeap.js</files>
       <baseline>testReverseHeap-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -37,7 +37,7 @@
       <files>testReverseHeap.js</files>
       <baseline>testReverseHeap-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -69,14 +69,14 @@
     <default>
       <files>testMerge.js</files>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testMerge.js</files>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -108,14 +108,14 @@
     <default>
       <files>testScale.js</files>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testScale.js</files>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -148,7 +148,7 @@
       <files>testLinearSearch.js</files>
       <baseline>testLinearSearch-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -156,7 +156,7 @@
       <files>testLinearSearch.js</files>
       <baseline>testLinearSearch-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -189,7 +189,7 @@
       <files>test2DMatrixAddition.js</files>
       <baseline>test2DMatrixAddition-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -197,7 +197,7 @@
       <files>test2DMatrixAddition.js</files>
       <baseline>test2DMatrixAddition-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -230,7 +230,7 @@
       <files>test2DMatrixSubtraction.js</files>
       <baseline>test2DMatrixSubtraction-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -238,7 +238,7 @@
       <files>test2DMatrixSubtraction.js</files>
       <baseline>test2DMatrixSubtraction-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -271,7 +271,7 @@
       <files>test2DMatrixMultiplication.js</files>
       <baseline>test2DMatrixMultiplication-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
@@ -279,7 +279,7 @@
       <files>test2DMatrixMultiplication.js</files>
       <baseline>test2DMatrixMultiplication-noAsmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship</tags>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 

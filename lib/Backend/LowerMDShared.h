@@ -317,11 +317,14 @@ public:
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerStoreElem(IR::Instr *instr);
-    IR::Instr*          Simd128LowerShuffle(IR::Instr *instr);
+    IR::Instr*          Simd128LowerSwizzle4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerShuffle4(IR::Instr *instr);
     IR::Opnd *          EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
     void                GenerateCheckedSimdLoad(IR::Instr * instr);
     void                GenerateSimdStore(IR::Instr * instr);
+    void                CheckShuffleLanes4(uint8 lanes[], uint8 lanesSrc[], uint *fromSrc1, uint *fromSrc2);
+    void                InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *insertBeforeInstr);
 
 private:
     void GenerateFlagInlineCacheCheckForGetterSetter(

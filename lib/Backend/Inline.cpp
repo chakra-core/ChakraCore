@@ -2044,6 +2044,9 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         {
             callInstr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(callInstr->m_opcode, simdFuncSignature);
             Assert(simdFuncSignature.valid);
+            // if we have decided to inline, then actual arg count == signature arg count == required arg count from inlinee list (LibraryFunction.h)
+            Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
+            Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
         }
 //
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
