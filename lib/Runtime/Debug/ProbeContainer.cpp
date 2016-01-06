@@ -128,12 +128,16 @@ namespace Js
                     }
                     else
                     {
+#if ENABLE_NATIVE_CODEGEN
                         if (func->IsScriptFunction())
                         {
                             frm = Anew(pDiagArena, DiagNativeStackFrame,
                                 ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), walker.GetCurrentArgv(), walker.GetCurrentCodeAddr(), frameIndex);
                         }
                         else
+#else
+                        Assert(!func->IsScriptFunction());
+#endif
                         {
                             frm = Anew(pDiagArena, DiagRuntimeStackFrame, func, walker.GetCurrentNativeLibraryEntryName(), walker.GetCurrentArgv(), frameIndex);
                         }

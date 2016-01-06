@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+
+#if ENABLE_NATIVE_CODEGEN
+
 #include "..\BackEnd\i386\Reg.h"
 
 static const BYTE RegEncode[] =
@@ -4830,3 +4833,4 @@ namespace Js
         }
     };
 }
+#endif

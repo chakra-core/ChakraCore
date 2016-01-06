@@ -873,7 +873,7 @@
 
 #define PROCESS_A3I1toXXMem(name, func) PROCESS_A3I1toXXMem_COMMON(name, func,)
 
-
+#if ENABLE_PROFILE_INFO
 #define PROCESS_IP_TARG_IMPL(name, func, layoutSize) \
     case OpCode::name: \
     { \
@@ -886,6 +886,14 @@
         } \
         break; \
     }
+#else
+#define PROCESS_IP_TARG_IMPL(name, func, layoutSize) \
+    case OpCode::name: \
+    { \
+        ip = func<layoutSize, INTERPRETERPROFILE>(ip); \
+       break; \
+    }
+#endif
 
 #define PROCESS_IP_TARG_COMMON(name, func, suffix) PROCESS_IP_TARG##suffix(name, func)
 
@@ -908,6 +916,7 @@ namespace Js
         , (uint32)~7 //TYPE_FLOAT64
     };
 
+#ifndef TEMP_DISABLE_ASMJS
     typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
 
     const ArrFunc InterpreterStackFrame::StArrFunc[8] =
@@ -933,6 +942,7 @@ namespace Js
         &InterpreterStackFrame::OP_LdArr<float>,
         &InterpreterStackFrame::OP_LdArr<double>,
     };
+#endif
 
     Var InterpreterStackFrame::InnerScopeFromRegSlot(RegSlot reg) const
     {
@@ -993,10 +1003,12 @@ namespace Js
 
         this->localCount = this->executeFunction->GetLocalsCount();
         uint extraVarCount = 0;
+#if ENABLE_PROFILE_INFO
         if (Js::DynamicProfileInfo::EnableImplicitCallFlags(this->executeFunction))
         {
             extraVarCount += (sizeof(ImplicitCallFlags) * this->executeFunction->GetLoopCount() + sizeof(Var) - 1) / sizeof(Var);
         }
+#endif
 
         this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamsDepth() + extraVarCount + this->executeFunction->GetInnerScopeCount();
 
@@ -1058,10 +1070,12 @@ namespace Js
         newInstance->currentLoopNum = LoopHeader::NoLoop;
         newInstance->currentLoopCounter = 0;
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
+        newInstance->closureInitDone = false;
+#if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
-        newInstance->closureInitDone = false;
         newInstance->switchProfileModeOnLoopEndNumber = 0u - 1;
+#endif
         newInstance->ehBailoutData = nullptr;
         newInstance->nestedTryDepth = -1;
         newInstance->nestedCatchDepth = -1;
@@ -1072,37 +1086,49 @@ namespace Js
         newInstance->innerScopeArray = nullptr;
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
+#if ENABLE_NATIVE_CODEGEN
         bool doJITLoopBody =
             !this->executeFunction->GetScriptContext()->GetConfig()->IsNoNative() &&
             !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction) || this->executeFunction->GetHasFinally())) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
             !this->executeFunction->GetScriptContext()->IsInDebugMode();
+#else
+        const bool doJITLoopBody = false;
+#endif
 
         // Pick a version of the LoopBodyStart OpCode handlers that is hardcoded to do loop body JIT and
         // interrupt probes as needed.
         if (doInterruptProbe)
         {
+#if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
                 newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true>;
                 newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true>;
             }
             else
+#endif
             {
+#if ENABLE_PROFILE_INFO
                 newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false>;
+#endif
                 newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false>;
             }
         }
         else
         {
+#if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
                 newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true>;
                 newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true>;
             }
             else
+#endif
             {
+#if ENABLE_PROFILE_INFO
                 newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false>;
+#endif
                 newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false>;
             }
         }
@@ -1110,8 +1136,10 @@ namespace Js
         newInstance->loopHeaderArray = loopHeaderArray;
         newInstance->m_stackAddress = stackAddr;
 
+#if ENABLE_PROFILE_INFO
         // the savedLoopImplicitCallFlags is allocated at the end of the out param array
         newInstance->savedLoopImplicitCallFlags = nullptr;
+#endif
         char * nextAllocBytes = (char *)(newInstance->m_outParams + this->executeFunction->GetOutParamsDepth());
 
         if (this->executeFunction->GetInnerScopeCount())
@@ -1144,6 +1172,7 @@ namespace Js
                 }
             }
         }
+#if ENABLE_PROFILE_INFO
         if (Js::DynamicProfileInfo::EnableImplicitCallFlags(this->executeFunction))
         {
             /*
@@ -1159,6 +1188,7 @@ namespace Js
 
 
         }
+#endif
 #if DBG
         if (CONFIG_ISENABLED(InitializeInterpreterSlotsWithInvalidStackVarFlag))
         {
@@ -1202,14 +1232,20 @@ namespace Js
         Var *prestDest = &newInstance->m_localSlots[this->executeFunction->GetConstantCount()];
         if (initParams)
         {
+#if ENABLE_PROFILE_INFO
             Assert(!this->executeFunction->NeedEnsureDynamicProfileInfo());
+#endif
             if (profileParams)
             {
+#if ENABLE_PROFILE_INFO
                 Assert(this->executeFunction->HasExecutionDynamicProfileInfo());
+#endif
                 FunctionBody* functionBody = this->executeFunction;
                 InitializeParams(newInstance, [functionBody](Var param, ArgSlot index)
                 {
+#if ENABLE_PROFILE_INFO
                     functionBody->GetDynamicProfileInfo()->RecordParameterInfo(functionBody, index - 1, param);
+#endif
                 }, &prestDest);
             }
             else
@@ -1380,6 +1416,7 @@ namespace Js
     }
 
 #ifdef _M_IX86
+#ifndef TEMP_DISABLE_ASMJS
     int InterpreterStackFrame::GetAsmJsArgSize(AsmJsCallStackLayout* stack)
     {
         JavascriptFunction * func = stack->functionObject;
@@ -1415,6 +1452,7 @@ namespace Js
         return (DWORD)scriptContext + ScriptContext::GetAsmSimdValOffset();
     }
 
+#ifdef ASMJS_PLAT
     /*
                             AsmInterpreterThunk
                             -------------------
@@ -1524,6 +1562,8 @@ namespace Js
             }
         }
 #endif
+#endif
+#endif
 
 #if DYNAMIC_INTERPRETER_THUNK
 #ifdef _M_IX86
@@ -1553,6 +1593,7 @@ namespace Js
 #endif
 #endif
 
+#if ENABLE_PROFILE_INFO
     JavascriptMethod InterpreterStackFrame::EnsureDynamicInterpreterThunk(Js::ScriptFunction * function)
     {
 #if DYNAMIC_INTERPRETER_THUNK
@@ -1574,6 +1615,7 @@ namespace Js
         return function->GetEntryPoint();
 #endif
     }
+#endif
 
     bool InterpreterStackFrame::IsDelayDynamicInterpreterThunk(void * entryPoint)
     {
@@ -1602,13 +1644,16 @@ namespace Js
         return InterpreterHelper(function, args, localReturnAddress, localAddressOfReturnAddress);
     }
 #else
+#pragma optimize("", off)
     Var InterpreterStackFrame::InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         ARGUMENTS(args, callInfo);
         void* localReturnAddress = _ReturnAddress();
         void* localAddressOfReturnAddress = _AddressOfReturnAddress();
-        return InterpreterHelper(Js::ScriptFunction::FromVar(function), args, localReturnAddress, localAddressOfReturnAddress);
+        Assert(ScriptFunction::Is(function));
+        return InterpreterHelper(ScriptFunction::FromVar(function), args, localReturnAddress, localAddressOfReturnAddress);
     }
+#pragma optimize("", on)
 #endif
 
     Var InterpreterStackFrame::InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs)
@@ -1685,6 +1730,7 @@ namespace Js
             }
         } autoRestore(threadContext, executeFunction);
 
+#if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
         const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
                                functionScriptContext->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction);
@@ -1696,6 +1742,9 @@ namespace Js
             dynamicProfileInfo = executeFunction->GetDynamicProfileInfo();
             threadContext->ClearImplicitCallFlags();
         }
+#else
+        const bool doProfile = false;
+#endif
 
         executeFunction->interpretedCount++;
 #ifdef BGJIT_STATS
@@ -1835,7 +1884,7 @@ namespace Js
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
                 aReturn = newInstance->DebugProcess();
 #else
-                aReturn = newInstance->DebugProcessThunk();
+                aReturn = newInstance->DebugProcessThunk(_ReturnAddress(), _AddressOfReturnAddress());
 #endif
             }
             else
@@ -1844,7 +1893,7 @@ namespace Js
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
                 aReturn = newInstance->Process();
 #else
-                aReturn = newInstance->ProcessThunk();
+                aReturn = newInstance->ProcessThunk(_ReturnAddress(), _AddressOfReturnAddress());
 #endif
             }
         }
@@ -1856,10 +1905,12 @@ namespace Js
             functionScriptContext->ReleaseInterpreterArena();
         }
 
+#if ENABLE_PROFILE_INFO
         if (doProfile)
         {
             dynamicProfileInfo->RecordImplicitCallFlags(threadContext->GetImplicitCallFlags());
         }
+#endif
 
         if (isAsmJs)
         {
@@ -1868,6 +1919,7 @@ namespace Js
         return aReturn;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
 #if _M_IX86
     int InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* stack)
     {
@@ -1879,7 +1931,9 @@ namespace Js
         ArgumentReader args(&callInfo, paramsAddr);
         void* returnAddress = _ReturnAddress();
         void* addressOfReturnAddress = _AddressOfReturnAddress();
+#if ENABLE_PROFILE_INFO
         function->GetFunctionBody()->EnsureDynamicProfileInfo();
+#endif
         InterpreterStackFrame* newInstance = (InterpreterStackFrame*)InterpreterHelper(function, args, returnAddress, addressOfReturnAddress, true);
 
         //Handle return value
@@ -2001,6 +2055,7 @@ namespace Js
         return AsmJsInterpreter<X86SIMDValue>(layout).m128_value;
     }
 #endif
+#endif
 
     ///----------------------------------------------------------------------------
     ///
@@ -2095,9 +2150,9 @@ namespace Js
     }
 
     __declspec(noinline)
-    Var InterpreterStackFrame::DebugProcessThunk()
+    Var InterpreterStackFrame::DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress)
     {
-        PushPopFrameHelper pushPopFrameHelper(this, _ReturnAddress(), _AddressOfReturnAddress());
+        PushPopFrameHelper pushPopFrameHelper(this, returnAddress, addressOfReturnAddress);
         return this->DebugProcess();
     }
 
@@ -2180,6 +2235,7 @@ namespace Js
         return op;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     template<>
     OpCodeAsmJs InterpreterStackFrame::ReadByteOp<OpCodeAsmJs>(const byte *& ip
 #if DBG_DUMP
@@ -2204,11 +2260,12 @@ namespace Js
 #endif
         return op;
     }
+#endif
 
     __declspec(noinline)
-    Var InterpreterStackFrame::ProcessThunk()
+    Var InterpreterStackFrame::ProcessThunk(void* address, void* addressOfReturnAddress)
     {
-        PushPopFrameHelper pushPopFrameHelper(this, _ReturnAddress(), _AddressOfReturnAddress());
+        PushPopFrameHelper pushPopFrameHelper(this, address, addressOfReturnAddress);
         return this->Process();
     }
 
@@ -2640,6 +2697,7 @@ namespace Js
         Output::Print(L"\n");
     }
 
+#ifndef TEMP_DISABLE_ASMJS 
     // Function memory allocation should be done the same way as
     // T AsmJsCommunEntryPoint(Js::ScriptFunction* func, ...)  (AsmJSJitTemplate.cpp)
     // update any changes there
@@ -2684,11 +2742,13 @@ namespace Js
             }
             if (doSchedule && !functionBody->GetIsAsmJsFullJitScheduled())
             {
+#if ENABLE_NATIVE_CODEGEN
                 if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
                 {
                     Output::Print(L"Scheduling For Full JIT from Interpreter at callcount:%d\n", callCount);
                 }
                 GenerateFunction(functionBody->GetScriptContext()->GetNativeCodeGenerator(), functionBody, func);
+#endif
                 functionBody->SetIsAsmJsFullJitScheduled(true);
             }
         }
@@ -2902,6 +2962,8 @@ namespace Js
             m_localSlots[0] = JavascriptOperators::OP_LdUndef( scriptContext );
         }
     }
+#endif
+
     ///----------------------------------------------------------------------------
     ///
     /// InterpreterStackFrame::Process
@@ -2913,36 +2975,45 @@ namespace Js
     ///
     ///----------------------------------------------------------------------------
 
+#if ENABLE_PROFILE_INFO
 #define INTERPRETERLOOPNAME ProcessProfiled
 #define PROVIDE_INTERPRETERPROFILE
 #include "Interpreterloop.inl"
 #undef PROVIDE_INTERPRETERPROFILE
 #undef INTERPRETERLOOPNAME
+#endif
 
 #define INTERPRETERLOOPNAME ProcessUnprofiled
 #include "Interpreterloop.inl"
 #undef INTERPRETERLOOPNAME
 
+#ifndef TEMP_DISABLE_ASMJS
 #define INTERPRETERLOOPNAME ProcessAsmJs
 #define INTERPRETER_ASMJS
 #include "InterpreterProcessOpCodeAsmJs.h"
 #include "Interpreterloop.inl"
 #undef INTERPRETER_ASMJS
 #undef INTERPRETERLOOPNAME
+#endif
 
 // For now, always collect profile data when debugging,
 // otherwise the backend will be confused if there's no profile data.
 
 #define INTERPRETERLOOPNAME ProcessWithDebugging
 #define PROVIDE_DEBUGGING
+#if ENABLE_PROFILE_INFO
 #define PROVIDE_INTERPRETERPROFILE
+#endif
 #include "Interpreterloop.inl"
+#if ENABLE_PROFILE_INFO
 #undef PROVIDE_INTERPRETERPROFILE
+#endif
 #undef PROVIDE_DEBUGGING
 #undef INTERPRETERLOOPNAME
 
     Var InterpreterStackFrame::Process()
     {
+#if ENABLE_PROFILE_INFO
         class AutoRestore
         {
         private:
@@ -2967,6 +3038,7 @@ namespace Js
                 interpreterStackFrame->switchProfileModeOnLoopEndNumber = savedSwitchProfileModeOnLoopEndNumber;
             }
         } autoRestore(this);
+#endif
 
         if ((m_flags & Js::InterpreterStackFrameFlags_FromBailOut) && !(m_flags & InterpreterStackFrameFlags_ProcessingBailOutFromEHCode))
         {
@@ -2984,6 +3056,7 @@ namespace Js
                 this->ehBailoutData = nullptr;
             }
         }
+#ifndef TEMP_DISABLE_ASMJS
         FunctionBody *const functionBody = GetFunctionBody();
         if( functionBody->GetIsAsmjsMode() )
         {
@@ -3029,10 +3102,14 @@ namespace Js
                 return ProcessAsmJsModule();
             }
         }
+#endif
 
+#if ENABLE_PROFILE_INFO
         switchProfileMode = false;
         switchProfileModeOnLoopEndNumber = 0u - 1;
+#endif
 
+#if ENABLE_PROFILE_INFO
         const ExecutionMode interpreterExecutionMode =
             functionBody->GetInterpreterExecutionMode(!!(GetFlags() & InterpreterStackFrameFlags_FromBailOut));
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
@@ -3095,6 +3172,9 @@ namespace Js
         #endif
         }
         return result;
+#else
+        return ProcessUnprofiled();
+#endif
     }
 
 
@@ -3115,7 +3195,9 @@ namespace Js
     template <class T>
     void InterpreterStackFrame::OP_GetMethodProperty(Var varInstance, unaligned T *playout)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(varInstance);
+#endif
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         RecyclableObject* obj = NULL;
         if (RecyclableObject::Is(varInstance))
@@ -3338,6 +3420,7 @@ namespace Js
 
     }
 
+#ifndef TEMP_DISABLE_ASMJS
 #if _M_X64
     void InterpreterStackFrame::OP_CallAsmInternal(RecyclableObject * function)
     {
@@ -3510,6 +3593,7 @@ namespace Js
         __debugbreak();
     }
 #endif
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_AsmCall(const unaligned T* playout)
@@ -3573,6 +3657,7 @@ namespace Js
         OP_CallCommon(playout, function, flags); // CallCommon doesn't do anything with Member
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     void InterpreterStackFrame::OP_ProfileCallCommon(const unaligned T * playout, RecyclableObject * function, unsigned flags, ProfileId profileId, InlineCacheIndex inlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices)
     {
@@ -3599,6 +3684,7 @@ namespace Js
             dynamicProfileInfo->RecordReturnType(functionBody, profileId, GetReg((RegSlot)playout->Return));
         }
     }
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_CallPutCommon(const unaligned T *playout, RecyclableObject * function)
@@ -3689,6 +3775,7 @@ namespace Js
 #endif
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     void InterpreterStackFrame::UpdateFldInfoFlagsForGetSetInlineCandidate(unaligned T* playout, FldInfoFlags& fldInfoFlags, CacheType cacheType,
                                                 DynamicProfileInfo * dynamicProfileInfo, uint inlineCacheIndex, RecyclableObject * obj)
@@ -3775,6 +3862,7 @@ namespace Js
         }
 #endif
     }
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_GetPropertyForTypeOf(unaligned T* playout)
@@ -3896,6 +3984,7 @@ namespace Js
         SetReg(playout->Value, value);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     void InterpreterStackFrame::OP_ProfiledGetProperty(unaligned T* playout)
     {
@@ -3952,6 +4041,7 @@ namespace Js
     {
         ProfiledGetProperty<T, false, false, true>(playout, GetReg(playout->Instance));
     }
+#endif
 
     template <typename T>
     void InterpreterStackFrame::OP_GetPropertyScoped(const unaligned OpLayoutT_ElementP<T>* playout)
@@ -4179,7 +4269,9 @@ namespace Js
     template <class T>
     __declspec(noinline) void InterpreterStackFrame::DoSetProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         InlineCache *const inlineCache = GetInlineCache(playout->inlineCacheIndex);
 
         const auto PatchPutRootValue = &JavascriptOperators::PatchPutRootValueNoLocalFastPath<false, InlineCache>;
@@ -4208,7 +4300,9 @@ namespace Js
     template <class T>
     __declspec(noinline) void InterpreterStackFrame::DoSetSuperProperty_NoFastPath(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         InlineCache *const inlineCache = GetInlineCache(playout->PropertyIdIndex);
 
         JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPath<false, InlineCache>(
@@ -4232,6 +4326,7 @@ namespace Js
         }
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T, bool Root>
     void InterpreterStackFrame::ProfiledSetProperty(unaligned T* playout, Var instance, PropertyOperationFlags flags)
     {
@@ -4263,6 +4358,7 @@ namespace Js
             GetJavascriptFunction(),
             thisInstance);
     }
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_SetProperty(unaligned T* playout)
@@ -4336,6 +4432,7 @@ namespace Js
         ProfiledSetProperty<T, true>(playout, this->GetRootObject(), PropertyOperation_StrictModeRoot);
     }
 
+#if ENABLE_PROFILE_INFO
     template <bool doProfile>
     Var InterpreterStackFrame::ProfiledDivide(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
     {
@@ -4388,6 +4485,28 @@ namespace Js
 
         return exp;
     }
+#else
+    template <bool doProfile>
+    Var InterpreterStackFrame::ProfiledDivide(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
+    {
+        Assert(!doProfile);
+        return JavascriptMath::Divide(aLeft, aRight, scriptContext);
+    }
+
+    template <bool doProfile>
+    Var InterpreterStackFrame::ProfileModulus(Var aLeft, Var aRight, ScriptContext* scriptContext, ProfileId profileId)
+    {
+        Assert(!doProfile);
+        return JavascriptMath::Modulus(aLeft, aRight, scriptContext);
+    }
+
+    template <bool doProfile>
+    Var InterpreterStackFrame::ProfiledSwitch(Var exp, ProfileId profileId)
+    {
+        Assert(!doProfile);
+        return exp;
+    }
+#endif
 
     template <class T>
     void InterpreterStackFrame::DoInitProperty(unaligned T* playout, Var instance)
@@ -4638,6 +4757,7 @@ namespace Js
         JavascriptOperators::OP_InitConstProperty(pScope->GetItem(0), propertyId, this->scriptContext->GetLibrary()->GetUndeclBlockVar());
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     void InterpreterStackFrame::ProfiledInitProperty(unaligned T* playout, Var instance)
     {
@@ -4686,6 +4806,7 @@ namespace Js
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
+#endif
 
     template <typename T>
     void InterpreterStackFrame::OP_GetElementI(const unaligned T* playout)
@@ -4700,6 +4821,7 @@ namespace Js
 
         // Only enable fast path if the javascript array is not cross site
         Var element;
+#if ENABLE_PROFILE_INFO
         if (!TaggedNumber::Is(instance) && VirtualTableInfo<JavascriptArray>::HasVirtualTable(instance))
         {
             element =
@@ -4709,6 +4831,7 @@ namespace Js
                     GetScriptContext());
         }
         else
+#endif
         {
             element = JavascriptOperators::OP_GetElementI(instance, GetReg(playout->Element), GetScriptContext());
         }
@@ -4732,6 +4855,7 @@ namespace Js
         const Var varIndex = GetReg(playout->Element);
         const Var value = GetReg(playout->Value);
 
+#if ENABLE_PROFILE_INFO
         // Only enable fast path if the javascript array is not cross site
         if (!TaggedNumber::Is(instance) &&
             VirtualTableInfo<JavascriptArray>::HasVirtualTable(instance) &&
@@ -4745,6 +4869,7 @@ namespace Js
                 flags);
         }
         else
+#endif
         {
             JavascriptOperators::OP_SetElementI(instance, varIndex, value, GetScriptContext(), flags);
         }
@@ -4753,6 +4878,7 @@ namespace Js
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
 
+#if ENABLE_PROFILE_INFO
     template <typename T>
     void InterpreterStackFrame::OP_ProfiledSetElementI(
         const unaligned OpLayoutDynamicProfile<T>* playout,
@@ -4773,6 +4899,7 @@ namespace Js
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
+#endif
 
     template <typename T>
     void InterpreterStackFrame::OP_SetElementIStrict(const unaligned T* playout)
@@ -4787,6 +4914,7 @@ namespace Js
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
 
+#if ENABLE_PROFILE_INFO
     template <typename T>
     void InterpreterStackFrame::OP_ProfiledSetElementIStrict(const unaligned OpLayoutDynamicProfile<T>* playout)
     {
@@ -4799,6 +4927,7 @@ namespace Js
         threadContext->CheckAndResetImplicitCallAccessorFlag();
         threadContext->AddImplicitCallFlags(savedImplicitCallFlags);
     }
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_LdArrayHeadSegment(const unaligned T* playout)
@@ -4838,6 +4967,7 @@ namespace Js
         SetReg(playout->R0, arr);
     }
 
+#if ENABLE_PROFILE_INFO
     template <bool Profiled, class T>
     void InterpreterStackFrame::ProfiledNewScArray(const unaligned OpLayoutDynamicProfile<T> * playout)
     {
@@ -4854,14 +4984,24 @@ namespace Js
                 m_functionBody,
                 playout->profileId));
     }
+#else
+    template <bool Profiled, class T>
+    void InterpreterStackFrame::ProfiledNewScArray(const unaligned OpLayoutDynamicProfile<T> * playout)
+    {
+        Assert(!Profiled);
+        OP_NewScArray(playout);
+    }
+#endif
 
     void InterpreterStackFrame::OP_NewScIntArray(const unaligned OpLayoutAuxiliary * playout)
     {
+#if ENABLE_PROFILE_INFO
         if(isAutoProfiling)
         {
             OP_ProfiledNewScIntArray(static_cast<const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> *>(playout));
             return;
         }
+#endif
 
         const Js::AuxArray<int32> *ints = Js::ByteCodeReader::ReadAuxArray<int32>(playout->Offset, this->GetFunctionBody());
 
@@ -4878,6 +5018,7 @@ namespace Js
         SetReg(playout->R0, arr);
     }
 
+#if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
     {
         const Js::AuxArray<int32> *ints = Js::ByteCodeReader::ReadAuxArray<int32>(playout->Offset, this->GetFunctionBody());
@@ -4892,13 +5033,14 @@ namespace Js
 
         if (arrayInfo && arrayInfo->IsNativeIntArray())
         {
-
+#if ENABLE_COPYONACCESS_ARRAY
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, ints->count))
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
             }
             else
+#endif
             {
                 arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(ints->count);
                 SparseArraySegment<int32> *segment = (SparseArraySegment<int32>*)arr->GetHead();
@@ -4938,14 +5080,17 @@ namespace Js
 
         SetReg(playout->R0, arr);
     }
+#endif
 
     void InterpreterStackFrame::OP_NewScFltArray(const unaligned OpLayoutAuxiliary * playout )
     {
+#if ENABLE_PROFILE_INFO
         if(isAutoProfiling)
         {
             OP_ProfiledNewScFltArray(static_cast<const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> *>(playout));
             return;
         }
+#endif
 
         const Js::AuxArray<double> *doubles = Js::ByteCodeReader::ReadAuxArray<double>(playout->Offset, this->GetFunctionBody());
 
@@ -4962,6 +5107,7 @@ namespace Js
         SetReg(playout->R0, arr);
     }
 
+#if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
     {
         const Js::AuxArray<double> *doubles = Js::ByteCodeReader::ReadAuxArray<double>(playout->Offset, this->GetFunctionBody());
@@ -4999,6 +5145,7 @@ namespace Js
 
         SetReg(playout->R0, arr);
     }
+#endif
 
     void InterpreterStackFrame::OP_SetArraySegmentVars(const unaligned OpLayoutAuxiliary * playout)
     {
@@ -5016,7 +5163,9 @@ namespace Js
         uint32 index = playout->Element;
         Var value = GetReg(playout->Value);
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(value);
+#endif
 
         // The array is create by the built-in on the same script context
         Assert(array->GetScriptContext() == GetScriptContext());
@@ -5072,6 +5221,7 @@ namespace Js
         JavascriptOperators::SetItem(array, array, index, value, scriptContext);
     }
 
+#if ENABLE_PROFILE_INFO
     Var InterpreterStackFrame::OP_ProfiledLdThis(Var thisVar, int moduleID, ScriptContext *scriptContext)
     {
         FunctionBody * functionBody = this->m_functionBody;
@@ -5098,7 +5248,6 @@ namespace Js
         return thisVar;
     }
 
-
     Var InterpreterStackFrame::OP_ProfiledStrictLdThis(Var thisVar, ScriptContext* scriptContext)
     {
         FunctionBody * functionBody = this->m_functionBody;
@@ -5115,6 +5264,7 @@ namespace Js
         dynamicProfileInfo->RecordThisInfo(thisVar, ThisType_Simple);
         return thisVar;
     }
+#endif
 
     void InterpreterStackFrame::OP_InitCachedFuncs(const unaligned OpLayoutAuxNoReg * playout)
     {
@@ -5211,6 +5361,7 @@ namespace Js
         return true;
     }
 
+#if ENABLE_PROFILE_INFO
     void InterpreterStackFrame::OP_RecordImplicitCall(uint loopNumber)
     {
         Assert(Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionBody()));
@@ -5367,6 +5518,34 @@ namespace Js
             }
         }
     }
+#else
+template <LayoutSize layoutSize, bool profiled>
+const byte * InterpreterStackFrame::OP_ProfiledLoopStart(const byte * ip)
+{
+    Assert(!profiled);
+    return ip;
+}
+
+template <LayoutSize layoutSize, bool profiled>
+const byte * InterpreterStackFrame::OP_ProfiledLoopEnd(const byte * ip)
+{
+    Assert(!profiled);
+    return ip;
+}
+
+template <LayoutSize layoutSize, bool profiled>
+const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
+{
+    uint32 C1 = m_reader.GetLayout<OpLayoutT_Unsigned1<LayoutSizePolicy<layoutSize>>>(ip)->C1;
+
+    Assert(!profiled);
+
+    (this->*opLoopBodyStart)(C1, layoutSize, false /* isFirstIteration */);
+    return m_reader.GetIP();
+}
+
+
+#endif
 
     template<bool InterruptProbe, bool JITLoopBody>
     void InterpreterStackFrame::LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
@@ -5388,6 +5567,7 @@ namespace Js
 
     LoopHeader const * InterpreterStackFrame::DoLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, const bool doProfileLoopCheck, const bool isFirstIteration)
     {
+#if ENABLE_PROFILE_INFO
         class AutoRestoreLoopNumbers
         {
         private:
@@ -5435,6 +5615,7 @@ namespace Js
                 }
             }
         };
+#endif
 
         Js::FunctionBody* fn = this->m_functionBody;
 
@@ -5449,14 +5630,19 @@ namespace Js
         if (fn->ForceJITLoopBody() && loopHeader->interpretCount == 0 &&
             (entryPointInfo != NULL && entryPointInfo->IsNotScheduled()))
         {
+#if ENABLE_PROFILE_INFO
             if (Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionBody()))
             {
                 scriptContext->GetThreadContext()->AddImplicitCallFlags(this->savedLoopImplicitCallFlags[loopNumber]);
             }
+#endif
 
+#if ENABLE_NATIVE_CODEGEN
             GenerateLoopBody(scriptContext->GetNativeCodeGenerator(), fn, loopHeader, entryPointInfo, fn->GetLocalsCount(), this->m_localSlots);
+#endif
         }
 
+#if ENABLE_NATIVE_CODEGEN
         // If we have JITted the loop, call the JITted code
         if (entryPointInfo != NULL && entryPointInfo->IsCodeGenDone())
         {
@@ -5596,6 +5782,7 @@ namespace Js
 
             return loopHeader;
         }
+#endif
 
         // Increment the interpret count of the loop
         loopHeader->interpretCount += !isFirstIteration;
@@ -5613,6 +5800,7 @@ namespace Js
                 return nullptr;
             }
 
+#if ENABLE_NATIVE_CODEGEN
             // If the job is not scheduled then we need to schedule it now.
             // It is possible a job was scheduled earlier and we find ourselves looking at the same entry point
             // again. For example, if the function with the loop was JITed and bailed out then as we finish
@@ -5626,7 +5814,9 @@ namespace Js
             {
                 GenerateLoopBody(scriptContext->GetNativeCodeGenerator(), fn, loopHeader, entryPointInfo, fn->GetLocalsCount(), this->m_localSlots);
             }
+#endif
         }
+#if ENABLE_PROFILE_INFO
         else if(
             doProfileLoopCheck &&
             isAutoProfiling &&
@@ -5638,6 +5828,7 @@ namespace Js
             Assert(switchProfileModeOnLoopEndNumber == 0u - 1);
             switchProfileModeOnLoopEndNumber = loopNumber;
         }
+#endif
 
         return nullptr;
     }
@@ -5796,6 +5987,7 @@ namespace Js
             Assert(inlineCacheIndex != Js::Constants::NoInlineCacheIndex);
         }
         Var newVarInstance =
+#if ENABLE_PROFILE_INFO
             Profiled ?
                 ProfiledNewScObject_Helper(
                     GetReg(playout->Function),
@@ -5803,7 +5995,8 @@ namespace Js
                     static_cast<const unaligned OpLayoutDynamicProfile<T> *>(playout)->profileId,
                     inlineCacheIndex,
                     spreadIndices) :
-                NewScObject_Helper(GetReg(playout->Function), playout->ArgCount, spreadIndices);
+#endif
+            NewScObject_Helper(GetReg(playout->Function), playout->ArgCount, spreadIndices);
         SetReg((RegSlot)playout->Return, newVarInstance);
     }
 
@@ -5811,12 +6004,17 @@ namespace Js
     void InterpreterStackFrame::OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices)
     {
         // Always profile this operation when auto-profiling so that array type changes are tracked
+#if ENABLE_PROFILE_INFO
         if (!Profiled && !isAutoProfiling)
+#else
+        Assert(!Profiled);
+#endif
         {
             OP_NewScObject_Impl<T, Profiled, false>(playout, Js::Constants::NoInlineCacheIndex, spreadIndices);
             return;
         }
 
+#if ENABLE_PROFILE_INFO
         Arguments args(CallInfo(CallFlags_New, playout->ArgCount), m_outParams);
 
         uint32 spreadSize = 0;
@@ -5865,6 +6063,7 @@ namespace Js
                 static_cast<const unaligned OpLayoutDynamicProfile2<T> *>(playout)->profileId2));
         }
         PopOut(playout->ArgCount);
+#endif
     }
 
     void InterpreterStackFrame::OP_NewScObject_A_Impl(const unaligned OpLayoutAuxiliary * playout, RegSlot *target)
@@ -5908,6 +6107,7 @@ namespace Js
         return newVarInstance;
     }
 
+#if ENABLE_PROFILE_INFO
     Var InterpreterStackFrame::ProfiledNewScObject_Helper(Var target, ArgSlot ArgCount, ProfileId profileId, InlineCacheIndex inlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices)
     {
         Arguments args(CallInfo(CallFlags_New, ArgCount), m_outParams);
@@ -5938,6 +6138,7 @@ namespace Js
 #endif
         return newVarInstance;
     }
+#endif
 
     template <typename T>
     void InterpreterStackFrame::OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout)
@@ -6481,7 +6682,9 @@ namespace Js
         threadContext->ClearImplicitCallFlags();
 
         Var instance = GetReg(playout->R1);
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         const Js::AuxArray<uint32> *spreadIndices = m_reader.ReadAuxArray<uint32>(playout->Offset, this->GetFunctionBody());
         ScriptContext* scriptContext = GetScriptContext();
         Var result =  JavascriptArray::SpreadArrayArgs(instance, spreadIndices, scriptContext);
@@ -7237,6 +7440,7 @@ namespace Js
         return m_inParams[0];
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     void InterpreterStackFrame::OP_ProfiledArgOut_A(const unaligned T * playout)
     {
@@ -7251,6 +7455,7 @@ namespace Js
         }
         SetOut(playout->Arg, GetReg(playout->Reg));
     }
+#endif
 
     template <class T>
     void InterpreterStackFrame::OP_ArgOut_A(const unaligned T * playout)
@@ -7347,6 +7552,7 @@ namespace Js
         SetReg(playout->R0, length);
     }
 
+#if ENABLE_PROFILE_INFO
     template<class T>
     void InterpreterStackFrame::OP_ProfiledLdLen(const unaligned OpLayoutDynamicProfile<T> *const playout)
     {
@@ -7373,6 +7579,7 @@ namespace Js
 
         SetReg(playout->R0, length);
     }
+#endif
 
     Var InterpreterStackFrame::GetFunctionExpression()
     {
@@ -7446,6 +7653,7 @@ namespace Js
         return this->localClosure;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     template <typename T2>
     void InterpreterStackFrame::OP_StArr(uint32 index, RegSlot value)
     {
@@ -7456,6 +7664,7 @@ namespace Js
             *(T2*)(buffer + index) = (T2)GetRegRaw<T2>(value);
         }
     }
+#endif
 
     template<> inline double InterpreterStackFrame::GetArrayViewOverflowVal()
     {
@@ -7480,6 +7689,7 @@ namespace Js
         m_localSlots[playout->Value] = arr[index];
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     template <typename T2>
     void InterpreterStackFrame::OP_LdArr(uint32 index, RegSlot value)
     {
@@ -7488,6 +7698,7 @@ namespace Js
         T2 val = index < (arr->GetByteLength()) ? *(T2*)(buffer + index) : GetArrayViewOverflowVal<T2>();
         SetRegRaw<T2>(value, val);
     }
+#endif
 
     template <class T, typename T2>
     void InterpreterStackFrame::OP_StSlotPrimitive(const unaligned T* playout)
@@ -7556,6 +7767,7 @@ namespace Js
         return OP_LdSlot(instance, playout->SlotIndex);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdSlot(Var instance, const unaligned T* playout)
     {
@@ -7563,6 +7775,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     template <class T>
     Var InterpreterStackFrame::OP_LdInnerSlot(Var slotArray, const unaligned T* playout)
@@ -7570,6 +7783,7 @@ namespace Js
         return OP_LdSlot(slotArray, playout->SlotIndex2);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdInnerSlot(Var slotArray, const unaligned T* playout)
     {
@@ -7577,6 +7791,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     template <class T>
     Var InterpreterStackFrame::OP_LdInnerObjSlot(Var slotArray, const unaligned T* playout)
@@ -7584,6 +7799,7 @@ namespace Js
         return OP_LdObjSlot(slotArray, playout->SlotIndex2);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdInnerObjSlot(Var slotArray, const unaligned T* playout)
     {
@@ -7591,6 +7807,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     Var InterpreterStackFrame::OP_LdFrameDisplaySlot(Var instance, int32 slotIndex)
     {
@@ -7617,6 +7834,7 @@ namespace Js
         return OP_LdSlot(slotArray, playout->SlotIndex2);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdEnvSlot(Var instance, const unaligned T* playout)
     {
@@ -7624,6 +7842,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     Var InterpreterStackFrame::OP_LdObjSlot(Var instance, int32 slotIndex)
     {
@@ -7637,6 +7856,7 @@ namespace Js
         return OP_LdObjSlot(instance, playout->SlotIndex);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdObjSlot(Var instance, const unaligned T* playout)
     {
@@ -7644,6 +7864,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     template <class T>
     Var InterpreterStackFrame::OP_LdEnvObjSlot(Var instance, const unaligned T* playout)
@@ -7652,6 +7873,7 @@ namespace Js
         return OP_LdObjSlot(slotArray, playout->SlotIndex2);
     }
 
+#if ENABLE_PROFILE_INFO
     template <class T>
     Var InterpreterStackFrame::OP_ProfiledLdEnvObjSlot(Var instance, const unaligned T* playout)
     {
@@ -7659,6 +7881,7 @@ namespace Js
         ProfilingHelpers::ProfileLdSlot(value, GetFunctionBody(), playout->profileId);
         return value;
     }
+#endif
 
     void InterpreterStackFrame::OP_StSlot(Var instance, int32 slotIndex, Var value)
     {

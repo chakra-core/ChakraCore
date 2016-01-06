@@ -414,10 +414,14 @@ namespace Js
         m_envDepth((uint16)-1),
         flags(Flags_HasNoExplicitReturnValue),
         m_hasFinally(false),
+#if ENABLE_PROFILE_INFO
         dynamicProfileInfo(nullptr),
         polymorphicCallSiteInfoHead(nullptr),
+#endif
         savedInlinerVersion(0),
+#if ENABLE_NATIVE_CODEGEN
         savedImplicitCallsFlags(ImplicitCall_HasNoInfo),
+#endif
         savedPolymorphicCacheState(0),
         functionBailOutRecord(nullptr),
         hasExecutionDynamicProfileInfo(false),
@@ -818,7 +822,11 @@ namespace Js
 
     BOOL FunctionBody::IsDynamicInterpreterThunk() const
     {
+#if DYNAMIC_INTERPRETER_THUNK
         return this->GetScriptContext()->IsDynamicInterpreterThunk(this->originalEntryPoint);
+#else
+        return FALSE;
+#endif
     }
 
     FunctionEntryPointInfo * FunctionBody::TryGetEntryPointInfo(int index) const
@@ -850,6 +858,7 @@ namespace Js
         entryPointInfo->frameHeight = frameHeight;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void
     FunctionBody::SetNativeThrowSpanSequence(SmallSpanSequence *seq, uint loopNum, LoopEntryPointInfo* entryPoint)
     {
@@ -896,6 +905,7 @@ namespace Js
 
         pSpanSequence->RecordARange(iter, &data);
     }
+#endif
 
     bool
     ParseableFunctionInfo::IsTrackedPropertyId(PropertyId pid)
@@ -929,13 +939,15 @@ namespace Js
         return pid;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void
     FunctionBody::RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t size, NativeCodeData * data, NativeCodeData * transferData,
         CodeGenNumberChunk * numberChunks, EntryPointInfo* entryPoint, uint loopNum)
     {
         entryPoint->SetCodeGenRecorded(baseAddress, size, data, transferData, numberChunks);
     }
-
+#endif
+    
     int
     FunctionBody::GetNextDebuggerScopeIndex()
     {
@@ -1100,7 +1112,9 @@ namespace Js
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber,
         const wchar_t* displayName, uint displayNameLength, uint displayShortNameOffset, Attributes attributes, Js::PropertyRecordList* propertyRecords) :
       FunctionProxy(entryPoint, attributes, nestedCount, derivedSize, functionId, scriptContext, sourceInfo, functionNumber),
+#if DYNAMIC_INTERPRETER_THUNK
       m_dynamicInterpreterThunk(nullptr),
+#endif
       m_hasBeenParsed(false),
       m_isGlobalFunc(false),
       m_isDeclaration(false),
@@ -1143,8 +1157,14 @@ namespace Js
     {
         if ((attributes & Js::FunctionInfo::DeferredParse) == 0)
         {
+            void* validationCookie = nullptr;
+
+#if ENABLE_NATIVE_CODEGEN
+            validationCookie = (void*)scriptContext->GetNativeCodeGenerator();
+#endif
+             
             this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
-                FunctionEntryPointInfo, this, entryPoint, scriptContext->GetThreadContext(), (void*) scriptContext->GetNativeCodeGenerator());
+                FunctionEntryPointInfo, this, entryPoint, scriptContext->GetThreadContext(), validationCookie);
         }
         else
         {
@@ -1757,7 +1777,9 @@ namespace Js
         // In such a case, there's no work to do.
         if (funcBody->GetByteCode() == nullptr)
         {
+#if ENABLE_PROFILE_INFO
             Assert(!funcBody->HasExecutionDynamicProfileInfo());
+#endif
 
             // In debug mode, the eval code will be asked to recompile again.
             AssertMsg(isDebugReparse || !(funcBody->GetGrfscr() & (fscrImplicitThis | fscrImplicitParents)),
@@ -1908,6 +1930,7 @@ namespace Js
         return returnFunctionBody;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     FunctionBody* ParseableFunctionInfo::ParseAsmJs(Parser * ps, __out CompileScriptException * se, __out ParseNodePtr * parseTree)
     {
         Assert(IsDeferredParseFunction());
@@ -1949,7 +1972,9 @@ namespace Js
             PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, L"TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;", m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? L"True" : L"False");
         }
 
+#if ENABLE_PROFILE_INFO
         Assert(!funcBody->HasExecutionDynamicProfileInfo());
+#endif
 
         HRESULT hrParser = NO_ERROR;
         HRESULT hrParseCodeGen = NO_ERROR;
@@ -2004,6 +2029,7 @@ namespace Js
 
         return returnFunctionBody;
     }
+#endif
 
     void ParseableFunctionInfo::Finalize(bool isShutdown)
     {
@@ -2633,6 +2659,7 @@ namespace Js
         return JavascriptOperators::GetModuleRoot(this->GetModuleID(), this->GetScriptContext());
     }
 
+#if ENABLE_NATIVE_CODEGEN
     FunctionEntryPointInfo * FunctionBody::GetEntryPointFromNativeAddress(DWORD_PTR codeAddress)
     {
         FunctionEntryPointInfo * entryPoint = nullptr;
@@ -2698,6 +2725,7 @@ namespace Js
 
         return GetStatementIndexFromNativeOffset(pThrowSpanSequence, nativeOffset);
     }
+#endif
 
     BOOL FunctionBody::GetMatchingStatementMap(StatementData &data, int statementIndex, FunctionBody *inlinee)
     {
@@ -2771,6 +2799,7 @@ namespace Js
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     BOOL FunctionBody::GetMatchingStatementMapFromNativeAddress(DWORD_PTR codeAddress, StatementData &data, uint loopNum, FunctionBody *inlinee /* = nullptr */)
     {
         SmallSpanSequence * spanSequence = nullptr;
@@ -2811,7 +2840,9 @@ namespace Js
 
         return GetMatchingStatementMap(data, statementIndex, inlinee);
     }
+#endif
 
+#if ENABLE_PROFILE_INFO
     void FunctionBody::LoadDynamicProfileInfo()
     {
         SourceDynamicProfileManager * sourceDynamicProfileManager = GetSourceContextInfo()->sourceDynamicProfileManager;
@@ -2862,10 +2893,11 @@ namespace Js
     {
         return DynamicProfileInfo::New(m_scriptContext->GetRecycler(), this);
     }
+#endif
 
     BOOL FunctionBody::IsNativeOriginalEntryPoint() const
     {
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         return IsNativeFunctionAddr(this->GetScriptContext(), this->originalEntryPoint);
 #else
         return false;
@@ -2933,6 +2965,7 @@ namespace Js
         // if it is not, the background codegen thread has updated both original entry point and direct entry point
         // and they should still match, same as cases other then code gen
         return IsIntermediateCodeGenThunk(directEntryPoint) || originalEntryPoint == directEntryPoint
+#if ENABLE_PROFILE_INFO
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint()
 #ifdef ASMJS_PLAT
@@ -2940,6 +2973,8 @@ namespace Js
             || (IsAsmJsCodeGenThunk(directEntryPoint))
 #endif
             );
+#endif
+        ;
     }
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
@@ -2956,15 +2991,22 @@ namespace Js
         {
             return false;
         }
+
+#if ENABLE_PROFILE_INFO
         FunctionBody * functionBody = this->GetFunctionBody();
         if (functionBody->IsInterpreterThunk() || functionBody->IsSimpleJitOriginalEntryPoint())
         {
             return directEntryPoint == ProfileEntryThunk || IsIntermediateCodeGenThunk(directEntryPoint);
         }
 
+#if ENABLE_NATIVE_CODEGEN
         // In the profiler mode, the EnsureDynamicProfileInfoThunk is valid as we would be assigning to appropriate thunk when that thunk called.
         return functionBody->IsNativeOriginalEntryPoint() &&
             (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk || directEntryPoint == ProfileEntryThunk);
+#endif
+#else
+        return true;
+#endif
     }
 
     bool FunctionProxy::HasValidEntryPoint() const
@@ -3018,6 +3060,7 @@ namespace Js
         this->SetEntryPoint(entryPointInfo, entryPoint);
     }
 
+#if DYNAMIC_INTERPRETER_THUNK
     void FunctionBody::GenerateDynamicInterpreterThunk()
     {
         if (this->m_dynamicInterpreterThunk == nullptr)
@@ -3092,7 +3135,9 @@ namespace Js
         }
         return this->originalEntryPoint;
     }
+#endif
 
+#if ENABLE_NATIVE_CODEGEN
     void FunctionBody::SetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod originalEntryPoint, Var directEntryPoint)
     {
         if(entryPointInfo->nativeEntryPointProcessed)
@@ -3218,6 +3263,7 @@ namespace Js
         }
         JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo)));
     }
+#endif
 
     void FunctionBody::MarkScript(ByteBlock *byteCodeBlock, ByteBlock* auxBlock, ByteBlock* auxContextBlock,
         uint byteCodeCount, uint byteCodeInLoopCount, uint byteCodeWithoutLDACount)
@@ -3287,7 +3333,9 @@ namespace Js
 
         // Make sure Break opcode only need one byte
         Assert(OpCodeUtil::IsSmallEncodedOpcode(OpCode::Break));
+#if ENABLE_NATIVE_CODEGEN
         Assert(!OpCodeAttr::HasMultiSizeLayout(OpCode::Break));
+#endif
         *(byte *)(pbyteCodeBlockBuffer + offset) = (byte)OpCode::Break;
 
         ++m_sourceInfo.m_probeCount;
@@ -3513,7 +3561,7 @@ namespace Js
     FunctionBody *
     FunctionBody::Clone(ScriptContext * scriptContext, uint sourceIndex)
     {
-#ifdef ENABLE_PREJIT
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         bool isNested = sourceIndex != Constants::InvalidSourceIndex;
 #endif
         Utf8SourceInfo* sourceInfo = nullptr;
@@ -3555,14 +3603,16 @@ namespace Js
         newFunctionBody->deferredParseNextFunctionId = this->deferredParseNextFunctionId;
 #endif
 
+#if ENABLE_PROFILE_INFO
         if (this->HasDynamicProfileInfo())
         {
             newFunctionBody->EnsureDynamicProfileInfo();
         }
+#endif
 
         newFunctionBody->byteCodeCache = this->byteCodeCache;
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         if (newFunctionBody->GetByteCode() && (IsIntermediateCodeGenThunk(this->GetOriginalEntryPoint())
             || IsNativeOriginalEntryPoint()))
         {
@@ -4022,6 +4072,7 @@ namespace Js
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void EntryPointInfo::DumpNativeOffsetMaps()
     {
         // Native Offsets
@@ -4045,7 +4096,8 @@ namespace Js
             }
         }
     }
-
+#endif
+    
     void FunctionBody::DumpStatementMaps()
     {
         // Source Map to ByteCode
@@ -4068,6 +4120,7 @@ namespace Js
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void EntryPointInfo::DumpNativeThrowSpanSequence()
     {
         // Native Throw Map
@@ -4091,6 +4144,7 @@ namespace Js
             }
         }
     }
+#endif
 
     void FunctionBody::PrintStatementSourceLine(uint statementIndex)
     {
@@ -4526,7 +4580,7 @@ namespace Js
 
     void FunctionBody::SetEntryToProfileMode()
     {
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         AssertMsg(this->m_scriptContext->CurrentThunk == ProfileEntryThunk, "ScriptContext not in profile mode");
 #if DBG
         AssertMsg(m_iProfileSession == m_scriptContext->GetProfileSession(), "Changing mode to profile for function that didn't send compile event");
@@ -4602,11 +4656,13 @@ namespace Js
 
         this->entryPoints->ClearAndZero();
 
+#if DYNAMIC_INTERPRETER_THUNK
         if (m_isAsmJsFunction && m_dynamicInterpreterThunk)
         {
             m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, true);
             this->m_dynamicInterpreterThunk = nullptr;
         }
+#endif
 
         // Store the originalEntryPoint to restore it back immediately.
         JavascriptMethod originalEntryPoint = this->originalEntryPoint;
@@ -4650,7 +4706,9 @@ namespace Js
 
         this->functionBailOutRecord = nullptr;
 
+#if ENABLE_PROFILE_INFO
         this->dynamicProfileInfo = nullptr;
+#endif
         this->hasExecutionDynamicProfileInfo = false;
 
         this->m_firstTmpReg = Constants::NoRegister;
@@ -4674,7 +4732,9 @@ namespace Js
         this->isInstInlineCacheCount = 0;
         this->m_inlineCachesOnFunctionObject = false;
         this->referencedPropertyIdCount = 0;
+#if ENABLE_PROFILE_INFO
         this->polymorphicCallSiteInfoHead = nullptr;
+#endif
 
         this->interpretedCount = 0;
 
@@ -5854,6 +5914,7 @@ namespace Js
             RecyclerNewArrayZ(m_scriptContext->GetRecycler(), UnifiedRegex::RegexPattern *, literalRegexCount);
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
         Assert( !this->asmJsFunctionInfo );
@@ -5868,6 +5929,7 @@ namespace Js
         this->asmJsModuleInfo = RecyclerNew( rec, AsmJsModuleInfo, rec );
         return this->asmJsModuleInfo;
     }
+#endif
 
     UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegex(const uint index)
     {
@@ -5905,6 +5967,7 @@ namespace Js
 
     void FunctionBody::ResetProfileIds()
     {
+#if ENABLE_PROFILE_INFO
         Assert(!HasDynamicProfileInfo()); // profile data relies on the profile ID counts; it should not have been created yet
         Assert(!this->m_codeGenRuntimeData); // relies on 'profiledCallSiteCount'
 
@@ -5914,6 +5977,7 @@ namespace Js
         profiledSlotCount = 0;
         profiledLdElemCount = 0;
         profiledStElemCount = 0;
+#endif
     }
 
     void FunctionBody::ResetByteCodeGenState()
@@ -5952,6 +6016,7 @@ namespace Js
         ResetLiteralRegexes();
     }
 
+#if ENABLE_NATIVE_CODEGEN
     const FunctionCodeGenRuntimeData *FunctionBody::GetInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
@@ -6045,6 +6110,7 @@ namespace Js
 
         return this->m_codeGenGetSetRuntimeData[inlineCacheIndex] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
     }
+#endif
 
     void FunctionBody::AllocateLoopHeaders()
     {
@@ -6062,10 +6128,12 @@ namespace Js
 
     void FunctionBody::ReleaseLoopHeaders()
     {
+#if ENABLE_NATIVE_CODEGEN
         this->MapLoopHeaders([](uint loopNumber, LoopHeader * loopHeader)
         {
             loopHeader->ReleaseEntryPoints();
         });
+#endif
     }
 
     void FunctionBody::ResetLoops()
@@ -6089,6 +6157,11 @@ namespace Js
         Recycler *const recycler = this->m_scriptContext->GetRecycler();
         const JavascriptMethod currentThunk = m_scriptContext->CurrentThunk;
 
+        void* validationCookie = nullptr;
+#if ENABLE_NATIVE_CODEGEN
+        validationCookie = (void*)m_scriptContext->GetNativeCodeGenerator();
+#endif
+
         FunctionEntryPointInfo *const entryPointInfo =
             RecyclerNewFinalized(
                 recycler,
@@ -6096,7 +6169,8 @@ namespace Js
                 this,
                 currentThunk,
                 m_scriptContext->GetThreadContext(),
-                (void*) m_scriptContext->GetNativeCodeGenerator());
+                validationCookie);
+
         AddEntryPointToEntryPointList(entryPointInfo);
 
         {
@@ -6112,6 +6186,7 @@ namespace Js
             }
             else
             {
+#if DYNAMIC_INTERPRETER_THUNK
                 // If the dynamic interpreter thunk hasn't been created yet, then the entry point can be set to
                 // the default entry point. Otherwise, since the new default entry point is being created to
                 // move back to the interpreter, the original entry point is going to be the dynamic interpreter thunk
@@ -6119,6 +6194,9 @@ namespace Js
                     m_dynamicInterpreterThunk
                         ? static_cast<JavascriptMethod>(InterpreterThunkEmitter::ConvertToEntryPoint(m_dynamicInterpreterThunk))
                         : DefaultEntryThunk;
+#else
+                originalEntryPoint = DefaultEntryThunk;
+#endif
 
                 directEntryPoint = currentThunk == DefaultEntryThunk ? originalEntryPoint : currentThunk;
             }
@@ -6936,6 +7014,7 @@ namespace Js
 
     bool FunctionBody::DoInterpreterProfile() const
     {
+#if ENABLE_PROFILE_INFO
         // Switch off profiling is asmJsFunction
         if (this->GetIsAsmJsFunction())
         {
@@ -6945,6 +7024,9 @@ namespace Js
         {
             return !PHASE_OFF(InterpreterProfilePhase, this) && DynamicProfileInfo::IsEnabled(this);
         }
+#else
+        return false;
+#endif
     }
 
     bool FunctionBody::DoInterpreterAutoProfile() const
@@ -7457,6 +7539,7 @@ namespace Js
         this->propertyIdsForScopeSlotArray = nullptr;
         this->propertyIdOnRegSlotsContainer = nullptr;
 
+#if DYNAMIC_INTERPRETER_THUNK
         if (this->HasInterpreterThunkGenerated())
         {
             JS_ETW(EtwTrace::LogMethodInterpreterThunkUnloadEvent(this));
@@ -7473,8 +7556,11 @@ namespace Js
                 }
             }
         }
+#endif
 
+#if ENABLE_PROFILE_INFO
         this->polymorphicCallSiteInfoHead = nullptr;
+#endif
         this->cleanedUp = true;
     }
 
@@ -7499,12 +7585,16 @@ namespace Js
 
     void FunctionBody::CaptureDynamicProfileState(FunctionEntryPointInfo* entryPointInfo)
     {
+        // DisableJIT-TODO: Move this to be under if DYNAMIC_PROFILE
+#if ENABLE_NATIVE_CODEGEN
         // (See also the FunctionBody member written in CaptureDymamicProfileState.)
         this->savedPolymorphicCacheState = entryPointInfo->GetPendingPolymorphicCacheState();
         this->savedInlinerVersion = entryPointInfo->GetPendingInlinerVersion();
         this->savedImplicitCallsFlags = entryPointInfo->GetPendingImplicitCallFlags();
+#endif
     }
 
+#if ENABLE_NATIVE_CODEGEN
     BYTE FunctionBody::GetSavedInlinerVersion() const
     {
         Assert(this->dynamicProfileInfo != nullptr);
@@ -7516,6 +7606,7 @@ namespace Js
         Assert(this->dynamicProfileInfo != nullptr);
         return this->savedPolymorphicCacheState;
     }
+#endif
 
     void FunctionBody::SetHasHotLoop()
     {
@@ -7567,6 +7658,7 @@ namespace Js
         return false;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     ImplicitCallFlags FunctionBody::GetSavedImplicitCallsFlags() const
     {
         Assert(this->dynamicProfileInfo != nullptr);
@@ -7588,6 +7680,7 @@ namespace Js
         }
         return false;
     }
+#endif
 
     void FunctionBody::CheckAndRegisterFuncToDiag(ScriptContext *scriptContext)
     {
@@ -7686,10 +7779,12 @@ namespace Js
         return false;
     }
 
+#if DYNAMIC_INTERPRETER_THUNK
     DWORD FunctionBody::GetDynamicInterpreterThunkSize() const
     {
         return InterpreterThunkEmitter::ThunkSize;
     }
+#endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     void
@@ -7919,6 +8014,7 @@ namespace Js
         this->utilArray = RecyclerNewArrayZ(recycler, byte, functionBody->GetInlineCacheCount());
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void EntryPointInfo::AddWeakFuncRef(RecyclerWeakReference<FunctionBody> *weakFuncRef, Recycler *recycler)
     {
         Assert(this->state == CodeGenPending);
@@ -8530,6 +8626,7 @@ namespace Js
 
         this->constructorCaches->Prepend(constructorCache);
     }
+#endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     void EntryPointInfo::CaptureCleanupStackTrace()
@@ -8570,6 +8667,7 @@ namespace Js
         this->library = nullptr;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     EntryPointPolymorphicInlineCacheInfo * EntryPointInfo::EnsurePolymorphicInlineCacheInfo(Recycler * recycler, FunctionBody * functionBody)
     {
         if (!polymorphicInlineCacheInfo)
@@ -8578,6 +8676,7 @@ namespace Js
         }
         return polymorphicInlineCacheInfo;
     }
+#endif
 
     void EntryPointInfo::Cleanup(bool isShutdown, bool captureCleanupStack)
     {
@@ -8585,6 +8684,7 @@ namespace Js
         {
             this->OnCleanup(isShutdown);
 
+#if ENABLE_NATIVE_CODEGEN
             FreeJitTransferData();
 
             if (this->bailoutRecordMap != nullptr)
@@ -8612,18 +8712,24 @@ namespace Js
             {
                 this->constructorCaches->Clear();
             }
+#endif
 
             // This is how we set the CleanedUp state
             this->workItem = nullptr;
             this->nativeAddress = nullptr;
+#if ENABLE_NATIVE_CODEGEN
             this->weakFuncRefSet = nullptr;
             this->runtimeTypeRefs = nullptr;
+#endif
             this->codeSize = -1;
             this->library = nullptr;
 
+#if ENABLE_NATIVE_CODEGEN
             DeleteNativeCodeData(this->data);
             this->data = nullptr;
             this->numberChunks = nullptr;
+#endif
+
             this->state = CleanedUp;
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 #if !DBG
@@ -8636,7 +8742,7 @@ namespace Js
             }
 #endif
 
-            // Needs to be in cleanup rather than finalize because Cleanup might get called before the finalizer
+#if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->nativeThrowSpanSequence)
             {
                 HeapDelete(this->nativeThrowSpanSequence);
@@ -8644,6 +8750,7 @@ namespace Js
             }
 
             this->polymorphicInlineCacheInfo = nullptr;
+#endif
 
 #if DBG_DUMP | defined(VTUNE_PROFILING)
             this->nativeOffsetMaps.Reset();
@@ -8656,12 +8763,15 @@ namespace Js
         Assert(this->GetState() != CleanedUp);
         this->nativeAddress = nullptr;
         this->workItem = nullptr;
+#if ENABLE_NATIVE_CODEGEN
         if (nullptr != this->nativeThrowSpanSequence)
         {
             HeapDelete(this->nativeThrowSpanSequence);
             this->nativeThrowSpanSequence = nullptr;
         }
+#endif
         this->codeSize = 0;
+#if ENABLE_NATIVE_CODEGEN
         this->weakFuncRefSet = nullptr;
         this->sharedPropertyGuards = nullptr;
         FreePropertyGuards();
@@ -8671,6 +8781,7 @@ namespace Js
             DeleteNativeCodeData(this->data);
             this->data = nullptr;
         }
+#endif
         // Set the state to NotScheduled only if the call to Reset is not because of JIT cap being reached
         if (resetStateToNotScheduled)
         {
@@ -8678,6 +8789,7 @@ namespace Js
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void EntryPointInfo::ResetOnNativeCodeInstallFailure()
     {
         // Reset the entry point without attempting to create a new default and GenerateFunction on it.
@@ -8687,6 +8799,7 @@ namespace Js
         FreeNativeCodeGenAllocation(GetScriptContext(), this->address);
         this->address = nullptr;
     }
+#endif
 
 #ifdef PERF_COUNTERS
     void FunctionEntryPointInfo::OnRecorded()
@@ -8710,6 +8823,7 @@ namespace Js
     {
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     void FunctionEntryPointInfo::SetOldFunctionEntryPointInfo(FunctionEntryPointInfo* entrypointInfo)
     {
         Assert(this->GetIsAsmJSFunction());
@@ -8732,8 +8846,10 @@ namespace Js
     {
         return mIsTemplatizedJitMode;
     };
+#endif
     //End AsmJS Support
 
+#if ENABLE_NATIVE_CODEGEN
     ExecutionMode FunctionEntryPointInfo::GetJitMode() const
     {
         return jitMode;
@@ -8745,6 +8861,8 @@ namespace Js
 
         this->jitMode = jitMode;
     }
+#endif
+
     void FunctionEntryPointInfo::ReleasePendingWorkItem()
     {
         // Do this outside of Cleanup since cleanup can be called from the background thread
@@ -8764,9 +8882,10 @@ namespace Js
             if (workItem != nullptr)
             {
                 Assert(this->library != nullptr);
+#if ENABLE_NATIVE_CODEGEN
                 TryReleaseNonHiPriWorkItem(this->library->GetScriptContext(), workItem);
-            }
-
+#endif
+                }
         }
     }
 
@@ -8780,11 +8899,13 @@ namespace Js
         if (this->IsCodeGenDone())
         {
             Assert(this->functionProxy->HasBody());
+#if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)
             {
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
+#endif
 
             if(nativeEntryPointProcessed)
             {
@@ -8792,11 +8913,13 @@ namespace Js
             }
 
             FunctionBody* functionBody = this->functionProxy->GetFunctionBody();
+#ifndef TEMP_DISABLE_ASMJS
             if (this->GetIsTJMode())
             {
                 // release LoopHeaders here if the entrypointInfo is TJ
                 this->GetFunctionBody()->ReleaseLoopHeaders();
             }
+#endif
             if(functionBody->GetSimpleJitEntryPointInfo() == this)
             {
                 functionBody->SetSimpleJitEntryPointInfo(nullptr);
@@ -8806,13 +8929,18 @@ namespace Js
             {
                 ScriptContext* scriptContext = this->functionProxy->GetScriptContext();
 
+                void* currentCookie = nullptr;
+
+#if ENABLE_NATIVE_CODEGEN
                 // In the debugger case, we might call cleanup after the native code gen that
                 // allocated this entry point has already shutdown. In that case, the validation
                 // check below should fail and we should not try to free this entry point
                 // since it's already been freed
-                NativeCodeGenerator* current = scriptContext->GetNativeCodeGenerator();
+                NativeCodeGenerator* currentNativeCodegen = scriptContext->GetNativeCodeGenerator();
                 Assert(this->validationCookie != nullptr);
-                if (validationCookie == (void*) current)
+                currentCookie = (void*)currentNativeCodegen;
+#endif
+                if (validationCookie == currentCookie)
                 {
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
                 }
@@ -8828,6 +8956,7 @@ namespace Js
         this->functionProxy = nullptr;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void FunctionEntryPointInfo::OnNativeCodeInstallFailure()
     {
         this->Invalidate(false);
@@ -8847,7 +8976,6 @@ namespace Js
         }
 
     }
-
 
     void FunctionEntryPointInfo::Invalidate(bool prolongEntryPoint)
     {
@@ -9037,6 +9165,7 @@ namespace Js
             }
         }
     }
+#endif
 
 #ifdef PERF_COUNTERS
     void LoopEntryPointInfo::OnRecorded()
@@ -9056,26 +9185,38 @@ namespace Js
 
     void LoopEntryPointInfo::OnCleanup(bool isShutdown)
     {
+#ifndef TEMP_DISABLE_ASMJS
         if (this->IsCodeGenDone() && !this->GetIsTJMode())
+#else
+        if (this->IsCodeGenDone())
+#endif
         {
             JS_ETW(EtwTrace::LogLoopBodyUnloadEvent(this->loopHeader->functionBody, this->loopHeader, this));
 
+#if ENABLE_NATIVE_CODEGEN
             if (nullptr != this->inlineeFrameMap)
             {
                 HeapDelete(this->inlineeFrameMap);
                 this->inlineeFrameMap = nullptr;
             }
+#endif
 
             if (!isShutdown)
             {
+                void* currentCookie = nullptr;
+                ScriptContext* scriptContext = this->loopHeader->functionBody->GetScriptContext();
+
+#if ENABLE_NATIVE_CODEGEN
                 // In the debugger case, we might call cleanup after the native code gen that
                 // allocated this entry point has already shutdown. In that case, the validation
                 // check below should fail and we should not try to free this entry point
                 // since it's already been freed
-                ScriptContext* scriptContext = this->loopHeader->functionBody->GetScriptContext();
-                NativeCodeGenerator* current = scriptContext->GetNativeCodeGenerator();
+                NativeCodeGenerator* currentNativeCodegen = scriptContext->GetNativeCodeGenerator();
                 Assert(this->validationCookie != nullptr);
-                if (validationCookie == (void*) current)
+                currentCookie = (void*)currentNativeCodegen;
+#endif
+
+                if (validationCookie == currentCookie)
                 {
                     scriptContext->FreeLoopBody((Js::JavascriptMethod)this->GetNativeAddress());
                 }
@@ -9089,13 +9230,17 @@ namespace Js
         }
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void LoopEntryPointInfo::OnNativeCodeInstallFailure()
     {
         this->ResetOnNativeCodeInstallFailure();
     }
+#endif
 
     void LoopHeader::Init( FunctionBody * functionBody )
     {
+        // DisableJIT-TODO: Should this entire class be ifdefed out?
+#if ENABLE_NATIVE_CODEGEN
         this->functionBody = functionBody;
         Recycler* recycler = functionBody->GetScriptContext()->GetRecycler();
 
@@ -9104,8 +9249,10 @@ namespace Js
         this->entryPoints = RecyclerNew(recycler, LoopEntryPointList, recycler, syncObj);
 
         this->CreateEntryPoint();
+#endif
     }
 
+#if ENABLE_NATIVE_CODEGEN
     int LoopHeader::CreateEntryPoint()
     {
         ScriptContext* scriptContext = this->functionBody->GetScriptContext();
@@ -9130,6 +9277,7 @@ namespace Js
             }
         }
     }
+#endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     void FunctionBody::DumpRegStats(FunctionBody *funcBody)
@@ -9166,10 +9314,12 @@ namespace Js
     {
         uint recursiveInlineSpan = 0;
         uint recursiveCallSiteInlineInfo = 0;
+#if ENABLE_PROFILE_INFO
         if (this->HasDynamicProfileInfo())
         {
             recursiveCallSiteInlineInfo = this->dynamicProfileInfo->GetRecursiveInlineInfo();
         }
+#endif
 
         while (recursiveCallSiteInlineInfo)
         {

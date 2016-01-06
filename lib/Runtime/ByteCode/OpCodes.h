@@ -66,7 +66,7 @@ MACRO_BACKEND_ONLY(     LoweredStartCall,   StartCall,      OpSideEffect)       
 MACRO_BACKEND_ONLY(     StartCallAsmJsI,    StartCall,      OpSideEffect)       // StartCall instruction for asm.js internal calls
 MACRO_BACKEND_ONLY(     StartCallAsmJsE,    StartCall,      OpSideEffect)       // StartCall instruction for calls from asm.js to javascript
 MACRO(                  Break,              Empty,          OpSideEffect)       // Break into debugger
-MACRO_BACKEND_ONLY(     InvalidOpCode,      Empty,          None)               // Inserted in a dead call sequence, should not be present after GlobOpt
+MACRO_EXTEND(           InvalidOpCode,      Empty,          None)               // Inserted in a dead call sequence, should not be present after GlobOpt
 
 // Control flow
 #ifdef BYTECODE_BRANCH_ISLAND
@@ -614,12 +614,12 @@ MACRO_BACKEND_ONLY(     Conv_PrimStr,       Empty,          OpCallsValueOf|OpHas
 // The following are for lowering; currently the specified layout is not used
 MACRO_BACKEND_ONLY(     StElemC,            ElementC,       OpSideEffect)                   // Store into Array instance's direct element, unchecked
 MACRO_BACKEND_ONLY(     StArrSegElemC,      ElementC,       OpSideEffect)                   // Store into Array segment's direct element, unchecked
-MACRO_BACKEND_ONLY(     Label,              Empty,          OpSideEffect)                   // Label (branch target)
+MACRO_EXTEND(           Label,              Empty,          OpSideEffect)                   // Label (branch target)
 MACRO_BACKEND_ONLY(     CallHelper,         Empty,          OpSideEffect|OpUseAllFields)    // Call a helper function
 
-MACRO_BACKEND_ONLY(     FunctionEntry,      Empty,          OpSideEffect)                   // Marks the start of a function
-MACRO_BACKEND_ONLY(     FunctionExit,       Empty,          OpSideEffect|OpNoFallThrough)   // Marks the end of a function
-MACRO_BACKEND_ONLY(     StatementBoundary,  Empty,          None)                           // Marks the start or end of a statement
+MACRO_EXTEND(           FunctionEntry,      Empty,          OpSideEffect)                   // Marks the start of a function
+MACRO_EXTEND(           FunctionExit,       Empty,          OpSideEffect|OpNoFallThrough)   // Marks the end of a function
+MACRO_EXTEND(           StatementBoundary,  Empty,          None)                           // Marks the start or end of a statement
 
 MACRO_BACKEND_ONLY(     BailOut,                     Empty,          OpSideEffect|OpBailOutRec)
 MACRO_BACKEND_ONLY(     BailOnEqual,                 Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)

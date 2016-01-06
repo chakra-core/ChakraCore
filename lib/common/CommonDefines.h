@@ -105,7 +105,33 @@
 #define RECYCLER_PAGE_HEAP                          // PageHeap support
 
 // JIT features
-#define ENABLE_NATIVE_CODEGEN 1                     // *** TODO: Won't build if disabled currently
+
+#if DISABLE_JIT
+#define ENABLE_NATIVE_CODEGEN 0
+#define ENABLE_PROFILE_INFO 0
+#define ENABLE_BACKGROUND_PARSING 0                 // Disable background parsing in this mode
+                                                    // We need to decouple the Jobs infrastructure out of 
+                                                    // Backend to make background parsing work with JIT disabled
+#define DYNAMIC_INTERPRETER_THUNK 0
+#define DISABLE_DYNAMIC_PROFILE_DEFER_PARSE
+#define ENABLE_COPYONACCESS_ARRAY 0
+
+// Used to temporarily disable ASMjs related code to get nonative compiling
+#define TEMP_DISABLE_ASMJS
+#else
+// By default, enable the JIT
+#define ENABLE_NATIVE_CODEGEN 1
+#define ENABLE_PROFILE_INFO 1
+#define ENABLE_BACKGROUND_PARSING 1
+#define ENABLE_COPYONACCESS_ARRAY 1
+#ifndef DYNAMIC_INTERPRETER_THUNK
+#if defined(_M_IX86_OR_ARM32) || defined(_M_X64_OR_ARM64)
+#define DYNAMIC_INTERPRETER_THUNK 1
+#else
+#define DYNAMIC_INTERPRETER_THUNK 0
+#endif
+#endif
+#endif
 
 // Other features
 // #define CHAKRA_CORE_DOWN_COMPAT 1
@@ -183,8 +209,10 @@
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 
 #define BAILOUT_INJECTION
+#if ENABLE_PROFILE_INFO
 #define DYNAMIC_PROFILE_STORAGE
 #define DYNAMIC_PROFILE_MUTATOR
+#endif
 #define RUNTIME_DATA_COLLECTION
 #define SECURITY_TESTING
 #define PROFILE_EXEC
@@ -201,9 +229,11 @@
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
 #ifdef _M_IX86
+#if ENABLE_NATIVE_CODEGEN
 #define IR_VIEWER
 #define ENABLE_IR_VIEWER
 #define ENABLE_IR_VIEWER_DBG_DUMP  // TODO (t-doilij) disable this before check-in
+#endif
 #endif
 
 #ifdef ENABLE_JS_ETW
@@ -376,14 +406,6 @@
 #endif
 #endif
 
-#ifndef DYNAMIC_INTERPRETER_THUNK
-#if defined(_M_IX86_OR_ARM32) || defined(_M_X64_OR_ARM64)
-#define DYNAMIC_INTERPRETER_THUNK 1
-#else
-#define DYNAMIC_INTERPRETER_THUNK 0
-#endif
-#endif
-
 #ifndef FLOATVAR
 #if defined(_M_X64)
 #define FLOATVAR 1
@@ -393,7 +415,9 @@
 #endif
 
 #if defined(_M_IX86) || defined(_M_X64)
+#ifndef TEMP_DISABLE_ASMJS
 #define ASMJS_PLAT
+#endif
 #endif
 
 #if _WIN32 || _WIN64

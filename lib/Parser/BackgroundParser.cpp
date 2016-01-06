@@ -7,6 +7,7 @@
 #define ASSERT_THREAD() AssertMsg(mainThreadId == GetCurrentThreadContextId(), \
     "Cannot use this member of BackgroundParser from thread other than the creating context's current thread")
 
+#if ENABLE_NATIVE_CODEGEN
 BackgroundParser::BackgroundParser(Js::ScriptContext *scriptContext)
     :   JsUtil::WaitableJobManager(scriptContext->GetThreadContext()->GetJobProcessor()),
         scriptContext(scriptContext),
@@ -290,3 +291,4 @@ void BackgroundParseItem::AddRegExpNode(ParseNode *const pnode, ArenaAllocator *
 
     regExpNodes->Append(pnode);
 }
+#endif

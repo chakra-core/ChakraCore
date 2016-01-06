@@ -25,9 +25,12 @@
         $(ChakraCoreRootDirectory)Lib\Common;
         $(ChakraCoreRootDirectory)Lib\Parser;
         $(ChakraCoreRootDirectory)Lib\Runtime;
-        $(ChakraCoreRootDirectory)Lib\Backend;
         $(ChakraCoreRootDirectory)Lib\Jsrt;
         $(IntDir);
+        %(AdditionalIncludeDirectories);
+      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(BuildJIT)'!='false'">
+        $(ChakraCoreRootDirectory)Lib\Backend;
         %(AdditionalIncludeDirectories);
       </AdditionalIncludeDirectories>
     </ClCompile>
@@ -84,7 +87,7 @@
     <ProjectReference Include="..\..\lib\jsrt\core\Chakra.Jsrt.Core.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9220ee}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Lib\Backend\Chakra.Backend.vcxproj">
+    <ProjectReference Include="..\..\Lib\Backend\Chakra.Backend.vcxproj" Condition="'$(BuildJIT)'!='false'">
       <Project>{18cf279f-188d-4655-b03d-74f65388e7d1}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\lib\Common\codex\Chakra.Common.Codex.vcxproj">

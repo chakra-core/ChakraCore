@@ -1157,7 +1157,9 @@ namespace Js
         else
         {
             RecyclableObject* sourceArray;
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
+#endif
             if (!JavascriptConversion::ToObject(args[1], scriptContext, &sourceArray))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_TypedArray_NeedSource);

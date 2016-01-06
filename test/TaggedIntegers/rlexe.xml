@@ -262,7 +262,7 @@
     <default>
       <files>arrays.js</files>
       <baseline>arrays.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_serialized,require_backend</tags>
       <compile-flags>-dynamicprofilecache:profile.dpl.arrays.js</compile-flags>
     </default>
   </test>
@@ -270,7 +270,7 @@
     <default>
       <files>arrays.js</files>
       <baseline>arrays.baseline</baseline>
-      <tags>exclude_interpreted,exclude_serialized,exclude_ship</tags>
+      <tags>exclude_interpreted,exclude_serialized,exclude_ship,require_backend</tags>
       <compile-flags>-dynamicprofileinput:profile.dpl.arrays.js -off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
   </test>

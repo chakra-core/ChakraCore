@@ -325,7 +325,7 @@
       <files>FuncBody.bug231397.js</files>
       <baseline>FuncBody.bug231397.baseline</baseline>
       <compile-flags>-dump:bytecode</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_fre,require_backend</tags>
     </default>
   </test>
   <test>
@@ -402,7 +402,7 @@
     <default>
       <files>failnativecodeinstall.js</files>
       <compile-flags>/maxinterpretcount:2 /lic:1 /bgjit /off:simplejit /on:failnativecodeinstall</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,require_backend</tags>
       <baseline>failnativecodeinstall.baseline</baseline>
     </default>
   </test>

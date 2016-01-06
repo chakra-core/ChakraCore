@@ -54,7 +54,9 @@ enum TypeId
     TypeIds_Array = 21,
     TypeIds_ArrayFirst = TypeIds_Array,
     TypeIds_NativeIntArray = 22,
+#if ENABLE_COPYONACCESS_ARRAY
     TypeIds_CopyOnAccessNativeIntArray = 23,
+#endif
     TypeIds_NativeFloatArray = 24,
     TypeIds_ArrayLast = TypeIds_NativeFloatArray,
     TypeIds_Date = 25,

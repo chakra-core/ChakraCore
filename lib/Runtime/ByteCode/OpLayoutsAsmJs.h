@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     ///----------------------------------------------------------------------------
@@ -757,3 +758,4 @@ namespace Js
 #undef DEFINE_OPCODEINFO
 #undef DEFINE_OPCODEINFO_WMS
 }
+#endif

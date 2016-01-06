@@ -139,7 +139,9 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
             )
         {
             threadContext->OptimizeForManyInstances(true);
+#if ENABLE_NATIVE_CODEGEN
             threadContext->EnableBgJit(false);
+#endif
         }
 
         if (!threadContext->IsRentalThreadingEnabledInJSRT()
@@ -736,7 +738,9 @@ STDAPI_(JsErrorCode) JsGetValueType(_In_ JsValueRef value, _Out_ JsValueType *ty
             break;
         case Js::TypeIds_Array:
         case Js::TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
         case Js::TypeIds_CopyOnAccessNativeIntArray:
+#endif
         case Js::TypeIds_NativeFloatArray:
         case Js::TypeIds_ES5Array:
             *type = JsArray;

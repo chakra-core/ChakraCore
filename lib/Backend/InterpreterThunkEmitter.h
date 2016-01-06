@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
+#ifdef ENABLE_NATIVE_CODEGEN
 class ThunkBlock
 {
 private:
@@ -135,3 +135,4 @@ public:
     }
 
 };
+#endif

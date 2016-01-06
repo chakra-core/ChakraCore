@@ -3262,7 +3262,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         byteCodeFunction->DumpScopes();
     }
 #endif
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     if ((!PHASE_OFF(Js::BackEndPhase, funcInfo->byteCodeFunction))
         && !this->forceNoNative
         && !this->scriptContext->GetConfig()->IsNoNative())
@@ -3366,7 +3366,8 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
     {
         switch (pnode->nop)
         {
-        case knopFncDecl:
+            case knopFncDecl:
+#ifndef TEMP_DISABLE_ASMJS
             if (pnode->sxFnc.GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());
@@ -3385,6 +3386,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
                     throw Js::AsmJsParseException();
                 }
             }
+#endif
             // FALLTHROUGH
         case knopProg:
             if (pnode->sxFnc.funcInfo)
@@ -8362,6 +8364,7 @@ void EmitJumpCleanup(ParseNode *pnode, ParseNode *pnodeTarget, ByteCodeGenerator
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
             break;
 
+#if ENABLE_PROFILE_INFO
         case knopWhile:
         case knopDoWhile:
         case knopFor:
@@ -8371,6 +8374,7 @@ void EmitJumpCleanup(ParseNode *pnode, ParseNode *pnodeTarget, ByteCodeGenerator
             {
                 byteCodeGenerator->Writer()->Unsigned1(Js::OpCode::ProfiledLoopEnd, pnode->sxLoop.loopId);
             }
+#endif
         }
     }
 }

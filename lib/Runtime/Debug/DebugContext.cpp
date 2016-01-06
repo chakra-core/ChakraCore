@@ -222,7 +222,9 @@ namespace Js
                     {
                         pFuncBody->Parse();
                         // This is the first call to the function, ensure dynamic profile info
+#if ENABLE_PROFILE_INFO
                         pFuncBody->EnsureDynamicProfileInfo();
+#endif
                     }
                     END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
 

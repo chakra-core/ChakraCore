@@ -1513,7 +1513,9 @@ namespace Js
 
             // Invalidate any JIT-ed code that hard coded this method. No need to invalidate store field
             // inline caches (which might quietly overwrite this fixed fields, because they have never been populated.
+#if ENABLE_NATIVE_CODEGEN
             scriptContext->GetThreadContext()->InvalidatePropertyGuards(propertyId);
+#endif
         }
 
         // If we're overwriting an existing value of this property, we don't consider the new one fixed.

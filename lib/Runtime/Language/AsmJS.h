@@ -22,6 +22,7 @@
 
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     struct ExclusiveContext
@@ -63,3 +64,4 @@ namespace Js
     };
 }
 
+#endif

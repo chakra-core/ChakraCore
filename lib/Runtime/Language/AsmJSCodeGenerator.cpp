@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+
+#ifndef TEMP_DISABLE_ASMJS
 #include "CodeGenAllocators.h"
 
 namespace Js
@@ -38,3 +40,4 @@ namespace Js
     }
 
 }
+#endif

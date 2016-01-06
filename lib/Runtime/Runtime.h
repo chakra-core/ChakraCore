@@ -160,7 +160,9 @@ namespace Js
     enum class DynamicObjectFlags : uint16;
     class JavascriptArray;
     class JavascriptNativeIntArray;
+#if ENABLE_COPYONACCESS_ARRAY
     class JavascriptCopyOnAccessNativeIntArray;
+#endif
     class JavascriptNativeFloatArray;
     class ES5Array;
     class JavascriptFunction;
@@ -273,6 +275,25 @@ namespace Js
 
     extern const FrameDisplay NullFrameDisplay;
     extern const FrameDisplay StrictNullFrameDisplay;
+
+    enum ImplicitCallFlags : BYTE
+    {
+        ImplicitCall_HasNoInfo = 0x00,
+        ImplicitCall_None = 0x01,
+        ImplicitCall_ToPrimitive = 0x02 | ImplicitCall_None,
+        ImplicitCall_Accessor = 0x04 | ImplicitCall_None,
+        ImplicitCall_NonProfiledAccessor = 0x08 | ImplicitCall_None,
+        ImplicitCall_External = 0x10 | ImplicitCall_None,
+        ImplicitCall_Exception = 0x20 | ImplicitCall_None,
+        ImplicitCall_NoOpSet = 0x40 | ImplicitCall_None,
+        ImplicitCall_All = 0x7F,
+
+        // Implicit call that is not caused by operations for the instruction (e.g. QC and GC dispose)
+        // where we left script and enter script again. (Also see BEGIN_LEAVE_SCRIPT_INTERNAL)
+        // This doesn't count as an implicit call on the recorded profile, but if it happens on JIT'ed code
+        // it will still cause a bailout. Should happen very rarely.
+        ImplicitCall_AsyncHostOperation = 0x80
+    };
 }
 
 #include "DataStructures\EvalMapString.h"

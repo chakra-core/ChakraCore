@@ -193,6 +193,7 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">
+      <PreprocessorDefinitions Condition="'$(BuildJIT)'!='false'">_ENABLE_DYNAMIC_THUNKS</PreprocessorDefinitions>
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\arm_Thunks.asm">

@@ -145,6 +145,7 @@ Parser::~Parser(void)
 
     if (this->m_hasParallelJob)
     {
+#if ENABLE_BACKGROUND_PARSING
         // Let the background threads know that they can decommit their arena pages.
         BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
         Assert(bgp);
@@ -158,6 +159,7 @@ Parser::~Parser(void)
             });
             Assert(result);
         }
+#endif
     }
 
     Release();
@@ -419,6 +421,7 @@ HRESULT Parser::ParseSourceInternal(
 
     if (this->m_hasParallelJob)
     {
+#if ENABLE_BACKGROUND_PARSING
         ///// Wait here for remaining jobs to finish. Then look for errors, do final const bindings.
         // pleath TODO: If there are remaining jobs, let the main thread help finish them.
         BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
@@ -447,6 +450,7 @@ HRESULT Parser::ParseSourceInternal(
             Parser *parser = item->GetParser();
             parser->FinishBackgroundPidRefs(item, this != parser);
         }
+#endif
     }
 
     // done with the scanner
@@ -463,6 +467,7 @@ HRESULT Parser::ParseSourceInternal(
     return hr;
 }
 
+#if ENABLE_BACKGROUND_PARSING
 void Parser::WaitForBackgroundJobs(BackgroundParser *bgp, CompileScriptException *pse)
 {
     // The scan of the script is done, but there may be unfinished background jobs in the queue.
@@ -653,6 +658,7 @@ void Parser::FinishBackgroundRegExpNodes()
     }
 #endif
 }
+#endif
 
 LabelId* Parser::CreateLabelId(IdentToken* pToken)
 {
@@ -2486,11 +2492,13 @@ ParseNodePtr Parser::ParseRegExp()
                 pnode = nullptr;
             }
         }
+#if ENABLE_BACKGROUND_PARSING
         else if (this->IsBackgroundParser())
         {
             Assert(pnode->sxPid.regexPattern == nullptr);
             this->AddBackgroundRegExpNode(pnode);
         }
+#endif
     }
     else
     {
@@ -3625,12 +3633,14 @@ BOOL Parser::DeferredParse(Js::LocalFunctionId functionId)
         {
             return true;
         }
+#if ENABLE_PROFILE_INFO
 #ifndef DISABLE_DYNAMIC_PROFILE_DEFER_PARSE
         if (m_sourceContextInfo->sourceDynamicProfileManager != nullptr)
         {
             Js::ExecutionFlags flags = m_sourceContextInfo->sourceDynamicProfileManager->IsFunctionExecuted(functionId);
             return flags != Js::ExecutionFlags_Executed;
         }
+#endif
 #endif
         return true;
     }
@@ -4208,6 +4218,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             !(this->m_parseType == ParseType_Deferred && this->m_functionBody && this->m_functionBody->GetScopeInfo() && !isTopLevelDeferredFunc))
         {
             doParallel = DoParallelParse(pnodeFnc);
+#if ENABLE_BACKGROUND_PARSING
             if (doParallel)
             {
                 BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
@@ -4233,6 +4244,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                     }
                 }
             }
+#endif
         }
     }
 
@@ -4630,6 +4642,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
 
 bool Parser::DoParallelParse(ParseNodePtr pnodeFnc) const
 {
+#if ENABLE_BACKGROUND_PARSING
     if (!PHASE_ON_RAW(Js::ParallelParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId))
     {
         return false;
@@ -4637,7 +4650,9 @@ bool Parser::DoParallelParse(ParseNodePtr pnodeFnc) const
 
     BackgroundParser *bgp = m_scriptContext->GetBackgroundParser();
     return bgp != nullptr;
-
+#else
+    return false;
+#endif
 }
 
 bool Parser::ScanAheadToFunctionEnd(uint count)
@@ -10017,9 +10032,11 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     {
         if (this->m_hasParallelJob)
         {
+#if ENABLE_BACKGROUND_PARSING
             BackgroundParser *bgp = static_cast<BackgroundParser*>(m_scriptContext->GetBackgroundParser());
             Assert(bgp);
             this->WaitForBackgroundJobs(bgp, pse);
+#endif
         }
 
         // Finally, see if there are any function bodies we now want to generate because we
@@ -10186,6 +10203,7 @@ void Parser::PrepareScanner(bool fromExternal)
         m_pscan->FromExternalSource();
 }
 
+#if ENABLE_BACKGROUND_PARSING
 void Parser::PrepareForBackgroundParse()
 {
     m_pscan->PrepareForBackgroundParse(m_scriptContext);
@@ -10203,6 +10221,7 @@ void Parser::AddBackgroundParseItem(BackgroundParseItem *const item)
     }
     currBackgroundParseItem = item;
 }
+#endif
 
 void Parser::AddFastScannedRegExpNode(ParseNodePtr const pnode)
 {
@@ -10216,6 +10235,7 @@ void Parser::AddFastScannedRegExpNode(ParseNodePtr const pnode)
     fastScannedRegExpNodes->Append(pnode);
 }
 
+#if ENABLE_BACKGROUND_PARSING
 void Parser::AddBackgroundRegExpNode(ParseNodePtr const pnode)
 {
     Assert(IsBackgroundParser());
@@ -10223,6 +10243,7 @@ void Parser::AddBackgroundRegExpNode(ParseNodePtr const pnode)
 
     currBackgroundParseItem->AddRegExpNode(pnode, &m_nodeAllocator);
 }
+#endif
 
 HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *parseContext, bool topLevelDeferred, CompileScriptException *pse)
 {

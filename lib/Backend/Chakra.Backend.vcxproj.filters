@@ -15,7 +15,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptFields.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptIntBounds.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackEnd.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEndOpcodeAttr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Debug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EmitBuffer.cpp" />
@@ -115,7 +114,6 @@
     <ClInclude Include="BackEndOpCodeList.h" />
     <ClInclude Include="GlobOptIntBounds.h" />
     <ClInclude Include="BackEnd.h" />
-    <ClInclude Include="BackEndOpcodeAttr.h" />
     <ClInclude Include="BackwardPass.h" />
     <ClInclude Include="BailOut.h" />
     <ClInclude Include="BailOutKind.h" />

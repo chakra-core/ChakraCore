@@ -751,6 +751,7 @@ public:
         uint offset;
     };
 
+#ifndef TEMP_DISABLE_ASMJS
     HRESULT RewriteAsmJsByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock)
     {
         SListCounted<AuxRecord> auxRecords(alloc);
@@ -934,6 +935,7 @@ public:
         RewriteAuxiliaryInto(builder, auxRecords, reader, function);
         return S_OK;
     }
+#endif
 
     HRESULT RewriteByteCodesInto(BufferBuilderList & builder, LPCWSTR clue, FunctionBody * function, ByteBlock * byteBlock)
     {
@@ -1538,6 +1540,7 @@ public:
         }
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     uint32 AddAsmJsConstantTable(BufferBuilderList & builder, FunctionBody * function)
     {
         uint32 size = 0;
@@ -1585,6 +1588,7 @@ public:
 
         return size;
     }
+#endif
 
     uint32 AddConstantTable(BufferBuilderList & builder, FunctionBody * function)
     {
@@ -1827,6 +1831,7 @@ public:
         return sizeof(serialization_alignment TStructType);
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     uint32 AddAsmJsFunctionInfo(BufferBuilderList & builder, FunctionBody * function)
     {
         uint32 size = 0;
@@ -1961,6 +1966,7 @@ public:
 #endif
         return size;
     }
+#endif
 
     HRESULT AddFunctionBody(BufferBuilderList & builder, FunctionBody * function, SRCINFO const * srcInfo, int *serializationIndex)
     {
@@ -2013,8 +2019,11 @@ public:
             | (function->m_CallsEval ? ffhasSetCallsEval : 0)
             | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
             | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
+#ifndef TEMP_DISABLE_ASMJS
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
-            | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0);
+            | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
+#endif
+            ;
 
         PrependInt32(builder, L"BitFlags", bitFlags);
         PrependInt32(builder, L"Relative Function ID", function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
@@ -2097,6 +2106,7 @@ public:
                 PrependByte(builder, L"Loop Header Array Exists", 0);
             }
 
+#ifndef TEMP_DISABLE_ASMJS
             if (function->GetAsmJsFunctionInfo())
             {
                 PrependByte(builder, L"Asm.js Info Exists", 1);
@@ -2108,10 +2118,12 @@ public:
                 AddAsmJsModuleInfo(builder, function);
             }
             else
+#endif
             {
                 PrependByte(builder, L"Asm.js Info Exists", 0);
             }
 
+#ifndef TEMP_DISABLE_ASMJS
             if (function->GetIsAsmJsFunction())
             {
                 AddAsmJsConstantTable(builder, function);
@@ -2122,6 +2134,7 @@ public:
                 }
             }
             else
+#endif
             {
                 AddConstantTable(builder, function);
                 auto hr = RewriteByteCodesInto(builder, L"Rewritten Byte Code", function, function->byteCodeBlock);
@@ -2785,6 +2798,7 @@ public:
         return current;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     const byte * ReadAsmJsConstantsTable(const byte * current, FunctionBody * function)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -2835,6 +2849,7 @@ public:
 
         return current;
     }
+#endif
 
     const byte * ReadConstantsTable(const byte * current, FunctionBody * function)
     {
@@ -3170,6 +3185,7 @@ public:
         return current;
     }
 
+#ifndef TEMP_DISABLE_ASMJS
     const byte * ReadAsmJsFunctionInfo(const byte * current, FunctionBody * function)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3435,6 +3451,7 @@ public:
 
         return current;
     }
+#endif
 
     // Read a function body
     HRESULT ReadFunctionBody(const byte * functionBytes, FunctionProxy ** functionProxy, Utf8SourceInfo* sourceInfo, ByteCodeCache * cache, NativeModule *nativeModule, bool deserializeThis, bool deserializeNested = true, Js::DeferDeserializeFunctionInfo* deferDeserializeFunctionInfo = NULL)
@@ -3598,8 +3615,10 @@ public:
             (*functionBody)->m_CallsEval = (bitflags & ffhasSetCallsEval) ? true : false;
             (*functionBody)->m_ChildCallsEval = (bitflags & ffChildCallsEval) ? true : false;
             (*functionBody)->m_hasReferenceableBuiltInArguments = (bitflags & ffHasReferenceableBuiltInArguments) ? true : false;
+#ifndef TEMP_DISABLE_ASMJS
             (*functionBody)->m_isAsmJsFunction = (bitflags & ffIsAsmJsFunction) ? true : false;
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
+#endif
 
             byte loopHeaderExists;
             current = ReadByte(current, &loopHeaderExists);
@@ -3618,6 +3637,7 @@ public:
 
             byte asmJsInfoExists;
             current = ReadByte(current, &asmJsInfoExists);
+#ifndef TEMP_DISABLE_ASMJS
             if (asmJsInfoExists == 1)
             {
                 current = ReadAsmJsFunctionInfo(current, *functionBody);
@@ -3627,16 +3647,19 @@ public:
                 current = ReadAsmJsModuleInfo(current, *functionBody);
             }
             else
+#endif
             {
                 Assert(asmJsInfoExists == 0);
             }
 
             // Read constants table
+#ifndef TEMP_DISABLE_ASMJS
             if ((*functionBody)->GetIsAsmJsFunction())
             {
                 current = ReadAsmJsConstantsTable(current, *functionBody);
             }
             else
+#endif
             {
                 current = ReadConstantsTable(current, *functionBody);
             }
@@ -3740,7 +3763,7 @@ public:
             }
 #endif
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
             if ((!PHASE_OFF(Js::BackEndPhase, *functionBody))
                 && !this->scriptContext->GetConfig()->IsNoNative()
                 && !(*functionBody)->GetIsAsmjsMode())
@@ -3768,9 +3791,8 @@ public:
         sourceInfo->EnsureInitialized(functionCount);
         sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         bool prejit = false;
-
-#if defined(ENABLE_NATIVE_CODEGEN) && defined(ENABLE_PREJIT)
         prejit = (!scriptContext->GetConfig()->IsNoNative() && Js::Configuration::Global.flags.Prejit && nativeModule == nullptr);
         allowDefer = allowDefer && !prejit;
 #endif
@@ -3780,7 +3802,7 @@ public:
 
         (*function) = functionBody;
 
-#if defined(ENABLE_NATIVE_CODEGEN) && defined(ENABLE_PREJIT)
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         if (prejit)
         {
             Assert(!allowDefer);

@@ -51,11 +51,14 @@ namespace Js
         const unaligned OpLayout##layout* layout(); \
         const unaligned OpLayout##layout* layout(const byte*& ip);
 #include "LayoutTypes.h"
+
+#ifndef TEMP_DISABLE_ASMJS
 #define LAYOUT_TYPE(layout) \
         const unaligned OpLayout##layout* layout(); \
         const unaligned OpLayout##layout* layout(const byte*& ip);
 #define EXCLUDE_DUP_LAYOUT
 #include "LayoutTypesAsmJs.h"
+#endif
 
         template <typename T>
         static AuxArray<T> const * ReadAuxArray(uint offset, FunctionBody * functionBody);

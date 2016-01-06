@@ -21,7 +21,9 @@ namespace Js {
         MaxByteSizedOpcodes = 255,
 #include "ExtendedOpCodeList.h"
         ByteCodeLast,
+#if ENABLE_NATIVE_CODEGEN
 #include "BackEndOpCodeList.h"
+#endif
 #undef DEF_OP
         Count  // Number of operations
     };
@@ -48,8 +50,10 @@ namespace Js {
     inline bool operator>(OpCode &o, uint i) { return ((uint)(o) > i); }
     inline bool operator>(uint i, OpCode &o) { return (i > (uint)(o)); }
 
+#if ENABLE_NATIVE_CODEGEN
     inline bool IsSimd128Opcode(OpCode o) { return (o > Js::OpCode::Simd128_Start && o < Js::OpCode::Simd128_End) || (o > Js::OpCode::Simd128_Start_Extend && o < Js::OpCode::Simd128_End_Extend); }
     inline uint Simd128OpcodeCount() { return (uint)(Js::OpCode::Simd128_End - Js::OpCode::Simd128_Start) + 1 + (uint)(Js::OpCode::Simd128_End_Extend - Js::OpCode::Simd128_Start_Extend) + 1; }
+#endif
 
     ///----------------------------------------------------------------------------
     ///

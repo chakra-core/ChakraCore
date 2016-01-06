@@ -300,7 +300,7 @@ namespace Js
                 Assert(!ThreadContext::IsOnStack(this) || threadContext->HasNoSideEffect(toStringFunction));
                 return toStringFunction->GetEntryPoint()(toStringFunction, CallInfo(CallFlags_Value, 1), this);
             });
-
+ 
             if (!aResult)
             {
                 // There was an implicit call and implicit calls are disabled. This would typically cause a bailout.

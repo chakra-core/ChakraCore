@@ -174,7 +174,9 @@ namespace Js
         {
             propertyId = Constants::NoProperty;
             currentIndex = pEnumerator->GetCurrentAndMoveNext(propertyId, &attributes);
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(currentIndex);
+#endif
             if (currentIndex)
             {
                 if (firstPrototype == nullptr)

@@ -13,6 +13,7 @@ using namespace Js;
 // The startup function bitvector might have to be resized when we call this function
 void SourceContextInfo::EnsureInitialized()
 {
+#if ENABLE_PROFILE_INFO
     uint oldFunctionBodyArraySize = (this->sourceDynamicProfileManager ? this->sourceDynamicProfileManager->GetStartupFunctionsLength() : 0);
     if (oldFunctionBodyArraySize >= this->nextLocalFunctionId)
     {
@@ -26,17 +27,28 @@ void SourceContextInfo::EnsureInitialized()
     {
         sourceDynamicProfileManager->EnsureStartupFunctions(newFunctionBodyCount);
     }
+#endif
 }
 
 bool SourceContextInfo::IsSourceProfileLoaded() const
 {
+#if ENABLE_PROFILE_INFO
     return sourceDynamicProfileManager != nullptr && sourceDynamicProfileManager->IsProfileLoaded();
+#else
+    return false;
+#endif
 }
 
 SourceContextInfo* SourceContextInfo::Clone(Js::ScriptContext* scriptContext) const
 {
-    IActiveScriptDataCache* profileCache = this->sourceDynamicProfileManager  != NULL ?
-        this->sourceDynamicProfileManager->GetProfileCache() : NULL;
+    IActiveScriptDataCache* profileCache = NULL;
+    
+#if ENABLE_PROFILE_INFO
+    if (this->sourceDynamicProfileManager != NULL)
+    {
+        profileCache = this->sourceDynamicProfileManager->GetProfileCache();
+    }
+#endif
 
     SourceContextInfo * newSourceContextInfo = scriptContext->GetSourceContextInfo(dwHostSourceContext, profileCache);
     if (newSourceContextInfo == nullptr)

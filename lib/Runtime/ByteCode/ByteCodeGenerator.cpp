@@ -155,6 +155,7 @@ void EndVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
 bool CreateNativeArrays(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
+#if ENABLE_PROFILE_INFO
     Js::FunctionBody *functionBody = funcInfo ? funcInfo->GetParsedFunctionBody() : nullptr;
 
     return
@@ -167,6 +168,9 @@ bool CreateNativeArrays(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo
                     Js::NativeArrayPhase,
                     byteCodeGenerator->GetScriptContext())
         );
+#else
+    return false;
+#endif
 }
 
 bool EmitAsConstantArray(ParseNode *pnodeArr, ByteCodeGenerator *byteCodeGenerator)
@@ -1914,7 +1918,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, ulong grfscr, __in ByteC
 #endif
     JS_ETW(EventWriteJSCRIPT_BYTECODEGEN_STOP(scriptContext, 0));
 
-#if defined(ENABLE_NATIVE_CODEGEN) && defined(ENABLE_PREJIT)
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
     if (!byteCodeGenerator->forceNoNative && !scriptContext->GetConfig()->IsNoNative()
         && Js::Configuration::Global.flags.Prejit
         && (grfscr & fscrNoPreJit) == 0)

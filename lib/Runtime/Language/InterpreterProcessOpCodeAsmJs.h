@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+#ifndef TEMP_DISABLE_ASMJS
 #define PROCESS_FALLTHROUGH_ASM(name, func) \
     case OpCodeAsmJs::name:
 #define PROCESS_FALLTHROUGH_ASM_COMMON(name, func, suffix) \
@@ -813,3 +814,5 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_D2_2I4toD2_1(name, func, suffix) PROCESS_SIMD_D2_2I2toD2_1COMMON(name, func, suffix)
+
+#endif

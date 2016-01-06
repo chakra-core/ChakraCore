@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_NATIVE_CODEGEN
 typedef DList<ParseNode*, ArenaAllocator> NodeDList;
 
 struct BackgroundParseItem sealed : public JsUtil::Job
@@ -101,3 +102,4 @@ private:
     ThreadContextId mainThreadId;
 #endif
 };
+#endif

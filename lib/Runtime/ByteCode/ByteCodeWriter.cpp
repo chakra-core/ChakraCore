@@ -214,7 +214,9 @@ namespace Js
             m_byteCodeCount, m_byteCodeInLoopCount, m_byteCodeWithoutLDACount);
 
 
+#if ENABLE_PROFILE_INFO
         m_functionWrite->LoadDynamicProfileInfo();
+#endif
 
         JS_ETW(EventWriteJSCRIPT_BYTECODEGEN_METHOD(m_functionWrite->GetHostSourceContext(), m_functionWrite->GetScriptContext(), m_functionWrite->GetLocalFunctionId(), m_functionWrite->GetByteCodeCount(), this->GetTotalSize(), m_functionWrite->GetExternalDisplayName()));
 
@@ -298,7 +300,9 @@ namespace Js
     inline void ByteCodeWriter::CheckOp(OpCode op, OpLayoutType layoutType)
     {
         AssertMsg(OpCodeUtil::IsValidByteCodeOpcode(op), "Ensure valid OpCode");
+#if ENABLE_NATIVE_CODEGEN
         AssertMsg(!OpCodeAttr::BackEndOnly(op), "Can't write back end only OpCode");
+#endif
         AssertMsg(OpCodeUtil::GetOpCodeLayout(op) == layoutType, "Ensure correct layout for OpCode");
     }
 
@@ -872,6 +876,7 @@ namespace Js
 
     bool ByteCodeWriter::DoDynamicProfileOpcode(Phase tag, bool noHeuristics) const
     {
+#if ENABLE_PROFILE_INFO
         if (!DynamicProfileInfo::IsEnabled(tag, this->m_functionWrite))
         {
             return false;
@@ -892,7 +897,11 @@ namespace Js
         default:
             return true;
         }
+#else
+        return false;
+#endif
     }
+
     bool ByteCodeWriter::ShouldIncrementCallSiteId(OpCode op)
     {
         if ((DoProfileCallOp(op) && DoDynamicProfileOpcode(InlinePhase)) ||
@@ -1512,9 +1521,11 @@ StoreCommon:
 #if DBG
         switch (op)
         {
+#if ENABLE_NATIVE_CODEGEN
         case OpCode::LdSlotArr:
         case OpCode::StSlot:
         case OpCode::StSlotChkUndecl:
+#endif
         case OpCode::StObjSlot:
         case OpCode::StObjSlotChkUndecl:
             break;
@@ -3074,11 +3085,13 @@ StoreCommon:
         m_functionWrite->SetHasNestedLoop(m_loopNest > 1);
 
         Js::OpCode loopBodyOpcode = Js::OpCode::LoopBodyStart;
+#if ENABLE_PROFILE_INFO
         if (Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionWrite()))
         {
             this->Unsigned1(Js::OpCode::ProfiledLoopStart, loopId);
             loopBodyOpcode = Js::OpCode::ProfiledLoopBodyStart;
         }
+#endif
 
         this->MarkLabel(loopEntrance);
         if (this->DoJitLoopBodies() || this->DoInterruptProbes())
@@ -3091,10 +3104,12 @@ StoreCommon:
 
     void ByteCodeWriter::ExitLoop(uint loopId)
     {
+#if ENABLE_PROFILE_INFO
         if (Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionWrite()))
         {
             this->Unsigned1(Js::OpCode::ProfiledLoopEnd, loopId);
         }
+#endif
         Assert(m_loopNest > 0);
         m_loopNest--;
         m_loopHeaders->Item(loopId).endOffset = m_byteCodeData.GetCurrentOffset();

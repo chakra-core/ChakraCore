@@ -42,7 +42,7 @@
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(BuildJIT)'!='false'">
     <ClCompile Include="$(MSBuildThisFileDirectory)AgenPeeps.cpp">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32' AND '$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -150,7 +150,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)BackEnd.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEndOpcodeAttr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Debug.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EmitBuffer.cpp" />
@@ -327,7 +326,6 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='arm'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="BackEnd.h" />
-    <ClInclude Include="BackEndOpcodeAttr.h" />
     <ClInclude Include="BackwardPass.h" />
     <ClInclude Include="BailOut.h" />
     <ClInclude Include="BailOutKind.h" />

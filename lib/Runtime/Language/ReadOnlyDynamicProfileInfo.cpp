@@ -5,6 +5,7 @@
 #include "RuntimeLanguagePch.h"
 #include "Language\ReadOnlyDynamicProfileInfo.h"
 
+#if ENABLE_PROFILE_INFO
 namespace Js
 {
     const LdElemInfo *ReadOnlyDynamicProfileInfo::GetLdElemInfo(FunctionBody *functionBody, ProfileId ldElemId)
@@ -67,3 +68,4 @@ namespace Js
         return &stElemInfo[stElemId];
     }
 }
+#endif

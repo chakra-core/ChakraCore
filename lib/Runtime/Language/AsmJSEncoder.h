@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     class AsmJsEncoder
@@ -228,3 +229,5 @@ namespace Js
         template <class T> void OP_Simd128_I_Conv_VTD2(const unaligned T* playout);
     };
 }
+
+#endif

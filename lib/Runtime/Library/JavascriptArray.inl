@@ -270,6 +270,7 @@ namespace Js
         return array;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     //
     // Allocates the segment inline up to the length of SparseArraySegmentBase::INLINE_CHUNK_SIZE. The downside of having the segment
     // inline is that the segment space will never get freed unless the Array is collected.
@@ -314,6 +315,7 @@ namespace Js
 
         return array;
     }
+#endif
 
     template<class T, uint InlinePropertySlots>
     __inline T *JavascriptArray::New(
@@ -441,6 +443,7 @@ namespace Js
         }
     }
 
+#if ENABLE_PROFILE_INFO
     template<typename T>
     __inline void JavascriptArray::DirectProfiledSetItemInHeadSegmentAt(
         const uint32 offset,
@@ -479,6 +482,7 @@ namespace Js
             ScanForMissingValues<T>();
         }
     }
+#endif
 
     template<typename T>
     inline BOOL JavascriptArray::DirectGetItemAt(uint32 index, T* outVal)

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
 #if DBG_DUMP || ENABLE_DEBUG_CONFIG_OPTIONS
@@ -86,3 +87,4 @@ namespace Js
             || (op > Js::OpCodeAsmJs::ByteCodeLast && op < Js::OpCodeAsmJs::Count);
     }
 };
+#endif

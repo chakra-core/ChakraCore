@@ -21,3 +21,4 @@
 #include "Language\AsmJsTypes.h"
 
 #include "ByteCode\ByteCodeAPI.h"
+#include "ByteCode\BackEndOpcodeAttr.h"

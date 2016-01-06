@@ -114,7 +114,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     recycler(nullptr),
     hasCollectionCallBack(false),
     callDispose(true),
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     jobProcessor(nullptr),
 #endif
     interruptPoller(nullptr),
@@ -162,7 +162,9 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     propertyMap(nullptr),
     caseInvariantPropertySet(nullptr),
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
+#if ENABLE_NATIVE_CODEGEN
     codeGenNumberThreadAllocator(nullptr),
+#endif
     dynamicObjectEnumeratorCacheMap(&HeapAllocator::Instance, 16),
     //threadContextFlags(ThreadContextFlagNoFlag),
     telemetryBlock(&localTelemetryBlock),
@@ -197,6 +199,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #endif
 
     // SIMD_JS
+#if ENABLE_NATIVE_CODEGEN
     simdFuncInfoToOpcodeMap = Anew(this->GetThreadAlloc(), FuncInfoToOpcodeMap, this->GetThreadAlloc());
     simdOpcodeToSignatureMap = AnewArrayZ(this->GetThreadAlloc(), SimdFuncSignature, Js::Simd128OpcodeCount());
     {
@@ -207,6 +210,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
 #include "ByteCode\OpCodesSimd.h"
     }
+#endif
 
 #if DBG_DUMP
     scriptSiteCount = 0;
@@ -423,7 +427,7 @@ ThreadContext::~ThreadContext()
         }
 #endif
 #endif
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         HeapDelete(this->codeGenNumberThreadAllocator);
         this->codeGenNumberThreadAllocator = nullptr;
 #endif
@@ -438,7 +442,7 @@ ThreadContext::~ThreadContext()
         HeapDelete(recycler);
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     if(jobProcessor)
     {
         if(this->bgJit)
@@ -564,6 +568,7 @@ void ThreadContext::ValidateThreadContext()
 #endif
 }
 
+#if ENABLE_NATIVE_CODEGEN
 void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
 {
     Assert(simdFuncInfoToOpcodeMap != nullptr);
@@ -613,6 +618,7 @@ void ThreadContext::GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignat
     funcSignature = simdOpcodeToSignatureMap[SimdOpcodeAsIndex(op)];
 
 }
+#endif
 
 class AutoRecyclerPtr : public AutoPtr<Recycler>
 {
@@ -637,7 +643,7 @@ Recycler* ThreadContext::EnsureRecycler()
         newRecycler->Initialize(isOptimizedForManyInstances, &threadService); // use in-thread GC when optimizing for many instances
         newRecycler->SetCollectionWrapper(this);
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         // This may throw, so it needs to be after the recycler is initialized,
         // otherwise, the recycler dtor may encounter problems
         AutoPtr<CodeGenNumberThreadAllocator> localCodeGenNumberThreadAllocator(
@@ -671,7 +677,7 @@ Recycler* ThreadContext::EnsureRecycler()
             this->expirableObjectDisposeList = Anew(&this->threadAlloc, ExpirableObjectList, &this->threadAlloc);
 
             InitializePropertyMaps(); // has many dependencies on the recycler and other members of the thread context
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
             this->codeGenNumberThreadAllocator = localCodeGenNumberThreadAllocator.Detach();
 #endif
         }
@@ -1185,7 +1191,7 @@ ThreadContext::ForceCleanPropertyMap()
     // No-op now that we no longer use weak refs
 }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
 JsUtil::JobProcessor *
 ThreadContext::GetJobProcessor()
 {
@@ -2210,10 +2216,12 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
     if (!partial)
     {
         // Integrate allocated pages from background JIT threads
+#if ENABLE_NATIVE_CODEGEN
         if (codeGenNumberThreadAllocator)
         {
             codeGenNumberThreadAllocator->Integrate();
         }
+#endif
     }
 
     RecyclerCollectCallBackFlags callBackFlags = (RecyclerCollectCallBackFlags)
@@ -2591,6 +2599,7 @@ ThreadContext::ClearIsInstInlineCaches()
 void
 ThreadContext::ClearEquivalentTypeCaches()
 {
+#if ENABLE_NATIVE_CODEGEN
     // Called from PreSweepCallback to clear pointers to types that have no live object references left.
     // The EquivalentTypeCache used to keep these types alive, but this caused memory growth in cases where
     // entry points stayed around for a long time.
@@ -2611,6 +2620,7 @@ ThreadContext::ClearEquivalentTypeCaches()
 
     // Note: Don't reset the list, because we're only clearing the dead types from these caches.
     // There may still be type references we need to keep an eye on.
+#endif
 }
 
 Js::ScriptContext **
@@ -2862,6 +2872,7 @@ ThreadContext::IsInlineCacheInList(const Js::InlineCache* inlineCache, const Inl
 }
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
 ThreadContext::PropertyGuardEntry*
 ThreadContext::EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry)
 {
@@ -3073,6 +3084,7 @@ ThreadContext::InvalidateAllPropertyGuards()
         guards.Clear();
     }
 }
+#endif
 
 void
 ThreadContext::InvalidateAllProtoInlineCaches()
@@ -3434,7 +3446,7 @@ void DumpRecyclerObjectGraph()
 }
 #endif
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
 BOOL ThreadContext::IsNativeAddress(void *pCodeAddr)
 {
     for (Js::ScriptContext *scriptContext = this->scriptContextList;
@@ -3451,6 +3463,7 @@ BOOL ThreadContext::IsNativeAddress(void *pCodeAddr)
 }
 #endif
 
+#if ENABLE_PROFILE_INFO
 void ThreadContext::EnsureSourceProfileManagersByUrlMap()
 {
     if(this->recyclableData->sourceProfileManagersByUrl == nullptr)
@@ -3542,6 +3555,7 @@ uint ThreadContext::ReleaseSourceDynamicProfileManagers(const WCHAR* url)
     }
     return refCount;
 }
+#endif
 
 void ThreadContext::EnsureSymbolRegistrationMap()
 {

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_PROFILE_INFO
 namespace Js
 {
     // Provides a thread-safe, read-only view of a profile. This is the view used
@@ -381,3 +382,4 @@ namespace Js
         // to be copied.
     };
 };
+#endif

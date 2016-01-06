@@ -33,6 +33,7 @@ namespace Js
         return AddFunctionToLibraryObject(object, scriptContext->GetOrAddPropertyIdTracked(propertyName), functionInfo, length);
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     template <>
     inline void JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(const Var instance)
     {
@@ -47,4 +48,5 @@ namespace Js
     {
         // dummy template function
     }
+#endif
 }

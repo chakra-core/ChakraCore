@@ -209,7 +209,7 @@
     <default>
       <files>SIMDExtendArgCSE.js</files>
       <baseline>SIMDExtendArgCSE.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
       <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
   </test>
@@ -223,7 +223,7 @@
   <test>
     <default>
       <files>fabs1.js</files>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,require_backend</tags>
       <compile-flags>-off:backend -asmjs -testtrace:asmjs</compile-flags>
       <baseline>fabs1.baseline</baseline>
     </default>

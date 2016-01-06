@@ -120,7 +120,9 @@ namespace Js
     OpCode ByteCodeReader::ReadOp(LayoutSize& layoutSize)
     {
         OpCode op = ReadOp(m_currentLocation, layoutSize);
+#if ENABLE_NATIVE_CODEGEN
         Assert(!OpCodeAttr::BackEndOnly(op));
+#endif
         return op;
     }
 

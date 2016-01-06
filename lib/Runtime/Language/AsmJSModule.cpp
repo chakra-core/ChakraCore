@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+
+#ifndef TEMP_DISABLE_ASMJS
 #include "ByteCode\Symbol.h"
 #include "ByteCode\FuncInfo.h"
 #include "ByteCode\ByteCodeAPI.h"
@@ -2578,3 +2580,4 @@ namespace Js
         return true;
     }
 };
+#endif

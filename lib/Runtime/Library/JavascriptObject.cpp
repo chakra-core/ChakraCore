@@ -359,7 +359,9 @@ namespace Js
             case TypeIds_Array:
             case TypeIds_ES5Array:
             case TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
             case TypeIds_CopyOnAccessNativeIntArray:
+#endif
             case TypeIds_NativeFloatArray:
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Array") == 0)
                 {
@@ -569,7 +571,9 @@ namespace Js
         case TypeIds_Array:
         case TypeIds_ES5Array:
         case TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
         case TypeIds_CopyOnAccessNativeIntArray:
+#endif
         case TypeIds_NativeFloatArray:
         case TypeIds_Function:
         case TypeIds_String:
@@ -822,7 +826,9 @@ namespace Js
             return args[1];
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
+#endif
         RecyclableObject* object = RecyclableObject::FromVar(args[1]);
         RecyclableObject* newPrototype = RecyclableObject::FromVar(args[2]);
 
@@ -1209,7 +1215,9 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.defineProperty");
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
+#endif
         RecyclableObject* obj = RecyclableObject::FromVar(args[1]);
 
         // If the object is HostDispatch try to invoke the operation remotely
@@ -1258,7 +1266,9 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.defineProperties");
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
+#endif
         RecyclableObject *object = RecyclableObject::FromVar(args[1]);
 
         // If the object is HostDispatch try to invoke the operation remotely
@@ -1294,7 +1304,9 @@ namespace Js
         // For browser interop, simulate LdThis by calling OP implementation directly.
         // Do not have module id here so use the global id, 0.
         //
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
         Var thisArg = JavascriptOperators::OP_GetThisNoFastPath(args[0], 0, scriptContext);
         RecyclableObject* obj = RecyclableObject::FromVar(thisArg);
 
@@ -1483,7 +1495,9 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.assign");
             }
 
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
+#endif
 
             // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
             if (JavascriptProxy::Is(from))

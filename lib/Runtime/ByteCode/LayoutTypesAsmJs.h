@@ -7,6 +7,7 @@
 // "LAYOUT_TYPE", etc., to be executed for each entry.
 //
 
+#ifndef TEMP_DISABLE_ASMJS
 #ifndef LAYOUT_TYPE
 #define LAYOUT_TYPE(layout)
 #endif
@@ -135,3 +136,4 @@ LAYOUT_TYPE_WMS     ( AsmSimdTypedArr )
 #undef EXCLUDE_DUP_LAYOUT
 #undef LAYOUT_TYPE_WMS_FE
 #undef EXCLUDE_FRONTEND_LAYOUT
+#endif

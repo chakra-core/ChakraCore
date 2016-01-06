@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#if ENABLE_PROFILE_INFO
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
 #include "activscp_private.h"
 #endif
@@ -473,3 +474,4 @@ namespace Js
 
 #endif
 };
+#endif

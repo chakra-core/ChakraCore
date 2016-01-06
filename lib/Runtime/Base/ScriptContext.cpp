@@ -62,7 +62,9 @@ namespace Js
         regexStacks(nullptr),
         arrayMatchInit(false),
         config(threadContext->GetConfig(), threadContext->IsOptimizedForManyInstances()),
+#if ENABLE_BACKGROUND_PARSING
         backgroundParser(nullptr),
+#endif
 #if ENABLE_NATIVE_CODEGEN
         nativeCodeGen(nullptr),
 #endif
@@ -95,7 +97,9 @@ namespace Js
         diagnosticArena(nullptr),
         hostScriptContext(nullptr),
         scriptEngineHaltCallback(nullptr),
+#if DYNAMIC_INTERPRETER_THUNK
         interpreterThunkEmitter(nullptr),
+#endif
 #ifdef ASMJS_PLAT
         asmJsInterpreterThunkEmitter(nullptr),
         asmJsCodeGenerator(nullptr),
@@ -124,8 +128,10 @@ namespace Js
         bindRefChunkEnd(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
-        isWeakReferenceDictionaryListCleared(false),
-        referencesSharedDynamicSourceContextInfo(false)
+        isWeakReferenceDictionaryListCleared(false)
+#if ENABLE_PROFILE_INFO
+        , referencesSharedDynamicSourceContextInfo(false)
+#endif
 #if DBG
         , isInitialized(false)
         , isCloningGlobal(false)
@@ -404,11 +410,13 @@ namespace Js
 
         }
 
+#if ENABLE_BACKGROUND_PARSING
         if (this->backgroundParser != nullptr)
         {
             BackgroundParser::Delete(this->backgroundParser);
             this->backgroundParser = nullptr;
         }
+#endif
 
 #if ENABLE_NATIVE_CODEGEN
         if (this->nativeCodeGen != nullptr)
@@ -418,11 +426,13 @@ namespace Js
         }
 #endif
 
+#if DYNAMIC_INTERPRETER_THUNK
         if (this->interpreterThunkEmitter != nullptr)
         {
             HeapDelete(interpreterThunkEmitter);
             this->interpreterThunkEmitter = NULL;
         }
+#endif
 
 #ifdef ASMJS_PLAT
         if (this->asmJsInterpreterThunkEmitter != nullptr)
@@ -543,6 +553,7 @@ namespace Js
         EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_CLOSE(this);
 #endif
 
+#if ENABLE_PROFILE_INFO
         HRESULT hr = S_OK;
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
         {
@@ -552,6 +563,7 @@ namespace Js
 
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         this->ClearDynamicProfileList();
+#endif
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
@@ -598,10 +610,12 @@ namespace Js
 
         this->GetThreadContext()->SubSourceSize(this->GetSourceSize());
 
+#if DYNAMIC_INTERPRETER_THUNK
         if (this->interpreterThunkEmitter != nullptr)
         {
             this->interpreterThunkEmitter->Close();
         }
+#endif
 
 #ifdef ASMJS_PLAT
         if (this->asmJsInterpreterThunkEmitter != nullptr)
@@ -646,6 +660,7 @@ namespace Js
 #endif
 
 
+#if ENABLE_PROFILE_INFO
         // Release this only after native code gen is shut down, as there may be
         // profile info allocated from the SourceDynamicProfileManager arena.
         // The first condition might not be true if the dynamic functions have already been freed by the time
@@ -656,6 +671,7 @@ namespace Js
             Assert(this->GetDynamicSourceContextInfoMap() != nullptr);
             this->GetThreadContext()->ReleaseSourceDynamicProfileManagers(this->GetUrl());
         }
+#endif
 
         RECYCLER_PERF_COUNTER_SUB(BindReference, bindReferenceCount);
 
@@ -1083,11 +1099,13 @@ namespace Js
     void ScriptContext::InitializePreGlobal()
     {
         this->guestArena = this->GetRecycler()->CreateGuestArena(L"Guest", Throw::OutOfMemory);
+#if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         if (DynamicProfileInfo::NeedProfileInfoList())
         {
             this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
         }
+#endif
 #endif
 
         {
@@ -1112,10 +1130,12 @@ namespace Js
         srcInfo->moduleID = kmodGlobal;
         this->cache->noContextGlobalSourceInfo = srcInfo;
 
+#if ENABLE_BACKGROUND_PARSING
         if (PHASE_ON1(Js::ParallelParsePhase))
         {
             this->backgroundParser = BackgroundParser::New(this);
         }
+#endif
 
 #if ENABLE_NATIVE_CODEGEN
         // Create the native code gen before the profiler
@@ -1163,8 +1183,10 @@ namespace Js
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
         }
 
+#if DYNAMIC_INTERPRETER_THUNK
         interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
             SourceCodeAllocator(), Js::InterpreterStackFrame::InterpreterThunk);
+#endif
 
 #ifdef ASMJS_PLAT
         asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
@@ -1314,10 +1336,12 @@ namespace Js
                 requestScriptContext = this;
             }
 
+#if ENABLE_PROFILE_INFO
             if (!GetThreadContext()->RecordImplicitException())
             {
                 return FALSE;
             }
+#endif
             if (isJSFunction)
             {
                 Js::JavascriptError::MapAndThrowError(requestScriptContext, JSERR_CantExecute);
@@ -1835,7 +1859,7 @@ namespace Js
             this->scriptStartEventHandler(this);
         }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         //Blue 5491: Only start codegen if isScript. Avoid it if we are not really starting script and called from risky region such as catch handler.
         if (isScript)
         {
@@ -2222,7 +2246,9 @@ namespace Js
         sourceContextInfo->dwHostSourceContext = hostSourceContext;
         sourceContextInfo->isHostDynamicDocument = true;
         sourceContextInfo->hash = hash;
+#if ENABLE_PROFILE_INFO
         sourceContextInfo->sourceDynamicProfileManager = this->threadContext->GetSourceDynamicProfileManager(this->GetUrl(), hash, &referencesSharedDynamicSourceContextInfo);
+#endif
 
         // For the host provided dynamic code (if hostSourceContext is not NoHostSourceContext), do not add to dynamicSourceContextInfoMap
         if (hostSourceContext == Js::Constants::NoHostSourceContext)
@@ -2247,7 +2273,9 @@ namespace Js
         sourceContextInfo->sourceContextId = this->GetNextSourceContextId();
         sourceContextInfo->dwHostSourceContext = sourceContext;
         sourceContextInfo->isHostDynamicDocument = false;
+#if ENABLE_PROFILE_INFO
         sourceContextInfo->sourceDynamicProfileManager = nullptr;
+#endif
 
         if (url != nullptr)
         {
@@ -2259,6 +2287,7 @@ namespace Js
             sourceContextInfo->sourceMapUrl = CopyString(sourceMapUrl, sourceMapUrlLen, this->SourceCodeAllocator());
         }
 
+#if ENABLE_PROFILE_INFO
         if (!this->startupComplete)
         {
             sourceContextInfo->sourceDynamicProfileManager = SourceDynamicProfileManager::LoadFromDynamicProfileStorage(sourceContextInfo, this, profileDataCache);
@@ -2266,6 +2295,7 @@ namespace Js
         }
 
         this->cache->sourceContextInfoMap->Add(sourceContext, sourceContextInfo);
+#endif
         return sourceContextInfo;
     }
 
@@ -2291,6 +2321,7 @@ namespace Js
         SourceContextInfo * sourceContextInfo;
         if (this->cache->sourceContextInfoMap->TryGetValue(sourceContext, &sourceContextInfo))
         {
+#if ENABLE_PROFILE_INFO
             if (profileDataCache &&
                 sourceContextInfo->sourceDynamicProfileManager != nullptr &&
                 !sourceContextInfo->sourceDynamicProfileManager->IsProfileLoadedFromWinInet() &&
@@ -2302,6 +2333,7 @@ namespace Js
                     JS_ETW(EventWriteJSCRIPT_PROFILE_LOAD(sourceContextInfo->dwHostSourceContext, this));
                 }
             }
+#endif
             return sourceContextInfo;
         }
         return nullptr;
@@ -2355,7 +2387,7 @@ namespace Js
                 this->profiler = NoCheckHeapNew(ScriptContextProfiler);
                 this->profiler->Initialize(GetThreadContext()->GetPageAllocator(), threadContext->GetRecycler());
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
                 CreateProfilerNativeCodeGen(this->nativeCodeGen, this->profiler);
 #endif
 
@@ -2402,7 +2434,7 @@ namespace Js
                 this->profiler->AddRef();
                 this->isProfilerCreated = false;
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
                 SetProfilerFromNativeCodeGen(this->nativeCodeGen, scriptContext->GetNativeCodeGenerator());
 #endif
 
@@ -2470,7 +2502,7 @@ namespace Js
             Assert(profiler != nullptr);
             recycler->EnsureNotCollecting();
             profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
             ProfilePrintNativeCodeGen(this->nativeCodeGen);
 #endif
     }
@@ -2529,11 +2561,16 @@ namespace Js
             StartNewProfileSession();
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
             NativeCodeGenerator *pNativeCodeGen = this->GetNativeCodeGenerator();
             AutoOptionalCriticalSection autoAcquireCodeGenQueue(GetNativeCodeGenCriticalSection(pNativeCodeGen));
+#endif
 
             this->SetProfileMode(TRUE);
+
+#if ENABLE_NATIVE_CODEGEN
             SetProfileModeNativeCodeGen(pNativeCodeGen, TRUE);
+#endif
 
             // Register builtin functions
             if (m_fTraceNativeFunctionCall)
@@ -2576,6 +2613,7 @@ namespace Js
 
         OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::DeRegisterProfileProbe\n");
 
+#if ENABLE_NATIVE_CODEGEN
         // Acquire the code gen working queue - we are going to change the thunks
         NativeCodeGenerator *pNativeCodeGen = this->GetNativeCodeGenerator();
         Assert(pNativeCodeGen);
@@ -2585,12 +2623,14 @@ namespace Js
             this->SetProfileMode(FALSE);
             SetProfileModeNativeCodeGen(pNativeCodeGen, FALSE);
 
+            // DisableJIT-TODO: Does need to happen even with JIT disabled?
             // Unset the dispatch profiler:
             if (dispatchInvoke != nullptr)
             {
                 this->SetDispatchProfile(FALSE, dispatchInvoke);
             }
         }
+#endif
 
         m_inProfileCallback = TRUE;
         HRESULT hr = m_pProfileCallback->Shutdown(hrReason);
@@ -2705,6 +2745,7 @@ namespace Js
     // attaching and detaching the debugger in order to clear the list of work
     // items that are pending in the JIT job queue.
     // Alloc first and then free so that the native code generator is at a different address
+#if ENABLE_NATIVE_CODEGEN
     HRESULT ScriptContext::RecreateNativeCodeGenerator()
     {
         NativeCodeGenerator* oldCodeGen = this->nativeCodeGen;
@@ -2722,6 +2763,7 @@ namespace Js
 
         return hr;
     }
+#endif
 
     HRESULT ScriptContext::OnDebuggerAttached()
     {
@@ -2912,6 +2954,7 @@ namespace Js
         HRESULT hr = S_OK;
         if (!CONFIG_FLAG(ForceDiagnosticsMode))
         {
+#if ENABLE_NATIVE_CODEGEN
             // Recreate the native code generator so that all pending
             // JIT work items will be cleared.
             hr = RecreateNativeCodeGenerator();
@@ -2919,12 +2962,15 @@ namespace Js
             {
                 return hr;
             }
+#endif
             if (attach)
             {
                 // We need to transition to debug mode after the NativeCodeGenerator is cleared/closed. Since the NativeCodeGenerator will be working on a different thread - it may
                 // be checking on the DebuggerState (from ScriptContext) while emitting code.
                 this->GetDebugContext()->SetInDebugMode();
+#if ENABLE_NATIVE_CODEGEN
                 UpdateNativeCodeGeneratorForDebugMode(this->nativeCodeGen);
+#endif
             }
         }
         else if (attach)
@@ -2969,12 +3015,14 @@ namespace Js
         }
 
 
+#if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // Reset the dynamic profile list
         if (this->profileInfoList)
         {
             this->profileInfoList->Reset();
         }
+#endif
 #endif
         return hr;
     }
@@ -2986,7 +3034,9 @@ namespace Js
         {
             this->CurrentThunk = ProfileEntryThunk;
             this->CurrentCrossSiteThunk = CrossSite::ProfileThunk;
+#if ENABLE_NATIVE_CODEGEN
             SetProfileModeNativeCodeGen(this->GetNativeCodeGenerator(), TRUE);
+#endif
 
             // Set library to profile mode so that for built-ins all new instances of functions
             // are created with entry point set to the ProfileThunk.
@@ -3007,7 +3057,9 @@ namespace Js
         {
             this->CurrentThunk = DefaultEntryThunk;
             this->CurrentCrossSiteThunk = CrossSite::DefaultThunk;
+#if ENABLE_NATIVE_CODEGEN
             SetProfileModeNativeCodeGen(this->GetNativeCodeGenerator(), FALSE);
+#endif
 
             if (!this->IsProfiling())
             {
@@ -3247,8 +3299,13 @@ namespace Js
 #endif
 
             OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RecyclerEnumClassEnumeratorCallback\n");
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\tFunctionProxy : 0x%08X, FunctionNumber : %s, DeferredParseAttributes : %d, EntryPoint : 0x%08X (IsIntermediateCodeGenThunk : %s, isNative : %s)\n",
-                (DWORD_PTR)proxy, proxy->GetDebugNumberSet(debugStringBuffer), proxy->GetAttributes(), (DWORD_PTR)entryPoint, IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\tFunctionProxy : 0x%08X, FunctionNumber : %s, DeferredParseAttributes : %d, EntryPoint : 0x%08X",
+                (DWORD_PTR)proxy, proxy->GetDebugNumberSet(debugStringBuffer), proxy->GetAttributes(), (DWORD_PTR)entryPoint);
+#if ENABLE_NATIVE_CODEGEN
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, L" (IsIntermediateCodeGenThunk : %s, isNative : %s)\n",
+                IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
+#endif
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\n");
 
             FunctionInfo * info = pFunction->GetFunctionInfo();
             if (proxy != info)
@@ -3265,7 +3322,7 @@ namespace Js
             }
 
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
 #endif
             {
@@ -3274,7 +3331,9 @@ namespace Js
                 ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
                 scriptFunction->ChangeEntryPoint(proxy->GetDefaultEntryPointInfo(), Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
+#if ENABLE_NATIVE_CODEGEN
                 OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\tUpdated entrypoint : 0x%08X (isNative : %s)\n", (DWORD_PTR)pFunction->GetEntryPoint(), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
+#endif
             }
         }
         else
@@ -3313,7 +3372,7 @@ namespace Js
 
     JavascriptMethod ScriptContext::GetProfileModeThunk(JavascriptMethod entryPoint)
     {
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         Assert(!IsIntermediateCodeGenThunk(entryPoint));
 #endif
         if (entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk)
@@ -3939,12 +3998,16 @@ namespace Js
 
     void ScriptContext::FreeLoopBody(void* address)
     {
+#if ENABLE_NATIVE_CODEGEN
         FreeNativeCodeGenAllocation(this, address);
+#endif
     }
 
     void ScriptContext::FreeFunctionEntryPoint(Js::JavascriptMethod method)
     {
+#if ENABLE_NATIVE_CODEGEN
         FreeNativeCodeGenAllocation(this, method);
+#endif
     }
 
     void ScriptContext::RegisterAsScriptContextWithInlineCaches()
@@ -3994,7 +4057,9 @@ namespace Js
         // Because setter inline caches get registered in the store field chain, we must invalidate that
         // chain whenever we invalidate the proto chain.
         threadContext->InvalidateStoreFieldInlineCaches(propertyId);
+#if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
+#endif
         threadContext->InvalidateProtoTypePropertyCaches(propertyId);
     }
 
@@ -4004,7 +4069,9 @@ namespace Js
         // Because setter inline caches get registered in the store field chain, we must invalidate that
         // chain whenever we invalidate the proto chain.
         threadContext->InvalidateAllStoreFieldInlineCaches();
+#if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidateAllPropertyGuards();
+#endif
         threadContext->InvalidateAllProtoTypePropertyCaches();
     }
 
@@ -4017,7 +4084,9 @@ namespace Js
     void ScriptContext::InvalidateStoreFieldCaches(const PropertyId propertyId)
     {
         threadContext->InvalidateStoreFieldInlineCaches(propertyId);
+#if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);
+#endif
     }
 
     void ScriptContext::InvalidateAllStoreFieldCaches()
@@ -4175,10 +4244,12 @@ void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 }
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
 void ScriptContext::RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache)
 {
     this->threadContext->RegisterConstructorCache(propertyId, cache);
 }
+#endif
 
 void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext()
 {
@@ -4246,7 +4317,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             cache->lastUtcTimeFromStrString = str;
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     BOOL ScriptContext::IsNativeAddress(void * codeAddr)
     {
         PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->threadContext->GetPreReservedVirtualAllocator();
@@ -4361,6 +4432,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 #endif
 
+#if ENABLE_PROFILE_INFO
     void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo)
     {
         Assert(functionBody->GetScriptContext() == this);
@@ -4415,6 +4487,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
         Assert(*dynamicProfileInfo != nullptr);
     }
+#endif
 
     CharClassifier const * ScriptContext::GetCharClassifier(void) const
     {
@@ -4432,6 +4505,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         if (!startupComplete && this->cache->sourceContextInfoMap)
         {
+#if ENABLE_PROFILE_INFO
             this->cache->sourceContextInfoMap->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo* info)
             {
                 Assert(info->sourceDynamicProfileManager);
@@ -4442,7 +4516,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     OUTPUT_TRACE(Js::DynamicProfilePhase, L"Profile saving succeeded\n");
                 }
             });
-        }
+#endif
+    }
         startupComplete = true;
     }
 
@@ -4461,6 +4536,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         fastDOMenabled = true; Assert(globalObject->GetDirectHostObject() != NULL);
     }
 
+#if DYNAMIC_INTERPRETER_THUNK
     JavascriptMethod ScriptContext::GetNextDynamicAsmJsInterpreterThunk(PVOID* ppDynamicInterpreterThunk)
     {
 #ifdef ASMJS_PLAT
@@ -4494,6 +4570,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         Assert(UNREACHED);
 #endif
     }
+#endif
 
     bool ScriptContext::IsExceptionWrapperForBuiltInsEnabled()
     {
@@ -4532,11 +4609,13 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::PrintStats()
     {
+#if ENABLE_PROFILE_INFO
 #if DBG_DUMP
         DynamicProfileInfo::DumpScriptContext(this);
 #endif
 #ifdef RUNTIME_DATA_COLLECTION
         DynamicProfileInfo::DumpScriptContextToFile(this);
+#endif
 #endif
 #ifdef PROFILE_TYPES
         if (Configuration::Global.flags.ProfileTypes)
@@ -4649,6 +4728,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
 #ifdef BGJIT_STATS
         // We do not care about small script contexts without much activity - unless t
         if (PHASE_STATS1(Js::BGJitPhase) && (this->interpretedCount > 50 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag)))
@@ -5002,6 +5082,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
         OUTPUT_STATS(Js::ParsePhase, L"Script Context: 0x%p Url: %s\n", this, this->url);
         OUTPUT_STATS(Js::ParsePhase, L"  Total ThreadContext source size %d\n", this->GetThreadContext()->GetSourceSize());
+#endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
         if (this->telemetry != nullptr)

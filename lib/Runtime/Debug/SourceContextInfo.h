@@ -35,7 +35,9 @@ public:
         };
         uint      hash;                 // hash for dynamic scripts
     };
+#if ENABLE_PROFILE_INFO
     Js::SourceDynamicProfileManager * sourceDynamicProfileManager;
+#endif
 
     void EnsureInitialized();
     bool IsDynamic() const { return dwHostSourceContext == Js::Constants::NoHostSourceContext || isHostDynamicDocument; }

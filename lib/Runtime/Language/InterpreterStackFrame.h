@@ -91,7 +91,9 @@ namespace Js
         // the interpreter frame is created for.
         DWORD_PTR m_stackAddress;
 
+#if ENABLE_PROFILE_INFO
         ImplicitCallFlags * savedLoopImplicitCallFlags;
+#endif
 
         uint inlineCacheCount;
         uint currentLoopNum;
@@ -100,10 +102,12 @@ namespace Js
 
         UINT16 m_flags;                // based on InterpreterStackFrameFlags
 
+        bool closureInitDone : 1;
+#if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
-        bool closureInitDone : 1;
         uint32 switchProfileModeOnLoopEndNumber;
+#endif
         int16 nestedTryDepth;
         int16 nestedCatchDepth;
         uint retOffset;
@@ -111,7 +115,9 @@ namespace Js
 
 
         void (InterpreterStackFrame::*opLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+#if ENABLE_PROFILE_INFO
         void (InterpreterStackFrame::*opProfiledLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+#endif
 #if DBG || DBG_DUMP
         void * DEBUG_currentByteOffset;
 #endif
@@ -263,11 +269,10 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         __declspec(noinline) static Var InterpreterThunk(JavascriptCallStackLayout* layout);
-        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
 #else
         __declspec(noinline) static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var InterpreterHelper(RecyclableObject* function, ArgumentReader args, CallFlags callFlags, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
 #endif
+        static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, const bool isAsmJs = false);
     private:
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
@@ -283,8 +288,8 @@ namespace Js
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();
 
 
-        __declspec(noinline) Var ProcessThunk();
-        __declspec(noinline) Var DebugProcessThunk();
+        __declspec(noinline) Var ProcessThunk(void* returnAddress, void* addressOfReturnAddress);
+        __declspec(noinline) Var DebugProcessThunk(void* returnAddress, void* addressOfReturnAddress);
 
         void AlignMemoryForAsmJs();
 
@@ -389,11 +394,13 @@ namespace Js
         template <class T> void OP_GetMethodPropertyScoped(unaligned T* playout);
         template <class T> void OP_GetMethodPropertyScoped_NoFastPath(unaligned T* playout);
 
+#if ENABLE_PROFILE_INFO
         template <class T> void UpdateFldInfoFlagsForGetSetInlineCandidate(unaligned T* playout, FldInfoFlags& fldInfoFlags, CacheType cacheType,
                                                 DynamicProfileInfo * dynamicProfileInfo, uint inlineCacheIndex, RecyclableObject * obj);
 
         template <class T> void UpdateFldInfoFlagsForCallApplyInlineCandidate(unaligned T* playout, FldInfoFlags& fldInfoFlags, CacheType cacheType,
                                                 DynamicProfileInfo * dynamicProfileInfo, uint inlineCacheIndex, RecyclableObject * obj);
+#endif
 
         template <class T> void OP_SetProperty(unaligned T* playout);
         template <class T> void OP_SetLocalProperty(unaligned T* playout);

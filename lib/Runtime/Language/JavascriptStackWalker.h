@@ -59,6 +59,7 @@ namespace Js
         JavascriptCallStackLayout() : callInfo(0) {};
     };
 
+#if ENABLE_NATIVE_CODEGEN
     /*
      * The InlinedFrameStackWalker knows how to walk an inlinee's virtual frames inside a
      * physical frame. If the stack walker is in the inlineeFramesBeingWalked mode it
@@ -150,6 +151,7 @@ namespace Js
         int32                   currentIndex;
         int32                   frameCount;
     };
+#endif
 
     class JavascriptStackWalker
     {
@@ -157,7 +159,9 @@ namespace Js
 
     public:
         JavascriptStackWalker(ScriptContext * scriptContext, bool useEERContext = TRUE /* use leafinterpreterframe of entryexit record */, PVOID returnAddress = NULL, bool _forceFullWalk = false);
+#if ENABLE_NATIVE_CODEGEN
         ~JavascriptStackWalker() { inlinedFrameWalker.Close(); }
+#endif
         BOOL Walk(bool includeInlineFrames = true);
         BOOL GetCaller(JavascriptFunction ** ppFunc, bool includeInlineFrames = true);
         BOOL GetCallerWithoutInlinedFrames(JavascriptFunction ** ppFunc);
@@ -289,7 +293,9 @@ namespace Js
         const NativeLibraryEntryRecord::Entry *prevNativeLibraryEntry; // Saves previous nativeLibraryEntry when it moves to next
         InterpreterStackFrame  *interpreterFrame;
         InterpreterStackFrame  *tempInterpreterFrame;
+#if ENABLE_NATIVE_CODEGEN
         Js::InlinedFrameWalker  inlinedFrameWalker;
+#endif
         CallInfo                inlinedFrameCallInfo;
         bool                    inlinedFramesBeingWalked    : 1;
         bool                    isJavascriptFrame           : 1;

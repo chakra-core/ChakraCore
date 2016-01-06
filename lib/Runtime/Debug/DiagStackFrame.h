@@ -67,6 +67,7 @@ namespace Js
         virtual Var GetInnerScopeFromRegSlot(RegSlot location) override;
     };
 
+#if ENABLE_NATIVE_CODEGEN
     class DiagNativeStackFrame : public DiagStackFrame
     {
         ScriptFunction* m_function;
@@ -93,6 +94,7 @@ namespace Js
     private:
         Var * GetSlotOffsetLocation(RegSlot slotId, bool allowTemp = false);
     };
+#endif
 
     class DiagRuntimeStackFrame : public DiagStackFrame
     {

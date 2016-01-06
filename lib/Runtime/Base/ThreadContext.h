@@ -23,7 +23,6 @@ struct IActiveScriptProfilerHeapEnum;
 class DynamicProfileMutator;
 class StackProber;
 
-
 enum DisableImplicitFlags : BYTE
 {
     DisableImplicitNoFlag               = 0x00,
@@ -419,6 +418,7 @@ public:
 
     bool CanPreReserveSegmentForCustomHeap();
 
+#if ENABLE_NATIVE_CODEGEN
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
     FuncInfoToOpcodeMap * simdFuncInfoToOpcodeMap;
@@ -436,6 +436,7 @@ public:
     void AddSimdFuncToMaps(Js::OpCode op, ...);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+#endif
 
 private:
     bool noScriptScope;
@@ -635,7 +636,7 @@ private:
 #endif
 #endif
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
@@ -954,7 +955,7 @@ public:
 
     void ShutdownThreads()
     {
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         if (jobProcessor)
         {
             jobProcessor->Close();
@@ -1098,7 +1099,7 @@ public:
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     BOOL IsNativeAddress(void *pCodeAddr);
     JsUtil::JobProcessor *GetJobProcessor();
     static void CloseSharedJobProcessor(const bool waitForThread);
@@ -1158,11 +1159,13 @@ public:
     bool IsStoreFieldInlineCacheRegistered(const Js::InlineCache * inlineCache, Js::PropertyId propertyId);
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
     Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId);
     void RegisterLazyBailout(Js::PropertyId propertyId, Js::EntryPointInfo* entryPoint);
     void RegisterUniquePropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard* guard);
     void RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef);
     void RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache);
+#endif
 
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
@@ -1177,9 +1180,11 @@ private:
     static bool IsInlineCacheInList(const Js::InlineCache* inlineCache, const InlineCacheList* inlineCacheChain);
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
     void InvalidateFixedFieldGuard(Js::PropertyGuard* guard);
     PropertyGuardEntry* EnsurePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, bool& foundExistingEntry);
     void InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry);
+#endif
 
 public:
     class AutoDisableExpiration
@@ -1283,9 +1288,11 @@ public:
         ProbeCurrentStack(size, scriptContext);
     }
 
+#if ENABLE_PROFILE_INFO
     void ThreadContext::EnsureSourceProfileManagersByUrlMap();
     Js::SourceDynamicProfileManager* GetSourceDynamicProfileManager(_In_z_ const WCHAR* url, _In_ uint hash, _Inout_ bool* addref);
     uint ReleaseSourceDynamicProfileManagers(const WCHAR* url);
+#endif
 
     void EnsureSymbolRegistrationMap();
     const Js::PropertyRecord* GetSymbolFromRegistrationMap(const wchar_t* stringKey);
@@ -1509,6 +1516,7 @@ public:
 
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool IsBgJitEnabled() const { return bgJit; }
 
     void EnableBgJit(const bool enableBgJit)
@@ -1516,6 +1524,7 @@ public:
         Assert(!jobProcessor || enableBgJit == bgJit);
         bgJit = enableBgJit;
     }
+#endif
 
     void* GetJSRTRuntime() const { return jsrtRuntime; }
     void SetJSRTRuntime(void* runtime);

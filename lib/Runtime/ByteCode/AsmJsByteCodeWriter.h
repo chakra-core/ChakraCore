@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     struct AsmJsByteCodeWriter : public ByteCodeWriter
@@ -59,3 +60,4 @@ namespace Js
         void AddJumpOffset( Js::OpCodeAsmJs op, ByteCodeLabel labelId, uint fieldByteOffset );
     };
 }
+#endif

@@ -2349,7 +2349,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::IsNumberFromNativeArray(Var instance, uint32 index, ScriptContext* scriptContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         Js::TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         // Fast path for native and typed arrays.
         if ( (instanceType == TypeIds_NativeIntArray || instanceType == TypeIds_NativeFloatArray) || (instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Uint64Array) )
@@ -2860,7 +2862,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasItem(RecyclableObject* object, uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(object);
+#endif
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
             if (object->HasItem(index))
@@ -3019,6 +3023,7 @@ CommonNumber:
         }
     }
 
+#if ENABLE_PROFILE_INFO
     void JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(Var instance, const bool expectingNativeFloatArray, const bool expectingVarArray)
     {
         Assert(instance);
@@ -3056,6 +3061,7 @@ CommonNumber:
             scriptContext->optimizationOverrides.GetArraySetElementFastPathVtable() ==
                 ScriptContextOptimizationOverrideInfo::InvalidVtable;
     }
+#endif
 
     RecyclableObject *JavascriptOperators::GetCallableObjectOrThrow(const Var callee, ScriptContext *const scriptContext)
     {
@@ -3069,13 +3075,21 @@ CommonNumber:
         return RecyclableObject::FromVar(callee);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     Var JavascriptOperators::OP_GetElementI_JIT(Var instance, Var index, ScriptContext *scriptContext)
     {
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
 
         return OP_GetElementI(instance, index, scriptContext);
     }
+#else
+    Var JavascriptOperators::OP_GetElementI_JIT(Var instance, Var index, ScriptContext *scriptContext)
+    {
+        return OP_GetElementI(instance, index, scriptContext);
+    }
+#endif
 
+#if ENABLE_NATIVE_CODEGEN
     Var JavascriptOperators::OP_GetElementI_JIT_ExpectingNativeFloatArray(Var instance, Var index, ScriptContext *scriptContext)
     {
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
@@ -3092,6 +3106,7 @@ CommonNumber:
         UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
         return OP_GetElementI_JIT(instance, index, scriptContext);
     }
+#endif
 
     Var JavascriptOperators::OP_GetElementI_UInt32(Var instance, uint32 index, ScriptContext* scriptContext)
     {
@@ -3106,13 +3121,17 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetElementI_UInt32_ExpectingNativeFloatArray(Var instance, uint32 index, ScriptContext* scriptContext)
     {
+#if ENABLE_PROFILE_INFO
         UpdateNativeArrayProfileInfoToCreateVarArray(instance, true, false);
+#endif
         return OP_GetElementI_UInt32(instance, index, scriptContext);
     }
 
     Var JavascriptOperators::OP_GetElementI_UInt32_ExpectingVarArray(Var instance, uint32 index, ScriptContext* scriptContext)
     {
+#if ENABLE_PROFILE_INFO
         UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
+#endif
         return OP_GetElementI_UInt32(instance, index, scriptContext);
     }
 
@@ -3129,13 +3148,17 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetElementI_Int32_ExpectingNativeFloatArray(Var instance, int32 index, ScriptContext* scriptContext)
     {
+#if ENABLE_PROFILE_INFO
         UpdateNativeArrayProfileInfoToCreateVarArray(instance, true, false);
+#endif
         return OP_GetElementI_Int32(instance, index, scriptContext);
     }
 
     Var JavascriptOperators::OP_GetElementI_Int32_ExpectingVarArray(Var instance, int32 index, ScriptContext* scriptContext)
     {
+#if ENABLE_PROFILE_INFO
         UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
+#endif
         return OP_GetElementI_Int32(instance, index, scriptContext);
     }
 
@@ -3179,7 +3202,9 @@ CommonNumber:
     template <typename T>
     BOOL JavascriptOperators::OP_GetElementI_ArrayFastPath(T * arr, int indexInt, Var * result, ScriptContext * scriptContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
+#endif
         if (indexInt >= 0)
         {
             if (!CrossSite::IsCrossSiteObjectTyped(arr))
@@ -3204,7 +3229,9 @@ CommonNumber:
     Var JavascriptOperators::OP_GetElementI(Var instance, Var index, ScriptContext* scriptContext)
     {
         JavascriptString *temp = NULL;
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
 
         if (TaggedInt::Is(index))
         {
@@ -3541,7 +3568,7 @@ CommonNumber:
         RecyclableObject* object = nullptr;
         if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
         {
-            if(scriptContext->GetThreadContext()->RecordImplicitException())
+            if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotGet_NullOrUndefined, GetPropertyDisplayNameForError(index, scriptContext));
             }
@@ -3592,7 +3619,9 @@ CommonNumber:
 
     int32 JavascriptOperators::OP_GetNativeIntElementI(Var instance, Var index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         if (TaggedInt::Is(index))
         {
             int32 indexInt = TaggedInt::ToInt32(index);
@@ -3848,7 +3877,9 @@ CommonNumber:
 
     BOOL JavascriptOperators::OP_SetElementI(Var instance, Var index, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
 
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
 
@@ -4567,7 +4598,9 @@ CommonNumber:
             return scriptContext->GetLibrary()->GetTrue();
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         TypeId typeId = JavascriptOperators::GetTypeId(instance);
         if (typeId == TypeIds_Null || typeId == TypeIds_Undefined)
         {
@@ -4754,7 +4787,9 @@ CommonNumber:
             case TypeIds_Function:
             case TypeIds_Array:
             case TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
             case TypeIds_CopyOnAccessNativeIntArray:
+#endif
             case TypeIds_NativeFloatArray:
             case TypeIds_ES5Array:
             case TypeIds_Date:
@@ -4888,7 +4923,9 @@ CommonNumber:
     {
         RecyclableObject* enumerableObject;
         bool isCrossSite;
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(enumerable);
+#endif
         if (GetPropertyObject(enumerable, scriptContext, &enumerableObject))
         {
             isCrossSite = enumerableObject->GetScriptContext() != scriptContext;
@@ -5648,8 +5685,8 @@ CommonNumber:
 #endif
 
         ScriptContext* constructorScriptContext = function->GetScriptContext();
-        // we shouldn't try to call the constructor if it's closed already.
         Assert(!constructorScriptContext->GetThreadContext()->IsDisableImplicitException());
+        // we shouldn't try to call the constructor if it's closed already.
         constructorScriptContext->VerifyAlive(TRUE, requestContext);
 
         FunctionInfo::Attributes attributes = functionInfo->GetAttributes();
@@ -5840,6 +5877,7 @@ CommonNumber:
                     // CONSIDER: Remove only this for delayed type sharing.
                     type->ShareType();
 
+#if ENABLE_PROFILE_INFO
                     DynamicProfileInfo* profileInfo = constructorBody->HasDynamicProfileInfo() ? constructorBody->GetAnyDynamicProfileInfo() : nullptr;
                     if ((profileInfo != nullptr && profileInfo->GetImplicitCallFlags() <= ImplicitCall_None) ||
                         CheckIfPrototypeChainHasOnlyWritableDataProperties(type->GetPrototype()))
@@ -5882,6 +5920,7 @@ CommonNumber:
                             Output::Flush();
                         }
                     }
+#endif
 #endif
                 }
                 else
@@ -7196,7 +7235,9 @@ CommonNumber:
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
         RecyclableObject* object = nullptr;
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         if (FALSE == JavascriptOperators::GetPropertyObject(instance, scriptContext, &object))
         {
             // Don't error if we disabled implicit calls
@@ -7464,7 +7505,9 @@ CommonNumber:
             return;
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         RecyclableObject* object = RecyclableObject::FromVar(instance);
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
@@ -7498,7 +7541,6 @@ CommonNumber:
             currImplicitCallFlags = CheckAndUpdateFunctionBodyWithImplicitFlag(functionBody);
             RestoreImplicitFlag(scriptContext, prevImplicitCallFlags, currImplicitCallFlags);
         }
-
     }
     template void JavascriptOperators::PatchPutValue<false, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
     template void JavascriptOperators::PatchPutValue<true, InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
@@ -7564,7 +7606,9 @@ CommonNumber:
                                         flags);
              return;
         }
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         RecyclableObject *object = RecyclableObject::FromVar(instance);
 
         PropertyValueInfo info;
@@ -7620,7 +7664,9 @@ CommonNumber:
                 flags);
             return;
         }
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         RecyclableObject *object = RecyclableObject::FromVar(instance);
 
         PropertyValueInfo info;
@@ -9345,9 +9391,11 @@ CommonNumber:
             // Stack functions are deal with not mar mark them, but by nested function escape analysis
             // in the front end.  No need to box here.
             return instance;
+#if ENABLE_COPYONACCESS_ARRAY
         case Js::TypeIds_CopyOnAccessNativeIntArray:
             Assert(false);
             // fall-through
+#endif
         default:
             Assert(false);
             return instance;
@@ -9562,7 +9610,9 @@ CommonNumber:
         }
         else
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayObject);
+#endif
             switch (Js::JavascriptOperators::GetTypeId(arrayObject))
             {
             case TypeIds_Array:

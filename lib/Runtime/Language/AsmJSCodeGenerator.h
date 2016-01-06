@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     class ScriptContext;
@@ -19,3 +20,4 @@ namespace Js
 
     };
 }
+#endif

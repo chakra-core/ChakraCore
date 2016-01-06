@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_PROFILE_INFO
 #ifdef DYNAMIC_PROFILE_MUTATOR
 
 #define CREATE_MUTATOR_PROC_NAME CreateDynamicProfileMutator
@@ -20,4 +21,5 @@ public:
     typedef DynamicProfileMutator * (*CreateMutatorFunc)();
 };
 
+#endif
 #endif

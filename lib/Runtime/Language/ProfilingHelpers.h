@@ -6,6 +6,7 @@
 
 namespace Js
 {
+#if ENABLE_PROFILE_INFO
     class ProfilingHelpers
     {
     public:
@@ -60,4 +61,5 @@ namespace Js
         static void UpdateFldInfoFlagsForCallApplyInlineCandidate(RecyclableObject *const object, FldInfoFlags &fldInfoFlags, const CacheType cacheType, InlineCache *const inlineCache, FunctionBody *const functionBody);
         static InlineCache *GetInlineCache(ScriptFunction *const scriptFunction, const InlineCacheIndex inlineCacheIndex);
     };
+#endif
 }

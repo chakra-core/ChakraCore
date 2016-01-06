@@ -146,16 +146,30 @@ namespace Js
             Assert(varConst != nullptr);
             if (TaggedInt::Is(varConst))
             {
+#if ENABLE_NATIVE_CODEGEN
                 Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdC_A_I4));
+#else
+                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
                 DumpI4(TaggedInt::ToInt32(varConst));
             }
             else if (varConst == (Js::Var)&Js::NullFrameDisplay)
             {
+#if ENABLE_NATIVE_CODEGEN
                 Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdNullDisplay));
+#else
+                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                Output::Print(L" (NullDisplay)");
+#endif
             }
             else if (varConst == (Js::Var)&Js::StrictNullFrameDisplay)
             {
+#if ENABLE_NATIVE_CODEGEN
                 Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdStrictNullDisplay));
+#else
+                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                Output::Print(L" (StrictNullDisplay)");
+#endif
             }
             else
             {
@@ -174,18 +188,34 @@ namespace Js
                         JavascriptBoolean::FromVar(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
                     break;
                 case Js::TypeIds_Number:
+#if ENABLE_NATIVE_CODEGEN
                     Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdC_A_R8));
+#else
+                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
                     Output::Print(L"%G", JavascriptNumber::GetValue(varConst));
                     break;
                 case Js::TypeIds_String:
+#if ENABLE_NATIVE_CODEGEN
                     Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdStr));
+#else
+                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
                     Output::Print(L" (\"%s\")", JavascriptString::FromVar(varConst)->GetSz());
                     break;
                 case Js::TypeIds_GlobalObject:
+#if ENABLE_NATIVE_CODEGEN
                     Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdRoot));
+#else
+                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
                     break;
                 case Js::TypeIds_ModuleRoot:
+#if ENABLE_NATIVE_CODEGEN
                     Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdModuleRoot));
+#else
+                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
                     DumpI4(dumpFunction->GetModuleID());
                     break;
                 case Js::TypeIds_ES5Array:
@@ -215,13 +245,18 @@ namespace Js
             reg < dumpFunction->GetInParamsCount(); reg++)
         {
             DumpReg((RegSlot)(reg + dumpFunction->GetConstantCount() - 1));
+            // DisableJIT-TODO: Should this entire function be ifdefed?
+#if ENABLE_NATIVE_CODEGEN
             Output::Print(L"%-11s", OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_A));
+#endif
             Output::Print(L"In%d\n    ", reg);
         }
         if (dumpFunction->GetHasRestParameter())
         {
             DumpReg(dumpFunction->GetRestParamRegSlot());
+#if ENABLE_NATIVE_CODEGEN
             Output::Print(L"%-11s", OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_Rest));
+#endif
             Output::Print(L"In%d\n    ", dumpFunction->GetInParamsCount());
         }
         Output::Print(L"\n");
@@ -729,7 +764,9 @@ namespace Js
         switch (op)
         {
             case OpCode::InvalCachedScope:
+#if ENABLE_NATIVE_CODEGEN
             case OpCode::NewScopeSlots:
+#endif
                 Output::Print(L" R%u[%u]", data->R0, data->C1);
                 break;
             case OpCode::NewRegEx:
@@ -766,14 +803,18 @@ namespace Js
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
             }
+#if ENABLE_NATIVE_CODEGEN
             case OpCode::StSlot:
             case OpCode::StSlotChkUndecl:
+#endif
             case OpCode::StObjSlot:
             case OpCode::StObjSlotChkUndecl:
                 Output::Print(L" R%d[%d] = R%d ",data->Instance,data->SlotIndex,data->Value);
                 break;
             case OpCode::LdSlot:
+#if ENABLE_NATIVE_CODEGEN
             case OpCode::LdSlotArr:
+#endif
             case OpCode::LdObjSlot:
                 Output::Print(L" R%d = R%d[%d] ",data->Value,data->Instance,data->SlotIndex);
                 break;

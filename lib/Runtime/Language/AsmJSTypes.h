@@ -22,6 +22,7 @@
 
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     typedef uint32 uint32_t;
@@ -1186,3 +1187,4 @@ namespace Js
     };
 
 };
+#endif

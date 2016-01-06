@@ -98,10 +98,12 @@ namespace Js
         // can't be un-deferred yet. However, we can possibly mark isHybridDebugging and avoid deferring new runtime objects.
         EnsureReadyIfHybridDebugging(/*isScriptEngineReady*/false);
 
+#if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
         {
             this->cacheForCopyOnAccessArraySegments = RecyclerNewZ(this->recycler, CacheForCopyOnAccessArraySegments);
         }
+#endif
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::LibInitPhase);
 #endif
@@ -548,8 +550,10 @@ namespace Js
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
         nativeIntArrayType = DynamicType::New(scriptContext, TypeIds_NativeIntArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+#if ENABLE_COPYONACCESS_ARRAY
         copyOnAccessNativeIntArrayType = DynamicType::New(scriptContext, TypeIds_CopyOnAccessNativeIntArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+#endif
         nativeFloatArrayType = DynamicType::New(scriptContext, TypeIds_NativeFloatArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
@@ -1314,6 +1318,7 @@ namespace Js
             DeferredTypeHandler<InitializeMathObject>::GetDefaultInstance()));
         AddMember(globalObject, PropertyIds::Math, mathObject);
 
+#if ENABLE_NATIVE_CODEGEN
         // SIMD_JS
         // we declare global objects and lib functions only if SSE2 is available. Else, we use the polyfill.
         if (AutoSystemInfo::Data.SSE2Available() && GetScriptContext()->GetConfig()->IsSimdjsEnabled())
@@ -1330,6 +1335,7 @@ namespace Js
             simdInt32x4ToStringFunction = DefaultCreateFunction(&JavascriptSIMDInt32x4::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdInt8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDInt8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
+#endif
 
         debugObject = nullptr;
 
@@ -2617,6 +2623,7 @@ namespace Js
         mathObject->SetHasNoEnumerableProperties(true);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     // SIMD_JS
     void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2838,6 +2845,7 @@ namespace Js
 
         // end Int8x16
     }
+#endif
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2923,7 +2931,9 @@ namespace Js
         vtableAddresses[VTableValue::VtableBoolArray] = VirtualTableInfo<Js::BoolArray>::Address;
         vtableAddresses[VTableValue::VtableCharArray] = VirtualTableInfo<Js::CharArray>::Address;
         vtableAddresses[VTableValue::VtableNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
+#if ENABLE_COPYONACCESS_ARRAY
         vtableAddresses[VTableValue::VtableCopyOnAccessNativeIntArray] = VirtualTableInfo<Js::JavascriptCopyOnAccessNativeIntArray>::Address;
+#endif
         vtableAddresses[VTableValue::VtableNativeFloatArray] = VirtualTableInfo<Js::JavascriptNativeFloatArray>::Address;
         vtableAddresses[VTableValue::VtableJavascriptNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
         vtableAddresses[VTableValue::VtableJavascriptRegExp] = VirtualTableInfo<Js::JavascriptRegExp>::Address;
@@ -3080,7 +3090,6 @@ namespace Js
         isLibraryReadyForHybridDebugging = true;
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
     // Note: This function is only used in float preferencing scenarios. Should remove it once we do away with float preferencing.
 
     // Cases like,
@@ -3372,7 +3381,6 @@ namespace Js
         }
         return false;
     }
-#endif
 
     void JavascriptLibrary::TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type)
     {
@@ -4973,6 +4981,7 @@ namespace Js
         return arr;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     JavascriptNativeIntArray* JavascriptLibrary::CreateCopyOnAccessNativeIntArrayLiteral(ArrayCallSiteInfo *arrayInfo, FunctionBody *functionBody, const Js::AuxArray<int32> *ints)
     {
         AssertMsg(copyOnAccessNativeIntArrayType, "Where's arrayType?");
@@ -4981,6 +4990,7 @@ namespace Js
 
         return arr;
     }
+#endif
 
     JavascriptNativeFloatArray* JavascriptLibrary::CreateNativeFloatArrayLiteral(uint32 length)
     {
@@ -5390,11 +5400,14 @@ namespace Js
         return AllocatorNew(RecyclerJavascriptNumberAllocator, numberAllocator, JavascriptNumber, value, numberTypeStatic);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     JavascriptNumber* JavascriptLibrary::CreateCodeGenNumber(CodeGenNumberAllocator * alloc, double value)
     {
         AssertMsg(numberTypeStatic, "Where's numberTypeStatic?");
         return new (alloc->Alloc()) JavascriptNumber(value, numberTypeStatic);
     }
+#endif
+
 #endif
 
     DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject()
@@ -5678,6 +5691,7 @@ namespace Js
         return nullptr;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptLibrary::IsCopyOnAccessArrayCallSite(JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo, uint32 length)
     {
         return
@@ -5700,6 +5714,7 @@ namespace Js
         return lib->cacheForCopyOnAccessArraySegments
             && lib->cacheForCopyOnAccessArraySegments->IsValidIndex(arrayInfo->copyOnAccessArrayCacheIndex);
     }
+#endif
 
     // static
     bool JavascriptLibrary::IsTypedArrayConstructor(Var constructor, ScriptContext* scriptContext)
@@ -5716,7 +5731,6 @@ namespace Js
             || constructor == library->GetFloat64ArrayConstructor();
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
     JavascriptFunction ** JavascriptLibrary::GetBuiltinFunctions()
     {
         AssertMsg(this->builtinFunctions, "builtinFunctions table must've been initialized as part of library initialization!");
@@ -5729,6 +5743,7 @@ namespace Js
         return this->vtableAddresses;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     //static
     BuiltinFunction JavascriptLibrary::GetBuiltInInlineCandidateId(OpCode opCode)
     {
@@ -5825,6 +5840,7 @@ namespace Js
 
         return BuiltinFunction::None;
     }
+#endif
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
@@ -5838,7 +5854,6 @@ namespace Js
 
         return type;
     }
-#endif
 
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const wchar_t *pwszObjectName = L#object;
@@ -6642,6 +6657,7 @@ namespace Js
         return hr;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     HRESULT JavascriptLibrary::ProfilerRegisterSIMD()
     {
         HRESULT hr = S_OK;
@@ -6776,6 +6792,7 @@ namespace Js
 
         return hr;
     }
+#endif
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

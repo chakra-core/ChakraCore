@@ -115,10 +115,12 @@ namespace Js
         return ToVar(value);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     __inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
     {
         return ToVar(value);
     }
+#endif
 
     __inline Var JavascriptNumber::ToVar(double value)
     {
@@ -178,10 +180,13 @@ namespace Js
         return scriptContext->GetLibrary()->CreateNumber(value, scriptContext->GetNumberAllocator());
     }
 
+#if ENABLE_NATIVE_CODEGEN
     __inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->CreateCodeGenNumber(alloc, value);
     }
+#endif
+
 #endif
 
     __inline JavascriptString * JavascriptNumber::ToStringNan(ScriptContext* scriptContext)

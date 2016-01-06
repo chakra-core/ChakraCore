@@ -96,10 +96,15 @@ namespace Js
 
     Var JavascriptStackWalker::GetCurrentArgumentsObject() const
     {
+#if ENABLE_PROFILE_INFO
         if (interpreterFrame)
+#else
+        Assert(interpreterFrame);
+#endif
         {
             return interpreterFrame->GetArgumentsObject();
         }
+#if ENABLE_NATIVE_CODEGEN
         else
         {
             if (inlinedFramesBeingWalked)
@@ -111,14 +116,20 @@ namespace Js
                 return this->GetCurrentNativeArgumentsObject();
             }
         }
+#endif
     }
 
     void JavascriptStackWalker::SetCurrentArgumentsObject(Var args)
     {
+#if ENABLE_NATIVE_CODEGEN
         if (interpreterFrame)
+#else
+        Assert(interpreterFrame);
+#endif
         {
             interpreterFrame->SetArgumentsObject(args);
         }
+#if ENABLE_NATIVE_CODEGEN
         else
         {
             if (inlinedFramesBeingWalked)
@@ -130,6 +141,7 @@ namespace Js
                 this->SetCurrentNativeArgumentsObject(args);
             }
         }
+#endif
     }
 
     Var JavascriptStackWalker::GetPermanentArguments() const
@@ -188,6 +200,7 @@ namespace Js
 
     bool JavascriptStackWalker::GetThis(Var* pVarThis, int moduleId) const
     {
+#if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
             if (inlinedFrameWalker.GetArgc() == 0)
@@ -202,6 +215,7 @@ namespace Js
             return true;
         }
         else
+#endif
         {
             CallInfo const *callInfo = this->GetCallInfo();
             if (callInfo->Count == 0)
@@ -264,11 +278,14 @@ namespace Js
     {
         Assert(this->IsJavascriptFrame());
 
+#if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
             return inlinedFrameWalker.GetArgv(/* includeThis = */ false);
         }
-        else if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
+        else 
+#endif            
+            if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments().Values;
@@ -301,7 +318,7 @@ namespace Js
                 }
             }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
             DWORD_PTR pCodeAddr;
             uint loopNum = LoopHeader::NoLoop;
             if (this->lastInternalFrameAddress != nullptr)
@@ -453,6 +470,7 @@ namespace Js
             if (this->interpreterFrame && (this->interpreterFrame->GetFlags() & InterpreterStackFrameFlags_FromBailOut))
             {
                 previousInterpreterFrameIsFromBailout = true;
+#if ENABLE_NATIVE_CODEGEN
                 bool isCurrentPhysicalFrameForLoopBody = this->IsCurrentPhysicalFrameForLoopBody();
                 Assert(!inlinedFramesBeingWalked);
                 if (includeInlineFrames)
@@ -489,6 +507,10 @@ namespace Js
                     // Note that we already have an assert in CheckJavascriptFrame to ensure this.
                     SetCachedInternalFrameInfoForLoopBody();
                 }
+#else
+                // How did we bail out when JIT was disabled?
+                Assert(false);
+#endif
             }
             else
             {
@@ -563,6 +585,7 @@ namespace Js
         // Walk one frame up the call stack.
         this->interpreterFrame = NULL;
 
+#if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
             Assert(includeInlineFrames);
@@ -586,6 +609,7 @@ namespace Js
 
             return true;
         }
+#endif
 
         if (this->isInitialFrame)
         {
@@ -782,7 +806,7 @@ namespace Js
 
             this->tempInterpreterFrame = this->interpreterFrame->GetPreviousFrame();
 
-#if DBG
+#if DBG && ENABLE_NATIVE_CODEGEN
             if (((CallInfo const *)&argv[JavascriptFunctionArgIndex_CallInfo])->Flags & CallFlags_InternalFrame)
             {
                 // The return address of the interpreterFrame is the same as the entryPoint for a jitted loop body.
@@ -823,7 +847,7 @@ namespace Js
             }
         }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         BOOL isNativeAddr = JavascriptFunction::IsNativeAddress(this->scriptContext, codeAddr);
         if (isNativeAddr)
         {
@@ -915,11 +939,14 @@ namespace Js
     {
         Assert(this->IsJavascriptFrame());
 
+#if ENABLE_NATIVE_CODEGEN
         if (includeInlinedFrames && inlinedFramesBeingWalked)
         {
             return inlinedFrameWalker.GetFunctionObject();
         }
-        else if (this->isNativeLibraryFrame)
+        else 
+#endif
+            if (this->isNativeLibraryFrame)
         {
             // Return saved function. Do not read from stack as compiler may stackpack/optimize args.
             return JavascriptFunction::FromVar(this->prevNativeLibraryEntry->function);
@@ -933,11 +960,13 @@ namespace Js
     void JavascriptStackWalker::SetCurrentFunction(JavascriptFunction * function)
     {
         Assert(this->IsJavascriptFrame());
+#if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
         {
             inlinedFrameWalker.SetFunctionObject(function);
         }
         else
+#endif
         {
             this->GetCurrentArgv()[JavascriptFunctionArgIndex_Function] = function;
         }
@@ -1090,6 +1119,7 @@ namespace Js
         return false;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     bool InlinedFrameWalker::FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout, int loopNum, bool noAlloc)
     {
         bool inlinedFramesFound = false;
@@ -1319,6 +1349,7 @@ namespace Js
         this->frameCount     = frameCount;
         this->currentIndex   = -1;
     }
+#endif
 
 #if DBG
     // Force a stack walk which till we find an interpreter frame

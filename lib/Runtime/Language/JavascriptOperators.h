@@ -282,8 +282,11 @@ namespace Js
         static BOOL OP_HasItem(Var instance, Var aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI(Var instance, Var aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI_JIT(Var instance, Var index, ScriptContext *scriptContext);
+#if ENABLE_NATIVE_CODEGEN
         static Var OP_GetElementI_JIT_ExpectingNativeFloatArray(Var instance, Var index, ScriptContext *scriptContext);
         static Var OP_GetElementI_JIT_ExpectingVarArray(Var instance, Var index, ScriptContext *scriptContext);
+#endif
+
         static Var OP_GetElementI_UInt32(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI_UInt32_ExpectingNativeFloatArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI_UInt32_ExpectingVarArray(Var instance, uint32 aElementIndex, ScriptContext* scriptContext);
@@ -302,6 +305,7 @@ namespace Js
         static Var OP_GetMethodElement_Int32(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
         static BOOL OP_SetElementI(Var instance, Var aElementIndex, Var aValue, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static BOOL OP_SetElementI_JIT(Var instance, Var aElementIndex, Var aValue, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
+
         static BOOL OP_SetElementI_UInt32(Var instance, uint32 aElementIndex, Var aValue, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static BOOL OP_SetElementI_Int32(Var instance, int aElementIndex, Var aValue, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
         static BOOL SetElementIHelper(Var receiver, RecyclableObject* object, Var index, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags);
@@ -560,9 +564,10 @@ namespace Js
         static void MapObjectAndPrototypes(RecyclableObject* object, Func func);
         template <BOOL stopAtProxy, class Func>
         static bool MapObjectAndPrototypesUntil(RecyclableObject* object, Func func);
+#if ENABLE_PROFILE_INFO
         static void UpdateNativeArrayProfileInfoToCreateVarArray(Var instance, const bool expectingNativeFloatArray, const bool expectingVarArray);
-
         static bool SetElementMayHaveImplicitCalls(ScriptContext *const scriptContext);
+#endif
         static RecyclableObject *GetCallableObjectOrThrow(const Var callee, ScriptContext *const scriptContext);
 
         static Js::Var BoxStackInstance(Js::Var value, ScriptContext * scriptContext, bool allowStackFunction = false);

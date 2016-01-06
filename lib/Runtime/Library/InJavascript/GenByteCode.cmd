@@ -2,6 +2,11 @@
 setlocal
 set _HASERROR=0
 
+if "%1"=="-nojit" (
+    set _suffix=.nojit
+    shift
+)
+
 :: This script will expect ch.exe to be built for x86_debug and x64_debug
 set _BinLocation=%~dp0..\..\..\..\Build\VcBuild\bin
 if "%OutBaseDir%" NEQ "" (
@@ -29,10 +34,10 @@ exit /B %_HASERROR%
 
 :GenerateLibraryBytecodeHeader
 
-echo Generating %1.bc.32b.h
-call :Generate %1 %_BinLocation%\x86_debug %1.bc.32b.h
-echo Generating %1.bc.64b.h
-call :Generate %1 %_BinLocation%\x64_debug %1.bc.64b.h
+echo Generating %1%_suffix%.bc.32b.h
+call :Generate %1 %_BinLocation%\x86_debug %1%_suffix%.bc.32b.h
+echo Generating %1%_suffix%.bc.64b.h
+call :Generate %1 %_BinLocation%\x64_debug %1%_suffix%.bc.64b.h
 exit /B 0
 
 :Generate

@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
+
+#ifndef TEMP_DISABLE_ASMJS
+
 #include "..\Backend\CodeGenAllocators.h"
 #ifdef DBG_DUMP
 #include "ByteCode\ByteCodeDumper.h"
@@ -299,3 +302,4 @@ namespace Js
     }
 
 };
+#endif

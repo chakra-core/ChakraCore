@@ -3,6 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
+#ifndef TEMP_DISABLE_ASMJS
 #define ASMMATH_BUILTIN_SIZE (32)
 #define ASMARRAY_BUILTIN_SIZE (16)
 #define ASMSIMD_BUILTIN_SIZE (128)
@@ -607,3 +609,4 @@ namespace Js {
         static void * ConvertFrameForJavascript(void* asmJsMemory, ScriptFunction * func);
     };
 };
+#endif

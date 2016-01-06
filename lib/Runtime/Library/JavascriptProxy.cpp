@@ -53,7 +53,9 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, L"target");
         }
         target = DynamicObject::FromVar(args[1]);
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(target);
+#endif
         if (JavascriptProxy::Is(target))
         {
             if (JavascriptProxy::FromVar(target)->GetTarget() == nullptr)

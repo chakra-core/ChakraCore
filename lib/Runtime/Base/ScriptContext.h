@@ -696,7 +696,11 @@ private:
 
         ScriptConfiguration config;
         CharClassifier *charClassifier;
+
+        // DisableJIT-TODO: Switch this to Dynamic thunk ifdef instead
+#if ENABLE_NATIVE_CODEGEN
         InterpreterThunkEmitter* interpreterThunkEmitter;
+
         BackgroundParser *backgroundParser;
 #ifdef ASMJS_PLAT
         InterpreterThunkEmitter* asmJsInterpreterThunkEmitter;
@@ -705,7 +709,6 @@ private:
         AsmFunctionMap* asmJsEnvironmentMap;
         ArenaAllocator* debugTransitionAlloc;
 #endif
-#if ENABLE_NATIVE_CODEGEN
         NativeCodeGenerator* nativeCodeGen;
 #endif
 
@@ -726,7 +729,9 @@ private:
         double lastNumberToStringRadix10;
         double lastUtcTimeFromStr;
 
+#if ENABLE_PROFILE_INFO
         bool referencesSharedDynamicSourceContextInfo;
+#endif
 
         // We could delay the actual close after callRootLevel is 0.
         // this is to indicate the actual close is called once only.
@@ -762,8 +767,10 @@ private:
         BOOL m_fTraceDomCall;
         BOOL m_inProfileCallback;
 
+#if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
+#endif
 #endif
 #if DEBUG
         static int scriptContextCount;
@@ -827,10 +834,12 @@ private:
 
         bool IsClosed() const { return isClosed; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
+#if ENABLE_NATIVE_CODEGEN
         bool IsClosedNativeCodeGenerator() const
         {
             return !nativeCodeGen || ::IsClosedNativeCodeGenerator(nativeCodeGen);
         }
+#endif
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
@@ -972,11 +981,14 @@ private:
           {
               this->cache->sourceContextInfoMap = nullptr;
               this->cache->dynamicSourceContextInfoMap = nullptr;
+#if ENABLE_PROFILE_INFO
               this->referencesSharedDynamicSourceContextInfo = false;
+#endif
           }
         }
 #endif
 
+#if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         void ClearDynamicProfileList()
         {
@@ -988,6 +1000,7 @@ private:
         }
 
         SListBase<DynamicProfileInfo *> * GetProfileInfoList() { return profileInfoList; }
+#endif
 #endif
 
         SRCINFO const * GetModuleSrcInfo(Js::ModuleID moduleID);
@@ -1105,7 +1118,9 @@ private:
 #if ENABLE_NATIVE_CODEGEN
         NativeCodeGenerator * GetNativeCodeGenerator() const { return nativeCodeGen; }
 #endif
+#if ENABLE_BACKGROUND_PARSING
         BackgroundParser * GetBackgroundParser() const { return backgroundParser; }
+#endif
 
         void OnScriptStart(bool isRoot, bool isScript);
         void OnScriptEnd(bool isRoot, bool isForcedEnd);
@@ -1150,7 +1165,7 @@ private:
         void RecordException(Js::JavascriptExceptionObject * exceptionObject, bool propagateToDebugger = false);
         __declspec(noreturn) void RethrowRecordedException(JavascriptExceptionObject::HostWrapperCreateFuncType hostWrapperCreateFunc);
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         BOOL IsNativeAddress(void * codeAddr);
 #endif
 
@@ -1268,7 +1283,9 @@ private:
         void ClearInlineCachesWithDeadWeakRefs();
 #endif
         void ClearScriptContextCaches();
+#if ENABLE_NATIVE_CODEGEN
         void RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache);
+#endif
 
     public:
         void RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext();
@@ -1360,7 +1377,9 @@ private:
         void TransitionEnvironmentForDebugger(ScriptFunction * scriptFunction);
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
         HRESULT RecreateNativeCodeGenerator();
+#endif
 
         HRESULT OnDebuggerAttached();
         HRESULT OnDebuggerDetached();
@@ -1421,11 +1440,13 @@ private:
         static charcount_t AppendWithEscapeCharacters(Js::StringBuilder<ArenaAllocator>* stringBuilder, const WCHAR* sourceString, charcount_t sourceStringLen, WCHAR escapeChar, WCHAR charToEscape);
 
     public:
+#if DYNAMIC_INTERPRETER_THUNK
         JavascriptMethod GetNextDynamicAsmJsInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         JavascriptMethod GetNextDynamicInterpreterThunk(PVOID* ppDynamicInterpreterThunk);
         BOOL IsDynamicInterpreterThunk(void* address);
         void ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList);
         void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
+#endif
 
         void SetProfileMode(BOOL fSet);
         static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
@@ -1462,7 +1483,9 @@ private:
         static HRESULT FunctionExitSenderThunk(PROFILER_TOKEN functionId, PROFILER_TOKEN scriptId, ScriptContext *pScriptContext);
         static HRESULT FunctionExitByNameSenderThunk(const wchar_t *pwszFunctionName, ScriptContext *pScriptContext);
 
+#if ENABLE_PROFILE_INFO
         void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);
+#endif
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         uint allocId;
 #endif

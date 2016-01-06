@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#if ENABLE_PROFILE_INFO
 #ifdef DYNAMIC_PROFILE_MUTATOR
 #include "DynamicProfileMutator.h"
 
@@ -61,4 +62,5 @@ DynamicProfileMutator::GetMutator()
     return mutator;
 }
 
+#endif
 #endif

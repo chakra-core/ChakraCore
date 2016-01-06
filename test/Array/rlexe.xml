@@ -600,7 +600,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_bugs.js</files>
-      <tags>BugFix</tags>
+      <tags>BugFix,require_backend</tags>
       <compile-flags>-force:copyonaccessarray</compile-flags>
       <baseline>CopyOnAccessArray_bugs.baseline</baseline>
     </default>
@@ -608,7 +608,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_cache_index_overflow.js</files>
-      <tags>BugFix</tags>
+      <tags>BugFix,require_backend</tags>
       <compile-flags>-force:copyonaccessarray -testtrace:CopyOnAccessArray</compile-flags>
       <baseline>CopyOnAccessArray_cache_index_overflow.baseline</baseline>
     </default>
