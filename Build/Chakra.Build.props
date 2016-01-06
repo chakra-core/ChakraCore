@@ -44,6 +44,14 @@
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
+
+      <!-- ======== For Code Covearge ======== -->
+      <Optimization Condition="'$(ENABLE_CODECOVERAGE)'=='true'">Disabled</Optimization>
     </ClCompile>
+
+    <Link>
+      <!-- ======== For Code Covearge ======== -->
+      <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
 </Project>
