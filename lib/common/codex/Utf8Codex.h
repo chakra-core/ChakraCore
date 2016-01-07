@@ -9,11 +9,10 @@
 #else
 
 // TODO: Abstract out into it's own file
-#include "inc/rt/sal.h"
-#include <stdint.h>
-#include <stddef.h>
-typedef char BYTE;
-typedef unsigned char BOOL;
+#include "inc/pal_mstypes.h"
+#include "inc/rt/palrt.h"
+#include "inc/rt/no_sal2.h"
+#include "inc/rt/safecrt.h"
 
 // Templates are defined here in order to avoid a dependency on C++
 // <type_traits> header file,
@@ -61,6 +60,7 @@ inline ENUMTYPE operator ~ (ENUMTYPE a) { return ENUMTYPE(~((_ENUM_FLAG_SIZED_IN
 inline ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^ ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
 inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
 }
+
 #endif
 
 typedef unsigned __int32 uint32;
