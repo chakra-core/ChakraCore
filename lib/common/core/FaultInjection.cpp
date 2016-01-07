@@ -905,7 +905,14 @@ namespace Js
         if (vectoredExceptionHandler != nullptr)
         {
             RemoveVectoredExceptionHandler(vectoredExceptionHandler);
-            exceptionFilterRemovalLastError = GetLastError(); // looks sometimes the removal fails
+
+            // remove the handler from the list second time. 
+            // This code is called inside a exception handler, when the exception handler is called, 
+            // the refcount of the handler in ntdll!LdrpVectorHandlerList is increased, 
+            // so need to call RemoveVectoredExceptionHandler twice to really remove the handler from the list
+            // otherwise the exception from the handler itself will re-enter the handler
+            RemoveVectoredExceptionHandler(vectoredExceptionHandler);
+
             vectoredExceptionHandler = nullptr;
         }
     }
@@ -1375,6 +1382,7 @@ namespace Js
 #endif  //_M_ARM and _M_ARM64
     }
 
+    static volatile bool inExceptionHandler = false;
     LONG WINAPI FaultInjection::FaultInjectionExceptionFilter(_In_  struct _EXCEPTION_POINTERS *ExceptionInfo)
     {
         RemoveExceptionFilters();
@@ -1383,6 +1391,17 @@ namespace Js
         {
             DebugBreak();
         }
+
+        if (inExceptionHandler) 
+        {
+            // Let it crash and the postmorterm debugger can catch it.
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+
+        struct AutoValue {
+            AutoValue() { inExceptionHandler = true; }
+            ~AutoValue() { inExceptionHandler = false; }
+        } autoVal;
         FaultInjection::Global.FaultInjetionAnalyzeException(ExceptionInfo);
         return EXCEPTION_EXECUTE_HANDLER;
     }
