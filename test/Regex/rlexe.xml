@@ -34,6 +34,7 @@
     <default>
       <files>configurableTest.js</files>
       <baseline>configurableTest.baseline</baseline>
+      <compile-flags>-ES6RegExPrototypeProperties-</compile-flags>
     </default>
   </test>
   <test>
@@ -138,6 +139,7 @@
     <default>
       <files>properties.js</files>
       <baseline>properties.baseline</baseline>
+      <compile-flags>-ES6RegExPrototypeProperties-</compile-flags>
     </default>
   </test>
   <test>

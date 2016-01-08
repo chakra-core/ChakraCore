@@ -2534,24 +2534,30 @@ namespace Js
 
         Recycler *const recycler = GetRecycler();
 
+        const ScriptConfiguration *scriptConfig = scriptContext->GetConfig();
+
         // Creating the regex prototype object requires compiling an empty regex, which may require error types to be
         // initialized first (such as when a stack probe fails). So, the regex prototype and other things that depend on it are
         // initialized here, which will be after the dependency types are initialized.
         //
         // In ES6, RegExp.prototype is not a RegExp object itself so we do not need to wait and create an empty RegExp.
         // Instead, we just create an ordinary object prototype for RegExp.prototype in InitializePrototypes.
-        if (!scriptContext->GetConfig()->IsES6PrototypeChain() && regexPrototype == nullptr)
+        if (!scriptConfig->IsES6PrototypeChain() && regexPrototype == nullptr)
         {
             regexPrototype = RecyclerNew(recycler, JavascriptRegExp, emptyRegexPattern,
                 DynamicType::New(scriptContext, TypeIds_RegEx, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeRegexPrototype>::GetDefaultInstance()));
         }
 
-        regexType = DynamicType::New(scriptContext, TypeIds_RegEx, regexPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+        SimplePathTypeHandler *typeHandler =
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true);
+        // See JavascriptRegExp::IsWritable for property writability
+        if (!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            typeHandler->ClearHasOnlyWritableDataProperties();
+        }
 
-        // See JavascriptRegExp::IsWritable for special non-writable properties
-        regexType->GetTypeHandler()->ClearHasOnlyWritableDataProperties();
+        regexType = DynamicType::New(scriptContext, TypeIds_RegEx, regexPrototype, nullptr, typeHandler, true, true);
     }
 
     void JavascriptLibrary::InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3630,6 +3636,26 @@ namespace Js
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::toString, &JavascriptRegExp::EntryInfo::ToString, 0);
         // This is deprecated. Should be guarded with appropriate version flag.
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::compile, &JavascriptRegExp::EntryInfo::Compile, 2);
+
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
+        if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
+
+            if (scriptConfig->IsES6RegExStickyEnabled())
+            {
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky, nullptr);
+            }
+
+            if (scriptConfig->IsES6UnicodeExtensionsEnabled())
+            {
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
+            }
+        }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
 
