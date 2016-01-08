@@ -568,6 +568,12 @@ CmdLineArgsParser::Parse(int argc, __in_ecount(argc) LPWSTR argv[])
             break;
         }
     }
+
+    if(this->flagTable.Filename == nullptr)
+    {
+        this->flagTable.Filename = L"ttdSentinal.js";
+    }
+
     return err;
 }
 

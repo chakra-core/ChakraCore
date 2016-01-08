@@ -2805,6 +2805,10 @@ namespace Js
             ULONG * line, LONG * col);
 #endif
 
+#if ENABLE_TTD
+        void GetSourceLineFromStartOffset_TTD(const uint startOffset, ULONG* line, LONG* col);
+#endif
+
         HRESULT RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent = FALSE);
         HRESULT ReportScriptCompiled();
         HRESULT ReportFunctionCompiled();

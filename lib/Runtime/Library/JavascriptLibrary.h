@@ -545,6 +545,28 @@ namespace Js
         const PropertyDescriptor* GetDefaultPropertyDescriptor() const { return &defaultPropertyDescriptor; }
         DynamicObject* GetMissingPropertyHolder() const { return missingPropertyHolder; }
 
+#if ENABLE_TTD
+        Js::PropertyId ExtractPrimitveSybbolId_TTD(Var value);
+        Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
+
+        Js::RecyclableObject* CreateBooleanObject_TTD(Var value);
+        Js::RecyclableObject* CreateNumberObject_TTD(Var value);
+        Js::RecyclableObject* CreateStringObject_TTD(Var value);
+        Js::RecyclableObject* CreateSymbolObject_TTD(Var value);
+
+        Js::RecyclableObject* CreateDate_TTD(double value);
+        Js::RecyclableObject* CreateRegex_TTD(const wchar_t* pSource, UnifiedRegex::RegexFlags flags, CharCount lastIndex);
+        Js::RecyclableObject* CreateError_TTD();
+
+        Js::RecyclableObject* CreateSet_TTD();
+        static void AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value);
+
+        Js::RecyclableObject* CreateMap_TTD();
+        static void AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value);
+
+        Js::RecyclableObject* CreateExternalFunction_TTD(Js::JavascriptString* fname);
+        Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+#endif
 
 #ifdef ENABLE_INTL_OBJECT
         DynamicObject* GetINTLObject() const { return IntlObject; }

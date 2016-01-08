@@ -470,6 +470,65 @@ STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ J
 
         JsrtContext * context = JsrtContext::New(runtime);
 
+#if ENABLE_TTD
+        if(!threadContext->IsTTDInitialized())
+        {
+            if(Js::Configuration::Global.flags.TTRecord != nullptr || Js::Configuration::Global.flags.TTDebug != nullptr)
+            {
+                LPCWSTR optRecordDir = Js::Configuration::Global.flags.TTRecord;
+                LPCWSTR optReplayDir = Js::Configuration::Global.flags.TTDebug;
+
+                AssertMsg(optRecordDir == nullptr || optReplayDir == nullptr, "Can't set both of these at the same time!!!");
+
+#if ENABLE_TTD_DEBUGGING
+                threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+#endif
+
+                if(optRecordDir != nullptr)
+                {
+                    wchar* ttdlogStr = nullptr;
+                    threadContext->TTDInitializeTTDUriFunction(optRecordDir, &ttdlogStr);
+
+                    threadContext->InitTimeTravel(ttdlogStr, true, false);
+
+                    CoTaskMemFree(ttdlogStr);
+                }
+
+                if(optReplayDir != nullptr)
+                {
+                    wchar* ttdlogStr = nullptr;
+                    threadContext->TTDInitializeTTDUriFunction(optReplayDir, &ttdlogStr);
+
+                    threadContext->InitTimeTravel(ttdlogStr, false, true);
+
+                    CoTaskMemFree(ttdlogStr);
+                }
+            }
+
+            if(Js::Configuration::Global.flags.TTDebug != nullptr && Js::Configuration::Global.flags.TTDCmdsFromFile != nullptr)
+            {
+                uint32 cmdFileLen = wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
+                char* cmdFile = HeapNewArrayZ(char, cmdFileLen);
+
+                for(uint32 i = 0; i < cmdFileLen; ++i)
+                {
+                    cmdFile[i] = (char)Js::Configuration::Global.flags.TTDCmdsFromFile[i];
+                }
+
+                FILE* stream;
+                freopen_s(&stream, cmdFile, "r", stdin);
+
+                HeapDeleteArray(cmdFileLen, cmdFile);
+            }
+        }
+
+        if(threadContext->TTDLog != nullptr)
+        {
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+            context->GetScriptContext()->InitializeCoreImage_TTD();
+        }
+#endif
+
         *newContext = (JsContextRef)context;
         return JsNoError;
     });
@@ -499,6 +558,24 @@ STDAPI_(JsErrorCode) JsSetCurrentContext(_In_ JsContextRef newContext)
         {
             return JsErrorInThreadServiceCallback;
         }
+
+#if ENABLE_TTD
+        //If we are unloading the context then we are done with TTD so write out the result and call it a day
+        if(currentContext)
+        {
+            ThreadContext* threadContext = currentContext->GetRuntime()->GetThreadContext();
+            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+            {
+                //Don't need to emit if we are doing replay
+                if(Js::Configuration::Global.flags.TTRecord != nullptr)
+                {
+                    threadContext->EmitTTDLog();
+                }
+
+                threadContext->EndCtxTimeTravel(currentContext->GetScriptContext());
+            }
+        }
+#endif
 
         if (!JsrtContext::TrySetCurrent((JsrtContext *)newContext))
         {
@@ -566,6 +643,14 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
     {
         Js::Throw::OutOfMemory();
     }
+
+#if ENABLE_TTD
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        AssertMsg(false, "Need to implement support here!!!");
+    }
+#endif
 
     Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
     const Js::PropertyRecord *record;
@@ -689,6 +774,14 @@ STDAPI_(JsErrorCode) JsConvertValueToBoolean(_In_ JsValueRef value, _Out_ JsValu
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, true, false, false);
+        }
+#endif
+
         if (Js::JavascriptConversion::ToBool((Js::Var)value, scriptContext))
         {
             *result = scriptContext->GetLibrary()->GetTrue();
@@ -777,7 +870,23 @@ STDAPI_(JsErrorCode) JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue
     }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTAllocateDouble(scriptContext, dbl);
+        }
+#endif
+
         *asValue = Js::JavascriptNumber::ToVarNoCheck(dbl, scriptContext);
+
+#if ENABLE_TTD
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*asValue))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*asValue));
+        }
+#endif
         return JsNoError;
     });
 }
@@ -791,7 +900,24 @@ STDAPI_(JsErrorCode) JsIntToNumber(_In_ int intValue, _Out_ JsValueRef *asValue)
     }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTAllocateInt(scriptContext, intValue);
+        }
+#endif
+
         *asValue = Js::JavascriptNumber::ToVar(intValue, scriptContext);
+
+#if ENABLE_TTD
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*asValue))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*asValue));
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -850,7 +976,23 @@ STDAPI_(JsErrorCode) JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValue
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, true, false);
+        }
+#endif
+
         *result = (JsValueRef)Js::JavascriptOperators::ToNumber((Js::Var)value, scriptContext);
+
+#if ENABLE_TTD
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*result))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -884,6 +1026,15 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
         }
 
         *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -920,7 +1071,23 @@ STDAPI_(JsErrorCode) JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValue
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, false, true);
+        }
+#endif
+
         *result = (JsValueRef) Js::JavascriptConversion::ToString((Js::Var)value, scriptContext);
+
+#if ENABLE_TTD
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -942,6 +1109,15 @@ STDAPI_(JsErrorCode) JsCreateObject(_Out_ JsValueRef *object)
         PARAM_NOT_NULL(object);
 
         *object = scriptContext->GetLibrary()->CreateObject();
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -952,6 +1128,15 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
         PARAM_NOT_NULL(object);
 
         *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -965,6 +1150,14 @@ STDAPI_(JsErrorCode) JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValue
         *result = (JsValueRef)Js::JavascriptOperators::ToObject((Js::Var)value, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -977,6 +1170,14 @@ STDAPI_(JsErrorCode) JsGetPrototype(_In_ JsValueRef object, _Out_ JsValueRef *pr
 
         *prototypeObject = (JsValueRef)Js::JavascriptOperators::OP_GetPrototype(object, scriptContext);
         Assert(*prototypeObject == nullptr || !Js::CrossSite::NeedMarshalVar(*prototypeObject, scriptContext));
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         return JsNoError;
     });
@@ -993,6 +1194,14 @@ STDAPI_(JsErrorCode) JsSetPrototype(_In_ JsValueRef object, _In_ JsValueRef prot
         {
             return JsErrorInvalidArgument;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(object), Js::RecyclableObject::FromVar(prototypeObject), true, scriptContext);
 
@@ -1030,6 +1239,14 @@ STDAPI_(JsErrorCode) JsPreventExtension(_In_ JsValueRef object)
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         Js::RecyclableObject::FromVar(object)->PreventExtensions();
 
         return JsNoError;
@@ -1044,8 +1261,24 @@ STDAPI_(JsErrorCode) JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         PARAM_NOT_NULL(value);
         *value = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordGetProperty(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object);
+        }
+#endif
+
         *value = Js::JavascriptOperators::OP_GetProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext);
         Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
+
+#if ENABLE_TTD
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*value));
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -1068,6 +1301,15 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsP
             *propertyDescriptor = scriptContext->GetLibrary()->GetUndefined();
         }
         Assert(*propertyDescriptor == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyDescriptor, scriptContext));
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         return JsNoError;
     });
 }
@@ -1078,6 +1320,14 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValue
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(propertyNames);
         *propertyNames = nullptr;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         *propertyNames = Js::JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         Assert(*propertyNames == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyNames, scriptContext));
@@ -1091,6 +1341,14 @@ STDAPI_(JsErrorCode) JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsVal
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(propertySymbols);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *propertySymbols = Js::JavascriptOperators::GetOwnPropertySymbols(object, scriptContext);
         Assert(*propertySymbols == nullptr || !Js::CrossSite::NeedMarshalVar(*propertySymbols, scriptContext));
         return JsNoError;
@@ -1103,6 +1361,14 @@ STDAPI_(JsErrorCode) JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_PROPERTYID(propertyId);
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptOperators::OP_SetProperty(object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, scriptContext,
             nullptr, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
@@ -1133,6 +1399,14 @@ STDAPI_(JsErrorCode) JsDeleteProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *result = Js::JavascriptOperators::OP_DeleteProperty((Js::Var)object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(),
             scriptContext, useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
@@ -1148,6 +1422,14 @@ STDAPI_(JsErrorCode) JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
         VALIDATE_INCOMING_OBJECT(propertyDescriptor, scriptContext);
         PARAM_NOT_NULL(result);
         *result = nullptr;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::PropertyDescriptor propertyDescriptorValue;
         if (!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, scriptContext))
@@ -1169,6 +1451,14 @@ STDAPI_(JsErrorCode) JsCreateArray(_In_ unsigned int length, _Out_ JsValueRef *r
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *result = scriptContext->GetLibrary()->CreateArray(length);
 
         return JsNoError;
@@ -1179,6 +1469,14 @@ STDAPI_(JsErrorCode) JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsV
 {
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(result);
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateArrayBuffer(byteLength);
@@ -1198,6 +1496,14 @@ STDAPI_(JsErrorCode) JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_b
         {
             return JsErrorInvalidArgument;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = Js::JsrtExternalArrayBuffer::New(
@@ -1235,6 +1541,14 @@ STDAPI_(JsErrorCode) JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ Js
         {
             return JsErrorInvalidArgument;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptFunction* constructorFunc = nullptr;
         Js::Var values[4] =
@@ -1301,6 +1615,14 @@ STDAPI_(JsErrorCode) JsCreateDataView(_In_ JsValueRef arrayBuffer, _In_ unsigned
         {
             return JsErrorInvalidArgument;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateDataView(Js::ArrayBuffer::FromVar(arrayBuffer), byteOffset, byteLength);
@@ -1475,6 +1797,14 @@ STDAPI_(JsErrorCode) JsCreateSymbol(_In_ JsValueRef description, _Out_ JsValueRe
 
         Js::JavascriptString* descriptionString;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         if (description != JS_INVALID_REFERENCE)
         {
             VALIDATE_INCOMING_REFERENCE(description, scriptContext);
@@ -1513,6 +1843,14 @@ STDAPI_(JsErrorCode) JsGetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *result = (JsValueRef)Js::JavascriptOperators::OP_GetElementI((Js::Var)object, (Js::Var)index, scriptContext);
 
         return JsNoError;
@@ -1526,6 +1864,14 @@ STDAPI_(JsErrorCode) JsSetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         VALIDATE_INCOMING_REFERENCE(index, scriptContext);
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         Js::JavascriptOperators::OP_SetElementI((Js::Var)object, (Js::Var)index, (Js::Var)value, scriptContext);
 
         return JsNoError;
@@ -1537,6 +1883,14 @@ STDAPI_(JsErrorCode) JsDeleteIndexedProperty(_In_ JsValueRef object, _In_ JsValu
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         VALIDATE_INCOMING_REFERENCE(index, scriptContext);
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptOperators::OP_DeleteElementI((Js::Var)object, (Js::Var)index, scriptContext);
 
@@ -1559,6 +1913,15 @@ template <class T, bool clamped = false>
 Js::ArrayObject* CreateTypedArray(Js::ScriptContext *scriptContext, void* data, unsigned int length)
 {
     Js::JavascriptLibrary* library = scriptContext->GetLibrary();
+
+#if ENABLE_TTD
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        AssertMsg(false, "Need to implement support here!!!");
+    }
+#endif
+
     Js::ArrayBuffer* arrayBuffer = RecyclerNew(
         scriptContext->GetRecycler(),
         Js::ExternalArrayBuffer,
@@ -1604,6 +1967,14 @@ STDAPI_(JsErrorCode) JsSetIndexedPropertiesToExternalData(
         {
             return JsErrorInvalidArgument;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::ArrayObject* newTypedArray = nullptr;
         switch (arrayType)
@@ -1804,7 +2175,7 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
     END_JSRT_NO_EXCEPTION
 }
 
-STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
+STDAPI_(JsErrorCode) JsCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     if (result != nullptr)
     {
@@ -1827,12 +2198,60 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
         Js::CallInfo callInfo(cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            TTD::TTDRecordFunctionActionTimePopper actionPopper(threadContext->TTDLog);
+            TTD::JsRTCallFunctionAction* callAction = threadContext->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
+
+            actionPopper.SetCallAction(callAction);
+            if(scriptContext->TTDRootNestingCount == 0)
+            {
+                threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+            }
+
+            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
+            if(result != nullptr)
+            {
+                *result = varResult;
+                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+            }
+        }
+        else
+        {
+            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
+            if(result != nullptr)
+            {
+                *result = varResult;
+                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+            }
+        }
+
+        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && result != nullptr && TTD::JsSupport::IsVarPtrValued(*result))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
+        }
+
+        //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
+        //May want to look into more sophisticated means for making this decision later
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+            {
+                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+                threadContext->TTDLog->DoSnapshotExtract(false);
+                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+            }
+        }
+#else
         Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
         if (result != nullptr)
         {
             *result = varResult;
             Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
         }
+#endif
 
         return JsNoError;
     });
@@ -1859,6 +2278,14 @@ STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(carg
         Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
         return JsNoError;
@@ -1871,6 +2298,14 @@ STDAPI_(JsErrorCode) JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_
         PARAM_NOT_NULL(nativeFunction);
         PARAM_NOT_NULL(function);
         *function = nullptr;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, 0, callbackState);
         *function = (JsValueRef)externalFunction;
@@ -1896,6 +2331,14 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
             name = scriptContext->GetLibrary()->GetEmptyString();
         }
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, Js::JavascriptString::FromVar(name), callbackState);
 
         *function = (JsValueRef)externalFunction;
@@ -1905,6 +2348,14 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
 
 void SetErrorMessage(Js::ScriptContext *scriptContext, JsValueRef newError, JsValueRef message)
 {
+#if ENABLE_TTD
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        AssertMsg(false, "Need to implement support here!!!");
+    }
+#endif
+
     Js::JavascriptOperators::OP_SetProperty(newError, Js::PropertyIds::message, message, scriptContext);
 }
 
@@ -1914,6 +2365,14 @@ STDAPI_(JsErrorCode) JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *er
         VALIDATE_INCOMING_REFERENCE(message, scriptContext);
         PARAM_NOT_NULL(error);
         *error = nullptr;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         JsValueRef newError = scriptContext->GetLibrary()->CreateError();
         SetErrorMessage(scriptContext, newError, message);
@@ -1932,6 +2391,14 @@ STDAPI_(JsErrorCode) JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRe
 
         JsValueRef newError;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         newError = scriptContext->GetLibrary()->CreateRangeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
@@ -1948,6 +2415,14 @@ STDAPI_(JsErrorCode) JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsVal
         *error = nullptr;
 
         JsValueRef newError;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         newError = scriptContext->GetLibrary()->CreateReferenceError();
         SetErrorMessage(scriptContext, newError, message);
@@ -1966,6 +2441,14 @@ STDAPI_(JsErrorCode) JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueR
 
         JsValueRef newError;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         newError = scriptContext->GetLibrary()->CreateSyntaxError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
@@ -1983,6 +2466,14 @@ STDAPI_(JsErrorCode) JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef
 
         JsValueRef newError;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         newError = scriptContext->GetLibrary()->CreateTypeError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
@@ -1999,6 +2490,14 @@ STDAPI_(JsErrorCode) JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef 
         *error = nullptr;
 
         JsValueRef newError;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         newError = scriptContext->GetLibrary()->CreateURIError();
         SetErrorMessage(scriptContext, newError, message);
@@ -2074,6 +2573,14 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     HRESULT hr = S_OK;
     Js::JavascriptExceptionObject *recordedException = nullptr;
 
+#if ENABLE_TTD
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        threadContext->TTDLog->RecordGetAndClearException(scriptContext);
+    }
+#endif
+
     BEGIN_TRANSLATE_OOM_TO_HRESULT
       recordedException = scriptContext->GetAndClearRecordedException();
     END_TRANSLATE_OOM_TO_HRESULT(hr)
@@ -2092,6 +2599,14 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     {
         return JsErrorInvalidArgument;
     }
+
+#if ENABLE_TTD
+    if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*exception));
+    }
+#endif
+
     return JsNoError;
 }
 
@@ -2101,6 +2616,14 @@ STDAPI_(JsErrorCode) JsSetException(_In_ JsValueRef exception)
         VALIDATE_INCOMING_REFERENCE(exception, scriptContext);
 
         Js::JavascriptExceptionObject *exceptionObject;
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
 
         exceptionObject = RecyclerNew(scriptContext->GetRecycler(), Js::JavascriptExceptionObject, exception, scriptContext, nullptr);
 
@@ -2301,6 +2824,14 @@ STDAPI_(JsErrorCode) JsGetSymbolFromPropertyId(_In_ JsPropertyIdRef propertyId, 
             return JsErrorPropertyNotSymbol;
         }
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         *symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
         return JsNoError;
     });
@@ -2401,13 +2932,405 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     return ContextAPINoScriptWrapper([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(promiseContinuationCallback);
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         scriptContext->GetLibrary()->SetNativeHostPromiseContinuationFunction((Js::JavascriptLibrary::PromiseContinuationCallback)promiseContinuationCallback, callbackState);
         return JsNoError;
     },
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
-JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
+/////////////////////
+
+STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    scriptContext->GetThreadContext()->TTDLog->SetIntoDebuggingMode();
+    scriptContext->GetThreadContext()->TTDLog->BPDbgCallback = debuggerCallback;
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeTTDUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
+
+    threadContext->TTDInitializeTTDUriFunction = ttdInitializeUriFunction;
+    threadContext->TTDWriteInitializeFunction = writeInitializeFunction;
+    threadContext->TTDStreamFunctions.pfGetLogStream = getLogStreamInfo;
+    threadContext->TTDStreamFunctions.pfGetSnapshotStream = getSnapshotStreamInfo;
+    threadContext->TTDStreamFunctions.pfGetSrcCodeStream = getSrcCodeStreamInfo;
+    threadContext->TTDStreamFunctions.pfReadBytesFromStream = readBytesFromStream;
+    threadContext->TTDStreamFunctions.pfWriteBytesToStream = writeBytesToStream;
+    threadContext->TTDStreamFunctions.pfFlushAndCloseStream = flushAndCloseStream;
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDPrintVariable(wchar_t* varName)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    scriptContext->GetThreadContext()->TTDLog->BPPrintVariable(scriptContext, varName);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetExecutionTimeInfo(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
+
+    if(!previousTime)
+    {
+        *noPrevious = false;
+
+        threadContext->TTDLog->GetTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+    }
+    else
+    {
+        AssertMsg(noPrevious != nullptr, "Must always have this when checking for previous.");
+
+        *noPrevious = threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetLastExceptionThrowTimeInfo(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
+
+    *hasException = threadContext->TTDLog->GetExceptionTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetLastFunctionReturnTimeInfo(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
+
+    *isImmediateReturn = threadContext->TTDLog->GetImmediateReturnTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        Js::JavascriptFunction *jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
+
+        threadContext->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, createdCallbackId);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetCurrentCallbackOperationTimeInfo(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
+
+    //Get the current top-level host id and find the registration event
+    TTD::JsRTCallbackAction* callbackEvent = threadContext->TTDLog->GetEventForHostCallbackId(wantRegisterOp, threadContext->TTDLog->GetCurrentHostCallbackId());
+
+    //if it is null then we don't know when this event was registered/canceled or it was called directly by the host
+    if(callbackEvent == nullptr)
+    {
+        *hasEvent = false;
+        *eventHasTimeInfo = false;
+
+        *rootEventTime = -1;
+        *ftime = 0;
+        *ltime = 0;
+        *line = 0;
+        *column = 0;
+        *sourceId = 0;
+
+        return JsNoError;
+    }
+
+    *hasEvent = true;
+    *eventHasTimeInfo = callbackEvent->GetActionTimeInfoForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetBP(UINT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    if(!Js::Configuration::Global.flags.TTDFreeRun)
+    {
+        elog->BPIsSet = true;
+
+        elog->BPRootEventTime = rootEventTime;
+        elog->BPFunctionTime = ftime;
+        elog->BPLoopTime = ltime;
+
+        elog->BPLine = line;
+        elog->BPColumn = column;
+        elog->BPSourceContextId = sourceId;
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetStepBP(bool into)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    if(!Js::Configuration::Global.flags.TTDFreeRun)
+    {
+        elog->BPIsSet = true;
+        elog->SetBreakpointOnNextStatement(into);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetContinueBP()
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    elog->ClearBreakpointOnNextStatement();
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    //Make sure we don't have any pending recorded exceptions
+    if(scriptContext->HasRecordedException())
+    {
+        scriptContext->GetAndClearRecordedException(nullptr);
+    }
+
+    //a special indicator to use the time from the argument flag
+    if(targetEventTime == -2)
+    {
+        targetEventTime = Js::Configuration::Global.flags.TTDStartEvent;
+    }
+
+    bool createFreshCtxs = false;
+    *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
+
+    if(createFreshCtxs)
+    {
+        try
+        {
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+            JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
+            ThreadContext * threadContext = runtime->GetThreadContext();
+
+            ThreadContextScope scope(threadContext);
+            AssertMsg(scope.IsValid(), "Hmm not cool");
+
+            JsrtContext* context = JsrtContext::New(runtime);
+            JsrtContext::TrySetCurrent(context);
+
+            threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+
+            //initialize the core image but we need to disable debugging while this happens
+            threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+            context->GetScriptContext()->InitializeCoreImage_TTD();
+            threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+            context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
+        }
+        catch(...)
+        {
+            //something went horribly wrong
+
+            *targetStartSnapTime = -1;
+        }
+    }
+
+    return (*targetStartSnapTime != -1) ? JsNoError : JsErrorFatal;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+    JsErrorCode res = JsNoError;
+
+    //a special indicator to use the time from the argument flag
+    if(eventTime == -2)
+    {
+        eventTime = Js::Configuration::Global.flags.TTDStartEvent;
+    }
+
+    try
+    {
+        elog->PushMode(TTD::TTDMode::ExcludedExecution);
+        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+        {
+            elog->DoSnapshotInflate(snapshotTime);
+        }
+        END_JS_RUNTIME_CALL(scriptContext);
+        elog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+        elog->ReplayToTime(eventTime);
+
+        elog->PushMode(TTD::TTDMode::ExcludedExecution);
+        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+        {
+            elog->DoRtrSnapIfNeeded();
+        }
+        END_JS_RUNTIME_CALL(scriptContext);
+        elog->PopMode(TTD::TTDMode::ExcludedExecution);
+    }
+    catch(...) //we are replaying something that should be known to execute successfully so encountering any error is very bad
+    {
+        res = JsErrorFatal;
+        AssertMsg(false, "Unexpected fatal Error");
+    }
+
+    return res;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    JsErrorCode res = JsNoError;
+    try
+    {
+        scriptContext->GetThreadContext()->TTDLog->ReplayFullTrace();
+    }
+    catch(TTD::TTDebuggerAbortException abortException)
+    {
+        //if the debugger bails out with a move time request set info on the requested event time here
+        //rest of breakpoint info should have been set by the debugger callback before aborting
+        if(abortException.IsEventTimeMove() || abortException.IsTopLevelException())
+        {
+            *rootEventTime = abortException.GetTargetEventTime();
+        }
+        else
+        {
+            *rootEventTime = -1;
+        }
+
+        res = abortException.IsTopLevelException() ? JsErrorCategoryScript : JsNoError;
+    }
+    catch(...)
+    {
+        res = JsErrorFatal;
+        AssertMsg(false, "Unexpected fatal Error");
+    }
+
+    return res;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDTestingCompareArtifacts()
+{
+    //
+    //TODO: add code here to compare snapshots, traces, etc.
+    //
+    return JsNoError;
+}
+
+/////////////////////
+
+JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
@@ -2417,6 +3340,25 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
         PARAM_NOT_NULL(script);
         PARAM_NOT_NULL(sourceUrl);
 
+#if ENABLE_TTD
+        ThreadContext * threadContext = scriptContext->GetThreadContext();
+
+        if(Js::Configuration::Global.flags.TTRecord != nullptr)
+        {
+            if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
+            {
+                threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
+
+                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+                BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+                {
+                    threadContext->TTDLog->DoSnapshotExtract(true);
+                }
+                END_JS_RUNTIME_CALL(scriptContext);
+                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+            }
+        }
+#endif
 
         SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
 
@@ -2458,6 +3400,14 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
             return JsErrorScriptCompile;
         }
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordCodeParse(scriptContext, scriptFunction, script);
+        }
+#endif
+
         if (parseOnly)
         {
             PARAM_NOT_NULL(result);
@@ -2476,11 +3426,58 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
                 args.Values = &varThis;
             }
 #endif
+
+#if ENABLE_TTD
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+            {
+                TTD::TTDRecordFunctionActionTimePopper actionPopper(threadContext->TTDLog);
+                TTD::JsRTCallFunctionAction* callAction = threadContext->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
+
+                actionPopper.SetCallAction(callAction);
+                if(scriptContext->TTDRootNestingCount == 0)
+                {
+                    threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+                }
+
+                Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
+                if(result != nullptr)
+                {
+                    *result = varResult;
+                }
+            }
+            else
+            {
+                Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
+                if(result != nullptr)
+                {
+                    *result = varResult;
+                }
+            }
+
+            if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && result != nullptr && TTD::JsSupport::IsVarPtrValued(*result))
+            {
+                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
+            }
+
+            //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
+            //May want to look into more sophisticated means for making this decision later
+            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+            {
+                if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+                {
+                    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+                    threadContext->TTDLog->DoSnapshotExtract(false);
+                    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+                }
+            }
+#else
             Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
             if (result != nullptr)
             {
                 *result = varResult;
             }
+#endif
         }
         return JsNoError;
     });
@@ -2488,12 +3485,12 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
 
 STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(script, sourceContext, sourceUrl, true, result);
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, true, result);
 }
 
-STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+STDAPI_(JsErrorCode) JsRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(script, sourceContext, sourceUrl, false, result);
+    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, result);
 }
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)

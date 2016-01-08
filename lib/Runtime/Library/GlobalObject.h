@@ -51,6 +51,11 @@ namespace Js
             static FunctionInfo UnEscape;
             static FunctionInfo CollectGarbage;
 
+#if ENABLE_TTD
+            static FunctionInfo TTDTestWrite;
+            static FunctionInfo TTDTestReport;
+#endif
+
 #ifdef IR_VIEWER
             static FunctionInfo ParseIR;
             static FunctionInfo FunctionList;
@@ -72,6 +77,11 @@ namespace Js
         static Var EntryUnEscape(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryCollectGarbage(RecyclableObject* function, CallInfo callInfo, ...);
+
+#if ENABLE_TTD
+        static Var EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryTTDTestReport(RecyclableObject* function, CallInfo callInfo, ...);
+#endif
 
 #ifdef IR_VIEWER
         static Var EntryParseIR(RecyclableObject *function, CallInfo callInfo, ...);
@@ -155,5 +165,11 @@ namespace Js
 
         typedef JsUtil::BaseHashSet<PropertyId, Recycler, PowerOf2SizePolicy> ReservedPropertiesHashSet;
         ReservedPropertiesHashSet * reservedProperties;
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 }

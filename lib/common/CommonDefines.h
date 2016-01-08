@@ -258,6 +258,28 @@
 #define ENABLE_TEST_HOOKS
 #endif
 
+////////
+//Time Travel flags
+#define ENABLE_TTD 1
+
+#if ENABLE_TTD
+//Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
+#define ENABLE_TTD_IDENTITY_TRACING 1
+
+//Flags to control special features turned on for debugging
+#define ENABLE_TTD_DEBUGGING 1
+#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 1
+
+//Enable various sanity checking features and asserts
+#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+
+#define TTD_WRITE_JSON_OUTPUT TRUE
+#define TTD_WRITE_BINARY_OUTPUT FALSE
+
+#endif
+//End Time Travel flags
+////////
+
 #endif // ENABLE_DEBUG_CONFIG_OPTIONS
 
 

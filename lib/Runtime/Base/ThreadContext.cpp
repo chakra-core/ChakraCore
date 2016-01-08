@@ -179,6 +179,14 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     activityId(GUID_NULL),
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
+#if ENABLE_TTD
+    , TTDGeneralAllocator(L"TTDGeneralAllocator", &this->pageAllocator, nullptr)
+    , TTDBulkAllocator(L"TTDBulkAllocator", &this->pageAllocator, nullptr)
+    , TTDTaggingAllocator(L"TTDTaggingAllocator", &this->pageAllocator, nullptr)
+    , TTDContextAllocator(L"TTDContextAllocator", &this->pageAllocator, nullptr)
+    , TTDLog(nullptr)
+    , TTDInfo(nullptr)
+#endif
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     , directCallTelemetry(this)
 #endif
@@ -337,6 +345,20 @@ ThreadContext::~ThreadContext()
         AutoCriticalSection autocs(ThreadContext::GetCriticalSection());
         ThreadContext::Unlink(this, &ThreadContext::globalListFirst, &ThreadContext::globalListLast);
     }
+
+#if ENABLE_TTD
+    if(this->TTDLog != nullptr)
+    {
+        HeapDelete(this->TTDLog);
+        this->TTDLog = nullptr;
+    }
+
+    if(this->TTDInfo != nullptr)
+    {
+        Adelete(&this->TTDGeneralAllocator, this->TTDInfo);
+        this->TTDInfo = nullptr;
+    }
+#endif
 
 #ifdef LEAK_REPORT
     if (Js::Configuration::Global.flags.IsEnabled(Js::LeakReportFlag))
@@ -887,6 +909,14 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
 
     size_t allocLength = bytelength + sizeof(wchar_t) + (isNumeric ? sizeof(uint32) : 0);
 
+#if ENABLE_TTD
+    //
+    //TODO: if the property is a symbol and TTD is enabled then we need to record/replay the correct symbol
+    //      Change is Symbol to take the creating ScriptContext(?) and check TTD enabled state on
+    //      Add log entry kind
+    //
+#endif
+
     // If it's bound, create it in the thread arena, along with a fake weak ref
     Js::PropertyRecord * propertyRecord;
     if (bind)
@@ -936,6 +966,13 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     if (!propertyRecord->IsSymbol())
     {
         Assert(FindPropertyRecord(propertyName, propertyNameLength) == nullptr);
+    }
+#endif
+
+#if ENABLE_TTD
+    if(this->TTDLog != nullptr)
+    {
+        this->TTDLog->AddPropertyRecord(propertyRecord);
     }
 #endif
 
@@ -1768,6 +1805,66 @@ ThreadContext::IsInAsyncHostOperation() const
         }
     }
     return false;
+}
+#endif
+
+#if ENABLE_TTD
+
+bool ThreadContext::IsTTDInitialized() const
+{
+    return (this->TTDInfo != nullptr) & (this->TTDLog != nullptr);
+}
+
+void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay)
+{
+    AssertMsg(this->TTDLog == nullptr && this->TTDInfo == nullptr, "We should only init once.");
+    AssertMsg((doRecord & !doReplay) || (!doRecord && doReplay), "Should be exactly 1 of record or replay.");
+
+    this->TTDInfo = Anew(&this->TTDGeneralAllocator, TTD::RuntimeThreadInfo, this, &this->TTDGeneralAllocator, &this->TTDBulkAllocator, &this->TTDTaggingAllocator);
+    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory);
+
+    if(doRecord)
+    {
+        this->TTDLog->InitForTTDRecord();
+    }
+
+    if(doReplay)
+    {
+        this->TTDLog->InitForTTDReplay();
+    }
+}
+
+void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx)
+{
+    AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+
+    //if we are tracing then we always need to disable native execution so we get our loop/call counting
+#if ENABLE_TTD_DEBUGGING
+    ctx->ForceNoNative();
+#endif
+
+    this->TTDLog->StartTimeTravelOnScript(ctx);
+}
+
+void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)
+{
+    AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
+
+    this->TTDLog->SetGlobalMode(TTD::TTDMode::Detached);
+    this->TTDLog->StopTimeTravelOnScript(ctx);
+}
+
+void ThreadContext::MarkLoggedObjects_TTD(TTD::MarkTable& marks) const
+{
+    this->TTDInfo->MarkLoggedObjects(marks);
+}
+
+void ThreadContext::EmitTTDLog()
+{
+    if(this->TTDLog != nullptr)
+    {
+        this->TTDLog->EmitLog();
+    }
 }
 #endif
 

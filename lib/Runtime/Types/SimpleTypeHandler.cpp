@@ -1068,6 +1068,41 @@ namespace Js
     }
 #endif
 
+#if ENABLE_TTD
+    template<size_t size>
+    void SimpleTypeHandler<size>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        uint32 plength = this->propertyCount;
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            Js::PropertyId pid = this->descriptors[index].Id->GetPropertyId();
+
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & !(this->descriptors[index].Attributes & PropertyDeleted))
+            {
+                Js::Var value = obj->GetSlot(index);
+                extractor->MarkVisitVar(value);
+            }
+        }
+    }
+
+    template<size_t size>
+    uint32 SimpleTypeHandler<size>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 plength = this->propertyCount;
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            entryInfo[index].AttributeInfo = this->descriptors[index].Attributes;
+            entryInfo[index].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
+
+            entryInfo[index].PropertyRecordId = this->descriptors[index].Id->GetPropertyId();
+        }
+
+        return plength;
+    }
+#endif
+
     template class SimpleTypeHandler<1>;
     template class SimpleTypeHandler<2>;
 

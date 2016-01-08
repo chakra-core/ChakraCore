@@ -1013,6 +1013,91 @@ private:
             return (this->cache ? this->cache->dynamicSourceContextInfoMap : nullptr);
         }
 
+#if ENABLE_TTD
+        //Keep track of roots, loaded script, and the current debugger state
+        TTD::ReferencePinSet* m_ttdRootSet;
+
+        JsUtil::List<LPCWSTR, HeapAllocator> m_ttdLoadedSrcTxtList;
+        JsUtil::List<Js::FunctionBody*, HeapAllocator> m_ttdGlobalCodeList;
+        TTD::ReferencePinSet* m_ttdPinnedRootFunctionSet;
+        JsUtil::BaseDictionary<Js::FunctionBody*, Js::FunctionBody*, ArenaAllocator> m_ttdFunctionBodyParentMap;
+
+        //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
+        TTD::TTDMode m_ttdMode;
+
+        //The LogTag for this script context (the same as the tag for the global object but we put it here for fast lookup)
+        TTD_LOG_TAG ScriptContextLogTag;
+
+        //Additional runtime context that we only care about if TTD is running (or will be running)
+        TTD::RuntimeContextInfo* m_ttdAddtlRuntimeContext;
+
+        //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
+        int32 TTDRootNestingCount;
+
+        ////
+
+        //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
+        bool IsRootTrackedObject_TTD(Js::RecyclableObject* newRoot);
+        void AddTrackedRoot_TTD(Js::RecyclableObject* newRoot);
+        void RemoveTrackedRoot_TTD(Js::RecyclableObject* deleteRoot);
+
+        void ClearRootsForSnapRestore_TTD();
+        void ExtractSnapshotRoots_TTD(JsUtil::List<Js::Var, HeapAllocator>& rootList) const;
+
+        //Mark all the well-known objects/values/types from this script context
+        void MarkWellKnownObjects_TTD(TTD::MarkTable& marks) const;
+
+        //Get the wellknowntoken for the given value (if the val is well known) otherwise return invalid
+        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForPrimitive_TTD(RecyclableObject* val) const;
+        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForGeneralObject_TTD(RecyclableObject* val) const;
+        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForType_TTD(Type* val) const;
+
+        //Get the object associated with the given known path
+        RecyclableObject* LookupPrimitiveForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
+        RecyclableObject* LookupGeneralObjectForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
+        Type* LookupTypeForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
+
+        //Resolve/lookup the well known token for a runtime function body
+        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForRuntimeFunctionBody_TTD(Js::FunctionBody* val) const;
+        FunctionBody* LookupRuntimeFunctionBodyForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
+
+        //Get all of the root level sources evaluated in this script context (source text & root function returned)
+        void GetLoadedSources_TTD(JsUtil::List<LPCWSTR, HeapAllocator>& loadedSrcTxtList, JsUtil::List<Js::FunctionBody*, HeapAllocator>& globalCodeList);
+
+        //force parsing and load up the parent maps etc.
+        void ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent);
+
+        //Lookup the parent bofy for a function body (or null for global code)
+        FunctionBody* ResolveParentBody(FunctionBody* body) const;
+
+        //
+        //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
+        //
+        //Initialize the core object image for TTD
+        void InitializeCoreImage_TTD();
+
+        //Get the additional runtime context state for use during the core image walk -- we probably want to delete this API later
+        TTD::RuntimeContextInfo* GetRuntimeContextInfo_TTDCoreWalk()
+        {
+            return this->m_ttdAddtlRuntimeContext;
+        }
+
+        //Set the TTD mode in the script context
+        void SetMode_TTD(TTD::TTDMode mode)
+        {
+            this->m_ttdMode = mode;
+        }
+
+        //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
+        void InitializeDebuggingActionsAsNeeded_TTD();
+
+        //Check if we want to do object tagging for this context
+        bool DoObjectIdenityTagging_TTD()
+        {
+            return (this->m_ttdMode & TTD::TTDMode::TTDTagActive) == this->m_ttdMode;
+        }
+#endif
+
         void SetFirstInterpreterFrameReturnAddress(void * returnAddress) { firstInterpreterFrameReturnAddress = returnAddress;}
         void *GetFirstInterpreterFrameReturnAddress() { return firstInterpreterFrameReturnAddress;}
 

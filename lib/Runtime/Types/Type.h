@@ -87,5 +87,9 @@ namespace Js
 #if defined(PROFILE_RECYCLER_ALLOC) && defined(RECYCLER_DUMP_OBJECT_GRAPH)
         static bool DumpObjectFunction(type_info const * typeinfo, bool isArray, void * objectAddress);
 #endif
+
+#if ENABLE_TTD
+        virtual void ExtractSnapType(TTD::NSSnapType::SnapType* sType, bool isWellKnown, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const;
+#endif
     };
 };

@@ -2626,6 +2626,104 @@ namespace Js
     }
 #endif
 
+#if ENABLE_TTD
+    template <typename T>
+    void DictionaryTypeHandlerBase<T>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
+
+            //
+            //TODO: not sure about relationship with PropertyLetConstGlobal here need to -- check how GetProperty works
+            //      maybe we need to template this with allowLetGlobalConst as well
+            //
+
+            Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
+            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (descriptor.Attributes & PropertyDeleted))
+            {
+                continue;
+            }
+
+            uint32 dIndex = descriptor.GetDataPropertyIndex<false>();
+            if(dIndex != NoSlots)
+            {
+                Js::Var dValue = obj->GetSlot(dIndex);
+                extractor->MarkVisitVar(dValue);
+            }
+            else
+            {
+                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                if(gIndex != NoSlots)
+                {
+                    Js::Var gValue = obj->GetSlot(gIndex);
+                    extractor->MarkVisitVar(gValue);
+                }
+
+                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                if(sIndex != NoSlots)
+                {
+                    Js::Var sValue = obj->GetSlot(sIndex);
+                    extractor->MarkVisitVar(sValue);
+                }
+            }
+        }
+    }
+
+    template <typename T>
+    uint32 DictionaryTypeHandlerBase<T>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 maxSlot = 0;
+
+        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
+            Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
+
+            uint32 dIndex = descriptor.GetDataPropertyIndex<false>();
+            if(dIndex != NoSlots)
+            {
+                maxSlot = max(maxSlot, dIndex);
+
+                entryInfo[dIndex].AttributeInfo = descriptor.Attributes;
+                entryInfo[dIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
+                entryInfo[dIndex].PropertyRecordId = pid;
+            }
+            else
+            {
+                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                if(gIndex != NoSlots)
+                {
+                    maxSlot = max(maxSlot, gIndex);
+
+                    entryInfo[gIndex].AttributeInfo = descriptor.Attributes;
+                    entryInfo[gIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Getter;
+                    entryInfo[gIndex].PropertyRecordId = pid;
+                }
+
+                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                if(sIndex != NoSlots)
+                {
+                    maxSlot = max(maxSlot, sIndex);
+
+                    entryInfo[sIndex].AttributeInfo = descriptor.Attributes;
+                    entryInfo[sIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Setter;
+                    entryInfo[sIndex].PropertyRecordId = pid;
+                }
+            }
+        }
+
+        if(this->propertyMap->Count() == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return maxSlot + 1;
+        }
+    }
+#endif
+
     template class DictionaryTypeHandlerBase<PropertyIndex>;
     template class DictionaryTypeHandlerBase<BigPropertyIndex>;
 

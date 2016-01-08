@@ -1092,6 +1092,18 @@ FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
 FLAGR (Boolean, NoNative              , "Disable native codegen", false)
 #endif
+
+#if ENABLE_TTD
+FLAGR(String,  TTRecord                , "Start in time-travel record mode - write to the given log directory", nullptr)
+FLAGR(Number,  TTSnapInterval          , "The approximate interval between snapshots", 2000)
+
+FLAGR(String,  TTDebug                 , "Start in time-travel debug mode - load from the given log directory", nullptr)
+FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 2)
+
+FLAGR(Boolean, TTDFreeRun              , "If we just want to re-run the execution (for testing)", false)
+FLAGR(String,  TTDCmdsFromFile         , "Set a file to read debugger commands from (for testing)", nullptr)
+#endif
+
 FLAGNR(Number,  NopFrequency          , "Frequency of NOPs inserted by NOP insertion phase.  A NOP is guaranteed to be inserted within a range of (1<<n) instrs (default=8)", DEFAULT_CONFIG_NopFrequency)
 FLAGNR(Boolean, NoStrictMode          , "Disable strict mode checks on all functions", false)
 FLAGNR(Boolean, NormalizeStats        , "When dumping stats, do some normalization (used with -instrument:linearscan)", false)

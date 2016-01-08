@@ -93,6 +93,27 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetProcAddress(library, "JsGetContextOfObject");
 
+    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = (JsAPIHooks::JsrtTTDSetDebuggerCallbackPtr)GetProcAddress(library, "JsTTDSetDebuggerCallback");
+    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
+    m_jsApiHooks.pfJsrtTTDPrintVariable = (JsAPIHooks::JsrtTTDPrintVariablePtr)GetProcAddress(library, "JsTTDPrintVariable");
+
+    m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo = (JsAPIHooks::JsrtTTDGetExecutionTimeInfoPtr)GetProcAddress(library, "JsTTDGetExecutionTimeInfo");
+    m_jsApiHooks.pfJsrtTTDGetLastExceptionThrowTimeInfo = (JsAPIHooks::JsrtTTDGetLastExceptionThrowTimeInfoPtr)GetProcAddress(library, "JsTTDGetLastExceptionThrowTimeInfo");
+    m_jsApiHooks.pfJsrtTTDGetLastFunctionReturnTimeInfo = (JsAPIHooks::JsrtTTDGetLastFunctionReturnTimeInfoPtr)GetProcAddress(library, "JsTTDGetLastFunctionReturnTimeInfo");
+
+    m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = (JsAPIHooks::JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)GetProcAddress(library, "JsTTDNotifyHostCallbackCreatedOrCanceled");
+    m_jsApiHooks.pfJsrtTTDGetCurrentCallbackOperationTimeInfo = (JsAPIHooks::JsrtTTDGetCurrentCallbackOperationTimeInfoPtr)GetProcAddress(library, "JsTTDGetCurrentCallbackOperationTimeInfo");
+
+    m_jsApiHooks.pfJsrtTTDSetBP = (JsAPIHooks::JsrtTTDSetBPPtr)GetProcAddress(library, "JsTTDSetBP");
+    m_jsApiHooks.pfJsrtTTDSetStepBP = (JsAPIHooks::JsrtTTDSetStepBPPtr)GetProcAddress(library, "JsTTDSetStepBP");
+    m_jsApiHooks.pfJsrtTTDSetContinueBP = (JsAPIHooks::JsrtTTDSetContinueBPPtr)GetProcAddress(library, "JsTTDSetContinueBP");
+
+    m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = (JsAPIHooks::JsrtTTDPrepContextsForTopLevelEventMovePtr)GetProcAddress(library, "JsTTDPrepContextsForTopLevelEventMove");
+    m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetProcAddress(library, "JsTTDMoveToTopLevelEvent");
+    m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetProcAddress(library, "JsTTDReplayExecution");
+
+    m_jsApiHooks.pfJsrtTTDTestingCompareArtifacts = (JsAPIHooks::JsrtTTDTestingCompareArtifactsPtr)GetProcAddress(library, "JsTTDTestingCompareArtifacts");
+
     return library;
 }
 

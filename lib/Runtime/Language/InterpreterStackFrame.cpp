@@ -1873,6 +1873,20 @@ namespace Js
         // - Mark that the function is current executing and may not be modified.
         //
 
+#if ENABLE_TTD_DEBUGGING
+        TTD::TTDExceptionFramePopper exceptionFramePopper;
+
+        if(threadContext->TTDLog != nullptr)
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->PushCallEvent(executeFunction);
+                exceptionFramePopper.PushInfo(elog);
+            }
+        }
+#endif
+
         executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
@@ -1899,6 +1913,18 @@ namespace Js
         }
 
         executeFunction->EndExecution();
+
+#if ENABLE_TTD_DEBUGGING
+        if(threadContext->TTDLog != nullptr)
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                exceptionFramePopper.PopInfo();
+                elog->PopCallEvent(executeFunction, aReturn);
+            }
+        }
+#endif
 
         if (fReleaseAlloc)
         {
@@ -2223,7 +2249,30 @@ namespace Js
         //
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
+
+#if ENABLE_TTD_DEBUGGING
+        ThreadContext* threadContext = this->scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        {
+            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+
+#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
+            if(newstmt & threadContext->TTDLog->BPIsSet)
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
+            }
+
+            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
+            if(newstmt)
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnAndExceptionFrames();
+            }
+#endif
+        }
+#endif
+
         OpCode op = ByteCodeReader::ReadByteOp(ip);
+
 #if DBG_DUMP
 
         this->scriptContext->byteCodeHistogram[(int)op]++;
@@ -2251,7 +2300,30 @@ namespace Js
         //
         this->DEBUG_currentByteOffset = (void *) m_reader.GetCurrentOffset();
 #endif
+
+#if ENABLE_TTD_DEBUGGING
+        ThreadContext* threadContext = this->scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        {
+            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+
+#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
+            if(newstmt & threadContext->TTDLog->BPIsSet)
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
+            }
+
+            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
+            if(newstmt)
+            {
+                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnAndExceptionFrames();
+            }
+#endif
+        }
+#endif
+
         OpCodeAsmJs op = (OpCodeAsmJs)ByteCodeReader::ReadByteOp(ip);
+
 #if DBG_DUMP
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
         {
@@ -5493,6 +5565,22 @@ namespace Js
             this->DoInterruptProbe();
         }
 
+#if ENABLE_TTD_DEBUGGING
+        //
+        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
+        //
+
+        ThreadContext* threadContext = this->m_functionBody->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr)
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->UpdateLoopCountInfo();
+            }
+        }
+#endif
+
         if (!JITLoopBody || this->IsInCatchOrFinallyBlock())
         {
             // For functions having try-catch-finally, jit loop bodies for loops that are contained only in a try block,
@@ -5554,6 +5642,22 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             this->DoInterruptProbe();
         }
+
+#if ENABLE_TTD_DEBUGGING
+        //
+        //TODO: Verify that his is definitely called for all loops (e.g., I recall a previous issue with while(true) {...})
+        //
+
+        ThreadContext* threadContext = this->m_functionBody->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr)
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->UpdateLoopCountInfo();
+            }
+        }
+#endif
 
         if (!JITLoopBody || this->IsInCatchOrFinallyBlock())
         {

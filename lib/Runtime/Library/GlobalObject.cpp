@@ -1582,6 +1582,60 @@ LHexError:
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
+#if ENABLE_TTD
+    //Write a string to the console for TTD testing.
+    Var GlobalObject::EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count <= 3 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        LPCWSTR str = Js::JavascriptString::FromVar(args[1])->GetSz();
+        bool suppressOutputFlag = (args.Info.Count == 3 && Js::JavascriptBoolean::Is(args[2]) && Js::JavascriptBoolean::FromVar(args[2])->GetValue());
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+
+        if(elog == nullptr || !suppressOutputFlag)
+        {
+            wprintf(L"%ls\n", str);
+        }
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    //Do a test & print for comparing values during test runs.
+    Var GlobalObject::EntryTTDTestReport(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 4 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        ScriptContext* ctx = function->GetScriptContext();
+        LPCWSTR testName = Js::JavascriptString::FromVar(args[1])->GetSz();
+        Js::Var actual = args[2];
+        Js::Var expected = args[3];
+
+        BOOL pass = JavascriptOperators::StrictEqual(actual, expected, ctx);
+        if(!pass)
+        {
+            //
+            //this may mess up any replay ordering (such as object identities) so later things may fail spuriously but whatever -- we have a bug so fix it
+            //
+            Js::JavascriptString* actualString = JavascriptConversion::ToPrimitiveString(actual, ctx);
+            Js::JavascriptString* expectedString = JavascriptConversion::ToPrimitiveString(expected, ctx);
+
+            LPCWSTR cascadeWarning = (TTD::JsSupport::LoadPropertyHelper(L"ttdTestsFailed", ctx->GetGlobalObject(), false) != nullptr) ? L" (previous failures may cascade)" : L"";
+            wprintf(L"Test Failed%ls: %ls\nactual:   %ls\nexpected: %ls\n\n", cascadeWarning, testName, actualString->GetSz(), expectedString->GetSz());
+
+            TTD::JsSupport::StorePropertyHelper(L"ttdTestsFailed", ctx->GetGlobalObject(), ctx->GetLibrary()->GetTrue());
+        }
+
+        return ctx->GetLibrary()->GetUndefined();
+    }
+#endif
+
     //Pattern match is unique to RuntimeObject. Only leading and trailing * are implemented
     //Example: *pat*tern* actually matches all the strings having pat*tern as substring.
     BOOL GlobalObject::MatchPatternHelper(JavascriptString *propertyName, JavascriptString *pattern, ScriptContext *scriptContext)
@@ -2169,4 +2223,20 @@ LHexError:
         *value = false;
         return TRUE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType GlobalObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject;
+    }
+
+    void GlobalObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: we assume that the global object is always set right (e.g., ignore the directHostObject and secureDirectHostObject values) we need to verify that this is ok and/or what to do about it
+        //
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject>(objData, nullptr);
+    }
+#endif
 }

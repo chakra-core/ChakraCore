@@ -925,6 +925,37 @@ public:
     bool IsInAsyncHostOperation() const;
 #endif
 
+#if ENABLE_TTD
+    ArenaAllocator TTDGeneralAllocator;
+    ArenaAllocator TTDBulkAllocator;
+    ArenaAllocator TTDTaggingAllocator;
+    ArenaAllocator TTDContextAllocator;
+
+    //The event log for time-travel (or null if TTD is not turned on)
+    TTD::EventLog* TTDLog;
+    TTD::RuntimeThreadInfo* TTDInfo;
+
+    //return true if thread context is initialized for TTD
+    bool IsTTDInitialized() const;
+
+    //Initialize the context for time-travel
+    void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay);
+    void BeginCtxTimeTravel(Js::ScriptContext* ctx);
+    void EndCtxTimeTravel(Js::ScriptContext* ctx);
+
+    void MarkLoggedObjects_TTD(TTD::MarkTable& marks) const;
+
+    //Emit the TT Log
+    void EmitTTDLog();
+
+    //
+    //Callback functions provided by the host for writing info to some type of storage location
+    //
+    TTD::TTDInitializeTTDUriCallback TTDInitializeTTDUriFunction;
+    TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
+    TTD::IOStreamFunctions TTDStreamFunctions;
+#endif
+
     BOOL ReserveStaticTypeIds(__in int first, __in int last);
     Js::TypeId ReserveTypeIds(int count);
     Js::TypeId CreateTypeId();

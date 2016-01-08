@@ -27,3 +27,6 @@ profile.dpl.*
 Build/Chakra.Core.VC.opendb
 test/benchmarks/*.txt
 test/benchmarks/*.dpl
+/test/_ttdlog/*
+!/test/_ttdlog/readme.txt
+

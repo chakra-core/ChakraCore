@@ -21,6 +21,11 @@ BUILTIN(GlobalObject, Escape, EntryEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, UnEscape, EntryUnEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOnNew)
 
+#if ENABLE_TTD
+BUILTIN(GlobalObject, TTDTestWrite, EntryTTDTestWrite, FunctionInfo::ErrorOnNew)
+BUILTIN(GlobalObject, TTDTestReport, EntryTTDTestReport, FunctionInfo::ErrorOnNew)
+#endif
+
 #ifdef IR_VIEWER
     BUILTIN(GlobalObject, ParseIR, EntryParseIR, FunctionInfo::ErrorOnNew)
     BUILTIN(GlobalObject, FunctionList, EntryFunctionList, FunctionInfo::ErrorOnNew)

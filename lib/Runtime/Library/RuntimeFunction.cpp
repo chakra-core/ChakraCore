@@ -55,4 +55,20 @@ namespace Js
         Assert(!TaggedInt::Is(nameId) || this->GetScriptContext()->IsTrackedPropertyId(TaggedInt::ToInt32(nameId)));
         this->functionNameId = nameId;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType RuntimeFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject;
+    }
+
+    void RuntimeFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: need to add promise support
+        //
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject>(objData, nullptr);
+    }
+#endif
 };

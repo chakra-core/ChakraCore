@@ -328,4 +328,17 @@ namespace Js
         stringBuilder->AppendCppLiteral(L"WeakMap");
         return TRUE;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptWeakMap::GetSnapTag_TTD() const
+    {
+        //Make sure this isn't accidentally handled by parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptWeakMap::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+    }
+#endif
 }

@@ -25,5 +25,11 @@ namespace Js
         Var functionNameId;
         virtual Var GetSourceString() const { return functionNameId; }
         virtual Var EnsureSourceString();
+
+#if ENABLE_TTD
+    public:
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 };

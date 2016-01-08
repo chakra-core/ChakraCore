@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>accessor.js</files>
+      <compile-flags>-TTRecord:!accessorTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!accessorTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>array.js</files>
+      <compile-flags>-TTRecord:!arrayTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!arrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boolean.js</files>
+      <compile-flags>-TTRecord:!booleanTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!booleanTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boundFunction.js</files>
+      <compile-flags>-TTRecord:!boundFunctionTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!boundFunctionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boxedObject.js</files>
+      <compile-flags>-TTRecord:!boxedObjectTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!boxedObjectTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>dateBasic.js</files>
+      <compile-flags>-TTRecord:!dateBasicTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!dateBasicTest -TTDStartEvent:10 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>function.js</files>
+      <compile-flags>-TTRecord:!functionTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!functionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>map.js</files>
+      <compile-flags>-TTRecord:!mapTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!mapTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nativeArray.js</files>
+      <compile-flags>-TTRecord:!nativeArrayTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!nativeArrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>number.js</files>
+      <compile-flags>-TTRecord:!numberTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!numberTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>object.js</files>
+      <compile-flags>-TTRecord:!objectTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!objectTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex.js</files>
+      <compile-flags>-TTRecord:!regexTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!regexTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>scopeFunction.js</files>
+      <compile-flags>-TTRecord:!scopeFunctionTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!scopeFunctionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>set.js</files>
+      <compile-flags>-TTRecord:!setTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!setTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>string.js</files>
+      <compile-flags>-TTRecord:!stringTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!stringTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>typedArray.js</files>
+      <compile-flags>-TTRecord:!typedArrayTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!typedArrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+</regress-exe>

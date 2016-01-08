@@ -268,6 +268,69 @@ namespace Js
 
         externalFunction->PrepareExternalCall(&args);
 
+#if ENABLE_TTD
+        Var result = nullptr;
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+        if(threadContext->TTDInfo != nullptr)
+        {
+            for(uint32 i = 0; i < args.Info.Count; ++i)
+            {
+                Js::Var arg = args.Values[i];
+                if(TTD::JsSupport::IsVarPtrValued(arg))
+                {
+                    threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
+                }
+            }
+        }
+
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+
+            if(elog->ShouldPerformDebugAction())
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    elog->ReplayExternalCallEvent(scriptContext, &result);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                Js::HiResTimer timer;
+                double startTime = timer.Now();
+
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
+                scriptContext->TTDRootNestingCount++;
+
+                Var result = nullptr;
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+                double endTime = timer.Now();
+                beginEvent->SetElapsedTime(endTime - startTime);
+
+                scriptContext->TTDRootNestingCount--;
+                elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
+            }
+        }
+        else
+        {
+            Var result = nullptr;
+            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+            {
+                // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                result = externalFunction->nativeMethod(function, callInfo, args.Values);
+            }
+            END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+        }
+#else
         Var result = nullptr;
         BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
         {
@@ -275,6 +338,7 @@ namespace Js
             result = externalFunction->nativeMethod(function, callInfo, args.Values);
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+#endif
 
         return externalFunction->FinishExternalCall(result);
     }
@@ -307,11 +371,70 @@ namespace Js
         AnalysisAssert(scriptContext);
         Var result = NULL;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+        if(threadContext->TTDInfo != nullptr)
+        {
+            for(uint32 i = 0; i < args.Info.Count; ++i)
+            {
+                Js::Var arg = args.Values[i];
+                if(TTD::JsSupport::IsVarPtrValued(arg))
+                {
+                    threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
+                }
+            }
+        }
+
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+
+            if(elog->ShouldPerformDebugAction())
+            {
+                BEGIN_LEAVE_SCRIPT(scriptContext)
+                {
+                    elog->ReplayExternalCallEvent(scriptContext, &result);
+                }
+                END_LEAVE_SCRIPT(scriptContext);
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                Js::HiResTimer timer;
+                double startTime = timer.Now();
+
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
+                scriptContext->TTDRootNestingCount++;
+
+                BEGIN_LEAVE_SCRIPT(scriptContext)
+                {
+                    result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                }
+                END_LEAVE_SCRIPT(scriptContext);
+
+                double endTime = timer.Now();
+                beginEvent->SetElapsedTime(endTime - startTime);
+
+                scriptContext->TTDRootNestingCount--;
+                elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
+            }
+        }
+        else
+        {
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+        }
+#else
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
             result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
         }
         END_LEAVE_SCRIPT(scriptContext);
+#endif
 
         if (result != nullptr && !Js::TaggedNumber::Is(result))
         {
@@ -357,4 +480,18 @@ namespace Js
         return DynamicObject::SetPropertyWithAttributes(PropertyIds::length, length, PropertyConfigurable, NULL, PropertyOperation_None, SideEffects_None);
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptExternalFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject;
+    }
+
+    void JavascriptExternalFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        LPCWSTR fname = Js::JavascriptString::FromVar(this->EnsureSourceString())->GetSz();
+        LPCWSTR snapName = alloc.CopyStringInto(fname);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<LPCWSTR, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+    }
+#endif
 }

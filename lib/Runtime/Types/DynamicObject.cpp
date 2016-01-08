@@ -23,6 +23,16 @@ namespace Js
         {
             Assert(type->GetTypeHandler()->GetInlineSlotCapacity() == type->GetTypeHandler()->GetSlotCapacity());
         }
+
+#if ENABLE_TTD_IDENTITY_TRACING
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
+#endif
+        if(type->GetScriptContext()->DoObjectIdenityTagging_TTD())
+        {
+            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
+        }
+#endif
     }
 
     DynamicObject::DynamicObject(DynamicType * type, ScriptContext * scriptContext) :
@@ -36,6 +46,16 @@ namespace Js
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
         InitSlots(this, scriptContext);
+
+#if ENABLE_TTD_IDENTITY_TRACING
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
+#endif
+        if(scriptContext->DoObjectIdenityTagging_TTD())
+        {
+            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
+        }
+#endif
     }
 
     DynamicObject::DynamicObject(DynamicObject * instance) :
@@ -80,6 +100,16 @@ namespace Js
 #endif
             }
         }
+
+#if ENABLE_TTD_IDENTITY_TRACING
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
+#endif
+        if(type->GetScriptContext()->DoObjectIdenityTagging_TTD())
+        {
+            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
+        }
+#endif
     }
 
     DynamicObject * DynamicObject::New(Recycler * recycler, DynamicType * type)
@@ -863,6 +893,36 @@ namespace Js
         }
 
         RecyclableObject::Mark(recycler);
+    }
+#endif
+
+#if ENABLE_TTD
+
+#ifdef ENABLE_TTD_IDENTITY_TRACING
+    void DynamicObject::SetIdentity_TTD(TTD_IDENTITY_TAG identityTag)
+    {
+        this->TTDObjectIdentityTag = identityTag;
+    }
+#endif
+
+    TTD::NSSnapObjects::SnapObjectType DynamicObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject;
+    }
+
+    void DynamicObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject>(objData, nullptr);
+    }
+
+    Js::Var* DynamicObject::GetInlineSlots_TTD() const
+    {
+        return reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
+    }
+
+    Js::Var* DynamicObject::GetAuxSlots_TTD() const
+    {
+        return this->auxSlots;
     }
 #endif
 

@@ -2670,6 +2670,26 @@ namespace Js
         return Js::JavascriptNumber::ToVarNoCheck(currentRes, scriptContext);
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType TypedArrayBase::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapTypedArrayObject;
+    }
+
+    void TypedArrayBase::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapTypedArrayInfo* stai = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapTypedArrayInfo>();
+        stai->ArrayBufferAddr = TTD_CONVERT_VAR_TO_PTR_ID(this->GetArrayBuffer());
+        stai->ByteOffset = this->GetByteOffset();
+        stai->Length = this->GetLength();
+
+        TTD_PTR_ID* depArray = alloc.SlabAllocateArray<TTD_PTR_ID>(1);
+        depArray[0] = TTD_CONVERT_VAR_TO_PTR_ID(this->GetArrayBuffer());
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapTypedArrayInfo*, TTD::NSSnapObjects::SnapObjectType::SnapTypedArrayObject>(objData, stai, alloc, 1, depArray);
+    }
+#endif
+
     template<> BOOL Uint8ClampedArray::Is(Var aValue)
     {
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_Uint8ClampedArray &&

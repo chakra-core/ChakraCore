@@ -298,6 +298,18 @@ namespace Js
 
         template <bool check__proto__>
         static DynamicType* InternalCreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override;
+
+        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
+        {
+            return TTD::NSSnapType::SnapTypeHandlerTag::SimpleDictionaryHandler;
+        }
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
+#endif
     };
 
 }

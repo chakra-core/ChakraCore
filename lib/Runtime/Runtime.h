@@ -54,6 +54,109 @@ class ByteCodeGenerator;
 interface IActiveScriptDataCache;
 class ActiveScriptProfilerHeapEnum;
 
+////////
+//The default number of elements per arrayblock, the size of "small" arrays and the block size we use when extracting
+#define TTD_ARRAY_BLOCK_SIZE 0x200
+#define TTD_ARRAY_SMALL_ARRAY 0x100
+
+//The ids for objects in a snapshot
+typedef uint64 TTD_PTR_ID;
+#define TTD_INVALID_PTR_ID 0ul
+
+#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_TYPEINFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_ENV_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_SLOTARRAY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_SCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+
+#define TTD_EXTRACT_CTX_LOG_TAG(X) ((X)->ScriptContextLogTag)
+
+#define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var*>(X))
+
+typedef uint64 TTD_LOG_TAG;
+#define TTD_INVALID_LOG_TAG 0l
+#define TTD_INITIAL_LOG_TAG 1l
+
+#define TTD_INCREMENT_LOG_TAG(X) ((X)++)
+
+typedef int64 TTD_IDENTITY_TAG;
+#define TTD_INVALID_IDENTITY_TAG 0l
+#define TTD_INITIAL_IDENTITY_TAG 1l
+
+#define TTD_INCREMENT_IDENTITY_TAG(X) ((X)++)
+
+//The representation of an identifier (currently access path) for a well known object/primitive/function body/etc. in the JS engine or HOST
+typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
+#define TTD_INVALID_WELLKNOWN_TOKEN nullptr
+
+#include "Debug\TTSupport.h"
+
+namespace TTD
+{
+    //typedef for a pin set (ensure that objects are kept live).
+    typedef JsUtil::BaseHashSet<FinalizableObject*, Recycler> ReferencePinSet;
+
+    class RuntimeThreadInfo;
+    class RuntimeContextInfo;
+
+    //Mode of the time-travel debugger
+    enum class TTDMode
+    {
+        Invalid = 0x0,
+        Disabled = 0x1,  //The system is being run in normal mode (with no TTD features)
+        Detached = 0x2,  //The system has completed running (e.g. contexts have been detached) and we are done
+        RecordEnabled = 0x4,     //The system is being run in Record mode
+        DebuggingEnabled = 0x8,  //The system is being run in Debug Replay mode
+        TTDActive = (RecordEnabled | DebuggingEnabled),
+
+        ExcludedExecution = 0x20,  //Set when the system is executing code on behalf of the TTD/debugger (so we don't want to record/replay things for it)
+        TTDTagActive = (RecordEnabled | DebuggingEnabled) & (~ExcludedExecution)
+    };
+    DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
+
+        //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+        //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
+        typedef Js::Var TTDVar;
+
+    namespace NSSnapType
+    {
+        enum class SnapTypeHandlerTag : int;
+
+        struct SnapPropertyRecord;
+        struct SnapHandlerPropertyEntry;
+        struct SnapHandler;
+        struct SnapType;
+    }
+
+    namespace NSSnapValues
+    {
+        struct SnapPrimitiveValue;
+        struct SlotArrayInfo;
+        struct ScriptFunctionScopeInfo;
+    }
+
+    namespace NSSnapObjects
+    {
+        enum class SnapObjectType : int;
+
+        struct SnapObject;
+    }
+
+    class SnapShot;
+    class SnapshotExtractor;
+
+    class EventTime;
+    class TTDExceptionFramePopper;
+    struct SingleCallCounter;
+    class EventLogEntry;
+    class JsRTActionLogEntry;
+    class EventLog;
+
+    class TTDebuggerAbortException;
+}
+////////
+
 namespace Js
 {
     //
@@ -454,6 +557,21 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types\ScriptFunctionType.h"
 #include "Library\ScriptFunction.h"
 
+#if ENABLE_TTD
+#include "screrror.h"
+
+#include "Debug\TTRuntimeInfoTracker.h"
+#include "Debug\TTInflateMap.h"
+#include "Debug\TTSerialize.h"
+#include "Debug\TTSnapTypes.h"
+#include "Debug\TTSnapValues.h"
+#include "Debug\TTSnapObjects.h"
+#include "Debug\TTSnapshot.h"
+#include "Debug\TTSnapshotExtractor.h"
+#include "Debug\TTEvents.h"
+#include "Debug\TTActionEvents.h"
+#include "Debug\TTEventLog.h"
+#endif
 
 //
 // .inl files

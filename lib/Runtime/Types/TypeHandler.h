@@ -595,5 +595,43 @@ namespace Js
 
     private:
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) = 0;
+
+#if ENABLE_TTD
+     public:
+         //Use the handler to identify all of the values in an object slot array and mark them
+         virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const = 0;
+
+         //Return true if the mark should visit the given property id (we want to skip most internal property ids)
+         static bool ShouldMarkPropertyId_TTD(Js::PropertyId pid)
+         {
+             if(Js::IsInternalPropertyId(pid))
+             {
+                 return false;
+             }
+
+             return true;
+         }
+
+         //Use to extract the handler specific information during snapshot
+         virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const = 0;
+         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const = 0;
+
+         //Extract the snap handler info
+         void ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const;
+
+         //Set the extensible flag info in the handler
+         void SetExtensibleFlag_TTD(byte extensibleFlag);
+
+         //Return true if we should restore the given property id (we want to skip most internal property ids)
+         static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)
+         {
+             if(Js::IsInternalPropertyId(pid))
+             {
+                 return false;
+             }
+
+             return true;
+         }
+#endif
     };
 }

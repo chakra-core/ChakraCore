@@ -744,6 +744,17 @@ namespace Js
         return TRUE;
     }
 
+#if ENABLE_TTD
+    void ArrayBufferParent::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->arrayBuffer);
+    }
+
+    void ArrayBufferParent::ProcessCorePaths()
+    {
+        this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->arrayBuffer, L"!buffer");
+    }
+#endif
 
     JavascriptArrayBuffer::JavascriptArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AllocWrapper : malloc)
@@ -974,6 +985,31 @@ namespace Js
 
         return newArrayBuffer;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptArrayBuffer::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void JavascriptArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
 
     ProjectionArrayBuffer::ProjectionArrayBuffer(uint32 length, DynamicType * type) :
         ArrayBuffer(length, type, CoTaskMemAlloc)

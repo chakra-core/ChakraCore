@@ -341,7 +341,7 @@ BOOL FSyncVariation = FALSE;    // flush after every test variation (default)
 BOOL FSyncTest = FALSE;         // flush after all variations of a test
 BOOL FSyncDir = FALSE;          // flush after an entire directory
 
-BOOL FSingleThreadPerDir = FALSE; // Perform all tests within each directory on a single thread.
+BOOL FSingleThreadPerDir = TRUE; // Perform all tests within each directory on a single thread.
 BOOL FSingleDir = FALSE;
 BOOL FNoThreadId = FALSE;
 

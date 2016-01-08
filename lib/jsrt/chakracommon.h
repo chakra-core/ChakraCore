@@ -829,6 +829,7 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsRunScript(
+            _In_ INT64 hostCallbackId,
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,
@@ -2203,6 +2204,7 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsCallFunction(
+            _In_ INT64 hostCallbackId,
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
             _In_ unsigned short argumentCount,
@@ -2543,4 +2545,149 @@
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
+
+    /////////////////////
+
+    typedef bool (CALLBACK *JsTTDDbgCallback)(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage);
+
+    //Create any container needed for a log/snapshot and return the stream handle for writing the core-contents data
+    typedef void (CALLBACK *JsTTDInitializeTTDUriCallback)(const wchar_t* uri, wchar_t** fullTTDUri);
+    typedef void (CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(const wchar_t* uri);
+    typedef HANDLE (CALLBACK *JsTTDGetLogStreamCallback)(const wchar_t* uri, bool read, bool write);
+    typedef HANDLE (CALLBACK *JsTTDGetSnapshotStreamCallback)(const wchar_t* logRootUri, const wchar_t* snapId, bool read, bool write, wchar_t** snapContainerUri);
+    typedef HANDLE (CALLBACK *JsTTDGetSrcCodeStreamCallback)(const wchar_t* snapContainerUri, const wchar_t* documentid, const wchar_t* srcFileName, bool read, bool write);
+
+    typedef BOOL(CALLBACK *JsTTDReadBytesFromStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* readCount);
+    typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
+    typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(HANDLE strm, bool read, bool write);
+
+    /// <summary>
+    ///     Set the function that is called when the debugger hits a breakpoint.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDSetDebuggerCallback(
+            _In_ JsTTDDbgCallback debuggerCallback);
+
+    /// <summary>
+    ///     Set the functions that the TTD system uses to write info out of main memory when needed.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDSetIOCallbacks(
+            _In_ JsRuntimeHandle runtime,
+            _In_ JsTTDInitializeTTDUriCallback ttdInitializeTTDUriFunction,
+            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
+            _In_ JsTTDGetLogStreamCallback getLogStreamInfo,
+            _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo,
+            _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo,
+            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
+            _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
+            _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
+
+    /// <summary>
+    ///     Print a variable.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDPrintVariable(
+            _In_ wchar_t* varName);
+
+    /// <summary>
+    ///     Get the info on the line/execution time for either the current Breakpoint or the previous statement in the debugger.
+    ///     Call from the debugger when we want to step back or print the current BP info.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDGetExecutionTimeInfo(
+            _In_ bool previousTime, _Out_ bool* noPrevious,
+            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
+            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
+
+    /// <summary>
+    ///     Get the info on the line/execution time where the last (escaping) exception was thrown.
+    ///     Call from the debugger when we want to step back to the last exception event -- this is only valid immediately after catching the exception as it resets anytime we execute a method call/return.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDGetLastExceptionThrowTimeInfo(
+            _In_ bool* hasException,
+            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
+            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
+
+    /// <summary>
+    ///     Get the info on the line/execution for the just returned function.
+    ///     Call from the debugger when we want to step back *into* to the last call event -- this is only valid immediately after a method return.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDGetLastFunctionReturnTimeInfo(
+            _In_ bool* isImmediateReturn,
+            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
+            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
+
+    /// <summary>
+    ///     Notify the Js runtime that the host as created/canceled a callback with hte given function and id
+    /// </summary>
+    STDAPI_(JsErrorCode) 
+        JsTTDNotifyHostCallbackCreatedOrCanceled(
+            _In_ bool isCancel, _In_ bool isRepeating, 
+            _In_ JsValueRef function, _In_ INT64 createdCallbackId);
+
+    /// <summary>
+    ///     Get the info on the line/execution time for the statement that registers/cancels the callback that is currently executing.
+    ///     Call from the debugger when we want to step back to the previous event.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDGetCurrentCallbackOperationTimeInfo(
+            _In_ bool wantRegisterOp, 
+            _Out_ bool* hasEvent, _Out_ bool* eventHasTimeInfo, 
+            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
+            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
+
+    /// <summary>
+    ///     Set a breakpoint at a specific line/time.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDSetBP(
+            _In_ UINT64 rootEventTime, _In_ UINT64 ftime, _In_ UINT64 ltime,
+            _In_ UINT32 line, _In_ UINT32 column, _In_ UINT32 sourceId);
+
+    /// <summary>
+    ///     Set a breakpoint that will trigger on step or step-into.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDSetStepBP(_In_ bool into);
+
+    /// <summary>
+    ///     Set the execution to continue.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDSetContinueBP();
+
+    /// <summary>
+    ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
+    ///     We reset the script context if the move will require inflating from a different snapshot that the last one.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDPrepContextsForTopLevelEventMove(
+            _In_ JsRuntimeHandle runtimeHandle, _In_ INT64 targetEventTime, _Out_ INT64* targetStartSnapTime);
+
+    /// <summary>
+    ///     Move to the given top-level call event time (assuming JsTTDPrepContextsForTopLevelEventMove) was called to reset any script contexts.
+    ///     This also computes the ready-to-run snapshot if needed.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDMoveToTopLevelEvent(
+            _In_ INT64 snapshotTime, _In_ INT64 eventTime);
+
+    /// <summary>
+    ///     Execute from the current point in the log to the end returning the error code.
+    ///     If the debugger requested an abort the code is JsNoError -- rootEventTime is the target event time to reset to.
+    ///     If we aborted at the end of the replay log the code is JsNoError -- rootEventTime is -1.
+    ///     If there was an unhandled script exception the code is JsErrorCategoryScript -- exception time info can be accessed via JsTTDGetLastExceptionThrowTimeInfo.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDReplayExecution(INT64* rootEventTime);
+
+    /// <summary>
+    ///     If we are running a test case replay then this is used to compare the record/replay logs and any other artifacts we care about.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDTestingCompareArtifacts();
+
 #endif // _CHAKRACOMMON_H_

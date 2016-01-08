@@ -59,6 +59,12 @@ namespace Js
         friend class ScriptFunction; // for ReplaceType;
         friend class JSON::JSONParser; //for ReplaceType
 
+#if ENABLE_TTD_IDENTITY_TRACING
+    public:
+        //The optional tag we have for uniquely tracking object identities (and thus value origins) in the program
+        TTD_IDENTITY_TAG TTDObjectIdentityTag;
+#endif
+
     private:
         Var* auxSlots;
         // The objectArrayOrFlags field can store one of two things:
@@ -306,6 +312,20 @@ namespace Js
         virtual void Finalize(bool isShutdown) override;
         virtual void Dispose(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override;
+#endif
+
+#if ENABLE_TTD
+    public:
+
+#if ENABLE_TTD_IDENTITY_TRACING
+        void SetIdentity_TTD(TTD_IDENTITY_TAG identityTag);
+#endif
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        Js::Var* GetInlineSlots_TTD() const;
+        Js::Var* GetAuxSlots_TTD() const;
 #endif
     };
 } // namespace Js

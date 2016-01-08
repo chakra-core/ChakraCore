@@ -522,6 +522,124 @@ namespace Js
 
         return TRUE;
     }
+#if ENABLE_TTD
+    void ScriptFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+        extractor->MarkFunctionBody(fb);
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        if(environment->GetLength() != 0)
+        {
+            extractor->MarkScriptFunctionScopeInfo(environment);
+        }
+
+        if(this->homeObj != nullptr)
+        {
+            extractor->MarkVisitVar(this->homeObj);
+        }
+
+        if(this->computedNameVar != nullptr)
+        {
+            extractor->MarkVisitVar(this->computedNameVar);
+        }
+    }
+
+    void ScriptFunction::ProcessCorePaths()
+    {
+        TTD::RuntimeContextInfo* rctxInfo = this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk();
+
+        //do the body path mark
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+        rctxInfo->EnqueueNewFunctionBodyObject(this, fb, L"!fbody");
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        uint32 scopeCount = environment->GetLength();
+
+        for(uint32 i = 0; i < scopeCount; ++i)
+        {
+            TTD::UtilSupport::TTAutoString scopePathString = rctxInfo->BuildEnvironmentIndexBuffer(i);
+
+            void* scope = environment->GetItem(i);
+            switch(environment->GetScopeType(scope))
+            {
+            case Js::ScopeType::ScopeType_ActivationObject:
+            case Js::ScopeType::ScopeType_WithScope:
+            {    
+                rctxInfo->EnqueueNewPathVarAsNeeded(this, (Js::Var)scope, scopePathString.GetStrValue());
+                break;
+            }
+            case Js::ScopeType::ScopeType_SlotArray:
+            {
+                Js::ScopeSlots slotArray = (Js::Var*)scope;
+                uint slotArrayCount = slotArray.GetCount();
+
+                //get the function body associated with the scope
+                Js::FunctionBody* sfb = slotArray.GetFunctionBody();
+
+                rctxInfo->EnqueueNewFunctionBodyObject(this, sfb, scopePathString.GetStrValue());
+
+                for(ulong j = 0; j < slotArrayCount; j++)
+                {
+                    Js::Var sval = slotArray.Get(j);
+
+                    TTD::UtilSupport::TTAutoString slotPathString = rctxInfo->BuildEnvironmentIndexAndSlotBuffer(i, j);
+                    rctxInfo->EnqueueNewPathVarAsNeeded(this, sval, slotPathString.GetStrValue());
+                }
+
+                break;
+            }
+            default:
+                AssertMsg(false, "Unknown scope kind");
+            }
+        }
+
+        if(this->homeObj != nullptr)
+        {
+            this->GetScriptContext()->GetRuntimeContextInfo_TTDCoreWalk()->EnqueueNewPathVarAsNeeded(this, this->homeObj, L"_homeObj");
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType ScriptFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject;
+    }
+
+    void ScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        AssertMsg(this->GetFunctionInfo() != nullptr, "We are only doing this for functions with ParseableFunctionInfo.");
+
+        TTD::NSSnapObjects::SnapScriptFunctionInfo* ssfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapScriptFunctionInfo>();
+        Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        ssfi->DebugFunctionName = fb->GetDisplayName();
+#endif
+
+        ssfi->BodyRefId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
+
+        Js::FrameDisplay* environment = this->GetEnvironment();
+        ssfi->ScopeId = TTD_INVALID_PTR_ID;
+        if(environment->GetLength() != 0)
+        {
+            ssfi->ScopeId = TTD_CONVERT_SCOPE_TO_PTR_ID(environment);
+        }
+
+        ssfi->HomeObjId = TTD_INVALID_PTR_ID;
+        if(this->homeObj != nullptr)
+        {
+            ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
+        }
+
+        ssfi->ComputedNameInfo = this->computedNameVar;
+
+        ssfi->HasInlineCaches = this->hasInlineCaches;
+        ssfi->HasSuperReference = this->hasSuperReference;
+        ssfi->IsDefaultConstructor = this->isDefaultConstructor;
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
+    }
+#endif
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType), m_moduleMemory(nullptr)

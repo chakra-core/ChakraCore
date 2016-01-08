@@ -1099,4 +1099,27 @@ namespace Js
             ? specialPropertyIdsAll
             : specialPropertyIdsWithoutUnicode;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptRegExp::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapRegexObject;
+    }
+
+    void JavascriptRegExp::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapRegexInfo* sri = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapRegexInfo>();
+        sri->RegexStr = alloc.CopyStringInto(this->pattern->GetSource().GetBuffer());
+
+        //
+        //TODO: Need to look into split pattern
+        //
+        AssertMsg(this->splitPattern == nullptr, "Not supported yet!!!");
+
+        sri->Flags = this->GetFlags();
+        sri->LastIndexOrFlag = this->GetLastIndex();
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapRegexInfo*, TTD::NSSnapObjects::SnapObjectType::SnapRegexObject>(objData, sri);
+    }
+#endif
 } // namespace Js

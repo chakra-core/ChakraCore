@@ -1902,6 +1902,39 @@ namespace Js
     }
 #endif
 
+#if ENABLE_TTD
+    void PathTypeHandlerBase::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
+    {
+        uint32 plength = this->GetPathLength();
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            Js::PropertyId pid = typePath->GetPropertyIdUnchecked(index)->GetPropertyId();
+
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid))
+            {
+                Js::Var value = obj->GetSlot(index);
+                extractor->MarkVisitVar(value);
+            }
+        }
+    }
+
+    uint32 PathTypeHandlerBase::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
+    {
+        uint32 plength = this->GetPathLength();
+
+        for(uint32 index = 0; index < plength; ++index)
+        {
+            entryInfo[index].AttributeInfo = PropertyDynamicTypeDefaults;
+            entryInfo[index].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
+
+            entryInfo[index].PropertyRecordId = typePath->GetPropertyIdUnchecked(index)->GetPropertyId();
+        }
+
+        return plength;
+    }
+#endif
+
     SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType)
     {
         return New(scriptContext, typePath, pathLength, max(pathLength, inlineSlotCapacity), inlineSlotCapacity, offsetOfInlineSlots, isLocked, isShared, predecessorType);

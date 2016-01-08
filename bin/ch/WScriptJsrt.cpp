@@ -237,7 +237,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCWSTR fileName, size_t f
         IfJsrtErrorSetGo(ChakraRTInterface::JsGetContextOfObject(callee, &calleeContext));
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(calleeContext));
-        errorCode = ChakraRTInterface::JsRunScript(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+        errorCode = ChakraRTInterface::JsRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
 
         if (errorCode == JsNoError)
         {
@@ -257,7 +257,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCWSTR fileName, size_t f
         // Initialize the host objects
         Initialize();
 
-        errorCode = ChakraRTInterface::JsRunScript(fileContent, GetNextSourceContext(), fullPath, &returnValue);
+        errorCode = ChakraRTInterface::JsRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
 
         if (errorCode == JsNoError)
         {
@@ -325,6 +325,10 @@ JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCa
     msg = new CallbackMessage(time, function);
     messageQueue->Push(msg);
 
+#if ENABLE_TTD
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(false, false, function, msg->GetId());
+#endif
+
     IfJsrtError(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(msg->GetId()), &timerId));
     return timerId;
 
@@ -365,6 +369,10 @@ JsValueRef WScriptJsrt::ClearTimeoutCallback(JsValueRef callee, bool isConstruct
 
     timerId = static_cast<int>(tmp);
     messageQueue->RemoveById(timerId);
+
+#if ENABLE_TTD
+    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true, false, nullptr, timerId);
+#endif
 
     IfJsrtError(ChakraRTInterface::JsGetGlobalObject(&global));
     IfJsrtError(ChakraRTInterface::JsGetUndefinedValue(&undef));
@@ -578,11 +586,11 @@ HRESULT WScriptJsrt::CallbackMessage::Call(LPCWSTR fileName)
         IfJsrtErrorHR(ChakraRTInterface::JsStringToPointer(stringValue, &script, &length));
 
         // Run the code
-        errorCode = ChakraRTInterface::JsRunScript(script, JS_SOURCE_CONTEXT_NONE, L"" /*sourceUrl*/, nullptr /*no result needed*/);
+        errorCode = ChakraRTInterface::JsRunScript(this->GetId(), script, JS_SOURCE_CONTEXT_NONE, L"" /*sourceUrl*/, nullptr /*no result needed*/);
     }
     else
     {
-        errorCode = ChakraRTInterface::JsCallFunction(m_function, &global, 1, &result);
+        errorCode = ChakraRTInterface::JsCallFunction(this->GetId(), m_function, &global, 1, &result);
     }
 
     if (errorCode != JsNoError)

@@ -1252,6 +1252,11 @@ namespace Js
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
 
+#if ENABLE_TTD
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestWrite", &GlobalObject::EntryInfo::TTDTestWrite, 2);
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestReport", &GlobalObject::EntryInfo::TTDTestReport, 3);
+#endif
+
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))
         {
@@ -4284,6 +4289,14 @@ namespace Js
 
         if (this->nativeHostPromiseContinuationFunction)
         {
+#if ENABLE_TTD
+            ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
+            if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog))
+            {
+                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
+            }
+#endif
+
             BEGIN_LEAVE_SCRIPT(scriptContext);
             try
             {
@@ -4389,6 +4402,107 @@ namespace Js
         return RecyclerNew(scriptContext->GetRecycler(), JavascriptRegExp, emptyRegexPattern,
                            this->GetRegexType());
     }
+
+#if ENABLE_TTD
+    Js::PropertyId JavascriptLibrary::ExtractPrimitveSybbolId_TTD(Var value)
+    {
+        return Js::JavascriptSymbol::FromVar(value)->GetValue()->GetPropertyId();
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::PropertyId pid)
+    {
+        return this->CreateSymbol(this->scriptContext->GetPropertyName(pid));
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateBooleanObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateBooleanObject();
+        }
+        else
+        {
+            return this->CreateBooleanObject(JavascriptBoolean::FromVar(value)->GetValue());
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateNumberObject_TTD(Var value)
+    {
+        return this->CreateNumberObject(value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateStringObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateStringObject(nullptr);
+        }
+        else
+        {
+            return this->CreateStringObject(JavascriptString::FromVar(value));
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateSymbolObject_TTD(Var value)
+    {
+        if(value == nullptr)
+        {
+            return this->CreateSymbolObject(nullptr);
+        }
+        else
+        {
+            return this->CreateSymbolObject(JavascriptSymbol::FromVar(value));
+        }
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateDate_TTD(double value)
+    {
+        return this->CreateDate(value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const wchar_t* pSource, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
+    {
+        Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(pSource, wcslen(pSource), flags, this->scriptContext);
+        re->SetLastIndex(lastIndex);
+
+        return re;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateError_TTD()
+    {
+        return this->CreateError();
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateSet_TTD()
+    {
+        return JavascriptSet::CreateForSnapshotRestore(this->scriptContext);
+    }
+
+    void JavascriptLibrary::AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value)
+    {
+        set->Add(value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateMap_TTD()
+    {
+        return JavascriptMap::CreateForSnapshotRestore(this->scriptContext);
+    }
+
+    void JavascriptLibrary::AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value)
+    {
+        map->Set(key, value);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::JavascriptString* fname)
+    {
+        return this->CreateExternalFunction(nullptr, fname, nullptr, 0, 0);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args)
+    {
+        return BoundFunction::InflateBoundFunction(this->scriptContext, function, bThis, ct, args);
+    }
+#endif
 
     void JavascriptLibrary::SetCrossSiteForSharedFunctionType(JavascriptFunction * function)
     {

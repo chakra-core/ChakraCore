@@ -104,6 +104,16 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual void ProcessCorePaths() override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class AsmJsScriptFunction : public ScriptFunction

@@ -92,5 +92,23 @@ namespace Js
 
     public:
         static NullTypeHandler * GetDefaultInstance() { return &defaultInstance; }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
+        {
+            ;
+        }
+
+        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
+        {
+            return TTD::NSSnapType::SnapTypeHandlerTag::NullHandlerTag;
+        }
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
+        {
+            return 0;
+        }
+#endif
     };
 }

@@ -1,0 +1,41 @@
+----
+Global code @ line: 1, column: 0, etime: 2, ftime: 1, ltime: 0
+
+var hello = undefined;
+
+TTDebug>An unhandled script exception occoured!!!
+Time-Travel to throwing line y/n?
+Time-travel to throwing line initiated...doIt
+----
+foo @ line: 7, column: 4, etime: 8, ftime: 2, ltime: 0
+
+if(hello.doExcited)
+
+TTDebug>doIt
+----
+foo @ line: 5, column: 4, etime: 8, ftime: 2, ltime: 0
+
+var msg = "No Message";
+
+TTDebug>----
+doIt @ line: 22, column: 4, etime: 8, ftime: 1, ltime: 0
+
+var msg = foo(txt);
+
+TTDebug>doIt
+----
+foo @ line: 5, column: 4, etime: 8, ftime: 2, ltime: 0
+
+var msg = "No Message";
+
+TTDebug>----
+doIt @ line: 22, column: 4, etime: 8, ftime: 1, ltime: 0
+
+var msg = foo(txt);
+
+TTDebug>----
+doIt @ line: 21, column: 4, etime: 8, ftime: 1, ltime: 0
+
+var txt = "World";
+
+TTDebug>

@@ -198,5 +198,23 @@ namespace Js
     private:
         virtual BOOL FreezeImpl(DynamicObject* instance, bool isConvertedType) override;
         virtual BigDictionaryTypeHandler* NewBigDictionaryTypeHandler(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) override;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const override
+        {
+            ;
+        }
+
+        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
+        {
+            return TTD::NSSnapType::SnapTypeHandlerTag::ES5GeneralDictionaryHandler;
+        }
+
+        virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
+        {
+            return 0;
+        }
+#endif
     };
 }

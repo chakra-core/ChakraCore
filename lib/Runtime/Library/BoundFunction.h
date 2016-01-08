@@ -54,6 +54,17 @@ namespace Js
         Var* GetArgsForHeapEnum() { return boundArgs;}
         RecyclableObject* GetBoundThis();
 
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+        virtual void ProcessCorePaths() override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        static BoundFunction* InflateBoundFunction(ScriptContext* ctx, RecyclableObject* function, Var bThis, uint32 ct, Var* args);
+#endif
+
     private:
         static FunctionInfo        functionInfo;
         RecyclableObject*   targetFunction;

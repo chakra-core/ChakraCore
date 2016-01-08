@@ -361,4 +361,17 @@ namespace Js
     {
         return GetTypeHandler()->GetDescriptor(index, ppDescriptor);
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ES5Array::GetSnapTag_TTD() const
+    {
+        //Make sure this isn't accidentally handled by parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void ES5Array::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+    }
+#endif
 }

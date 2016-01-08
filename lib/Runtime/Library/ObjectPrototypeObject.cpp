@@ -118,4 +118,16 @@ namespace Js
                 && setter == scriptContext->GetLibrary()->Get__proto__setterFunction();
         }
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ObjectPrototypeObject::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject;
+    }
+
+    void ObjectPrototypeObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapWellKnownObject>(objData, nullptr);
+    }
+#endif
 }

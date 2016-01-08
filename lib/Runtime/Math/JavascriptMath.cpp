@@ -1054,6 +1054,22 @@ StringCommon:
                 threadContext->GetEntropy().AddThreadCycleTime();
                 threadContext->GetEntropy().AddIoCounters();
                 seed ^= (threadContext->GetEntropy().GetRand() & 0x0000FFFFFFFFFFFFull);
+
+#if ENABLE_TTD
+                if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+                {
+                    TTD::EventLog* elog = threadContext->TTDLog;
+                    if(elog->ShouldPerformDebugAction())
+                    {
+                        elog->ReplayExternalEntropyRandomEvent(&seed);
+                    }
+
+                    if(elog->ShouldPerformRecordAction())
+                    {
+                        elog->RecordExternalEntropyRandomEvent(seed);
+                    }
+                }
+#endif
             }
 
             Assert((seed >>32)  < 0x00010000 );  // only up to 48 bits should be in the previous value
