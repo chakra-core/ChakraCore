@@ -61,6 +61,7 @@ public:
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber = 1);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+            IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadStackArgPtr(IR::Instr * instr);
             IR::Instr *         LoadHeapArguments(IR::Instr * instr, bool force = false, IR::Opnd* opndInputParamCount = nullptr);
             IR::Instr *         LoadHeapArgsCached(IR::Instr * instr);

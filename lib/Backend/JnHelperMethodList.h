@@ -510,8 +510,14 @@ HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::Javascrip
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
 //
 
+
 HELPERCALL(MemCmp, nullptr, 0)
 HELPERCALL(MemCpy, nullptr, 0)
+
+HELPERCALL(DirectMath_FloorDb, nullptr, 0)
+HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
+HELPERCALL(DirectMath_CeilDb, nullptr, 0)
+HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
@@ -534,10 +540,6 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
-HELPERCALL(DirectMath_FloorDb, nullptr, 0)
-HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
-HELPERCALL(DirectMath_CeilDb, nullptr, 0)
-HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 #elif defined(_M_ARM32_OR_ARM64)
 // ARM is similar to AMD64 -- regular CRT calls as calling convention is already what we want -- args/result in VFP registers.
 HELPERCALL(DirectMath_Acos, nullptr, 0)

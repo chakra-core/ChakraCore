@@ -187,6 +187,7 @@ public:
             IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber = 1);
             IR::Instr *         LoadDynamicArgumentUsingLength(IR::Instr *instr);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+            IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg) { Assert(UNREACHED); return nullptr; } // only used for asm.js right now
             IR::Instr *         LowerToFloat(IR::Instr *instr);
      static IR::BranchInstr *   LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN = false);
             void                ConvertFloatToInt32(IR::Opnd* intOpnd, IR::Opnd* floatOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone, IR::Instr * instInsert);
