@@ -2821,17 +2821,30 @@ namespace Js
                     while (asmEnvIter.IsValid())
                     {
                         // we are attaching, change frame setup for asm.js frame to javascript frame
-                        SList<AsmJsScriptFunction*> * funcList = asmEnvIter.CurrentValue();
+                        SList<AsmJsScriptFunction *> * funcList = asmEnvIter.CurrentValue();
                         Assert(!funcList->Empty());
                         void* newEnv = AsmJsModuleInfo::ConvertFrameForJavascript(asmEnvIter.CurrentKey(), funcList->Head());
-                        while (!funcList->Empty())
+                        funcList->Iterate([&](AsmJsScriptFunction * func)
                         {
-                            AsmJsScriptFunction* func = funcList->Pop();
                             func->GetEnvironment()->SetItem(0, newEnv);
-                            func->SetModuleMemory(nullptr);
-                        }
+                        });
                         asmEnvIter.MoveNext();
                     }
+
+                    // walk through and clean up the asm.js fields as a discrete step, because module might be multiply linked
+                    auto asmCleanupIter = asmJsEnvironmentMap->GetIterator();
+                    while (asmCleanupIter.IsValid())
+                    {
+                        SList<AsmJsScriptFunction *> * funcList = asmCleanupIter.CurrentValue();
+                        Assert(!funcList->Empty());
+                        funcList->Iterate([](AsmJsScriptFunction * func)
+                        {
+                            func->SetModuleMemory(nullptr);
+                            func->GetFunctionBody()->ResetAsmJsInfo();
+                        });
+                        asmCleanupIter.MoveNext();
+                    }
+
                     ReleaseTemporaryAllocator(tmpAlloc);
 #endif
                 END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
