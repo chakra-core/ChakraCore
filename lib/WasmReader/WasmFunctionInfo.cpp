@@ -10,7 +10,8 @@
 namespace Wasm
 {
 
-WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc) : m_alloc(alloc), m_resultType(WasmTypes::Void)
+WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
+	: m_alloc(alloc), m_resultType(WasmTypes::Void), m_exported(false), m_imported(false)
 {
     m_i32Consts = Anew(m_alloc, ConstMap<int32>, m_alloc);
     m_i64Consts = Anew(m_alloc, ConstMap<int64>, m_alloc);

@@ -12,6 +12,7 @@
     if (m_trace) \
     {\
         Output::Print(__VA_ARGS__); \
+        Output::Print(L"\n"); \
         Output::Flush(); \
     } \
 
@@ -95,7 +96,7 @@ WasmBinaryReader::ReadFromModule()
             // next section
             sectionId = m_moduleState.secId = (SectionCode)ReadConst<UINT8>();
             m_moduleState.count = 0;
-            if (sectionId == bSectMemory)
+            if (sectionId == bSectMemory || sectionId == bSectEnd)
             {
                 m_moduleState.size = 1;
             }
@@ -192,6 +193,7 @@ WasmBinaryReader::ReadFromCall()
 {
     return GetWasmToken(ASTNode());
 }
+
 WasmOp
 WasmBinaryReader::ReadExpr()
 {
@@ -204,6 +206,15 @@ Entry point for decoding a node
 WasmBinOp
 WasmBinaryReader::ASTNode()
 {
+    // [b-gekua] REVIEW: It would be best to figure out how to unify
+    // SExprParser and WasmBinaryReader's interface for those Nodes
+    // that are repeatedly called (scoping construct) such as Blocks and Calls.
+    // SExprParser uses an interface such that ReadFromX() will be
+    // repeatedly called until we reach the end of the scope (at which
+    // point ReadFromX() should return a wnLIMIT to signal this). This
+    // Would eliminate a lot of the special casing in WasmBytecodeGenerator's
+    // EmitX() functions. The gotcha is that this may involve adding
+    // state to WasmBinaryReader to indicate how far in the scope we are.
     if (EndOfFunc())
     {
         // end of AST
@@ -218,11 +229,22 @@ WasmBinaryReader::ASTNode()
     case wbLoop:
         BlockNode();
         break;
+    case wbCall:
+        CallNode();
+        break;
     case wbBr:
     case wbBrIf:
         BrNode();
         break;
     case wbReturn:
+        // Watch out for optional implicit block
+        // (non-void return expression)
+        if (!EndOfFunc())
+            m_currentNode.opt.exists = true;
+        break;
+    case wbI8Const:
+        m_currentNode.cnst.i32 = ReadConst<INT8>();
+        m_funcState.count += sizeof(INT8);
         break;
     case wbI32Const:
         this->ConstNode<WasmTypes::bAstI32>();
@@ -239,10 +261,12 @@ WasmBinaryReader::ASTNode()
     case wbGetGlobal:
         VarNode();
         break;
+    case wbIfElse:
     case wbIf:
         // no node attributes
         break;
-
+    case wbNop:
+        break;
 #define WASM_SIMPLE_OPCODE(opname, opcode, token, sig) \
     case wb##opname: \
     m_currentNode.op = GetWasmToken(op); \
@@ -254,6 +278,21 @@ WasmBinaryReader::ASTNode()
     }
 
     return op;
+}
+
+void
+WasmBinaryReader::CallNode()
+{
+    UINT length = 0;
+    // [b-gekua] V8 says it's an LEB128 but it isn't clear that all encoders
+    // are following that.
+    UINT funcNum = LEB128(length);
+    m_funcState.count += length;
+    if (funcNum >= m_funcSignatureTable->Count())
+    {
+        ThrowDecodingError(L"Function signature is out of bound");
+    }
+    m_currentNode.var.num = funcNum;
 }
 
 // control flow
@@ -375,6 +414,7 @@ WasmBinaryReader::FunctionHeader()
     m_funcInfo->SetNumber(m_moduleState.count);
     flags = ReadConst<UINT8>();
     sigId = ReadConst<UINT16>();
+
     if (sigId >= m_funcSignatureTable->Count())
     {
         ThrowDecodingError(L"Function signature is out of bound");
@@ -442,7 +482,7 @@ WasmBinaryReader::FunctionHeader()
     m_funcState.size = ReadConst<UINT16>(); // AST Size in bytes
     CheckBytesLeft(m_funcState.size);
 
-    TRACE_WASM_DECODER(L"Function header: flags = %x, sig = %u, i32 = %u, i64 = %u, f32 = %u, f64 = %u, size = %u", flags, sigId, i32Count, i64Count, f32Count, f64Count);
+    TRACE_WASM_DECODER(L"Function header: flags = %x, sig = %u, i32 = %u, i64 = %u, f32 = %u, f64 = %u, size = %u", flags, sigId, i32Count, i64Count, f32Count, f64Count, m_funcState.size);
 }
 
 const char *
@@ -510,7 +550,7 @@ template <typename T>
 T WasmBinaryReader::ReadConst()
 {
     CheckBytesLeft(sizeof(T));
-    T value = (T)(*m_pc);
+    T value = *((T*)m_pc);
     m_pc += sizeof(T);
 
     return value;
@@ -519,7 +559,7 @@ T WasmBinaryReader::ReadConst()
 void
 WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
 {
-    UINT bytesLeft = m_end - m_pc;
+    UINT bytesLeft = (UINT)(m_end - m_pc);
     if ( bytesNeeded > bytesLeft)
     {
         Output::Print(L"Out of file: Needed: %d, Left: %d", bytesNeeded, bytesLeft);

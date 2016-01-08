@@ -105,6 +105,7 @@ namespace Wasm
     private:
         EmitInfo EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
+        EmitInfo EmitLoop();
         EmitInfo EmitCall();
         EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
@@ -156,5 +157,7 @@ namespace Wasm
         WasmRegisterSpace * m_i32RegSlots;
         WasmRegisterSpace * m_f32RegSlots;
         WasmRegisterSpace * m_f64RegSlots;
+
+        SList<Js::ByteCodeLabel> * m_labels;
     };
 }

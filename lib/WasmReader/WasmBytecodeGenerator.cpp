@@ -31,6 +31,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     const long astSize = 0;
     m_writer.InitData(&m_alloc, astSize);
 
+    m_labels = Anew(&m_alloc, SList<Js::ByteCodeLabel>, &m_alloc);
+
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
 }
@@ -283,13 +285,30 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return EmitConst<WasmTypes::I32>();
     case wnBLOCK:
         return EmitBlock();
+    case wnLOOP:
+        return EmitLoop();
     case wnCALL:
         return EmitCall();
     case wnIF:
         return EmitIfExpr();
     case wnIF_ELSE:
         return EmitIfElseExpr();
-
+    case wnBREAK:
+    {
+        uint8 depth = m_reader->m_currentNode.br.depth;
+        if (depth >= m_labels->Count())
+            Assert(UNREACHED);
+        for (int i = 0; i < depth; i++) {
+            // [b-gekua] TODO
+            // Find label at depth nesting levels out
+            // Possibly the SList m_labels is not optimal for this.
+        }
+        Js::ByteCodeLabel target = m_labels->Top();
+        m_writer.AsmBr(target);
+        return EmitInfo();
+    }
+    case wnNOP:
+        return EmitInfo();
 #define WASM_KEYWORD_BIN_TYPED(token, name, op, resultType, lhsType, rhsType) \
     case wn##token: \
         return EmitBinExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##lhsType, WasmTypes::##rhsType>();
@@ -412,6 +431,8 @@ EmitInfo
 WasmBytecodeGenerator::EmitBlock()
 {
     WasmOp op;
+    Js::ByteCodeLabel blockLabel = m_writer.DefineLabel();
+    m_labels->Push(blockLabel);
     if (m_reader->IsBinaryReader())
     {
         UINT blockCount = m_reader->m_currentNode.block.count;
@@ -440,8 +461,33 @@ WasmBytecodeGenerator::EmitBlock()
             op = m_reader->ReadFromBlock();
         } while (op != wnLIMIT);
     }
-
+    m_writer.MarkAsmJsLabel(blockLabel);
+    m_labels->Pop();
     // REVIEW: can a block give a result?
+    return EmitInfo();
+}
+
+EmitInfo
+WasmBytecodeGenerator::EmitLoop()
+{
+    WasmOp op;
+    Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
+    m_labels->Push(loopHeaderLabel);
+    m_writer.MarkAsmJsLabel(loopHeaderLabel);
+    if (m_reader->IsBinaryReader())
+    {
+        UINT blockCount = m_reader->m_currentNode.block.count;
+        if (blockCount <= 0)
+        {
+            throw WasmCompilationException(L"Invalid block node count");
+        }
+        for (UINT i = 0; i < blockCount; i++)
+        {
+            op = m_reader->ReadFromBlock();
+            EmitInfo info = EmitExpr(op);
+        }
+    }
+    m_labels->Pop();
     return EmitInfo();
 }
 
@@ -473,7 +519,7 @@ WasmBytecodeGenerator::EmitCall()
     Js::RegSlot nextLoc = 1;
 
     uint maxDepthForLevel = m_argOutDepth;
-    while((op = m_reader->ReadFromCall()) != wnLIMIT && i < callee->wasmInfo->GetParamCount())
+    while (i < callee->wasmInfo->GetParamCount() && (op = m_reader->ReadFromCall()) != wnLIMIT)
     {
         // emit args
         EmitInfo info = EmitExpr(op);
@@ -504,7 +550,7 @@ WasmBytecodeGenerator::EmitCall()
         }
 
         m_writer.AsmReg2(argOp, argLoc, info.location);
-
+        GetRegisterSpace(info.type)->ReleaseLocation(&info);
         // if there are nested calls, track whichever is the deepest
         if (maxDepthForLevel < m_argOutDepth)
         {
@@ -512,6 +558,15 @@ WasmBytecodeGenerator::EmitCall()
         }
 
         ++i;
+    }
+
+    if (!m_reader->IsBinaryReader()) {
+        // [b-gekua] REVIEW: SExpr must consume RPAREN for call whereas Binary
+        // does not. This and other kinds of special casing for BinaryReader
+        // may be eliminated with a refactoring of WasmBinaryReader to use the
+        // same "protocol" for scoping constructs as SExprParser (i.e., signal
+        // the end of scope with wnLIMIT).
+        m_reader->ReadFromCall();
     }
 
     if (i != callee->wasmInfo->GetParamCount())
@@ -526,7 +581,7 @@ WasmBytecodeGenerator::EmitCall()
     Js::ArgSlot args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
     m_writer.AsmCall(Js::OpCodeAsmJs::I_Call, 0, 0, args, callee->body->GetAsmJsFunctionInfo()->GetReturnType());
 
-    // emit result coersion
+    // emit result coercion
     EmitInfo retInfo;
     retInfo.type = callee->wasmInfo->GetResultType();
     switch (retInfo.type)
