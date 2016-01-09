@@ -94,7 +94,8 @@ def msbuildTypeMap = [
 // -----------------
 
 [true, false]. each { isPR ->
-    ['x86', 'x64'].each { buildArch -> // we don't support ARM on Windows 7
+    // ['x86', 'x64'].each { buildArch -> // we don't support ARM on Windows 7
+    ['x86'].each { buildArch -> // we don't support ARM on Windows 7, 'x64' disabled for now
         ['debug', 'test', 'release'].each { buildType ->
             def config = "daily_${buildArch}_${buildType}"
 
