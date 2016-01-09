@@ -1126,6 +1126,13 @@
   </test>
   <test>
     <default>
+      <files>valuesAndEntries.js</files>
+      <compile-flags>-ES7Builtins -args summary -endargs</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>OS_5403724.js</files>
       <tags>BugFix,exclude_</tags>
       <compile-flags>-maxinterpretcount:3 -off:simpleJit -ES6 -args summary -endargs</compile-flags>
