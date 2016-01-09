@@ -4,17 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 
-const GUID byteCodeCacheReleaseFileVersion = { /* 52B8F09F-7CFC-43E4-9D50-FC7D3503305B */
-    0x52b8f09f,
-    0x7cfc,
-    0x43e4,
-    { 0x9d, 0x50, 0xfc, 0x7d, 0x35, 0x3, 0x30, 0x5b }
-  };
-
-// Touching file in order to pass unit-tests (they expect this file to be edited for all inetcore/jscript/... changes
-// Enabling version unittest for Servicing branch
-// Editing file without updating GUID, bytecode is not changed by this changeset
-// Editing file without updating GUID, bytecode is not changed by this changeset
-// Editing file without updating GUID, bytecode is not changed by this changeset
-// Editing file without updating GUID, bytecode is not changed by this changeset
-// Editing file without updating GUID, bytecode is not changed by this changeset
+// {A1B09088-45E7-42DB-8D65-FB739F559946}
+const GUID byteCodeCacheReleaseFileVersion =
+{ 0xa1b09088, 0x45e7, 0x42db,{ 0x8d, 0x65, 0xfb, 0x73, 0x9f, 0x55, 0x99, 0x46 } };

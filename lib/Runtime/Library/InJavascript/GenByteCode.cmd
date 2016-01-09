@@ -8,9 +8,9 @@ if "%1"=="-nojit" (
 )
 
 :: This script will expect ch.exe to be built for x86_debug and x64_debug
-set _BinLocation=%~dp0..\..\..\..\Build\VcBuild\bin
+set _BinLocation=%~dp0..\..\..\..\Build\VcBuild%_suffix%\bin
 if "%OutBaseDir%" NEQ "" (
-  set _BinLocation=%OutBaseDir%\Chakra.Core\bin
+  set _BinLocation=%OutBaseDir%\Chakra.Core%_suffix%\bin
 )
 
 if not exist %_BinLocation%\x86_debug\ch.exe (
