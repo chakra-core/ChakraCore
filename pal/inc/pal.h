@@ -172,11 +172,8 @@ extern "C" {
 
 #ifndef _MSC_VER
 #if defined(CORECLR)
-// Define this if the underlying platform supports true 2-pass EH.
-// At the same time, this enables running several PAL instances
-// side-by-side.
 #define FEATURE_PAL_SXS 1
-#endif // CORECLR
+#endif
 #endif // !_MSC_VER
 
 #if defined(_MSC_VER) || defined(__llvm__)
@@ -3523,6 +3520,7 @@ PALIMPORT VOID PALAPI EnterCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalS
 PALIMPORT VOID PALAPI LeaveCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT VOID PALAPI InitializeCriticalSection(OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT BOOL PALAPI InitializeCriticalSectionEx(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount, DWORD Flags);
+PALIMPORT BOOL PALAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount);
 PALIMPORT VOID PALAPI DeleteCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT BOOL PALAPI TryEnterCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 
@@ -5219,6 +5217,15 @@ LPTOP_LEVEL_EXCEPTION_FILTER
 PALAPI
 SetUnhandledExceptionFilter(
                 IN LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
+
+PALIMPORT
+LONG
+UnhandledExceptionFilter(
+                IN struct _EXCEPTION_POINTERS *ExceptionInfo);
+
+PALIMPORT
+LPEXCEPTION_POINTERS
+GetExceptionInformation();
 
 #else // FEATURE_PAL_SXS
 

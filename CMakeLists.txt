@@ -6,6 +6,7 @@ add_definitions ("-fms-extensions")
 # Disable some warnings
 add_definitions("-Wno-tautological-constant-out-of-range-compare")
 add_definitions("-D__STDC_WANT_LIB_EXT1__=1")
+add_definitions("-DPAL_STDCPP_COMPAT=1")
 add_definitions("-std=c++11")
 add_definitions("-stdlib=libc++")
 
