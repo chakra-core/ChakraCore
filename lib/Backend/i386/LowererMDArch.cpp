@@ -1157,7 +1157,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
             StackSym * newDstStackSym = StackSym::New(dstType, this->m_func);
 
             Assert(dstOpnd->IsFloat());
-            this->m_func->StackAllocate(newDstStackSym, MachDouble);
+            this->m_func->StackAllocate(newDstStackSym, TySize[dstType]);
 
             IR::SymOpnd * newDstOpnd = IR::SymOpnd::New(newDstStackSym, dstType, this->m_func);
 

@@ -597,20 +597,24 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::InlineMathFloor:
+#ifdef ASMJS_PLAT
             if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_FloorFlt, IR::HelperDirectMath_FloorDb);
                 break;
             }
+#endif
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
         case Js::OpCode::InlineMathCeil:
+#ifdef ASMJS_PLAT
             if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_CeilFlt, IR::HelperDirectMath_CeilDb);
                 break;
             }
+#endif
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
             break;
 
