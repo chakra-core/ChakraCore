@@ -90,8 +90,8 @@ namespace Js {
         void *GetAddressOfInstructionPointer() { return this->addressOfCodeAddr; }
         bool SkipToFrame(void * returnAddress);
         void *GetFrame() const;
-
-        bool IsInStackCheckCode(void *entry);
+        size_t GetStackCheckCodeHeight() { return this->stackCheckCodeHeight; }
+        static bool IsInStackCheckCode(void *entry, void * codeAddr, size_t stackCheckCodeHeight);
 
     private:
         void*            addressOfCodeAddr;
