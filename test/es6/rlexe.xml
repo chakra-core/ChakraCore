@@ -15,7 +15,7 @@
   <test>
     <default>
       <files>NumericLiteralTest.js</files>
-      <compile-flags>-ES6NumericLiterals -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
