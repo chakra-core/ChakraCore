@@ -35,8 +35,6 @@ FLAG ES6 = 1 - setting child flag ES6Object = 1
 FLAG ES6Object = 1
 FLAG ES6 = 1 - setting child flag ES6Number = 1
 FLAG ES6Number = 1
-FLAG ES6 = 1 - setting child flag ES6NumericLiterals = 1
-FLAG ES6NumericLiterals = 1
 FLAG ES6 = 1 - setting child flag ES6ObjectLiterals = 1
 FLAG ES6ObjectLiterals = 1
 FLAG ES6 = 1 - setting child flag ES6Promise = 1
