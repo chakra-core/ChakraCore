@@ -2609,7 +2609,8 @@ public:
             expectedFileVersionScheme = (byte)Js::Configuration::Global.flags.ForceSerializedBytecodeVersionSchema;
         }
 #endif
-        if (fileVersionScheme != expectedFileVersionScheme)
+        // Ignore the version scheme check if it is library code
+        if (!isLibraryCode && fileVersionScheme != expectedFileVersionScheme)
         {
             // File version scheme is incompatible.
             return ByteCodeSerializer::InvalidByteCode;
