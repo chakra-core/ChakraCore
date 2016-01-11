@@ -4117,7 +4117,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
             !(
                 baseValueType.IsNativeIntArray() ||
                 // Memset allows native float and float32/float64 typed arrays as well. Todo:: investigate if memcopy can be done safely on float arrays
-                (isMemset ? (baseValueType.IsNativeFloatArray() || baseValueType.IsJITOptimizedTypedArray()) : baseValueType.IsTypedIntArray()) ||
+                (isMemset ? (baseValueType.IsNativeFloatArray() || baseValueType.IsTypedIntOrFloatArray()) : baseValueType.IsTypedIntArray()) ||
                 baseValueType.IsArray()
             )
         )
@@ -4252,7 +4252,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     if (srcDef->IsRegOpnd())
     {
         IR::RegOpnd* opnd = srcDef->AsRegOpnd();
-        if (this->OptIsInvariant(opnd, this->currentBlock, loop, this->FindValue(opnd->m_sym), false, true))
+        if (this->OptIsInvariant(opnd, this->currentBlock, loop, this->FindValue(opnd->m_sym), true, true))
         {
             StackSym* sym = opnd->GetStackSym();
             if (sym->GetType() != TyVar)

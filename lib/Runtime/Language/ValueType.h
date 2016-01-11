@@ -211,7 +211,7 @@ public:
     bool IsTypedIntArray() const;
     bool IsLikelyTypedIntArray() const;
 
-    bool IsJITOptimizedTypedArray() const;
+    bool IsTypedIntOrFloatArray() const;
 
     bool IsOptimizedTypedArray() const;
     bool IsLikelyOptimizedTypedArray() const;

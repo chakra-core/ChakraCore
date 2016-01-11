@@ -634,7 +634,7 @@ bool ValueType::IsLikelyTypedArray() const
     return IsLikelyObject() && GetObjectType() >= ObjectType::Int8Array && GetObjectType() <= ObjectType::CharArray;
 }
 
-bool ValueType::IsJITOptimizedTypedArray() const
+bool ValueType::IsTypedIntOrFloatArray() const
 {
     return IsObject() && ((GetObjectType() >= ObjectType::Int8Array  && GetObjectType() <= ObjectType::Float64Array));
 }
