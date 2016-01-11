@@ -31,8 +31,6 @@ FLAG ES6 = 1 - setting child flag ES6IsConcatSpreadable = 1
 FLAG ES6IsConcatSpreadable = 1
 FLAG ES6 = 1 - setting child flag ES6ObjectLiterals = 1
 FLAG ES6ObjectLiterals = 1
-FLAG ES6 = 1 - setting child flag ES6Promise = 1
-FLAG ES6Promise = 1
 FLAG ES6 = 1 - setting child flag ES6Proxy = 1
 FLAG ES6Proxy = 1
 FLAG ES6 = 1 - setting child flag ES6Rest = 1

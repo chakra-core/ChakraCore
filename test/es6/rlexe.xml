@@ -422,14 +422,13 @@
   <test>
     <default>
       <files>ES6Promise.js</files>
-      <compile-flags> -ES6 -ES6Promise -es6tostringtag -ES6Species -args summary -endargs</compile-flags>
+      <compile-flags>-es6tostringtag -ES6Species -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6PromiseAsync.js</files>
       <baseline>ES6PromiseAsync.baseline</baseline>
-      <compile-flags> -ES6 -ES6Promise</compile-flags>
     </default>
   </test>
   <test>
