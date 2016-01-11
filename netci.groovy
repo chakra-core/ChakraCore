@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 // Import the utility functionality.
 import jobs.generation.Utilities;
 import jobs.generation.InternalUtilities;
@@ -168,6 +173,25 @@ def msbuildTypeMap = [
 
     // Note: InternalUtilities variant also sets private permission
     InternalUtilities.simpleInnerLoopJobSetup(newJob, project, isPR, "EOL Check")
+    // Add private permissions for certain users
+    InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+}
+
+// Create a job to check that all source files have the correct Microsoft copyright notice.
+// Note: it is not necessary to run this job daily.
+[true, false].each { isPR -> // Defines a closure over true and false, value assigned to isPR
+    def jobName = InternalUtilities.getFullJobName(project, 'ubuntu_check_copyright', isPR)
+
+    def taskString = './jenkins.check_copyright.sh'
+    def newJob = job(jobName) {
+        label('ubuntu')
+        steps {
+            shell(taskString)
+        }
+    }
+
+    // Note: InternalUtilities variant also sets private permission
+    InternalUtilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Copyright Check")
     // Add private permissions for certain users
     InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
 }
