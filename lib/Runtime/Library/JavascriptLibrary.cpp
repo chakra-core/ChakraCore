@@ -417,19 +417,15 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
             DeferredTypeHandler<InitializeFunctionPrototype>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
-        symbolPrototype = nullptr;
         promisePrototype = nullptr;
         javascriptEnumeratorIteratorPrototype = nullptr;
         generatorFunctionPrototype = nullptr;
         generatorPrototype = nullptr;
         asyncFunctionPrototype = nullptr;
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
-        }
+        symbolPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
 
         mapPrototype = DynamicObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -568,8 +564,6 @@ namespace Js
         uriErrorType = DynamicType::New(scriptContext, TypeIds_Error, uriErrorPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        symbolTypeStatic = nullptr;
-        symbolTypeDynamic = nullptr;
         withType    = nullptr;
         proxyType   = nullptr;
         promiseType = nullptr;
@@ -579,12 +573,9 @@ namespace Js
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
         booleanTypeDynamic = DynamicType::New(scriptContext, TypeIds_BooleanObject, booleanPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
-        if (config->IsES6SymbolEnabled())
-        {
-            // Initialize symbol types
-            symbolTypeStatic = StaticType::New(scriptContext, TypeIds_Symbol, symbolPrototype, nullptr);
-            symbolTypeDynamic = DynamicType::New(scriptContext, TypeIds_SymbolObject, symbolPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
-        }
+        // Initialize symbol types
+        symbolTypeStatic = StaticType::New(scriptContext, TypeIds_Symbol, symbolPrototype, nullptr);
+        symbolTypeDynamic = DynamicType::New(scriptContext, TypeIds_SymbolObject, symbolPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
         if (config->IsES6UnscopablesEnabled())
         {
@@ -1132,29 +1123,15 @@ namespace Js
             simdUint8x16DisplayString = CreateStringFromCppLiteral(L"uint8x16");
         }
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolTypeDisplayString = CreateStringFromCppLiteral(L"symbol");
+        symbolTypeDisplayString = CreateStringFromCppLiteral(L"symbol");
 
-            symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
-            symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
-            symbolIterator = CreateSymbol(BuiltInPropertyRecords::_symbolIterator);
-            symbolSpecies = CreateSymbol(BuiltInPropertyRecords::_symbolSpecies);
-            symbolToPrimitive = CreateSymbol(BuiltInPropertyRecords::_symbolToPrimitive);
-            symbolToStringTag = CreateSymbol(BuiltInPropertyRecords::_symbolToStringTag);
-            symbolUnscopables = CreateSymbol(BuiltInPropertyRecords::_symbolUnscopables);
-        }
-        else
-        {
-            symbolTypeDisplayString = nullptr;
-            symbolHasInstance = nullptr;
-            symbolIsConcatSpreadable = nullptr;
-            symbolIterator = nullptr;
-            symbolSpecies = nullptr;
-            symbolToPrimitive = nullptr;
-            symbolToStringTag = nullptr;
-            symbolUnscopables = nullptr;
-        }
+        symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
+        symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
+        symbolIterator = CreateSymbol(BuiltInPropertyRecords::_symbolIterator);
+        symbolSpecies = CreateSymbol(BuiltInPropertyRecords::_symbolSpecies);
+        symbolToPrimitive = CreateSymbol(BuiltInPropertyRecords::_symbolToPrimitive);
+        symbolToStringTag = CreateSymbol(BuiltInPropertyRecords::_symbolToStringTag);
+        symbolUnscopables = CreateSymbol(BuiltInPropertyRecords::_symbolUnscopables);
 
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
@@ -1266,12 +1243,9 @@ namespace Js
         promiseConstructor = nullptr;
         reflectObject = nullptr;
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolConstructor = CreateBuiltinConstructor(&JavascriptSymbol::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeSymbolConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Symbol, symbolConstructor);
-        }
+        symbolConstructor = CreateBuiltinConstructor(&JavascriptSymbol::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeSymbolConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Symbol, symbolConstructor);
 
         if (scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
@@ -3768,11 +3742,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = objectConstructor->GetLibrary();
         ScriptContext* scriptContext = objectConstructor->GetScriptContext();
-        int propertyCount = 17;
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            propertyCount += 1;
-        }
+        int propertyCount = 18;
         if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
         {
             propertyCount += 2;
@@ -3814,11 +3784,8 @@ namespace Js
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyNames, &JavascriptObject::EntryInfo::GetOwnPropertyNames, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::SetPrototypeOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::setPrototypeOf, &JavascriptObject::EntryInfo::SetPrototypeOf, 2));
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertySymbols.GetOriginalEntryPoint(),
-                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertySymbols, &JavascriptObject::EntryInfo::GetOwnPropertySymbols, 1));
-        }
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertySymbols.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertySymbols, &JavascriptObject::EntryInfo::GetOwnPropertySymbols, 1));
         if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
         {
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Is.GetOriginalEntryPoint(),
@@ -6292,10 +6259,7 @@ namespace Js
         REGISTER_OBJECT(WeakMap);
         REGISTER_OBJECT(WeakSet);
 
-        if (config.IsES6SymbolEnabled())
-        {
-            REGISTER_OBJECT(Symbol);
-        }
+        REGISTER_OBJECT(Symbol);
 
         REGISTER_OBJECT(Iterator);
         REGISTER_OBJECT(ArrayIterator);
@@ -6371,11 +6335,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(setPrototypeOf, JavascriptObject::EntrySetPrototypeOf);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.IsES6SymbolEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(getOwnPropertySymbols, JavascriptObject::EntryGetOwnPropertySymbols);
-        }
+        REG_OBJECTS_LIB_FUNC(getOwnPropertySymbols, JavascriptObject::EntryGetOwnPropertySymbols);
 
         REG_OBJECTS_LIB_FUNC(hasOwnProperty, JavascriptObject::EntryHasOwnProperty);
         REG_OBJECTS_LIB_FUNC(propertyIsEnumerable, JavascriptObject::EntryPropertyIsEnumerable);
@@ -6387,6 +6347,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(__defineGetter__, JavascriptObject::EntryDefineGetter);
         REG_OBJECTS_LIB_FUNC(__defineSetter__, JavascriptObject::EntryDefineSetter);
 
+        ScriptConfiguration const& config = *(scriptContext->GetConfig());
         if (config.IsES6ObjectExtensionsEnabled())
         {
             REG_OBJECTS_LIB_FUNC(is, JavascriptObject::EntryIs);

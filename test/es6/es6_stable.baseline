@@ -53,8 +53,6 @@ FLAG ES6 = 1 - setting child flag ES6StringPrototypeFixes = 1
 FLAG ES6StringPrototypeFixes = 1
 FLAG ES6 = 1 - setting child flag ES6PrototypeChain = 0
 FLAG ES6PrototypeChain = 0
-FLAG ES6 = 1 - setting child flag ES6Symbol = 1
-FLAG ES6Symbol = 1
 FLAG ES6 = 1 - setting child flag ES6ToPrimitive = 0
 FLAG ES6ToPrimitive = 0
 FLAG ES6 = 1 - setting child flag ES6ToLength = 0
