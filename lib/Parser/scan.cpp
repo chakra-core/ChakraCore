@@ -1176,11 +1176,6 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
     EncodedCharPtr p = *pp;
     EncodedCharPtr last = m_pchLast;
 
-    if (stringTemplateMode)
-    {
-        Assert(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled());
-    }
-
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;
     m_EscapeOnLastTkStrCon = FALSE;
@@ -1807,8 +1802,6 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
         {
             AssertMsg(m_fStringTemplateDepth > 0,
                 "Shouldn't be trying to parse a string template end or middle token if we aren't scanning a string template");
-            AssertMsg(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled(),
-                "Shouldn't be in string template parse mode if string templates are not enabled.");
 
             m_scanState = ScanStateNormal;
 
@@ -1832,7 +1825,6 @@ LLoop:
         switch (ch)
         {
         default:
-LLoopDefault:
             if (ch == kchLS ||
                 ch == kchPS )
             {
@@ -2028,16 +2020,9 @@ LIdentifier:
         case '`':
             Assert(chType == _C_BKQ);
 
-            if (m_scriptContext->GetConfig()->IsES6StringTemplateEnabled())
-            {
-                pchT = p;
-                token = ScanStringTemplateBegin(&pchT);
-                p = pchT;
-            }
-            else
-            {
-                goto LLoopDefault;
-            }
+            pchT = p;
+            token = ScanStringTemplateBegin(&pchT);
+            p = pchT;
             break;
 
         case '}':

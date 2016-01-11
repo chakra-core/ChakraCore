@@ -3618,10 +3618,7 @@ namespace Js
             builtinFuncs[BuiltinFunction::String_FromCodePoint] = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCodePoint, &JavascriptString::EntryInfo::FromCodePoint, 1);
         }
 
-        if (scriptContext->GetConfig()->IsES6StringTemplateEnabled())
-        {
-            /* No inlining                String_Raw           */ library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::raw,           &JavascriptString::EntryInfo::Raw,           1);
-        }
+        /* No inlining                String_Raw           */ library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::raw,           &JavascriptString::EntryInfo::Raw,           1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -6298,10 +6295,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimLeft);
         REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimRight);
 
-        if (config.IsES6StringTemplateEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(raw, JavascriptString::EntryRaw);
-        }
+        REG_OBJECTS_LIB_FUNC(raw, JavascriptString::EntryRaw);
 
         REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptString::EntrySymbolIterator);
 

@@ -366,19 +366,18 @@
     <default>
       <files>stringtemplate_basic.js</files>
       <baseline>stringtemplate_basic.baseline</baseline>
-      <compile-flags> -ES6StringTemplate</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6StringTemplate.js</files>
-      <compile-flags> -ES6StringTemplate -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6StringTemplateSlow.js</files>
-      <compile-flags> -ES6StringTemplate -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>Nightly</tags>
     </default>
   </test>
@@ -436,7 +435,7 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -WERExceptionSupport</compile-flags>
+      <compile-flags>-verbose -es6 -ES6DefaultArgs -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -444,7 +443,7 @@
   <test>
     <default>
       <files>es6_stable.js</files>
-      <compile-flags>-verbose -es6 -es6- -ES6StringTemplate -WERExceptionSupport</compile-flags>
+      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -WERExceptionSupport</compile-flags>
       <baseline>es6_stable.enable_disable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -520,7 +519,7 @@
   <test>
     <default>
       <files>spread.js</files>
-      <compile-flags> -ES6Spread -ES6StringTemplate -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Spread -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -763,13 +762,13 @@
   <test>
     <default>
       <files>destructuring.js</files>
-      <compile-flags>-ES6Rest -ES6Classes -ES6StringTemplate -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>destructuring_obj.js</files>
-      <compile-flags>-ES6Rest -ES6Classes -ES6StringTemplate -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
+      <compile-flags>-ES6Rest -ES6Classes -ES6Destructuring -ES6DefaultArgs -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

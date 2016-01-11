@@ -2410,8 +2410,6 @@ LFunction :
 
     case tkStrTmplBasic:
     case tkStrTmplBegin:
-        Assert(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled());
-
         pnode = ParseStringTemplateDecl<buildAST>(nullptr);
         fCanAssign = FALSE;
         break;
@@ -2759,8 +2757,6 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkStrTmplBasic:
         case tkStrTmplBegin:
             {
-                Assert(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled());
-
                 ParseNode* templateNode = ParseStringTemplateDecl<buildAST>(pnode);
 
                 if (!buildAST)
