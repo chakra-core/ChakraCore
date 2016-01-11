@@ -51,8 +51,6 @@ FLAG ES6 = 1 - setting child flag ES6String = 1
 FLAG ES6String = 1
 FLAG ES6 = 1 - setting child flag ES6StringPrototypeFixes = 1
 FLAG ES6StringPrototypeFixes = 1
-FLAG ES6 = 1 - setting child flag ES6StringTemplate = 1
-FLAG ES6StringTemplate = 1
 FLAG ES6 = 1 - setting child flag ES6PrototypeChain = 1
 FLAG ES6PrototypeChain = 1
 FLAG ES6 = 1 - setting child flag ES6Symbol = 1
@@ -82,4 +80,4 @@ FLAG ES6HasInstance = 1
 FLAG ES6 = 1 - setting child flag ArrayBufferTransfer = 1
 FLAG ArrayBufferTransfer = 1
 FLAG WERExceptionSupport = 1
-helloWoRlD!
+default argument
