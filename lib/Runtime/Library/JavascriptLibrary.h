@@ -754,7 +754,7 @@ namespace Js
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler();
 
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
-        DynamicTypeHandler * ScriptFunctionTypeHandler(bool hasPrototype, bool isAnonymousFunction);
+        DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true>
         static DynamicTypeHandler * GetDeferredFunctionTypeHandlerBase();
@@ -1048,6 +1048,9 @@ namespace Js
         static void __cdecl InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeGeneratorFunctionPrototype(DynamicObject* generatorFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeGeneratorPrototype(DynamicObject* generatorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);
