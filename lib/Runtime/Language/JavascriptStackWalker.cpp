@@ -472,7 +472,7 @@ namespace Js
                     }
 
                     bool inlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                        ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this);
+                        ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum);
                     if (inlinedFramesOnStack)
                     {
                         inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
@@ -804,7 +804,7 @@ namespace Js
                 Assert((this->interpreterFrame->GetFlags() & Js::InterpreterStackFrameFlags_FromBailOut) != 0);
                 InlinedFrameWalker tmpFrameWalker;
                 Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, true /*noAlloc*/));
+                    true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), nullptr, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
 #endif
@@ -871,7 +871,7 @@ namespace Js
             {
                 if (includeInlineFrames &&
                     InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
-                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this))
+                        false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum()))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.
                     inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
@@ -1107,12 +1107,8 @@ namespace Js
         FunctionBody* parentFunctionBody = parent->GetFunctionBody();
         EntryPointInfo *entryPointInfo;
 
-        if (loopNum != -1)
-        {
-            Assert(stackWalker);
-        }
-        void *nativeCodeAddress = (loopNum == -1 || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetInstructionPointer() : stackWalker->GetCachedInternalFrameInfo().codeAddress;
-        void *framePointer = (loopNum == -1 || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetFrame() : stackWalker->GetCachedInternalFrameInfo().framePointer;
+        void *nativeCodeAddress = (loopNum == -1 || !stackWalker || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetInstructionPointer() : stackWalker->GetCachedInternalFrameInfo().codeAddress;
+        void *framePointer = (loopNum == -1 || !stackWalker || !stackWalker->GetCachedInternalFrameInfo().codeAddress) ? physicalFrame.GetFrame() : stackWalker->GetCachedInternalFrameInfo().framePointer;
 
         if (loopNum != -1)
         {
