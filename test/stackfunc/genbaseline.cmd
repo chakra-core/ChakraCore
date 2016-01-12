@@ -1,3 +1,8 @@
+::-------------------------------------------------------------------------------------------------------
+:: Copyright (C) Microsoft. All rights reserved.
+:: Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+::-------------------------------------------------------------------------------------------------------
+
 @echo off
 setlocal
 IF "%1" == "" (
@@ -45,5 +50,3 @@ IF NOT "%ERRORLEVEL%" == "0" (
     sd edit %2
     copy __temp.out %2
 )
-
-

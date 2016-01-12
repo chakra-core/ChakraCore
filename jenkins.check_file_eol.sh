@@ -1,3 +1,8 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
 # We will run dos2unix on the argument and make sure that it doesn't change.
 # If it changes, that means someone introduced a CRLF by not setting core.autocrlf to true.
 
