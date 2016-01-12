@@ -12,6 +12,12 @@ function* makeValueGen(a, b) {
   yield b;
 }
 
+function* makeStartGen(a, b) {
+  yield 0; // for interpreter
+  yield 32; // for jitted version
+  yield 32; // for jitted version
+}
+
 function makeTest(name, config) {
   const f1 = `function ${name}(arr) {
     for(var i = -5; i < 15; ++i) {arr[i] = ${config.v1};}
@@ -26,6 +32,11 @@ function makeTest(name, config) {
     for(var i = -2; i < 17; ++i) {arr[i] = v;}
     return arr;
   }`;
+  const f4 = customName => `function ${customName}Z(arr, start) {
+    const v = ${config.v1};
+    for(var i = start; i < 5; ++i) {arr[i] = v;}
+    return arr;
+  }`;
 
   const extraTests = (config.wrongTypes || []).map((wrongType, i) => {
     const difValue = {f: f2(`${name}W${i}`), compare: f2(`${name}WC${i}`)};
@@ -36,10 +47,17 @@ function makeTest(name, config) {
     return difValue;
   });
 
+  const negativeLengthTest = {f: f4(name), compare: f4(`${name}C`), newForCompare: true};
+  const genIndex = makeStartGen();
+  Reflect.defineProperty(negativeLengthTest, "v", {
+    get: () => genIndex.next().value
+  });
+
   const tests = [
     {f: f1},
     {f: f2(name), v: config.v2 !== undefined ? config.v2 : config.v1},
     {f: f3},
+    negativeLengthTest
   ].concat(extraTests);
 
   const convertTest = function(fnText) {
@@ -77,9 +95,8 @@ for(const test of tests) {
       let a1 = fn(new global[t](10), detail.v);
       const a2 = fn(new global[t](10), detail.v);
       if(detail.compare) {
-        // the optimized version ran with a different value. Run again with a clean function to compare
-        // reuse a1 to test if we correctly overwrite the values
-        a1 = detail.compare(a1, detail.v);
+        // the optimized version ran with a different value. Run again with a clean function to compare=
+        a1 = detail.compare(detail.newForCompare ? new global[t](10) : a1, detail.v);
       }
       if(a1.length !== a2.length) {
         passed = false;
