@@ -1806,7 +1806,7 @@ namespace Js
                 // script in text form
                 // Convert to UTF8 and then load that
                 size_t length = wcslen(script);
-                if (length > UINT_MAX)
+                if (!IsValidCharCount(length))
                 {
                     Js::Throw::OutOfMemory();
                 }
@@ -1835,7 +1835,7 @@ namespace Js
 
                 // Free unused bytes
                 Assert(cbNeeded + 1 <= cbUtf8Buffer);
-                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, length, cbNeeded, pSrcInfo);
+                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
                 //
                 // Parse and execute the source file.
                 //

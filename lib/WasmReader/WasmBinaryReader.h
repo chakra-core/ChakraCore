@@ -112,6 +112,7 @@ namespace Wasm
             WasmOp GetWasmToken(WasmBinOp op);
             WasmBinOp ASTNode();
 
+            void CallNode();
             void BlockNode();
             void BrNode();
             void VarNode();
