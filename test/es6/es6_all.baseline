@@ -53,8 +53,6 @@ FLAG ES6 = 1 - setting child flag ES6Unicode = 1
 FLAG ES6Unicode = 1
 FLAG ES6 = 1 - setting child flag ES6UnicodeVerbose = 1
 FLAG ES6UnicodeVerbose = 1
-FLAG ES6 = 1 - setting child flag ES6Unscopables = 1
-FLAG ES6Unscopables = 1
 FLAG ES6 = 1 - setting child flag ES6RegExSticky = 1
 FLAG ES6RegExSticky = 1
 FLAG ES6 = 1 - setting child flag ES6RegExPrototypeProperties = 1
