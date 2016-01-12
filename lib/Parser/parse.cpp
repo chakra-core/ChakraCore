@@ -1905,18 +1905,6 @@ void Parser::CheckStrictModeEvalArgumentsUsage(IdentPtr pid, ParseNodePtr pnode)
     }
 }
 
-void Parser::CheckStrictModeFncDeclNotSourceElement(const bool isSourceElement, const BOOL isDeclaration)
-{
-    // In strict mode, only a SourceElement can expand to a FunctionDeclaration; a Statement cannot. That means a function
-    // declaration may only appear as a top-level statement in a program or function body, and otherwise may not be nested
-    // inside another statement or block.
-    //
-    // The only difference between a SourceElement and a Statement is that a SourceElement can include a FunctionDeclaration, so
-    // we just use ParseStmtList and ParseStatement and pass in a flag indicating whether the statements are source elements.
-    Assert(!(isSourceElement && !isDeclaration));
-    // TODO[ianhall]: Remove this function?
-}
-
 void Parser::ReduceDeferredScriptLength(size_t chars)
 {
     // If we're in deferred mode, subtract the given char count from the total length,
@@ -2341,7 +2329,7 @@ LFunction :
         {
             flags |= fFncAsync;
         }
-        pnode = ParseFncDecl<buildAST>(flags, pNameHint, false, false, true, fUnaryOrParen);
+        pnode = ParseFncDecl<buildAST>(flags, pNameHint, false, true, fUnaryOrParen);
         if (isAsyncExpr)
         {
             pnode->sxFnc.cbMin = iecpMin;
@@ -3167,8 +3155,7 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
 
     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
     ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(flags, *ppNameHint,
-        /*isSourceElement*/ false, /*needsPIDOnRCurlyScan*/ false,
-        /*resetParsingSuperRestrictionState*/ false);
+        /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
 
     if (buildAST)
     {
@@ -3417,7 +3404,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             m_pscan->SeekTo(atPid);
             this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
             ParseNodePtr pnodeFunc = ParseFncDecl<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
-                /*isSourceElement*/ false, /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
+                /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
 
             if (isAsyncMethod)
             {
@@ -3623,7 +3610,7 @@ BOOL Parser::IsDeferredFnc()
 }
 
 template<bool buildAST>
-ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool isSourceElement, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
+ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
 {
     AutoParsingSuperRestrictionStateRestorer restorer(this);
     if (resetParsingSuperRestrictionState)
@@ -3647,8 +3634,6 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     uint tryCatchOrFinallyDepthSave = this->m_tryCatchOrFinallyDepth;
     this->m_tryCatchOrFinallyDepth = 0;
-
-    CheckStrictModeFncDeclNotSourceElement(isSourceElement, fDeclaration);
 
     if (this->m_arrayDepth)
     {
@@ -4798,7 +4783,7 @@ bool Parser::FastScanFormalsAndBody()
                     m_pscan->Scan();
                     do
                     {
-                        ParseStatement<false>(true);
+                        ParseStatement<false>();
                     }
                     while(m_pscan->IchMinTok() < ichStop);
 
@@ -6151,7 +6136,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             {
                 AutoParsingSuperRestrictionStateRestorer restorer(this);
                 this->m_parsingSuperRestrictionState = hasExtends ? ParsingSuperRestrictionState_SuperCallAndPropertyAllowed : ParsingSuperRestrictionState_SuperPropertyAllowed;
-                pnodeConstructor = ParseFncDecl<buildAST>(fncDeclFlags, pConstructorName, false, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
+                pnodeConstructor = ParseFncDecl<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
             }
 
             if (pnodeConstructor->sxFnc.IsGenerator())
@@ -6215,7 +6200,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                     AutoParsingSuperRestrictionStateRestorer restorer(this);
                     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
                     pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags | (isGetter ? fFncNoArg : fFncOneArg),
-                        pidHint ? pidHint->Psz() : nullptr, false, /* needsPIDOnRCurlyScan */ true,
+                        pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true,
                         /* resetParsingSuperRestrictionState */false);
                 }
 
@@ -6246,7 +6231,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                     {
                         fncDeclFlags |= fFncAsync;
                     }
-                    pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, false, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
+                    pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
                     if (isAsyncMethod)
                     {
                         pnodeFnc->sxFnc.cbMin = iecpMin;
@@ -7449,7 +7434,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     m_pscan->SeekTo(termStart);
                 }
             }
-            pnode = ParseFncDecl<buildAST>(flags, nullptr, /* isSourceElement = */ false, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
+            pnode = ParseFncDecl<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
             if (isAsyncMethod)
             {
                 pnode->sxFnc.cbMin = iecpMin;
@@ -8189,7 +8174,7 @@ ParseNodePtr Parser::ParseCase(ParseNodePtr *ppnodeBody)
 Parse a single statement. Digest a trailing semicolon.
 ***************************************************************************/
 template<bool buildAST>
-ParseNodePtr Parser::ParseStatement(bool isSourceElement/* = false*/)
+ParseNodePtr Parser::ParseStatement()
 {
     ParseNodePtr *ppnodeT;
     ParseNodePtr pnodeT;
@@ -8273,11 +8258,11 @@ LFunctionStatement:
             // parsing it, so unset the flag so that any nested functions are parsed normally. This flag is only applicable the
             // first time we see it.
             m_grfscr &= ~fscrDeferredFncExpression;
-            pnode = ParseFncDecl<buildAST>(isAsyncMethod ? fFncAsync : fFncNoFlgs, nullptr, isSourceElement);
+            pnode = ParseFncDecl<buildAST>(isAsyncMethod ? fFncAsync : fFncNoFlgs, nullptr);
         }
         else
         {
-            pnode = ParseFncDecl<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs), nullptr, isSourceElement);
+            pnode = ParseFncDecl<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs), nullptr);
         }
         if (isAsyncMethod)
         {
@@ -9146,7 +9131,6 @@ LDefaultToken:
                 pnodeT->sxLabel.pnodeNext = pnodeLabel;
                 pnodeLabel = pnodeT;
                 m_pscan->Scan();
-                isSourceElement = false;
                 goto LRestart;
             }
 
@@ -9169,7 +9153,6 @@ LDefaultToken:
                 pLabelId->next = pLabelIdList;
                 pLabelIdList = pLabelId;
                 m_pscan->Scan();
-                isSourceElement = false;
                 goto LRestart;
             }
         }
@@ -9419,7 +9402,7 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             }
         }
 
-        if (nullptr != (pnodeStmt = ParseStatement<buildAST>(isSourceElementList)))
+        if (nullptr != (pnodeStmt = ParseStatement<buildAST>()))
         {
             if (buildAST)
             {
