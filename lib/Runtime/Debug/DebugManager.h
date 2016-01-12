@@ -31,6 +31,7 @@ namespace Js
         int jscriptBlockRegistrationCount;
         bool isDebuggerAttaching;
         DebuggingFlags debuggingFlags;
+        UINT nextBreakPointId;
 #if DBG
         void * dispatchHaltFrameAddress;
 #endif
@@ -87,6 +88,23 @@ namespace Js
 
             return -1;
         }
+
+        UINT GetNextBreakpointId()
+        {
+            return ++nextBreakPointId;
+        }
     };
 }
+
+class AutoSetDispatchHaltFlag
+{
+public:
+    AutoSetDispatchHaltFlag(Js::ScriptContext *scriptContext, ThreadContext *threadContext);
+    ~AutoSetDispatchHaltFlag();
+private:
+    // Primary reason for caching both because once we break to debugger our engine is open for re-entrancy. That means the
+    // connection to scriptcontet to threadcontext can go away (imagine the GC is called when we are broken)
+    Js::ScriptContext * m_scriptContext;
+    ThreadContext * m_threadContext;
+};
 

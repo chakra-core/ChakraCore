@@ -65,7 +65,25 @@ namespace Js
         return BreakpointProbeList::New(arena);
     }
 
-    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState)
+    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState, UINT *bpId)
+    {
+        ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
+
+        if (scriptContext == nullptr || scriptContext->IsClosed())
+        {
+            return E_UNEXPECTED;
+        }
+
+        StatementLocation statement;
+        if (!this->GetStatementLocation(ibos, &statement))
+        {
+            return E_FAIL;
+        }
+
+        return this->SetBreakPoint(statement, breakpointState, bpId);
+    }
+
+    HRESULT DebugDocument::SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps, UINT * bpId)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
@@ -76,26 +94,19 @@ namespace Js
 
         HRESULT hr = NOERROR;
 
-        switch (breakpointState)
+        switch (bps)
         {
-        default:
-            AssertMsg(FALSE, "Bad breakpoint state");
-            // fall-through
-        case BREAKPOINT_DISABLED:
-        case BREAKPOINT_DELETED:
-        {
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            default:
+                AssertMsg(FALSE, "Bad breakpoint state");
+                // Fall thru
+            case BREAKPOINT_DISABLED:
+            case BREAKPOINT_DELETED:
             {
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 if (pBreakpointList)
                 {
                     ArenaAllocator arena(L"TemporaryBreakpointList", scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
                     BreakpointProbeList* pDeleteList = this->NewBreakpointList(&arena);
-                    StatementLocation statement;
-                    if (!this->GetStatementLocation(ibos, &statement))
-                    {
-                        return E_FAIL;
-                    }
 
                     pBreakpointList->Map([&statement, scriptContext, pDeleteList](int index, BreakpointProbe * breakpointProbe)
                     {
@@ -112,30 +123,21 @@ namespace Js
                     });
                     pDeleteList->Clear();
                 }
-            }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-            break;
-        }
-        case BREAKPOINT_ENABLED:
-        {
-            StatementLocation statement;
-            if (!this->GetStatementLocation(ibos, &statement))
-            {
-                return E_FAIL;
+                break;
             }
-
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
+            case BREAKPOINT_ENABLED:
             {
                 BreakpointProbe* pProbe = Anew(scriptContext->AllocatorForDiagnostics(), BreakpointProbe, this, statement);
                 scriptContext->GetDebugContext()->GetProbeContainer()->AddProbe(pProbe);
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 pBreakpointList->Add(pProbe);
+                if (bpId != nullptr)
+                {
+                    *bpId = pProbe->GetId();
+                }
+                break;
             }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-            break;
-        }
         }
         return hr;
     }
@@ -156,6 +158,52 @@ namespace Js
             m_breakpointList->Clear();
             m_breakpointList = nullptr;
         }
+    }
+
+    UINT DebugDocument::FindBreakpointId(StatementLocation statement)
+    {
+        UINT bpId = 0;
+        if (m_breakpointList != nullptr)
+        {
+            BreakpointProbeList* breakpointProbeList = this->GetBreakpointList();
+            breakpointProbeList->MapUntil([&](int index, BreakpointProbe* bpProbe) -> bool
+            {
+                if (bpProbe != nullptr)
+                {
+                    if (bpProbe->Matches(statement))
+                    {
+                        bpId = bpProbe->GetId();
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        return bpId;
+    }
+
+    bool DebugDocument::FindBPStatementLocation(UINT bpId, StatementLocation * statement)
+    {
+        bool returnValue = false;
+        if (m_breakpointList != nullptr)
+        {
+            BreakpointProbeList* breakpointProbeList = this->GetBreakpointList();
+            breakpointProbeList->MapUntil([&](int index, BreakpointProbe* bpProbe) -> bool
+            {
+                if (bpProbe != nullptr)
+                {
+                    if (bpProbe->GetId() == bpId)
+                    {
+                        bpProbe->GetStatementLocation(statement);
+                        returnValue = true;
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        return returnValue;
     }
 
     BOOL DebugDocument::GetStatementSpan(long ibos, StatementSpan* pStatement)

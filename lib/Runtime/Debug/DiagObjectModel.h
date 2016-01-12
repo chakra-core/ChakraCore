@@ -310,6 +310,11 @@ namespace Js
         LocalsWalker(DiagStackFrame* _frame, DWORD _frameWalkerFlags);
         virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
         virtual ulong GetChildrenCount() override;
+        virtual ulong GetLocalVariablesCount();
+        BOOL GetLocal(int i, ResolvedObject* pResolvedObject);
+
+        BOOL GetScopeObject(int i, ResolvedObject* pResolvedObject);
+        BOOL GetGlobalsObject(ResolvedObject* pResolvedObject);
 
         virtual BOOL GetGroupObject(ResolvedObject* pResolvedObject) {return FALSE; }
 
@@ -362,12 +367,13 @@ namespace Js
             }
             return activeScopeObject;
         }
-
-    private:
         BOOL CreateArgumentsObject(ResolvedObject* pResolvedObject);
+        bool HasUserNotDefinedArguments() const { return hasUserNotDefinedArguments; }
+    private:
         bool ShouldMakeGroups() const { return frameWalkerFlags & FW_MakeGroups; }
         bool ShouldInsertFakeArguments();
         void ExpandArgumentsObject(IDiagObjectModelDisplay * argumentsDisplay);
+        BOOL GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject);
     };
 
     class LocalsDisplay : public IDiagObjectModelDisplay

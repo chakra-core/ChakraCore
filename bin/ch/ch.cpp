@@ -6,6 +6,7 @@
 #include "core/AtomLockGuids.h"
 
 unsigned int MessageBase::s_messageCount = 0;
+DebuggerController* Debugger::debuggerController = nullptr;
 
 LPCWSTR hostName = L"ch.exe";
 
@@ -94,7 +95,6 @@ LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
     }
 }
 
-#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
 
 int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
@@ -366,6 +366,11 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
 
     JsContextRef context = JS_INVALID_REFERENCE;
+#if DBG
+    Debugger *debugger = new Debugger(runtime);
+    IfJsErrorFailLog(ChakraRTInterface::JsDiagStartDebugging(runtime, Debugger::JsDiagDebugEventHandler, nullptr));
+#endif
+
     IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
     IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
@@ -430,6 +435,9 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
+#if DBG
+    debugger = nullptr;
+#endif
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 
     if (runtime != JS_INVALID_RUNTIME_HANDLE)

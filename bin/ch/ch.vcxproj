@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -49,6 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chakrartinterface.h" />
+    <ClInclude Include="Debugger.h" />
+    <ClInclude Include="DebuggerController.h" />
+    <ClInclude Include="DebuggerScriptWrapper.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="HostConfigFlags.h" />
     <ClInclude Include="HostConfigFlagsList.h" />
@@ -60,6 +63,9 @@
     <ClCompile Include="ch.cpp" />
     <ClCompile Include="chakrartinterface.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
+    <ClCompile Include="Debugger.cpp" />
+    <ClCompile Include="DebuggerController.cpp" />
+    <ClCompile Include="DebuggerScriptWrapper.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
     <ClCompile Include="WScriptJsrt.cpp" />
@@ -76,6 +82,12 @@
     <ProjectReference Include="..\..\lib\common\codex\Chakra.Common.Codex.vcxproj">
       <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="DebuggerScript.js">
+      <Command>%windir%\system32\cscript.exe encode.js DebuggerScript.js "$(IntDir)DebuggerScript.js.encoded"</Command>
+      <Outputs>$(IntDir)DebuggerScript.js.encoded;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

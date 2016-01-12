@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -35,6 +35,11 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)Jsrt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebug.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebugEventObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebuggerObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDebugUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsrtDiag.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtExternalArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtExternalObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtRuntime.cpp" />
@@ -47,7 +52,12 @@
   <ItemGroup>
     <ClInclude Include="chakracommon.h" />
     <ClInclude Include="ChakraCore.h" />
+    <ClInclude Include="chakrartdebug.h" />
     <ClInclude Include="JsrtContext.h" />
+    <ClInclude Include="JsrtDebug.h" />
+    <ClInclude Include="JsrtDebugEventObject.h" />
+    <ClInclude Include="JsrtDebuggerObject.h" />
+    <ClInclude Include="JsrtDebugUtils.h" />
     <ClInclude Include="JsrtExternalArrayBuffer.h" />
     <ClInclude Include="JsrtExternalObject.h" />
     <ClInclude Include="JsrtRuntime.h" />

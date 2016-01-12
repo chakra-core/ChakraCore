@@ -40,7 +40,7 @@ namespace Js
 
     //
     // Some helper routines
-
+    /*
     int __cdecl ElementsComparer(__in void* context, __in const void* item1, __in const void* item2)
     {
         ScriptContext *scriptContext = (ScriptContext *)context;
@@ -61,7 +61,7 @@ namespace Js
         // Do the natural comparison, for example test2 comes before test11.
         return StrCmpLogicalW(str1, str2);
     }
-
+    */
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
     {
         Assert(scriptContext);
@@ -183,12 +183,9 @@ namespace Js
         if (pRefArena)
         {
             IDiagObjectModelWalkerBase * pOMWalker = nullptr;
-            BEGIN_JS_RUNTIME_CALL_EX(pFrame->GetScriptContext(), false);
-            {
-                IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
-            }
-            END_JS_RUNTIME_CALL(scriptContext);
+
+            IGNORE_STACKWALK_EXCEPTION(scriptContext);
+            pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
 
             return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>,pRefArena, pOMWalker);
         }
@@ -1278,6 +1275,91 @@ namespace Js
         return totalLocalsCount;
     }
 
+    ulong LocalsWalker::GetLocalVariablesCount()
+    {
+        ulong localsCount = 0;
+        if (pVarWalkers)
+        {
+            for (int i = 0; i < pVarWalkers->Count(); i++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(i);
+
+                // In the case of making groups, we want to include any variables that aren't
+                // part of a group as part of the local variable count.
+                if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+                {
+                    localsCount += variableWalker->GetChildrenCount();
+                }
+            }
+        }
+        return localsCount;
+    }
+
+    BOOL LocalsWalker::GetLocal(int i, ResolvedObject* pResolvedObject)
+    {
+        if (!pVarWalkers || pVarWalkers->Count() == 0)
+        {
+            return FALSE;
+        }
+
+        for (int j = 0; j < pVarWalkers->Count(); ++j)
+        {
+            VariableWalkerBase *variableWalker = pVarWalkers->Item(j);
+
+            if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+            {
+                int count = variableWalker->GetChildrenCount();
+
+                if (i < count)
+                {
+                    return variableWalker->Get(i, pResolvedObject);
+                }
+                i -= count;
+            }
+            else
+            {
+                // We've finished with all walkers for the current locals level so
+                // break out in order to handle the groups.
+                break;
+            }
+        }
+
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject)
+    {
+        if (pVarWalkers)
+        {
+            int scopeCount = 0;
+            for (int j = 0; j < pVarWalkers->Count(); j++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(j);
+
+                if (variableWalker->groupType == uiGroupType)
+                {
+                    scopeCount++;
+                    if (i < scopeCount)
+                    {
+                        return variableWalker->GetGroupObject(pResolvedObject);
+                    }
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetScopeObject(int i, ResolvedObject* pResolvedObject)
+    {
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Scope, i, pResolvedObject);
+    }
+
+    BOOL LocalsWalker::GetGlobalsObject(ResolvedObject* pResolvedObject)
+    {
+        int i = 0;
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Globals, i, pResolvedObject);
+    }
+
     /*static*/
     DWORD LocalsWalker::GetCurrentFramesLocalsType(DiagStackFrame* frame)
     {
@@ -1853,7 +1935,7 @@ namespace Js
 
                 try
                 {
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                    //BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
                         if (object->CanHaveInterceptors())
@@ -1870,7 +1952,7 @@ namespace Js
                             return TRUE;
                         }
                     }
-                    END_JS_RUNTIME_CALL(scriptContext);
+                    //END_JS_RUNTIME_CALL(scriptContext);
                 }
                 catch (Js::JavascriptExceptionObject* exception)
                 {
@@ -2402,7 +2484,7 @@ namespace Js
             }
 
             // Sort current pMembersList.
-            pMembersList->Sort(ElementsComparer, scriptContext);
+            //pMembersList->Sort(ElementsComparer, scriptContext);
         }
 
         ulong childrenCount =
@@ -3561,7 +3643,7 @@ namespace Js
 
     void RecyclableMethodsGroupWalker::Sort()
     {
-        pMembersList->Sort(ElementsComparer, scriptContext);
+        //pMembersList->Sort(ElementsComparer, scriptContext);
     }
 
     RecyclableMethodsGroupDisplay::RecyclableMethodsGroupDisplay(RecyclableMethodsGroupWalker *_methodGroupWalker, ResolvedObject* resolvedObject)

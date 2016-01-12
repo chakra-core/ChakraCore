@@ -102,6 +102,12 @@ namespace Js
         void AddProbe(Probe* pProbe);
         void RemoveProbe(Probe* pProbe);
 
+        template<class TMapFunction>
+        void MapProbes(TMapFunction map)
+        {
+            this->diagProbeList->Map(map);
+        }
+
         void RemoveAllProbes();
 
         bool CanDispatchHalt(InterpreterHaltState* pHaltState);
@@ -137,6 +143,7 @@ namespace Js
 
         void AsyncActivate(HaltCallback* haltCallback);
         void AsyncDeactivate();
+        bool IsAsyncActivate() const;
 
         void PrepDiagForEnterScript();
 
@@ -150,6 +157,7 @@ namespace Js
 
         void SetThrowIsInternal(bool set) { isThrowInternal = set; }
 
+        bool IsExceptionReportingEnabled();
         bool IsFirstChanceExceptionEnabled();
         bool IsNonUserCodeSupportEnabled();
         bool IsLibraryStackFrameSupportEnabled();

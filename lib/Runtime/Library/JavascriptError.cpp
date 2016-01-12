@@ -630,15 +630,16 @@ namespace Js
 
     HRESULT JavascriptError::GetRuntimeErrorWithScriptEnter(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage)
     {
-        ScriptContext* scriptContext = errorObject->GetScriptContext();
-        Assert(!scriptContext->GetThreadContext()->IsScriptActive());
+        //ScriptContext* scriptContext = errorObject->GetScriptContext();
+        //Assert(!scriptContext->GetThreadContext()->IsScriptActive());
 
         // Use _NOT_SCRIPT. We enter runtime to get error info, likely inside a catch.
-        BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(scriptContext)
+        // ToDo (SaAgarwa): Fix for JsRT as it already have runtime call at API level
+        //BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(scriptContext)
         {
             return GetRuntimeError(errorObject, pMessage);
         }
-        END_JS_RUNTIME_CALL(scriptContext);
+        //END_JS_RUNTIME_CALL(scriptContext);
     }
 
     void __declspec(noreturn) JavascriptError::ThrowOutOfMemoryError(ScriptContext *scriptContext)

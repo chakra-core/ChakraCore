@@ -92,6 +92,10 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtRunSerializedScript = (JsAPIHooks::JsrtRunSerializedScriptPtr)GetProcAddress(library, "JsRunSerializedScript");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetProcAddress(library, "JsGetContextOfObject");
+    m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebuggingPtr)GetProcAddress(library, "JsDiagStartDebugging");
+    m_jsApiHooks.pfJsrtDiagSetBreakpointPtr = (JsAPIHooks::JsrtDiagSetBreakpointPtr)GetProcAddress(library, "JsDiagSetBreakpoint");
+    m_jsApiHooks.pfJsrtDiagResumePtr = (JsAPIHooks::JsrtDiagResumePtr)GetProcAddress(library, "JsDiagResume");
+    m_jsApiHooks.pfJsrtStringifyObjectPtr = (JsAPIHooks::JsrtStringifyObjectPtr)GetProcAddress(library, "JsStringifyObject");
 
     return library;
 }

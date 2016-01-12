@@ -22,9 +22,13 @@ namespace Js
         ~DebugDocument();
         virtual void CloseDocument();
 
-        HRESULT SetBreakPoint(long ibos, BREAKPOINT_STATE bps);
+        HRESULT SetBreakPoint(long ibos, BREAKPOINT_STATE bps, UINT *bpId = nullptr);
+        HRESULT SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps, UINT *bpId = nullptr);
         void RemoveBreakpointProbe(BreakpointProbe *probe);
         void ClearAllBreakPoints(void);
+
+        UINT FindBreakpointId(StatementLocation statement);
+        bool FindBPStatementLocation(UINT bpId, StatementLocation * statement);
 
         BOOL GetStatementSpan(long ibos, StatementSpan* pBos);
         BOOL GetStatementLocation(long ibos, StatementLocation* plocation);
@@ -41,6 +45,8 @@ namespace Js
         };
 
         Js::FunctionBody * GetFunctionBodyAt(long ibos);
+
+        Utf8SourceInfo* GetUtf8SourceInfo() { return this->utf8SourceInfo; }
 
     private:
         Utf8SourceInfo* utf8SourceInfo;
