@@ -627,6 +627,12 @@
   </test>
   <test>
      <default>
+        <files>memset_invariant.js</files>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
         <files>memset2.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
      </default>

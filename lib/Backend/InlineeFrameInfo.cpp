@@ -31,7 +31,7 @@ void BailoutConstantValue::InitVarConstValue(Js::Var value)
 
 Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext) const
 {
-    Assert(this->type == TyVar || this->type == TyFloat64 || this->type == TyInt32);
+    Assert(this->type == TyVar || this->type == TyFloat64 || IRType_IsSignedInt(this->type));
     Js::Var varValue;
     if (this->type == TyVar)
     {
@@ -41,7 +41,7 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
     {
         varValue = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)this->u.floatConst.value, scriptContext);
     }
-    else if (!Js::TaggedInt::IsOverflow(this->u.intConst.value))
+    else if (IRType_IsSignedInt(this->type) && TySize[this->type] <= 4 && !Js::TaggedInt::IsOverflow((int32)this->u.intConst.value))
     {
         varValue = Js::TaggedInt::ToVarUnchecked((int32)this->u.intConst.value);
     }
