@@ -285,6 +285,7 @@ namespace Js
         JavascriptString* errorDisplayString;
         JavascriptString* functionPrefixString;
         JavascriptString* generatorFunctionPrefixString;
+        JavascriptString* asyncFunctionPrefixString;
         JavascriptString* functionDisplayString;
         JavascriptString* xDomainFunctionDisplayString;
         JavascriptString* undefinedDisplayString;
@@ -499,6 +500,7 @@ namespace Js
         JavascriptString* GetErrorDisplayString() const { return errorDisplayString; }
         JavascriptString* GetFunctionPrefixString() { return functionPrefixString; }
         JavascriptString* GetGeneratorFunctionPrefixString() { return generatorFunctionPrefixString; }
+        JavascriptString* GetAsyncFunctionPrefixString() { return asyncFunctionPrefixString; }
         JavascriptString* GetFunctionDisplayString() { return functionDisplayString; }
         JavascriptString* GetXDomainFunctionDisplayString() { return xDomainFunctionDisplayString; }
         JavascriptString* GetInvalidDateString() { return invalidDateString; }

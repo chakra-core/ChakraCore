@@ -1153,6 +1153,7 @@ namespace Js
         stringTypeDisplayString = CreateStringFromCppLiteral(L"string");
         functionPrefixString = CreateStringFromCppLiteral(L"function ");
         generatorFunctionPrefixString = CreateStringFromCppLiteral(L"function* ");
+        asyncFunctionPrefixString = CreateStringFromCppLiteral(L"async function ");
         functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
         xDomainFunctionDisplayString = CreateStringFromCppLiteral(L"\012function anonymous() {\012    [x-domain code]\012}\012");
         invalidDateString = CreateStringFromCppLiteral(L"Invalid Date");

@@ -2120,7 +2120,15 @@ LABEL1:
 
     bool JavascriptFunction::HasRestrictedProperties() const
     {
-        return !(this->functionInfo->IsClassMethod() || this->functionInfo->IsClassConstructor() || this->functionInfo->IsLambda() || this->IsGeneratorFunction() || this->IsBoundFunction() || this->IsStrictMode());
+        return !(
+            this->functionInfo->IsClassMethod() ||
+            this->functionInfo->IsClassConstructor() ||
+            this->functionInfo->IsLambda() ||
+            this->functionInfo->IsAsync() ||
+            this->IsGeneratorFunction() ||
+            this->IsBoundFunction() ||
+            this->IsStrictMode()
+            );
     }
 
     BOOL JavascriptFunction::HasProperty(PropertyId propertyId)
