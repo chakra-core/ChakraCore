@@ -25,7 +25,7 @@ bool WasmBinaryReader::isInit = false;
 WasmTypes::Signature WasmBinaryReader::opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
 WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
 const Wasm::WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { Wasm::WasmTypes::WasmType::Void, Wasm::WasmTypes::WasmType::I32, Wasm::WasmTypes::WasmType::I64, Wasm::WasmTypes::WasmType::F32, Wasm::WasmTypes::WasmType::F64 };
-Wasm::WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit];
+Wasm::WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1];
 
 namespace WasmTypes
 {
@@ -36,7 +36,7 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
     va_list arguments;
     va_start(arguments, count);
 
-    assert(count > 0);
+    Assert(count > 0);
     argCount = count - 1;
     retType = va_arg(arguments, LocalType);
     args = AnewArray(alloc, LocalType, argCount);

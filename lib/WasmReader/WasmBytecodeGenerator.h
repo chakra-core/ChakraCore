@@ -158,6 +158,6 @@ namespace Wasm
         WasmRegisterSpace * m_f32RegSlots;
         WasmRegisterSpace * m_f64RegSlots;
 
-        SList<Js::ByteCodeLabel> * m_labels;
+        SListCounted<Js::ByteCodeLabel> * m_labels;
     };
 }

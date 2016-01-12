@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChakraCore", "..\bin\ChakraCore\ChakraCore.vcxproj", "{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -452,22 +452,24 @@ Global
 		{706083F7-6AA4-4558-A153-6352EF9110EE}.Test|x64.Build.0 = Test|x64
 		{706083F7-6AA4-4558-A153-6352EF9110EE}.Test|x86.ActiveCfg = Test|Win32
 		{706083F7-6AA4-4558-A153-6352EF9110EE}.Test|x86.Build.0 = Test|Win32
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|ARM.ActiveCfg = Debug|Win32
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|ARM.ActiveCfg = Debug|ARM
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|ARM.Build.0 = Debug|ARM
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|x64.ActiveCfg = Debug|x64
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|x64.Build.0 = Debug|x64
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|x86.ActiveCfg = Debug|Win32
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Debug|x86.Build.0 = Debug|Win32
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|ARM.ActiveCfg = Release|Win32
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|ARM.ActiveCfg = Release|ARM
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|ARM.Build.0 = Release|ARM
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|x64.ActiveCfg = Release|x64
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|x64.Build.0 = Release|x64
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|x86.ActiveCfg = Release|Win32
 		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Release|x86.Build.0 = Release|Win32
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|ARM.ActiveCfg = Release|x64
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|ARM.Build.0 = Release|x64
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x64.ActiveCfg = Release|x64
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x64.Build.0 = Release|x64
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x86.ActiveCfg = Release|Win32
-		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x86.Build.0 = Release|Win32
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|ARM.ActiveCfg = Test|ARM
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|ARM.Build.0 = Test|ARM
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x64.ActiveCfg = Test|x64
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x64.Build.0 = Test|x64
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x86.ActiveCfg = Test|Win32
+		{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}.Test|x86.Build.0 = Test|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -171,6 +171,8 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
             return E_FAIL;
         }
     }
+    // file will not be nullptr if _wfopen_s succeeds
+    __analysis_assume(file != nullptr);
 
     //
     // Determine the file length, in bytes.
@@ -187,7 +189,12 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
     //
     // Read the entire content as a binary block.
     //
-    fread((void*)contents, sizeof(char), lengthBytes, file);
+    size_t result = fread((void*)contents, sizeof(char), lengthBytes, file);
+    if (result != lengthBytes)
+    {
+        fwprintf(stderr, L"Read error");
+        IfFailGo(E_FAIL);
+    }
     fclose(file);
 
 Error:

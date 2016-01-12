@@ -84,8 +84,6 @@
 // Enabled features
 //----------------------------------------------------------------------------------------------------
 
-#define ENABLE_WASM // SHOULD BE DISABLED
-
 // NOTE: Disabling these might not work and are not fully supported and maintained
 // Even if it builds, it may not work properly. Disable at your own risk
 
@@ -425,6 +423,10 @@
 #ifndef TEMP_DISABLE_ASMJS
 #define ASMJS_PLAT
 #endif
+#endif
+
+#ifdef ASMJS_PLAT
+#define ENABLE_WASM
 #endif
 
 #if _WIN32 || _WIN64

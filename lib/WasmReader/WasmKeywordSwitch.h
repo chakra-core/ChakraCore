@@ -1,7 +1,7 @@
-//---------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
-//----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 
 // GENERATED FILE, DO NOT HAND MODIFIY
 // Generated with the following command line: cscript SExprScan.js WasmKeywords.h WasmKeywordSwitch.h

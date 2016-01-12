@@ -26,6 +26,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.txt$' |
     grep -v -E '\.baseline$' |
     grep -v -E '\.sln$' |
+    grep -v -E '\.wasm$' |
     grep -v -E '\.vcxproj$' |
     grep -v -E '\.filters$' |
     grep -v -E '\.targets$' |

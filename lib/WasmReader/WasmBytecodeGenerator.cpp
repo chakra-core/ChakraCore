@@ -5,12 +5,6 @@
 
 #include "WasmReaderPch.h"
 
-// TODO (michhol): cleanup includes
-#include "Bytecode\AsmJsByteCodeWriter.h"
-#include "Bytecode\ByteCodeDumper.h"
-#include "Bytecode\AsmJsByteCodeDumper.h"
-#include "Language\AsmJSTypes.h"
-
 #ifdef ENABLE_WASM
 
 namespace Wasm
@@ -31,7 +25,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     const long astSize = 0;
     m_writer.InitData(&m_alloc, astSize);
 
-    m_labels = Anew(&m_alloc, SList<Js::ByteCodeLabel>, &m_alloc);
+    m_labels = Anew(&m_alloc, SListCounted<Js::ByteCodeLabel>, &m_alloc);
 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
@@ -47,7 +41,21 @@ WasmBytecodeGenerator::GenerateWasmScript()
     // TODO: should scripts support multiple modules?
 
     m_wasmScript = Anew(&m_alloc, WasmScript);
-    m_wasmScript->globalBody = Js::FunctionBody::NewFromRecycler(m_scriptContext, L"[Global WebAssembly Code]", 19, 0, 0, m_sourceInfo, m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, 0, nullptr, Js::FunctionInfo::Attributes::None);
+    m_wasmScript->globalBody = Js::FunctionBody::NewFromRecycler(
+        m_scriptContext,
+        L"[Global WebAssembly Code]",
+        19,
+        0,
+        0,
+        m_sourceInfo,
+        m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
+        0,
+        nullptr,
+        Js::FunctionInfo::Attributes::None
+#ifdef PERF_COUNTERS
+        , false /* is function from deferred deserialized proxy */
+#endif
+        );
 
     // TODO (michhol): numbering
     m_wasmScript->globalBody->SetSourceInfo(0);
@@ -119,7 +127,21 @@ WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
     m_func = Anew(&m_alloc, WasmFunction);
-    m_func->body = Js::FunctionBody::NewFromRecycler(m_scriptContext, L"func", 5, 0, 0, m_sourceInfo, m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, 0, nullptr, Js::FunctionInfo::Attributes::None);
+    m_func->body = Js::FunctionBody::NewFromRecycler(
+        m_scriptContext,
+        L"func",
+        5,
+        0,
+        0,
+        m_sourceInfo,
+        m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
+        0,
+        nullptr,
+        Js::FunctionInfo::Attributes::None
+#ifdef PERF_COUNTERS
+        , false /* is function from deferred deserialized proxy */
+#endif
+        );
     // TODO (michhol): numbering
     m_func->body->SetSourceInfo(0);
     m_func->body->AllocateAsmJsFunctionInfo();
@@ -155,10 +177,12 @@ WasmBytecodeGenerator::GenerateFunction()
 
     m_writer.End();
 
+#if DBG_DUMP
     if (PHASE_DUMP(Js::ByteCodePhase, m_func->body))
     {
         Js::AsmJsByteCodeDumper::DumpBasic(m_func->body);
     }
+#endif
 
     Js::AsmJsFunctionInfo * info = m_func->body->GetAsmJsFunctionInfo();
     if (m_funcInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
