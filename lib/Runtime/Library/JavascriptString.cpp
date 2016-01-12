@@ -1266,7 +1266,7 @@ case_2:
         {
             if (!isRegExpAnAllowedArg && JavascriptRegExp::Is(args[1]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, apiNameForErrorMsg);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_FirstCannotBeRegExp, apiNameForErrorMsg);
             }
             else if (JavascriptString::Is(args[1]))
             {
