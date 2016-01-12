@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     struct JitTimeConstructorCache
@@ -629,3 +630,5 @@ namespace Js
         PREVENT_COPY(FunctionCodeGenJitTimeData)
     };
 }
+#endif
+

@@ -22,7 +22,7 @@
 #include "Language\AsmJsTypes.h"
 
 #include "ByteCode\ByteCodeAPI.h"
-
+#include "ByteCode\BackEndOpcodeAttr.h"
 #ifdef ENABLE_WASM
 #include "WasmReader.h"
 #endif

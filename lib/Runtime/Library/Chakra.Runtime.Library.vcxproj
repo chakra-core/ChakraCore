@@ -252,6 +252,7 @@
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\javascriptfunctiona.asm">
+      <PreprocessorDefinitions Condition="'$(BuildJIT)'!='false'">%(PreprocessorDefinitions);_ENABLE_ASM_JS=1</PreprocessorDefinitions>
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\arm_DeferredDeserializeThunk.asm">

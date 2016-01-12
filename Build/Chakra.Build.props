@@ -20,6 +20,10 @@
         WINVER=$(Win32_WinNTVersion);
         WIN32_LEAN_AND_MEAN=1
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildJIT)'=='false'">
+        %(PreprocessorDefinitions);
+        DISABLE_JIT=1
+      </PreprocessorDefinitions>
       <!-- REVIEW: These are warning are introduced when moving to VS2015 tools, may want to clean these up -->
       <DisableSpecificWarnings>
         %(DisableSpecificWarnings);
@@ -40,6 +44,14 @@
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
+
+      <!-- ======== For Code Covearge ======== -->
+      <Optimization Condition="'$(ENABLE_CODECOVERAGE)'=='true'">Disabled</Optimization>
     </ClCompile>
+
+    <Link>
+      <!-- ======== For Code Covearge ======== -->
+      <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
 </Project>

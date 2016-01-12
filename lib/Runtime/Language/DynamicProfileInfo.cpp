@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
 #ifdef DYNAMIC_PROFILE_STORAGE
@@ -2408,4 +2409,5 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
     Assert(!kind);
     return name;
 }
+#endif
 #endif

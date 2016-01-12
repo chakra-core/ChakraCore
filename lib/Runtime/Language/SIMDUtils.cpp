@@ -353,6 +353,7 @@ namespace Js
     template void SIMD128TypedArrayStore<JavascriptSIMDInt32x4>(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext);
     template void SIMD128TypedArrayStore<JavascriptSIMDFloat64x2>(Var arg1, Var arg2, Var simdVar, uint32 dataWidth, ScriptContext *scriptContext);
 
+#if ENABLE_NATIVE_CODEGEN
     // Maps Simd opcodes which are non-contigous to a zero-based linear space. Used to index a table using an Simd opcode.
     uint32 SimdOpcodeAsIndex(Js::OpCode op)
     {
@@ -366,4 +367,5 @@ namespace Js
             return (uint32)((Js::OpCode)op - Js::OpCode::Simd128_Start_Extend) + (uint32)(Js::OpCode::Simd128_End - Js::OpCode::Simd128_Start) + 1;
         }
     }
+#endif
 }

@@ -109,7 +109,7 @@
       <compile-flags>-maxinterpretCount:1 -off:simpleJit -testtrace:rejit</compile-flags>
       <files>modopt.js</files>
       <baseline>modopt.baseline</baseline>
-      <tags>fail_mutators,exclude_dynapogo,exclude_nonative,exclude_arm</tags>
+      <tags>fail_mutators,exclude_dynapogo,exclude_nonative,exclude_arm,require_backend</tags>
     </default>
   </test>
   <test>
@@ -199,6 +199,7 @@
     <default>
       <files>prototypeInheritance2.js</files>
       <baseline>prototypeInheritance2.baseline</baseline>
+      <compile-flags>-ES6RegExPrototypeProperties-</compile-flags>
     </default>
   </test>
   <test>

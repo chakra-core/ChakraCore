@@ -166,7 +166,9 @@ namespace Js
             return object;
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(object);
+#endif
         TypeId typeId = object->GetTypeId();
         AssertMsg(typeId != TypeIds_Enumerator, "enumerator shouldn't be marshalled here");
 
@@ -346,7 +348,7 @@ namespace Js
             args.Values[i] = CrossSite::MarshalVar(targetScriptContext, args.Values[i]);
         }
 
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
         CheckCodeGenFunction checkCodeGenFunction = GetCheckCodeGenFunction(entryPoint);
         if (checkCodeGenFunction != nullptr)
         {

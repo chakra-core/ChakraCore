@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 namespace Js
 {
+#if ENABLE_NATIVE_CODEGEN
     template <typename T>
     class BranchDictionaryWrapper
     {
@@ -30,4 +31,5 @@ namespace Js
     public:
         static void * Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<Js::JavascriptString*>* stringDictionary, uintptr funcStart, uintptr funcEnd);
     };
+#endif
 };

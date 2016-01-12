@@ -22,6 +22,7 @@
 
 #include "RuntimeLanguagePch.h"
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
 
@@ -587,3 +588,4 @@ namespace Js
 #endif
 
 }
+#endif

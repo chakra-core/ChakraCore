@@ -161,6 +161,7 @@ public:
     bool IsPrimitive() const;
     bool IsLikelyPrimitive() const;
 
+#if ENABLE_NATIVE_CODEGEN
 // SIMD_JS
     bool IsSimd128() const;
     bool IsSimd128(IRType type) const;
@@ -174,7 +175,7 @@ public:
     bool IsLikelySimd128Int32x4() const;
     bool IsLikelySimd128Int8x16() const;
     bool IsLikelySimd128Float64x2() const;
-
+#endif
 
     bool HasBeenObject() const;
     bool IsObject() const;
@@ -209,6 +210,8 @@ public:
 
     bool IsTypedIntArray() const;
     bool IsLikelyTypedIntArray() const;
+
+    bool IsTypedIntOrFloatArray() const;
 
     bool IsOptimizedTypedArray() const;
     bool IsLikelyOptimizedTypedArray() const;

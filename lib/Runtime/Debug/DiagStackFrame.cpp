@@ -169,6 +169,7 @@ namespace Js
         return m_interpreterFrame->InnerScopeFromRegSlot(location);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     DiagNativeStackFrame::DiagNativeStackFrame(
         ScriptFunction* function,
         int byteCodeOffset,
@@ -295,6 +296,7 @@ namespace Js
                                         GetScriptContext(),
                                         /* formalsAreLetDecls */ false);
     }
+#endif
 
 
     DiagRuntimeStackFrame::DiagRuntimeStackFrame(JavascriptFunction* function, PCWSTR displayName, void* stackAddr, int frameIndex):

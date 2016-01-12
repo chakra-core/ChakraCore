@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     // Information about the expression that has been emitted
@@ -188,3 +189,4 @@ namespace Js
         }
     };
 }
+#endif

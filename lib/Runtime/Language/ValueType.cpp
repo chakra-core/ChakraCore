@@ -476,7 +476,9 @@ bool ValueType::IsPrimitive() const
             Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol,
             Bits::IntCanBeUntagged | Bits::IntIsLikelyUntagged | Bits::CanBeTaggedValue);
 
+#if ENABLE_NATIVE_CODEGEN
     result =  result || IsSimd128();
+#endif
 
     return result;
 }
@@ -488,7 +490,9 @@ bool ValueType::IsLikelyPrimitive() const
             Bits::Undefined | Bits::Null | Bits::Int | Bits::Float | Bits::Number | Bits::Boolean | Bits::String | Bits::Symbol,
             Bits::Likely | Bits::IntCanBeUntagged | Bits::IntIsLikelyUntagged | Bits::CanBeTaggedValue);
 
+#if ENABLE_NATIVE_CODEGEN
     result = result || IsLikelySimd128();
+#endif
 
     return result;
 }
@@ -630,6 +634,11 @@ bool ValueType::IsLikelyTypedArray() const
     return IsLikelyObject() && GetObjectType() >= ObjectType::Int8Array && GetObjectType() <= ObjectType::CharArray;
 }
 
+bool ValueType::IsTypedIntOrFloatArray() const
+{
+    return IsObject() && ((GetObjectType() >= ObjectType::Int8Array  && GetObjectType() <= ObjectType::Float64Array));
+}
+
 bool ValueType::IsOptimizedTypedArray() const
 {
     return IsObject() && ((GetObjectType() >= ObjectType::Int8Array  && GetObjectType() <= ObjectType::Float64MixedArray));
@@ -712,7 +721,7 @@ bool ValueType::IsLikelyAnyUnOptimizedArray() const
     return IsLikelyObject() && GetObjectType() >= ObjectType::Int64Array && GetObjectType() <= ObjectType::CharArray;
 }
 
-
+#if ENABLE_NATIVE_CODEGEN
 // Simd128 values
 // Note that SIMD types are primitives
 bool ValueType::IsSimd128() const
@@ -780,7 +789,7 @@ bool ValueType::IsLikelySimd128Float64x2() const
 {
     return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Float64x2;
 }
-
+#endif
 
 ObjectType ValueType::GetObjectType() const
 {

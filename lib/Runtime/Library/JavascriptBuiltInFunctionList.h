@@ -184,6 +184,13 @@ BUILTIN(JavascriptRegExp, Test, EntryTest, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptRegExp, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Compile, EntryCompile, FunctionInfo::None)
+BUILTIN(JavascriptRegExp, GetterGlobal, EntryGetterGlobal, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterIgnoreCase, EntryGetterIgnoreCase, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterMultiline, EntryGetterMultiline, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterOptions, EntryGetterOptions, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterSource, EntryGetterSource, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterSticky, EntryGetterSticky, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, GetterUnicode, EntryGetterUnicode, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptString, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(JavascriptString, CharAt, EntryCharAt, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptString, CharCodeAt, EntryCharCodeAt, FunctionInfo::ErrorOnNew)
@@ -274,6 +281,7 @@ BUILTIN(Math, Cbrt, Cbrt, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
+#if ENABLE_NATIVE_CODEGEN
 // SIMDFloat32x4Lib entry points
 BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Check, EntryCheck, FunctionInfo::None)
@@ -478,6 +486,7 @@ BUILTIN(JavascriptSIMDInt32x4, ToString, EntryToString, FunctionInfo::None)
 
 // JavascriptInt32x4 entry points
 BUILTIN(JavascriptSIMDInt8x16, ToString, EntryToString, FunctionInfo::None)
+#endif
 
 
 BUILTIN(Math, Fround, Fround, FunctionInfo::ErrorOnNew)

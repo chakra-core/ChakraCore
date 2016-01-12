@@ -54,10 +54,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeByteCodePch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="BackEndOpcodeAttr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJSByteCodeDumper.h" />
     <ClInclude Include="AsmJsByteCodeWriter.h" />
+    <ClInclude Include="BackEndOpcodeAttr.h" />
     <ClInclude Include="ByteBlock.h" />
     <ClInclude Include="ByteCodeAPI.h" />
     <ClInclude Include="ByteCodeDumper.h" />
@@ -88,6 +90,6 @@
     <ClInclude Include="StatementReader.h" />
     <ClInclude Include="Symbol.h" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

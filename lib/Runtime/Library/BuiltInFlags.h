@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    // TODO: consider putting this into #ifdef ENABLE_NATIVE_CODEGEN, but make sure all code using types below compiles when ENABLE_NATIVE_CODEGEN is not defined.
+    // TODO: consider putting this into #if ENABLE_NATIVE_CODEGEN, but make sure all code using types below compiles when ENABLE_NATIVE_CODEGEN is not defined.
 
     const int BIAS_ArgSize = 4; // 4 bits.
 

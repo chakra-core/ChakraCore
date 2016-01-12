@@ -558,10 +558,170 @@ print('\nTest 20: Function declaration in statement context without {}\n');
             function f4() { print('0'); }
     }
 
+    while (false)
+        function f5() {}
+
+    for (;false;)
+        function f6() {}
+
+    for (var p in {a:'a'})
+        function f7() {}
+
+    for (var e of [1])
+        function f8() {}
+
+    with ({})
+        function f9() {}
+
     f1();
     f2();
     f3();
     f4();
+
+    f7();
+    f8();
+    f9();
+})();
+
+print('\nTest 21: Function declaration in statement context without {}, strict mode\n');
+(function() {
+    "use strict";
+
+    // The B.3.4 exceptions are not allowed in strict mode
+
+    try {
+        eval('if (true)' +
+             '    function f() { return "not allowed in strict mode"; }' +
+             'else' +
+             '    void 0;');
+    }
+    catch(ex) {
+        print('21.1: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    void 0;' +
+             'else' +
+             '    function f() { return "not allowed in strict mode"; }');
+    }
+    catch(ex) {
+        print('21.2: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    function f() { return "not allowed in strict mode"; }' +
+             'else' +
+             '    function f() { return "not allowed in strict mode"; }');
+    }
+    catch(ex) {
+        print('21.3: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    function f() { return "not allowed in strict mode"; }');
+    }
+    catch(ex) {
+        print('21.4: ' + ex.message);
+    }
+})();
+
+print('\nTest 22: Function declaration in statement context without {}, illegal in sloppy mode\n');
+(function() {
+    // Always illegal syntax regardless of strict mode
+    // generator functions are GeneratorFunctionDeclaration, not FunctionDeclaration
+    // so are also not allowed by the B.3.4 exception
+
+    try {
+        eval('if (true)' +
+             '    function* f() { return "never allowed"; }' +
+             'else' +
+             '    void 0;');
+    }
+    catch(ex) {
+        print('22.1: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    void 0;' +
+             'else' +
+             '    function* f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.2: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    function* f() { return "never allowed"; }' +
+             'else' +
+             '    function* f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.3: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    function* f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.4: ' + ex.message);
+    }
+
+    // async is ES7 but presumably will also not be FunctionDeclaration in the grammar
+    // and so are also not allowed by the B.3.4 exception
+
+    try {
+        eval('if (true)' +
+             '    async function f() { return "never allowed"; }' +
+             'else' +
+             '    void 0;');
+    }
+    catch(ex) {
+        print('22.5: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    void 0;' +
+             'else' +
+             '    async function f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.6: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    async function f() { return "never allowed"; }' +
+             'else' +
+             '    async function f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.7: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    async function f() { return "never allowed"; }' +
+             'else' +
+             '    async function f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.8: ' + ex.message);
+    }
+
+    try {
+        eval('if (true)' +
+             '    async function f() { return "never allowed"; }');
+    }
+    catch(ex) {
+        print('22.8: ' + ex.message);
+    }
 })();
 
 // Leave this test last since it is at global scope and would be awkward to place in the middle of the cleanly contained tests

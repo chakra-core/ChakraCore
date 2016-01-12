@@ -20,7 +20,9 @@ namespace Js
         // is DynamicObject instead of JavascriptArray.
         propertyId = Constants::NoProperty;
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayObject);
+#endif
         if (!doneArray)
         {
             while (true)

@@ -104,9 +104,7 @@ namespace Js
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);
         static void CheckAlignment();
-#ifdef ENABLE_NATIVE_CODEGEN
         static BOOL IsNativeAddress(ScriptContext * scriptContext, void * codeAddr);
-#endif
         static Var DeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static JavascriptMethod DeferredParse(ScriptFunction** function);
         static JavascriptMethod DeferredParseCore(ScriptFunction** function, BOOL &fParsed);

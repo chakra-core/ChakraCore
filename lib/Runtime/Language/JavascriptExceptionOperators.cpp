@@ -856,7 +856,7 @@ namespace Js
                    !scriptContext->GetThreadContext()->IsDisableImplicitException()
             );
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-        }
+       }
 
         if (exceptionObject->IsPendingExceptionObject())
         {
@@ -1188,6 +1188,7 @@ namespace Js
             {
                 scriptContext->GetThreadContext()->SetDisableImplicitFlags(DisableImplicitCallAndExceptionFlag);
             }
+
             Var var;
             if (JavascriptOperators::GetProperty(error, PropertyIds::stackTraceLimit, &var, scriptContext))
             {
@@ -1208,7 +1209,7 @@ namespace Js
             {
                 scriptContext->GetThreadContext()->SetDisableImplicitFlags(disableImplicitFlags);
             }
-        }
+    }
 
         return limit;
     }

@@ -21,6 +21,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
+
+#ifndef TEMP_DISABLE_ASMJS 
 #include "ByteCode\ByteCodeWriter.h"
 #include "ByteCode\AsmJsByteCodeWriter.h"
 #include "Language\AsmJSByteCodeGenerator.h"
@@ -1178,3 +1180,4 @@ namespace Js
         return GetReturnType().toVarType();
     }
 }
+#endif

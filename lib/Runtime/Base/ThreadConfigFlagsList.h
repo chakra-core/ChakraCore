@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 // Format: FLAG*(ThreadFlag, GlobalFlag)
 FLAG(IsCollectGarbageEnabled, CollectGarbage)
 FLAG(IsErrorStackTraceEnabled, errorStackTrace)
@@ -46,6 +51,7 @@ FLAG_RELEASE(IsES6UnicodeExtensionsEnabled, ES6Unicode)
 FLAG_RELEASE(IsES6UnscopablesEnabled, ES6Unscopables)
 FLAG_RELEASE(IsES6WeakSetEnabled, ES6WeakSet)
 FLAG_RELEASE(IsES6RegExStickyEnabled, ES6RegExSticky)
+FLAG_RELEASE(IsES6RegExPrototypePropertiesEnabled, ES6RegExPrototypeProperties)
 FLAG_RELEASE(IsES6HasInstanceEnabled, ES6HasInstance)
 FLAG_RELEASE(SkipSplitOnNoResult, SkipSplitOnNoResult)
 FLAG_RELEASE(IsES7AsyncAndAwaitEnabled, ES7AsyncAwait)

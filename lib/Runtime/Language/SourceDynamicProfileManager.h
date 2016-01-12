@@ -5,6 +5,7 @@
 #pragma once
 class SourceContextInfo;
 
+#if ENABLE_PROFILE_INFO
 namespace Js
 {
     enum ExecutionFlags : BYTE
@@ -149,3 +150,4 @@ namespace Js
         };
     };
 };
+#endif

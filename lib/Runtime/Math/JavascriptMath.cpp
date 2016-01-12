@@ -923,7 +923,9 @@ StringCommon:
 
             if (JavascriptNativeArray::Is(typeId))
             {
+#if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayArg);
+#endif
                 JavascriptNativeArray * argsArray = JavascriptNativeArray::FromVar(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)
@@ -979,7 +981,9 @@ StringCommon:
 
             if (JavascriptNativeArray::Is(typeId))
             {
+#if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayArg);
+#endif
                 JavascriptNativeArray * argsArray = JavascriptNativeArray::FromVar(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)

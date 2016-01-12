@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 
+#ifndef TEMP_DISABLE_ASMJS
 #if DBG_DUMP
 #include "Language\AsmJsModule.h"
 #include "ByteCode\AsmJSByteCodeDumper.h"
@@ -1197,4 +1198,5 @@ namespace Js
     }
 }
 
+#endif
 #endif

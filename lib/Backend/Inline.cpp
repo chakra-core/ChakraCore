@@ -2576,20 +2576,11 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     IR::Instr * startCall = implicitThisArgOut->GetSrc2()->AsRegOpnd()->m_sym->AsStackSym()->GetInstrDef();
     Assert(startCall->m_opcode == Js::OpCode::StartCall);
 
-    // Optimistically assume that we won't see heap arguments and don't emit the bailout.  This is not legal, but the switch allows us to
-    // estimate wins until we make it legal.
-    if (!PHASE_OFF(Js::BailOutOnNotStackArgsPhase, this->topFunc))
-    {
-        // BailOnNotStackArgs - This bailout needs to be inserted before the ArgOut_A_FromStackArgs because the latter could not be expanded reliably if we don't have stack args
-        // Note that we are giving the StartCall offset to this bailout. This is done because we will be changing the original ArgOut sequence and the bailout code would not restore
-        // the correct ArgOuts to correct slots. So, instead, we start from StartCall upon bailout (and make sure that there is no side effect in the call sequence).
-        IR::Instr *  bailOutOnNotStackArgs = IR::BailOutInstr::New(Js::OpCode::BailOnNotStackArgs, IR::BailOutOnInlineFunction,
-            argumentsObjArgOut, callInstr->m_func);
-        bailOutOnNotStackArgs->SetSrc1(argumentsObj);
-        bailOutOnNotStackArgs->SetSrc2(IR::AddrOpnd::NewNull(callInstr->m_func));
-        argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
-    }
-
+    IR::Instr *  bailOutOnNotStackArgs = IR::BailOutInstr::New(Js::OpCode::BailOnNotStackArgs, IR::BailOutOnInlineFunction,
+        callInstr, callInstr->m_func);
+    bailOutOnNotStackArgs->SetSrc1(argumentsObj);
+    bailOutOnNotStackArgs->SetSrc2(IR::AddrOpnd::NewNull(callInstr->m_func));
+    argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
 
     IR::Instr* byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
     byteCodeArgOutUse->SetSrc1(implicitThisArgOut->GetSrc1());

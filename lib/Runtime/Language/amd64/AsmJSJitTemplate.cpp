@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
 #if DBG_DUMP
@@ -21,3 +22,4 @@ namespace Js
         __debugbreak();
     }
 }
+#endif

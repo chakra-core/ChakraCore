@@ -3262,7 +3262,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         byteCodeFunction->DumpScopes();
     }
 #endif
-#ifdef ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
     if ((!PHASE_OFF(Js::BackEndPhase, funcInfo->byteCodeFunction))
         && !this->forceNoNative
         && !this->scriptContext->GetConfig()->IsNoNative())
@@ -3366,7 +3366,8 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
     {
         switch (pnode->nop)
         {
-        case knopFncDecl:
+            case knopFncDecl:
+#ifndef TEMP_DISABLE_ASMJS
             if (pnode->sxFnc.GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());
@@ -3385,6 +3386,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
                     throw Js::AsmJsParseException();
                 }
             }
+#endif
             // FALLTHROUGH
         case knopProg:
             if (pnode->sxFnc.funcInfo)
@@ -5591,14 +5593,19 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
         case knopName:
         {
             Symbol *sym = pnode->sxCall.pnodeTarget->sxPid.sym;
-            if (!sym ||
-                sym->GetLocation() == Js::Constants::NoRegister ||
-                sym->IsInSlot(funcInfo) ||
-                sym->GetScope()->GetFunc() != funcInfo)
+            if (!sym || sym->GetLocation() == Js::Constants::NoRegister)
             {
                 funcInfo->AcquireLoc(pnode->sxCall.pnodeTarget);
             }
-            EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            if (sym && (sym->IsInSlot(funcInfo) || sym->GetScope()->GetFunc() != funcInfo))
+            {
+                // Can't get the value from the assigned register, so load it here.
+                EmitLoad(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            }
+            else
+            {
+                EmitReference(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo);
+            }
             break;
         }
         default:
@@ -8362,6 +8369,7 @@ void EmitJumpCleanup(ParseNode *pnode, ParseNode *pnodeTarget, ByteCodeGenerator
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
             break;
 
+#if ENABLE_PROFILE_INFO
         case knopWhile:
         case knopDoWhile:
         case knopFor:
@@ -8371,6 +8379,7 @@ void EmitJumpCleanup(ParseNode *pnode, ParseNode *pnodeTarget, ByteCodeGenerator
             {
                 byteCodeGenerator->Writer()->Unsigned1(Js::OpCode::ProfiledLoopEnd, pnode->sxLoop.loopId);
             }
+#endif
         }
     }
 }

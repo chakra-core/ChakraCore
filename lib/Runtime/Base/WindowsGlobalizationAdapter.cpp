@@ -230,60 +230,102 @@ namespace Js
         return factory->QueryInterface(__uuidof(T), reinterpret_cast<void**>(instance));
     }
 
-    HRESULT WindowsGlobalizationAdapter::EnsureGlobObjectsInitialized(ScriptContext *scriptContext)
+#ifdef ENABLE_INTL_OBJECT
+    HRESULT WindowsGlobalizationAdapter::EnsureCommonObjectsInitialized(DelayLoadWindowsGlobalization *library)
     {
-        DelayLoadWindowsGlobalization *library = this->GetWindowsGlobalizationLibrary(scriptContext);
-        bool isES6Mode = scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled();
         HRESULT hr = S_OK;
 
-        if (initializedGlobObjects)
+        if (initializedCommonGlobObjects)
         {
-            return hr;
+            AssertMsg(hrForCommonGlobObjectsInit == S_OK, "If IntlGlobObjects are initialized, we should be returning S_OK.");
+            return hrForCommonGlobObjectsInit;
         }
-        else if (hrForGlobObjectsInit != S_OK)
+        else if (hrForCommonGlobObjectsInit != S_OK)
         {
-            return hrForGlobObjectsInit;
-        }
-
-#ifdef ENABLE_INTL_OBJECT
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_Language, &languageFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_Language, &languageStatics), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_CurrencyFormatter, &currencyFormatterFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_DecimalFormatter, &decimalFormatterFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_PercentFormatter, &percentFormatterFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_DateTimeFormatting_DateTimeFormatter, &dateTimeFormatterFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_SignificantDigitsNumberRounder, &significantDigitsRounderActivationFactory), hrForGlobObjectsInit);
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_IncrementNumberRounder, &incrementNumberRounderActivationFactory), hrForGlobObjectsInit);
-#endif
-        if (isES6Mode)
-        {
-            IfFailedSetErrorCodeAndReturn(EnsureDataTextObjectsInitialized(library), hrForGlobObjectsInit);
+            return hrForCommonGlobObjectsInit;
         }
 
-        hrForGlobObjectsInit = S_OK;
-        initializedGlobObjects = true;
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_Language, &languageFactory), hrForCommonGlobObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_Language, &languageStatics), hrForCommonGlobObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_DateTimeFormatting_DateTimeFormatter, &dateTimeFormatterFactory), hrForCommonGlobObjectsInit);
+
+        hrForCommonGlobObjectsInit = S_OK;
+        initializedCommonGlobObjects = true;
 
         return hr;
-
     }
+
+
+    HRESULT WindowsGlobalizationAdapter::EnsureDateTimeFormatObjectsInitialized(DelayLoadWindowsGlobalization *library)
+    {
+        HRESULT hr = S_OK;
+
+        if (initializedDateTimeFormatObjects)
+        {
+            AssertMsg(hrForDateTimeFormatObjectsInit == S_OK, "If DateTimeFormatObjects are initialized, we should be returning S_OK.");
+            return hrForDateTimeFormatObjectsInit;
+        }
+        else if (hrForDateTimeFormatObjectsInit != S_OK)
+        {
+            return hrForDateTimeFormatObjectsInit;
+        }
+
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_Calendar, &calendarFactory), hrForDateTimeFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(this->CreateTimeZoneOnCalendar(library, &defaultTimeZoneCalendar), hrForDateTimeFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(this->CreateTimeZoneOnCalendar(library, &timeZoneCalendar), hrForDateTimeFormatObjectsInit);
+
+        hrForDateTimeFormatObjectsInit = S_OK;
+        initializedDateTimeFormatObjects = true;
+
+        return hr;
+    }
+
+    HRESULT WindowsGlobalizationAdapter::EnsureNumberFormatObjectsInitialized(DelayLoadWindowsGlobalization *library)
+    {
+        HRESULT hr = S_OK;
+
+        if (initializedNumberFormatObjects)
+        {
+            AssertMsg(hrForNumberFormatObjectsInit == S_OK, "If NumberFormatObjects are initialized, we should be returning S_OK.");
+            return hrForNumberFormatObjectsInit;
+        }
+        else if (hrForNumberFormatObjectsInit != S_OK)
+        {
+            return hrForNumberFormatObjectsInit;
+        }
+
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_CurrencyFormatter, &currencyFormatterFactory), hrForNumberFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_DecimalFormatter, &decimalFormatterFactory), hrForNumberFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_PercentFormatter, &percentFormatterFactory), hrForNumberFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_SignificantDigitsNumberRounder, &significantDigitsRounderActivationFactory), hrForNumberFormatObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Globalization_NumberFormatting_IncrementNumberRounder, &incrementNumberRounderActivationFactory), hrForNumberFormatObjectsInit);
+
+        hrForNumberFormatObjectsInit = S_OK;
+        initializedNumberFormatObjects = true;
+
+        return hr;
+    }
+
+#endif
 
     HRESULT WindowsGlobalizationAdapter::EnsureDataTextObjectsInitialized(DelayLoadWindowsGlobalization *library)
     {
         HRESULT hr = S_OK;
 
-        if (initializedDataTextObjects)
+        if (initializedCharClassifierObjects)
         {
-            return hr;
+            AssertMsg(hrForCharClassifierObjectsInit == S_OK, "If DataTextObjects are initialized, we should be returning S_OK.");
+            return hrForCharClassifierObjectsInit;
         }
-        else if (hrForDataTextObjectsInit != S_OK)
+        else if (hrForCharClassifierObjectsInit != S_OK)
         {
-            return hrForDataTextObjectsInit;
+            return hrForCharClassifierObjectsInit;
         }
 
-        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Data_Text_UnicodeCharacters, &unicodeStatics), hrForDataTextObjectsInit);
+        IfFailedSetErrorCodeAndReturn(GetActivationFactory(library, RuntimeClass_Windows_Data_Text_UnicodeCharacters, &unicodeStatics), hrForCharClassifierObjectsInit);
 
-        hrForDataTextObjectsInit = S_OK;
-        initializedDataTextObjects = true;
+        hrForCharClassifierObjectsInit = S_OK;
+        initializedCharClassifierObjects = true;
 
         return hr;
     }
@@ -328,6 +370,72 @@ namespace Js
 
         IfFailedReturn(language->get_LanguageTag(result));
         return hr;
+    }
+
+    boolean WindowsGlobalizationAdapter::ValidateAndCanonicalizeTimeZone(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR timeZoneId, HSTRING *result)
+    {
+        HRESULT hr = S_OK;
+        HSTRING timeZone;
+        HSTRING_HEADER timeZoneHeader;
+
+        // Construct HSTRING of timeZoneId passed
+        IfFailThrowHr(GetWindowsGlobalizationLibrary(scriptContext)->WindowsCreateStringReference(timeZoneId, static_cast<UINT32>(wcslen(timeZoneId)), &timeZoneHeader, &timeZone));
+        Assert(timeZone);
+
+        // The warning is timeZone could be '0'. This is valid scenario and in that case, ChangeTimeZone() would
+        // return error HR in which case we will throw.
+#pragma warning(suppress:6387)
+        // ChangeTimeZone should fail if this is not a valid time zone
+        hr = timeZoneCalendar->ChangeTimeZone(timeZone);
+        if (hr != S_OK)
+        {
+            return false;
+        }
+        // Retrieve canonicalize timeZone name
+        IfFailThrowHr(timeZoneCalendar->GetTimeZone(result));
+        return true;
+    }
+
+    void WindowsGlobalizationAdapter::GetDefaultTimeZoneId(_In_ ScriptContext* scriptContext, HSTRING *result)
+    {
+        HRESULT hr = S_OK;
+        IfFailThrowHr(defaultTimeZoneCalendar->GetTimeZone(result));
+    }
+
+    HRESULT WindowsGlobalizationAdapter::CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out::ITimeZoneOnCalendar**  result)
+    {
+        AutoCOMPtr<::ICalendar> calendar;
+
+        HRESULT hr = S_OK;
+
+        // initialize hard-coded default languages
+        AutoArrayPtr<HSTRING> arr(HeapNewArray(HSTRING, 1), 1);
+        AutoArrayPtr<HSTRING_HEADER> headers(HeapNewArray(HSTRING_HEADER, 1), 1);
+        IfFailedReturn(library->WindowsCreateStringReference(L"en-US", static_cast<UINT32>(wcslen(L"en-US")), (headers), (arr)));
+        Microsoft::WRL::ComPtr<IIterable<HSTRING>> defaultLanguages;
+        IfFailedReturn(Microsoft::WRL::MakeAndInitialize<HSTRINGIterable>(&defaultLanguages, arr, 1));
+
+
+        // Create calendar object
+        IfFailedReturn(this->calendarFactory->CreateCalendarDefaultCalendarAndClock(defaultLanguages.Get(), &calendar));
+
+        // Get ITimeZoneOnCalendar part of calendar object
+        IfFailedReturn(calendar->QueryInterface(__uuidof(::ITimeZoneOnCalendar), reinterpret_cast<void**>(result)));
+
+        return hr;
+    }
+
+    void WindowsGlobalizationAdapter::ClearTimeZoneCalendars()
+    {
+        if (this->timeZoneCalendar)
+        {
+            this->timeZoneCalendar.Detach()->Release();
+        }
+
+        if (this->defaultTimeZoneCalendar)
+        {
+            this->defaultTimeZoneCalendar.Detach()->Release();
+        }
     }
 
     HRESULT WindowsGlobalizationAdapter::CreateCurrencyFormatterCode(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR currencyCode, NumberFormatting::ICurrencyFormatter** currencyFormatter)

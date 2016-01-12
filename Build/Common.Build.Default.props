@@ -56,6 +56,7 @@
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
+    <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>
 
@@ -64,6 +65,7 @@
 
   <!-- Output directories -->
   <PropertyGroup>
+    <OutDirName Condition="'$(ENABLE_CODECOVERAGE)'=='true'">codecoverage</OutDirName>
     <OutDirName Condition="'$(OutDirName)'==''">$(Configuration.ToLower())</OutDirName>
     <OutDir>$(OutBaseDir)\bin\$(PlatformPathName.ToLower())_$(OutDirName)\</OutDir>
     <IntDir>$(IntBaseDir)\obj\$(PlatformPathName.ToLower())_$(Configuration.ToLower())\$(MSBuildProjectName)\</IntDir>

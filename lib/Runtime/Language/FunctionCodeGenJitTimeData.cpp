@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, InlineCache* cache, uint cacheId, EntryPointInfo *entryPoint,
@@ -947,3 +948,4 @@ namespace Js
         return profiledIterations;
     }
 }
+#endif

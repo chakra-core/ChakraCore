@@ -108,8 +108,11 @@ namespace Js
         }
         else if (Js::JavascriptArray::Is(obj))
         {
+            // DisableJIT-TODO: Review- is this correct?
+#if ENABLE_COPYONACCESS_ARRAY
             // Make sure any NativeIntArrays are converted
             Js::JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(obj);
+#endif
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableArrayDisplay, this);
         }
         else

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 namespace Js
 {
     class OpCodeUtilAsmJs
@@ -24,3 +25,4 @@ namespace Js
         static OpLayoutTypeAsmJs const ExtendedOpCodeAsmJsLayouts[];
     };
 };
+#endif

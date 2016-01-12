@@ -643,6 +643,7 @@ namespace Js
         return IsMissingHeadSegmentItemImpl<Var>(index);
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     void JavascriptCopyOnAccessNativeIntArray::ConvertCopyOnAccessSegment()
     {
         Assert(this->GetScriptContext()->GetLibrary()->cacheForCopyOnAccessArraySegments->IsValidIndex(::Math::PointerCastToIntegral<uint32>(this->GetHead())));
@@ -701,6 +702,7 @@ namespace Js
             return TRUE;
         }
     }
+#endif
 
     bool JavascriptNativeIntArray::IsMissingHeadSegmentItem(const uint32 index) const
     {
@@ -751,6 +753,7 @@ namespace Js
         return array;
     }
 
+#if ENABLE_PROFILE_INFO
     Var JavascriptArray::ProfiledNewScArray(uint32 elementCount, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
     {
         if (arrayInfo->IsNativeIntArray())
@@ -770,7 +773,7 @@ namespace Js
         JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(elementCount);
         return arr;
     }
-
+#endif
     Var JavascriptArray::OP_NewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext)
     {
         uint32 count = ints->count;
@@ -784,6 +787,7 @@ namespace Js
         return arr;
     }
 
+#if ENABLE_PROFILE_INFO
     Var JavascriptArray::ProfiledNewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
     {
         // Called only to create array literals: size is known.
@@ -795,12 +799,14 @@ namespace Js
             FunctionBody *functionBody = weakFuncRef->Get();
             JavascriptLibrary *lib = scriptContext->GetLibrary();
 
+#if ENABLE_COPYONACCESS_ARRAY
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count))
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
             }
             else
+#endif
             {
                 arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(count);
                 SparseArraySegment<int32> *head = static_cast<SparseArraySegment<int32>*>(arr->head);
@@ -829,6 +835,7 @@ namespace Js
 
         return OP_NewScIntArray(ints, scriptContext);
     }
+#endif
 
     Var JavascriptArray::OP_NewScFltArray(AuxArray<double> *doubles, ScriptContext* scriptContext)
     {
@@ -852,6 +859,7 @@ namespace Js
         return arr;
     }
 
+#if ENABLE_PROFILE_INFO
     Var JavascriptArray::ProfiledNewScFltArray(AuxArray<double> *doubles, ScriptContext* scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
     {
         // Called only to create array literals: size is known.
@@ -975,6 +983,7 @@ namespace Js
 #endif
         return pNew;
     }
+#endif
 
     Var JavascriptArray::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -1124,6 +1133,7 @@ namespace Js
         return arr;
 }
 
+#if ENABLE_PROFILE_INFO
     Var JavascriptArray::ProfiledNewInstanceNoArg(RecyclableObject *function, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
     {
         Assert(JavascriptFunction::Is(function) &&
@@ -1145,6 +1155,7 @@ namespace Js
 
         return scriptContext->GetLibrary()->CreateArray();
     }
+#endif
 
     Var JavascriptNativeIntArray::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -1297,7 +1308,11 @@ namespace Js
     }
 
 
+#if ENABLE_PROFILE_INFO
     JavascriptArray * JavascriptNativeIntArray::FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *arrayInfo, bool dontCreateNewArray)
+#else
+    JavascriptArray * JavascriptNativeIntArray::FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray)
+#endif
     {
         uint i;
         for (i = start; i < length; i++)
@@ -1328,10 +1343,12 @@ namespace Js
                 }
                 else
                 {
+#if ENABLE_PROFILE_INFO
                     if (arrayInfo)
                     {
                         arrayInfo->SetIsNotNativeIntArray();
                     }
+#endif
 
                     if (HasInlineHeadSegment(length) && i < this->head->length && !dontCreateNewArray)
                     {
@@ -1344,15 +1361,21 @@ namespace Js
 
                     JavascriptNativeFloatArray *fArr = JavascriptNativeIntArray::ToNativeFloatArray(this);
                     fArr->DirectSetItemAt(i, dvalue);
+#if ENABLE_PROFILE_INFO
                     return fArr->JavascriptNativeFloatArray::FillFromArgs(length, i + 1, args, arrayInfo, dontCreateNewArray);
+#else
+                    return fArr->JavascriptNativeFloatArray::FillFromArgs(length, i + 1, args, dontCreateNewArray);
+#endif
                 }
             }
             else
             {
+#if ENABLE_PROFILE_INFO
                 if (arrayInfo)
                 {
                     arrayInfo->SetIsNotNativeArray();
                 }
+#endif
 
                 #pragma prefast(suppress:6237, "The right hand side condition does not have any side effects.")
                 if (sizeof(int32) < sizeof(Var) && HasInlineHeadSegment(length) && i < this->head->length && !dontCreateNewArray)
@@ -1364,14 +1387,22 @@ namespace Js
                 }
 
                 JavascriptArray *arr = JavascriptNativeIntArray::ToVarArray(this);
+#if ENABLE_PROFILE_INFO
                 return arr->JavascriptArray::FillFromArgs(length, i, args, nullptr, dontCreateNewArray);
+#else
+                return arr->JavascriptArray::FillFromArgs(length, i, args, dontCreateNewArray);
+#endif
             }
         }
 
         return this;
     }
 
+#if ENABLE_PROFILE_INFO
     JavascriptArray * JavascriptNativeFloatArray::FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *arrayInfo, bool dontCreateNewArray)
+#else
+    JavascriptArray * JavascriptNativeFloatArray::FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray)
+#endif
     {
         uint i;
         for (i = start; i < length; i++)
@@ -1388,18 +1419,26 @@ namespace Js
             else
             {
                 JavascriptArray *arr = JavascriptNativeFloatArray::ToVarArray(this);
+#if ENABLE_PROFILE_INFO
                 if (arrayInfo)
                 {
                     arrayInfo->SetIsNotNativeArray();
                 }
                 return arr->JavascriptArray::FillFromArgs(length, i, args, nullptr, dontCreateNewArray);
+#else
+                return arr->JavascriptArray::FillFromArgs(length, i, args, dontCreateNewArray);
+#endif
             }
         }
 
         return this;
     }
 
+#if ENABLE_PROFILE_INFO
     JavascriptArray * JavascriptArray::FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *arrayInfo, bool dontCreateNewArray)
+#else
+    JavascriptArray * JavascriptArray::FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray)
+#endif
     {
         uint32 i;
         for (i = start; i < length; i++)
@@ -1416,13 +1455,16 @@ namespace Js
         return scriptContext->GetLibrary()->GetNativeIntArrayType();
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     DynamicType * JavascriptCopyOnAccessNativeIntArray::GetInitialType(ScriptContext * scriptContext)
     {
         return scriptContext->GetLibrary()->GetCopyOnAccessNativeIntArrayType();
     }
+#endif
 
     JavascriptNativeFloatArray *JavascriptNativeIntArray::ToNativeFloatArray(JavascriptNativeIntArray *intArray)
     {
+#if ENABLE_PROFILE_INFO
         ArrayCallSiteInfo *arrayInfo = intArray->GetArrayCallSiteInfo();
         if (arrayInfo)
         {
@@ -1467,6 +1509,7 @@ namespace Js
 
             arrayInfo->SetIsNotNativeIntArray();
         }
+#endif
 
         // Grow the segments
 
@@ -1736,7 +1779,9 @@ namespace Js
 
     JavascriptArray *JavascriptNativeIntArray::ConvertToVarArray(JavascriptNativeIntArray *intArray)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(intArray);
+#endif
         ScriptContext *scriptContext = intArray->GetScriptContext();
         Recycler *recycler = scriptContext->GetRecycler();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
@@ -1851,6 +1896,7 @@ namespace Js
     }
     JavascriptArray *JavascriptNativeIntArray::ToVarArray(JavascriptNativeIntArray *intArray)
     {
+#if ENABLE_PROFILE_INFO
         ArrayCallSiteInfo *arrayInfo = intArray->GetArrayCallSiteInfo();
         if (arrayInfo)
         {
@@ -1895,6 +1941,7 @@ namespace Js
 
             arrayInfo->SetIsNotNativeArray();
         }
+#endif
 
         intArray->ClearArrayCallSiteIndex();
 
@@ -2046,6 +2093,7 @@ namespace Js
 
     JavascriptArray *JavascriptNativeFloatArray::ToVarArray(JavascriptNativeFloatArray *fArray)
     {
+#if ENABLE_PROFILE_INFO
         ArrayCallSiteInfo *arrayInfo = fArray->GetArrayCallSiteInfo();
         if (arrayInfo)
         {
@@ -2095,6 +2143,7 @@ namespace Js
 
             arrayInfo->SetIsNotNativeArray();
         }
+#endif
 
         fArray->ClearArrayCallSiteIndex();
 
@@ -2213,6 +2262,7 @@ namespace Js
         __super::SetIsPrototype();
     }
 
+#if ENABLE_PROFILE_INFO
     ArrayCallSiteInfo *JavascriptNativeArray::GetArrayCallSiteInfo()
     {
         RecyclerWeakReference<FunctionBody> *weakRef = this->weakRefToFuncBody;
@@ -2265,6 +2315,7 @@ namespace Js
             }
         }
     }
+#endif
 
     Var JavascriptNativeArray::FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax)
     {
@@ -2690,7 +2741,9 @@ namespace Js
 
     Var JavascriptNativeIntArray::DirectGetItem(uint32 index)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         SparseArraySegment<int32> *seg = (SparseArraySegment<int32>*)this->GetLastUsedSegment();
         uint32 offset = index - seg->left;
         if (index >= seg->left && offset < seg->length)
@@ -3151,7 +3204,9 @@ namespace Js
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(aItem);
+#endif
             if (DynamicObject::IsAnyArray(aItem)) // Get JavascriptArray or ES5Array length
             {
                 JavascriptArray * pItemArray = JavascriptArray::FromAnyArray(aItem);
@@ -3477,7 +3532,9 @@ namespace Js
 
         if (JavascriptArray::Is(args[0]))
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
             pArr = JavascriptArray::FromVar(args[0]);
             obj = pArr;
         }
@@ -4056,7 +4113,9 @@ namespace Js
         {
             if (isArray)
             {
+#if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray(thisArg);
+#endif
                 JavascriptArray * arr = JavascriptArray::FromVar(thisArg);
                 switch (arr->GetTypeId())
                 {
@@ -4281,7 +4340,9 @@ Case0:
 
         if (JavascriptArray::Is(args[0]))
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
             pArr = JavascriptArray::FromVar(args[0]);
             obj = pArr;
             length = pArr->length;
@@ -4919,7 +4980,9 @@ Case0:
         if (JavascriptArray::Is(args[0]))
         {
             pArr = JavascriptArray::FromVar(args[0]);
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pArr);
+#endif
             obj = pArr;
         }
         else
@@ -5289,7 +5352,9 @@ Case0:
         if (JavascriptArray::Is(args[0]))
         {
             JavascriptArray * pArr = JavascriptArray::FromVar(args[0]);
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pArr);
+#endif
 
             if (pArr->length == 0)
             {
@@ -5466,7 +5531,9 @@ Case0:
         {
             Js::JavascriptNativeIntArray *pnewArr = scriptContext->GetLibrary()->CreateNativeIntArray(len);
             pnewArr->EnsureHead<int32>();
+#if ENABLE_PROFILE_INFO
             pnewArr->CopyArrayProfileInfo(Js::JavascriptNativeIntArray::FromVar(baseArray));
+#endif
 
             return pnewArr;
         }
@@ -5474,7 +5541,9 @@ Case0:
         {
             Js::JavascriptNativeFloatArray *pnewArr  = scriptContext->GetLibrary()->CreateNativeFloatArray(len);
             pnewArr->EnsureHead<double>();
+#if ENABLE_PROFILE_INFO
             pnewArr->CopyArrayProfileInfo(Js::JavascriptNativeFloatArray::FromVar(baseArray));
+#endif
 
             return pnewArr;
         }
@@ -5530,6 +5599,7 @@ Case0:
     {
         if (JavascriptNativeIntArray::Is(this))
         {
+#if ENABLE_PROFILE_INFO
             JavascriptNativeIntArray* nativeIntArray = JavascriptNativeIntArray::FromVar(this);
             ArrayCallSiteInfo* info = nativeIntArray->GetArrayCallSiteInfo();
             if(!info || info->IsNativeIntArray())
@@ -5545,9 +5615,13 @@ Case0:
             {
                 JavascriptNativeIntArray::ToVarArray(nativeIntArray);
             }
+#else
+            *isIntArray = true;
+#endif
         }
         else if (JavascriptNativeFloatArray::Is(this))
         {
+#if ENABLE_PROFILE_INFO
             JavascriptNativeFloatArray* nativeFloatArray = JavascriptNativeFloatArray::FromVar(this);
             ArrayCallSiteInfo* info = nativeFloatArray->GetArrayCallSiteInfo();
 
@@ -5559,6 +5633,9 @@ Case0:
             {
                 *isFloatArray = true;
             }
+#else
+            *isFloatArray = true;
+#endif
         }
     }
 
@@ -5637,7 +5714,9 @@ Case0:
         T newLenT = length;
         T endT = length;
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pArr);
+#endif
         if (args.Info.Count > 1)
         {
             startT = GetFromIndex(args[1], length, scriptContext);
@@ -6245,7 +6324,9 @@ Case0:
 
         if (JavascriptArray::Is(args[0]))
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
 
             JavascriptArray *arr = JavascriptArray::FromVar(args[0]);
 
@@ -6374,7 +6455,9 @@ Case0:
             pObj = pArr;
             len = pArr->length;
 
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
         }
         else
         {
@@ -7234,7 +7317,11 @@ Case0:
             pArr->SetHasNoMissingValues(false);
         }
 
+#if ENABLE_PROFILE_INFO
         pArr->FillFromArgs(unshiftElements, 0, elements, nullptr, true/*dontCreateNewArray*/);
+#else
+        pArr->FillFromArgs(unshiftElements, 0, elements, true/*dontCreateNewArray*/);
+#endif
 
         // Setting back to the old value
         pArr->SetHasNoMissingValues(hasNoMissingValues);
@@ -7257,7 +7344,9 @@ Case0:
         }
         if (JavascriptArray::Is(args[0]))
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
             JavascriptArray * pArr = JavascriptArray::FromVar(args[0]);
 
             uint32 unshiftElements = args.Info.Count - 1;
@@ -7612,7 +7701,9 @@ Case0:
             return scriptContext->GetLibrary()->GetFalse();
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
+#endif
         if (JavascriptOperators::IsArray(args[1]))
         {
             return scriptContext->GetLibrary()->GetTrue();
@@ -7839,7 +7930,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.entries");
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(thisObj);
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::KeyAndValue);
     }
 
@@ -7867,7 +7960,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Array.prototype.keys");
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(thisObj);
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Key);
     }
 
@@ -8267,7 +8362,9 @@ Case0:
         RecyclableObject* callBackFn = nullptr;
         Var thisArg = nullptr;
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
         if (JavascriptArray::Is(args[0]) && scriptContext == JavascriptArray::FromVar(args[0])->GetScriptContext())
         {
             pArr = JavascriptArray::FromVar(args[0]);
@@ -8373,7 +8470,9 @@ Case0:
 
         if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
+#endif
             pArr = JavascriptArray::FromVar(args[0]);
             obj = pArr;
 
@@ -9519,7 +9618,9 @@ Case0:
 
         if (JavascriptArray::Is(items))
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(items);
+#endif
             itemsArr = JavascriptArray::FromVar(items);
         }
 
@@ -10526,8 +10627,12 @@ Case0:
     template <typename T>
     void JavascriptArray::CopyAnyArrayElementsToVar(JavascriptArray* dstArray, T dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(srcArray);
+#endif
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(dstArray);
+#endif
         if (JavascriptNativeIntArray::Is(srcArray))
         {
             CopyNativeIntArrayElementsToVar(dstArray, dstIndex, JavascriptNativeIntArray::FromVar(srcArray), start, end);
@@ -10808,7 +10913,9 @@ Case0:
     {
         // At this stage we have an array literal with some arguments to be spread.
         // First we need to calculate the real size of the final literal.
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayToSpread);
+#endif
         JavascriptArray *array = FromVar(arrayToSpread);
         uint32 actualLength = array->GetLength();
 
@@ -11698,7 +11805,9 @@ Case0:
 
     BOOL JavascriptNativeIntArray::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         return JavascriptNativeIntArray::DirectGetVarItemAt(index, value, requestContext);
     }
 
@@ -11816,7 +11925,9 @@ Case0:
     {
         int32 iValue;
         double dValue;
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         TypeId typeId = this->TrySetNativeIntArrayItem(value, &iValue, &dValue);
         if (typeId == TypeIds_NativeIntArray)
         {
@@ -12012,21 +12123,25 @@ Case0:
         return JavascriptNativeIntArray::Is(typeId);
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptCopyOnAccessNativeIntArray::Is(Var aValue)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aValue);
         return JavascriptCopyOnAccessNativeIntArray::Is(typeId);
     }
+#endif
 
     bool JavascriptNativeIntArray::Is(TypeId typeId)
     {
         return typeId == TypeIds_NativeIntArray;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptCopyOnAccessNativeIntArray::Is(TypeId typeId)
     {
         return typeId == TypeIds_CopyOnAccessNativeIntArray;
     }
+#endif
 
     bool JavascriptNativeIntArray::IsNonCrossSite(Var aValue)
     {
@@ -12042,12 +12157,14 @@ Case0:
         return static_cast<JavascriptNativeIntArray *>(RecyclableObject::FromVar(aValue));
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     JavascriptCopyOnAccessNativeIntArray* JavascriptCopyOnAccessNativeIntArray::FromVar(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptCopyOnAccessNativeIntArray'");
 
         return static_cast<JavascriptCopyOnAccessNativeIntArray *>(RecyclableObject::FromVar(aValue));
     }
+#endif
 
     bool JavascriptNativeFloatArray::Is(Var aValue)
     {

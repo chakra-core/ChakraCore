@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 
+#ifndef TEMP_DISABLE_ASMJS
+
 namespace Js
 {
     template <>
@@ -474,3 +476,4 @@ namespace Js
         EmptyAsm(OpCodeAsmJs::Label);
     }
 } // namespace Js
+#endif

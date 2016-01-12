@@ -8,7 +8,7 @@
 // It allows for configurable copies of the loop that do extra work without
 // impacting the mainline performance. (for example the debug loop can simply
 // check a bit without concern for impacting the nondebug mode.)
-#ifdef INTERPRETER_ASMJS
+#if defined(INTERPRETER_ASMJS) && !defined(TEMP_DISABLE_ASMJS)
 #define INTERPRETER_OPCODE OpCodeAsmJs
 #else
 #define INTERPRETER_OPCODE OpCode
@@ -182,11 +182,13 @@ SWAP_BP_FOR_OPCODE:
                     return ip;
                 }(ip);
 
+#if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
                 {
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
                 break;
             }
             case INTERPRETER_OPCODE::MediumLayoutPrefix:
@@ -220,11 +222,13 @@ SWAP_BP_FOR_OPCODE:
                     return yieldValue;
                 }
 
+#if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
                 {
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedMediumLayoutPrefix:
@@ -252,11 +256,13 @@ SWAP_BP_FOR_OPCODE:
                     return ip;
                 }(ip);
 
+#if ENABLE_PROFILE_INFO
                 if (switchProfileMode)
                 {
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
 #endif
                 break;
             }
@@ -292,11 +298,13 @@ SWAP_BP_FOR_OPCODE:
                     return yieldValue;
                 }
 
+#if ENABLE_PROFILE_INFO
                 if(switchProfileMode)
                 {
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
                 break;
             }
             case INTERPRETER_OPCODE::ExtendedLargeLayoutPrefix:
@@ -324,11 +332,13 @@ SWAP_BP_FOR_OPCODE:
                     return ip;
                 }(ip);
 
+#if ENABLE_PROFILE_INFO
                 if(switchProfileMode)
                 {
                     // Aborting the current interpreter loop to switch the profile mode
                     return nullptr;
                 }
+#endif
 #endif
                 break;
             }

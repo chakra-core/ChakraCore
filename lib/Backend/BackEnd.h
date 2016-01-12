@@ -123,7 +123,7 @@ enum IRDumpFlags
 #include "CodeGenAllocators.h"
 #include "IRType.h"
 #include "md.h"
-#include "BackEndOpCodeAttr.h"
+#include "..\Runtime\ByteCode\BackEndOpcodeAttr.h"
 #include "BackEndOpCodeAttrAsmJs.h"
 
 #include "JnHelperMethod.h"

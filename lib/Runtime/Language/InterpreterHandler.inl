@@ -34,7 +34,7 @@
 #define EXDEF4_WMS(process, op, func, y, t)
 #endif
 
-#ifdef INTERPRETER_ASMJS
+#if defined(INTERPRETER_ASMJS) && !defined(TEMP_DISABLE_ASMJS)
 #include "InterpreterHandlerAsmJs.inl"
 #else
 

@@ -7,6 +7,7 @@
 
 namespace Js
 {
+#if ENABLE_NATIVE_CODEGEN
     void * JavascriptNativeOperators::Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<JavascriptString*>* branchTargets, uintptr funcStart, uintptr funcEnd)
     {
         void* defaultTarget = branchTargets->defaultTarget;
@@ -21,4 +22,5 @@ namespace Js
         }
         return target;
     }
+#endif
 };

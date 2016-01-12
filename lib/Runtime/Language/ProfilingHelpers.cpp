@@ -6,6 +6,7 @@
 
 namespace Js
 {
+#if ENABLE_PROFILE_INFO
     Var ProfilingHelpers::ProfiledLdElem(
         const Var base,
         const Var varIndex,
@@ -20,7 +21,9 @@ namespace Js
         LdElemInfo ldElemInfo;
 
         // Only enable fast path if the javascript array is not cross site
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(base);
+#endif
         const bool isJsArray = !TaggedNumber::Is(base) && VirtualTableInfo<JavascriptArray>::HasVirtualTable(base);
         const bool fastPath = isJsArray;
         if(fastPath)
@@ -233,7 +236,9 @@ namespace Js
             array = JavascriptArray::GetArrayForArrayOrObjectWithArray(base, &isObjectWithArray, &arrayTypeId);
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(base);
+#endif
 
         do // while(false)
         {
@@ -795,7 +800,9 @@ namespace Js
         Assert(inlineCacheIndex < functionBody->GetInlineCacheCount());
         Assert(!Root || inlineCacheIndex >= functionBody->GetRootObjectLoadInlineCacheStart());
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
         DynamicProfileInfo *const dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         Var value;
@@ -1046,7 +1053,9 @@ namespace Js
         Assert(inlineCacheIndex < functionBody->GetInlineCacheCount());
         Assert(value);
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
         FldInfoFlags fldInfoFlags = FldInfo_NoInfo;
@@ -1253,4 +1262,5 @@ namespace Js
                 ? ScriptFunctionWithInlineCache::FromVar(scriptFunction)->GetInlineCache(inlineCacheIndex)
                 : scriptFunction->GetFunctionBody()->GetInlineCache(inlineCacheIndex);
     }
+#endif
 }

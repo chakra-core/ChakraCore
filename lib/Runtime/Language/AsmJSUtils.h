@@ -22,6 +22,7 @@
 
 #pragma once
 
+#ifndef TEMP_DISABLE_ASMJS
 // Removed code from original location, if the expression is true, check if extra code needed
 #define MaybeTodo( expr ) AssertMsg( !(expr), "Unhandled scenario in asm.js" )
 
@@ -146,3 +147,4 @@ namespace Js {
         return node->sxBin.pnode1;
     }
 };
+#endif

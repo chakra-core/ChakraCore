@@ -1432,7 +1432,7 @@ private:
     SymID                   GetVarSymID(StackSym *);
     const InductionVariable* GetInductionVariable(SymID, Loop *);
     bool                    IsSymIDInductionVariable(SymID, Loop *);
-    bool                    IsAllowedForMemOpt(IR::Instr* instr, IR::RegOpnd *baseOpnd, IR::Opnd *indexOpnd);
+    bool                    IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOpnd, IR::Opnd *indexOpnd);
 
     void                    ProcessMemOp();
     bool                    InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, struct MemSetEmitData* emitData, bool& errorInInstr);

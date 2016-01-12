@@ -240,7 +240,9 @@ namespace Js
             instance->GetScriptContext()->optimizationOverrides.DisableArraySetElementFastPath();
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
+#endif
         JavascriptArray * arrayInstance = JavascriptArray::EnsureNonNativeArray(JavascriptArray::FromVar(instance));
 #if DBG
         bool doneConversion = false;

@@ -40,7 +40,7 @@
       <files>irviewer.js</files>
       <baseline>irviewer.baseline</baseline>
       <compile-flags>-irviewer</compile-flags>
-      <tags>exclude_amd64,exclude_fre,exclude_arm,exclude_nonative</tags>
+      <tags>exclude_amd64,exclude_fre,exclude_arm,exclude_nonative,require_backend</tags>
     </default>
   </test>
   <test>

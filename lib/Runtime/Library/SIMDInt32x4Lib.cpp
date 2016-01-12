@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     // Q: Are we allowed to call this as a constructor ?
@@ -1037,3 +1038,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Int32x4.store");
     }
 }
+#endif

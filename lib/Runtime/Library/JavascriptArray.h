@@ -129,13 +129,16 @@ namespace Js
 
         static Var OP_NewScArray(uint32 argLength, ScriptContext* scriptContext);
         static Var OP_NewScArrayWithElements(uint32 argLength, Var *elements, ScriptContext* scriptContext);
-        static Var ProfiledNewScArray(uint32 argLength, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
         static Var OP_NewScArrayWithMissingValues(uint32 argLength, ScriptContext* scriptContext);
         static Var OP_NewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext);
-        static Var ProfiledNewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
         static Var OP_NewScFltArray(AuxArray<double> *doubles, ScriptContext* scriptContext);
+
+#if ENABLE_PROFILE_INFO
+        static Var ProfiledNewScArray(uint32 argLength, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
+        static Var ProfiledNewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
         static Var ProfiledNewScFltArray(AuxArray<double> *doubles, ScriptContext* scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
         static Var ProfiledNewInstanceNoArg(RecyclableObject *function, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef);
+#endif
 
         static TypeId OP_SetNativeIntElementC(JavascriptNativeIntArray *arr, uint32 index, Var value, ScriptContext *scriptContext);
         static TypeId OP_SetNativeFloatElementC(JavascriptNativeFloatArray *arr, uint32 index, Var value, ScriptContext *scriptContext);
@@ -162,7 +165,9 @@ namespace Js
 
         template<typename T> inline void DirectSetItemAt(uint32 itemIndex, T newValue);
         template<typename T> inline void DirectSetItemInLastUsedSegmentAt(const uint32 offset, const T newValue);
+#if ENABLE_PROFILE_INFO
         template<typename T> inline void DirectProfiledSetItemInHeadSegmentAt(const uint32 offset, const T newValue, StElemInfo *const stElemInfo);
+#endif
         template<typename T> void DirectSetItem_Full(uint32 itemIndex, T newValue);
         template<typename T> SparseArraySegment<T>* PrepareSegmentForMemOp(uint32 startIndex, uint32 length);
         template<typename T> void DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
@@ -365,8 +370,10 @@ namespace Js
         static className* New(uint32 length, DynamicType* arrayType, Recycler* recycler);
         template<typename unitType, typename className, uint inlineSlots>
         static className* NewLiteral(uint32 length, DynamicType* arrayType, Recycler* recycler);
+#if ENABLE_COPYONACCESS_ARRAY
         template<typename unitType, typename className, uint inlineSlots>
         static className* NewCopyOnAccessLiteral(DynamicType* arrayType, ArrayCallSiteInfo *arrayInfo, FunctionBody *functionBody, const Js::AuxArray<int32> *ints, Recycler* recycler);
+#endif
         static bool HasInlineHeadSegment(uint32 length);
 
         template<class T, uint InlinePropertySlots>
@@ -376,7 +383,11 @@ namespace Js
 
         static JavascriptArray *EnsureNonNativeArray(JavascriptArray *arr);
 
+#if ENABLE_PROFILE_INFO
         virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *info = nullptr, bool dontCreateNewArray = false);
+#else
+        virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray = false);
+#endif
 
     protected:
         // Use static New methods to create array.
@@ -851,13 +862,17 @@ namespace Js
             weakRefToFuncBody = nullptr;
         }
 
+#if ENABLE_PROFILE_INFO
         ArrayCallSiteInfo *GetArrayCallSiteInfo();
+#endif
 
         static uint32 GetOffsetOfArrayCallSiteIndex() { return offsetof(JavascriptNativeArray, arrayCallSiteIndex); }
         static uint32 GetOffsetOfWeakFuncRef() { return offsetof(JavascriptNativeArray, weakRefToFuncBody); }
 
+#if ENABLE_PROFILE_INFO
         void SetArrayProfileInfo(RecyclerWeakReference<FunctionBody> *weakRef, ArrayCallSiteInfo *arrayInfo);
         void CopyArrayProfileInfo(Js::JavascriptNativeArray* baseArray);
+#endif
 
         Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax); // NativeInt arrays can't have NaNs or -0
@@ -925,7 +940,11 @@ namespace Js
         static Var Push(ScriptContext * scriptContext, Var array, int value);
         static int32 Pop(ScriptContext * scriptContext, Var nativeIntArray);
 
+#if ENABLE_PROFILE_INFO
         virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *info = nullptr, bool dontCreateNewArray = false) override;
+#else
+        virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray = false) override;
+#endif
         virtual void ClearElements(SparseArraySegmentBase *seg, uint32 newSegmentLength) override;
         virtual void SetIsPrototype() override;
 
@@ -947,6 +966,7 @@ namespace Js
         virtual int32 HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext) override;
     };
 
+#if ENABLE_COPYONACCESS_ARRAY
     class JavascriptCopyOnAccessNativeIntArray : public JavascriptNativeIntArray
     {
         friend class JavascriptArray;
@@ -979,6 +999,7 @@ namespace Js
             return VTableValue::VtableCopyOnAccessNativeIntArray;
         }
     };
+#endif
 
     class JavascriptNativeFloatArray : public JavascriptNativeArray
     {
@@ -1037,7 +1058,11 @@ namespace Js
         static JavascriptArray * ToVarArray(JavascriptNativeFloatArray *fArray);
         static JavascriptArray * ConvertToVarArray(JavascriptNativeFloatArray *fArray);
 
+#if ENABLE_PROFILE_INFO
         virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, ArrayCallSiteInfo *info = nullptr, bool dontCreateNewArray = false) override;
+#else
+        virtual JavascriptArray *FillFromArgs(uint length, uint start, Var *args, bool dontCreateNewArray = false) override;
+#endif
         virtual void ClearElements(SparseArraySegmentBase *seg, uint32 newSegmentLength) override;
         virtual void SetIsPrototype() override;
 

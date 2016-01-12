@@ -2456,7 +2456,9 @@ namespace Js
             {
                 // Invalidate any JIT-ed code that hard coded this method. No need to invalidate
                 // any store field inline caches, because they have never been populated.
+#if ENABLE_NATIVE_CODEGEN
                 instance->GetScriptContext()->GetThreadContext()->InvalidatePropertyGuards(propertyId);
+#endif
                 descriptor->UsedAsFixed = false;
             }
         }

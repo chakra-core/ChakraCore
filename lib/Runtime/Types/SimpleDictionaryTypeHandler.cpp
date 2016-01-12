@@ -2917,8 +2917,10 @@ namespace Js
 
         if (descriptor->usedAsFixed)
         {
+#if ENABLE_NATIVE_CODEGEN
             PropertyId propertyId = TMapKey_GetPropertyId(scriptContext, propertyKey);
             scriptContext->GetThreadContext()->InvalidatePropertyGuards(propertyId);
+#endif
             descriptor->usedAsFixed = false;
         }
     }

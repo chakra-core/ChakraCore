@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js {
 
 
@@ -130,3 +131,4 @@ namespace Js {
         // End entry points
     };
 } // namespace Js
+#endif

@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js {
 
     class SIMDFloat64x2Lib
@@ -115,3 +116,4 @@ namespace Js {
         static void InnerStore(RecyclableObject* function, CallInfo callInfo, int laneCount);
     };
 } // namespace Js
+#endif

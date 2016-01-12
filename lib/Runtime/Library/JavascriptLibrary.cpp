@@ -98,10 +98,12 @@ namespace Js
         // can't be un-deferred yet. However, we can possibly mark isHybridDebugging and avoid deferring new runtime objects.
         EnsureReadyIfHybridDebugging(/*isScriptEngineReady*/false);
 
+#if ENABLE_COPYONACCESS_ARRAY
         if (!PHASE_OFF1(CopyOnAccessArrayPhase))
         {
             this->cacheForCopyOnAccessArraySegments = RecyclerNewZ(this->recycler, CacheForCopyOnAccessArraySegments);
         }
+#endif
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::LibInitPhase);
 #endif
@@ -548,8 +550,10 @@ namespace Js
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
         nativeIntArrayType = DynamicType::New(scriptContext, TypeIds_NativeIntArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+#if ENABLE_COPYONACCESS_ARRAY
         copyOnAccessNativeIntArrayType = DynamicType::New(scriptContext, TypeIds_CopyOnAccessNativeIntArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+#endif
         nativeFloatArrayType = DynamicType::New(scriptContext, TypeIds_NativeFloatArray, arrayPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
@@ -1314,6 +1318,7 @@ namespace Js
             DeferredTypeHandler<InitializeMathObject>::GetDefaultInstance()));
         AddMember(globalObject, PropertyIds::Math, mathObject);
 
+#if ENABLE_NATIVE_CODEGEN
         // SIMD_JS
         // we declare global objects and lib functions only if SSE2 is available. Else, we use the polyfill.
         if (AutoSystemInfo::Data.SSE2Available() && GetScriptContext()->GetConfig()->IsSimdjsEnabled())
@@ -1330,6 +1335,7 @@ namespace Js
             simdInt32x4ToStringFunction = DefaultCreateFunction(&JavascriptSIMDInt32x4::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdInt8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDInt8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
+#endif
 
         debugObject = nullptr;
 
@@ -2528,24 +2534,30 @@ namespace Js
 
         Recycler *const recycler = GetRecycler();
 
+        const ScriptConfiguration *scriptConfig = scriptContext->GetConfig();
+
         // Creating the regex prototype object requires compiling an empty regex, which may require error types to be
         // initialized first (such as when a stack probe fails). So, the regex prototype and other things that depend on it are
         // initialized here, which will be after the dependency types are initialized.
         //
         // In ES6, RegExp.prototype is not a RegExp object itself so we do not need to wait and create an empty RegExp.
         // Instead, we just create an ordinary object prototype for RegExp.prototype in InitializePrototypes.
-        if (!scriptContext->GetConfig()->IsES6PrototypeChain() && regexPrototype == nullptr)
+        if (!scriptConfig->IsES6PrototypeChain() && regexPrototype == nullptr)
         {
             regexPrototype = RecyclerNew(recycler, JavascriptRegExp, emptyRegexPattern,
                 DynamicType::New(scriptContext, TypeIds_RegEx, objectPrototype, nullptr,
                 DeferredTypeHandler<InitializeRegexPrototype>::GetDefaultInstance()));
         }
 
-        regexType = DynamicType::New(scriptContext, TypeIds_RegEx, regexPrototype, nullptr,
-            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+        SimplePathTypeHandler *typeHandler =
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true);
+        // See JavascriptRegExp::IsWritable for property writability
+        if (!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            typeHandler->ClearHasOnlyWritableDataProperties();
+        }
 
-        // See JavascriptRegExp::IsWritable for special non-writable properties
-        regexType->GetTypeHandler()->ClearHasOnlyWritableDataProperties();
+        regexType = DynamicType::New(scriptContext, TypeIds_RegEx, regexPrototype, nullptr, typeHandler, true, true);
     }
 
     void JavascriptLibrary::InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -2617,6 +2629,7 @@ namespace Js
         mathObject->SetHasNoEnumerableProperties(true);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     // SIMD_JS
     void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2838,6 +2851,7 @@ namespace Js
 
         // end Int8x16
     }
+#endif
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2923,7 +2937,9 @@ namespace Js
         vtableAddresses[VTableValue::VtableBoolArray] = VirtualTableInfo<Js::BoolArray>::Address;
         vtableAddresses[VTableValue::VtableCharArray] = VirtualTableInfo<Js::CharArray>::Address;
         vtableAddresses[VTableValue::VtableNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
+#if ENABLE_COPYONACCESS_ARRAY
         vtableAddresses[VTableValue::VtableCopyOnAccessNativeIntArray] = VirtualTableInfo<Js::JavascriptCopyOnAccessNativeIntArray>::Address;
+#endif
         vtableAddresses[VTableValue::VtableNativeFloatArray] = VirtualTableInfo<Js::JavascriptNativeFloatArray>::Address;
         vtableAddresses[VTableValue::VtableJavascriptNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
         vtableAddresses[VTableValue::VtableJavascriptRegExp] = VirtualTableInfo<Js::JavascriptRegExp>::Address;
@@ -3080,7 +3096,6 @@ namespace Js
         isLibraryReadyForHybridDebugging = true;
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
     // Note: This function is only used in float preferencing scenarios. Should remove it once we do away with float preferencing.
 
     // Cases like,
@@ -3372,7 +3387,6 @@ namespace Js
         }
         return false;
     }
-#endif
 
     void JavascriptLibrary::TypeAndPrototypesAreEnsuredToHaveOnlyWritableDataProperties(Type *const type)
     {
@@ -3622,6 +3636,26 @@ namespace Js
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::toString, &JavascriptRegExp::EntryInfo::ToString, 0);
         // This is deprecated. Should be guarded with appropriate version flag.
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::compile, &JavascriptRegExp::EntryInfo::Compile, 2);
+
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
+        if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
+
+            if (scriptConfig->IsES6RegExStickyEnabled())
+            {
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky, nullptr);
+            }
+
+            if (scriptConfig->IsES6UnicodeExtensionsEnabled())
+            {
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
+            }
+        }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
 
@@ -4280,8 +4314,7 @@ namespace Js
             try
             {
                 this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
-            }
-            catch (...)
+            } catch (...)
             {
                 // Hosts are required not to pass exceptions back across the callback boundary. If
                 // this happens, it is a bug in the host, not something that we are expected to
@@ -4294,7 +4327,9 @@ namespace Js
         {
             JavascriptFunction* hostPromiseContinuationFunction = this->GetHostPromiseContinuationFunction();
 
-            hostPromiseContinuationFunction->GetEntryPoint()(hostPromiseContinuationFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+            hostPromiseContinuationFunction->GetEntryPoint()(
+                hostPromiseContinuationFunction,
+                Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
                 this->GetUndefined(),
                 taskVar,
                 JavascriptNumber::ToVar(0, scriptContext));
@@ -4304,9 +4339,11 @@ namespace Js
 #ifdef ENABLE_INTL_OBJECT
     void JavascriptLibrary::ResetIntlObject()
     {
-        IntlObject = DynamicObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeIntlObject>::GetDefaultInstance()));
+        IntlObject = DynamicObject::New(
+            recycler,
+            DynamicType::New(scriptContext,
+                             TypeIds_Object, objectPrototype, nullptr,
+                             DeferredTypeHandler<InitializeIntlObject>::GetDefaultInstance()));
     }
 
     void JavascriptLibrary::EnsureIntlObjectReady()
@@ -4319,11 +4356,10 @@ namespace Js
         try
         {
             this->IntlObject->GetTypeHandler()->EnsureObjectReady(this->IntlObject);
-        }
-        catch (JavascriptExceptionObject *e)
+        } catch (JavascriptExceptionObject *e)
         {
             // Propagate the OOM and SOE exceptions only
-            if(e == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
+            if (e == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
                 e == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
             {
                 e = e->CloneIfStaticExceptionObject(scriptContext);
@@ -4336,13 +4372,50 @@ namespace Js
     {
         typeHandler->Convert(IntlObject, mode,  /*initSlotCapacity*/ 2);
 
-        ScriptContext* scriptContext = IntlObject->GetScriptContext();
-        if (scriptContext->VerifyAlive()) // Can't initialize if scriptContext closed, will need to run script
+        auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
-            JavascriptLibrary* library = IntlObject->GetLibrary();
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
+        };
+        IntlObject->GetLibrary()->InitializeIntlForProtototypes(intlInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForStringPrototype()
+    {
+        auto stringPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
+        };
+        InitializeIntlForProtototypes(stringPrototypeInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForDatePrototype()
+    {
+        auto datePrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
+        };
+        InitializeIntlForProtototypes(datePrototypeInitializer);
+    }
+
+    void JavascriptLibrary::InitializeIntlForNumberPrototype()
+    {
+        auto numberPrototypeInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
+        {
+            intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
+        };
+        InitializeIntlForProtototypes(numberPrototypeInitializer);
+    }
+
+    template <class Fn>
+    void JavascriptLibrary::InitializeIntlForProtototypes(Fn fn)
+    {
+        ScriptContext* scriptContext = this->IntlObject->GetScriptContext();
+        if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
+        {
+            JavascriptLibrary* library = this->IntlObject->GetLibrary();
             Assert(library->engineInterfaceObject != nullptr);
             IntlEngineInterfaceExtensionObject* intlExtension = static_cast<IntlEngineInterfaceExtensionObject*>(library->GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
-            intlExtension->InjectIntlLibraryCode(scriptContext, IntlObject);
+            fn(intlExtension, scriptContext, IntlObject);
         }
     }
 #endif
@@ -4973,6 +5046,7 @@ namespace Js
         return arr;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     JavascriptNativeIntArray* JavascriptLibrary::CreateCopyOnAccessNativeIntArrayLiteral(ArrayCallSiteInfo *arrayInfo, FunctionBody *functionBody, const Js::AuxArray<int32> *ints)
     {
         AssertMsg(copyOnAccessNativeIntArrayType, "Where's arrayType?");
@@ -4981,6 +5055,7 @@ namespace Js
 
         return arr;
     }
+#endif
 
     JavascriptNativeFloatArray* JavascriptLibrary::CreateNativeFloatArrayLiteral(uint32 length)
     {
@@ -5390,11 +5465,14 @@ namespace Js
         return AllocatorNew(RecyclerJavascriptNumberAllocator, numberAllocator, JavascriptNumber, value, numberTypeStatic);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     JavascriptNumber* JavascriptLibrary::CreateCodeGenNumber(CodeGenNumberAllocator * alloc, double value)
     {
         AssertMsg(numberTypeStatic, "Where's numberTypeStatic?");
         return new (alloc->Alloc()) JavascriptNumber(value, numberTypeStatic);
     }
+#endif
+
 #endif
 
     DynamicObject* JavascriptLibrary::CreateGeneratorConstructorPrototypeObject()
@@ -5678,6 +5756,7 @@ namespace Js
         return nullptr;
     }
 
+#if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptLibrary::IsCopyOnAccessArrayCallSite(JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo, uint32 length)
     {
         return
@@ -5700,6 +5779,7 @@ namespace Js
         return lib->cacheForCopyOnAccessArraySegments
             && lib->cacheForCopyOnAccessArraySegments->IsValidIndex(arrayInfo->copyOnAccessArrayCacheIndex);
     }
+#endif
 
     // static
     bool JavascriptLibrary::IsTypedArrayConstructor(Var constructor, ScriptContext* scriptContext)
@@ -5716,7 +5796,6 @@ namespace Js
             || constructor == library->GetFloat64ArrayConstructor();
     }
 
-#ifdef ENABLE_NATIVE_CODEGEN
     JavascriptFunction ** JavascriptLibrary::GetBuiltinFunctions()
     {
         AssertMsg(this->builtinFunctions, "builtinFunctions table must've been initialized as part of library initialization!");
@@ -5729,6 +5808,7 @@ namespace Js
         return this->vtableAddresses;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     //static
     BuiltinFunction JavascriptLibrary::GetBuiltInInlineCandidateId(OpCode opCode)
     {
@@ -5825,6 +5905,7 @@ namespace Js
 
         return BuiltinFunction::None;
     }
+#endif
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
@@ -5838,7 +5919,6 @@ namespace Js
 
         return type;
     }
-#endif
 
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const wchar_t *pwszObjectName = L#object;
@@ -6642,6 +6722,7 @@ namespace Js
         return hr;
     }
 
+#if ENABLE_NATIVE_CODEGEN
     HRESULT JavascriptLibrary::ProfilerRegisterSIMD()
     {
         HRESULT hr = S_OK;
@@ -6776,6 +6857,7 @@ namespace Js
 
         return hr;
     }
+#endif
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

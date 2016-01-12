@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "BackEnd.h"
 
+#ifdef ENABLE_NATIVE_CODEGEN
 #ifdef _M_X64
 const BYTE InterpreterThunkEmitter::FunctionBodyOffset = 23;
 const BYTE InterpreterThunkEmitter::DynamicThunkAddressOffset = 27;
@@ -659,3 +660,6 @@ bool ThunkBlock::IsFreeListEmpty() const
     Assert(this->freeList);
     return this->freeList->IsAllClear();
 }
+
+#endif
+

@@ -63,7 +63,9 @@ namespace Js
 
         if (DynamicObject::IsAnyArray(iterable) && !JavascriptArray::FromAnyArray(iterable)->IsCrossSiteObject())
         {
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(iterable);
+#endif
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();
             bArray = true;

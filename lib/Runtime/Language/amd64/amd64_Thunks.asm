@@ -10,6 +10,8 @@ ifdef _CONTROL_FLOW_GUARD
     extrn __guard_check_icall_fptr:QWORD
 endif
 
+ifdef _ENABLE_DYNAMIC_THUNKS
+
 ;;============================================================================================================
 ;; InterpreterStackFrame::DelayDynamicInterpreterThunk
 ;;============================================================================================================
@@ -156,6 +158,7 @@ endif
         rex_jmp_reg rax
 ?EnsureDynamicProfileInfoThunk@DynamicProfileInfo@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
 
+endif ;; _ENABLE_DYNAMIC_THUNKS
 
 ;;============================================================================================================
 ;; ScriptContext::ProfileModeDeferredParsingThunk
@@ -248,6 +251,8 @@ endif
 
         rex_jmp_reg rax
 ?ProfileModeDeferredDeserializeThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+
+ifdef _ENABLE_DYNAMIC_THUNKS
 
 ;;============================================================================================================
 ;; Js::AsmJsInterpreterThunk
@@ -441,6 +446,8 @@ endif
         ret
 
 ?AsmJsExternalEntryPoint@Js@@YAPEAXPEAVRecyclableObject@1@UCallInfo@1@ZZ ENDP
+
+endif ;; _ENABLE_DYNAMIC_THUNKS
 
 ;;============================================================================================================
 
