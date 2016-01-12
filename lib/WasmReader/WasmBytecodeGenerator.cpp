@@ -41,7 +41,21 @@ WasmBytecodeGenerator::GenerateWasmScript()
     // TODO: should scripts support multiple modules?
 
     m_wasmScript = Anew(&m_alloc, WasmScript);
-    m_wasmScript->globalBody = Js::FunctionBody::NewFromRecycler(m_scriptContext, L"[Global WebAssembly Code]", 19, 0, 0, m_sourceInfo, m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, 0, nullptr, Js::FunctionInfo::Attributes::None);
+    m_wasmScript->globalBody = Js::FunctionBody::NewFromRecycler(
+        m_scriptContext,
+        L"[Global WebAssembly Code]",
+        19,
+        0,
+        0,
+        m_sourceInfo,
+        m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
+        0,
+        nullptr,
+        Js::FunctionInfo::Attributes::None
+#ifdef PERF_COUNTERS
+        , false /* is function from deferred deserialized proxy */
+#endif
+        );
 
     // TODO (michhol): numbering
     m_wasmScript->globalBody->SetSourceInfo(0);
@@ -113,7 +127,21 @@ WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
     m_func = Anew(&m_alloc, WasmFunction);
-    m_func->body = Js::FunctionBody::NewFromRecycler(m_scriptContext, L"func", 5, 0, 0, m_sourceInfo, m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, 0, nullptr, Js::FunctionInfo::Attributes::None);
+    m_func->body = Js::FunctionBody::NewFromRecycler(
+        m_scriptContext,
+        L"func",
+        5,
+        0,
+        0,
+        m_sourceInfo,
+        m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
+        0,
+        nullptr,
+        Js::FunctionInfo::Attributes::None
+#ifdef PERF_COUNTERS
+        , false /* is function from deferred deserialized proxy */
+#endif
+        );
     // TODO (michhol): numbering
     m_func->body->SetSourceInfo(0);
     m_func->body->AllocateAsmJsFunctionInfo();

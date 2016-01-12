@@ -36,7 +36,7 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
     va_list arguments;
     va_start(arguments, count);
 
-    assert(count > 0);
+    Assert(count > 0);
     argCount = count - 1;
     retType = va_arg(arguments, LocalType);
     args = AnewArray(alloc, LocalType, argCount);
