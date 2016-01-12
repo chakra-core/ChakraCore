@@ -51,11 +51,15 @@ namespace Js
         bool IsDeferred() const { return ((this->attributes & (DeferredDeserialize | DeferredParse)) != 0); }
         bool IsLambda() const { return ((this->attributes & Lambda) != 0); }
         bool IsConstructor() const { return ((this->attributes & ErrorOnNew) == 0); }
-        bool IsGenerator() const { return ((this->attributes & Generator) != 0); }
+
+        static bool IsGenerator(Attributes attributes) { return ((attributes & Generator) != 0); }
+        bool IsGenerator() const { return IsGenerator(this->attributes); }
+
         bool IsDefaultConstructor() const { return ((this->attributes & DefaultConstructor) != 0); }
         bool IsClassConstructor() const { return ((this->attributes & ClassConstructor) != 0); }
         bool IsClassMethod() const { return ((this->attributes & ClassMethod) != 0); }
         bool HasSuperReference() const { return ((this->attributes & SuperReference) != 0); }
+
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }
         BOOL HasParseableInfo() const { return this->HasBody() && !this->IsDeferredDeserializeFunction(); }

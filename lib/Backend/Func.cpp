@@ -140,24 +140,21 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
     if (this->stackClosure)
     {
         // TODO: calculate on runtime side?
-        m_workItem->GetEntryPoint()->SetHasJittedStackClosure();
+        m_output.SetHasJITStackClosure();
     }
 
-    if (m_jnFunction->GetDoBackendArgumentsOptimization() && !m_jnFunction->GetHasTry())
+    if (GetJITFunctionBody()->DoBackendArgumentsOptimization() && !GetJITFunctionBody()->HasTry())
     {
         // doBackendArgumentsOptimization bit is set when there is no eval inside a function
         // as determined by the bytecode generator.
         SetHasStackArgs(true);
     }
 
-    // TODO (michhol): update this on EntryPointInfo upon return
-    m_jitWriteData.writeableEPData.hasJittedStackClosure = doStackClosure && this->IsTopFunc();
-
     if (m_workItem->Type() == JsFunctionType)
     {
-        if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0)
+        if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0)
         {
-            Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));
+            Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
             stackNestedFunc = true;
             this->GetTopFunc()->hasAnyStackNestedFunc = true;
         }
@@ -167,7 +164,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
         Assert(m_workItem->IsLoopBody());
     }
 
-    if (m_jnFunction->GetHasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)
+    if (GetJITFunctionBody()->HasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)
     {
         thisOrParentInlinerHasArguments = true;
     }
@@ -196,7 +193,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
     }
 
     this->constructorCacheCount = 0;
-    this->constructorCaches = AnewArrayZ(this->m_alloc, Js::JitTimeConstructorCache*, this->m_jnFunction->GetProfiledCallSiteCount());
+    this->constructorCaches = AnewArrayZ(this->m_alloc, Js::JitTimeConstructorCache*, GetJITFunctionBody()->GetProfiledCallSiteCount());
 
 #if DBG_DUMP
     m_codeSize = -1;
@@ -213,7 +210,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
         m_nonTempLocalVars = Anew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
     }
 
-    if (this->m_jnFunction->IsGenerator())
+    if (GetJITFunctionBody()->IsGenerator())
     {
         m_yieldOffsetResumeLabelList = YieldOffsetResumeLabelList::New(this->m_alloc);
     }
@@ -237,7 +234,7 @@ Func::IsLoopBodyInTry() const
 void
 Func::Codegen()
 {
-    Assert(!IsJitInDebugMode() || !m_jnFunction->GetHasTry());
+    Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
 
     Js::ScriptContext* scriptContext = this->GetScriptContext();
 
@@ -249,9 +246,9 @@ Func::Codegen()
                 this->m_workItem->GetDisplayName(),
                 this->GetScriptContext(),
                 this->m_workItem->GetInterpretedCount(),
-                (const unsigned int)this->m_jnFunction->LengthInBytes(),
-                this->m_jnFunction->GetByteCodeCount(),
-                this->m_jnFunction->GetByteCodeInLoopCount(),
+                GetJITFunctionBody()->GetLengthInBytes(),
+                GetJITFunctionBody()->GetByteCodeCount(),
+                GetJITFunctionBody()->GetByteCodeInLoopCount(),
                 (int)this->m_workItem->GetJitMode()));
         }
     }
@@ -286,7 +283,7 @@ Func::Codegen()
                 GetJnFunction()->GetLineNumber(),
                 m_workItem->GetLoopNumber(),
                 ExecutionModeName(m_workItem->GetJitMode()));
-            if (this->m_jnFunction->GetIsAsmjsMode())
+            if (GetJITFunctionBody()->IsAsmJsMode())
             {
                 Output::Print(L" (Asmjs)\n");
             }
@@ -304,7 +301,7 @@ Func::Codegen()
                 GetJnFunction()->GetLineNumber(),
                 ExecutionModeName(m_workItem->GetJitMode()));
 
-            if (this->m_jnFunction->GetIsAsmjsMode())
+            if (GetJITFunctionBody()->IsAsmJsMode())
             {
                 Output::Print(L" (Asmjs)\n");
             }
@@ -345,7 +342,7 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::IRBuilderPhase);
 
-        if (m_jnFunction->GetIsAsmjsMode())
+        if (GetJITFunctionBody()->IsAsmJsMode())
         {
             IRBuilderAsmJs asmIrBuilder(this);
             asmIrBuilder.Build();
@@ -697,8 +694,8 @@ Func::EnsureLocalVarSlots()
 
             Assert(m_workItem->Type() == JsFunctionType);
 
-            m_jitWriteData.writeableEPData.localVarSlotsOffset = AdjustOffsetValue(m_localVarSlotsOffset);
-            m_jitWriteData.writeableEPData.localVarChangedOffset = AdjustOffsetValue(m_hasLocalVarChangedOffset);
+            m_output.SetVarSlotsOffset(AdjustOffsetValue(m_localVarSlotsOffset));
+            m_output.SetVarChangedOffset(AdjustOffsetValue(m_hasLocalVarChangedOffset));
         }
     }
 }

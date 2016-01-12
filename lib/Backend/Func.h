@@ -66,7 +66,6 @@ typedef HashTable<FrameDisplayCheckRecord*, JitArenaAllocator> FrameDisplayCheck
 
 class Func
 {
-    JITWriteData m_jitWriteData;
 public:
     Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
@@ -772,6 +771,7 @@ public:
     IR::LabelInstr *    m_bailOutNoSaveLabel;
 
 private:
+    JITOutput m_output;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler *const m_codeGenProfiler;
 #endif

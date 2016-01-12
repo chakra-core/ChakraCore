@@ -12,7 +12,7 @@ public:
     void DisconnectRpcServer();
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemJITData *workItemData,
-        __out JITWriteData *jitData);
+        __out JITOutputData *jitData);
 
 private:
 

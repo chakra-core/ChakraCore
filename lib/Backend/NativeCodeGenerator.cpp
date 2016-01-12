@@ -891,7 +891,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         CurrentFunc = func;
 #endif
         func->m_symTable->SetStartingID(static_cast<SymID>(nRegs + 1));
-        JITWriteData jitWriteData;
+        JITOutputData jitWriteData;
         HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(workItem->GetJITData(), &jitWriteData);
         if (hr != S_OK)
         {

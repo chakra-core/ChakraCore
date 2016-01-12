@@ -13,8 +13,19 @@ typedef struct FunctionBodyJITData
     unsigned int sourceContextId;
     unsigned int nestedCount;
     unsigned int scopeSlotArraySize;
+    unsigned int attributes;
+    unsigned int cbLength;
+    unsigned int byteCodeCount;
+    unsigned int byteCodeInLoopCount;
+
     unsigned short envDepth;
+    unsigned short profiledCallSiteCount;
+
     byte flags;
+    // TODO: compress booleans into flags
+    boolean doBackendArgumentsOptimization;
+    boolean isLibraryCode;
+    boolean isAsmJsMode;
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT
@@ -46,10 +57,10 @@ typedef struct CodeGenWorkItemJITData
 } CodeGenWorkItemJITData;
 
 // Fields that JIT modifies
-typedef struct JITWriteData
+typedef struct JITOutputData
 {
     EntryPointInfoJITWriteData writeableEPData;
-} JITWriteData;
+} JITOutputData;
 
 [
     uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),
@@ -63,5 +74,5 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] __int3264 process,
         [in] CodeGenWorkItemJITData * workItemData,
-        [out] JITWriteData * jitData);
+        [out] JITOutputData * jitData);
 }

@@ -87,7 +87,7 @@ ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 process,
     /* [in] */ CodeGenWorkItemJITData *workItemData,
-    /* [out] */ JITWriteData *jitData)
+    /* [out] */ JITOutputData *jitData)
 {
     UNREFERENCED_PARAMETER(binding);
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));

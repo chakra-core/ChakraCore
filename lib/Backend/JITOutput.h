@@ -5,7 +5,16 @@
 
 #pragma once
 
-class JITOutputData
+class JITOutput
 {
+public:
+    JITOutput();
 
+    void SetHasJITStackClosure();
+
+    void SetVarSlotsOffset(int32 offset);
+    void SetVarChangedOffset(int32 offset);
+
+private:
+    JITOutputData m_outputData;
 };

@@ -195,7 +195,7 @@ JITManager::DisconnectRpcServer()
 HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemJITData *workItemData,
-    __out JITWriteData *jitData)
+    __out JITOutputData *jitData)
 {
     HRESULT hr = E_FAIL;
     RpcTryExcept

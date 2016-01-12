@@ -121,6 +121,7 @@ enum IRDumpFlags
 
 #include "ChakraJIT.h"
 #include "CodeGenWorkItemType.h"
+#include "JITOutput.h"
 #include "JITTimeFunctionBody.h"
 #include "JITTimeWorkItem.h"
 #include "NativeCodeData.h"

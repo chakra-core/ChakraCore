@@ -30,7 +30,7 @@ IRBuilder::AddStatementBoundary(uint statementIndex, uint offset)
     // Don't inject bailout if the function have trys
     if (!this->m_func->GetTopFunc()->HasTry() && (statementIndex != Js::Constants::NoStatementIndex))
     {
-        if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutFlag) && !this->m_func->GetJnFunction()->GetUtf8SourceInfo()->GetIsLibraryCode())
+        if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutFlag) && !this->m_func->GetJITFunctionBody()->IsLibraryCode())
         {
             ULONG line;
             LONG col;

@@ -14,7 +14,9 @@ public:
     CodeGenWorkItemType Type() const;
     ExecutionMode GetJitMode() const;
     WCHAR * GetDisplayName() const;
-    size_t GetDisplayName(_Out_writes_opt_z_(sizeInChars) WCHAR* displayName, _In_ size_t sizeInChars);
+    size_t GetDisplayName(
+        _Out_writes_opt_z_(sizeInChars) WCHAR* displayName,
+        _In_ size_t sizeInChars);
     uint GetInterpretedCount() const;
     uint GetLoopNumber() const;
     bool IsLoopBody() const;

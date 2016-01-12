@@ -2383,7 +2383,8 @@ namespace Js
         bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
         void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
 
-        bool GetHasTry() const { return (flags & Flags_HasTry) != 0; }
+        static bool GetHasTry(FunctionBodyFlags flags) { return (flags & Flags_HasTry) != 0; }
+        bool GetHasTry() const { return GetHasTry(this->flags); }
         void SetHasTry(bool has) { SetFlags(has, Flags_HasTry); }
 
         bool GetHasFinally() const { return m_hasFinally; }
@@ -2392,7 +2393,8 @@ namespace Js
         bool GetFuncEscapes() const { return funcEscapes; }
         void SetFuncEscapes(bool does) { funcEscapes = does; }
 
-        bool GetHasOrParentHasArguments() const { return (flags & Flags_HasOrParentHasArguments) != 0; }
+        static bool GetHasOrParentHasArguments(FunctionBodyFlags flags) { return (flags & Flags_HasOrParentHasArguments) != 0; }
+        bool GetHasOrParentHasArguments() const { return GetHasOrParentHasArguments(this->flags); }
         void SetHasOrParentHasArguments(bool has) { SetFlags(has, Flags_HasOrParentHasArguments); }
 
         static bool DoStackNestedFunc(FunctionBodyFlags flags) { return (flags & Flags_StackNestedFunc) != 0; }
