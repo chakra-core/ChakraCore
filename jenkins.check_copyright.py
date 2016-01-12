@@ -30,7 +30,7 @@ if not os.path.isfile(file_name):
     exit(1)
 
 with open(file_name, 'r') as sourcefile:
-    for x in range(0,4):
+    for x in range(0,len(copyright_lines)):
         # TODO add a check for empty files (dummy.js etc), as they cause the script to crash here
         line = next(sourcefile)
         line = line.rstrip()
