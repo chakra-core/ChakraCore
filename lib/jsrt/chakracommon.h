@@ -851,7 +851,7 @@
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsRunWasmScript(
+        JsRunWasmScriptForTestOnly(
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,

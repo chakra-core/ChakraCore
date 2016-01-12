@@ -179,7 +179,7 @@ public:
     static JsErrorCode WINAPI JsHasProperty(JsValueRef object, JsPropertyIdRef property, bool *hasProperty) { return m_jsApiHooks.pfJsrtHasProperty(object, property, hasProperty); }
     static JsErrorCode WINAPI JsRunScript(const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunScript(script, sourceContext, sourceUrl, result); }
 #ifdef ENABLE_WASM
-    static JsErrorCode WINAPI JsRunWasmScript(const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, const bool isBinary, const UINT lengthBytes, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunWasmScript(script, sourceContext, sourceUrl, isBinary, lengthBytes, result); }
+    static JsErrorCode WINAPI JsRunWasmScriptForTestOnly(const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, const bool isBinary, const UINT lengthBytes, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunWasmScript(script, sourceContext, sourceUrl, isBinary, lengthBytes, result); }
 #endif
     static JsErrorCode WINAPI JsCallFunction(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtCallFunction(function, arguments, argumentCount, result); }
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return m_jsApiHooks.pfJsrtNumbertoDouble(value, doubleValue); }

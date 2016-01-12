@@ -5,12 +5,6 @@
 
 #include "WasmReaderPch.h"
 
-// TODO (michhol): cleanup includes
-#include "Bytecode\AsmJsByteCodeWriter.h"
-#include "Bytecode\ByteCodeDumper.h"
-#include "Bytecode\AsmJsByteCodeDumper.h"
-#include "Language\AsmJSTypes.h"
-
 #ifdef ENABLE_WASM
 
 namespace Wasm

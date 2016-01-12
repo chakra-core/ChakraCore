@@ -33,4 +33,10 @@ namespace Wasm
 #include "WasmRegisterSpace.h"
 #include "WasmBytecodeGenerator.h"
 
+// TODO (michhol): cleanup includes
+#include "Bytecode\AsmJsByteCodeWriter.h"
+#include "Bytecode\ByteCodeDumper.h"
+#include "Bytecode\AsmJsByteCodeDumper.h"
+#include "Language\AsmJSTypes.h"
+
 #endif // ENABLE_WASM

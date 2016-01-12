@@ -483,7 +483,7 @@ JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWST
 
     if (wcscmp(scriptInjectType, L"self") == 0)
     {
-        errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, &returnValue);
+        errorCode = ChakraRTInterface::JsRunWasmScriptForTestOnly(fileContent, 0, fullPath, isBinary, lengthBytes, &returnValue);
         if (errorCode != JsNoError)
         {
             PrintException(fileName, errorCode);
