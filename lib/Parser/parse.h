@@ -603,7 +603,6 @@ private:
     void CheckArgumentsUse(IdentPtr pid, ParseNodePtr pnodeFnc);
 
     void CheckStrictModeEvalArgumentsUsage(IdentPtr pid, ParseNodePtr pnode = NULL);
-    void CheckStrictModeFncDeclNotSourceElement(const bool isSourceElement, const BOOL isDeclaration);
 
     // environments on which the strict mode is set, if found
     enum StrictModeEnvironment
@@ -616,7 +615,7 @@ private:
 
     template<bool buildAST> ParseNodePtr ParseArrayLiteral();
 
-    template<bool buildAST> ParseNodePtr ParseStatement(bool isSourceElement = false);
+    template<bool buildAST> ParseNodePtr ParseStatement();
     template<bool buildAST> ParseNodePtr ParseVariableDeclaration(
         tokens declarationType,
         charcount_t ichMin,
@@ -685,7 +684,7 @@ private:
 
     template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, ulong *pNameLength = nullptr, ulong *pShortNameOffset = nullptr);
     template<bool buildAST> ParseNodePtr ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
-    template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool isSourceElement = false, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
+    template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
     template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags);
     template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly);
