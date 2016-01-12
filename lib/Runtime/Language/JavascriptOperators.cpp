@@ -4461,13 +4461,13 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(dstInstance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
                 else
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
             }
             break;
         }
@@ -4558,17 +4558,17 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(instance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
                 }
                 else
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(instance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
             break;
         }
