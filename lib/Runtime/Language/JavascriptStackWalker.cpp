@@ -476,6 +476,10 @@ namespace Js
                     if (inlinedFramesOnStack)
                     {
                         inlinedFramesBeingWalked = inlinedFrameWalker.Next(inlinedFrameCallInfo);
+                        if (this->lastInternalFrameInfo.frameConsumed)
+                        {
+                            ClearCachedInternalFrameInfo();
+                        }
                         Assert(inlinedFramesBeingWalked);
                         Assert(StackScriptFunction::GetCurrentFunctionObject(this->interpreterFrame->GetJavascriptFunction()) == inlinedFrameWalker.GetFunctionObject());
                         // We're now back in the state where currentFrame == physical frame of the inliner, but
