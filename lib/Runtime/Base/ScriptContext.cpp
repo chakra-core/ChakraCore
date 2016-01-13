@@ -2580,6 +2580,11 @@ namespace Js
         topLevelEval.AddRange(this->m_ttdTopLevelEval);
     }
 
+    bool ScriptContext::IsBodyAlreadyLoadedAtTopLevel(FunctionBody* body) const
+    {
+        return this->m_ttdPinnedRootFunctionSet->Contains(body);
+    }
+
     void ScriptContext::ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent)
     {
         //if this is a root (parent is null) then put this in the rootbody pin set so it isn't reclaimed on us
@@ -2591,10 +2596,8 @@ namespace Js
                 this->recycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
             }
 
-            if(!this->m_ttdPinnedRootFunctionSet->Contains(body))
-            {
-                this->m_ttdPinnedRootFunctionSet->AddNew(body);
-            }
+            AssertMsg(!this->m_ttdPinnedRootFunctionSet->Contains(body), "We already added this function!!!");
+            this->m_ttdPinnedRootFunctionSet->AddNew(body);
         }
 
         this->m_ttdFunctionBodyParentMap.AddNew(body, parent);

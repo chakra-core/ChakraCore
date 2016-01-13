@@ -826,6 +826,9 @@ namespace TTD
             Js::ParseableFunctionInfo* functionInfo = pfuncScript->GetParseableFunctionInfo();
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
+            Js::EvalMapString key(fbInfo->TopLevelBase.SourceCode, wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, strictMode, /* isLibraryCode = */ false);
+            ctx->AddToNewFunctionMap(key, functionInfo);
+
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
             ////
@@ -858,12 +861,12 @@ namespace TTD
         ////
         //'eval(...)' functions
 
-        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, ulong grfscr, LPCWSTR title, BOOL isIndirect, BOOL strictMode)
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source);
 
             fbInfo->EvalFlags = grfscr;
-            fbInfo->EvalTitle = JsSupport::CopyStringToHeapAllocator(title);
+            fbInfo->RegisterDocument = registerDocument;
             fbInfo->IsIndirect = isIndirect ? true : false;
             fbInfo->IsStrictMode = strictMode ? true : false;
         }
@@ -871,8 +874,6 @@ namespace TTD
         void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo)
         {
             NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
-
-            JsSupport::DeleteStringFromHeapAllocator(fbInfo->EvalTitle);
         }
 
         void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
@@ -880,7 +881,7 @@ namespace TTD
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
 
             fbInfoDest->EvalFlags = fbInfoSrc->EvalFlags;
-            fbInfoDest->EvalTitle = alloc.CopyStringInto(fbInfoSrc->EvalTitle);
+            fbInfoDest->RegisterDocument = fbInfoSrc->RegisterDocument;
             fbInfoDest->IsIndirect = fbInfoSrc->IsIndirect;
             fbInfoDest->IsStrictMode = fbInfoSrc->IsStrictMode;
         }
@@ -900,7 +901,7 @@ namespace TTD
             NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, true, sourceDir, streamFunctions, writer, separator);
 
             writer->WriteUInt64(NSTokens::Key::u64Val, fbInfo->EvalFlags, NSTokens::Separator::CommaSeparator);
-            writer->WriteString(NSTokens::Key::stringVal, fbInfo->EvalTitle, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, fbInfo->RegisterDocument, NSTokens::Separator::CommaSeparator);
             writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsIndirect, NSTokens::Separator::CommaSeparator);
             writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsStrictMode, NSTokens::Separator::CommaSeparator);
             writer->WriteRecordEnd();
@@ -911,7 +912,7 @@ namespace TTD
             NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
 
             fbInfo->EvalFlags = reader->ReadUInt64(NSTokens::Key::u64Val, true);
-            fbInfo->EvalTitle = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+            fbInfo->RegisterDocument = reader->ReadBool(NSTokens::Key::boolVal, true);
             fbInfo->IsIndirect = reader->ReadBool(NSTokens::Key::boolVal, true);
             fbInfo->IsStrictMode = reader->ReadBool(NSTokens::Key::boolVal, true);
             reader->ReadRecordEnd();

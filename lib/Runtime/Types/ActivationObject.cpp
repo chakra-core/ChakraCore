@@ -102,6 +102,26 @@ namespace Js
         return TRUE;
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ActivationObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void ActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
+
     BOOL BlockActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         // eval, etc., should not create var properties on block scope
@@ -142,6 +162,26 @@ namespace Js
         return blockScopeClone;
     }
 
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType BlockActivationObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void BlockActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
+
     BOOL PseudoActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         // eval, etc., should not create function properties on something like a "catch" scope
@@ -163,6 +203,46 @@ namespace Js
     {
         return false;
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType PseudoActivationObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void PseudoActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ConsoleScopeActivationObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void ConsoleScopeActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
 
     /* static */
     const PropertyId * ActivationObjectEx::GetCachedScopeInfo(const PropertyIdArray *propIds)
@@ -244,4 +324,31 @@ namespace Js
         cache[i].func = func;
         cache[i].type = (DynamicType*)func->GetType();
     }
+
+#if ENABLE_TTD
+    void ActivationObjectEx::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        extractor->MarkVisitVar(this->parentFunc);
+
+        //I am assuming the "" are cached for performance only and we can reset to an empty cache without *semantic* issues
+    }
+
+    TTD::NSSnapObjects::SnapObjectType ActivationObjectEx::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void ActivationObjectEx::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
 };

@@ -631,6 +631,26 @@ namespace Js
         }
 #endif
 
+#if ENABLE_TTD
+        //
+        //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
+        //
+        if(!isLibraryCode && scriptContext->GetThreadContext()->TTDLog != nullptr)
+        {
+            //Make sure we have the body and text information available
+            FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
+            if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
+            {
+                TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
+                TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, additionalGrfscr, registerDocument, isIndirect, strictMode);
+                scriptContext->m_ttdTopLevelEval.Add(tbfi);
+
+                //walk global body to (1) add functions to pin set (2) build parent map
+                scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            }
+        }
+#endif
+
         //We shouldn't be serializing eval functions; unless with -ForceSerialized flag
         if (CONFIG_FLAG(ForceSerialized)) {
             pfuncScript->GetFunctionProxy()->EnsureDeserialized();

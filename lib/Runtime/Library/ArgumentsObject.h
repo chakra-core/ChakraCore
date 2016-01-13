@@ -123,6 +123,14 @@ namespace Js
         BOOL IsFormalArgument(PropertyId propertyId, uint32* pIndex);    // Checks whether property is numeric, and on success sets that index.
         BOOL IsArgumentDeleted(uint32 index) const;
         const ActivationObject* const GetFrameObject() { return frameObject; }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     // ES5 version of the HeapArgumentsObject: support for attributes on formal arguments.
@@ -187,5 +195,13 @@ namespace Js
         BOOL SetWritableForFormal(uint32 index, PropertyId propertyId, BOOL value);
         BOOL SetAccessorsForFormal(uint32 index, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None);
         BOOL SetPropertyWithAttributesForFormal(uint32 index, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any);
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
    };
 }

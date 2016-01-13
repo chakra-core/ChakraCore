@@ -244,13 +244,15 @@ namespace Js
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
+            if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
+            {
+                TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
+                TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString);
+                scriptContext->m_ttdTopLevelNewFunction.Add(tbfi);
 
-            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString);
-            scriptContext->m_ttdTopLevelNewFunction.Add(tbfi);
-
-            //walk global body to (1) add functions to pin set (2) build parent map
-            scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                //walk global body to (1) add functions to pin set (2) build parent map
+                scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            }
         }
 #endif
 

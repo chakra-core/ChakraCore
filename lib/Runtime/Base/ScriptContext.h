@@ -1068,6 +1068,9 @@ private:
         //Get all of the root level sources evaluated in this script context (source text & root function returned)
         void GetLoadedSources_TTD(JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator>& topLevelEval);
 
+        //To support cases where we may get cached function bodies ('new Function' & eval) check if we already know of a top-level body
+        bool IsBodyAlreadyLoadedAtTopLevel(FunctionBody* body) const;
+
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent);
 

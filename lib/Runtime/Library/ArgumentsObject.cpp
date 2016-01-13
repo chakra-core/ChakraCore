@@ -270,6 +270,34 @@ namespace Js
         return this->deletedArgs != NULL && this->deletedArgs->Test(index);
     }
 
+#if ENABLE_TTD
+    void HeapArgumentsObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        if(this->frameObject != nullptr)
+        {
+            extractor->MarkVisitVar(this->frameObject);
+        }
+    }
+
+    TTD::NSSnapObjects::SnapObjectType HeapArgumentsObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
+
     ES5HeapArgumentsObject* HeapArgumentsObject::ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject)
     {
         ES5HeapArgumentsObject* es5ArgsObj = ConvertToES5HeapArgumentsObject(overwriteArgsUsingFrameObject);
@@ -829,4 +857,31 @@ namespace Js
            m_args->DeleteObjectArrayItem(m_index, PropertyOperation_None);
         }
     }
+
+#if ENABLE_TTD
+    void ES5HeapArgumentsObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+    }
+
+    TTD::NSSnapObjects::SnapObjectType ES5HeapArgumentsObject::GetSnapTag_TTD() const
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void ES5HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        //
+        //TODO: unimplemented snapshot object
+        //
+
+        AssertMsg(false, "Not implemented yet!!!");
+    }
+#endif
 }

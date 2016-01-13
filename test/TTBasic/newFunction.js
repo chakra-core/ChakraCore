@@ -5,12 +5,6 @@ var functionCode2 = undefined;
 
 var captured = "ok";
 
-function foo()
-{
-    functionCode1("Hello");
-    functionCode2("Hello");
-}
-
 function setCode2()
 {
     var captured = "bob in setCode2";

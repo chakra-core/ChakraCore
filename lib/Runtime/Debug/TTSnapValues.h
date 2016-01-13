@@ -215,12 +215,12 @@ namespace TTD
 
             //Additional data for handling the eval
             uint64 EvalFlags;
-            LPCWSTR EvalTitle;
+            bool RegisterDocument;
             bool IsIndirect; 
             bool IsStrictMode;
         };
 
-        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, ulong grfscr, LPCWSTR title, BOOL isIndirect, BOOL strictMode);
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode);
         void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
