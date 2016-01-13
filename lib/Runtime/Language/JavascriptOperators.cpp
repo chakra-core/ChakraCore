@@ -4380,9 +4380,9 @@ CommonNumber:
             (Js::JavascriptNumber *)buffer), scriptContext, flags, dValue);
 #endif
     }
-    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
@@ -4481,9 +4481,9 @@ CommonNumber:
         return returnValue;
     }
 
-    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
