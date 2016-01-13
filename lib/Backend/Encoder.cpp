@@ -592,7 +592,7 @@ void Encoder::RecordInlineeFrame(Func* inlinee, uint32 currentOffset)
 {
     // The only restriction for not supporting loop bodies is that inlinee frame map is created on FunctionEntryPointInfo & not
     // the base class EntryPointInfo.
-    if (!this->m_func->IsSimpleJit())
+    if (!this->m_func->IsLoopBody() && !this->m_func->IsSimpleJit())
     {
         InlineeFrameRecord* record = nullptr;
         if (inlinee->frameInfo && inlinee->m_hasInlineArgsOpt)
