@@ -3382,6 +3382,13 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         Js::Utf8SourceInfo* utf8SourceInfo;
         scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
 
+#if ENABLE_TTD
+        if(threadContext->TTDLog != nullptr)
+        {
+            threadContext->TTDInfo->TrackTagObject(scriptFunction);
+        }
+#endif
+
         JsrtContext * context = JsrtContext::GetCurrent();
         context->OnScriptLoad(scriptFunction, utf8SourceInfo);
 

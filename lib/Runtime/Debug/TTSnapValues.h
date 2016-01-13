@@ -29,6 +29,10 @@ namespace TTD
 
         //Ensure a function is fully parsed/deserialized 
         Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi);
+
+        //Copy a string into the heap allocator
+        LPCWSTR CopyStringToHeapAllocator(LPCWSTR string);
+        void DeleteStringFromHeapAllocator(LPCWSTR string);
     }
 
     namespace NSSnapValues
@@ -142,6 +146,92 @@ namespace TTD
 
         //////////////////
 
+        //Information that is common to all top-level bodies
+        struct TopLevelCommonBodyResolveInfo
+        {
+            //The id this body is associated with
+            TTD_PTR_ID FunctionBodyId;
+
+            //The context this body is associated with
+            TTD_LOG_TAG ScriptContextTag;
+
+            //The string name of the function
+            LPCWSTR FunctionName;
+
+            //The module, document id, src uri (may be null)
+            Js::ModuleID ModuleId;
+            DWORD_PTR DocumentID;
+            LPCWSTR SourceUri;
+
+            //The source buffer
+            LPCWSTR SourceCode;
+        };
+
+        //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots
+        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source);
+        void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo);
+
+        void ExtractTopLevelCommonBodyResolveInfo_InShapshot(TopLevelCommonBodyResolveInfo* fbInfoDest, const TopLevelCommonBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
+        void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
+        void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
+
+        //A struct that we can use to resolve a top-level script load function bodies and info
+        struct TopLevelScriptLoadFunctionBodyResolveInfo
+        {
+            //The base information for the top-level resolve info
+            TopLevelCommonBodyResolveInfo TopLevelBase;
+        };
+
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source);
+        void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo);
+
+        void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
+        Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
+
+        void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
+        void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
+
+        //A struct that we can use to resolve a top-level 'new Function' function bodies and info
+        struct TopLevelNewFunctionBodyResolveInfo
+        {
+            //The base information for the top-level resolve info
+            TopLevelCommonBodyResolveInfo TopLevelBase;
+
+            //The comma delimited string with the arguments decl
+            LPCWSTR ArgsString;
+        };
+
+        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, LPCWSTR argsString);
+        void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo);
+
+        void ExtractTopLevelNewFunctionBodyInfo_InShapshot(TopLevelNewFunctionBodyResolveInfo* fbInfoDest, const TopLevelNewFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
+        Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
+
+        void EmitTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
+        void ParseTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
+
+        //A struct that we can use to resolve a top-level 'eval' function bodies and info
+        struct TopLevelEvalFunctionBodyResolveInfo
+        {
+            //The base information for the top-level resolve info
+            TopLevelCommonBodyResolveInfo TopLevelBase;
+
+            //Additional data for handling the eval
+            uint64 EvalFlags;
+            LPCWSTR EvalTitle;
+            bool IsIndirect; 
+            bool IsStrictMode;
+        };
+
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, ulong grfscr, LPCWSTR title, BOOL isIndirect, BOOL strictMode);
+        void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo);
+
+        void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
+        Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
+
+        void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
+        void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
+
         //A struct that we can use to resolve a function body in a shaddow context during inflation
         struct FunctionBodyResolveInfo
         {
@@ -151,49 +241,30 @@ namespace TTD
             //The context this body is associated with
             TTD_LOG_TAG ScriptContextTag;
 
-            //The ptr id of the parent function body (invalid if this is a top level body)
-            TTD_PTR_ID ParentBodyId;
-
-            //True if the body is from an "eval"
-            bool IsEval;
-
-            //True if the body is from a "Function" constructor
-            bool IsDynamic;
+            //The string name of the function
+            LPCWSTR FunctionName;
 
             //True if this body corresponds to code not associated with a url (and not dynamic or eval)
             bool IsRuntime;
 
-            //The string name of the function
-            LPCWSTR FunctionName;
+            //The known path to a function with the desired body
+            TTD_WELLKNOWN_TOKEN OptKnownPath;
 
-            //The uri of the source file
-            LPCWSTR OptSrcUri;
+            //The ptr id of the parent function body
+            TTD_PTR_ID OptParentBodyId;
 
             //The line number the function is def starts on
             int64 OptLine;
 
             //The column number the function is def starts on
             int64 OptColumn;
-
-            //The known path to a function with the desired body
-            TTD_WELLKNOWN_TOKEN OptKnownPath;
-
-            //If this is a top level body then this is the src uri, document id, and code for it
-            DWORD_PTR OptDocumentID; 
-            LPCWSTR OptTopLevelSourceUri;
-            LPCWSTR OptTopLevelSourceCode;
         };
 
-        void ExtractTopLevelLoadedScriptFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, LPCWSTR srcCode, SlabAllocator& alloc);
         void ExtractFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, bool isWellKnown, SlabAllocator& alloc);
-
         void InflateFunctionBody(const FunctionBodyResolveInfo* fbInfo, InflateMap* inflator, const TTDIdentifierDictionary<TTD_PTR_ID, FunctionBodyResolveInfo*>& idToFbResolveMap);
 
         void EmitFunctionBodyInfo(const FunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
         void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
-
-        //Support for parsing and inflating root function bodies 
-        Js::JavascriptFunction* InflateRootScriptFunction(const FunctionBodyResolveInfo* rootFbInfo, Js::ScriptContext* ctx);
 
         //////////////////
 
@@ -211,7 +282,13 @@ namespace TTD
 
             //A list of all *root* scripts that have been loaded into this context
             uint32 m_loadedScriptCount;
-            FunctionBodyResolveInfo* m_rootScriptArray;
+            TopLevelScriptLoadFunctionBodyResolveInfo* m_loadedScriptArray;
+
+            uint32 m_newScriptCount;
+            TopLevelNewFunctionBodyResolveInfo* m_newScriptArray;
+
+            uint32 m_evalScriptCount;
+            TopLevelEvalFunctionBodyResolveInfo* m_evalScriptArray;
 
             //A list of all the root objects in this context
             uint32 m_rootCount;

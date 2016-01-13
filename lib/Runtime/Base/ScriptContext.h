@@ -1017,10 +1017,14 @@ private:
         //Keep track of roots, loaded script, and the current debugger state
         TTD::ReferencePinSet* m_ttdRootSet;
 
-        JsUtil::List<LPCWSTR, HeapAllocator> m_ttdLoadedSrcTxtList;
-        JsUtil::List<Js::FunctionBody*, HeapAllocator> m_ttdGlobalCodeList;
+        //The lists containing the top-level code that is loaded in this context
+        JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelScriptLoad;
+        JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelNewFunction;
+        JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelEval;
+
+        //need to add back pin set for functionBody to make sure they don't get collected on us
         TTD::ReferencePinSet* m_ttdPinnedRootFunctionSet;
-        JsUtil::BaseDictionary<Js::FunctionBody*, Js::FunctionBody*, ArenaAllocator> m_ttdFunctionBodyParentMap;
+        JsUtil::BaseDictionary<FunctionBody*, FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
 
         //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
         TTD::TTDMode m_ttdMode;
@@ -1062,7 +1066,7 @@ private:
         FunctionBody* LookupRuntimeFunctionBodyForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
 
         //Get all of the root level sources evaluated in this script context (source text & root function returned)
-        void GetLoadedSources_TTD(JsUtil::List<LPCWSTR, HeapAllocator>& loadedSrcTxtList, JsUtil::List<Js::FunctionBody*, HeapAllocator>& globalCodeList);
+        void GetLoadedSources_TTD(JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator>& topLevelEval);
 
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent);

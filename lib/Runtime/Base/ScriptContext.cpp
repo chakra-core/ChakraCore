@@ -139,10 +139,11 @@ namespace Js
 #endif
 #if ENABLE_TTD
         , m_ttdRootSet(nullptr)
-        , m_ttdLoadedSrcTxtList(&HeapAllocator::Instance)
-        , m_ttdGlobalCodeList(&HeapAllocator::Instance)
+        , m_ttdTopLevelScriptLoad(&HeapAllocator::Instance)
+        , m_ttdTopLevelNewFunction(&HeapAllocator::Instance)
+        , m_ttdTopLevelEval(&HeapAllocator::Instance)
         , m_ttdPinnedRootFunctionSet(nullptr)
-        , m_ttdFunctionBodyParentMap(&threadContext->TTDContextAllocator)
+        , m_ttdFunctionBodyParentMap(&HeapAllocator::Instance)
         , m_ttdMode(TTD::TTDMode::Disabled)
         , ScriptContextLogTag(TTD_INVALID_LOG_TAG)
         , m_ttdAddtlRuntimeContext(nullptr)
@@ -577,20 +578,36 @@ namespace Js
             this->m_ttdRootSet = nullptr;
         }
 
-        for(int32 i = 0; i < this->m_ttdLoadedSrcTxtList.Count(); ++i)
+        for(int32 i = 0; i < this->m_ttdTopLevelScriptLoad.Count(); ++i)
         {
-            LPCWSTR code = this->m_ttdLoadedSrcTxtList.Item(i);
-            AdeleteArray(&this->threadContext->TTDContextAllocator, wcslen(code) + 1, code);
+            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* func = this->m_ttdTopLevelScriptLoad.Item(i);
+            TTD::NSSnapValues::UnloadTopLevelLoadedFunctionBodyInfo(func);
+            HeapDelete(func);
         }
+        this->m_ttdTopLevelScriptLoad.Clear();
 
-        this->m_ttdLoadedSrcTxtList.Clear();
-        this->m_ttdGlobalCodeList.Clear();
+        for(int32 i = 0; i < this->m_ttdTopLevelNewFunction.Count(); ++i)
+        {
+            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* nfunc = this->m_ttdTopLevelNewFunction.Item(i);
+            TTD::NSSnapValues::UnloadTopLevelNewFunctionBodyInfo(nfunc);
+            HeapDelete(nfunc);
+        }
+        this->m_ttdTopLevelNewFunction.Clear();
+
+        for(int32 i = 0; i < this->m_ttdTopLevelEval.Count(); ++i)
+        {
+            TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* efunc = this->m_ttdTopLevelEval.Item(i);
+            TTD::NSSnapValues::UnloadTopLevelEvalFunctionBodyInfo(efunc);
+            HeapDelete(efunc);
+        }
+        this->m_ttdTopLevelEval.Clear();
 
         if(this->m_ttdPinnedRootFunctionSet != nullptr)
         {
             this->m_ttdPinnedRootFunctionSet->GetAllocator()->RootRelease(this->m_ttdPinnedRootFunctionSet);
             this->m_ttdPinnedRootFunctionSet = nullptr;
         }
+
         this->m_ttdFunctionBodyParentMap.Clear();
 #endif
 
@@ -1732,6 +1749,28 @@ namespace Js
             uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, static_cast<charcount_t>(length), /*isCesu8*/ true);
             JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
 
+#if ENABLE_TTD
+            //
+            //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
+            //
+            if(this->threadContext->TTDLog != nullptr)
+            {
+                //Make sure we have the body and text information available
+                FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pFunction->GetParseableFunctionInfo());
+
+                TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
+                TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, pSrcInfo->moduleID, sourceIndex, script);
+                this->m_ttdTopLevelScriptLoad.Add(tbfi);
+
+                //walk global body to (1) add functions to pin set (2) build parent map
+                BEGIN_JS_RUNTIME_CALL(this);
+                {
+                    this->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+                }
+                END_JS_RUNTIME_CALL(this);
+            }
+#endif
+
             if (pse->ei.scode == JSERR_AsmJsCompileError)
             {
                 Assert(!disableAsmJs);
@@ -1828,6 +1867,16 @@ namespace Js
 
             JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
 
+#if ENABLE_TTD
+            if(this->threadContext->TTDLog != nullptr)
+            {
+                //
+                //TODO: we need to add utf8 support when needed (in addition to wchar above)
+                //
+                AssertMsg(false, "We don't have utf8 load support yet!");
+            }
+#endif
+
             if (pse->ei.scode == JSERR_AsmJsCompileError)
             {
                 Assert(!disableAsmJs);
@@ -1867,7 +1916,7 @@ namespace Js
         hr = GenerateByteCode(parseTree, grfscr, this, &body, sourceIndex, false, parser, pse);
 
         this->GetSource(sourceIndex)->SetByteCodeGenerationFlags(grfscr);
-        if (FAILED(hr))
+        if(FAILED(hr))
         {
             return nullptr;
         }
@@ -1875,51 +1924,7 @@ namespace Js
         body->SetDisplayName(rootDisplayName);
         body->SetIsTopLevel(true);
 
-        JavascriptFunction* rootFunction = javascriptLibrary->CreateScriptFunction(body);
-
-#if ENABLE_TTD
-        if(this->threadContext->TTDInfo != nullptr)
-        {
-            this->threadContext->TTDInfo->TrackTagObject(rootFunction);
-        }
-
-        //
-        //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
-        //
-        if(this->threadContext->TTDLog != nullptr)
-        {
-            Utf8SourceInfo* srcInfo = this->GetSource(sourceIndex);
-            uint32 charCount = srcInfo->GetCchLength();
-
-            wchar* srcCopy = AnewArrayZ(&this->threadContext->TTDContextAllocator, wchar, charCount + 1);
-            for(uint32 i = 0; i < charCount; ++i)
-            {
-                srcCopy[i] = (wchar)source[i];
-            }
-            srcCopy[charCount] = L'\0';
-
-            //Make sure we have the body and text information available
-            FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(body);
-            this->m_ttdLoadedSrcTxtList.Add(srcCopy);
-            this->m_ttdGlobalCodeList.Add(globalBody);
-
-            if(this->m_ttdPinnedRootFunctionSet == nullptr)
-            {
-                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
-                this->recycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
-            }
-            this->m_ttdPinnedRootFunctionSet->AddNew(rootFunction);
-
-            //walk global body to (1) add functions to pin set (2) build parent map
-            BEGIN_JS_RUNTIME_CALL(this);
-            {
-                this->ProcessFunctionBodyOnLoad(globalBody, nullptr);
-            }
-            END_JS_RUNTIME_CALL(this);
-        }
-#endif
-
-        return rootFunction;
+        return javascriptLibrary->CreateScriptFunction(body);
     }
 
     BOOL ScriptContext::ReserveStaticTypeIds(__in int first, __in int last)
@@ -2566,16 +2571,32 @@ namespace Js
         return res;
     }
 
-    void ScriptContext::GetLoadedSources_TTD(JsUtil::List<LPCWSTR, HeapAllocator>& loadedSrcTxtList, JsUtil::List<Js::FunctionBody*, HeapAllocator>& globalCodeList)
+    void ScriptContext::GetLoadedSources_TTD(JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator>& topLevelScriptLoad, JsUtil::List<TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator>& topLevelNewFunction, JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator>& topLevelEval)
     {
-        AssertMsg(loadedSrcTxtList.Count() == 0 && globalCodeList.Count() == 0, "Should be empty when you call this.");
+        AssertMsg(topLevelScriptLoad.Count() == 0 && topLevelNewFunction.Count() == 0 && topLevelEval.Count() == 0, "Should be empty when you call this.");
 
-        loadedSrcTxtList.AddRange(this->m_ttdLoadedSrcTxtList);
-        globalCodeList.AddRange(this->m_ttdGlobalCodeList);
+        topLevelScriptLoad.AddRange(this->m_ttdTopLevelScriptLoad);
+        topLevelNewFunction.AddRange(this->m_ttdTopLevelNewFunction);
+        topLevelEval.AddRange(this->m_ttdTopLevelEval);
     }
 
     void ScriptContext::ProcessFunctionBodyOnLoad(FunctionBody* body, FunctionBody* parent)
     {
+        //if this is a root (parent is null) then put this in the rootbody pin set so it isn't reclaimed on us
+        if(parent == nullptr)
+        {
+            if(this->m_ttdPinnedRootFunctionSet == nullptr)
+            {
+                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
+                this->recycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
+            }
+
+            if(!this->m_ttdPinnedRootFunctionSet->Contains(body))
+            {
+                this->m_ttdPinnedRootFunctionSet->AddNew(body);
+            }
+        }
+
         this->m_ttdFunctionBodyParentMap.AddNew(body, parent);
 
         for(uint32 i = 0; i < body->GetNestedCount(); ++i)

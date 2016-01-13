@@ -72,7 +72,8 @@ typedef uint64 TTD_PTR_ID;
 
 #define TTD_EXTRACT_CTX_LOG_TAG(X) ((X)->ScriptContextLogTag)
 
-#define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var*>(X))
+#define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
+#define TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(X) (reinterpret_cast<Js::FunctionBody*>(X))
 
 typedef uint64 TTD_LOG_TAG;
 #define TTD_INVALID_LOG_TAG 0l
@@ -134,6 +135,10 @@ namespace TTD
         struct SnapPrimitiveValue;
         struct SlotArrayInfo;
         struct ScriptFunctionScopeInfo;
+
+        struct TopLevelScriptLoadFunctionBodyResolveInfo;
+        struct TopLevelNewFunctionBodyResolveInfo;
+        struct TopLevelEvalFunctionBodyResolveInfo;
     }
 
     namespace NSSnapObjects

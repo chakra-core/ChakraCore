@@ -1221,15 +1221,26 @@ namespace TTD
         }
         AssertMsg(snap != nullptr, "Log should start with a snapshot!!!");
 
+        //
+        //TODO: we currently assume a single context here which we load into the existing ctx
+        //
+        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& snpCtxs = snap->GetContextList();
+        AssertMsg(this->m_ttdContext != nullptr, "We are assuming a single context");
+        const NSSnapValues::SnapContext* sCtx = snpCtxs.GetIterator().Current();
+
         if(this->m_lastInflateMap != nullptr)
         {
             this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
+
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
         }
         else
         {
             this->m_lastInflateMap = HeapNew(InflateMap);
             this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
+
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
 
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
             for(EventLogEntry* curr = this->m_events; curr != nullptr; curr = curr->GetPreviousEvent())
@@ -1240,16 +1251,6 @@ namespace TTD
                 }
             }
         }
-
-        //
-        //TODO: we currently assume a single context here which we load into the existing ctx
-        //
-        const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& snpCtxs = snap->GetContextList();
-
-        AssertMsg(this->m_ttdContext != nullptr, "We are assuming a single context");
-        const NSSnapValues::SnapContext* sCtx = snpCtxs.GetIterator().Current();
-
-        NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
 
         //reset the tagged object maps before we do the inflate
         this->m_threadContext->TTDInfo->ResetTagsForRestore_TTD(restoreLogTagCtr, restoreIdentityTagCtr);
@@ -1397,18 +1398,13 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
-        LPCWSTR code = this->m_slabAllocator.CopyStringInto(srcCode);
-        LPCWSTR dir = this->m_slabAllocator.CopyStringInto(this->m_logInfoRootDir);
-
-        NSSnapValues::FunctionBodyResolveInfo* fbodyInfo = this->m_slabAllocator.SlabAllocateStruct<NSSnapValues::FunctionBodyResolveInfo>();
-        NSSnapValues::ExtractTopLevelLoadedScriptFunctionBodyInfo(fbodyInfo, fb, code, this->m_slabAllocator);
 
         bool isEval = fb->IsEval();
         LPCWSTR optSrcUri = this->m_slabAllocator.CopyStringInto(fb->GetSourceContextInfo()->url);
         DWORD_PTR optDocumentID = fb->GetSourceContextId();
 
         LPCWSTR sourceCode = this->m_slabAllocator.CopyStringInto(srcCode);
-
+        LPCWSTR dir = this->m_slabAllocator.CopyStringInto(this->m_logInfoRootDir);
 
         JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isEval, sourceCode, optDocumentID, optSrcUri, dir);
 

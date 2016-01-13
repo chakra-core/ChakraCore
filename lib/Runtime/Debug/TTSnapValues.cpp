@@ -98,6 +98,21 @@ namespace TTD
             fb->EnsureDeserialized();
             return fb;
         }
+
+        LPCWSTR CopyStringToHeapAllocator(LPCWSTR string)
+        {
+            uint32 strWCharCount = wcslen(string) + 1;
+
+            wchar* buff = HeapNewArray(wchar, strWCharCount);
+            memcpy(buff, string, sizeof(wchar) * strWCharCount);
+
+            return buff;
+        }
+
+        void DeleteStringFromHeapAllocator(LPCWSTR string)
+        {
+            HeapDeleteArray(wcslen(string) + 1, string);
+        }
     }
 
     namespace NSSnapValues
@@ -613,29 +628,281 @@ namespace TTD
 
         //////////////////
 
-        void ExtractTopLevelLoadedScriptFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, LPCWSTR srcCode, SlabAllocator& alloc)
+        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source)
         {
-            fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
+            fbInfo->FunctionBodyId = TTD_CONVERT_VAR_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
-            fbInfo->ParentBodyId = TTD_INVALID_PTR_ID;
 
-            fbInfo->IsEval = fb->IsEval();
-            fbInfo->IsDynamic = fb->IsDynamicFunction();
+            fbInfo->FunctionName = JsSupport::CopyStringToHeapAllocator(fb->GetDisplayName());
 
-            AssertMsg(fbInfo->IsEval | fbInfo->IsDynamic | (fb->GetSourceContextInfo()->url != nullptr), "This is only for script that the user has loaded in via a.js file, Eval, or a function constructor.");
-            fbInfo->IsRuntime = false;
+            fbInfo->ModuleId = moduleId;
+            fbInfo->DocumentID = documentID;
+            fbInfo->SourceUri = (fb->GetSourceContextInfo()->url != nullptr) ? JsSupport::CopyStringToHeapAllocator(fb->GetSourceContextInfo()->url) : nullptr;
 
-            fbInfo->FunctionName = alloc.CopyStringInto(fb->GetDisplayName());
+            fbInfo->SourceCode = JsSupport::CopyStringToHeapAllocator(source);
+        }
 
-            fbInfo->OptSrcUri = alloc.CopyStringInto(fb->GetSourceContextInfo()->url);
-            fbInfo->OptLine = fb->GetLineNumber();
-            fbInfo->OptColumn = fb->GetColumnNumber();
+        void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo)
+        {
+            JsSupport::DeleteStringFromHeapAllocator(fbInfo->FunctionName);
 
-            fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
-            fbInfo->OptDocumentID = fb->GetSourceContextId();
+            if(fbInfo->SourceUri != nullptr)
+            {
+                JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceUri);
+            }
 
-            fbInfo->OptTopLevelSourceUri = alloc.CopyStringInto(fb->GetSourceContextInfo()->url);
-            fbInfo->OptTopLevelSourceCode = alloc.CopyStringInto(srcCode);
+            JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceCode);
+        }
+
+        void ExtractTopLevelCommonBodyResolveInfo_InShapshot(TopLevelCommonBodyResolveInfo* fbInfoDest, const TopLevelCommonBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
+        {
+            fbInfoDest->FunctionBodyId = fbInfoSrc->FunctionBodyId;
+            fbInfoDest->ScriptContextTag = fbInfoSrc->ScriptContextTag;
+
+            fbInfoDest->FunctionName = alloc.CopyStringInto(fbInfoSrc->FunctionName);
+
+            fbInfoDest->ModuleId = fbInfoSrc->ModuleId;
+            fbInfoDest->DocumentID = fbInfoSrc->DocumentID;
+            fbInfoDest->SourceUri = (fbInfoSrc->SourceUri != nullptr) ? alloc.CopyStringInto(fbInfoSrc->SourceUri) : nullptr;
+
+            fbInfoDest->SourceCode = alloc.CopyStringInto(fbInfoSrc->SourceCode);
+        }
+
+        void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        {
+            writer->WriteRecordStart(separator);
+            writer->WriteAddr(NSTokens::Key::functionBodyId, fbInfo->FunctionBodyId);
+            writer->WriteAddr(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt64(NSTokens::Key::moduleId, fbInfo->ModuleId, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::documentId, fbInfo->DocumentID, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, fbInfo->SourceUri != nullptr, NSTokens::Separator::CommaSeparator);
+            if(fbInfo->SourceUri != nullptr)
+            {
+                writer->WriteString(NSTokens::Key::uri, fbInfo->SourceUri, NSTokens::Separator::CommaSeparator);
+            }
+
+            if(emitInline || fbInfo->SourceUri == nullptr)
+            {
+                writer->WriteString(NSTokens::Key::src, fbInfo->SourceCode, NSTokens::Separator::CommaSeparator);
+            }
+            else
+            {
+                LPCWSTR docId = writer->FormatNumber(fbInfo->DocumentID);
+                HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->SourceUri, false, true);
+
+                JSONWriter srcWriter(srcStream, streamFunctions.pfWriteBytesToStream, streamFunctions.pfFlushAndCloseStream);
+                srcWriter.WriteRawString(fbInfo->SourceCode);
+            }
+        }
+
+        void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        {
+            reader->ReadRecordStart(readSeperator);
+            fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
+            fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
+
+            fbInfo->FunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+
+            fbInfo->ModuleId = (Js::ModuleID)reader->ReadUInt64(NSTokens::Key::moduleId, true);
+            fbInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
+            fbInfo->SourceUri = nullptr;
+            bool hasUri = reader->ReadBool(NSTokens::Key::boolVal, true);
+            if(hasUri)
+            {
+                fbInfo->SourceUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
+            }
+
+            if(parseInline || fbInfo->SourceUri == nullptr)
+            {
+                fbInfo->SourceCode = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::src, true));
+            }
+            else
+            {
+                LPCWSTR docId = reader->FormatNumber(fbInfo->DocumentID);
+                HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->SourceUri, true, false);
+
+                JSONReader srcReader(srcStream, streamFunctions.pfReadBytesFromStream, streamFunctions.pfFlushAndCloseStream);
+                fbInfo->SourceCode = srcReader.ReadRawString(alloc);
+            }
+        }
+
+        ////
+        //Regular script-load functions
+
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
+        }
+
+        void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo)
+        {
+            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
+        }
+
+        void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
+        }
+
+        Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
+        {
+            DWORD_PTR sourceContext = fbInfo->TopLevelBase.DocumentID;
+            AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
+
+            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri, wcslen(fbInfo->TopLevelBase.SourceUri), nullptr);
+
+            SRCINFO si = {
+                /* sourceContextInfo   */ sourceContextInfo,
+                /* dlnHost             */ 0,
+                /* ulColumnHost        */ 0,
+                /* lnMinHost           */ 0,
+                /* ichMinHost          */ 0,
+                /* ichLimHost          */ static_cast<ULONG>(wcslen(fbInfo->TopLevelBase.SourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+                /* ulCharOffset        */ 0,
+                /* mod                 */ fbInfo->TopLevelBase.ModuleId,
+                /* grfsi               */ 0
+            };
+
+            Js::Utf8SourceInfo* utf8SourceInfo;
+            CompileScriptException se;
+            Js::JavascriptFunction* scriptFunction = nullptr;
+            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
+            {
+                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+            }
+            END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+            AssertMsg(scriptFunction != nullptr, "Something went wrong");
+
+            return JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+        }
+
+        void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        {
+            NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, false, sourceDir, streamFunctions, writer, separator);
+
+            writer->WriteRecordEnd();
+        }
+
+        void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        {
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
+
+            reader->ReadRecordEnd();
+        }
+
+        ////
+        //'new Function(...)' functions
+
+        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, LPCWSTR argsString)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
+
+            fbInfo->ArgsString = JsSupport::CopyStringToHeapAllocator(argsString);
+        }
+
+        void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo)
+        {
+            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
+
+            JsSupport::DeleteStringFromHeapAllocator(fbInfo->ArgsString);
+        }
+
+        void ExtractTopLevelNewFunctionBodyInfo_InShapshot(TopLevelNewFunctionBodyResolveInfo* fbInfoDest, const TopLevelNewFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
+
+            fbInfoDest->ArgsString = alloc.CopyStringInto(fbInfoSrc->ArgsString);
+        }
+
+        Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
+        {
+            //
+            //TODO: Implement this!!!
+            //
+            AssertMsg(false, "Not implemented yet!!!");
+
+            return nullptr;
+        }
+
+        void EmitTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        {
+            NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, true, sourceDir, streamFunctions, writer, separator);
+
+            writer->WriteString(NSTokens::Key::stringVal, fbInfo->ArgsString, NSTokens::Separator::CommaSeparator);
+            writer->WriteRecordEnd();
+        }
+
+        void ParseTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        {
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
+
+            fbInfo->ArgsString = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+            reader->ReadRecordEnd();
+        }
+
+        ////
+        //'eval(...)' functions
+
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, ulong grfscr, LPCWSTR title, BOOL isIndirect, BOOL strictMode)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
+
+            fbInfo->EvalFlags = grfscr;
+            fbInfo->EvalTitle = JsSupport::CopyStringToHeapAllocator(title);
+            fbInfo->IsIndirect = isIndirect ? true : false;
+            fbInfo->IsStrictMode = strictMode ? true : false;
+        }
+
+        void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo)
+        {
+            NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
+
+            JsSupport::DeleteStringFromHeapAllocator(fbInfo->EvalTitle);
+        }
+
+        void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
+        {
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
+
+            fbInfoDest->EvalFlags = fbInfoSrc->EvalFlags;
+            fbInfoDest->EvalTitle = alloc.CopyStringInto(fbInfoSrc->EvalTitle);
+            fbInfoDest->IsIndirect = fbInfoSrc->IsIndirect;
+            fbInfoDest->IsStrictMode = fbInfoSrc->IsStrictMode;
+        }
+
+        Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
+        {
+            //
+            //TODO: Implement this!!!
+            //
+            AssertMsg(false, "Not implemented yet!!!");
+
+            return nullptr;
+        }
+
+        void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
+        {
+            NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, true, sourceDir, streamFunctions, writer, separator);
+
+            writer->WriteUInt64(NSTokens::Key::u64Val, fbInfo->EvalFlags, NSTokens::Separator::CommaSeparator);
+            writer->WriteString(NSTokens::Key::stringVal, fbInfo->EvalTitle, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsIndirect, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsStrictMode, NSTokens::Separator::CommaSeparator);
+            writer->WriteRecordEnd();
+        }
+
+        void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
+        {
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
+
+            fbInfo->EvalFlags = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+            fbInfo->EvalTitle = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+            fbInfo->IsIndirect = reader->ReadBool(NSTokens::Key::boolVal, true);
+            fbInfo->IsStrictMode = reader->ReadBool(NSTokens::Key::boolVal, true);
+            reader->ReadRecordEnd();
         }
 
         void ExtractFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, bool isWellKnown, SlabAllocator& alloc)
@@ -643,24 +910,18 @@ namespace TTD
             fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
 
-            //This may be null in the case of runtime functions but that is ok as they are going to be well-known resolved anyway
-            Js::FunctionBody* parentBody = fb->GetScriptContext()->ResolveParentBody(fb);
-            fbInfo->ParentBodyId = (parentBody != nullptr) ? TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(parentBody) : TTD_INVALID_PTR_ID;
-
-            fbInfo->IsEval = fb->IsEval();
-            fbInfo->IsDynamic = fb->IsDynamicFunction();
-            fbInfo->IsRuntime = !(fbInfo->IsEval | fbInfo->IsDynamic) & (fb->GetSourceContextInfo()->url == nullptr);
-
             fbInfo->FunctionName = alloc.CopyStringInto(fb->GetDisplayName());
             AssertMsg(wcscmp(fbInfo->FunctionName, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
+
+            fbInfo->IsRuntime = !(fb->IsEval() | fb->IsDynamicFunction()) & (fb->GetSourceContextInfo()->url == nullptr);
 
             if(fbInfo->IsRuntime)
             {
                 AssertMsg(isWellKnown, "Should always be marked as well known?");
 
-                fbInfo->OptSrcUri = L"RuntimeCode";
-                fbInfo->OptLine = 0;
-                fbInfo->OptColumn = 0;
+                fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
+                fbInfo->OptLine = -1;
+                fbInfo->OptColumn = -1;
 
                 fbInfo->OptKnownPath = fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb);
             }
@@ -668,16 +929,16 @@ namespace TTD
             {
                 AssertMsg(!isWellKnown, "Should never be marked as well known?");
 
-                fbInfo->OptSrcUri = (fb->GetSourceContextInfo()->url != nullptr) ? alloc.CopyStringInto(fb->GetSourceContextInfo()->url) : L"No Context";
+                Js::FunctionBody* parentBody = fb->GetScriptContext()->ResolveParentBody(fb);
+                AssertMsg(parentBody != nullptr, "We missed something!!!");
+
+                fbInfo->OptParentBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(parentBody);
+
                 fbInfo->OptLine = fb->GetLineNumber();
                 fbInfo->OptColumn = fb->GetColumnNumber();
 
                 fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
             }
-
-            fbInfo->OptDocumentID = 0;
-            fbInfo->OptTopLevelSourceUri = nullptr;
-            fbInfo->OptTopLevelSourceCode = nullptr;
         }
 
         void InflateFunctionBody(const FunctionBodyResolveInfo* fbInfo, InflateMap* inflator, const TTDIdentifierDictionary<TTD_PTR_ID, FunctionBodyResolveInfo*>& idToFbResolveMap)
@@ -687,12 +948,7 @@ namespace TTD
                 return;
             }
 
-            //we should have inflated all of the top level srcs previously and never get here
-            AssertMsg(fbInfo->OptTopLevelSourceUri == nullptr && fbInfo->OptTopLevelSourceCode == nullptr && fbInfo->OptDocumentID == 0, "Top level code should be loaded/inflated seperately.");
-
             Js::ScriptContext* ctx = inflator->LookupScriptContext(fbInfo->ScriptContextTag);
-
-            AssertMsg(!(fbInfo->IsEval || fbInfo->IsDynamic), "We don't support snapshotting these yet.");
 
             Js::FunctionBody* resfb = nullptr;
             if(fbInfo->IsRuntime)
@@ -709,20 +965,16 @@ namespace TTD
                 if(resfb == nullptr)
                 {
                     //Find and inflate the parent body
-                    if(!inflator->IsFunctionBodyAlreadyInflated(fbInfo->ParentBodyId))
+                    if(!inflator->IsFunctionBodyAlreadyInflated(fbInfo->OptParentBodyId))
                     {
-                        const FunctionBodyResolveInfo* pBodyInfo = idToFbResolveMap.LookupKnownItem(fbInfo->ParentBodyId);
-
-                        //Recusive call but we expect this to be very shallow
+                        const FunctionBodyResolveInfo* pBodyInfo = idToFbResolveMap.LookupKnownItem(fbInfo->OptParentBodyId);
                         InflateFunctionBody(pBodyInfo, inflator, idToFbResolveMap);
                     }
 
-                    Js::FunctionBody* parentBody = inflator->LookupFunctionBody(fbInfo->ParentBodyId);
-                    AssertMsg(wcscmp(parentBody->GetSourceContextInfo()->url, fbInfo->OptSrcUri) == 0, "Parent and child are not in the same src context??");
+                    Js::FunctionBody* parentBody = inflator->LookupFunctionBody(fbInfo->OptParentBodyId);
 
                     int32 imin = 0;
                     int32 imax = parentBody->GetNestedCount();
-
                     while(imin < imax)
                     {
                         int imid = (imin + imax) / 2;
@@ -770,36 +1022,18 @@ namespace TTD
             writer->WriteRecordStart(separator);
             writer->WriteAddr(NSTokens::Key::functionBodyId, fbInfo->FunctionBodyId);
             writer->WriteAddr(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
-            writer->WriteAddr(NSTokens::Key::parentBodyId, fbInfo->ParentBodyId, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::isEval, fbInfo->IsEval, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::isDynamic, fbInfo->IsDynamic, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::isRuntime, fbInfo->IsRuntime, NSTokens::Separator::CommaSeparator);
-
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
 
+            writer->WriteBool(NSTokens::Key::isRuntime, fbInfo->IsRuntime, NSTokens::Separator::CommaSeparator);
             if(fbInfo->IsRuntime)
             {
                 writer->WriteWellKnownToken(NSTokens::Key::wellKnownToken, fbInfo->OptKnownPath, NSTokens::Separator::CommaSeparator);
             }
             else
             {
-                writer->WriteString(NSTokens::Key::uri, fbInfo->OptSrcUri, NSTokens::Separator::CommaSeparator);
-
+                writer->WriteAddr(NSTokens::Key::parentBodyId, fbInfo->OptParentBodyId, NSTokens::Separator::CommaSeparator);
                 writer->WriteInt64(NSTokens::Key::line, fbInfo->OptLine, NSTokens::Separator::CommaSeparator);
                 writer->WriteInt64(NSTokens::Key::column, fbInfo->OptColumn, NSTokens::Separator::CommaSeparator);
-
-                writer->WriteBool(NSTokens::Key::isGlobalCode, fbInfo->OptDocumentID != 0, NSTokens::Separator::CommaSeparator);
-                if(fbInfo->OptDocumentID != 0)
-                {
-                    writer->WriteString(NSTokens::Key::uri, fbInfo->OptTopLevelSourceUri, NSTokens::Separator::CommaSeparator);
-                    writer->WriteUInt64(NSTokens::Key::documentId, fbInfo->OptDocumentID, NSTokens::Separator::CommaSeparator);
-
-                    LPCWSTR docId = writer->FormatNumber(fbInfo->OptDocumentID);
-                    HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->OptTopLevelSourceUri, false, true);
-
-                    JSONWriter srcWriter(srcStream, streamFunctions.pfWriteBytesToStream, streamFunctions.pfFlushAndCloseStream);
-                    srcWriter.WriteRawString(fbInfo->OptTopLevelSourceCode);
-                }
             }
 
             writer->WriteRecordEnd();
@@ -811,22 +1045,15 @@ namespace TTD
 
             fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
-            fbInfo->ParentBodyId = reader->ReadAddr(NSTokens::Key::parentBodyId, true);
-            fbInfo->IsEval = reader->ReadBool(NSTokens::Key::isEval, true);
-            fbInfo->IsDynamic = reader->ReadBool(NSTokens::Key::isDynamic, true);
-            fbInfo->IsRuntime = reader->ReadBool(NSTokens::Key::isRuntime, true);
-
             fbInfo->FunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
 
-            fbInfo->OptDocumentID = 0;
-            fbInfo->OptTopLevelSourceUri = nullptr;
-            fbInfo->OptTopLevelSourceCode = nullptr;
+            fbInfo->IsRuntime = reader->ReadBool(NSTokens::Key::isRuntime, true);
 
             if(fbInfo->IsRuntime)
             {
                 fbInfo->OptKnownPath = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
 
-                fbInfo->OptSrcUri = L"RuntimeCode";
+                fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;
                 fbInfo->OptColumn = -1;
             }
@@ -834,57 +1061,12 @@ namespace TTD
             {
                 fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
 
-                fbInfo->OptSrcUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
+                fbInfo->OptParentBodyId = reader->ReadAddr(NSTokens::Key::parentBodyId, true);
                 fbInfo->OptLine = reader->ReadInt64(NSTokens::Key::line, true);
                 fbInfo->OptColumn = reader->ReadInt64(NSTokens::Key::column, true);
-
-                bool isGlobalCode = reader->ReadBool(NSTokens::Key::isGlobalCode, true);
-                if(isGlobalCode)
-                {
-                    fbInfo->OptTopLevelSourceUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
-                    fbInfo->OptDocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
-
-                    LPCWSTR docId = reader->FormatNumber(fbInfo->OptDocumentID);
-                    HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->OptTopLevelSourceUri, true, false);
-
-                    JSONReader srcReader(srcStream, streamFunctions.pfReadBytesFromStream, streamFunctions.pfFlushAndCloseStream);
-                    fbInfo->OptTopLevelSourceCode = srcReader.ReadRawString(alloc);
-                }
             }
 
             reader->ReadRecordEnd();
-        }
-
-        Js::JavascriptFunction* InflateRootScriptFunction(const FunctionBodyResolveInfo* rootFbInfo, Js::ScriptContext* ctx)
-        {
-            DWORD_PTR sourceContext = rootFbInfo->OptDocumentID;
-            AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
-
-            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, rootFbInfo->OptTopLevelSourceUri, wcslen(rootFbInfo->OptTopLevelSourceUri), nullptr);
-
-            SRCINFO si = {
-                /* sourceContextInfo   */ sourceContextInfo,
-                /* dlnHost             */ 0,
-                /* ulColumnHost        */ 0,
-                /* lnMinHost           */ 0,
-                /* ichMinHost          */ 0,
-                /* ichLimHost          */ static_cast<ULONG>(wcslen(rootFbInfo->OptTopLevelSourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
-                /* ulCharOffset        */ 0,
-                /* mod                 */ kmodGlobal,
-                /* grfsi               */ 0
-            };
-
-            Js::Utf8SourceInfo* utf8SourceInfo;
-            CompileScriptException se;
-            Js::JavascriptFunction* scriptFunction = nullptr;
-            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
-            {
-                scriptFunction = ctx->LoadScript(rootFbInfo->OptTopLevelSourceCode, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
-            }
-            END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
-            AssertMsg(scriptFunction != nullptr, "Something went wrong");
-
-            return scriptFunction;
         }
 
         //////////////////
@@ -896,21 +1078,31 @@ namespace TTD
             snapCtx->m_randomSeed = ctx->GetLibrary()->GetRandSeed();
             snapCtx->m_contextSRC = alloc.CopyStringInto((ctx->GetUrl() != nullptr) ? ctx->GetUrl() : L"Default");
 
-            JsUtil::List<LPCWSTR, HeapAllocator> loadedSrcTxtList(&HeapAllocator::Instance);
-            JsUtil::List<Js::FunctionBody*, HeapAllocator> globalCodeList(&HeapAllocator::Instance);
+            JsUtil::List<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance); 
+            JsUtil::List<NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance); 
+            JsUtil::List<NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> topLevelEval(&HeapAllocator::Instance);
 
-            ctx->GetLoadedSources_TTD(loadedSrcTxtList, globalCodeList);
-            AssertMsg(loadedSrcTxtList.Count() == globalCodeList.Count(), "These should be the same size.");
+            ctx->GetLoadedSources_TTD(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
-            snapCtx->m_loadedScriptCount = globalCodeList.Count();
-            snapCtx->m_rootScriptArray = (snapCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<FunctionBodyResolveInfo>(snapCtx->m_loadedScriptCount) : nullptr;
-
-            for(int32 i = 0; i < loadedSrcTxtList.Count(); ++i)
+            snapCtx->m_loadedScriptCount = topLevelScriptLoad.Count();
+            snapCtx->m_loadedScriptArray = (snapCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelScriptLoadFunctionBodyResolveInfo>(snapCtx->m_loadedScriptCount) : nullptr;
+            for(int32 i = 0; i < topLevelScriptLoad.Count(); ++i)
             {
-                LPCWSTR loadedSrcTxt = loadedSrcTxtList.Item(i);
-                Js::FunctionBody* fb = globalCodeList.Item(i);
+                NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(snapCtx->m_loadedScriptArray + i, topLevelScriptLoad.Item(i), alloc);
+            }
 
-                NSSnapValues::ExtractTopLevelLoadedScriptFunctionBodyInfo(snapCtx->m_rootScriptArray + i, fb, loadedSrcTxt, alloc);
+            snapCtx->m_newScriptCount = topLevelNewFunction.Count();
+            snapCtx->m_newScriptArray = (snapCtx->m_newScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelNewFunctionBodyResolveInfo>(snapCtx->m_newScriptCount) : nullptr;
+            for(int32 i = 0; i < topLevelNewFunction.Count(); ++i)
+            {
+                NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InShapshot(snapCtx->m_newScriptArray + i, topLevelNewFunction.Item(i), alloc);
+            }
+
+            snapCtx->m_evalScriptCount = topLevelEval.Count();
+            snapCtx->m_evalScriptArray = (snapCtx->m_evalScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelEvalFunctionBodyResolveInfo>(snapCtx->m_evalScriptCount) : nullptr;
+            for(int32 i = 0; i < topLevelEval.Count(); ++i)
+            {
+                NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InShapshot(snapCtx->m_evalScriptArray + i, topLevelEval.Item(i), alloc);
             }
 
             snapCtx->m_rootCount = ctx->m_ttdRootSet->Count();
@@ -935,34 +1127,35 @@ namespace TTD
 
             for(uint32 i = 0; i < snpCtx->m_loadedScriptCount; ++i)
             {
-                FunctionBodyResolveInfo* rootFbInfo = snpCtx->m_rootScriptArray + i;
-
-                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(rootFbInfo->FunctionBodyId);
+                TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = snpCtx->m_loadedScriptArray + i;
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
                 if(fb == nullptr)
                 {
-                    if(rootFbInfo->IsEval)
-                    {
-                        //
-                        //TODO: need to parse nicely for eval code
-                        //
-                        AssertMsg(false, "Not Implemented Yet!!!");
-                    }
-                    else if(rootFbInfo->IsRuntime)
-                    {
-                        //
-                        //TODO: need to parse nicely for function constructor code
-                        //
-                        AssertMsg(false, "Not Implemented Yet!!!");
-                    }
-                    else
-                    {
-                        Js::JavascriptFunction* scriptFunction = InflateRootScriptFunction(rootFbInfo, intoCtx);
-
-                        fb = JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
-                    }
+                    fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
                 }
+                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
+            }
 
-                inflator->AddInflationFunctionBody(rootFbInfo->FunctionBodyId, fb);
+            for(uint32 i = 0; i < snpCtx->m_newScriptCount; ++i)
+            {
+                TopLevelNewFunctionBodyResolveInfo* fbInfo = snpCtx->m_newScriptArray + i;
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
+                if(fb == nullptr)
+                {
+                    fb = NSSnapValues::InflateTopLevelNewFunctionBodyInfo(fbInfo, intoCtx);
+                }
+                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
+            }
+
+            for(uint32 i = 0; i < snpCtx->m_evalScriptCount; ++i)
+            {
+                TopLevelEvalFunctionBodyResolveInfo* fbInfo = snpCtx->m_evalScriptArray + i;
+                Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
+                if(fb == nullptr)
+                {
+                    fb = NSSnapValues::InflateTopLevelEvalFunctionBodyInfo(fbInfo, intoCtx);
+                }
+                inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
             }
         }
 
@@ -992,7 +1185,25 @@ namespace TTD
             for(uint32 i = 0; i < snapCtx->m_loadedScriptCount; ++i)
             {
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-                NSSnapValues::EmitFunctionBodyInfo(snapCtx->m_rootScriptArray + i, sourceDir, streamFunctions, writer, sep);
+                NSSnapValues::EmitTopLevelLoadedFunctionBodyInfo(snapCtx->m_loadedScriptArray + i, sourceDir, streamFunctions, writer, sep);
+            }
+            writer->WriteSequenceEnd();
+
+            writer->WriteLengthValue(snapCtx->m_newScriptCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < snapCtx->m_newScriptCount; ++i)
+            {
+                NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+                NSSnapValues::EmitTopLevelNewFunctionBodyInfo(snapCtx->m_newScriptArray + i, sourceDir, streamFunctions, writer, sep);
+            }
+            writer->WriteSequenceEnd();
+
+            writer->WriteLengthValue(snapCtx->m_evalScriptCount, NSTokens::Separator::CommaSeparator);
+            writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+            for(uint32 i = 0; i < snapCtx->m_evalScriptCount; ++i)
+            {
+                NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+                NSSnapValues::EmitTopLevelEvalFunctionBodyInfo(snapCtx->m_evalScriptArray + i, sourceDir, streamFunctions, writer, sep);
             }
             writer->WriteSequenceEnd();
 
@@ -1017,12 +1228,29 @@ namespace TTD
             intoCtx->m_contextSRC = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::ctxUri, true));
 
             intoCtx->m_loadedScriptCount = reader->ReadLengthValue(true);
-            intoCtx->m_rootScriptArray = (intoCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<FunctionBodyResolveInfo>(intoCtx->m_loadedScriptCount) : nullptr;
-
+            intoCtx->m_loadedScriptArray = (intoCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelScriptLoadFunctionBodyResolveInfo>(intoCtx->m_loadedScriptCount) : nullptr;
             reader->ReadSequenceStart_WDefaultKey(true);
             for(uint32 i = 0; i < intoCtx->m_loadedScriptCount; ++i)
             {
-                NSSnapValues::ParseFunctionBodyInfo(intoCtx->m_rootScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+                NSSnapValues::ParseTopLevelLoadedFunctionBodyInfo(intoCtx->m_loadedScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+            }
+            reader->ReadSequenceEnd();
+
+            intoCtx->m_newScriptCount = reader->ReadLengthValue(true);
+            intoCtx->m_newScriptArray = (intoCtx->m_newScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelNewFunctionBodyResolveInfo>(intoCtx->m_newScriptCount) : nullptr;
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < intoCtx->m_newScriptCount; ++i)
+            {
+                NSSnapValues::ParseTopLevelNewFunctionBodyInfo(intoCtx->m_newScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
+            }
+            reader->ReadSequenceEnd();
+
+            intoCtx->m_evalScriptCount = reader->ReadLengthValue(true);
+            intoCtx->m_evalScriptArray = (intoCtx->m_evalScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelEvalFunctionBodyResolveInfo>(intoCtx->m_evalScriptCount) : nullptr;
+            reader->ReadSequenceStart_WDefaultKey(true);
+            for(uint32 i = 0; i < intoCtx->m_evalScriptCount; ++i)
+            {
+                NSSnapValues::ParseTopLevelEvalFunctionBodyInfo(intoCtx->m_evalScriptArray + i, i != 0, sourceDir, streamFunctions, reader, alloc);
             }
             reader->ReadSequenceEnd();
 

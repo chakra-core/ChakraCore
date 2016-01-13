@@ -183,7 +183,7 @@ namespace TTD
                 {
                     //it was deleted so we just pretend it doesn't exist
                     //
-                    //TODO: when we have type support the id will be set appropriately but for no we just ignore it and hope for the best by leaving it un-assigned
+                    //TODO: when we have type support the id will be set appropriately but for now we just ignore it and hope for the best by leaving it un-assigned
                     //
                 }
                 else if(!Js::DynamicTypeHandler::ShouldRestorePropertyId_TTD(pid))

@@ -436,39 +436,31 @@ namespace TTD
 
         DWORD_PTR sourceContext = this->m_optDocumentID;
         SourceContextInfo * sourceContextInfo = execContext->GetSourceContextInfo(sourceContext, nullptr);
-        if(sourceContextInfo != nullptr)
+        if(sourceContextInfo == nullptr)
         {
-            //
-            //TODO: we need to add reload support here to lookup the existing source/function body -- and make sure it it clean/fresh
-            //
-
-            AssertMsg(false, "This path on reloading is not implemented yet.");
+            sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_optSourceUri, wcslen(this->m_optSourceUri), nullptr);
         }
-        else
+
+        SRCINFO si = {
+            /* sourceContextInfo   */ sourceContextInfo,
+            /* dlnHost             */ 0,
+            /* ulColumnHost        */ 0,
+            /* lnMinHost           */ 0,
+            /* ichMinHost          */ 0,
+            /* ichLimHost          */ static_cast<ULONG>(wcslen(this->m_sourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+            /* ulCharOffset        */ 0,
+            /* mod                 */ kmodGlobal,
+            /* grfsi               */ 0
+        };
+
+        Js::Utf8SourceInfo* utf8SourceInfo;
+        CompileScriptException se;
+        BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(execContext)
         {
-            SourceContextInfo * sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_optSourceUri, wcslen(this->m_optSourceUri), nullptr);
-
-            SRCINFO si = {
-                /* sourceContextInfo   */ sourceContextInfo,
-                /* dlnHost             */ 0,
-                /* ulColumnHost        */ 0,
-                /* lnMinHost           */ 0,
-                /* ichMinHost          */ 0,
-                /* ichLimHost          */ static_cast<ULONG>(wcslen(this->m_sourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
-                /* ulCharOffset        */ 0,
-                /* mod                 */ kmodGlobal,
-                /* grfsi               */ 0
-            };
-
-            Js::Utf8SourceInfo* utf8SourceInfo;
-            CompileScriptException se;
-            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(execContext)
-            {
-                function = execContext->LoadScript(this->m_sourceCode, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
-            }
-            END_LEAVE_SCRIPT_WITH_EXCEPTION(execContext);
-            AssertMsg(function != nullptr, "Something went wrong");
+            function = execContext->LoadScript(this->m_sourceCode, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
         }
+        END_LEAVE_SCRIPT_WITH_EXCEPTION(execContext);
+        AssertMsg(function != nullptr, "Something went wrong");
 
         //since we tag in JsRT we need to tag here too
         threadContext->TTDInfo->TrackTagObject(function);
