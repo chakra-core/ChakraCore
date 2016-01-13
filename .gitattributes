@@ -1,3 +1,4 @@
 *.baseline -crlf
 *.cmd -crlf
 test/*.js -crlf
+*.wasm -crlf
