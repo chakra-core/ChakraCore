@@ -1030,6 +1030,14 @@ LDone:
             {
                 return scriptContext->GetLibrary()->GetNegativeZero();
             }
+            if(x <= -(1 / std::numeric_limits<double>::epsilon() + 1) || x >= (1 / std::numeric_limits<double>::epsilon() + 1))
+            {
+                return JavascriptNumber::ToVarNoCheck(x, scriptContext);
+            }
+            if(x == 0.5 - std::numeric_limits<double>::epsilon() / 4)
+            {
+                return JavascriptNumber::ToVarIntCheck(0.0, scriptContext);
+            }
 
             return Math::FloorDouble(x+0.5, scriptContext);
         }
