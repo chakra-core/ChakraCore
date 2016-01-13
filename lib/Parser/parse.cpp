@@ -5368,10 +5368,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                             MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
                         }
                     }
-                    else
-                    {
-                        isNonSimpleParameterList = true;
-                    }
+
+                    isNonSimpleParameterList = true;
                 }
                 else
                 {
@@ -9500,8 +9498,8 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             {
                 if (isUseStrictDirective)
                 {
-                    // Functions with default arguments cannot be made strict mode
-                    if (GetCurrentFunctionNode()->sxFnc.HasDefaultArguments())
+                    // Functions with non-simple parameter list cannot be made strict mode
+                    if (!GetCurrentFunctionNode()->sxFnc.IsSimpleParameterList())
                     {
                         Error(ERRDefaultParamInStrictMode);
                     }
