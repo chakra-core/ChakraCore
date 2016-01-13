@@ -138,9 +138,10 @@ namespace Js
 
     static wchar_t const funcName[] = L"function anonymous";
     static wchar_t const genFuncName[] = L"function* anonymous";
+    static wchar_t const asyncFuncName[] = L"async function anonymous";
     static wchar_t const bracket[] = L" {\012";
 
-    Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, bool isGenerator /* = false */)
+    Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
         JavascriptLibrary* library = function->GetLibrary();
 
@@ -177,7 +178,9 @@ namespace Js
         // Create a string representing the anonymous function
         Assert(CountNewlines(funcName) + CountNewlines(bracket) == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
-        JavascriptString *bs = isGenerator ?
+        JavascriptString *bs = functionKind == FunctionKind::Async ?
+            library->CreateStringFromCppLiteral(asyncFuncName) :
+            functionKind == FunctionKind::Generator ?
             library->CreateStringFromCppLiteral(genFuncName) :
             library->CreateStringFromCppLiteral(funcName);
         bs = JavascriptString::Concat(bs, formals);
@@ -201,14 +204,18 @@ namespace Js
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
         if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
         {
-            // ES3 and ES5 specs require validation of the formal list and the function body
-
             // Validate formals here
-            scriptContext->GetGlobalObject()->ValidateSyntax(scriptContext, formals->GetSz(), formals->GetLength(), isGenerator, &Parser::ValidateFormals);
+            scriptContext->GetGlobalObject()->ValidateSyntax(
+                scriptContext, formals->GetSz(), formals->GetLength(),
+                functionKind == FunctionKind::Generator, functionKind == FunctionKind::Async,
+                &Parser::ValidateFormals);
             if (fnBody != NULL)
             {
                 // Validate function body
-                scriptContext->GetGlobalObject()->ValidateSyntax(scriptContext, fnBody->GetSz(), fnBody->GetLength(), isGenerator, &Parser::ValidateSourceElementList);
+                scriptContext->GetGlobalObject()->ValidateSyntax(
+                    scriptContext, fnBody->GetSz(), fnBody->GetLength(),
+                    functionKind == FunctionKind::Generator, functionKind == FunctionKind::Async,
+                    &Parser::ValidateSourceElementList);
             }
 
             pfuncScript = scriptContext->GetGlobalObject()->EvalHelper(scriptContext, sourceString, sourceLen, moduleID, fscrNil, Constants::FunctionCode, TRUE, TRUE, strictMode);
@@ -238,7 +245,7 @@ namespace Js
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 
-        if (isGenerator)
+        if (functionKind == FunctionKind::Generator)
         {
             Assert(pfuncScript->GetFunctionInfo()->IsGenerator());
             auto pfuncVirt = static_cast<GeneratorVirtualScriptFunction*>(pfuncScript);
@@ -273,6 +280,16 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         return NewInstanceHelper(scriptContext, function, callInfo, args);
+    }
+
+    Var JavascriptFunction::NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        // Get called when creating a new async function through the constructor (e.g. af.__proto__.constructor)
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+
+        return JavascriptFunction::NewInstanceHelper(function->GetScriptContext(), function, callInfo, args, JavascriptFunction::FunctionKind::Async);
     }
 
     //
@@ -2103,7 +2120,15 @@ LABEL1:
 
     bool JavascriptFunction::HasRestrictedProperties() const
     {
-        return !(this->functionInfo->IsClassMethod() || this->functionInfo->IsClassConstructor() || this->functionInfo->IsLambda() || this->IsGeneratorFunction() || this->IsBoundFunction() || this->IsStrictMode());
+        return !(
+            this->functionInfo->IsClassMethod() ||
+            this->functionInfo->IsClassConstructor() ||
+            this->functionInfo->IsLambda() ||
+            this->functionInfo->IsAsync() ||
+            this->IsGeneratorFunction() ||
+            this->IsBoundFunction() ||
+            this->IsStrictMode()
+            );
     }
 
     BOOL JavascriptFunction::HasProperty(PropertyId propertyId)

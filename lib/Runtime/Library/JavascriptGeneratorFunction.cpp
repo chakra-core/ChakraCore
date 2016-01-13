@@ -96,7 +96,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
 
-        return JavascriptFunction::NewInstanceHelper(function->GetScriptContext(), function, callInfo, args, /* isGenerator: */ true);
+        return JavascriptFunction::NewInstanceHelper(function->GetScriptContext(), function, callInfo, args, FunctionKind::Generator);
     }
 
     JavascriptString* JavascriptGeneratorFunction::GetDisplayNameImpl() const

@@ -240,7 +240,7 @@ CatchPidRefList *Parser::EnsureCatchPidRefList()
     return this->m_catchPidRefList;
 }
 
-HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, CompileScriptException *pse, void (Parser::*validateFunction)())
+HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
 {
     AssertPsz(pszSrc);
     AssertMemN(pse);
@@ -274,6 +274,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         // Give the scanner the source and get the first token
         m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
         m_pscan->SetYieldIsKeyword(isGenerator);
+        m_pscan->SetAwaitIsKeyword(isAsync);
         m_pscan->Scan();
 
         uint nestedCount = 0;
@@ -305,6 +306,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
             pnodeFnc->sxFnc.pnodeRest  = nullptr;
             pnodeFnc->sxFnc.deferredStub = nullptr;
             pnodeFnc->sxFnc.SetIsGenerator(isGenerator);
+            pnodeFnc->sxFnc.SetIsAsync(isAsync);
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
             m_currentNodeFunc = pnodeFnc;
             m_currentNodeDeferredFunc = NULL;
