@@ -2496,6 +2496,65 @@ STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceCon
     return RunScriptCore(script, sourceContext, sourceUrl, false, result);
 }
 
+#ifdef ENABLE_WASM
+STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ const bool isBinary, _In_ const uint lengthBytes, _Out_ JsValueRef * result)
+{
+    Js::JavascriptFunction *scriptFunction;
+    CompileScriptException se;
+
+    JsErrorCode errorCode = ContextAPINoScriptWrapper(
+        [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(script);
+        PARAM_NOT_NULL(sourceUrl);
+
+
+        SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, NULL);
+
+        if (sourceContextInfo == NULL)
+        {
+            sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, sourceUrl, wcslen(sourceUrl), NULL);
+        }
+
+        SRCINFO si = {
+            /* sourceContextInfo   */ sourceContextInfo,
+            /* dlnHost             */ 0,
+            /* ulColumnHost        */ 0,
+            /* lnMinHost           */ 0,
+            /* ichMinHost          */ 0,
+            /* ichLimHost          */ static_cast<ULONG>(wcslen(script)),
+            /* ulCharOffset        */ 0,
+            /* mod                 */ kmodGlobal,
+            /* grfsi               */ 0
+        };
+
+        Js::Utf8SourceInfo* utf8SourceInfo;
+        scriptFunction = scriptContext->LoadWasmScript(script, &si, &se, result != NULL, false, false, &utf8SourceInfo, isBinary, lengthBytes, Js::Constants::GlobalCode);
+
+        JsrtContext * context = JsrtContext::GetCurrent();
+        context->OnScriptLoad(scriptFunction, utf8SourceInfo);
+
+        return JsNoError;
+    });
+
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    return ContextAPIWrapper<false>([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
+        if (scriptFunction == NULL)
+        {
+            HandleScriptCompileError(scriptContext, &se);
+            return JsErrorScriptCompile;
+        }
+
+        PARAM_NOT_NULL(result);
+        *result = scriptFunction;
+        return JsNoError;
+    });
+}
+#endif
+
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
 {
     Js::JavascriptFunction *function;

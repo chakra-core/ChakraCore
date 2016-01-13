@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Parser.h"
+#include "WasmReader.h"
 
 #include "Runtime.h"
 

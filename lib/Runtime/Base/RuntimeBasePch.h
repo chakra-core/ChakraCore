@@ -7,6 +7,7 @@
 #include "Parser.h"
 
 #include "Runtime.h"
+#include "WasmReader.h"
 
 #include "Debug\DebuggingFlags.h"
 #include "Debug\DiagProbe.h"

@@ -230,7 +230,7 @@ namespace Js
 
         void Create();
         void InitData(ArenaAllocator* alloc, long initCodeBufferSize);
-        void Begin(ByteCodeGenerator* byteCodeGenerator, FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop);
+        void Begin(FunctionBody* functionWrite, ArenaAllocator* alloc, bool doJitLoopBodies, bool hasLoop, bool inDebugMode);
 #ifdef LOG_BYTECODE_AST_RATIO
         void End(long currentAstSize, long maxAstSize);
 #else

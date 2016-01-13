@@ -67,6 +67,7 @@ MACRO_WMS   ( AsmJsLoopBodyStart        , AsmUnsigned1    , None      )    // Ma
 // Branching
 MACRO       ( AsmBr                     , AsmBr        , OpNoFallThrough ) // Unconditional branch
 MACRO_WMS   ( BrTrue_Int                , BrInt1       , None            ) // Jumps to offset if int value is not 0
+MACRO_WMS   ( BrFalse_Int                , BrInt1       , None            ) // Jumps to offset if int value is 0
 MACRO_WMS   ( BrEq_Int                  , BrInt2       , None            ) // Jumps to offset if both int are equals
 
 // Switching
@@ -127,6 +128,7 @@ MACRO_WMS   ( Div_UInt                  , Int3         , None            ) // un
 MACRO_WMS   ( Rem_UInt                  , Int3         , None            ) // unsigned int32 Arithmetic '%'
 
 // Double math
+MACRO_WMS   ( Ld_DbConst                , Double1Const1 , None           ) // Sets a double register from a const double
 MACRO_WMS   ( Ld_Db                     , Double2       , None           ) // Sets a double from another double register
 MACRO_WMS   ( Neg_Db                    , Double2       , None           ) // Double Unary '-'
 MACRO_WMS   ( Add_Db                    , Double3       , None           ) // Double Arithmetic '+'
@@ -136,6 +138,7 @@ MACRO_WMS   ( Div_Db                    , Double3       , None           ) // Do
 MACRO_WMS   ( Rem_Db                    , Double3       , None           ) // Double Arithmetic '%'
 
 // float math
+MACRO_WMS   ( Ld_FltConst               , Float1Const1  , None           ) // Sets a float register from a const float
 MACRO_WMS   ( Ld_Flt                    , Float2        , None           ) // Sets a float from another float register
 MACRO_WMS   ( Neg_Flt                   , Float2        , None           ) // Float  Unary '-'
 MACRO_WMS   ( Add_Flt                   , Float3        , None           ) // Float Arithmetic '+'
