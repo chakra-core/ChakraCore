@@ -236,6 +236,24 @@ namespace Js
             }
         }
 
+#if ENABLE_TTD
+        //
+        //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
+        //
+        if(scriptContext->GetThreadContext()->TTDLog != nullptr)
+        {
+            //Make sure we have the body and text information available
+            FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
+
+            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
+            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString);
+            scriptContext->m_ttdTopLevelNewFunction.Add(tbfi);
+
+            //walk global body to (1) add functions to pin set (2) build parent map
+            scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+        }
+#endif
+
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 
         if (isGenerator)

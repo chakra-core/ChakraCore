@@ -796,25 +796,19 @@ namespace TTD
         ////
         //'new Function(...)' functions
 
-        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, LPCWSTR argsString)
+        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
-
-            fbInfo->ArgsString = JsSupport::CopyStringToHeapAllocator(argsString);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source);
         }
 
         void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo)
         {
             NSSnapValues::UnloadTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase);
-
-            JsSupport::DeleteStringFromHeapAllocator(fbInfo->ArgsString);
         }
 
         void ExtractTopLevelNewFunctionBodyInfo_InShapshot(TopLevelNewFunctionBodyResolveInfo* fbInfoDest, const TopLevelNewFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
-
-            fbInfoDest->ArgsString = alloc.CopyStringInto(fbInfoSrc->ArgsString);
         }
 
         Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
@@ -831,7 +825,6 @@ namespace TTD
         {
             NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, true, sourceDir, streamFunctions, writer, separator);
 
-            writer->WriteString(NSTokens::Key::stringVal, fbInfo->ArgsString, NSTokens::Separator::CommaSeparator);
             writer->WriteRecordEnd();
         }
 
@@ -839,7 +832,6 @@ namespace TTD
         {
             NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
 
-            fbInfo->ArgsString = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
             reader->ReadRecordEnd();
         }
 
