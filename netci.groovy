@@ -94,10 +94,10 @@ def msbuildTypeMap = [
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-[true, false]. each { isPR ->
+[true, false].each { isPR ->
     ['x86', 'x64'].each { buildArch -> // we don't support ARM on Windows 7
         ['debug', 'test', 'release'].each { buildType ->
-            def config = "daily_${buildArch}_${buildType}"
+            def config = "daily_dev12_${buildArch}_${buildType}"
 
             def jobName = Utilities.getFullJobName(project, config, isPR)
 
@@ -152,8 +152,71 @@ def msbuildTypeMap = [
     }
 }
 
+// build and test on the usual configuration (VS 2015) with -includeSlow
+[true, false].each { isPR ->
+    ['x86', 'x64', 'arm'].each { buildArch ->
+        ['debug', 'test', 'release'].each { buildType ->
+            def config = "daily_slow_${buildArch}_${buildType}"
+
+            def jobName = InternalUtilities.getFullJobName(project, config, isPR)
+
+            def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
+            def analysisConfig = buildType in ['release']
+
+            def buildScript = "call jenkins.buildone.cmd ${buildArch} ${buildType}"
+            buildScript += analysisConfig ? ' "/p:runcodeanalysis=true"' : ''
+            def testScript = "call jenkins.testone.cmd ${buildArch} ${buildType}"
+            testScript += ' -includeSlow' // run slow tests
+            def analysisScript = ".\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err"
+
+            def newJob = job(jobName) {
+                steps {
+                    batchFile(buildScript)
+                    if (testableConfig) {
+                        batchFile(testScript)
+                    }
+                    if (analysisConfig) {
+                        powerShell(analysisScript)
+                    }
+                }
+            }
+
+            Utilities.setMachineAffinity(newJob, "Windows_NT") // Server 2012 R2
+
+            def msbuildType = msbuildTypeMap.get(buildType)
+            def msbuildFlavor = "build_${buildArch}${msbuildType}"
+
+            def archivalString = "test/${msbuildFlavor}.*,test/logs/**"
+            archivalString += analysisConfig ? ',CodeAnalysis.err' : ''
+
+            Utilities.addArchival(newJob, archivalString,
+                '', // no exclusions from archival
+                false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
+                false) // archiveOnlyIfSuccessful=false ~= archiveAlways
+
+            InternalUtilities.standardJobSetup(newJob, project, isPR)
+
+            if (isPR) {
+                // The addition of the trigger phrase will make the job "non-default" in Github.
+                def dailyRegex = '(dailies|dailys?)'
+                def groupRegex = '(slow\\s*(tests?)?)'
+                def triggerName = "Windows ${config}"
+                def triggerRegex = "(${dailyRegex}|${groupRegex}|${triggerName})"
+                Utilities.addGithubPRTrigger(newJob,
+                    triggerName, // GitHub task name
+                    "(?i).*test\\W+${triggerRegex}.*")
+            } else {
+                Utilities.addPeriodicTrigger(newJob, '@daily')
+            }
+
+            // Add private permissions for certain users
+            InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+        }
+    }
+}
+
 // build and test on the usual configuration (VS 2015) with JIT disabled
-[true, false]. each { isPR ->
+[true, false].each { isPR ->
     ['x86', 'x64', 'arm'].each { buildArch ->
         ['debug', 'test', 'release'].each { buildType ->
             def config = "daily_disablejit_${buildArch}_${buildType}"
