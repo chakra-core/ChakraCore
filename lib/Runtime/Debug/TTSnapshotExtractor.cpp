@@ -337,19 +337,19 @@ namespace TTD
 
             for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(i)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(j)->TopLevelBase.FunctionBodyId);
                 this->m_marks.ClearMark(body);
             }
 
             for(int32 j = 0; j < topLevelNewFunction.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(i)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(j)->TopLevelBase.FunctionBodyId);
                 this->m_marks.ClearMark(body);
             }
 
             for(int32 j = 0; j < topLevelEval.Count(); ++j)
             {
-                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(i)->TopLevelBase.FunctionBodyId);
+                Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(j)->TopLevelBase.FunctionBodyId);
                 this->m_marks.ClearMark(body);
             }
         }

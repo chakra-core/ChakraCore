@@ -813,12 +813,32 @@ namespace TTD
 
         Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
         {
-            //
-            //TODO: Implement this!!!
-            //
-            AssertMsg(false, "Not implemented yet!!!");
+            // Bug 1105479. Get the module id from the caller
+            Js::ModuleID moduleID = kmodGlobal;
+            BOOL strictMode = FALSE;
 
-            return nullptr;
+            Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, fbInfo->TopLevelBase.SourceCode, wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
+            AssertMsg(pfuncScript != nullptr, "Something went wrong!!!");
+
+            // Indicate that this is a top-level function. We don't pass the fscrGlobalCode flag to the eval helper,
+            // or it will return the global function that wraps the declared function body, as though it were an eval.
+            // But we want, for instance, to be able to verify that we did the right amount of deferred parsing.
+            Js::ParseableFunctionInfo* functionInfo = pfuncScript->GetParseableFunctionInfo();
+            functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
+
+            Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
+
+            ////
+            //We don't do this automatically ing the eval helper so do it here
+            TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
+            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, fb, moduleID, fbInfo->TopLevelBase.SourceCode);
+            ctx->m_ttdTopLevelNewFunction.Add(tbfi);
+
+            //walk global body to (1) add functions to pin set (2) build parent map
+            ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
+            ////
+
+            return fb;
         }
 
         void EmitTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
