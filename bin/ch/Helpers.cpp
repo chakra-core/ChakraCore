@@ -132,3 +132,70 @@ Error:
 
     return hr;
 }
+
+
+HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengthBytes, bool printFileOpenError)
+{
+    HRESULT hr = S_OK;
+    contents = nullptr;
+    lengthBytes = 0;
+    FILE * file;
+
+    //
+    // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
+    // etc.
+    //
+    if (_wfopen_s(&file, filename, L"rb") != 0)
+    {
+        if (printFileOpenError)
+        {
+            DWORD lastError = GetLastError();
+            wchar_t wszBuff[512];
+            fwprintf(stderr, L"Error in opening file '%s' ", filename);
+            wszBuff[0] = 0;
+            if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                nullptr,
+                lastError,
+                0,
+                wszBuff,
+                _countof(wszBuff),
+                nullptr))
+            {
+                fwprintf(stderr, L": %s", wszBuff);
+            }
+            fwprintf(stderr, L"\n");
+            IfFailGo(E_FAIL);
+        }
+        else
+        {
+            return E_FAIL;
+        }
+    }
+
+    //
+    // Determine the file length, in bytes.
+    //
+    fseek(file, 0, SEEK_END);
+    lengthBytes = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes);
+    if (nullptr == contents)
+    {
+        fwprintf(stderr, L"out of memory");
+        IfFailGo(E_OUTOFMEMORY);
+    }
+    //
+    // Read the entire content as a binary block.
+    //
+    fread((void*)contents, sizeof(char), lengthBytes, file);
+    fclose(file);
+
+Error:
+    if (contents && FAILED(hr))
+    {
+        HeapFree(GetProcessHeap(), 0, (void*)contents);
+        contents = nullptr;
+    }
+
+    return hr;
+}

@@ -425,6 +425,10 @@
 #endif
 #endif
 
+#ifdef ASMJS_PLAT
+#define ENABLE_WASM
+#endif
+
 #if _WIN32 || _WIN64
 #if _M_IX86
 #define I386_ASM 1

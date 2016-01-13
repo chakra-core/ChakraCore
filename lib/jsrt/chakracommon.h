@@ -834,6 +834,32 @@
             _In_z_ const wchar_t *sourceUrl,
             _Out_ JsValueRef *result);
 
+#ifdef ENABLE_WASM
+    /// <summary>
+    ///     Executes a WebAssembly script.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="script">The script to run.</param>
+    /// <param name="sourceContext">
+    ///     A cookie identifying the script that can be used by debuggable script contexts.
+    /// </param>
+    /// <param name="sourceUrl">The location the script came from.</param>
+    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    STDAPI_(JsErrorCode)
+        JsRunWasmScriptForTestOnly(
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _In_ const bool isBinary,
+            _In_ const UINT lengthBytes,
+            _Out_ JsValueRef *result);
+#endif
+
     /// <summary>
     ///     Serializes a parsed script to a buffer than can be reused.
     /// </summary>

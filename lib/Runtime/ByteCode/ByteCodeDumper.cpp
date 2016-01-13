@@ -312,6 +312,10 @@ namespace Js
         }
     }
 
+    void ByteCodeDumper::DumpR4(float value)
+    {
+        Output::Print(L" float:%g ", value);
+    }
     void ByteCodeDumper::DumpR8(double value)
     {
         Output::Print(L" double:%g ", value);
@@ -915,7 +919,7 @@ namespace Js
                 Output::Print(L" R%d = %s #%d", data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
-                
+
             case OpCode::StLocalFld:
             case OpCode::InitLocalFld:
             case OpCode::InitLocalLetFld:

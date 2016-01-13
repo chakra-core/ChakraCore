@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MsBuildThisFileDirectory)..\StdAfx.cpp" />
@@ -57,7 +57,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\stackframe.cpp">
       <Filter>arm</Filter>
     </ClCompile>
-    <ClCompile Include="JavascriptNativeOperators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJS.h" />
@@ -141,7 +141,6 @@
     <None Include="InterpreterLoop.inl" />
     <None Include="JavascriptExceptionOperators.inl" />
     <None Include="JavascriptMathOperators.inl" />
-    <None Include="JavascriptObject.inl" />
     <None Include="InterpreterStackFrame.inl" />
     <None Include="JavascriptConversion.inl" />
     <None Include="JavascriptOperators.inl" />

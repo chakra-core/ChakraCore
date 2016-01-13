@@ -5,7 +5,6 @@
 #include "RuntimeByteCodePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode\AsmJsByteCodeWriter.h"
 
 namespace Js
 {
@@ -197,6 +196,30 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
+    {
+        OpLayoutT_Float1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.F0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteDouble1Const1(OpCodeAsmJs op, RegSlot R0, double C1)
+    {
+        OpLayoutT_Double1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.D0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmBrReg1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1)
     {
         OpLayoutT_BrInt1<SizePolicy> layout;
@@ -291,6 +314,16 @@ namespace Js
     void AsmJsByteCodeWriter::AsmInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
         MULTISIZE_LAYOUT_WRITE(Int1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Float1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmDouble1Const1(OpCodeAsmJs op, RegSlot R0, double C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Double1Const1, op, R0, C1);
     }
 
     void AsmJsByteCodeWriter::AsmReg1(OpCodeAsmJs op, RegSlot R0)
