@@ -1111,8 +1111,8 @@ FLAGNR(Number,  InMemoryTraceBufferSize, "The size of circular buffer for in-mem
 FLAGNR(Boolean, RichTraceFormat, "Whether to use extra data in Output/Trace header.", DEFAULT_CONFIG_RichTraceFormat)
 #ifdef STACK_BACK_TRACE
 FLAGNR(Boolean, TraceWithStack, "Whether the trace need to include stack trace (for each trace entry).", DEFAULT_CONFIG_TraceWithStack)
-#endif STACK_BACK_TRACE
-#endif ENABLE_TRACE
+#endif // STACK_BACK_TRACE
+#endif // ENABLE_TRACE
 FLAGNR(Boolean, PrintRunTimeDataCollectionTrace, "Print traces needed for runtime data collection", false)
 #ifdef ENABLE_PREJIT
 FLAGR (Boolean, Prejit                , "Prejit everything, including things that are not called, ignoring limits (default: false)", DEFAULT_CONFIG_Prejit)

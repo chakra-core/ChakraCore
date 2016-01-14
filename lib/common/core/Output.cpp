@@ -211,7 +211,7 @@ Output::TraceStats(Js::Phase phase, const wchar_t *form, ...)
     return 0;
 }
 #endif
-#endif ENABLE_TRACE
+#endif // ENABLE_TRACE
 
 ///----------------------------------------------------------------------------
 ///
@@ -474,7 +474,7 @@ Output::SetStackTraceHelper(Js::IStackTraceHelper* helper)
 #endif
     s_stackTraceHelper = helper;
 }
-#endif ENABLE_TRACE
+#endif // ENABLE_TRACE
 
 //
 // Sets the foreground color and returns the old color. Returns 0 on failure

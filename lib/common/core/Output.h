@@ -88,7 +88,7 @@ public:
     }
     static void     SetInMemoryLogger(Js::ILogger* logger);
     static void     SetStackTraceHelper(Js::IStackTraceHelper* helper);
-#endif ENABLE_TRACE
+#endif // ENABLE_TRACE
     static size_t __cdecl Print(const wchar_t *form, ...);
     static size_t __cdecl Print(int column, const wchar_t *form, ...);
     static size_t __cdecl PrintBuffer(const wchar_t * buffer, size_t size);
@@ -119,7 +119,7 @@ private:
     static Js::IStackTraceHelper* s_stackTraceHelper; // Used for capturing stack trace.
 #endif
     static size_t VTrace(const wchar_t* shortPrefixFormat, const wchar_t* prefix, const wchar_t *form, va_list argptr);
-#endif ENABLE_TRACE
+#endif // ENABLE_TRACE
 
 #define THREAD_ST __declspec(thread)
 
