@@ -284,7 +284,7 @@ namespace Js
             return inlinedFrameWalker.GetArgv(/* includeThis = */ false);
         }
         else 
-#endif            
+#endif
             if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
