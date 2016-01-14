@@ -614,8 +614,18 @@ namespace Js
             APPEND_FLAG(PropertyIds::global, L'g');
             APPEND_FLAG(PropertyIds::ignoreCase, L'i');
             APPEND_FLAG(PropertyIds::multiline, L'm');
-            APPEND_FLAG(PropertyIds::unicode, L'u');
-            APPEND_FLAG(PropertyIds::sticky, L'y');
+
+            ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
+
+            if (scriptConfig->IsES6UnicodeExtensionsEnabled())
+            {
+                APPEND_FLAG(PropertyIds::unicode, L'u');
+            }
+
+            if (scriptConfig->IsES6RegExStickyEnabled())
+            {
+                APPEND_FLAG(PropertyIds::sticky, L'y');
+            }
 #undef APPEND_FLAG
 
             flags = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);

@@ -912,7 +912,13 @@
   <test>
     <default>
       <files>regexflags.js</files>
-      <compile-flags>-version:6 -ES6RegExSticky -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
+      <compile-flags>-version:6 -ES6RegExSticky -ES6Unicode -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regexflags-disabled-features.js</files>
+      <compile-flags>-ES6RegExSticky- -ES6Unicode- -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
