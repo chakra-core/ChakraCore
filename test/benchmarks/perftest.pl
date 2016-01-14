@@ -780,8 +780,8 @@ sub parse_args
 
 sub official_footer
 {
-    print OFFICIAL "</data>\n";
-    close(OFFICIAL);
+    print $OFFICIAL "</data>\n";
+    close($OFFICIAL);
 }
 
 sub official_header
