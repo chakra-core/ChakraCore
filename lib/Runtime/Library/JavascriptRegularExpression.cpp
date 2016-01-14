@@ -296,7 +296,7 @@ namespace Js
         }
     }
 
-    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly)
+    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly, bool useFlagsProperty)
     {
         Js::InternalString str = pattern->GetSource();
         CompoundString *const builder = CompoundString::NewWithCharCapacity(str.GetLength() + 5, GetLibrary());
@@ -387,27 +387,37 @@ namespace Js
         {
             builder->AppendChars(L'/');
 
-            // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
-            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
-            if (pattern->IsGlobal())
+            if (!useFlagsProperty)
             {
-                builder->AppendChars(L'g');
+                // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+                // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
+                if (pattern->IsGlobal())
+                {
+                    builder->AppendChars(L'g');
+                }
+                if (pattern->IsIgnoreCase())
+                {
+                    builder->AppendChars(L'i');
+                }
+                if (pattern->IsMultiline())
+                {
+                    builder->AppendChars(L'm');
+                }
+                if (pattern->IsUnicode())
+                {
+                    builder->AppendChars(L'u');
+                }
+                if (pattern->IsSticky())
+                {
+                    builder->AppendChars(L'y');
+                }
             }
-            if (pattern->IsIgnoreCase())
+            else
             {
-                builder->AppendChars(L'i');
-            }
-            if (pattern->IsMultiline())
-            {
-                builder->AppendChars(L'm');
-            }
-            if (pattern->IsUnicode())
-            {
-                builder->AppendChars(L'u');
-            }
-            if (pattern->IsSticky())
-            {
-                builder->AppendChars(L'y');
+                ScriptContext* scriptContext = GetScriptContext();
+                Var flags = JavascriptOperators::GetProperty(this, PropertyIds::flags, scriptContext);
+                JavascriptString* flagsString = JavascriptConversion::ToString(flags, scriptContext);
+                builder->AppendCharsSz(flagsString->GetString());
             }
         }
 
@@ -561,10 +571,13 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        Assert(args.Info.Count > 0);
 
         JavascriptRegExp* obj = GetJavascriptRegExp(args, L"RegExp.prototype.toString", scriptContext);
 
-        return obj->ToString();
+        bool sourceOnly = false;
+        bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
+        return obj->ToString(sourceOnly, useFlagsProperty);
     }
 
     Var JavascriptRegExp::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)

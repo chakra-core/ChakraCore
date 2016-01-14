@@ -99,7 +99,7 @@ namespace Js
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
-        JavascriptString *ToString(bool sourceOnly = false);
+        JavascriptString *ToString(bool sourceOnly = false, bool useFlagsProperty = false);
 
         class EntryInfo
         {
