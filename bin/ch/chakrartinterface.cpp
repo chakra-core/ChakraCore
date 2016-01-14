@@ -45,7 +45,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
 
     if (!m_testHooksInitialized)
     {
-        fwprintf(stderr, L"The binary %ls is not test enabled, please use %ls from debug/test flavor\n", chakraDllName, chakraDllName);
+        fwprintf(stderr, L"ch.exe does not work with Release builds of '%ls'. Please use Debug or Test builds to use ch.exe.\n", chakraDllName);
         UnloadChakraDll(library);
         return nullptr;
     }
