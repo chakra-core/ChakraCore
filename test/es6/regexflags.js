@@ -5,6 +5,56 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+function bindFlagsGetter(thisArg) {
+    var getter = Object.getOwnPropertyDescriptor(RegExp.prototype, "flags").get;
+    return getter.bind(thisArg);
+}
+
+function generatePrototypeFlagsTests() {
+    var testsGroupedByFlag =
+        [['global', 'g'],
+         ['ignoreCase', 'i'],
+         ['multiline', 'm'],
+         ['sticky', 'y'],
+         ['unicode', 'u']].map(function ([propertyName, flag]) {
+            return [
+                {
+                    name: "RegExp.prototype.flags should include '" + flag + "' when '" + propertyName + "' is 'true'",
+                    body: function () {
+                        var object = {};
+                        object[propertyName] = true;
+                        var flags = bindFlagsGetter(object)();
+                        assert.isTrue(flags.includes(flag));
+                    }
+                },
+                {
+                    name: "RegExp.prototype.flags should not include '" + flag + "' when '" + propertyName + "' is 'false'",
+                    body: function () {
+                        var object = {};
+                        object[propertyName] = false;
+                        var flags = bindFlagsGetter(object)();
+                        assert.isFalse(flags.includes(flag));
+                    }
+                },
+                {
+                    name: "RegExp.prototype.flags should coerce '" + flag + "' to Boolean",
+                    body: function () {
+                        var object = {};
+
+                        object[propertyName] = 123;
+                        var flags = bindFlagsGetter(object)();
+                        assert.isTrue(flags.includes(flag), "123 -> true");
+
+                        object[propertyName] = null;
+                        var flags = bindFlagsGetter(object)();
+                        assert.isFalse(flags.includes(flag), "null -> false");
+                    }
+                },
+            ];
+        });
+    return Array.prototype.concat.apply([], testsGroupedByFlag);
+}
+
 var tests = [
     {
         name: "Test sticky and unicode getter on RegExp.prototype",
@@ -159,6 +209,39 @@ var tests = [
             assert.areEqual(0, pattern.lastIndex, "lastIndex");
         }
     },
+    {
+        name: "RegExp.prototype.flags should throw an exception when 'this' isn't an Object",
+        body: function () {
+            var nonObject = "string";
+            assert.throws(bindFlagsGetter(nonObject), TypeError);
+        }
+    },
+    {
+        name: "RegExp.prototype.flags should be callable when 'this' is an ordinary Object",
+        body: function () {
+            assert.doesNotThrow(bindFlagsGetter({}));
+        }
+    },
+    {
+        name: "RegExp.prototype.flags should return an empty String when no flag exists",
+        body: function () {
+            assert.areEqual("", bindFlagsGetter({})());
+        }
+    },
+    {
+        name: "RegExp.prototyp.flags should return the flags in the correct order",
+        body: function () {
+            var object = {
+                ignoreCase: true,
+                unicode: true,
+                sticky: true,
+                multiline: true,
+                global: true
+            };
+            assert.areEqual("gimuy", bindFlagsGetter(object)());
+        }
+    },
 ];
+tests = tests.concat(generatePrototypeFlagsTests());
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

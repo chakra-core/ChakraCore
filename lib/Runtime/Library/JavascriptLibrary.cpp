@@ -3638,6 +3638,7 @@ namespace Js
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::compile, &JavascriptRegExp::EntryInfo::Compile, 2);
 
         const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
+
         if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         {
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal, nullptr);
@@ -3645,6 +3646,7 @@ namespace Js
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags, nullptr);
 
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
@@ -3655,6 +3657,7 @@ namespace Js
             {
                 library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
             }
+
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));

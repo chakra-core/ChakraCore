@@ -388,6 +388,7 @@ namespace Js
             builder->AppendChars(L'/');
 
             // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
             if (pattern->IsGlobal())
             {
                 builder->AppendChars(L'g');
@@ -575,6 +576,56 @@ namespace Js
         return args[0];
     }
 
+    Var JavascriptRegExp::EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"RegExp.prototype.flags");
+        }
+
+        RecyclableObject *thisObj = JavascriptObject::FromVar(args[0]);
+        Var flags;
+
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JavascriptRegExp")
+        {
+            StringBuilder<ArenaAllocator> bs(tempAlloc, 5);
+
+#define APPEND_FLAG(propertyId, flag) AppendFlagForFlagsProperty(&bs, thisObj, propertyId, flag, scriptContext)
+            // If you change the order of the flags, don't forget to change it in GetOptions() and ToString() too.
+            APPEND_FLAG(PropertyIds::global, L'g');
+            APPEND_FLAG(PropertyIds::ignoreCase, L'i');
+            APPEND_FLAG(PropertyIds::multiline, L'm');
+            APPEND_FLAG(PropertyIds::unicode, L'u');
+            APPEND_FLAG(PropertyIds::sticky, L'y');
+#undef APPEND_FLAG
+
+            flags = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
+        }
+        END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+
+        return flags;
+    }
+
+    void JavascriptRegExp::AppendFlagForFlagsProperty(
+        StringBuilder<ArenaAllocator>* builder,
+        RecyclableObject* thisObj,
+        PropertyId propertyId,
+        wchar_t flag,
+        ScriptContext* scriptContext)
+    {
+        Var propertyValue = JavascriptOperators::GetProperty(thisObj, propertyId, scriptContext);
+        if (JavascriptConversion::ToBoolean(propertyValue, scriptContext))
+        {
+            builder->Append(flag);
+        }
+    }
+
     Var JavascriptRegExp::EntryGetterOptions(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -593,6 +644,7 @@ namespace Js
         {
             StringBuilder<ArenaAllocator> bs(tempAlloc, 4);
 
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and ToString() too.
             if(GetPattern()->IsGlobal())
             {
                 bs.Append(L'g');
