@@ -5,27 +5,51 @@
 
 import "wtypes.idl";
 
+typedef struct SmallSpanSequenceData
+{
+    int baseValue;
+    unsigned int statementLength;
+    [size_is(statementLength)] unsigned int * statementBuffer;
+    unsigned int actualOffsetLength; // REVIEW: are lengths the same?
+    [size_is(actualOffsetLength)] unsigned int * actualOffsetList;
+} SmallSpanSequenceData;
+
 // FunctionBody fields, read only in JIT
 typedef struct FunctionBodyJITData
 {
+    unsigned int byteCodeLength;
+    [size_is(byteCodeLength)] byte * byteCodeBuffer;
+
+    unsigned int constCount;
+    [size_is(constCount)] __int3264 * constTable;
+
+    SmallSpanSequenceData statementMap;
     unsigned int funcNumber;
     unsigned int localFuncId;
     unsigned int sourceContextId;
     unsigned int nestedCount;
     unsigned int scopeSlotArraySize;
     unsigned int attributes;
-    unsigned int cbLength;
     unsigned int byteCodeCount;
     unsigned int byteCodeInLoopCount;
+    unsigned int loopCount;
+    unsigned int localFrameDisplayReg;
+    unsigned int localClosureReg;
+    unsigned int envReg;
+    unsigned int firstTmpReg;
+    unsigned int varCount;
 
     unsigned short envDepth;
     unsigned short profiledCallSiteCount;
+    unsigned short inParamCount;
 
     byte flags;
     // TODO: compress booleans into flags
     boolean doBackendArgumentsOptimization;
     boolean isLibraryCode;
     boolean isAsmJsMode;
+    boolean hasImplicitArgIns;
+
 } FunctionBodyJITData;
 
 // EntryPointInfo fields, read/write in JIT

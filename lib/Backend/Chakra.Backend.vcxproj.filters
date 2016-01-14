@@ -110,6 +110,7 @@
     <ClCompile Include="JITTimeWorkItem.cpp" />
     <ClCompile Include="JITTimeFunctionBody.cpp" />
     <ClCompile Include="JITOutput.cpp" />
+    <ClCompile Include="JITTimeScriptContext.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -305,6 +306,7 @@
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITOutput.h" />
+    <ClInclude Include="JITTimeScriptContext.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

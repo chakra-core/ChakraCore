@@ -6,7 +6,7 @@
 #include "Backend.h"
 
 
-JITTimeWorkItem::JITTimeWorkItem(const CodeGenWorkItemJITData * const workItemData) :
+JITTimeWorkItem::JITTimeWorkItem(CodeGenWorkItemJITData * workItemData) :
     m_workItemData(workItemData), m_jitBody(&workItemData->bodyData)
 {
 }
@@ -79,8 +79,21 @@ JITTimeWorkItem::GetCallsCountAddress() const
     return m_workItemData->readOnlyEPData.callsCountAddress;
 }
 
-const JITTimeFunctionBody * const
-JITTimeWorkItem::GetJITFunctionBody() const
+void
+JITTimeWorkItem::InitializeReader(
+    Js::ByteCodeReader &reader,
+    Js::StatementReader &statementReader)
+{
+#if DBG
+    reader.Create(m_jitBody.GetByteCodeBuffer(), 0, m_jitBody.GetByteCodeLength());
+#else
+    reader.Create(m_jitBody.GetByteCodeBuffer(), 0);
+#endif
+    statementReader.Create(m_jitBody.GetByteCodeBuffer(), 0, m_jitBody.GetStatementMapSpanSequence());
+}
+
+JITTimeFunctionBody *
+JITTimeWorkItem::GetJITFunctionBody()
 {
     return &m_jitBody;
 }

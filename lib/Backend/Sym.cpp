@@ -157,7 +157,7 @@ StackSym::NewArgSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type /* = Ty
 bool
 StackSym::IsTempReg(Func *const func) const
 {
-    return !HasByteCodeRegSlot() || GetByteCodeRegSlot() >= func->GetJnFunction()->GetFirstTmpReg();
+    return !HasByteCodeRegSlot() || GetByteCodeRegSlot() >= func->GetJITFunctionBody()->GetFirstTmpReg();
 }
 
 #if DBG

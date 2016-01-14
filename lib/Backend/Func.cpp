@@ -6,7 +6,7 @@
 #include "Base\EtwTrace.h"
 #include "Base\ScriptContextProfiler.h"
 
-Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
+Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -236,23 +236,6 @@ Func::Codegen()
 {
     Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
 
-    Js::ScriptContext* scriptContext = this->GetScriptContext();
-
-    {
-        if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))
-        {
-            JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_START(
-                this->GetFunctionNumber(),
-                this->m_workItem->GetDisplayName(),
-                this->GetScriptContext(),
-                this->m_workItem->GetInterpretedCount(),
-                GetJITFunctionBody()->GetLengthInBytes(),
-                GetJITFunctionBody()->GetByteCodeCount(),
-                GetJITFunctionBody()->GetByteCodeInLoopCount(),
-                (int)this->m_workItem->GetJitMode()));
-        }
-    }
-
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
     {
@@ -271,7 +254,7 @@ Func::Codegen()
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     LARGE_INTEGER start_time = { 0 };
 
-    if(PHASE_TRACE(Js::BackEndPhase, GetJnFunction()))
+    if(PHASE_TRACE(Js::BackEndPhase, GetJITFunctionBody()))
     {
         QueryPerformanceCounter(&start_time);
         if (this->IsLoopBody())
@@ -313,7 +296,7 @@ Func::Codegen()
         Output::Flush();
     }
 #ifdef FIELD_ACCESS_STATS
-    if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->GetJnFunction()) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->GetJnFunction()))
+    if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->GetJITFunctionBody()) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->GetJITFunctionBody()))
     {
         if (this->m_jitTimeData->inlineCacheStats)
         {
@@ -334,8 +317,7 @@ Func::Codegen()
         Output::Flush();
     }
 #endif
-    //Js::ByteBlock * block = this->m_jnFunction->GetByteCode()->Clone(GetScriptContext()->GetRecycler());
-    //block = block->Clone(GetScriptContext()->GetRecycler());
+
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
         // IRBuilder
@@ -366,14 +348,6 @@ Func::Codegen()
         inliner.Optimize();
 
         END_CODEGEN_PHASE(this, Js::InlinePhase);
-
-        if (scriptContext->IsClosed())
-        {
-            // Should not be jitting something in the foreground when the script context is actually closed
-            Assert(IsBackgroundJIT() || !scriptContext->IsActuallyClosed());
-
-            throw Js::OperationAbortedException();
-        }
 
         // FlowGraph
         {
@@ -518,7 +492,7 @@ Func::Codegen()
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
     if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
     {
-        scriptContext->codeSize += this->m_codeSize;
+        GetScriptContext()->codeSize += this->m_codeSize;
     }
 #endif
 
@@ -570,29 +544,11 @@ Func::Codegen()
         Output::Flush();
     }
 
-    {
-        if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
-        {
-            // TODO (michhol): OOP JIT work
-            /*
-            void* entryPoint;
-            ptrdiff_t codeSize;
-            this->m_workItem->GetEntryPointAddress(&entryPoint, &codeSize);
-            JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_STOP(
-                this->GetFunctionNumber(),
-                GetDisplayName(),
-                scriptContext,
-                this->m_workItem->GetInterpretedCount(),
-                entryPoint,
-                codeSize));*/
-        }
-    }
-
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.IsEnabled(Js::AsmDumpModeFlag))
     {
         FILE * oldFile = 0;
-        FILE * asmFile = scriptContext->GetNativeCodeGenerator()->asmFile;
+        FILE * asmFile = GetScriptContext()->GetNativeCodeGenerator()->asmFile;
         if (asmFile)
         {
             oldFile = Output::SetFile(asmFile);
@@ -925,7 +881,7 @@ void Func::InitLocalClosureSyms()
     // Allocate stack space for closure pointers. Do this only if we're jitting for stack closures, and
     // tell bailout that these are not byte code symbols so that we don't try to encode them in the bailout record,
     // as they don't have normal lifetimes.
-    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureReg();
+    Js::RegSlot regSlot = GetJITFunctionBody()->GetLocalClosureReg();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localClosureSym =
@@ -933,7 +889,7 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
-    regSlot = this->GetJnFunction()->GetLocalFrameDisplayReg();
+    regSlot = GetJITFunctionBody()->GetLocalFrameDisplayReg();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localFrameDisplaySym =

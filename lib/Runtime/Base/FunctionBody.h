@@ -2380,6 +2380,8 @@ namespace Js
             }
         }
     public:
+        FunctionBodyFlags GetFlags() { return this->flags; }
+
         bool GetHasThis() const { return (flags & Flags_HasThis) != 0; }
         void SetHasThis(bool has) { SetFlags(has, Flags_HasThis); }
 
@@ -2437,7 +2439,8 @@ namespace Js
         bool GetInlineCachesOnFunctionObject() { return m_inlineCachesOnFunctionObject; }
         void SetInlineCachesOnFunctionObject(bool has) { m_inlineCachesOnFunctionObject = has; }
 
-        bool GetHasRestParameter() const { return (flags & Flags_HasRestParameter) != 0; }
+        static bool GetHasRestParameter(FunctionBodyFlags flags) { return (flags & Flags_HasRestParameter) != 0; }
+        bool GetHasRestParameter() const { return GetHasRestParameter(this->flags); }
         void SetHasRestParameter() { SetFlags(true, Flags_HasRestParameter); }
 
         uint GetNumberOfRecursiveCallSites();
@@ -3015,10 +3018,11 @@ namespace Js
     // or main thread.
     class SmallSpanSequence
     {
-        friend class SmallSpanSequenceIter;
-        friend class ByteCodeBufferBuilder;
-        friend class ByteCodeBufferReader;
     private:
+        BOOL GetRangeAt(int index, SmallSpanSequenceIter &iter, int * pCountOfMissed, StatementData & data);
+        ushort GetDiff(int current, int prev);
+
+    public:
 
         // Each item in the list contains two set of begins (one for bytecode and for sourcespan).
         // The  allowed valued for source and bytecode span is in between SHORT_MAX - 1 to SHORT_MIN (inclusive).
@@ -3030,11 +3034,6 @@ namespace Js
 
         // The first value of the sequence
         int baseValue;
-
-        BOOL GetRangeAt(int index, SmallSpanSequenceIter &iter, int * pCountOfMissed, StatementData & data);
-        ushort GetDiff(int current, int prev);
-
-    public:
 
         SmallSpanSequence();
 

@@ -12,6 +12,23 @@ namespace Js
         ByteCodeReader::Create(functionRead, startOffset, /* useOriginalByteCode = */ false);
     }
 
+#if DBG
+    void ByteCodeReader::Create(const byte * byteCodeStart, uint startOffset, uint byteCodeLength)
+#else
+    void ByteCodeReader::Create(const byte * byteCodeStart, uint startOffset)
+#endif
+    {
+        AssertMsg(byteCodeStart != nullptr, "Must have valid byte-code to read");
+
+        m_startLocation = byteCodeStart;
+        m_currentLocation = m_startLocation + startOffset;
+
+#if DBG
+        m_endLocation = m_startLocation + byteCodeLength;
+        Assert(m_currentLocation <= m_endLocation);
+#endif
+    }
+
     void ByteCodeReader::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
     {
         AssertMsg(functionRead != nullptr, "Must provide valid function to execute");

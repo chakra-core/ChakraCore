@@ -12,6 +12,76 @@ namespace Js
         StatementReader::Create(functionRead, startOffset, false);
     }
 
+    void StatementReader::Create(
+        _In_ const byte * byteCodeStart,
+        uint startOffset,
+        Js::SmallSpanSequence * statementMap)
+    {
+        m_startLocation = byteCodeStart;
+
+        const byte * currentLocation = m_startLocation + startOffset;
+
+        m_statementMap = statementMap;
+        // TODO: (michhol OOP): support m_fullstatementMap
+        if (m_statementMap == nullptr)
+        {
+            Assert(UNREACHED);
+        }
+        else
+        {
+            m_fullstatementMap = nullptr;
+        }
+
+        if (m_statementMap && m_statementMap->Count())
+        {
+            m_statementMap->Reset(m_statementMapIter);
+
+            m_statementIndex = 0;
+            m_startOfStatement = true;
+
+            StatementData data;
+            if (!m_statementMap->Seek(m_statementIndex, data))
+            {
+                Assert(FALSE);
+            }
+
+            m_nextStatementBoundary = m_startLocation + data.bytecodeBegin;
+
+            // If we starting in the middle of the function (e.g., loop body), find out where the next statement is.
+            while (m_nextStatementBoundary < currentLocation)
+            {
+                this->MoveNextStatementBoundary();
+            }
+        }
+        else if (m_fullstatementMap && m_fullstatementMap->Count())
+        {
+            AssertMsg(UNREACHED, "TODO for OOP JIT");
+            m_statementIndex = 0;
+            m_startOfStatement = true;
+            FunctionBody::StatementMap *nextMap = Js::FunctionBody::GetNextNonSubexpressionStatementMap(m_fullstatementMap, m_statementIndex);
+            if (!nextMap)
+            {
+                // set to a location that will never match
+                m_nextStatementBoundary = currentLocation - 1;
+            }
+            else
+            {
+                m_nextStatementBoundary = m_startLocation + m_fullstatementMap->Item(m_statementIndex)->byteCodeSpan.begin;
+
+                // If we starting in the middle of the function (e.g., loop body), find out where the next statement is.
+                while (m_nextStatementBoundary < currentLocation)
+                {
+                    this->MoveNextStatementBoundary();
+                }
+            }
+        }
+        else
+        {
+            // set to a location that will never match
+            m_nextStatementBoundary = currentLocation - 1;
+        }
+    }
+
     void StatementReader::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
     {
         AssertMsg(functionRead != nullptr, "Must provide valid function to execute");

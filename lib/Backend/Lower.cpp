@@ -2277,7 +2277,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 Assert(m_func->DoSimpleJitDynamicProfile());
 
                 const auto loopNum = instr->AsJitProfilingInstr()->loopNumber;
-                Assert(loopNum < m_func->GetJnFunction()->GetLoopCount());
+                Assert(loopNum < m_func->GetJITFunctionBody()->GetLoopCount());
 
                 auto entryPointOpnd = instr->UnlinkSrc1();
                 auto dobailout = instr->UnlinkDst();
@@ -9611,7 +9611,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     {
         IR::Instr *restInstr = instrArgIn;
         restDst = restInstr->UnlinkDst();
-        if (m_func->GetJnFunction()->GetHasImplicitArgIns() && m_func->GetInParamsCount() > 1)
+        if (m_func->GetJITFunctionBody()->HasImplicitArgIns() && m_func->GetInParamsCount() > 1)
         {
             while (instrArgIn->m_opcode != Js::OpCode::ArgIn_A)
             {
@@ -20669,7 +20669,7 @@ void Lowerer::LowerFunctionEntry(IR::Instr* funcEntry)
         // Only generate the argument profiling if the function expects to have some arguments to profile and only if
         //    it has implicit ArgIns (the latter is a restriction imposed by the Interpreter, so it is mirrored in SimpleJit)
 
-        if (jn->GetInParamsCount() > 1 && jn->GetHasImplicitArgIns())
+        if (jn->GetInParamsCount() > 1 && m_func->GetJITFunctionBody()->HasImplicitArgIns())
         {
             // Call out to the argument profiling helper
             IR::Instr* callInstr = IR::Instr::New(Js::OpCode::Call, m_func);

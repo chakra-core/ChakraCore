@@ -9,7 +9,7 @@
 class JITTimeWorkItem
 {
 public:
-    JITTimeWorkItem(const CodeGenWorkItemJITData * const workItemData);
+    JITTimeWorkItem(CodeGenWorkItemJITData * workItemData);
 
     CodeGenWorkItemType Type() const;
     ExecutionMode GetJitMode() const;
@@ -19,15 +19,21 @@ public:
         _In_ size_t sizeInChars);
     uint GetInterpretedCount() const;
     uint GetLoopNumber() const;
+
     bool IsLoopBody() const;
     bool IsJitInDebugMode() const;
+    
     intptr_t GetCallsCountAddress() const;
 
-    const JITTimeFunctionBody * const GetJITFunctionBody() const;
+    void InitializeReader(
+        Js::ByteCodeReader &reader,
+        Js::StatementReader &statementReader);
+
+    JITTimeFunctionBody * GetJITFunctionBody();
 
 private:
-    const CodeGenWorkItemJITData * const m_workItemData;
-    const JITTimeFunctionBody m_jitBody;
+    CodeGenWorkItemJITData * m_workItemData;
+    JITTimeFunctionBody m_jitBody;
 
 
 

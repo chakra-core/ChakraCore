@@ -81,7 +81,7 @@ public:
         , longBranchMap(nullptr)
 #endif
     {
-        auto loopCount = func->GetJnFunction()->GetLoopCount();
+        auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
             m_saveLoopImplicitCallFlags = (IR::Opnd**)func->m_alloc->Alloc(sizeof(IR::Opnd*) * loopCount);
 #if DBG
@@ -91,13 +91,13 @@ public:
 
         // Note: use original byte code without debugging probes, so that we don't jit BPs inserted by the user.
         m_functionBody = nullptr; // TODO (michhol): OOP JIT
-        // func->m_workItem->InitializeReader(m_jnReader, m_statementReader); // TODO (michhol): bytecode reader
+        func->m_workItem->InitializeReader(m_jnReader, m_statementReader); // TODO (michhol): bytecode reader
     };
 
     ~IRBuilder() {
-        Assert(m_func->GetJnFunction()->GetLoopCount() == 0 || m_saveLoopImplicitCallFlags);
+        Assert(m_func->GetJITFunctionBody()->GetLoopCount() == 0 || m_saveLoopImplicitCallFlags);
         if (m_saveLoopImplicitCallFlags) {
-            m_func->m_alloc->Free(m_saveLoopImplicitCallFlags, sizeof(IR::Opnd*) * m_func->GetJnFunction()->GetLoopCount());
+            m_func->m_alloc->Free(m_saveLoopImplicitCallFlags, sizeof(IR::Opnd*) * m_func->GetJITFunctionBody()->GetLoopCount());
         }
     }
 
@@ -261,7 +261,7 @@ private:
 
     BOOL                RegIsConstant(Js::RegSlot reg)
     {
-        return reg > 0 && reg < this->m_func->GetJnFunction()->GetConstantCount();
+        return reg > 0 && reg < m_func->GetJITFunctionBody()->GetConstCount();
     }
 
     Js::RegSlot         InnerScopeIndexToRegSlot(uint32) const;

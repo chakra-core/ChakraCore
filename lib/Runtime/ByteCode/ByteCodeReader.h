@@ -22,6 +22,11 @@ namespace Js
     public:
         void Create(FunctionBody* functionRead, uint startOffset = 0);
         void Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode);
+#if DBG
+        void Create(const byte * byteCodeStart, uint startOffset, uint byteCodeLength);
+#else
+        void Create(const byte * byteCodeStart, uint startOffset);
+#endif
         uint GetCurrentOffset() const;
         const byte * SetCurrentOffset(int byteOffset);
         const byte * SetCurrentRelativeOffset(const byte * ip, int byteOffset);

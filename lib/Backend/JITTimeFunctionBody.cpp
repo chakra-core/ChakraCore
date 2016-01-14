@@ -5,9 +5,10 @@
 
 #include "Backend.h"
 
-JITTimeFunctionBody::JITTimeFunctionBody(const FunctionBodyJITData * const bodyData) :
+JITTimeFunctionBody::JITTimeFunctionBody(FunctionBodyJITData * bodyData) :
     m_bodyData(bodyData)
 {
+    InitializeStatementMap();
 }
 
 uint
@@ -41,12 +42,6 @@ JITTimeFunctionBody::GetScopeSlotArraySize() const
 }
 
 uint
-JITTimeFunctionBody::GetLengthInBytes() const
-{
-    return m_bodyData->cbLength;
-}
-
-uint
 JITTimeFunctionBody::GetByteCodeCount() const
 {
     return m_bodyData->byteCodeCount;
@@ -56,6 +51,66 @@ uint
 JITTimeFunctionBody::GetByteCodeInLoopCount() const
 {
     return m_bodyData->byteCodeInLoopCount;
+}
+
+uint
+JITTimeFunctionBody::GetLoopCount() const
+{
+    return m_bodyData->loopCount;
+}
+
+uint
+JITTimeFunctionBody::GetByteCodeLength() const
+{
+    return m_bodyData->byteCodeLength;
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetLocalFrameDisplayReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->localFrameDisplayReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetLocalClosureReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->localClosureReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetEnvReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->envReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetFirstTmpReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->firstTmpReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetVarCount() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->varCount);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetConstCount() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->constCount);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetLocalsCount() const
+{
+    return GetConstCount() + GetVarCount();
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetTempCount() const
+{
+    return GetLocalsCount() - GetFirstTmpReg();
 }
 
 uint16
@@ -68,6 +123,12 @@ Js::ProfileId
 JITTimeFunctionBody::GetProfiledCallSiteCount() const
 {
     return static_cast<Js::ProfileId>(m_bodyData->profiledCallSiteCount);
+}
+
+Js::ArgSlot
+JITTimeFunctionBody::GetInParamsCount() const
+{
+    return static_cast<Js::ArgSlot>(m_bodyData->inParamCount);
 }
 
 bool
@@ -121,6 +182,40 @@ JITTimeFunctionBody::IsGenerator() const
     return Js::FunctionInfo::IsGenerator(GetAttributes());
 }
 
+bool
+JITTimeFunctionBody::HasImplicitArgIns() const
+{
+    return m_bodyData->hasImplicitArgIns != FALSE;
+}
+
+bool
+JITTimeFunctionBody::HasRestParameter() const
+{
+    return Js::FunctionBody::GetHasRestParameter(GetFlags());
+}
+
+const byte *
+JITTimeFunctionBody::GetByteCodeBuffer() const
+{
+    return m_bodyData->byteCodeBuffer;
+}
+
+Js::SmallSpanSequence *
+JITTimeFunctionBody::GetStatementMapSpanSequence()
+{
+    return &m_statementMap;
+}
+
+Js::Var
+JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
+{
+    Assert(m_bodyData->constTable != nullptr);
+    Assert(location < GetConstCount());
+    Assert(location != 0);
+
+    return reinterpret_cast<Js::Var*>(m_bodyData->constTable)[location - Js::FunctionBody::FirstRegSlot];
+}
+
 Js::FunctionBody::FunctionBodyFlags
 JITTimeFunctionBody::GetFlags() const
 {
@@ -131,4 +226,36 @@ Js::FunctionInfo::Attributes
 JITTimeFunctionBody::GetAttributes() const
 {
     return static_cast<Js::FunctionInfo::Attributes>(m_bodyData->attributes);
+}
+
+void
+JITTimeFunctionBody::InitializeStatementMap()
+{
+    const uint statementsLength = m_bodyData->statementMap.statementLength;
+    const uint offsetsLength = m_bodyData->statementMap.actualOffsetLength;
+
+    m_statementMap.baseValue = m_bodyData->statementMap.baseValue;
+
+    if (statementsLength > 0)
+    {
+        // TODO: (michhol OOP JIT) should be able to directly use statementMap.statementBuffer
+        m_statementMap.pStatementBuffer = JsUtil::GrowingUint32HeapArray::Create(statementsLength);
+        m_statementMap.pStatementBuffer->SetCount(statementsLength);
+        js_memcpy_s(
+            m_statementMap.pStatementBuffer->GetBuffer(),
+            m_statementMap.pStatementBuffer->Count() * sizeof(uint32),
+            m_bodyData->statementMap.statementBuffer,
+            statementsLength * sizeof(uint32));
+    }
+
+    if (offsetsLength > 0)
+    {
+        m_statementMap.pActualOffsetList = JsUtil::GrowingUint32HeapArray::Create(offsetsLength);
+        m_statementMap.pActualOffsetList->SetCount(offsetsLength);
+        js_memcpy_s(
+            m_statementMap.pActualOffsetList->GetBuffer(),
+            m_statementMap.pActualOffsetList->Count() * sizeof(uint32),
+            m_bodyData->statementMap.actualOffsetList,
+            offsetsLength * sizeof(uint32));
+    }
 }

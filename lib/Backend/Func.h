@@ -67,7 +67,7 @@ typedef HashTable<FrameDisplayCheckRecord*, JitArenaAllocator> FrameDisplayCheck
 class Func
 {
 public:
-    Func(JitArenaAllocator *alloc, JITTimeWorkItem * const workItem,
+    Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
@@ -247,8 +247,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     BOOL HasTry() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetHasTry();
+        return this->GetJITFunctionBody()->HasTry();
     }
     bool HasFinally() const
     {
@@ -259,8 +258,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     Js::ArgSlot GetInParamsCount() const
     {
         Assert(this->IsTopFunc());
-        Assert(this->m_jnFunction);     // For now we always have a function body
-        return this->m_jnFunction->GetInParamsCount();
+        return this->GetJITFunctionBody()->GetInParamsCount();
     }
     bool IsGlobalFunc() const
     {

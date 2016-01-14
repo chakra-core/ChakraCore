@@ -438,7 +438,7 @@ GlobOpt::ForwardPass()
     // functions with constants. There will be a gap in the symbol numbering between the main constants and
     // the inlined ones, so we'll most likely need a new array chunk. Make the min size of the array chunks be 64
     // in case we have a main function with very few constants and a bunch of constants from inlined functions.
-    this->byteCodeConstantValueArray = SparseArray<Value>::New(this->alloc, max(this->func->GetJnFunction()->GetConstantCount(), 64U));
+    this->byteCodeConstantValueArray = SparseArray<Value>::New(this->alloc, max(this->func->GetJITFunctionBody()->GetConstCount(), 64U));
     this->byteCodeConstantValueNumbersBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->tempBv = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     this->prePassCopyPropSym = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);

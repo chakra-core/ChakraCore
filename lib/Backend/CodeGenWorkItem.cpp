@@ -26,11 +26,78 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
-    this->jitData.type = type;
-    this->jitData.isJitInDebugMode = isJitInDebugMode;
+    // TODO: (michhol) put bodyData directly on function body rather than doing this copying?
+    // bytecode
+    this->jitData.bodyData.byteCodeLength = functionBody->GetByteCode()->GetLength();
+    this->jitData.bodyData.byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
+
+    // const table
+    this->jitData.bodyData.constCount = functionBody->GetConstantCount();
+    this->jitData.bodyData.constTable = (intptr_t *)functionBody->GetConstTable();
+
+    // statement map
+    Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
+
+    this->jitData.bodyData.statementMap.baseValue = statementMap->baseValue;
+
+    if (statementMap->pActualOffsetList)
+    {
+        this->jitData.bodyData.statementMap.actualOffsetLength = statementMap->pActualOffsetList->GetLength();
+        this->jitData.bodyData.statementMap.actualOffsetList = statementMap->pActualOffsetList->GetBuffer();
+    }
+    else
+    {
+        this->jitData.bodyData.statementMap.actualOffsetLength = 0;
+        this->jitData.bodyData.statementMap.actualOffsetList = nullptr;
+    }
+
+    if (statementMap->pStatementBuffer)
+    {
+        this->jitData.bodyData.statementMap.statementLength = statementMap->pStatementBuffer->GetLength();
+        this->jitData.bodyData.statementMap.statementBuffer = statementMap->pStatementBuffer->GetBuffer();
+    }
+    else
+    {
+        this->jitData.bodyData.statementMap.statementLength = 0;
+        this->jitData.bodyData.statementMap.statementBuffer = nullptr;
+    }
+
+    // body data
     this->jitData.bodyData.funcNumber = functionBody->GetFunctionNumber();
     this->jitData.bodyData.localFuncId = functionBody->GetLocalFunctionId();
     this->jitData.bodyData.sourceContextId = functionBody->GetSourceContextId();
+    this->jitData.bodyData.nestedCount = functionBody->GetNestedCount();
+    this->jitData.bodyData.scopeSlotArraySize = functionBody->scopeSlotArraySize;
+    this->jitData.bodyData.attributes = functionBody->GetAttributes();
+
+    if (functionBody->GetUtf8SourceInfo()->GetCbLength() > UINT_MAX)
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    this->jitData.bodyData.byteCodeCount = functionBody->GetByteCodeCount();
+    this->jitData.bodyData.byteCodeInLoopCount = functionBody->GetByteCodeInLoopCount();
+    this->jitData.bodyData.loopCount = functionBody->GetLoopCount();
+    this->jitData.bodyData.localFrameDisplayReg = functionBody->GetLocalFrameDisplayReg();
+    this->jitData.bodyData.localClosureReg = functionBody->GetLocalClosureReg();
+    this->jitData.bodyData.envReg = functionBody->GetEnvReg();
+    this->jitData.bodyData.firstTmpReg = functionBody->GetFirstTmpReg();
+    this->jitData.bodyData.varCount = functionBody->GetVarCount();
+
+    this->jitData.bodyData.envDepth = functionBody->GetEnvDepth();
+    this->jitData.bodyData.profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
+    this->jitData.bodyData.inParamCount = functionBody->GetInParamsCount();
+
+    this->jitData.bodyData.flags = functionBody->GetFlags();
+
+    this->jitData.bodyData.doBackendArgumentsOptimization = functionBody->GetDoBackendArgumentsOptimization();
+    this->jitData.bodyData.isLibraryCode = functionBody->GetUtf8SourceInfo()->GetIsLibraryCode();
+    this->jitData.bodyData.isAsmJsMode = functionBody->GetIsAsmjsMode();
+    this->jitData.bodyData.hasImplicitArgIns = functionBody->GetHasImplicitArgIns();
+
+    // work item data
+    this->jitData.type = type;
+    this->jitData.isJitInDebugMode = isJitInDebugMode;
     ResetJitMode();
 
     this->jitData.loopNumber = GetLoopNumber();

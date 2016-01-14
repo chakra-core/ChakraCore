@@ -127,7 +127,7 @@ IRBuilderAsmJs::Build()
     m_offsetToInstruction = JitAnewArrayZ(m_tempAlloc, IR::Instr *, offsetToInstructionCount);
 
     BuildConstantLoads();
-    if (!this->IsLoopBody() && m_func->GetJnFunction()->GetHasImplicitArgIns())
+    if (!this->IsLoopBody() && m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         BuildImplicitArgIns();
     }

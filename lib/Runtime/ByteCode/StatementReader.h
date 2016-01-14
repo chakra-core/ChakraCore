@@ -22,6 +22,11 @@ namespace Js
         void Create(FunctionBody* functionRead, uint startOffset = 0);
         void Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode);
 
+        void Create(
+            _In_ const byte * byteCodeStart,
+            uint startOffset,
+            Js::SmallSpanSequence * statementMap);
+
         inline bool AtStatementBoundary(ByteCodeReader * reader) { return m_nextStatementBoundary == reader->GetIP(); }
         inline uint32 MoveNextStatementBoundary();
         inline uint32 GetStatementIndex() const { return m_statementIndex; }

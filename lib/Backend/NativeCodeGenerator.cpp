@@ -904,7 +904,76 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // exception (RejitException or AbortException).
             AutoAllocatorObjectPtr<Func, JitArenaAllocator> autoFunc(func, &funcAlloc);
 
+
+            {
+                if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))
+                {
+                    WCHAR displayNameBuffer[256];
+                    WCHAR* displayName = displayNameBuffer;
+                    size_t sizeInChars = workItem->GetDisplayName(displayName, 256);
+                    if (sizeInChars > 256)
+                    {
+                        displayName = new WCHAR[sizeInChars];
+                        workItem->GetDisplayName(displayName, 256);
+                    }
+                    JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_START(
+                        body->GetFunctionNumber(),
+                        displayName,
+                        body->GetScriptContext(),
+                        workItem->GetInterpretedCount(),
+                        (const unsigned int)body->LengthInBytes(),
+                        body->GetByteCodeCount(),
+                        body->GetByteCodeInLoopCount(),
+                        (int)workItem->GetJitMode()));
+
+                    if (displayName != displayNameBuffer)
+                    {
+                        delete[] displayName;
+                    }
+                }
+            }
+
+            // TODO: (michhol OOP JIT) I think this should be requisite to calling?
+
+            if (body->GetScriptContext()->IsClosed())
+            {
+                // Should not be jitting something in the foreground when the script context is actually closed
+                Assert(IsBackgroundJIT() || !body->GetScriptContext()->IsActuallyClosed());
+
+                throw Js::OperationAbortedException();
+            }
+
             func->Codegen();
+
+            {
+                if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
+                {
+                    WCHAR displayNameBuffer[256];
+                    WCHAR* displayName = displayNameBuffer;
+                    size_t sizeInChars = workItem->GetDisplayName(displayName, 256);
+                    if (sizeInChars > 256)
+                    {
+                        displayName = new WCHAR[sizeInChars];
+                        workItem->GetDisplayName(displayName, 256);
+                    }
+                    void* entryPoint;
+                    ptrdiff_t codeSize;
+                    workItem->GetEntryPointAddress(&entryPoint, &codeSize);
+                    JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_STOP(
+                        body->GetFunctionNumber(),
+                        displayName,
+                        body->GetScriptContext(),
+                        workItem->GetInterpretedCount(),
+                        entryPoint,
+                        codeSize));
+
+                    if (displayName != displayNameBuffer)
+                    {
+                        delete[] displayName;
+                    }
+                }
+            }
+
             rejit = false;
         }
         catch(Js::RejitException ex)
