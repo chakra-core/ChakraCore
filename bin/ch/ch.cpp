@@ -121,8 +121,13 @@ void __stdcall PrintUsageFormat()
 
 void __stdcall PrintUsage()
 {
+#ifndef DEBUG
+    wprintf(L"\nUsage: ch.exe filename"
+            L"\n[flaglist] is not supported for Release mode\n");
+#else
     PrintUsageFormat();
     wprintf(L"Try 'ch.exe -?' for help\n");
+#endif
 }
 
 // On success the param byteCodeBuffer will be allocated in the function.
@@ -499,8 +504,29 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     AssertMsg(lock, "failed to lock chakracore.dll");
 
     HostConfigFlags::HandleArgsFlag(argc, argv);
+#ifndef DEBUG
+    wchar_t fullPath[_MAX_PATH];
+    BSTR tmpPath;
 
+    if (_wfullpath(fullPath, argv[1], _MAX_PATH) == nullptr)
+    {
+      fwprintf(stderr, L"EFAIL: Failed to resolve full path\n");
+      return EXIT_FAILURE;
+    }
+
+    // canonicalize that path name to lower case for the profile storage
+    size_t len = wcslen(fullPath);
+    for (size_t i = 0; i < len; i++)
+    {
+      fullPath[i] = towlower(fullPath[i]);
+    }
+
+    tmpPath = SysAllocString(fullPath);
+    CComBSTR fileName(tmpPath);
+    SysFreeString(tmpPath);
+#else
     CComBSTR fileName;
+#endif
 
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
