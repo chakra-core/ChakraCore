@@ -4,7 +4,7 @@
 # -------------------------------------------------------------------------------------------------------
 #
 # Script used for perf testing against individual benchmarks.  This script supports "official" mode, which dumps an XML file
-# filled with all the data for analysis or exporting into Excel.  
+# filled with all the data for analysis or exporting into Excel.
 #
 
 
@@ -86,7 +86,7 @@ $other_switches .= " -highprecisiondate" if $highprecisiondate;
 
 if(!$is_baseline)
 {
-    open my $IN, '<', $basefile or die "Couldn't open $basefile for reading.";
+    open(my $IN, '<', $basefile) or die "Couldn't open $basefile for reading.";
     while(<$IN>)
     {
         if(/^([\w\-\\\.]+)\((\w+)\)\s([-+]?[0-9]*\.?[0-9]+)\s([-+]?[0-9]*\.?[0-9]+)\s([-+]?[0-9]*\.?[0-9]+)\s([-+]?[0-9]*\.?[0-9]+)$/)
@@ -115,7 +115,7 @@ if(!$is_baseline)
             die "Couldn't match baseline file line: $_";
         }
     }
-    close $IN;
+    close($IN);
 }
 else
 {
@@ -167,10 +167,10 @@ foreach my $variant(@variants)
             if ($parse_latency == 1)
             {
                 # Store Latency score as a separate test - This is used as one of the compnonents in calculating the final GM score.
-                $measured_data{$testLatency}{$variant}{"score"}[$i] = $result{"latency"};               
+                $measured_data{$testLatency}{$variant}{"score"}[$i] = $result{"latency"};
             }
         }
-        
+
         if ($parse_time == 1)
         {
             # process the time result
@@ -241,7 +241,7 @@ foreach my $variant(@variants)
                 }
             }
 
-            $measuredlog += log($measured{$test}{$variant}{"score"});           
+            $measuredlog += log($measured{$test}{$variant}{"score"});
             $variancelog += log(($measured{$test}{$variant}{"score"} * $variances{$test}{$variant}{"score"}) / 100);
 
             if($parse_latency == 1)
@@ -260,7 +260,7 @@ foreach my $variant(@variants)
         $basesum{"score"} = exp($baselog / $count);
         $totalBaseVariance{"score"} = exp($basevariancelog / $count);
     }
-    
+
     print("---------------------------------------------------------------------------\n");
 
     #print the total only if it is not a baseline run.
@@ -286,7 +286,7 @@ foreach my $variant(@variants)
                     $investigate = "<-IMPROVED";
                 }
             }
-            
+
             printf("%-24.24s %6.1f +-%2.1f%%\t%6.1f +-%2.1f%%\t%6.1f\t%5.1f%% %s\n", "TOTAL TIME", $basesum{"time"}, $base_variance, $measuredsum{"time"}, $test_variance, $diff, $ratio, $investigate);
         }
 
@@ -369,7 +369,7 @@ if($is_official)
 # if it's a baseline run, just output to the baseline file and exit
 if($is_baseline)
 {
-    open my $OUT, '>', $basefile or die "Couldn't open $basefile for writing.";
+    open(my $OUT, '>', $basefile) or die "Couldn't open $basefile for writing.";
 
     foreach my $test(@testlist)
     {
@@ -387,7 +387,7 @@ if($is_baseline)
         }
     }
 
-    close $OUT;
+    close($OUT);
     exit(0);
 }
 sub processResult()
@@ -507,12 +507,12 @@ sub runtest
     {
         system("$binary $switches{$variant} $other_switches $testcasename.js > _time.txt");
     }
-    else 
+    else
     {
         system("$binary $switches{$variant} $other_switches $dir\\$testcasename.js > _time.txt");
     }
 
-    open my $IN, '<', "_time.txt" or die;
+    open(my $IN, '<', "_time.txt") or die;
 
     my $i = 0;
     while(<$IN>)
@@ -526,7 +526,7 @@ sub runtest
         {
             $results{"score"} = $1;
         }
-        
+
         if(/###\sLATENCY:\s(\d+)/)
         {
             $results{"latency"} = $1;
@@ -536,7 +536,7 @@ sub runtest
 
     if ($testDescription == "custom")
     {
-        if ($results{"time"} != -1 || $results{"score"} != -1)  
+        if ($results{"time"} != -1 || $results{"score"} != -1)
         {
             return %results;
         }
@@ -567,7 +567,7 @@ sub usage
     print "  -iterations:<iter>     Number of iterations to run tests (default: 11)\n";
     print "  -official:<name>       Generates an official report into results-<name>.xml\n";
     print "  -native                Only run -native variation (default)\n";
-    print "  -interpreted           Only run -interpreted variation\n";    
+    print "  -interpreted           Only run -interpreted variation\n";
     print "  -nativeAndinterpreted  Run -interpreted along with -native variation\n";
     print "  -nodynamicProfile      Run without dynamic profile info\n";
     print "  -dynamicProfile        Force Run with dynamic profile info\n";
@@ -617,17 +617,17 @@ sub parse_args
                 $dir= ".";
                 print "dir = $1\n";
             }
-        
+
             #opens the directory and read the files in it
             opendir(dirHandle,$dir) || die("Cannot open directory");
             @testlist =  grep (/.js/, readdir(dirHandle));
             closedir(dirHandle);
 
-            for (@testlist) 
+            for (@testlist)
             {
                 s/(.*).js/$1/;
             }
-        
+
             $is_dynamicProfileRun = 0;
         }
         elsif($ARGV[$i] =~ /[-\/]iterations:(\d+)$/)
@@ -639,7 +639,7 @@ sub parse_args
         {
             $is_official = 1;
             $official_name = $1;
-            open $OFFICIAL, '>', "results-$official_name.xml" or die "Cannot open official results XML file for writing";
+            open($OFFICIAL, '>', "results-$official_name.xml") or die "Cannot open official results XML file for writing";
             badswitch() if $is_baseline;
         }
         elsif($ARGV[$i] =~ /[-\/]native/)
@@ -653,7 +653,7 @@ sub parse_args
         elsif($ARGV[$i] =~ /[-\/]nativeAndInterpreted/)
         {
             @variants = ("native", "interpreted");
-        }        
+        }
         elsif($ARGV[$i] =~ /[-\/]octane/)
         {
             if($iter == $defaultIter)
@@ -713,8 +713,8 @@ sub parse_args
         elsif($ARGV[$i] =~ /[-\/]file:(.*).js$/i)
         {
             # only supports octane, add additional support here for jetstream
-            my %scoreTests = ( "box2d" => 1, "code-load" => 1, "crypto" => 1, "deltablue" => 1, 
-                               "earley-boyer" => 1, "gbemu" => 1, "mandreel" => 1, "navier-stokes" => 1, 
+            my %scoreTests = ( "box2d" => 1, "code-load" => 1, "crypto" => 1, "deltablue" => 1,
+                               "earley-boyer" => 1, "gbemu" => 1, "mandreel" => 1, "navier-stokes" => 1,
                                "pdfjs" => 1, "raytrace" => 1, "regexp" => 1, "richards" => 1, "splay" => 1,
                                 "zlib" => 1, "typescript" => 1);
             @testlist = ($1);
@@ -770,7 +770,7 @@ sub parse_args
     {
         $is_dynamicProfileRun = 1;
     }
-    
+
     if ($binary eq "")
     {
         print "ERROR: Provide a binary path for ch.exe (-binary:<path>\\ch.exe).\n";
@@ -781,7 +781,7 @@ sub parse_args
 sub official_footer
 {
     print OFFICIAL "</data>\n";
-    close(OFFICIAL)
+    close(OFFICIAL);
 }
 
 sub official_header
@@ -815,7 +815,7 @@ sub official_end_test
 sub check_switch
 {
     system("$binary /? > _time.txt");
-    open my $IN, '<', "_time.txt" or die;
+    open(my $IN, '<', "_time.txt") or die;
     my $dynamicProfileSupported = 0;
     my $highprecisiondateSupported = 0;
     while(<$IN>)
@@ -829,7 +829,7 @@ sub check_switch
             $dynamicProfileSupported = 1;
         }
     }
-    close $IN;
+    close($IN);
 
     if($is_dynamicProfileRun && !$dynamicProfileSupported)
     {
