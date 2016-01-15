@@ -36,6 +36,7 @@ private:
     BYTE capturesAll : 1;
     BYTE mustInstantiate : 1;
     BYTE hasCrossScopeFuncAssignment : 1;
+    BYTE hasDuplicateFormals : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -50,6 +51,7 @@ public:
         capturesAll(false),
         mustInstantiate(false),
         hasCrossScopeFuncAssignment(false),
+        hasDuplicateFormals(false),
         location(Js::Constants::NoRegister),
         symbolTable(nullptr),
         m_symList(nullptr),
@@ -279,6 +281,9 @@ public:
 
     void SetScopeSlotCount(uint i) { scopeSlotCount = i; }
     uint GetScopeSlotCount() const { return scopeSlotCount; }
+
+    void SetHasDuplicateFormals() { hasDuplicateFormals = true; }
+    bool GetHasDuplicateFormals() { return hasDuplicateFormals; }
 
     void SetHasLocalInClosure(bool has);
 
