@@ -382,32 +382,6 @@ JsDiagResume(
     });
 }
 
-
-STDAPI_(JsErrorCode)
-JsStringifyObject(
-    _In_ JsValueRef value,
-    _Out_ JsValueRef *stringValue)
-{
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
-        PARAM_NOT_NULL(stringValue);
-
-        *stringValue = JS_INVALID_REFERENCE;
-
-        Js::Var stringify = Js::JavascriptOperators::OP_GetProperty(scriptContext->GetLibrary()->GetJSONObject(), Js::PropertyIds::stringify, scriptContext);
-        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(stringify);
-        Js::JavascriptMethod entryPoint = jsFunction->GetEntryPoint();
-
-        Js::CallInfo info(Js::CallFlags_Value, 2);
-        Js::Var values[4] = { scriptContext->GetLibrary()->GetUndefined(), value };
-        Js::Arguments args(info, values);
-
-        *stringValue = Js::JavascriptFunction::CallFunction<true>(jsFunction, entryPoint, args);
-        return JsNoError;
-    });
-}
-
-
 STDAPI_(JsErrorCode)
 JsDiagGetFunctionPosition(
     _In_ JsValueRef value,
@@ -693,6 +667,48 @@ JsDiagLookupHandles(
         }
 
         *valuesObject = object;
+
+        return JsNoError;
+    });
+}
+
+STDAPI_(JsErrorCode)
+JsDiagEvaluate(
+    _In_ const wchar_t *script,
+    _In_ unsigned int stackFrameIndex,
+    _Out_ JsValueRef *evalResult)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        PARAM_NOT_NULL(script);
+        PARAM_NOT_NULL(evalResult);
+
+        *evalResult = JS_INVALID_REFERENCE;
+
+        JsrtContext* context = JsrtContext::GetCurrent();
+        JsrtRuntime* runtime = context->GetRuntime();
+
+        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
+
+        JsrtDebug* debugObject = runtime->GetDebugObject();
+
+        VALIDATE_DEBUG_OBJECT(debugObject);
+
+        DebuggerObjectBase* debuggerObject = nullptr;
+
+        if (!debugObject->GetDebuggerObjectsManager()->TryGetFrameObjectFromFrameIndex(stackFrameIndex, &debuggerObject))
+        {
+            // ToDo (SaAgarwa): JsErrorDiagInvalidHandle;
+            return JsErrorCategoryUsage;
+        }
+
+        DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;
+
+        Js::DynamicObject* result = debuggerStackFrame->Evaluate(script, false);
+        if (result != nullptr)
+        {
+            *evalResult = result;
+        }
 
         return JsNoError;
     });

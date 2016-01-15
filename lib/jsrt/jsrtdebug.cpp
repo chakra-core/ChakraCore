@@ -6,6 +6,7 @@
 #include "JsrtDebug.h"
 #include "JsrtDebugEventObject.h"
 #include "JsrtDebugUtils.h"
+#include "JsrtDebuggerObject.h"
 #include "..\Runtime\Debug\RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
 
@@ -220,21 +221,22 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
 
         JsrtDebugUtils::AddBooleanPropertyToObject(eventDataObject, L"uncaught", !haltState->exceptionObject->IsFirstChanceException(), scriptContext);
 
-        // ToDo (SaAgarwa): Refactor ActiveScriptError and resue it here
-        if (haltState->exceptionObject != nullptr)
-        {
-            Js::Var errorObject = haltState->exceptionObject->GetThrownObject(nullptr);
-            if (Js::JavascriptError::Is(errorObject) ||
-                Js::JavascriptError::IsRemoteError(errorObject))
-            {
-                wchar_t const * messageSz = nullptr;
-                Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), &messageSz);
-                if (messageSz != nullptr)
-                {
-                    JsrtDebugUtils::AddStringPropertyToObject(eventDataObject, L"errorText", messageSz, scriptContext);
-                }
-            }
+        Js::ResolvedObject resolvedObject;
+        resolvedObject.scriptContext = scriptContext;
+        resolvedObject.name = L"{exception}";
+        resolvedObject.typeId = Js::TypeIds_Error;
+        resolvedObject.address = nullptr;
+        resolvedObject.obj = scriptContext->GetDebugContext()->GetProbeContainer()->GetExceptionObject();
+
+        if (resolvedObject.obj == nullptr) {
+            Assert(false);
+            resolvedObject.obj = resolvedObject.scriptContext->GetLibrary()->GetUndefined();
         }
+
+        DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(this->debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
+        {
+            JsrtDebugUtils::AddVarPropertyToObject(eventDataObject, L"exception", marshaledObj, scriptContext);
+        });
 
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {

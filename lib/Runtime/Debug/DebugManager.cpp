@@ -20,7 +20,8 @@ namespace Js
         anonymousCodeRegistrationCount(0),
         jscriptBlockRegistrationCount(0),
         isDebuggerAttaching(false),
-        nextBreakPointId(0)
+        nextBreakPointId(0),
+        localsDisplayFlags(LocalsDisplayFlags_None)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG

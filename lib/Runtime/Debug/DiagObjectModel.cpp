@@ -1935,7 +1935,7 @@ namespace Js
 
                 try
                 {
-                    //BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                    auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
                         if (object->CanHaveInterceptors())
@@ -1951,8 +1951,29 @@ namespace Js
                         {
                             return TRUE;
                         }
+
+                        return FALSE;
+                    };
+
+                    BOOL autoFuncReturn = FALSE;
+
+                    if (!scriptContext->GetThreadContext()->IsScriptActive())
+                    {
+                        BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                        {
+                            autoFuncReturn = funcPtr();
+                        }
+                        END_JS_RUNTIME_CALL(scriptContext);
                     }
-                    //END_JS_RUNTIME_CALL(scriptContext);
+                    else
+                    {
+                        autoFuncReturn = funcPtr();
+                    }
+
+                    if (autoFuncReturn == TRUE)
+                    {
+                        return TRUE;
+                    }
                 }
                 catch (Js::JavascriptExceptionObject* exception)
                 {
@@ -2549,15 +2570,23 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(itemObj) == TypeIds_Function)
         {
-            EnsureFakeGroupObjectWalkerList();
-
-            if (*ppMethodsGroupWalker == nullptr)
+            if (scriptContext->GetThreadContext()->GetDebugManager()->IsLocalsDisplayFlagsSet(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods))
             {
-                *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
-                fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
+                pMembersList->Add(info);
             }
+            else 
+            {
+                EnsureFakeGroupObjectWalkerList();
 
-            (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+                if (*ppMethodsGroupWalker == nullptr)
+                {
+                    *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
+                    fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                }
+
+                (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+            }
         }
         else
         {

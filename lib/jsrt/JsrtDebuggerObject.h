@@ -29,6 +29,23 @@ public:
     DebuggerObjectsManager* GetDebuggerObjectsManager();
     virtual Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext) = 0;
     virtual Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext);
+
+    template<class DebuggerObjectType, class PostFunction>
+    static void CreateDebuggerObject(DebuggerObjectsManager* debuggerObjectsManager, Js::ResolvedObject resolvedObject, Js::ScriptContext* scriptContext, PostFunction postFunction)
+    {
+        AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+        Js::IDiagObjectModelDisplay* objectDisplay = objectDisplayWeakRef->GetStrongReference();
+        if (objectDisplay != nullptr)
+        {
+            DebuggerObjectBase* debuggerObject = DebuggerObjectType::Make(debuggerObjectsManager, objectDisplayWeakRef);
+            Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
+            Assert(object != nullptr);
+            Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
+            postFunction(marshaledObj);
+            objectDisplayWeakRef.Detach();
+        }
+    }
+protected:
     Js::DynamicObject* GetChildrens(WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, Js::ScriptContext * scriptContext);
 private:
     DebuggerObjectType type;
@@ -51,6 +68,7 @@ public:
     bool TryGetDebuggerObjectFromHandle(uint handle, DebuggerObjectBase** debuggerObject) { return this->GetDebuggerObjectsDictionary()->TryGetValue(handle, debuggerObject); }
     bool TryGetScriptObjectFromScriptId(uint scriptId, DebuggerObjectBase** debuggerObject) { return this->GetScriptIdToObjectDictionary()->TryGetValue(scriptId, debuggerObject); }
     bool TryGetFunctionObjectFromFunctionNumber(uint functionNumber, DebuggerObjectBase** debuggerObject) { return this->GetFunctionNumberToObjectDictionary()->TryGetValue(functionNumber, debuggerObject); }
+    bool TryGetFrameObjectFromFrameIndex(uint frameIndex, DebuggerObjectBase** debuggerObject);
 
     void AddToDebuggerObjectsDictionary(DebuggerObjectBase* debuggerObject);
     void AddToScriptIdDebuggerObjectsDictionary(uint scriptId, DebuggerObjectBase* debuggerObject);
@@ -151,7 +169,9 @@ public:
     static DebuggerObjectBase* Make(DebuggerObjectsManager* debuggerObjectsManager, Js::DiagStackFrame* stackFrame, uint frameIndex);
 
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
-    Js::DynamicObject * GetLocalsObject();
+    Js::DynamicObject* GetLocalsObject();
+    Js::DynamicObject* Evaluate(const wchar_t*  pszSrc, bool isLibraryCode);
+    uint GetIndex() const { return this->frameIndex; }
 
 private:
     DebuggerObjectStackFrame(DebuggerObjectsManager* debuggerObjectsManager, Js::DiagStackFrame* stackFrame, uint frameIndex);

@@ -18,8 +18,6 @@
 #ifndef _CHAKRARTDEBUG_H_
 #define _CHAKRARTDEBUG_H_
 
-#if NTDDI_VERSION >= NTDDI_WIN7
-
 // For now APIs are Desktop only
 #pragma region Desktop Family
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -331,18 +329,38 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "locals" : [{
+    ///         "exception" : {
+    ///             "name" : "{exception}",
+    ///             "type" : "Error",
+    ///             "haveChildrens" : true,
+    ///             "handle" : 20
+    ///         },
+    ///         "arguments" : {
     ///             "name" : "arguments",
-    ///             "type" : "Object, (Arguments)",
-    ///             "value" : "{...}",
-    ///             "handle" : 78
-    ///         }],
+    ///             "type" : "Object",
+    ///             "haveChildrens" : true,
+    ///             "handle" : 21
+    ///         },
+    ///         "returnValue" : {
+    ///             "name" : "arguments",
+    ///             "type" : "Object",
+    ///             "haveChildrens" : true,
+    ///             "handle" : 22
+    ///         },
+    ///         "locals" : [{
+    ///                 "name" : "exports",
+    ///                 "type" : "Object",
+    ///                 "haveChildrens" : true,
+    ///                 "handle" : 23
+    ///             }
+    ///         ],
     ///         "scopes" : [{
-    ///             "index" : 0,
-    ///             "handle" : 87
-    ///         }],
+    ///                 "index" : 0,
+    ///                 "handle" : 24
+    ///             }
+    ///         ],
     ///         "globals" : {
-    ///             "handle" : 88
+    ///             "handle" : 25
     ///         }
     ///     }
     ///     </para>
@@ -364,12 +382,22 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "58" : [{
-    ///             "name" : "hasOwnProperty",
-    ///             "type" : "Object, (Function)",
-    ///             "value" : "function hasOwnProperty(obj, prop) {\n  return Object.prototype.hasOwnProperty.call(obj, prop);\n}",
-    ///             "handle" : 60
-    ///         }]
+    ///         "24" : {
+    ///             "properties" : [{
+    ///                     "name" : "__proto__",
+    ///                     "type" : "Object",
+    ///                     "haveChildrens" : true,
+    ///                     "handle" : 68
+    ///                 }
+    ///             ],
+    ///             "debuggerOnlyProperties" : [{
+    ///                     "name" : "[Map]",
+    ///                     "type" : "Object",
+    ///                     "haveChildrens" : true,
+    ///                     "handle" : 69
+    ///                 }
+    ///             ]
+    ///         }
     ///     }
     ///     </para>
     /// </remarks>
@@ -421,22 +449,26 @@
 
 
     /// <summary>
-    ///     Stringifies the object using JSON.stringify.
+    ///     Evaluate a script on given frame
     /// </summary>
-    /// <param name="value">Object to be stringified.</param>
-    /// <param name="stringValue">The converted value.</param>
+    /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the script</param>
+    /// <param name="evalResult">Result of script</param>
+    /// <remarks>
+    ///     <para>
+    ///     </para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsStringifyObject(
-            _In_ JsValueRef value,
-            _Out_ JsValueRef *stringValue);
+        JsDiagEvaluate(
+            _In_ const wchar_t *script,
+            /* ToDo (SaAgarwa): Do we need JsSourceContext, library code flags and no beakpoint? */
+            _In_ unsigned int stackFrameIndex,
+            _Out_ JsValueRef *evalResult);
 
 
 #endif // WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #pragma endregion
-
-#endif // NTDDI_VERSION
 
 #endif // _CHAKRARTDEBUG_H_

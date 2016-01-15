@@ -558,7 +558,15 @@ namespace Js
     BOOL JavascriptError::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         wchar_t const *pszMessage = nullptr;
-        GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+
+        if (!this->GetScriptContext()->GetThreadContext()->IsScriptActive())
+        {
+            GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+        }
+        else
+        {
+            GetRuntimeError(this, &pszMessage);
+        }
 
         if (pszMessage)
         {
@@ -630,16 +638,15 @@ namespace Js
 
     HRESULT JavascriptError::GetRuntimeErrorWithScriptEnter(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage)
     {
-        //ScriptContext* scriptContext = errorObject->GetScriptContext();
-        //Assert(!scriptContext->GetThreadContext()->IsScriptActive());
+        ScriptContext* scriptContext = errorObject->GetScriptContext();
+        Assert(!scriptContext->GetThreadContext()->IsScriptActive());
 
         // Use _NOT_SCRIPT. We enter runtime to get error info, likely inside a catch.
-        // ToDo (SaAgarwa): Fix for JsRT as it already have runtime call at API level
-        //BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(scriptContext)
+        BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(scriptContext)
         {
             return GetRuntimeError(errorObject, pMessage);
         }
-        //END_JS_RUNTIME_CALL(scriptContext);
+        END_JS_RUNTIME_CALL(scriptContext);
     }
 
     void __declspec(noreturn) JavascriptError::ThrowOutOfMemoryError(ScriptContext *scriptContext)

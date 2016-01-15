@@ -16,8 +16,8 @@ EXPORTS
     JsDiagSetBreakOnException
     JsDiagGetBreakOnException
     JsDiagStartDebugging
-    JsStringifyObject
     JsDiagGetProperties
     JsDiagGetScopeProperties
     JsDiagLookupHandles
+    JsDiagEvaluate
 #endif

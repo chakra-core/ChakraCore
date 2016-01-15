@@ -32,6 +32,7 @@ namespace Js
         bool isDebuggerAttaching;
         DebuggingFlags debuggingFlags;
         UINT nextBreakPointId;
+        DWORD localsDisplayFlags;
 #if DBG
         void * dispatchHaltFrameAddress;
 #endif
@@ -92,6 +93,22 @@ namespace Js
         UINT GetNextBreakpointId()
         {
             return ++nextBreakPointId;
+        }
+
+        enum LocalsDisplayFlags
+        {
+            LocalsDisplayFlags_None = 0x0,
+            LocalsDisplayFlags_NoGroupMethods = 0x1
+        };
+
+        void SetLocalsDisplayFlags(LocalsDisplayFlags localsDisplayFlags)
+        {
+            this->localsDisplayFlags |= localsDisplayFlags;
+        }
+
+        bool IsLocalsDisplayFlagsSet(LocalsDisplayFlags localsDisplayFlags)
+        {
+            return (this->localsDisplayFlags & localsDisplayFlags) == (DWORD)localsDisplayFlags;
         }
     };
 }
