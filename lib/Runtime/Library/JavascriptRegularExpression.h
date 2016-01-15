@@ -99,7 +99,7 @@ namespace Js
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
-        JavascriptString *ToString(bool sourceOnly = false);
+        JavascriptString *ToString(bool sourceOnly = false, bool useFlagsProperty = false);
 
         class EntryInfo
         {
@@ -110,6 +110,7 @@ namespace Js
             static FunctionInfo ToString;
             static FunctionInfo GetterSymbolSpecies;
             static FunctionInfo GetterGlobal;
+            static FunctionInfo GetterFlags;
             static FunctionInfo GetterIgnoreCase;
             static FunctionInfo GetterMultiline;
             static FunctionInfo GetterOptions;
@@ -125,6 +126,8 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
+        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);
         static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);
