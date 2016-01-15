@@ -218,7 +218,6 @@ namespace Js
         if (nbFloatConst > 0)
         {
 
-            // const int inc = sizeof( double ) / sizeof( void* );
             Output::Print(L"    Constant Floats:\n    ======== ======\n    ");
             for (int i = 0; i < nbFloatConst; i++)
             {
