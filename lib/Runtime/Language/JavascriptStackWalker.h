@@ -226,7 +226,9 @@ namespace Js
 
         void ClearCachedInternalFrameInfo();
         void SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType);
+#if ENABLE_NATIVE_CODEGEN
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
+#endif
         bool IsCurrentPhysicalFrameForLoopBody() const;
 
         // noinline, we want to use own stack frame.
@@ -326,9 +328,9 @@ namespace Js
         void SetCurrentArgumentsObject(Var args);
         Var GetCurrentNativeArgumentsObject() const;
         void SetCurrentNativeArgumentsObject(Var args);
-
+#if ENABLE_NATIVE_CODEGEN
         InternalFrameInfo lastInternalFrameInfo;
-
+#endif
         mutable StackFrame currentFrame;
 
         Js::JavascriptFunction * UpdateFrame(bool includeInlineFrames);
