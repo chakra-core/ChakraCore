@@ -232,7 +232,6 @@ namespace Js
         if (nbDoubleConst > 0)
         {
 
-            // const int inc = sizeof( double ) / sizeof( void* );
             Output::Print(L"    Constant Doubles:\n    ======== ======\n    ");
             for (int i = 0; i < nbDoubleConst; i++)
             {
