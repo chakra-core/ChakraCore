@@ -2192,6 +2192,7 @@
     ///     Invokes a function.
     /// </summary>
     /// <remarks>
+    ///     Requires thisArg as first argument of arguments. 
     ///     Requires an active script context.
     /// </remarks>
     /// <param name="function">The function to invoke.</param>
