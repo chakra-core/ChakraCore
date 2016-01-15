@@ -115,6 +115,7 @@ namespace Wasm
             void CallNode();
             void BlockNode();
             void BrNode();
+            void TableSwitchNode();
             void VarNode();
             template <WasmTypes::LocalType type> void ConstNode();
             // readers

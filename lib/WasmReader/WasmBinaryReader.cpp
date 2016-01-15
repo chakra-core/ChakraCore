@@ -236,6 +236,9 @@ WasmBinaryReader::ASTNode()
     case wbBrIf:
         BrNode();
         break;
+    case wbTableSwitch:
+        TableSwitchNode();
+        break;
     case wbReturn:
         // Watch out for optional implicit block
         // (non-void return expression)
@@ -308,6 +311,20 @@ WasmBinaryReader::BrNode()
 {
     m_currentNode.br.depth = ReadConst<UINT8>();
     m_funcState.count++;
+}
+
+void
+WasmBinaryReader::TableSwitchNode()
+{
+    m_currentNode.tableswitch.numCases = ReadConst<UINT16>();
+    m_currentNode.tableswitch.numEntries = ReadConst<UINT16>();
+    m_funcState.count += 2*sizeof(UINT16);
+    m_currentNode.tableswitch.jumpTable = AnewArray(&m_alloc, UINT16, m_currentNode.tableswitch.numEntries);
+    for (int i = 0; i < m_currentNode.tableswitch.numEntries; i++)
+    {
+        m_currentNode.tableswitch.jumpTable[i] = ReadConst<UINT16>();
+        m_funcState.count += sizeof(UINT16);
+    }
 }
 
 // Locals/Globals

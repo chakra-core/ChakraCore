@@ -109,6 +109,7 @@ namespace Wasm
         EmitInfo EmitCall();
         EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
+        EmitInfo EmitSwitch();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);

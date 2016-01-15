@@ -322,6 +322,8 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return EmitIfElseExpr();
     case wnBREAK:
         return EmitBreak();
+    case wnSWITCH:
+        return EmitSwitch();
     case wnNOP:
         return EmitInfo();
 #define WASM_KEYWORD_BIN_TYPED(token, name, op, resultType, lhsType, rhsType) \
@@ -751,6 +753,59 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     --m_nestedIfLevel;
 
     return trueExpr;
+}
+
+EmitInfo
+WasmBytecodeGenerator::EmitSwitch()
+{
+    Js::ByteCodeLabel defaultLabel = m_writer.DefineLabel();
+    Js::ByteCodeLabel breakLabel = m_writer.DefineLabel();
+    uint numEntries = m_reader->m_currentNode.tableswitch.numEntries;
+    uint numCases = m_reader->m_currentNode.tableswitch.numCases;
+    UINT16* jumpTable = m_reader->m_currentNode.tableswitch.jumpTable;
+    Js::ByteCodeLabel* labels = AnewArray(&m_alloc, Js::ByteCodeLabel, numEntries);
+
+    Assert((numCases == numEntries) || (numCases + 1 == numEntries));
+
+    m_labels->Push(breakLabel);
+    // Compile scrutinee
+    WasmOp op = m_reader->ReadFromBlock();
+    EmitInfo scrutineeInfo = EmitExpr(op);
+
+    WasmRegisterSpace* regSpace = GetRegisterSpace(WasmTypes::I32);
+    Js::RegSlot scrutineeVal = regSpace->AcquireTmpRegister();
+    m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeVal, scrutineeInfo.location);
+    // Compile cases
+    for (uint i = 0; i < numEntries; i++)
+    {
+        Js::RegSlot caseLoc = regSpace->AcquireTmpRegister();
+        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, jumpTable[i]);
+        Js::ByteCodeLabel label;
+        if (i == numEntries - 1) {
+            label = defaultLabel;
+        }
+        else
+        {
+            label = m_writer.DefineLabel();
+        }
+        labels[i] = label;
+
+        m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, label, scrutineeVal, caseLoc);
+        regSpace->ReleaseTmpRegister(caseLoc);
+    }
+    regSpace->ReleaseTmpRegister(scrutineeVal);
+    m_writer.AsmBr(defaultLabel, Js::OpCodeAsmJs::EndSwitch_Int);
+
+    for (uint i = 0; i < numEntries; i++)
+    {
+        m_writer.MarkAsmJsLabel(labels[i]);
+        WasmOp op = m_reader->ReadFromBlock();
+        EmitInfo info = EmitExpr(op);
+    }
+
+    m_labels->Pop();
+    m_writer.MarkAsmJsLabel(breakLabel);
+    return EmitInfo();
 }
 
 template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>

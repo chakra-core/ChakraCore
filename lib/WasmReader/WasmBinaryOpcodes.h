@@ -68,7 +68,7 @@ WASM_CTRL_OPCODE(IfElse,         0x04,       IF_ELSE,            Limit)
 WASM_CTRL_OPCODE(Select,         0x05,       LIMIT,              Limit)
 WASM_CTRL_OPCODE(Br,             0x06,       BREAK,              Limit)
 WASM_CTRL_OPCODE(BrIf,           0x07,       LIMIT,              Limit)
-WASM_CTRL_OPCODE(TableSwitch,    0x08,       LIMIT,              Limit)
+WASM_CTRL_OPCODE(TableSwitch,    0x08,       SWITCH,             Limit)
 WASM_CTRL_OPCODE(Return,         0x14,       RETURN,             Limit)
 WASM_CTRL_OPCODE(Unreachable,    0x15,       LIMIT,              Limit)
 

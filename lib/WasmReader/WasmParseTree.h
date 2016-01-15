@@ -87,6 +87,14 @@ namespace Wasm
     {
         UINT8 depth;
     };
+
+    struct WasmTableSwitchNode
+    {
+        UINT16 numCases;
+        UINT16 numEntries;
+        UINT16* jumpTable;
+    };
+
     struct WasmNode
     {
         WasmOp op;
@@ -99,6 +107,7 @@ namespace Wasm
             WasmOptionalNode opt;
             WasmBlockNode block;
             WasmBrNode br;
+            WasmTableSwitchNode tableswitch;
         };
     };
 }
