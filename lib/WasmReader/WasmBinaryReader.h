@@ -53,6 +53,7 @@ namespace Wasm
 #include "WasmBinaryOpcodes.h"
                 bSigLimit
             };
+
         } // namespace WasmTypes
 
         // binary opcodes
@@ -120,6 +121,7 @@ namespace Wasm
             void ReadExportTable();
             void ReadIndirectFunctionTable();
             void FunctionBodyHeader();
+            void DataSegment();
 
             char16* ReadInlineName(uint32& length, uint32& nameLength);
             void ImportEntry();

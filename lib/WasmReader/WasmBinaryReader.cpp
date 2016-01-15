@@ -166,12 +166,18 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         break; // This section is not used by bytecode generator, stay in decoder
     }
     case bSectDataSegments:
-        // TODO: Populate Data entry info
-        ReadConst<UINT32>();  // dest addr in module memory
-        ReadConst<UINT32>();  // source offset (?)
-        ReadConst<UINT32>();  // size
-        ReadConst<UINT8>();  // init
-        m_moduleState.count++;
+        m_moduleState.size = LEB128(length);
+        if (m_moduleState.size == 0)
+        {
+            // TODO: Probably can factor this out and validate all count fields.
+            ThrowDecodingError(_u("Illegal data segment entry count"));
+        }
+        m_moduleInfo->AllocateDataSegs(m_moduleState.size);
+        for (m_moduleState.count = 0; m_moduleState.count < m_moduleState.size; m_moduleState.count++)
+        {
+            TRACE_WASM_DECODER(L"Data Segment #%u", m_moduleState.count);
+            DataSegment();
+        }
         break; // This section is not used by bytecode generator, stay in decoder
 
     case bSectFunctionSignatures:
@@ -641,6 +647,18 @@ WasmBinaryReader::FunctionBodyHeader()
     }
 }
 
+void
+WasmBinaryReader::DataSegment()
+{
+    UINT len = 0;
+    UINT32 offset = LEB128(len);
+    UINT32 dataByteLen = LEB128(len);
+    WasmDataSegment *dseg = Anew(&m_alloc, WasmDataSegment, &m_alloc, offset, dataByteLen, m_pc);
+    CheckBytesLeft(dataByteLen);
+    m_pc += dataByteLen;
+    m_moduleInfo->AddDataSeg(dseg, m_moduleState.count);
+}
+
 char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
     nameLength = LEB128(length);
@@ -671,7 +689,7 @@ WasmBinaryReader::ImportEntry()
 
     if (sigId >= m_moduleInfo->GetSignatureCount())
     {
-        ThrowDecodingError(L"Function signature is out of bound");
+        ThrowDecodingError(_u("Function signature is out of bound"));
     }
 
     wchar_t* modName = ReadInlineName(len, modNameLen);
