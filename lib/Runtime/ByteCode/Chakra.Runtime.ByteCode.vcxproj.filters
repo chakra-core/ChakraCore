@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSByteCodeDumper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsByteCodeWriter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteBlock.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeDumper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeEmitter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeWriter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FuncInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Opcodes.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)OpCodeUtil.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)OpCodeUtilAsmJs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scope.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ScopeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)StatementReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Symbol.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeByteCodePch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AsmJSByteCodeDumper.h" />
+    <ClInclude Include="AsmJsByteCodeWriter.h" />
+    <ClInclude Include="ExtendedOpCodeList.h" />
+    <ClInclude Include="ExtendedOpCodeListAsmJs.h" />
+    <ClInclude Include="FuncInfo.h" />
+    <ClInclude Include="LayoutTypes.h" />
+    <ClInclude Include="LayoutTypesAsmJs.h" />
+    <ClInclude Include="OpCodeList.h" />
+    <ClInclude Include="OpCodeListAsmJs.h" />
+    <ClInclude Include="OpCodesAsmJs.h" />
+    <ClInclude Include="OpCodesSimd.h" />
+    <ClInclude Include="OpCodeUtil.h" />
+    <ClInclude Include="OpCodeUtilAsmJs.h" />
+    <ClInclude Include="OpLayoutsAsmJs.h" />
+    <ClInclude Include="OpLayoutsCommon.h" />
+    <ClInclude Include="Scope.h" />
+    <ClInclude Include="ScopeInfo.h" />
+    <ClInclude Include="StatementReader.h" />
+    <ClInclude Include="ByteBlock.h" />
+    <ClInclude Include="ByteCodeAPI.h" />
+    <ClInclude Include="ByteCodeDumper.h" />
+    <ClInclude Include="ByteCodeGenerator.h" />
+    <ClInclude Include="ByteCodeReader.h" />
+    <ClInclude Include="ByteCodeWriter.h" />
+    <ClInclude Include="OpCodes.h" />
+    <ClInclude Include="OpLayouts.h" />
+    <ClInclude Include="Symbol.h" />
+    <ClInclude Include="RuntimeByteCodePch.h" />
+    <ClInclude Include="AuxArray.h" />
+    <ClInclude Include="PropertyIdArray.h" />
+    <ClInclude Include="VarArrayVarCount.h" />
+  </ItemGroup>
+</Project>

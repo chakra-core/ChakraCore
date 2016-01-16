@@ -398,10 +398,148 @@ bool WScriptJsrt::CreateNamedFunction(const wchar_t* nameString, JsNativeFunctio
     return true;
 }
 
+#ifdef ENABLE_WASM
+JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2 || argumentCount > 4)
+    {
+        fwprintf(stderr, L"Too many or too few arguments.\n");
+    }
+    else
+    {
+        const wchar_t *fileContent;
+        const wchar_t *fileName;
+        const wchar_t *scriptInjectType = L"self";
+        size_t fileNameLength;
+        size_t scriptInjectTypeLength;
+        bool isBinaryFormat = false;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+
+        if (argumentCount > 2)
+        {
+            IfJsrtErrorSetGo(ChakraRTInterface::JsBooleanToBool(arguments[2], &isBinaryFormat));
+        }
+
+
+        if (argumentCount > 3)
+        {
+            IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &scriptInjectType, &scriptInjectTypeLength));
+        }
+
+
+        if (errorCode == JsNoError)
+        {
+            HRESULT hr;
+            UINT lengthBytes = 0;
+
+            if (!isBinaryFormat)
+            {
+                hr = Helpers::LoadScriptFromFile(fileName, fileContent);
+            }
+            else
+            {
+                hr = Helpers::LoadBinaryFile(fileName, fileContent, lengthBytes);
+            }
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, L"Couldn't load file.\n");
+            }
+            else
+            {
+                returnValue = LoadWasm(fileName, fileNameLength, fileContent, isBinaryFormat, lengthBytes, scriptInjectType);
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType)
+{
+    HRESULT hr = E_FAIL;
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = L"Internal error.";
+    size_t errorMessageLength = wcslen(errorMessage);
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode innerErrorCode = JsNoError;
+
+    wchar_t fullPath[_MAX_PATH];
+    if (_wfullpath(fullPath, fileName, _MAX_PATH) == nullptr)
+    {
+        IfFailGo(E_FAIL);
+    }
+    // canonicalize that path name to lower case for the profile storage
+    size_t len = wcslen(fullPath);
+    for (size_t i = 0; i < len; i++)
+    {
+        fullPath[i] = towlower(fullPath[i]);
+    }
+
+    if (wcscmp(scriptInjectType, L"self") == 0)
+    {
+        errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, &returnValue);
+        if (errorCode != JsNoError)
+        {
+            PrintException(fileName, errorCode);
+        }
+    }
+    else
+    {
+        errorCode = JsErrorInvalidArgument;
+        errorMessage = L"Unsupported argument type inject type.";
+    }
+
+
+Error:
+    JsValueRef value = returnValue;
+    if (errorCode != JsNoError)
+    {
+        if (innerErrorCode != JsNoError)
+        {
+            // Failed to retrieve the inner error message, so set a custom error string
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        JsValueRef error = JS_INVALID_REFERENCE;
+        JsValueRef messageProperty = JS_INVALID_REFERENCE;
+        errorMessageLength = wcslen(errorMessage);
+        innerErrorCode = ChakraRTInterface::JsPointerToString(errorMessage, errorMessageLength, &messageProperty);
+        if (innerErrorCode == JsNoError)
+        {
+            innerErrorCode = ChakraRTInterface::JsCreateError(messageProperty, &error);
+            if (innerErrorCode == JsNoError)
+            {
+                innerErrorCode = ChakraRTInterface::JsSetException(error);
+            }
+        }
+
+        ChakraRTInterface::JsDoubleToNumber(errorCode, &value);
+    }
+
+    _flushall();
+
+    return value;
+}
+#endif
+
 bool WScriptJsrt::Initialize()
 {
     JsValueRef wscript;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&wscript), false);
+
+#ifdef ENABLE_WASM
+    JsValueRef loadWasm;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateFunction(LoadWasmCallback, nullptr, &loadWasm), false);
+    JsPropertyIdRef loadWasmName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"LoadWasmFile", &loadWasmName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadWasmName, loadWasm, true), false);
+#endif
 
     JsValueRef echo;
     JsPropertyIdRef echoPropertyId;

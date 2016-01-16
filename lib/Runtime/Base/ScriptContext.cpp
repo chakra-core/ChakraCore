@@ -28,6 +28,7 @@
 #ifdef ASMJS_PLAT
 #include "Language\AsmJsEncoder.h"
 #include "Language\AsmJsCodeGenerator.h"
+#include "Language\AsmJsUtils.h"
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -1804,6 +1805,131 @@ namespace Js
             return nullptr;
         }
     }
+
+#ifdef ENABLE_WASM
+    JavascriptFunction* ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName)
+    {
+        if (pSrcInfo == nullptr)
+        {
+            pSrcInfo = this->cache->noContextGlobalSourceInfo;
+        }
+
+        Assert(!this->threadContext->IsScriptActive());
+        Assert(pse != nullptr);
+        try
+        {
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+            Js::AutoDynamicCodeReference dynamicFunctionReference(this);
+            *ppSourceInfo = nullptr;
+            Wasm::WasmScript * wasmScript = nullptr;
+            Wasm::BaseWasmReader *reader = nullptr;
+            Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
+
+            if (!isBinary)
+            {
+                // script in text form
+                // Convert to UTF8 and then load that
+                size_t length = wcslen(script);
+                if (!IsValidCharCount(length))
+                {
+                    Js::Throw::OutOfMemory();
+                }
+
+                // Allocate memory for the UTF8 output buffer.
+                // We need at most 3 bytes for each Unicode code point.
+                // The + 1 is to include the terminating NUL.
+                // Nit:  Technically, we know that the NUL only needs 1 byte instead of
+                // 3, but that's difficult to express in a SAL annotation for "EncodeInto".
+                size_t cbUtf8Buffer = (length + 1) * 3;
+
+                LPUTF8 utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
+
+                Assert(length < MAXLONG);
+                size_t cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, script, static_cast<charcount_t>(length));
+
+#if DBG_DUMP
+                if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
+                {
+                    Output::Print(L"Loading script.\n"
+                        L"  Unicode (in bytes)    %u\n"
+                        L"  UTF-8 size (in bytes) %u\n"
+                        L"  Expected savings      %d\n", length * sizeof(wchar_t), cbNeeded, length * sizeof(wchar_t)-cbNeeded);
+                }
+#endif
+
+                // Free unused bytes
+                Assert(cbNeeded + 1 <= cbUtf8Buffer);
+                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
+                //
+                // Parse and execute the source file.
+                //
+                reader = HeapNew(Wasm::SExprParser, threadContext->GetPageAllocator(), utf8Script, cbNeeded);
+            }
+            else
+            {
+
+                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(wchar_t), lengthBytes, pSrcInfo);
+                // Binary file
+                reader = HeapNew(Wasm::Binary::WasmBinaryReader, threadContext->GetPageAllocator(), (byte*)script, lengthBytes);
+            }
+            bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
+            wasmScript = bytecodeGen->GenerateWasmScript();
+
+
+            /*
+            ScriptFunction * rootFunction = javascriptLibrary->CreateScriptFunction(wasmScript->globalBody);
+
+            rootFunction->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+            */
+
+            Wasm::WasmFunction ** functionArray = wasmScript->module->functions->GetBuffer();
+
+            Var* moduleMemoryPtr = RecyclerNewArray(GetRecycler(), Var, wasmScript->module->memSize);
+            Var* localModuleFunctions = moduleMemoryPtr + wasmScript->module->funcOffset;
+
+
+
+            FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
+            frameDisplay->SetItem(0, moduleMemoryPtr);
+            AsmJsScriptFunction * funcObj = nullptr;
+            for (uint i = 0; i < wasmScript->module->functions->Count(); ++i)
+            {
+                funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
+                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+                funcObj->SetModuleMemory(moduleMemoryPtr);
+                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entypointInfo->SetIsAsmJSFunction(true);
+                entypointInfo->address = AsmJsDefaultEntryThunk;
+                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                funcObj->SetEnvironment(frameDisplay);
+                localModuleFunctions[i] = funcObj;
+            }
+
+            HeapDelete(bytecodeGen);
+            if (!isBinary)
+            {
+                HeapDelete((Wasm::SExprParser*)reader);
+            }
+            else
+            {
+                HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
+            }
+
+
+            return funcObj;
+        }
+        catch (Js::OutOfMemoryException)
+        {
+            pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
+            return nullptr;
+        }
+        catch (Js::StackOverflowException)
+        {
+            pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
+            return nullptr;
+        }
+    }
+#endif
 
     JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const wchar_t *rootDisplayName)
     {

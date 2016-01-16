@@ -1213,10 +1213,13 @@ namespace Js
         // it to be valid on entry to the loop, where "valid" means either a var or null.
         newInstance->SetNonVarReg(0, NULL);
 #endif
-
-        // Initialize the low end of the local slots from the constant table.
-        // Skip the slot for the return value register.
-        this->executeFunction->InitConstantSlots(&newInstance->m_localSlots[FunctionBody::FirstRegSlot]);
+        // Wasm doesn't use const table
+        if (!executeFunction->IsWasmFunction())
+        {
+            // Initialize the low end of the local slots from the constant table.
+            // Skip the slot for the return value register.
+            this->executeFunction->InitConstantSlots(&newInstance->m_localSlots[FunctionBody::FirstRegSlot]);
+        }
         // Set local FD/SS pointers to null until after we've successfully probed the stack in the process loop.
         // That way we avoid trying to box these structures before they've been initialized in the byte code.
         if (this->executeFunction->DoStackFrameDisplay())
