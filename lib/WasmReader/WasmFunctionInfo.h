@@ -34,6 +34,7 @@ namespace Wasm
 
         void SetNumber(UINT32 number);
         UINT32 GetNumber();
+
     private:
 
         // TODO: need custom comparator so -0 != 0

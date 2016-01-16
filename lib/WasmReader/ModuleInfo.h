@@ -7,20 +7,24 @@
 
 namespace Wasm
 {
-
-class BaseWasmReader
+class ModuleInfo
 {
+private:
+    struct Memory
+    {
+        Memory() : minSize(0)
+        {
+        }
+        size_t minSize;
+        size_t maxSize;
+        bool exported;
+    } m_memory;
 public:
-    virtual WasmOp ReadFromModule() = 0;
-    virtual WasmOp ReadExpr() = 0;
-    virtual WasmOp ReadFromBlock() = 0;
-    virtual WasmOp ReadFromCall() = 0;
-    virtual bool IsBinaryReader() = 0;
-    WasmNode    m_currentNode;
-    ModuleInfo * m_moduleInfo;
+    ModuleInfo();
 
-protected:
-    WasmFunctionInfo *  m_funcInfo;
+    bool InitializeMemory(size_t minSize, size_t maxSize, bool exported);
+
+    const Memory * GetMemory() const;
 };
 
 } // namespace Wasm

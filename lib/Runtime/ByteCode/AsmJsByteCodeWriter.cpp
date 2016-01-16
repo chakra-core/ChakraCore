@@ -172,17 +172,7 @@ namespace Js
         }
         return false;
     }
-    template <typename SizePolicy>
-    bool AsmJsByteCodeWriter::TryWriteAsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
-    {
-        OpLayoutT_AsmReg2IntConst1<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.C2, C2))
-        {
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
-            return true;
-        }
-        return false;
-    }
+
     template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
@@ -359,11 +349,6 @@ namespace Js
     void AsmJsByteCodeWriter::AsmReg7(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg7, op, R0, R1, R2, R3, R4, R5, R6);
-    }
-
-    void AsmJsByteCodeWriter::AsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
-    {
-        MULTISIZE_LAYOUT_WRITE(AsmReg2IntConst1, op, R0, R1, C2);
     }
 
     void AsmJsByteCodeWriter::AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op)

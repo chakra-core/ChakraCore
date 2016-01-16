@@ -67,19 +67,10 @@ namespace Wasm
         // TODO (michhol): use normal array, and get info from parser
         WasmFunctionArray * functions;
         WasmExportDictionary * exports;
+        ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;
         uint memSize;
-    };
-
-    struct WasmScript
-    {
-        WasmScript() : module(nullptr), globalBody(nullptr)
-        {
-        }
-
-        WasmModule * module;
-        Js::FunctionBody * globalBody;
     };
 
     class WasmBytecodeGenerator
@@ -97,7 +88,6 @@ namespace Wasm
         static const Js::RegSlot ReservedRegisterCount = 5;
 
         WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader);
-        WasmScript * GenerateWasmScript();
         WasmModule * GenerateModule();
         void GenerateInvoke();
         WasmFunction * GenerateFunction();
@@ -114,6 +104,12 @@ namespace Wasm
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
         EmitInfo EmitBreak();
+
+        template<WasmOp wasmOp, WasmTypes::WasmType type>
+        EmitInfo EmitMemRead();
+
+        template<WasmOp wasmOp, WasmTypes::WasmType type>
+        EmitInfo EmitMemStore();
 
         template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
         EmitInfo EmitBinExpr();
@@ -133,6 +129,7 @@ namespace Wasm
 
         Js::AsmJsRetType GetAsmJsReturnType() const;
         static Js::AsmJsVarType GetAsmJsVarType(WasmTypes::WasmType wasmType);
+        static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
 
         ArenaAllocator m_alloc;
@@ -147,8 +144,6 @@ namespace Wasm
         uint m_nestedCallDepth;
         uint m_maxArgOutDepth;
         uint m_argOutDepth;
-
-        WasmScript * m_wasmScript;
 
         BaseWasmReader * m_reader;
 

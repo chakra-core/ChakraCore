@@ -31,7 +31,6 @@ namespace Wasm
     public:
         SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length);
 
-        virtual WasmOp ReadFromScript() override;
         virtual WasmOp ReadFromModule() override;
         virtual WasmOp ReadFromBlock() override;
         virtual WasmOp ReadFromCall() override;
@@ -47,17 +46,17 @@ namespace Wasm
         WasmOp ReadExprCore(SExprTokenType tok);
         WasmOp ParseFunctionHeader();
         WasmOp ParseExport();
+        WasmOp ParseMemory();
         void ParseParam();
         void ParseResult();
         void ParseLocal();
         WasmOp ParseReturnExpr();
+        void ParseMemOpExpr(WasmOp op);
         WasmOp ParseIfExpr();
         WasmOp ParseBlock();
         WasmOp ParseCall();
         WasmOp ParseConstLitExpr(SExprTokenType tok);
         void ParseGeneralExpr(WasmOp opcode);
-        WasmNode * ParseInvoke();
-        WasmNode * ParseAssertEq();
 
         void ParseVarNode(WasmOp opcode);
         void ParseVar();
@@ -76,8 +75,6 @@ namespace Wasm
         NameToIndexMap * m_nameToLocalMap;
 
         JsUtil::Stack<SExpr::BlockType> * m_blockNesting;
-
-        WasmFunctionInfo *  m_funcInfo;
 
         bool m_inExpr;
     };

@@ -22,6 +22,7 @@ namespace Wasm
 #include "ByteCode\ByteCodeWriter.h"
 #include "ByteCode\AsmJsByteCodeWriter.h"
 
+#include "ModuleInfo.h"
 #include "WasmParseTree.h"
 #include "WasmFunctionInfo.h"
 
@@ -32,11 +33,5 @@ namespace Wasm
 #include "WasmBinaryReader.h"
 #include "WasmRegisterSpace.h"
 #include "WasmBytecodeGenerator.h"
-
-// TODO (michhol): cleanup includes
-#include "Bytecode\AsmJsByteCodeWriter.h"
-#include "Bytecode\ByteCodeDumper.h"
-#include "Bytecode\AsmJsByteCodeDumper.h"
-#include "Language\AsmJSTypes.h"
 
 #endif // ENABLE_WASM

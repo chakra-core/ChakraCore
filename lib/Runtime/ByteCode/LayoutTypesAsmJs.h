@@ -56,7 +56,6 @@ LAYOUT_TYPE_WMS_FE  ( AsmReg4          ) // Generic layout with 4 RegSlot
 LAYOUT_TYPE_WMS_FE  ( AsmReg5          ) // Generic layout with 5 RegSlot
 LAYOUT_TYPE_WMS_FE  ( AsmReg6          ) // Generic layout with 6 RegSlot
 LAYOUT_TYPE_WMS_FE  ( AsmReg7          ) // Generic layout with 7 RegSlot
-LAYOUT_TYPE_WMS_FE  ( AsmReg2IntConst1 ) // Generic layout with 2 RegSlots and 1 Int Constant
 LAYOUT_TYPE_WMS     ( Int1Double1      ) // 1 int register and 1 double register
 LAYOUT_TYPE_WMS     ( Int1Float1       ) // 1 int register and 1 float register
 LAYOUT_TYPE_WMS     ( Double1Const1    ) // 1 double register and 1 const double value

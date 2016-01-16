@@ -840,7 +840,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg5);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg6);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg7);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(AsmReg2IntConst1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Double1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Double1Int1);

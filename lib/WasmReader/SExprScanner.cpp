@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "WasmReaderPch.h"
+#include "SExprScanner.h"
 
 #ifdef ENABLE_WASM
 
