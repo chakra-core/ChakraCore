@@ -21,7 +21,7 @@ typedef unsigned __int16 uint16;
 typedef unsigned __int32 uint32;
 typedef unsigned __int64 uint64;
 
-#if defined (_WIN64)
+#if defined (_M_X64_OR_ARM64)
 typedef __int64 intptr;
 typedef unsigned __int64 uintptr;
 #else

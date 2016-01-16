@@ -7,7 +7,10 @@
 #include "CommonMinMemory.h"
 
 // === C Runtime Header Files ===
+#ifdef _WIN32
 #include <wchar.h>
+#endif
+
 #if defined(_UCRT)
 #include <cmath>
 #else
@@ -15,7 +18,7 @@
 #endif
 
 // === Codex Header Files ===
-#include "codex\Utf8Codex.h"
+#include "codex/Utf8Codex.h"
 
 
 

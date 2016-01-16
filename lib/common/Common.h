@@ -43,7 +43,6 @@ namespace Js
 
 // Header files
 #include "core/BinaryFeatureControl.h"
-#include "TemplateParameter.h"
 
 #include "Common/vtinfo.h"
 #include "EnumClassHelp.h"

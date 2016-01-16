@@ -170,8 +170,7 @@ struct DefaultComparer<const WCHAR*> : public StringComparer<const WCHAR*> {};
 template <typename T, typename TComparer>
 struct SpecializedComparer
 {
-    template <typename T> class TComparerType;
-    template <> class TComparerType<T> : public TComparer {};
+    template <typename T> class TComparerType : public TComparer {};
 };
 
 namespace regex

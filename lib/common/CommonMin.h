@@ -11,7 +11,7 @@
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 #include <stdio.h>
 #pragma warning(pop)
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <intrin.h>
 #endif
 
@@ -34,24 +34,24 @@
 #include "core/Output.h"
 
 // === Basic Memory Header Files ===
-namespace Memory {}
+namespace Memory {
+    class ArenaAllocator;
+}
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
+#include "Memory/HeapConstants.h"
 
-// xplat-todo: Re-enable this
-// BitVector needs to be fixed up here
-
-#ifdef _WIN32
 // === Data structures Header Files ===
 #include "DataStructures/comparer.h"
 #include "DataStructures/SizePolicy.h"
 #include "DataStructures/BitVector.h"
 #include "DataStructures/SList.h"
-#include "DataStructures/DList.h"
+#include "DataStructures/Dlist.h"
 #include "DataStructures/KeyValuePair.h"
-#include "DataStructures/BaseDictionary.h"
 #include "DataStructures/DictionaryEntry.h"
+#include "DataStructures/DefaultContainerLockPolicy.h"
+#include "DataStructures/BaseDictionary.h"
 
 // === Configurations Header ===
 #include "core/ConfigFlagsTable.h"
@@ -62,5 +62,3 @@ using namespace Memory;
 #include "Memory/AllocationPolicyManager.h"
 #include "Memory/PageAllocator.h"
 #include "Memory/ArenaAllocator.h"
-
-#endif

@@ -804,7 +804,7 @@ public:
 
 class RefCounted
 {
-    volatile long refCount;
+    volatile LONG refCount;
 
 protected:
     virtual ~RefCounted()

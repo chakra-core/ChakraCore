@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "CollectionState.h"
+#include "collectionstate.h"
 
 namespace Js
 {
@@ -1733,7 +1733,7 @@ private:
     friend class HeapBucketT;
     template <typename TBlockType>
     friend class SmallNormalHeapBucketBase;
-    template <typename T, ObjectInfoBits attributes = LeafBit>
+    template <typename T, ObjectInfoBits attributes>
     friend class RecyclerFastAllocator;
 
 #ifdef RECYCLER_TRACE

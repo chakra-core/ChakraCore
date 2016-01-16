@@ -3521,6 +3521,7 @@ typedef struct _CRITICAL_SECTION {
 PALIMPORT VOID PALAPI EnterCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT VOID PALAPI LeaveCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT VOID PALAPI InitializeCriticalSection(OUT LPCRITICAL_SECTION lpCriticalSection);
+PALIMPORT BOOL PALAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount);
 PALIMPORT BOOL PALAPI InitializeCriticalSectionEx(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount, DWORD Flags);
 PALIMPORT BOOL PALAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount);
 PALIMPORT VOID PALAPI DeleteCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
@@ -5287,6 +5288,48 @@ BitScanForward64(
     return bRet;
 }
 
+// xplat-todo: review this implementation
+EXTERN_C
+PALIMPORT
+inline
+unsigned char
+PALAPI
+BitScanReverse(
+    IN OUT PDWORD Index,
+    IN UINT qwMask)
+{
+    unsigned char bRet = FALSE;
+    if (qwMask != 0)
+    {
+        int countLeadingZero = __builtin_clz(qwMask);
+        *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
+        bRet = TRUE;
+    }
+
+    return bRet;
+}
+
+// xplat-todo: review this implementation
+EXTERN_C
+PALIMPORT
+inline
+unsigned char
+PALAPI
+BitScanReverse64(
+    IN OUT PDWORD Index,
+    IN UINT64 qwMask)
+{
+    unsigned char bRet = FALSE;
+    if (qwMask != 0)
+    {
+        int countLeadingZero = __builtin_clz(qwMask);
+        *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
+        bRet = TRUE;
+    }
+
+    return bRet;
+}
+
 /*++
 Function:
 InterlockedIncrement
@@ -5591,6 +5634,32 @@ InterlockedBitTestAndSet(
     IN LONG Bit)
 {
     return (InterlockedOr(Base, (1 << Bit)) & (1 << Bit)) != 0;
+}
+
+// xplat-todo: review this implementation
+EXTERN_C
+PALIMPORT
+inline
+UCHAR
+PALAPI
+BitTest(
+    IN LONG *Base,
+    IN LONG Bit)
+{
+    return ((*Base) & (1 << Bit)) != 0;
+}
+
+// xplat-todo: review this implementation
+EXTERN_C
+PALIMPORT
+inline
+UCHAR
+PALAPI
+BitTestAndSet(
+    IN OUT LONG *Base,
+    IN LONG Bit)
+{
+    return (__sync_fetch_and_or(Base, (1 << Bit)) & (1 << Bit)) != 0;
 }
 
 #if defined(BIT64)

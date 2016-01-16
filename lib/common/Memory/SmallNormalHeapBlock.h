@@ -9,8 +9,11 @@ namespace Memory
 template <class TBlockAttributes>
 class SmallNormalHeapBlockT : public SmallHeapBlockT<TBlockAttributes>
 {
+    typedef SmallHeapBlockT<TBlockAttributes> Base;
     friend class HeapBucketT<SmallNormalHeapBlockT>;
 public:
+    typedef typename Base::HeapBlockType HeapBlockType;
+    typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef TBlockAttributes HeapBlockAttributes;
     static const ObjectInfoBits RequiredAttributes = NoBit;
     static const bool IsLeafOnly = false;
@@ -54,6 +57,8 @@ private:
 template <class TBlockAttributes>
 class SmallNormalWithBarrierHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes>
 {
+    typedef SmallNormalHeapBlockT<TBlockAttributes> Base;
+    typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallNormalWithBarrierHeapBlockT>;
 public:
     typedef TBlockAttributes HeapBlockAttributes;

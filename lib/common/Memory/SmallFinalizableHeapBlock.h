@@ -12,6 +12,9 @@ template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 template <class TBlockAttributes>
 class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes>
 {
+    typedef SmallNormalHeapBlockT<TBlockAttributes> Base;
+    typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
+    typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
 public:
     typedef TBlockAttributes HeapBlockAttributes;

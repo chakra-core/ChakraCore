@@ -11,10 +11,8 @@ typedef wchar_t wchar16;
 typedef char16_t wchar16;
 
 // TODO: Abstract out into it's own file
-#include "inc/pal_mstypes.h"
+#include "pal.h"
 #include "inc/rt/palrt.h"
-#include "inc/rt/no_sal2.h"
-#include "inc/rt/safecrt.h"
 
 // Templates are defined here in order to avoid a dependency on C++
 // <type_traits> header file,

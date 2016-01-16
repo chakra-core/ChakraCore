@@ -125,7 +125,7 @@ private:
 
         if (newCurrentMemory < currentMemory ||
             newCurrentMemory > memoryLimit ||
-            memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount))
+            (memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount)))
         {
             if (memoryAllocationCallback != NULL)
             {

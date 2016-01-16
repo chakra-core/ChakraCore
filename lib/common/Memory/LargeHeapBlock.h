@@ -82,6 +82,8 @@ public:
     LargeHeapBlock* heapBlock;
 };
 
+class HeapInfo;
+
 // CONSIDER: Templatizing this so that we don't have free list support if we don't need it
 class LargeHeapBlock sealed : public HeapBlock
 {

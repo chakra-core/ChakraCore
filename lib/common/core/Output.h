@@ -3,11 +3,15 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
+// xplat-todo: error: ISO C++ forbids forward references to 'enum' types
+#ifdef ENABLE_TRACE
 namespace Js
 {
-enum Flag: int;
-enum Phase: int;
+enum Flag;
+enum Phase;
 };
+#endif
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(BGJIT_STATS)
 #define OUTPUT_TRACE(Phase, ...) Output::Trace((Phase), __VA_ARGS__)

@@ -60,12 +60,7 @@ public:
 # elif defined(_M_IX86)
     static DWORD const StackAlign = 4;
 # else
-#ifndef _WIN32
-// TODO: Specialize this for other architectures on Linux
-    static DWORD const StackAlign = 16;
-#else
-    #error missing_target
-#endif
+    # error missing_target
 # endif
 #endif
 

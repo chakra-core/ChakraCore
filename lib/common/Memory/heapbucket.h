@@ -110,7 +110,7 @@ protected:
 template <typename TBlockType>
 class HeapBucketT : public HeapBucket
 {
-    typedef typename SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
+    typedef SmallHeapBlockAllocator<TBlockType> TBlockAllocatorType;
 
 public:
     HeapBucketT();
@@ -246,7 +246,7 @@ protected:
     friend class HeapBucketGroup;
 
     friend class HeapInfo;
-    friend typename TBlockType;
+    friend TBlockType;
 
     template <class TBucketAttributes>
     friend class SmallHeapBlockT;

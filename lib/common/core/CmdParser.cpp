@@ -608,7 +608,7 @@ int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
     }
     catch(Exception &exp)
     {
-        wprintf(L"%s : %s\n", (LPCWSTR)exp, oneArg);
+        wprintf(CH_WSTR("%s : %s\n"), (LPCWSTR)exp, oneArg);
         err = -1;
     }
     return err;
