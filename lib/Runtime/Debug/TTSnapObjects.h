@@ -25,6 +25,12 @@ namespace TTD
             SnapRuntimeFunctionObject,
             SnapExternalFunctionObject,
             SnapBoundFunctionObject,
+            SnapActivationObject,
+            SnapBlockActivationObject,
+            SnapPseudoActivationObject,
+            SnapConsoleScopeActivationObject,
+            SnapActivationObjectEx,
+            SnapHeapArgumentsObject,
             SnapBoxedValueObject,
             SnapDateObject,
             SnapRegexObject,
@@ -253,6 +259,42 @@ namespace TTD
         //DoAddtlValueInstantiation is a nop
         void EmitAddtlInfo_SnapBoundFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapBoundFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        //////////////////
+
+        ////
+        //Functions for the VTable for ActivationObject tags
+
+        Js::RecyclableObject* DoObjectInflation_SnapActivationInfo(const SnapObject* snpObject, InflateMap* inflator);
+        Js::RecyclableObject* DoObjectInflation_SnapBlockActivationObject(const SnapObject* snpObject, InflateMap* inflator);
+        Js::RecyclableObject* DoObjectInflation_SnapPseudoActivationObject(const SnapObject* snpObject, InflateMap* inflator);
+        Js::RecyclableObject* DoObjectInflation_SnapConsoleScopeActivationObject(const SnapObject* snpObject, InflateMap* inflator);
+        Js::RecyclableObject* DoObjectInflation_SnapActivationExInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        //EmitAddtlInfo is a nop
+        //ParseAddtlInfo is a nop
+
+        //////////////////
+
+        //A class that represents an arguments object info
+        struct SnapHeapArgumentsInfo
+        {
+            //number of arguments
+            uint32 NumOfArguments;
+
+            //The frame object 
+            TTD_PTR_ID FrameObject;
+
+            uint32 FormalCount;
+            byte* DeletedArgFlags;
+        };
+
+        ////
+        //Functions for the VTable for ArgumentsObject tags
+
+        Js::RecyclableObject* DoObjectInflation_SnapHeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator);
+        void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
 
         //////////////////
 

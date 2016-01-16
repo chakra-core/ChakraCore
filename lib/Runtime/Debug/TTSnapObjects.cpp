@@ -632,7 +632,6 @@ namespace TTD
             writer->WriteSequenceStart();
             for(uint32 i = 0; i < snapBoundInfo->ArgCount; ++i)
             {
-                ;
                 NSSnapValues::EmitTTDVar(snapBoundInfo->ArgArray[i], writer, i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
             }
             writer->WriteSequenceEnd();
@@ -664,6 +663,109 @@ namespace TTD
             reader->ReadSequenceEnd();
 
             SnapObjectSetAddtlInfoAs<SnapBoundFunctionInfo*, SnapObjectType::SnapBoundFunctionObject>(snpObject, snapBoundInfo);
+        }
+
+        //////////////////
+
+        Js::RecyclableObject* DoObjectInflation_SnapActivationInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            return ctx->GetLibrary()->CreateActivationObject();
+        }
+
+        Js::RecyclableObject* DoObjectInflation_SnapBlockActivationObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            return ctx->GetLibrary()->CreateBlockActivationObject();
+        }
+
+        Js::RecyclableObject* DoObjectInflation_SnapPseudoActivationObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            return ctx->GetLibrary()->CreatePseudoActivationObject();
+        }
+
+        Js::RecyclableObject* DoObjectInflation_SnapConsoleScopeActivationObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            return ctx->GetLibrary()->CreateConsoleScopeActivationObject();
+        }
+
+        Js::RecyclableObject* DoObjectInflation_SnapActivationExInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            //
+            //TODO: I am going to assume the cached info is an optimization only so we just return a regular activation object here
+            //
+
+            return ctx->GetLibrary()->CreateActivationObject();
+        }
+
+        //////////////////
+
+        Js::RecyclableObject* DoObjectInflation_SnapHeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject);
+
+            Js::RecyclableObject* activationObj = (argsInfo->FrameObject != TTD_INVALID_PTR_ID) ? inflator->LookupObject(argsInfo->FrameObject) : nullptr;
+
+            return  ctx->GetLibrary()->CreateHeapArguments_TTD(argsInfo->NumOfArguments, argsInfo->FormalCount, static_cast<Js::ActivationObject*>(activationObj), argsInfo->DeletedArgFlags);
+        }
+
+        void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject);
+
+            writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
+
+            writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaAndBigSpaceSeparator);
+
+            writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::deletedArgs, NSTokens::Separator::CommaAndBigSpaceSeparator);
+            writer->WriteSequenceStart();
+            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
+            {
+               writer->WriteNakedByte(argsInfo->DeletedArgFlags[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+            }
+            writer->WriteSequenceEnd();
+        }
+
+        void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<SnapHeapArgumentsInfo>();
+
+            argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
+
+            argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
+
+            argsInfo->FormalCount = reader->ReadLengthValue(true);
+
+            if(argsInfo->FormalCount == 0)
+            {
+                argsInfo->DeletedArgFlags = nullptr;
+            }
+            else
+            {
+                argsInfo->DeletedArgFlags = alloc.SlabAllocateArray<byte>(argsInfo->FormalCount);
+            }
+
+            reader->ReadKey(NSTokens::Key::deletedArgs, true);
+            reader->ReadSequenceStart();
+            for(uint32 i = 0; i < argsInfo->FormalCount; ++i)
+            {
+                argsInfo->DeletedArgFlags[i] = reader->ReadNakedByte(i != 0);
+            }
+            reader->ReadSequenceEnd();
+
+            SnapObjectSetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject, argsInfo);
         }
 
         //////////////////

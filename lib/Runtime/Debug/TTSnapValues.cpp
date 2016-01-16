@@ -888,12 +888,29 @@ namespace TTD
 
         Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
         {
-            //
-            //TODO: Implement this!!!
-            //
-            AssertMsg(false, "Not implemented yet!!!");
+            ulong grfscr = ((ulong)fbInfo->EvalFlags) | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
-            return nullptr;
+            LPCWSTR source = fbInfo->TopLevelBase.SourceCode;
+            uint32 sourceLen = wcslen(source);
+            Js::ScriptFunction* pfuncScript = ctx->GetLibrary()->GetGlobalObject()->EvalHelper(ctx, source, sourceLen, fbInfo->TopLevelBase.ModuleId, grfscr, Js::Constants::EvalCode, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
+            Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
+
+            Js::FastEvalMapString key(source, sourceLen, fbInfo->TopLevelBase.ModuleId, fbInfo->IsStrictMode, false);
+            ctx->AddToEvalMap(key, fbInfo->IsIndirect, pfuncScript);
+
+            Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
+
+            ////
+            //We don't do this automatically ing the eval helper so do it here
+            TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
+            TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, fb, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.SourceCode, (ulong)fbInfo->EvalFlags, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
+            ctx->m_ttdTopLevelEval.Add(tbfi);
+
+            //walk global body to (1) add functions to pin set (2) build parent map
+            ctx->ProcessFunctionBodyOnLoad(fb, nullptr);
+            ////
+
+            return fb;
         }
 
         void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)

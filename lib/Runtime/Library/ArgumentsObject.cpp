@@ -281,20 +281,47 @@ namespace Js
 
     TTD::NSSnapObjects::SnapObjectType HeapArgumentsObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject;
     }
 
     void HeapArgumentsObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
+        TTD::NSSnapObjects::SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapHeapArgumentsInfo>();
 
-        AssertMsg(false, "Not implemented yet!!!");
+        AssertMsg(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
+        argsInfo->NumOfArguments = this->numOfArguments;
+        argsInfo->FormalCount = this->formalCount;
+
+        uint32 depOnCount = 0;
+        TTD_PTR_ID* depOnArray = nullptr;
+
+        argsInfo->FrameObject = TTD_INVALID_PTR_ID;
+        if(this->frameObject != nullptr)
+        {
+            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
+
+            depOnCount = 1;
+            depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+            depOnArray[0] = argsInfo->FrameObject;
+        }
+
+        argsInfo->DeletedArgFlags = (this->formalCount != 0) ? alloc.SlabAllocateArrayZ<byte>(argsInfo->FormalCount) : nullptr;
+        for(uint32 i = 0; i < this->formalCount; ++i)
+        {
+            if(this->deletedArgs->Test(i))
+            {
+                argsInfo->DeletedArgFlags[i] = true;
+            }
+        }
+
+        if(depOnCount == 0)
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, argsInfo);
+        }
+        else
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapHeapArgumentsInfo*, TTD::NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject>(objData, argsInfo, alloc, depOnCount, depOnArray);
+        }
     }
 #endif
 

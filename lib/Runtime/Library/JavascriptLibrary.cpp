@@ -4502,6 +4502,22 @@ namespace Js
     {
         return BoundFunction::InflateBoundFunction(this->scriptContext, function, bThis, ct, args);
     }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateHeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray)
+    {
+        Js::HeapArgumentsObject* argsObj = this->CreateHeapArguments(frameObject, formalCount);
+
+        argsObj->SetNumberOfArguments(numOfArguments);
+        for(uint32 i = 0; i < formalCount; ++i)
+        {
+            if(deletedArray[i])
+            {
+                argsObj->DeleteItemAt(i);
+            }
+        }
+
+        return argsObj;
+    }
 #endif
 
     void JavascriptLibrary::SetCrossSiteForSharedFunctionType(JavascriptFunction * function)

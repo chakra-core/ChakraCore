@@ -105,20 +105,12 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ActivationObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapActivationObject;
     }
 
     void ActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapActivationObject>(objData, nullptr);
     }
 #endif
 
@@ -165,20 +157,12 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType BlockActivationObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapBlockActivationObject;
     }
 
     void BlockActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapBlockActivationObject>(objData, nullptr);
     }
 #endif
 
@@ -207,41 +191,26 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType PseudoActivationObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapPseudoActivationObject;
     }
 
     void PseudoActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapPseudoActivationObject>(objData, nullptr);
     }
 #endif
 
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ConsoleScopeActivationObject::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapConsoleScopeActivationObject;
     }
 
     void ConsoleScopeActivationObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapConsoleScopeActivationObject>(objData, nullptr);
     }
+
 #endif
 
     /* static */
@@ -326,29 +295,14 @@ namespace Js
     }
 
 #if ENABLE_TTD
-    void ActivationObjectEx::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
-    {
-        extractor->MarkVisitVar(this->parentFunc);
-
-        //I am assuming the "" are cached for performance only and we can reset to an empty cache without *semantic* issues
-    }
-
     TTD::NSSnapObjects::SnapObjectType ActivationObjectEx::GetSnapTag_TTD() const
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx;
     }
 
     void ActivationObjectEx::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        //
-        //TODO: unimplemented snapshot object
-        //
-
-        AssertMsg(false, "Not implemented yet!!!");
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapActivationObjectEx>(objData, nullptr);
     }
 #endif
 };
