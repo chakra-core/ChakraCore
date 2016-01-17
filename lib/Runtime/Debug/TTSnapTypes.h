@@ -59,7 +59,6 @@ namespace TTD
         };
 
         //A tag that we use to flag data/getter/setters in the more complex types
-        //A tag for compact representation of sealed/frozen/extensible information
         enum class SnapAccessorTag : uint8
         {
             Clear = 0x0,
