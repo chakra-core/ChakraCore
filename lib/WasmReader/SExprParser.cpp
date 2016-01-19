@@ -15,7 +15,7 @@ SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_inExpr(false)
 {
     m_scanner = Anew(&m_alloc, SExprScanner, &m_alloc);
-    m_blockNesting = Anew(&m_alloc, SListCounted<SExpr::BlockType>, &m_alloc);
+    m_blockNesting = Anew(&m_alloc, JsUtil::Stack<SExpr::BlockType>, &m_alloc);
     m_context.offset = 0;
     m_context.source = source;
     m_context.length = length;

@@ -270,22 +270,25 @@ WasmBytecodeGenerator::EnregisterLocals()
 
         m_locals[i] = WasmLocal(regSpace->AcquireRegister(), type);
 
-        switch (type)
-        {
-        case WasmTypes::F32:
-            m_writer.AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, m_locals[i].location, 0.0f);
-            break;
-        case WasmTypes::F64:
-            m_writer.AsmDouble1Const1(Js::OpCodeAsmJs::Ld_DbConst, m_locals[i].location, 0.0);
-            break;
-        case WasmTypes::I32:
-            m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, m_locals[i].location, 0);
-            break;
-        case WasmTypes::I64:
-            AssertMsg(UNREACHED, "Unimplemented");
-            break;
-        default:
-            Assume(UNREACHED);
+        // Zero only the locals not corresponding to formal parameters.
+        if (i >= m_funcInfo->GetParamCount()) {
+            switch (type)
+            {
+            case WasmTypes::F32:
+                m_writer.AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, m_locals[i].location, 0.0f);
+                break;
+            case WasmTypes::F64:
+                m_writer.AsmDouble1Const1(Js::OpCodeAsmJs::Ld_DbConst, m_locals[i].location, 0.0);
+                break;
+            case WasmTypes::I32:
+                m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, m_locals[i].location, 0);
+                break;
+            case WasmTypes::I64:
+                AssertMsg(UNREACHED, "Unimplemented");
+                break;
+            default:
+                Assume(UNREACHED);
+            }
         }
     }
 }
@@ -322,12 +325,12 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         uint8 depth = m_reader->m_currentNode.br.depth;
         if (depth >= m_labels->Count())
             Assert(UNREACHED);
+        SListCounted<Js::ByteCodeLabel>::Iterator itr(m_labels);
+        itr.Next();
         for (int i = 0; i < depth; i++) {
-            // [b-gekua] TODO
-            // Find label at depth nesting levels out
-            // Possibly the SList m_labels is not optimal for this.
+            itr.Next();
         }
-        Js::ByteCodeLabel target = m_labels->Top();
+        Js::ByteCodeLabel target = itr.Data();
         m_writer.AsmBr(target);
         return EmitInfo();
     }
