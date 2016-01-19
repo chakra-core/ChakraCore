@@ -2685,9 +2685,7 @@ namespace Js
             {
                 maxSlot = max(maxSlot, dIndex);
 
-                entryInfo[dIndex].AttributeInfo = descriptor.Attributes;
-                entryInfo[dIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
-                entryInfo[dIndex].PropertyRecordId = pid;
+                TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
             }
             else
             {
@@ -2696,9 +2694,7 @@ namespace Js
                 {
                     maxSlot = max(maxSlot, gIndex);
 
-                    entryInfo[gIndex].AttributeInfo = descriptor.Attributes;
-                    entryInfo[gIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Getter;
-                    entryInfo[gIndex].PropertyRecordId = pid;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Getter);
                 }
 
                 uint32 sIndex = descriptor.GetSetterPropertyIndex();
@@ -2706,9 +2702,7 @@ namespace Js
                 {
                     maxSlot = max(maxSlot, sIndex);
 
-                    entryInfo[sIndex].AttributeInfo = descriptor.Attributes;
-                    entryInfo[sIndex].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Setter;
-                    entryInfo[sIndex].PropertyRecordId = pid;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Setter);
                 }
             }
         }

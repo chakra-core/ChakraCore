@@ -116,10 +116,6 @@ namespace TTD
             propertyReset.Clear();
 
             ////
-            //
-            //TODO: when we have better handler support we can just update the type/handler and resize the slot arrays instead
-            //-- this will also ensure that we reset any extensible/frozen info
-            //
 
             for(int32 i = 0; i < dynObj->GetPropertyCount(); i++)
             {
@@ -130,7 +126,7 @@ namespace TTD
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
             for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
             {
-                if(!(handler->PropertyInfoArray[i].AttributeInfo & PropertyDeleted))
+                if(handler->PropertyInfoArray[i].DataKind != NSSnapType::SnapEntryDataKindTag::Clear)
                 {
                     Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
                     propertyReset.Remove(pid);
@@ -177,65 +173,54 @@ namespace TTD
 
             for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
             {
-                Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
-
-                if(handler->PropertyInfoArray[i].AttributeInfo & PropertyDeleted)
+                //We have an empty (or uninteresting) slot for so there is nothing to restore
+                if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Clear)
                 {
-                    //it was deleted so we just pretend it doesn't exist
-                    //
-                    //TODO: when we have type support the id will be set appropriately but for now we just ignore it and hope for the best by leaving it un-assigned
-                    //
+                    continue;
                 }
-                else if(!Js::DynamicTypeHandler::ShouldRestorePropertyId_TTD(pid))
+
+                Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
+                TTDVar ttdVal = snpObject->VarArray[i];
+                Js::Var pVal = inflator->InflateTTDVar(ttdVal);
+
+                if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Data)
                 {
-                    //
-                    //TODO: we don't want to mess with the non-restorable value (internal property value) but make sure the slot position etc. is correct
-                    //
+                    if(!obj->HasOwnProperty(pid) || obj->IsWritable(pid))
+                    {
+                        obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                    }
                 }
                 else
                 {
-                    TTDVar ttdVal = snpObject->VarArray[i];
-                    Js::Var pVal = inflator->InflateTTDVar(ttdVal);
-
-                    if(handler->PropertyInfoArray[i].AccessorInfo == NSSnapType::SnapAccessorTag::Data)
+                    NSSnapType::SnapEntryDataKindTag ttag = handler->PropertyInfoArray[i].DataKind;
+                    if(ttag == NSSnapType::SnapEntryDataKindTag::Getter)
                     {
-                        if(!obj->HasOwnProperty(pid) || obj->IsWritable(pid))
-                        {
-                            obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
-                        }
+                        obj->SetAccessors(pid, pVal, nullptr);
+                    }
+                    else if(ttag == NSSnapType::SnapEntryDataKindTag::Setter)
+                    {
+                        obj->SetAccessors(pid, nullptr, pVal);
                     }
                     else
                     {
-                        NSSnapType::SnapAccessorTag ttag = handler->PropertyInfoArray[i].AccessorInfo;
-                        if(ttag == NSSnapType::SnapAccessorTag::Getter)
-                        {
-                            obj->SetAccessors(pid, pVal, nullptr);
-                        }
-                        else if(ttag == NSSnapType::SnapAccessorTag::Setter)
-                        {
-                            obj->SetAccessors(pid, nullptr, pVal);
-                        }
-                        else
-                        {
-                            AssertMsg(false, "Don't know how to restore this accesstag!!");
-                        }
+                        AssertMsg(false, "Don't know how to restore this accesstag!!");
                     }
+                }
 
-                    Js::PropertyAttributes pAttrib = handler->PropertyInfoArray[i].AttributeInfo;
-                    if(obj->IsWritable(pid) && (pAttrib & PropertyWritable) == PropertyNone)
-                    {
-                        obj->SetWritable(pid, FALSE);
-                    }
+                Js::PropertyAttributes pAttrib = (Js::PropertyAttributes)handler->PropertyInfoArray[i].AttributeInfo;
+                if(obj->IsWritable(pid) && (pAttrib & PropertyWritable) == PropertyNone)
+                {
+                    obj->SetWritable(pid, FALSE);
+                }
 
-                    if(obj->IsEnumerable(pid) && (pAttrib & PropertyEnumerable) == PropertyNone)
-                    {
-                        obj->SetEnumerable(pid, FALSE);
-                    }
+                if(obj->IsEnumerable(pid) && (pAttrib & PropertyEnumerable) == PropertyNone)
+                {
+                    obj->SetEnumerable(pid, FALSE);
+                }
 
-                    if(obj->IsConfigurable(pid) && (pAttrib & PropertyConfigurable) == PropertyNone)
-                    {
-                        obj->SetConfigurable(pid, FALSE);
-                    }
+                if(obj->IsConfigurable(pid) && (pAttrib & PropertyConfigurable) == PropertyNone)
+                {
+                    obj->SetConfigurable(pid, FALSE);
                 }
             }
 
@@ -298,18 +283,16 @@ namespace TTD
                     for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
                     {
                         NSTokens::Separator varSep = i != 0 ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
-                        Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
 
-                        if(!Js::DynamicTypeHandler::ShouldRestorePropertyId_TTD(pid))
+                        if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Clear)
                         {
-                            //
-                            //TODO: we need to special case this emit when we have more complete type support
-                            //
                             writer->WriteNakedNull(varSep);
                         }
                         else
                         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                            Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
+
                             writer->WriteRecordStart(varSep);
                             writer->WriteString(NSTokens::Key::name, threadContext->GetPropertyName(pid)->GetBuffer(), NSTokens::Separator::NoSeparator);
                             writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
@@ -393,13 +376,8 @@ namespace TTD
                     reader->ReadSequenceStart_WDefaultKey(true);
                     for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
                     {
-                        Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
-
-                        if(Js::IsInternalPropertyId(pid))
+                        if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Clear)
                         {
-                            //
-                            //TODO: we need to special case this emit when we have more complete type support
-                            //
                             reader->ReadNakedNull(i != 0);
                         }
                         else

@@ -51,12 +51,6 @@ namespace Js
             ;
         }
 
-        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
-        {
-            //We should always force deferral before doing this sort of stuff
-            return TTD::NSSnapType::SnapTypeHandlerTag::Invalid;
-        }
-
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
         {
             return 0;

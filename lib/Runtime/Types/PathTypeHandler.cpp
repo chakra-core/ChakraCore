@@ -1925,10 +1925,7 @@ namespace Js
 
         for(uint32 index = 0; index < plength; ++index)
         {
-            entryInfo[index].AttributeInfo = PropertyDynamicTypeDefaults;
-            entryInfo[index].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
-
-            entryInfo[index].PropertyRecordId = typePath->GetPropertyIdUnchecked(index)->GetPropertyId();
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, typePath->GetPropertyIdUnchecked(index)->GetPropertyId(), PropertyDynamicTypeDefaults, TTD::NSSnapType::SnapEntryDataKindTag::Data);
         }
 
         return plength;

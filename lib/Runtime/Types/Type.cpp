@@ -182,16 +182,10 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-    void Type::ExtractSnapType(TTD::NSSnapType::SnapType* sType, bool isWellKnown, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const
+    void Type::ExtractSnapType(TTD::NSSnapType::SnapType* sType, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const
     {
         sType->TypePtrId = TTD_CONVERT_TYPEINFO_TO_PTR_ID(this);
         sType->JsTypeId = this->GetTypeId();
-
-        sType->OptWellKnownToken = TTD_INVALID_WELLKNOWN_TOKEN;
-        if(isWellKnown)
-        {
-            sType->OptWellKnownToken = this->GetScriptContext()->ResolveKnownTokenForType_TTD(const_cast<Type*>(this));
-        }
 
         sType->PrototypeId = TTD_INVALID_PTR_ID;
         Js::RecyclableObject* proto = this->GetPrototype();
@@ -203,11 +197,6 @@ namespace Js
         sType->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(this->GetScriptContext());
 
         sType->TypeHandlerInfo = optHandler;
-
-        //
-        //TODO: when we do more subtyping we will need to get the additional data here
-        //
-        sType->AddtlData = nullptr;
     }
 #endif
 }

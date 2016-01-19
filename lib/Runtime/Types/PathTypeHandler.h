@@ -239,14 +239,6 @@ namespace Js
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
-
-#if ENABLE_TTD
-    public:
-        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
-        {
-            return TTD::NSSnapType::SnapTypeHandlerTag::SimplePathTypeHandlerTag;
-        }
-#endif
     };
 
     class PathTypeHandler sealed : public PathTypeHandlerBase
@@ -279,13 +271,5 @@ namespace Js
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandler * New(ScriptContext * scriptContext, PathTypeHandler * typeHandler, bool isLocked, bool isShared);
-
-#if ENABLE_TTD
-    public:
-        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
-        {
-            return TTD::NSSnapType::SnapTypeHandlerTag::PathTypeHandlerTag;
-        }
-#endif
     };
 }

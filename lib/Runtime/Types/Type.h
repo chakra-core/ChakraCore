@@ -89,7 +89,7 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-        virtual void ExtractSnapType(TTD::NSSnapType::SnapType* sType, bool isWellKnown, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const;
+        void ExtractSnapType(TTD::NSSnapType::SnapType* sType, TTD::NSSnapType::SnapHandler* optHandler, TTD::SlabAllocator& alloc) const;
 #endif
     };
 };

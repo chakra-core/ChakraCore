@@ -1093,10 +1093,7 @@ namespace Js
 
         for(uint32 index = 0; index < plength; ++index)
         {
-            entryInfo[index].AttributeInfo = this->descriptors[index].Attributes;
-            entryInfo[index].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
-
-            entryInfo[index].PropertyRecordId = this->descriptors[index].Id->GetPropertyId();
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, this->descriptors[index].Id->GetPropertyId(), this->descriptors[index].Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
         }
 
         return plength;

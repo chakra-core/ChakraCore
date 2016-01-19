@@ -722,13 +722,7 @@ namespace Js
         }
 
         //The kind of type this snaptype record is associated with and the extensible flag
-        handler->SnapHandlerKind = this->GetHandlerKind_TTD();
         handler->IsExtensibleFlag = this->GetFlags() & IsExtensibleFlag;
-
-        //
-        //TODO: when we do more subtyping we will need to get the additional data here
-        //
-        handler->AddtlData = nullptr;
     }
 
     void DynamicTypeHandler::SetExtensibleFlag_TTD(byte extensibleFlag)

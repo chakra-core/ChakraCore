@@ -73,8 +73,6 @@ namespace TTD
                 this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext, snap);
             }
 
-            bool isWellKnown = this->m_marks.IsTaggedAsWellKnown(jstype);
-
             NSSnapType::SnapHandler* sHandler = nullptr;
             if(Js::DynamicType::Is(jstype->GetTypeId()))
             {
@@ -85,7 +83,7 @@ namespace TTD
             }
 
             NSSnapType::SnapType* sType = snap->GetNextAvailableTypeEntry();
-            jstype->ExtractSnapType(sType, isWellKnown, sHandler, snap->GetSnapshotSlabAllocator());
+            jstype->ExtractSnapType(sType, sHandler, snap->GetSnapshotSlabAllocator());
 
             this->m_idToTypeMap.AddItem(sType->TypePtrId, sType);
             this->m_marks.ClearMark(jstype);

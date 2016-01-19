@@ -57,13 +57,5 @@ namespace Js
             DynamicObject *const object,
             const TPropertyIndex existingPropertyIndex,
             TPropertyIndex *const propertyIndex);
-
-#if ENABLE_TTD
-    public:
-        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
-        {
-            return TTD::NSSnapType::SnapTypeHandlerTag::SimpleUnorderedDictionaryHandler;
-        }
-#endif
     };
 }

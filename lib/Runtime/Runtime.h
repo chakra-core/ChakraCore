@@ -116,14 +116,12 @@ namespace TTD
     };
     DEFINE_ENUM_FLAG_OPERATORS(TTDMode)
 
-        //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
-        //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
-        typedef Js::Var TTDVar;
+    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+    //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
+    typedef Js::Var TTDVar;
 
     namespace NSSnapType
     {
-        enum class SnapTypeHandlerTag : int;
-
         struct SnapPropertyRecord;
         struct SnapHandlerPropertyEntry;
         struct SnapHandler;

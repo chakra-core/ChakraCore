@@ -3176,12 +3176,9 @@ namespace Js
             uint32 index = descriptor.propertyIndex;
             maxSlot = max(maxSlot, index);
 
-            entryInfo[index].AttributeInfo = descriptor.Attributes;
-            entryInfo[index].AccessorInfo = TTD::NSSnapType::SnapAccessorTag::Data;
-
             TMapKey key = iter.CurrentKey();
             const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
-            entryInfo[index].PropertyRecordId = pRecord->GetPropertyId();
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
         }
 
         if(this->propertyMap->Count() == 0)

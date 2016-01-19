@@ -613,7 +613,6 @@ namespace Js
          }
 
          //Use to extract the handler specific information during snapshot
-         virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const = 0;
          virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const = 0;
 
          //Extract the snap handler info

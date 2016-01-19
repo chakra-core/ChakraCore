@@ -86,11 +86,6 @@ namespace Js
             ;
         }
 
-        virtual TTD::NSSnapType::SnapTypeHandlerTag GetHandlerKind_TTD() const override
-        {
-            return TTD::NSSnapType::SnapTypeHandlerTag::MissingHandlerTag;
-        }
-
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override
         {
             return 0;

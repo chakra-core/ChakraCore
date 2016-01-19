@@ -96,13 +96,27 @@ namespace TTD
 
         //////////////////
 
+        void ExtractSnapPropertyEntryInfo(SnapHandlerPropertyEntry* entry, Js::PropertyId pid, Js::PropertyAttributes attr, SnapEntryDataKindTag dataKind)
+        {
+            entry->PropertyRecordId = pid;
+            entry->AttributeInfo = ((SnapAttributeTag)attr) & SnapAttributeTag::AttributeMask;
+
+            if(Js::IsInternalPropertyId(pid) || (attr & PropertyDeleted) == PropertyDeleted)
+            {
+                entry->DataKind = SnapEntryDataKindTag::Clear;
+            }
+            else
+            {
+                entry->DataKind = dataKind;
+            }
+        }
+
         void EmitSnapHandler(const SnapHandler* snapHandler, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
 
             writer->WriteAddr(NSTokens::Key::handlerId, snapHandler->HandlerId);
 
-            writer->WriteTag<SnapTypeHandlerTag>(NSTokens::Key::handlerType, snapHandler->SnapHandlerKind, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::extensibleFlag, snapHandler->IsExtensibleFlag, NSTokens::Separator::CommaSeparator);
 
             writer->WriteUInt32(NSTokens::Key::inlineSlotCapacity, snapHandler->InlineSlotCapacity, NSTokens::Separator::CommaSeparator);
@@ -118,18 +132,13 @@ namespace TTD
                 {
                     writer->WriteRecordStart(i != 0 ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
                     writer->WriteUInt32(NSTokens::Key::propertyId, snapHandler->PropertyInfoArray[i].PropertyRecordId);
-                    writer->WriteUInt32(NSTokens::Key::attributeFlags, snapHandler->PropertyInfoArray[i].AttributeInfo, NSTokens::Separator::CommaSeparator);
-                    writer->WriteTag<SnapAccessorTag>(NSTokens::Key::accessorType, snapHandler->PropertyInfoArray[i].AccessorInfo, NSTokens::Separator::CommaSeparator);
+                    writer->WriteTag<SnapEntryDataKindTag>(NSTokens::Key::dataKindTag, snapHandler->PropertyInfoArray[i].DataKind, NSTokens::Separator::CommaSeparator);
+                    writer->WriteTag<SnapAttributeTag>(NSTokens::Key::attributeTag, snapHandler->PropertyInfoArray[i].AttributeInfo, NSTokens::Separator::CommaSeparator);
                     writer->WriteRecordEnd();
                 }
                 writer->AdjustIndent(-1);
                 writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
             }
-
-            //
-            //TODO: need to manage AddtlData here
-            //
-            AssertMsg(snapHandler->AddtlData == nullptr, "This is not supported yet");
 
             writer->WriteRecordEnd();
         }
@@ -140,7 +149,6 @@ namespace TTD
 
             snapHandler->HandlerId = reader->ReadAddr(NSTokens::Key::handlerId);
 
-            snapHandler->SnapHandlerKind = reader->ReadTag<SnapTypeHandlerTag>(NSTokens::Key::handlerType, true);
             snapHandler->IsExtensibleFlag = (byte)reader->ReadUInt32(NSTokens::Key::extensibleFlag, true);
 
             snapHandler->InlineSlotCapacity = reader->ReadUInt32(NSTokens::Key::inlineSlotCapacity, true);
@@ -162,17 +170,13 @@ namespace TTD
                     reader->ReadRecordStart(i != 0);
 
                     snapHandler->PropertyInfoArray[i].PropertyRecordId = reader->ReadUInt32(NSTokens::Key::propertyId);
-                    snapHandler->PropertyInfoArray[i].AttributeInfo = (byte)reader->ReadUInt32(NSTokens::Key::attributeFlags, true);
-                    snapHandler->PropertyInfoArray[i].AccessorInfo = reader->ReadTag<SnapAccessorTag>(NSTokens::Key::accessorType, true);
+                    snapHandler->PropertyInfoArray[i].DataKind = reader->ReadTag<SnapEntryDataKindTag>(NSTokens::Key::dataKindTag, true);
+                    snapHandler->PropertyInfoArray[i].AttributeInfo = reader->ReadTag<SnapAttributeTag>(NSTokens::Key::attributeTag, true);
 
                     reader->ReadRecordEnd();
                 }
                 reader->ReadSequenceEnd();
             }
-
-            //
-            //TODO: need to manage AddtlData here
-            //
 
             reader->ReadRecordEnd();
         }
@@ -185,23 +189,12 @@ namespace TTD
 
             writer->WriteAddr(NSTokens::Key::typeId, sType->TypePtrId);
 
-            writer->WriteBool(NSTokens::Key::isWellKnownToken, sType->OptWellKnownToken != nullptr, NSTokens::Separator::CommaSeparator);
-            if(sType->OptWellKnownToken != nullptr)
-            {
-                writer->WriteWellKnownToken(NSTokens::Key::wellKnownToken, sType->OptWellKnownToken, NSTokens::Separator::CommaSeparator);
-            }
-
             writer->WriteTag<Js::TypeId>(NSTokens::Key::jsTypeId, sType->JsTypeId, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::prototypeId, sType->PrototypeId, NSTokens::Separator::CommaSeparator);
             writer->WriteLogTag(NSTokens::Key::ctxTag, sType->ScriptContextTag, NSTokens::Separator::CommaSeparator);
 
             TTD_PTR_ID handlerId = (sType->TypeHandlerInfo != nullptr) ? sType->TypeHandlerInfo->HandlerId : TTD_INVALID_PTR_ID;
             writer->WriteAddr(NSTokens::Key::handlerId, handlerId, NSTokens::Separator::CommaSeparator);
-
-            //
-            //TODO: need to manage AddtlData here
-            //
-            AssertMsg(sType->AddtlData == nullptr, "This is not supported yet");
 
             writer->WriteRecordEnd();
         }
@@ -211,13 +204,6 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             sType->TypePtrId = reader->ReadAddr(NSTokens::Key::typeId);
-
-            sType->OptWellKnownToken = TTD_INVALID_WELLKNOWN_TOKEN;
-            bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
-            if(isWellKnown)
-            {
-                sType->OptWellKnownToken = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
-            }
 
             sType->JsTypeId = reader->ReadTag<Js::TypeId>(NSTokens::Key::jsTypeId, true);
             sType->PrototypeId = reader->ReadAddr(NSTokens::Key::prototypeId, true);
@@ -232,10 +218,6 @@ namespace TTD
             {
                 sType->TypeHandlerInfo = typeHandlerMap.LookupKnownItem(handlerId);
             }
-
-            //
-            //TODO: need to manage AddtlData here
-            //
 
             reader->ReadRecordEnd();
         }

@@ -10,12 +10,6 @@ namespace TTD
 {
     namespace NSSnapType
     {
-        //typedef for the additional info each specific typehandler/type may need
-        typedef void* SnapTypeHandlerSpecificData;
-        typedef void* SnapTypeSpecificData;
-
-        //////////////////
-
         //A struct that represents a single property record in a snapshot
         struct SnapPropertyRecord
         {
@@ -43,44 +37,40 @@ namespace TTD
 
         //////////////////
 
-        //A tag for us to track what typehandler this snap type corresponds to
-        enum class SnapTypeHandlerTag : int //need to change forward decls in runtime/runtimecore if you change this
-        {
-            Invalid = 0x0,
-            MissingHandlerTag,
-            NullHandlerTag,
-            SimplePathTypeHandlerTag,
-            PathTypeHandlerTag,
-            SimpleTypeHandlerTag,
-            DictionaryTypeHandlerTag,
-            SimpleDictionaryHandler,
-            SimpleUnorderedDictionaryHandler,
-            ES5GeneralDictionaryHandler
-        };
-
-        //A tag that we use to flag data/getter/setters in the more complex types
-        enum class SnapAccessorTag : uint8
+        //A tag that we use to flag property entry attributes
+        enum class SnapAttributeTag : uint8
         {
             Clear = 0x0,
-            Data,
-            Getter,
-            Setter
+            Enumerable   = 0x01, //same value as PropertyEnumerable for fast extraction
+            Configurable = 0x02, //same value as PropertyConfigurable for fast extraction
+            Writable     = 0x04, //same value as PropertyWritable for fast extraction
+            AttributeMask = (Enumerable | Configurable | Writable) //used to mask out other uninteresting Js::Attributes
+        };
+        DEFINE_ENUM_FLAG_OPERATORS(SnapAttributeTag)
+
+        //A tag that we use to flag data/getter/setters in the more complex types
+        enum class SnapEntryDataKindTag : uint8
+        {
+            Clear = 0x0,
+            Data,   //the value in the location is a data entry
+            Getter, //the value in the location is a getter function entry
+            Setter  //the value in the location is a setter function entry
         };
 
         //A helper class that tracks all of the information for a single index entry in a snaphandler
         struct SnapHandlerPropertyEntry
         {
-            Js::PropertyAttributes AttributeInfo;
-            SnapAccessorTag AccessorInfo;
-
+            //The property id associated with this location
             Js::PropertyId PropertyRecordId;
+
+            //The kind of data this entry contains (data/getter/setter)
+            SnapEntryDataKindTag DataKind;
+
+            //Porperty attributes associated with this location (enumerable/configurable/writable)
+            SnapAttributeTag AttributeInfo;
         };
 
         //A class that represents a single snapshot typehandler entry
-        //
-        //TODO: this only tracks the propertyRecords in the type (in the order they enumerated at snapshot time) so we are missing any gaps or other 
-        //information that is relevant to the externally observable behavior 
-        //
         struct SnapHandler
         {
             //The ptrid for the type
@@ -94,21 +84,13 @@ namespace TTD
             uint32 MaxPropertyIndex;
             SnapHandlerPropertyEntry* PropertyInfoArray;
 
-            //The kind of type this snaptype record is associated with
-            SnapTypeHandlerTag SnapHandlerKind;
-
             //The sealed/frozen/extensible information
             byte IsExtensibleFlag;
-
-            //A pointer to any additional data on the kind
-            SnapTypeHandlerSpecificData AddtlData;
         };
 
-        //
-        //TODO: we just hope for the best during the inflate phase right now need to add this in (and how to set the value correctly) later
-        //
-        //Inflate the given type handler
-        //Js::DynamicSnapHandler* InflateDynamicHandler(const SnapHandler& snapHandler, ThreadContext* threadContext, InflateMap* inflator);
+        //Extract the info from a entry into the needed property information
+        //pid and attr are simple but we check for deleted and internal proprty to set the datakind as Clear or the given dataKind as appropriate
+        void ExtractSnapPropertyEntryInfo(SnapHandlerPropertyEntry* entry, Js::PropertyId pid, Js::PropertyAttributes attr, SnapEntryDataKindTag dataKind);
 
         //serialize the record data
         void EmitSnapHandler(const SnapHandler* snapHandler, FileWriter* writer, NSTokens::Separator separator);
@@ -124,9 +106,6 @@ namespace TTD
             //The ptrid for the type
             TTD_PTR_ID TypePtrId;
 
-            //If this is a well-known type
-            TTD_WELLKNOWN_TOKEN OptWellKnownToken;
-
             //The typeid given by Chakra
             Js::TypeId JsTypeId;
 
@@ -138,16 +117,7 @@ namespace TTD
 
             //The type descriptor which contains information on property layouts and other type information
             SnapHandler* TypeHandlerInfo;
-
-            //A pointer to any additional data on the kind (use JsTypeId to determine what this data is)
-            SnapTypeSpecificData AddtlData;
         };
-
-        //
-        //TODO: we just hope for the best during the inflate phase right now need to add this in (and how to set the value correctly) later
-        //
-        //Inflate the given type
-        //Js::DynamicType* InflateSnapType(const SnapHandler& snapHandler, ThreadContext* threadContext, InflateMap* inflator);
 
         //serialize the record data
         void EmitSnapType(const SnapType* sType, FileWriter* writer, NSTokens::Separator separator);
