@@ -117,6 +117,9 @@ namespace TTD
 
             //The type descriptor which contains information on property layouts and other type information
             SnapHandler* TypeHandlerInfo;
+
+            //The HasNoEnumerableProperties flag for the type
+            bool HasNoEnumerableProperties;
         };
 
         //serialize the record data

@@ -447,7 +447,7 @@ namespace TTD
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
+        LPCWSTR optName = returnCode ? this->m_slabAllocator.CopyStringInto(propertyName->GetSz()) : nullptr;
 #else
         LPCWSTR optName = nullptr;
         if(pid == Js::Constants::NoProperty)
@@ -460,7 +460,7 @@ namespace TTD
         this->InsertEventAtHead(eevent);
     }
 
-    void EventLog::ReplayPropertyEnumEvent(BOOL* returnCode, Js::ScriptContext* ctx, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName)
+    void EventLog::ReplayPropertyEnumEvent(BOOL* returnCode, int32* newIndex, const Js::DynamicObject* obj, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName)
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
@@ -476,9 +476,21 @@ namespace TTD
         *pid = eevent->GetPropertyId();
         *attributes = eevent->GetAttributes();
 
-        AssertMsg(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
-        Js::PropertyString* propertyString = ctx->GetPropertyString(*pid);
-        *propertyName = propertyString;
+        if(*returnCode)
+        {
+            AssertMsg(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
+            Js::PropertyString* propertyString = obj->GetScriptContext()->GetPropertyString(*pid);
+            *propertyName = propertyString;
+
+            const Js::PropertyRecord* pRecord = obj->GetScriptContext()->GetPropertyName(*pid);
+            *newIndex = obj->GetDynamicType()->GetTypeHandler()->GetPropertyIndex(pRecord);
+        }
+        else
+        {
+            *propertyName = nullptr;
+
+            *newIndex = obj->GetDynamicType()->GetTypeHandler()->GetPropertyCount();
+        }
 
         this->AdvanceTimeAndPositionForReplay();
     }

@@ -196,6 +196,8 @@ namespace TTD
             TTD_PTR_ID handlerId = (sType->TypeHandlerInfo != nullptr) ? sType->TypeHandlerInfo->HandlerId : TTD_INVALID_PTR_ID;
             writer->WriteAddr(NSTokens::Key::handlerId, handlerId, NSTokens::Separator::CommaSeparator);
 
+            writer->WriteBool(NSTokens::Key::boolVal, sType->HasNoEnumerableProperties, NSTokens::Separator::CommaSeparator);
+
             writer->WriteRecordEnd();
         }
 
@@ -218,6 +220,8 @@ namespace TTD
             {
                 sType->TypeHandlerInfo = typeHandlerMap.LookupKnownItem(handlerId);
             }
+
+            sType->HasNoEnumerableProperties = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             reader->ReadRecordEnd();
         }

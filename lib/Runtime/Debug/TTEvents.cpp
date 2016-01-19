@@ -463,15 +463,17 @@ namespace TTD
         writer->WriteUInt32(NSTokens::Key::propertyId, this->m_pid, NSTokens::Separator::CommaSeparator);
         writer->WriteUInt32(NSTokens::Key::attributeFlags, this->m_attributes, NSTokens::Separator::CommaSeparator);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        writer->WriteString(NSTokens::Key::stringVal, this->m_propertyString, NSTokens::Separator::CommaSeparator);
-#else
-        if(this->m_pid == Js::Constants::NoProperty)
+        if(this->m_returnCode)
         {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteString(NSTokens::Key::stringVal, this->m_propertyString, NSTokens::Separator::CommaSeparator);
-        }
+#else
+            if(this->m_pid == Js::Constants::NoProperty)
+            {
+                writer->WriteString(NSTokens::Key::stringVal, this->m_propertyString, NSTokens::Separator::CommaSeparator);
+            }
 #endif
-
+        }
         writer->WriteRecordEnd();
     }
 
@@ -480,16 +482,19 @@ namespace TTD
         BOOL retCode = reader->ReadBool(NSTokens::Key::boolVal, true);
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
         Js::PropertyAttributes attr = (Js::PropertyAttributes)reader->ReadUInt32(NSTokens::Key::attributeFlags, true);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
-#else
         LPCWSTR pname = nullptr;
-        if(pid == Js::Constants::NoProperty)
+
+        if(retCode)
         {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
-        }
+#else
+            if(pid == Js::Constants::NoProperty)
+            {
+                pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+            }
 #endif
+        }
 
         return alloc.SlabNew<PropertyEnumStepEventLogEntry>(eTime, retCode, pid, attr, pname);
     }

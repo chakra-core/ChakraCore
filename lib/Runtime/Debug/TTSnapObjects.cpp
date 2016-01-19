@@ -238,6 +238,7 @@ namespace TTD
 
             //finally set the extensible flag
             obj->GetDynamicType()->GetTypeHandler()->SetExtensibleFlag_TTD(handler->IsExtensibleFlag);
+            obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
         }
 
         void EmitObject(const SnapObject* snpObject, FileWriter* writer, NSTokens::Separator separator, const SnapObjectVTable* vtable, ThreadContext* threadContext)

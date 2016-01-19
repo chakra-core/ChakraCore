@@ -470,17 +470,75 @@ namespace Js
         {
             return FALSE;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                BOOL res = FALSE;
+                int32 pIndex = -1;
+                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, attributes, propertyString);
+                index = (Js::PropertyIndex)pIndex;
+
+                return res;
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                BOOL res = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+
+                elog->RecordPropertyEnumEvent(res, *propertyId, *attributes, *propertyString);
+                return res;
+            }
+        }
+
+        //if we don't hit one of the TTD cases and return early then do the regular thing here
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#else
+        return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#endif
     }
 
     BOOL
     DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols) const
     {
-        if (index == Constants::NoBigSlot)
+        if(index == Constants::NoBigSlot)
         {
             return FALSE;
         }
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                BOOL res = FALSE;
+                int32 pIndex = -1;
+                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, attributes, propertyString);
+                index = (Js::BigPropertyIndex)pIndex;
+
+                return res;
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                BOOL res = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+
+                elog->RecordPropertyEnumEvent(res, *propertyId, *attributes, *propertyString);
+                return res;
+            }
+        }
+
+        //if we don't hit one of the TTD cases and return early then do the regular thing here
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#else
+        return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#endif
     }
 
     BOOL

@@ -197,6 +197,12 @@ namespace Js
         sType->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(this->GetScriptContext());
 
         sType->TypeHandlerInfo = optHandler;
+
+        sType->HasNoEnumerableProperties = false;
+        if(Js::DynamicType::Is(this->typeId))
+        {
+            sType->HasNoEnumerableProperties = static_cast<const Js::DynamicType*>(this)->GetHasNoEnumerableProperties();
+        }
     }
 #endif
 }
