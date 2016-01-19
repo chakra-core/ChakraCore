@@ -75,7 +75,7 @@ namespace Wasm
 
         NameToIndexMap * m_nameToLocalMap;
 
-        SListCounted<SExpr::BlockType> * m_blockNesting;
+        JsUtil::Stack<SExpr::BlockType> * m_blockNesting;
 
         WasmFunctionInfo *  m_funcInfo;
 
