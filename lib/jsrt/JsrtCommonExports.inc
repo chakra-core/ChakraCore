@@ -11,9 +11,7 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
-#ifdef ENABLE_WASM
     JsRunWasmScript
-#endif
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue

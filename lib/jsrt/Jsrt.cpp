@@ -2496,9 +2496,9 @@ STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceCon
     return RunScriptCore(script, sourceContext, sourceUrl, false, result);
 }
 
-#ifdef ENABLE_WASM
 STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ const bool isBinary, _In_ const uint lengthBytes, _Out_ JsValueRef * result)
 {
+#ifdef ENABLE_WASM
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
 
@@ -2552,8 +2552,12 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
         *result = scriptFunction;
         return JsNoError;
     });
-}
+#else
+    Assert(false);
+    JsGetNullValue(result); // Satisfy code analysis
+    return JsNoError;
 #endif
+}
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
 {

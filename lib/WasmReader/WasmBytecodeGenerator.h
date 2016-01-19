@@ -112,6 +112,7 @@ namespace Wasm
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
+        EmitInfo EmitBreak();
 
         template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
         EmitInfo EmitBinExpr();
