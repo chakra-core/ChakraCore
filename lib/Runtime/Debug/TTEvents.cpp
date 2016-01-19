@@ -147,6 +147,9 @@ namespace TTD
         case EventKind::StringTag:
             res = StringValueEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
+        case EventKind::PropertyEnumTag:
+            res = PropertyEnumStepEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
         case EventKind::ExternalCallBeginTag:
             res = ExternalCallEventBeginLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
@@ -416,6 +419,79 @@ namespace TTD
         LPCWSTR val = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
 
         return alloc.SlabNew<StringValueEventLogEntry>(eTime, val);
+    }
+
+    //////////////////
+
+    PropertyEnumStepEventLogEntry::PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, LPCWSTR propertyName)
+        : EventLogEntry(EventLogEntry::EventKind::PropertyEnumTag, eventTimestamp), m_returnCode(returnCode), m_pid(pid), m_attributes(attributes), m_propertyString(propertyName)
+    {
+        ;
+    }
+
+    PropertyEnumStepEventLogEntry::~PropertyEnumStepEventLogEntry()
+    {
+        ;
+    }
+
+    PropertyEnumStepEventLogEntry* PropertyEnumStepEventLogEntry::As(EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::PropertyEnumTag, "Not a property enum event!");
+
+        return static_cast<PropertyEnumStepEventLogEntry*>(e);
+    }
+
+    BOOL PropertyEnumStepEventLogEntry::GetReturnCode() const
+    {
+        return this->m_returnCode;
+    }
+
+    Js::PropertyId PropertyEnumStepEventLogEntry::GetPropertyId() const
+    {
+        return this->m_pid;
+    }
+
+    Js::PropertyAttributes PropertyEnumStepEventLogEntry::GetAttributes() const
+    {
+        return this->m_attributes;
+    }
+
+    void PropertyEnumStepEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_returnCode ? true : false, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt32(NSTokens::Key::propertyId, this->m_pid, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt32(NSTokens::Key::attributeFlags, this->m_attributes, NSTokens::Separator::CommaSeparator);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        writer->WriteString(NSTokens::Key::stringVal, this->m_propertyString, NSTokens::Separator::CommaSeparator);
+#else
+        if(this->m_pid == Js::Constants::NoProperty)
+        {
+            writer->WriteString(NSTokens::Key::stringVal, this->m_propertyString, NSTokens::Separator::CommaSeparator);
+        }
+#endif
+
+        writer->WriteRecordEnd();
+    }
+
+    PropertyEnumStepEventLogEntry* PropertyEnumStepEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    {
+        BOOL retCode = reader->ReadBool(NSTokens::Key::boolVal, true);
+        Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
+        Js::PropertyAttributes attr = (Js::PropertyAttributes)reader->ReadUInt32(NSTokens::Key::attributeFlags, true);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        LPCWSTR pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+#else
+        LPCWSTR pname = nullptr;
+        if(pid == Js::Constants::NoProperty)
+        {
+            pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+        }
+#endif
+
+        return alloc.SlabNew<PropertyEnumStepEventLogEntry>(eTime, retCode, pid, attr, pname);
     }
 
     //////////////////

@@ -220,6 +220,12 @@ namespace TTD
         //Replay a random seed value that is being generated using external entropy
         void ReplayExternalEntropyRandomEvent(uint64* result);
 
+        //Log property enumeration step
+        void RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName);
+
+        //Replay a property enumeration step
+        void ReplayPropertyEnumEvent(BOOL* returnCode, Js::ScriptContext* ctx, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName);
+
         //Log a value event for return from an external call
         ExternalCallEventBeginLogEntry* RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime);
         void RecordExternalCallEndEvent(Js::JavascriptFunction* func, int32 rootDepth, Js::Var value);

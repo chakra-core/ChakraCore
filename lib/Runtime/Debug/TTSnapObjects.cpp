@@ -171,6 +171,12 @@ namespace TTD
             //set all the standard properties
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
 
+            //
+            //We assume that placing properties back in the same order we read them out produces correct results.
+            //This is not true for enumeration -- but we handle this by explicit logging
+            //There may also be sensitivity in other cases -- e.g. activataion objects with arguments objects that use slot index values directly.
+            //    Things look good in this case but future changes may require care and/or adding special case handling.
+            //
             for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
             {
                 //We have an empty (or uninteresting) slot for so there is nothing to restore

@@ -53,6 +53,7 @@ namespace TTD
             UInt64Tag,
             DoubleTag,
             StringTag,
+            PropertyEnumTag,
             ExternalCallBeginTag,
             ExternalCallEndTag,
             JsRTActionTag
@@ -211,6 +212,35 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static StringValueEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
+    };
+
+    //////////////////
+
+    //A class that represents a single enumeration step for properties on a dynamic object
+    class PropertyEnumStepEventLogEntry : public EventLogEntry
+    {
+    private:
+        //The return code, property id, and attributes returned
+        BOOL m_returnCode;
+        Js::PropertyId m_pid;
+        Js::PropertyAttributes m_attributes;
+
+        //Optional property name string (may need to actually use later if pid can be Constants::NoProperty)
+        //Always set if if doing extra diagnostics otherwise only as needed
+        LPCWSTR m_propertyString;
+
+    public:
+        PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, LPCWSTR propertyName);
+        virtual ~PropertyEnumStepEventLogEntry() override;
+
+        static PropertyEnumStepEventLogEntry* As(EventLogEntry* e);
+
+        BOOL GetReturnCode() const;
+        Js::PropertyId GetPropertyId() const;
+        Js::PropertyAttributes GetAttributes() const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static PropertyEnumStepEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
     };
 
     //////////////////

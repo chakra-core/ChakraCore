@@ -442,6 +442,47 @@ namespace TTD
         this->AdvanceTimeAndPositionForReplay();
     }
 
+    void EventLog::RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        LPCWSTR optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
+#else
+        LPCWSTR optName = nullptr;
+        if(pid == Js::Constants::NoProperty)
+        {
+            LPCWSTR optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
+        }
+#endif
+
+        PropertyEnumStepEventLogEntry* eevent = this->m_slabAllocator.SlabNew<PropertyEnumStepEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), returnCode, pid, attributes, optName);
+        this->InsertEventAtHead(eevent);
+    }
+
+    void EventLog::ReplayPropertyEnumEvent(BOOL* returnCode, Js::ScriptContext* ctx, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName)
+    {
+        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
+
+        if(this->m_currentEvent == nullptr)
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        PropertyEnumStepEventLogEntry* eevent = PropertyEnumStepEventLogEntry::As(this->m_currentEvent);
+        *returnCode = eevent->GetReturnCode();
+        *pid = eevent->GetPropertyId();
+        *attributes = eevent->GetAttributes();
+
+        AssertMsg(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
+        Js::PropertyString* propertyString = ctx->GetPropertyString(*pid);
+        *propertyName = propertyString;
+
+        this->AdvanceTimeAndPositionForReplay();
+    }
+
     ExternalCallEventBeginLogEntry* EventLog::RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
