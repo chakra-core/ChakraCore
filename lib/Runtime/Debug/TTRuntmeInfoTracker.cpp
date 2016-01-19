@@ -208,8 +208,8 @@ namespace TTD
     
     RuntimeContextInfo::RuntimeContextInfo(ArenaAllocator* allocator)
         : m_shaddowAllocator(allocator), m_worklist(allocator), m_nullString(),
-        m_coreObjToPathMap(allocator, TTD_CORE_OBJECT_COUNT), m_coreTypeToPathMap(allocator, TTD_CORE_TYPE_COUNT), m_coreBodyToPathMap(allocator, TTD_CORE_FUNCTION_BODY_COUNT),
-        m_sortedObjectList(allocator, TTD_CORE_OBJECT_COUNT), m_sortedTypeList(allocator, TTD_CORE_TYPE_COUNT), m_sortedFunctionBodyList(allocator, TTD_CORE_FUNCTION_BODY_COUNT)
+        m_coreObjToPathMap(allocator, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(allocator, TTD_CORE_FUNCTION_BODY_COUNT),
+        m_sortedObjectList(allocator, TTD_CORE_OBJECT_COUNT), m_sortedFunctionBodyList(allocator, TTD_CORE_FUNCTION_BODY_COUNT)
     {
         ;
     }
@@ -217,11 +217,6 @@ namespace TTD
     RuntimeContextInfo::~RuntimeContextInfo()
     {
         for(auto iter = this->m_coreObjToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
-        {
-            const_cast<TTD::UtilSupport::TTAutoString&>(iter.CurrentValue()).Clear();
-        }
-
-        for(auto iter = this->m_coreTypeToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             const_cast<TTD::UtilSupport::TTAutoString&>(iter.CurrentValue()).Clear();
         }
@@ -241,12 +236,6 @@ namespace TTD
             marks.MarkAddrWithSpecialInfo<MarkTableTag::JsWellKnownObj>(obj);
         }
 
-        for(int32 i = 0; i < this->m_sortedTypeList.Count(); ++i)
-        {
-            Js::Type* ttype = this->m_sortedTypeList.Item(i);
-            marks.MarkAddrWithSpecialInfo<MarkTableTag::JsWellKnownObj>(ttype);
-        }
-
         for(int32 i = 0; i < this->m_sortedFunctionBodyList.Count(); ++i)
         {
             Js::FunctionBody* body = this->m_sortedFunctionBodyList.Item(i);
@@ -258,13 +247,6 @@ namespace TTD
     {
         const UtilSupport::TTAutoString& res = this->m_coreObjToPathMap.LookupWithKey(obj, this->m_nullString);
         
-        return (!res.IsNullString()) ? res.GetStrValue() : TTD_INVALID_WELLKNOWN_TOKEN;
-    }
-
-    TTD_WELLKNOWN_TOKEN RuntimeContextInfo::ResolvePathForKnownType(Js::Type* ttype) const
-    {
-        const UtilSupport::TTAutoString& res = this->m_coreTypeToPathMap.LookupWithKey(ttype, this->m_nullString);
-       
         return (!res.IsNullString()) ? res.GetStrValue() : TTD_INVALID_WELLKNOWN_TOKEN;
     }
 
@@ -280,14 +262,6 @@ namespace TTD
         int32 pos = LookupPositionInDictNameList<Js::RecyclableObject*, true>(pathIdString, this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
         
         return (pos != -1) ? this->m_sortedObjectList.Item(pos) : nullptr;
-    }
-
-    Js::Type* RuntimeContextInfo::LookupKnownTypeFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
-    {
-        int32 pos = LookupPositionInDictNameList<Js::Type*, true>(pathIdString, this->m_coreTypeToPathMap, this->m_sortedTypeList, this->m_nullString);
-        AssertMsg(pos != -1, "Missing tyep.");
-
-        return (pos != -1) ? this->m_sortedTypeList.Item(pos) : nullptr;
     }
 
     Js::FunctionBody* RuntimeContextInfo::LookupKnownFunctionBodyFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const
@@ -354,8 +328,6 @@ namespace TTD
             //shouldn't have any dynamic array valued properties
             AssertMsg(!Js::DynamicType::Is(curr->GetTypeId()) || (Js::DynamicObject::FromVar(curr))->GetObjectArray() == nullptr || (Js::DynamicObject::FromVar(curr))->GetObjectArray()->GetLength() == 0, "Shouldn't have any dynamic array valued properties at this point.");
 
-            this->EnqueueNewTypeObject(curr, curr->GetType());
-
             Js::RecyclableObject* proto = curr->GetPrototype();
             bool skipProto = (proto == nullptr) || Js::JavascriptOperators::IsUndefinedOrNullType(proto->GetTypeId());
             if(!skipProto)
@@ -373,7 +345,6 @@ namespace TTD
         }
 
         SortDictIntoListOnNames<Js::RecyclableObject*>(this->m_coreObjToPathMap, this->m_sortedObjectList, this->m_nullString);
-        SortDictIntoListOnNames<Js::Type*>(this->m_coreTypeToPathMap, this->m_sortedTypeList, this->m_nullString);
         SortDictIntoListOnNames<Js::FunctionBody*>(this->m_coreBodyToPathMap, this->m_sortedFunctionBodyList, this->m_nullString);
     }
 
@@ -421,19 +392,6 @@ namespace TTD
             }
 
             this->m_coreObjToPathMap.AddNew(obj, tpath);
-        }
-    }
-
-    void RuntimeContextInfo::EnqueueNewTypeObject(Js::RecyclableObject* parent, Js::Type* ttype)
-    {
-        if(!this->m_coreTypeToPathMap.ContainsKey(ttype))
-        {
-            const UtilSupport::TTAutoString& ppath = this->m_coreObjToPathMap.LookupWithKey(parent, this->m_nullString);
-
-            UtilSupport::TTAutoString fpath(ppath);
-            fpath.Append(L".!type");
-
-            this->m_coreTypeToPathMap.AddNew(ttype, fpath);
         }
     }
 

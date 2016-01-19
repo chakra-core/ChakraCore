@@ -2523,14 +2523,6 @@ namespace Js
         return res;
     }
 
-    TTD_WELLKNOWN_TOKEN ScriptContext::ResolveKnownTokenForType_TTD(Type* val) const
-    {
-        TTD_WELLKNOWN_TOKEN res = this->m_ttdAddtlRuntimeContext->ResolvePathForKnownType(val);
-        AssertMsg(res != TTD_INVALID_WELLKNOWN_TOKEN, "This isn't a well known object!");
-
-        return res;
-    }
-
     RecyclableObject* ScriptContext::LookupPrimitiveForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath)
     {
         Js::RecyclableObject* res = this->m_ttdAddtlRuntimeContext->LookupKnownObjectFromPath(knownPath);
@@ -2543,14 +2535,6 @@ namespace Js
     {
         Js::RecyclableObject* res = this->m_ttdAddtlRuntimeContext->LookupKnownObjectFromPath(knownPath);
         AssertMsg(res != nullptr, "This isn't a well known object!");
-
-        return res;
-    }
-
-    Type* ScriptContext::LookupTypeForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath)
-    {
-        Js::Type* res = this->m_ttdAddtlRuntimeContext->LookupKnownTypeFromPath(knownPath);
-        AssertMsg(res != nullptr, "This isn't a well known type!");
 
         return res;
     }

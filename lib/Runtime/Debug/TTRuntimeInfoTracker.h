@@ -17,7 +17,6 @@
 
 //default capcities for our core object maps/lists
 #define TTD_CORE_OBJECT_COUNT 1028
-#define TTD_CORE_TYPE_COUNT 512
 #define TTD_CORE_FUNCTION_BODY_COUNT 512
 
 namespace TTD
@@ -96,11 +95,9 @@ namespace TTD
 
         //A dictionary which contains the paths for "core" image objects and function bodies
         JsUtil::BaseDictionary<Js::RecyclableObject*, UtilSupport::TTAutoString, ArenaAllocator> m_coreObjToPathMap;
-        JsUtil::BaseDictionary<Js::Type*, UtilSupport::TTAutoString, ArenaAllocator> m_coreTypeToPathMap;
         JsUtil::BaseDictionary<Js::FunctionBody*, UtilSupport::TTAutoString, ArenaAllocator> m_coreBodyToPathMap;
         
         JsUtil::List<Js::RecyclableObject*, ArenaAllocator> m_sortedObjectList;
-        JsUtil::List<Js::Type*, ArenaAllocator> m_sortedTypeList;
         JsUtil::List<Js::FunctionBody*, ArenaAllocator> m_sortedFunctionBodyList;
         
         //Build a path string based on a given name
@@ -120,12 +117,10 @@ namespace TTD
 
         //Get the path name for a known path object (or function body)
         TTD_WELLKNOWN_TOKEN ResolvePathForKnownObject(Js::RecyclableObject* obj) const;
-        TTD_WELLKNOWN_TOKEN ResolvePathForKnownType(Js::Type* ttype) const;
         TTD_WELLKNOWN_TOKEN ResolvePathForKnownFunctionBody(Js::FunctionBody* fbody) const;
 
         //Given a path name string lookup the coresponding object
         Js::RecyclableObject* LookupKnownObjectFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
-        Js::Type* LookupKnownTypeFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
         Js::FunctionBody* LookupKnownFunctionBodyFromPath(TTD_WELLKNOWN_TOKEN pathIdString) const;
 
         //Walk the "known names" we use and fill the map with the objects at said names
@@ -139,9 +134,6 @@ namespace TTD
         //Enqueue a child object that is stored at the given property in the parent 
         void EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, const Js::PropertyRecord* prop, LPCWSTR optacessortag = nullptr);
         void EnqueueNewPathVarAsNeeded(Js::RecyclableObject* parent, Js::Var val, LPCWSTR propName, LPCWSTR optacessortag = nullptr);
-
-        //Enqueue a type object for the given js object
-        void RuntimeContextInfo::EnqueueNewTypeObject(Js::RecyclableObject* parent, Js::Type* ttype);
 
         //Enqueue a child object that is stored at a special named location in the parent object
         void EnqueueNewFunctionBodyObject(Js::RecyclableObject* parent, Js::FunctionBody* fbody, LPCWSTR name);

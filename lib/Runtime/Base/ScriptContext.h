@@ -1054,12 +1054,10 @@ private:
         //Get the wellknowntoken for the given value (if the val is well known) otherwise return invalid
         TTD_WELLKNOWN_TOKEN ResolveKnownTokenForPrimitive_TTD(RecyclableObject* val) const;
         TTD_WELLKNOWN_TOKEN ResolveKnownTokenForGeneralObject_TTD(RecyclableObject* val) const;
-        TTD_WELLKNOWN_TOKEN ResolveKnownTokenForType_TTD(Type* val) const;
 
         //Get the object associated with the given known path
         RecyclableObject* LookupPrimitiveForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
         RecyclableObject* LookupGeneralObjectForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
-        Type* LookupTypeForKnownToken_TTD(TTD_WELLKNOWN_TOKEN knownPath);
 
         //Resolve/lookup the well known token for a runtime function body
         TTD_WELLKNOWN_TOKEN ResolveKnownTokenForRuntimeFunctionBody_TTD(Js::FunctionBody* val) const;
