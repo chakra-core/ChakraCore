@@ -59,7 +59,16 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType RuntimeFunction::GetSnapTag_TTD() const
     {
-        return TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject;
+        Var revokableProxy = nullptr;
+        RuntimeFunction* function = const_cast<RuntimeFunction*>(this);
+        if(function->GetInternalProperty(function, Js::InternalPropertyIds::RevocableProxy, &revokableProxy, nullptr, this->GetScriptContext()))
+        {
+            return TTD::NSSnapObjects::SnapObjectType::SnapRuntimeRevokerFunctionObject;
+        }
+        else
+        {
+            return TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject;
+        }
     }
 
     void RuntimeFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
@@ -68,7 +77,30 @@ namespace Js
         //TODO: need to add promise support
         //
 
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject>(objData, nullptr);
+        Var revokableProxy = nullptr;
+        RuntimeFunction* function = const_cast<RuntimeFunction*>(this);
+        if(function->GetInternalProperty(function, Js::InternalPropertyIds::RevocableProxy, &revokableProxy, nullptr, this->GetScriptContext()))
+        {
+            TTD_PTR_ID* proxyId = alloc.SlabAllocateStruct<TTD_PTR_ID>();
+            *proxyId = (JavascriptOperators::GetTypeId(revokableProxy) != TypeIds_Null) ? TTD_CONVERT_VAR_TO_PTR_ID(revokableProxy) : TTD_INVALID_PTR_ID;
+
+            if(*proxyId == TTD_INVALID_PTR_ID)
+            {
+                TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD_PTR_ID*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeRevokerFunctionObject>(objData, proxyId);
+            }
+            else
+            {
+                uint32 depOnCount = 1;
+                TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(1);
+                depOnArray[0] = TTD_CONVERT_VAR_TO_PTR_ID(revokableProxy);
+
+                TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD_PTR_ID*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeRevokerFunctionObject>(objData, proxyId, alloc, depOnCount, depOnArray);
+            }
+        }
+        else
+        {
+            TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject>(objData, nullptr);
+        }
     }
 #endif
 };

@@ -3155,9 +3155,10 @@ namespace Js
             //      maybe we need to template this with allowLetGlobalConst as well
             //
 
-            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & !(descriptor.Attributes & PropertyDeleted))
+            if(DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) & descriptor.isInitialized & !(descriptor.Attributes & PropertyDeleted))
             {
                 Js::Var value = obj->GetSlot(descriptor.propertyIndex);
+
                 extractor->MarkVisitVar(value);
             }
         }
@@ -3178,7 +3179,9 @@ namespace Js
 
             TMapKey key = iter.CurrentKey();
             const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
-            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
+            TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.isInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+
+            TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + index, pRecord->GetPropertyId(), descriptor.Attributes, tag);
         }
 
         if(this->propertyMap->Count() == 0)

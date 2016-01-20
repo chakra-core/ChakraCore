@@ -277,6 +277,9 @@ namespace TTD
         JsUtil::List<const Js::PropertyRecord*, ArenaAllocator> propertyRecordList(this->m_shaddowAllocator);
 
         this->EnqueueRootPathObject(L"global", ctx->GetGlobalObject());
+        this->EnqueueRootPathObject(L"null", ctx->GetLibrary()->GetNull());
+
+        this->EnqueueRootPathObject(L"_defaultAccessor", ctx->GetLibrary()->GetDefaultAccessorFunction());
 
         //DEBUG
         uint32 counter = 0;

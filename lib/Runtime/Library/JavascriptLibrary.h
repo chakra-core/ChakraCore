@@ -567,6 +567,9 @@ namespace Js
         Js::RecyclableObject* CreateExternalFunction_TTD(Js::JavascriptString* fname);
         Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);
 
+        Js::RecyclableObject* CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target);
+        Js::RecyclableObject* CreateRevokeFunction_TTD(RecyclableObject* proxy);
+
         Js::RecyclableObject* CreateHeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray);
 #endif
 

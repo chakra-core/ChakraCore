@@ -560,6 +560,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types\ScriptFunctionType.h"
 #include "Library\ScriptFunction.h"
 
+#include "Library\JavascriptProxy.h"
+
 #if ENABLE_TTD
 #include "screrror.h"
 

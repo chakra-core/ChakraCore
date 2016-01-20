@@ -2640,7 +2640,7 @@ namespace Js
             //
 
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
-            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (descriptor.Attributes & PropertyDeleted))
+            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
             {
                 continue;
             }
@@ -2685,7 +2685,8 @@ namespace Js
             {
                 maxSlot = max(maxSlot, dIndex);
 
-                TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Data);
+                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, tag);
             }
             else
             {
@@ -2694,7 +2695,8 @@ namespace Js
                 {
                     maxSlot = max(maxSlot, gIndex);
 
-                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Getter);
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Getter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, tag);
                 }
 
                 uint32 sIndex = descriptor.GetSetterPropertyIndex();
@@ -2702,7 +2704,8 @@ namespace Js
                 {
                     maxSlot = max(maxSlot, sIndex);
 
-                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, TTD::NSSnapType::SnapEntryDataKindTag::Setter);
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Setter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, tag);
                 }
             }
         }

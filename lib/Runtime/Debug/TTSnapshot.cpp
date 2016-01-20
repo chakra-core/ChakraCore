@@ -223,6 +223,7 @@ namespace TTD
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapScriptFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapScriptFunctionInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapScriptFunctionInfo, &NSSnapObjects::EmitAddtlInfo_SnapScriptFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapScriptFunctionInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapRuntimeFunctionObject] = { nullptr, nullptr, nullptr, nullptr }; //should always be wellknown objects and the extra state is in the functionbody defs
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapExternalFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapExternalFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapExternalFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapExternalFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapRuntimeRevokerFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapRevokerFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapRevokerFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapRevokerFunctionInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapBoundFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapBoundFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapBoundFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapBoundFunctionInfo };
 
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapActivationObject] = { &NSSnapObjects::DoObjectInflation_SnapActivationInfo, nullptr, nullptr, nullptr };
@@ -247,6 +248,8 @@ namespace TTD
 
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapSetObject] = { &NSSnapObjects::DoObjectInflation_SnapSetInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapSetInfo, &NSSnapObjects::EmitAddtlInfo_SnapSetInfo, &NSSnapObjects::ParseAddtlInfo_SnapSetInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapMapObject] = { &NSSnapObjects::DoObjectInflation_SnapMapInfo, &NSSnapObjects::DoAddtlValueInstantiation_SnapMapInfo, &NSSnapObjects::EmitAddtlInfo_SnapMapInfo, &NSSnapObjects::ParseAddtlInfo_SnapMapInfo };
+
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapProxyObject] = { &NSSnapObjects::DoObjectInflation_SnapProxyInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapProxyInfo, &NSSnapObjects::ParseAddtlInfo_SnapProxyInfo };
 
         ////
         //For the objects that are always well known
@@ -352,10 +355,6 @@ namespace TTD
     void SnapShot::Inflate(InflateMap* inflator, const NSSnapValues::SnapContext* sCtx) const
     {
         //We assume the caller has inflated all of the ScriptContexts for us and we are just filling in the objects
-
-        //
-        //TODO: fill in the typehandler and type inflate mappings here
-        //
 
         ////
 

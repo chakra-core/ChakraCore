@@ -82,7 +82,7 @@ namespace Js
             propertyStringName = propertyString;
             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
 
-#if DBG
+#if DBG | ENABLE_TTD
             PropertyId tempPropertyId;
             /* JavascriptString * tempPropertyString = */ this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes);
 
@@ -113,9 +113,10 @@ namespace Js
         }
         else
         {
-#if DBG
+#if DBG | ENABLE_TTD
             PropertyId tempPropertyId;
-            Assert(this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes) == nullptr);
+            JavascriptString* tempPropertyStringName = this->GetCurrentAndMoveNextFromObject(objectIndex, tempPropertyId, attributes);
+            Assert(tempPropertyStringName == nullptr);
 #endif
             propertyStringName = nullptr;
         }

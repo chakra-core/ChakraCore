@@ -4503,6 +4503,29 @@ namespace Js
         return BoundFunction::InflateBoundFunction(this->scriptContext, function, bThis, ct, args);
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target)
+    {
+        JavascriptProxy* newProxy = RecyclerNew(this->scriptContext->GetRecycler(), JavascriptProxy, this->GetProxyType(), this->scriptContext, target, handler);
+
+        if(target != nullptr && JavascriptConversion::IsCallable(target))
+        {
+            newProxy->ChangeType();
+            newProxy->GetDynamicType()->SetEntryPoint(JavascriptProxy::FunctionCallTrap);
+        }
+
+        return newProxy;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreateRevokeFunction_TTD(RecyclableObject* proxy)
+    {
+        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthAndPrototypeType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
+
+        revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
+        revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
+
+        return revoker;
+    }
+
     Js::RecyclableObject* JavascriptLibrary::CreateHeapArguments_TTD(uint32 numOfArguments, uint32 formalCount, ActivationObject* frameObject, byte* deletedArray)
     {
         Js::HeapArgumentsObject* argsObj = this->CreateHeapArguments(frameObject, formalCount);

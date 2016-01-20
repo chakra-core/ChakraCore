@@ -164,6 +164,8 @@ namespace TTD
                 //Many protos are set at creation, don't mess with them if they are already correct
                 if(obj->GetPrototype() != protoObj)
                 {
+                    AssertMsg(!Js::JavascriptProxy::Is(obj), "Why is proxy's prototype not the regular one?");
+
                     obj->SetPrototype(protoObj);
                 }
             }
@@ -184,6 +186,8 @@ namespace TTD
                 {
                     continue;
                 }
+
+                AssertMsg(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
 
                 Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
                 TTDVar ttdVal = snpObject->VarArray[i];
@@ -578,6 +582,39 @@ namespace TTD
             LPCWSTR snapName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
 
             SnapObjectSetAddtlInfoAs<LPCWSTR, SnapObjectType::SnapExternalFunctionObject>(snpObject, snapName);
+        }
+
+        Js::RecyclableObject* DoObjectInflation_SnapRevokerFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            TTD_PTR_ID* proxyId = SnapObjectGetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(snpObject);
+            Js::RecyclableObject* proxyObj = nullptr;
+            if(*proxyId == TTD_INVALID_PTR_ID)
+            {
+                proxyObj = ctx->GetLibrary()->GetNull();
+            }
+            else
+            {
+                proxyObj = inflator->LookupObject(*proxyId);
+            }
+
+            return ctx->GetLibrary()->CreateRevokeFunction_TTD(proxyObj);
+        }
+
+        void EmitAddtlInfo_SnapRevokerFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            TTD_PTR_ID* revokeTrgt = SnapObjectGetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(snpObject);
+
+            writer->WriteAddr(NSTokens::Key::objectId, *revokeTrgt, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ParseAddtlInfo_SnapRevokerFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            TTD_PTR_ID* revokerId = alloc.SlabAllocateStruct<TTD_PTR_ID>();
+            *revokerId = reader->ReadAddr(NSTokens::Key::objectId, true);
+
+            SnapObjectSetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(snpObject, revokerId);
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapBoundFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -1242,6 +1279,38 @@ namespace TTD
             }
 
             SnapObjectSetAddtlInfoAs<SnapMapInfo*, SnapObjectType::SnapMapObject>(snpObject, mapInfo);
+        }
+
+        //////////////////
+
+        Js::RecyclableObject* DoObjectInflation_SnapProxyInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
+
+            SnapProxyInfo* proxyInfo = SnapObjectGetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(snpObject);
+
+            Js::RecyclableObject* handlerObj = (proxyInfo->HandlerId != TTD_INVALID_PTR_ID) ? inflator->LookupObject(proxyInfo->HandlerId) : nullptr;
+            Js::RecyclableObject* targetObj = (proxyInfo->TargetId != TTD_INVALID_PTR_ID) ? inflator->LookupObject(proxyInfo->TargetId) : nullptr;
+
+            return  ctx->GetLibrary()->CreateProxy_TTD(handlerObj, targetObj);
+        }
+
+        void EmitAddtlInfo_SnapProxyInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapProxyInfo* proxyInfo = SnapObjectGetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(snpObject);
+
+            writer->WriteAddr(NSTokens::Key::handlerId, proxyInfo->HandlerId, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::objectId, proxyInfo->TargetId, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ParseAddtlInfo_SnapProxyInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapProxyInfo* proxyInfo = alloc.SlabAllocateStruct<SnapProxyInfo>();
+
+            proxyInfo->HandlerId = reader->ReadAddr(NSTokens::Key::handlerId, true);
+            proxyInfo->TargetId = reader->ReadAddr(NSTokens::Key::objectId, true);
+
+            SnapObjectSetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(snpObject, proxyInfo);
         }
     }
 }

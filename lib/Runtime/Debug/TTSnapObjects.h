@@ -24,6 +24,7 @@ namespace TTD
             SnapScriptFunctionObject,
             SnapRuntimeFunctionObject,
             SnapExternalFunctionObject,
+            SnapRuntimeRevokerFunctionObject,
             SnapBoundFunctionObject,
             SnapActivationObject,
             SnapBlockActivationObject,
@@ -42,6 +43,7 @@ namespace TTD
             SnapTypedArrayObject,
             SnapSetObject,
             SnapMapObject,
+            SnapProxyObject,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,
@@ -229,12 +231,20 @@ namespace TTD
         //ParseAddtlInfo is a nop
 
         ////
-        //RuntimeFunction is resolved via a wellknowntag so we don't worry about it
+        //ExternalFunction always traps to log so we don't need any special information
 
         Js::RecyclableObject* DoObjectInflation_SnapExternalFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
         //DoAddtlValueInstantiation is a nop
         void EmitAddtlInfo_SnapExternalFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapExternalFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        ////
+        //RevokerFunction needs TTD_PTR_ID* for the proxy value
+
+        Js::RecyclableObject* DoObjectInflation_SnapRevokerFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapRevokerFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapRevokerFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
 
         ////
         //Functions for the VTable for SnapBoundFunctionObject tags
@@ -622,7 +632,7 @@ namespace TTD
         void EmitAddtlInfo_SnapSetInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapSetInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
 
-        //A class that represents a map (or weakmap) object
+        //A struct that represents a map (or weakmap) object
         struct SnapMapInfo
         {
             //The number of elements in the set
@@ -639,6 +649,25 @@ namespace TTD
         void DoAddtlValueInstantiation_SnapMapInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator);
         void EmitAddtlInfo_SnapMapInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapMapInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        //////////////////
+
+        //A struct that represents a map (or weakmap) object
+        struct SnapProxyInfo
+        {
+            //The handler ptrid (or invalid if revoked)
+            TTD_PTR_ID HandlerId;
+
+            //The target ptrid (or invalid if revoked)
+            TTD_PTR_ID TargetId;
+        };
+
+        ////
+        //Functions for the VTable for SnapProxyObject
+
+        Js::RecyclableObject* DoObjectInflation_SnapProxyInfo(const SnapObject* snpObject, InflateMap* inflator);
+        void EmitAddtlInfo_SnapProxyInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapProxyInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
     }
 }
 

@@ -320,4 +320,20 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>proxy.js</files>
+      <compile-flags>-TTRecord:!proxyTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!proxyTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
