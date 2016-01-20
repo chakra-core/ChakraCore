@@ -322,14 +322,19 @@ WasmBinaryReader::TableSwitchNode()
 WasmOp
 WasmBinaryReader::MemNode(WasmBinOp op)
 {
-    UINT length;
-
+    // Read memory access byte
     m_currentNode.mem.alignment = ReadConst<UINT8>();
     m_funcState.count++;
-
-    m_currentNode.mem.offset = LEB128(length);
-    m_funcState.count += length;
-
+    // If offset bit is set, read memory_offset
+    if (m_currentNode.mem.alignment & 0x08)
+    {
+        UINT length = 0;
+        m_currentNode.mem.offset = LEB128(length);
+        m_funcState.count += length;
+    }
+    else {
+        m_currentNode.mem.offset = 0;
+    }
     return GetWasmToken(op);
 }
 
