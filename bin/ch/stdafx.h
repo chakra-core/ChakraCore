@@ -21,8 +21,6 @@
 #define IfJsrtErrorSetGo(expr) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
 
-#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
-
 #define WIN32_LEAN_AND_MEAN 1
 
 #define ENABLE_TEST_HOOKS 1
@@ -71,7 +69,6 @@ if (!(exp)) \
 #define _JSRT_
 #include "chakracommon.h"
 #include "TestHooksRt.h"
-#include "..\..\lib\jsrt\chakrartdebug.h"
 
 typedef void * Var;
 
@@ -81,6 +78,3 @@ typedef void * Var;
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
 #include "WScriptJsrt.h"
-#include "DebuggerScriptWrapper.h"
-#include "DebuggerController.h"
-#include "Debugger.h"
