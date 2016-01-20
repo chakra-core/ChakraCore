@@ -20,7 +20,18 @@ var tests = [
       assert.throws(function () { eval("var x = function*(a =) { return a; }"); },          SyntaxError, "Incomplete default expression throws in a generator function",      "Syntax error");
       assert.throws(function () { eval("var x = class { * foo(a =) { return a; } }"); },    SyntaxError, "Incomplete default expression throws in a class generator method",  "Syntax error");
 
-      assert.throws(function () { eval("function foo(a *= 5)"); }, SyntaxError, "Other assignment operators do not work");
+      // Duplicate parameters
+      assert.throws(function () { eval("function f(a, b, a, c = 10) { }"); },               SyntaxError, "Duplicate parameters are not allowed before the default argument", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(a, b = 10, a) { }"); },                  SyntaxError, "Duplicate parameters are not allolwed after the default argument", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(a, b, a, c) { \"use strict\"; }"); },    SyntaxError, "When function is in strict mode duplicate parameters are not allowed for simple parameter list", "Duplicate formal parameter names not allowed in strict mode");
+      assert.throws(function () { eval("function f(a, b = 1) { \"use strict\"; }"); },      SyntaxError, "Strict mode cannot be applied to functions with default parameters", "Cannot apply strict mode on functions with non-simple parameter list");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a) { } }"); },      SyntaxError, "When a function is already in strict mode duplicate parameters are not allowed for simple parameter list", "Duplicate formal parameter names not allowed in strict mode");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a = 10) { } }"); }, SyntaxError, "When a function is already in strict mode duplicate parameters are not allowed for formal parameter list", "Duplicate formal parameter names not allowed in strict mode");
+
+      assert.doesNotThrow(function f() { "use strict"; function g(a, b = 10) { } },           "Default arguments are allowed for functions which are already in strict mode");
+      assert.doesNotThrow(function f(a, b, a, c) { return a + b + c; },                       "In non-strict mode duplicate parameters are allowed");
+
+      assert.throws(function () { eval("function foo(a *= 5)"); },                          SyntaxError, "Other assignment operators do not work");
 
       // Redeclaration errors - non-simple in this case means any parameter list with a default expression
       assert.doesNotThrow(function () { eval("function foo(a = 1) { var a; }"); },            "Var redeclaration with a non-simple parameter list");
@@ -35,10 +46,6 @@ var tests = [
 
       assert.throws(function () { eval("x = 3 => x"); },                                    SyntaxError, "Lambda formals without parentheses cannot have default expressions", "Expected \'(\'");
       assert.throws(function () { eval("var a = 0, b = 0; (x = ++a,++b) => x"); },          SyntaxError, "Default expressions cannot have comma separated expressions",        "Expected identifier");
-
-      // Bug 263626: Checking strict formal parameters with defaults should not throw
-      function foostrict1(a = 1, b) { "use strict"; }
-      function foostrict2(a, b = 1) { "use strict"; }
     }
   },
   {

@@ -2315,15 +2315,6 @@ namespace Js
         {
             localSimdSlots = ((AsmJsSIMDValue*)moduleMemoryPtr) + moduleMemory.mSimdOffset; // simdOffset is in SIMDValues
         }
-#if 0
-        // Align SIMD regs to 128 bits.
-        // We only have space to align if there are any SIMD variables. Otherwise, leave unaligned.
-        if (info->GetSimdRegCount())
-        {
-            AssertMsg((moduleMemory.mMemorySize / SIMD_SLOTS_SPACE) - moduleMemory.mSimdOffset >= 1, "Not enough space in module memory to align SIMD vars");
-            localSimdSlots = (AsmJsSIMDValue*)::Math::Align<int>((int)localSimdSlots, sizeof(AsmJsSIMDValue));
-        }
-#endif
 
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         *stdLibPtr = (m_inSlotsCount > 1) ? m_inParams[1] : nullptr;

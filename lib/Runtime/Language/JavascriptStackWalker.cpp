@@ -284,7 +284,7 @@ namespace Js
             return inlinedFrameWalker.GetArgv(/* includeThis = */ false);
         }
         else 
-#endif            
+#endif
             if (this->GetCurrentFunction()->GetFunctionInfo()->IsGenerator())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
@@ -300,7 +300,11 @@ namespace Js
     {
         if (this->IsJavascriptFrame())
         {
-            if (this->interpreterFrame && this->lastInternalFrameInfo.codeAddress == nullptr)
+            if (this->interpreterFrame
+#if ENABLE_NATIVE_CODEGEN
+                && this->lastInternalFrameInfo.codeAddress == nullptr
+#endif
+                )
             {
                 uint32 offset = this->interpreterFrame->GetReader()->GetCurrentOffset();
                 if (offset == 0)
@@ -366,52 +370,63 @@ namespace Js
             FunctionBody *inlinee = nullptr;
             StatementData data;
 
-            // For inlined frames, translation from native offset -> source code happens in two steps.
-            // The native offset is first translated into a statement index using the physical frame's
-            // source context info. This statement index is then looked up in the *inlinee*'s source
-            // context info to get the bytecode offset.
-            //
-            // For all inlined frames contained within a physical frame we have only one offset == (IP - entry).
-            // Since we can't use that to get the other inlined callers' IPs, we save the IP of all inlined
-            // callers in its "callinfo" (See InlineeCallInfo). The top most inlined frame uses the IP
-            // of the physical frame. All other inlined frames use the preceding inlined frame's offset.
-            //
-            function = this->GetCurrentFunctionFromPhysicalFrame();
-            inlinee = inlinedFramesBeingWalked ? inlinedFrameWalker.GetFunctionObject()->GetFunctionBody() : nullptr;
-            InlinedFrameWalker  tmpFrameWalker;
-            if (inlinedFramesBeingWalked)
+            if (this->interpreterFrame == nullptr) //Inlining is disabled in Jit Loopbody. Don't attempt to get the statement map from the inlined frame.
             {
-                // Inlined frames are being walked right now. The top most frame is where the IP is.
-                if (!inlinedFrameWalker.IsTopMostFrame())
+                // For inlined frames, translation from native offset -> source code happens in two steps.
+                // The native offset is first translated into a statement index using the physical frame's
+                // source context info. This statement index is then looked up in the *inlinee*'s source
+                // context info to get the bytecode offset.
+                //
+                // For all inlined frames contained within a physical frame we have only one offset == (IP - entry).
+                // Since we can't use that to get the other inlined callers' IPs, we save the IP of all inlined
+                // callers in its "callinfo" (See InlineeCallInfo). The top most inlined frame uses the IP
+                // of the physical frame. All other inlined frames use the preceding inlined frame's offset.
+                //
+                function = this->GetCurrentFunctionFromPhysicalFrame();
+                inlinee = inlinedFramesBeingWalked ? inlinedFrameWalker.GetFunctionObject()->GetFunctionBody() : nullptr;
+                InlinedFrameWalker  tmpFrameWalker;
+                if (inlinedFramesBeingWalked)
                 {
-                    if (function->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr,
-                                                                                             inlinedFrameWalker.GetCurrentInlineeOffset(),
-                                                                                             data,
-                                                                                             loopNum,
-                                                                                             inlinee))
+                    // Inlined frames are being walked right now. The top most frame is where the IP is.
+                    if (!inlinedFrameWalker.IsTopMostFrame())
+                    {
+                        if (function->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr,
+                            inlinedFrameWalker.GetCurrentInlineeOffset(),
+                            data,
+                            loopNum,
+                            inlinee))
+                        {
+                            return data.bytecodeBegin;
+                        }
+                    }
+                }
+                else if (ScriptFunction::Is(function) &&
+                    InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(function), previousInterpreterFrameIsFromBailout, loopNum, this))
+                {
+                    // Inlined frames are not being walked right now. However, if there
+                    // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
+                    // has the native offset of the current physical frame.
+                    Assert(!inlinee);
+                    uint32 inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
+                    tmpFrameWalker.Close();
+
+                    if (this->GetCurrentFunctionFromPhysicalFrame()->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr,
+                        inlineeOffset,
+                        data,
+                        loopNum,
+                        inlinee))
                     {
                         return data.bytecodeBegin;
                     }
                 }
             }
-            else if (ScriptFunction::Is(function) &&
-                InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(function), previousInterpreterFrameIsFromBailout, loopNum, this))
+            else
             {
-                // Inlined frames are not being walked right now. However, if there
-                // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
-                // has the native offset of the current physical frame.
-                Assert(!inlinee);
-                uint32 inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
-                tmpFrameWalker.Close();
-
-                if (this->GetCurrentFunctionFromPhysicalFrame()->GetFunctionBody()->GetMatchingStatementMapFromNativeOffset(pCodeAddr,
-                    inlineeOffset,
-                    data,
-                    loopNum,
-                    inlinee))
-                {
-                    return data.bytecodeBegin;
-                }
+                //Get the function from the interpreterFrame in jit loop body case
+                //This is exactly same as this->GetCurrentFunctionFromPhysicalFrame() if the interperterFrame is not
+                //called from bailout path.
+                Assert(this->lastInternalFrameInfo.codeAddress);
+                function = this->interpreterFrame->GetJavascriptFunction();
             }
 
             if (function->GetFunctionBody() && function->GetFunctionBody()->GetMatchingStatementMapFromNativeAddress(pCodeAddr, data, loopNum, inlinee))
@@ -754,10 +769,12 @@ namespace Js
 
     bool JavascriptStackWalker::CheckJavascriptFrame(bool includeInlineFrames)
     {
+#if ENABLE_NATIVE_CODEGEN
         if (this->lastInternalFrameInfo.frameConsumed)
         {
             ClearCachedInternalFrameInfo();
         }
+#endif
 
         this->isNativeLibraryFrame = false; // Clear previous result
 
@@ -795,7 +812,8 @@ namespace Js
 
             this->tempInterpreterFrame = this->interpreterFrame->GetPreviousFrame();
 
-#if DBG && ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
+#if DBG
             if (((CallInfo const *)&argv[JavascriptFunctionArgIndex_CallInfo])->Flags & CallFlags_InternalFrame)
             {
                 // The return address of the interpreterFrame is the same as the entryPoint for a jitted loop body.
@@ -807,7 +825,7 @@ namespace Js
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
-#endif
+#endif //DBG
 
             if (!this->interpreterFrame->IsCurrentLoopNativeAddr(this->lastInternalFrameInfo.codeAddress))
             {
@@ -818,6 +836,7 @@ namespace Js
                 Assert(this->lastInternalFrameInfo.codeAddress);
                 this->lastInternalFrameInfo.frameConsumed = true;
             }
+#endif //ENABLE_NATIVE_CODEGEN
 
             return true;
         }
@@ -1010,6 +1029,7 @@ namespace Js
         return this->GetCurrentArgv()[JavascriptFunctionArgIndex_This];
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void JavascriptStackWalker::ClearCachedInternalFrameInfo()
     {
         this->lastInternalFrameInfo.Clear();
@@ -1023,6 +1043,7 @@ namespace Js
         }
         this->lastInternalFrameInfo.loopBodyFrameType = loopBodyFrameType;
     }
+#endif
 
     bool JavascriptStackWalker::IsCurrentPhysicalFrameForLoopBody() const
     {

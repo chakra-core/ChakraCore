@@ -240,7 +240,7 @@ CatchPidRefList *Parser::EnsureCatchPidRefList()
     return this->m_catchPidRefList;
 }
 
-HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, CompileScriptException *pse, void (Parser::*validateFunction)())
+HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
 {
     AssertPsz(pszSrc);
     AssertMemN(pse);
@@ -274,6 +274,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         // Give the scanner the source and get the first token
         m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
         m_pscan->SetYieldIsKeyword(isGenerator);
+        m_pscan->SetAwaitIsKeyword(isAsync);
         m_pscan->Scan();
 
         uint nestedCount = 0;
@@ -305,6 +306,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
             pnodeFnc->sxFnc.pnodeRest  = nullptr;
             pnodeFnc->sxFnc.deferredStub = nullptr;
             pnodeFnc->sxFnc.SetIsGenerator(isGenerator);
+            pnodeFnc->sxFnc.SetIsAsync(isAsync);
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
             m_currentNodeFunc = pnodeFnc;
             m_currentNodeDeferredFunc = NULL;
@@ -897,6 +899,13 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             }
             break;
         case knopVarDecl:
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
+            {
+                // If this is a parameter list, mark the scope to indicate that it has duplicate definition.
+                // If later this turns out to be a non-simple param list (like function f(a, a, c = 1) {}) then it is a SyntaxError to have duplicate formals.
+                m_currentScope->SetHasDuplicateFormals();
+            }
+
             if (sym->GetDecl() == nullptr)
             {
                 Assert(symbolType == STFunction);
@@ -5361,10 +5370,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                             MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
                         }
                     }
-                    else
-                    {
-                        isNonSimpleParameterList = true;
-                    }
+
+                    isNonSimpleParameterList = true;
                 }
                 else
                 {
@@ -5430,19 +5437,30 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         }
                     }
 
+                    // In defer parse mode we have to flag the function node to indicate that it has default arguments
+                    // so that it will be considered for any syntax error scenario.
+                    ParseNode* currentFncNode = GetCurrentFunctionNode();
+                    if (!currentFncNode->sxFnc.HasDefaultArguments())
+                    {
+                        currentFncNode->sxFnc.SetHasDefaultArguments();
+                        currentFncNode->sxFnc.firstDefaultArg = argPos;
+                    }
 
                     if (buildAST)
                     {
                         if (!m_currentNodeFunc->sxFnc.HasDefaultArguments())
                         {
-                            m_currentNodeFunc->sxFnc.SetHasDefaultArguments();
-                            m_currentNodeFunc->sxFnc.firstDefaultArg = argPos;
                             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunctionCount, m_scriptContext);
                         }
                         pnodeT->sxVar.pnodeInit = pnodeInit;
                         pnodeT->ichLim = m_pscan->IchLimTok();
                     }
                 }
+            }
+
+            if (isNonSimpleParameterList && m_currentScope->GetHasDuplicateFormals())
+            {
+                Error(ERRFormalSame);
             }
 
             if (m_token.tk != tkComma)
@@ -9482,6 +9500,12 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             {
                 if (isUseStrictDirective)
                 {
+                    // Functions with non-simple parameter list cannot be made strict mode
+                    if (!GetCurrentFunctionNode()->sxFnc.IsSimpleParameterList())
+                    {
+                        Error(ERRNonSimpleParamListInStrictMode);
+                    }
+
                     if (seenDirectiveContainingOctal)
                     {
                         // Directives seen before a "use strict" cannot contain an octal.

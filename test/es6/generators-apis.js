@@ -22,7 +22,7 @@ function checkAttributes(name, o, p, a) {
 }
 
 var tests = [
-   {
+    {
         name: "GeneratorFunction is not exposed on the global object",
         body: function () {
             assert.isFalse(globObj.hasOwnProperty("GeneratorFunction"), "Global object does not have property named GeneratorFunction");
@@ -112,7 +112,6 @@ var tests = [
             checkAttributes("gfstrict", gfstrict, "caller", { writable: true, enumerable: true, configurable: true });
             assert.isTrue(delete gfstrict.caller, "Delete operation on 'caller' property still returns true for a strict mode generator function");
             assert.isFalse(gfstrict.hasOwnProperty("caller"), "'caller' property is gone for a strict mode generator function");
-
         }
     },
     {
@@ -155,12 +154,15 @@ var tests = [
 
             assert.areEqual(Function, Object.getPrototypeOf(generatorFunctionConstructor), "GeneratorFunction's prototype is Function");
 
+            assert.isTrue(generatorFunctionConstructor.hasOwnProperty("name"), "GeneratorFunction has 'name' property");
             assert.isTrue(generatorFunctionConstructor.hasOwnProperty("length"), "GeneratorFunction has 'length' property");
             assert.isTrue(generatorFunctionConstructor.hasOwnProperty("prototype"), "GeneratorFunction has 'prototype' property");
 
+            checkAttributes("GeneratorFunction", generatorFunctionConstructor, "name", { writable: false, enumerable: false, configurable: true });
             checkAttributes("GeneratorFunction", generatorFunctionConstructor, "length", { writable: false, enumerable: false, configurable: true });
             checkAttributes("GeneratorFunction", generatorFunctionConstructor, "prototype", { writable: false, enumerable: false, configurable: false });
 
+            assert.areEqual("GeneratorFunction", generatorFunctionConstructor.name, "GeneratorFunction's 'name' property is 'GeneratorFunction'");
             assert.areEqual(generatorFunctionPrototype, generatorFunctionConstructor.prototype, "GeneratorFunction's 'prototype' property is GeneratorFunction.prototype");
             assert.areEqual(1, generatorFunctionConstructor.length, "GeneratorFunction's 'length' property is 1");
         }

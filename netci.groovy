@@ -5,7 +5,6 @@
 
 // Import the utility functionality.
 import jobs.generation.Utilities;
-import jobs.generation.InternalUtilities;
 
 // Grab the github project name passed in
 def project = GithubProject
@@ -28,7 +27,7 @@ def msbuildTypeMap = [
 
             // Determine the name for the new job.
             // params: Project, BaseTaskName, IsPullRequest (appends _prtest)
-            def jobName = InternalUtilities.getFullJobName(project, config, isPR)
+            def jobName = Utilities.getFullJobName(project, config, isPR)
 
             def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
             def analysisConfig = buildType in ['release']
@@ -85,11 +84,7 @@ def msbuildTypeMap = [
             //   5. Adds standard parameters for PR and push jobs.
             //      These allow PR jobs to be used for simple private testing, for instance.
             // See the documentation for this function to see additional optional parameters.
-
-            // Note: InternalUtilities variant also sets private permission
-            InternalUtilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Windows ${config}")
-            // Add private permissions for certain users
-            InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+            Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Windows ${config}")
         }
     }
 }
@@ -99,12 +94,12 @@ def msbuildTypeMap = [
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-[true, false]. each { isPR ->
+[true, false].each { isPR ->
     ['x86', 'x64'].each { buildArch -> // we don't support ARM on Windows 7
         ['debug', 'test', 'release'].each { buildType ->
-            def config = "daily_${buildArch}_${buildType}"
+            def config = "daily_dev12_${buildArch}_${buildType}"
 
-            def jobName = InternalUtilities.getFullJobName(project, config, isPR)
+            def jobName = Utilities.getFullJobName(project, config, isPR)
 
             def testableConfig = buildType in ['debug', 'test']
             def analysisConfig = buildType in ['release']
@@ -139,7 +134,7 @@ def msbuildTypeMap = [
                 false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
                 false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-            InternalUtilities.standardJobSetup(newJob, project, isPR)
+            Utilities.standardJobSetup(newJob, project, isPR)
 
             if (isPR) {
                 // The addition of the trigger phrase will make the job "non-default" in Github.
@@ -153,20 +148,77 @@ def msbuildTypeMap = [
             } else {
                 Utilities.addPeriodicTrigger(newJob, '@daily')
             }
+        }
+    }
+}
 
-            // Add private permissions for certain users
-            InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+// build and test on the usual configuration (VS 2015) with -includeSlow
+[true, false].each { isPR ->
+    ['x86', 'x64', 'arm'].each { buildArch ->
+        ['debug', 'test', 'release'].each { buildType ->
+            def config = "daily_slow_${buildArch}_${buildType}"
+
+            def jobName = Utilities.getFullJobName(project, config, isPR)
+
+            def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
+            def analysisConfig = buildType in ['release']
+
+            def buildScript = "call jenkins.buildone.cmd ${buildArch} ${buildType}"
+            buildScript += analysisConfig ? ' "/p:runcodeanalysis=true"' : ''
+            def testScript = "call jenkins.testone.cmd ${buildArch} ${buildType}"
+            testScript += ' -includeSlow' // run slow tests
+            def analysisScript = ".\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err"
+
+            def newJob = job(jobName) {
+                steps {
+                    batchFile(buildScript)
+                    if (testableConfig) {
+                        batchFile(testScript)
+                    }
+                    if (analysisConfig) {
+                        powerShell(analysisScript)
+                    }
+                }
+            }
+
+            Utilities.setMachineAffinity(newJob, "Windows_NT") // Server 2012 R2
+
+            def msbuildType = msbuildTypeMap.get(buildType)
+            def msbuildFlavor = "build_${buildArch}${msbuildType}"
+
+            def archivalString = "test/${msbuildFlavor}.*,test/logs/**"
+            archivalString += analysisConfig ? ',CodeAnalysis.err' : ''
+
+            Utilities.addArchival(newJob, archivalString,
+                '', // no exclusions from archival
+                false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
+                false) // archiveOnlyIfSuccessful=false ~= archiveAlways
+
+            Utilities.standardJobSetup(newJob, project, isPR)
+
+            if (isPR) {
+                // The addition of the trigger phrase will make the job "non-default" in Github.
+                def dailyRegex = '(dailies|dailys?)'
+                def groupRegex = '(slow\\s*(tests?)?)'
+                def triggerName = "Windows ${config}"
+                def triggerRegex = "(${dailyRegex}|${groupRegex}|${triggerName})"
+                Utilities.addGithubPRTrigger(newJob,
+                    triggerName, // GitHub task name
+                    "(?i).*test\\W+${triggerRegex}.*")
+            } else {
+                Utilities.addPeriodicTrigger(newJob, '@daily')
+            }
         }
     }
 }
 
 // build and test on the usual configuration (VS 2015) with JIT disabled
-[true, false]. each { isPR ->
+[true, false].each { isPR ->
     ['x86', 'x64', 'arm'].each { buildArch ->
         ['debug', 'test', 'release'].each { buildType ->
             def config = "daily_disablejit_${buildArch}_${buildType}"
 
-            def jobName = InternalUtilities.getFullJobName(project, config, isPR)
+            def jobName = Utilities.getFullJobName(project, config, isPR)
 
             def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
             def analysisConfig = buildType in ['release']
@@ -203,7 +255,7 @@ def msbuildTypeMap = [
                 false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
                 false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-            InternalUtilities.standardJobSetup(newJob, project, isPR)
+            Utilities.standardJobSetup(newJob, project, isPR)
 
             if (isPR) {
                 // The addition of the trigger phrase will make the job "non-default" in Github.
@@ -217,9 +269,6 @@ def msbuildTypeMap = [
             } else {
                 Utilities.addPeriodicTrigger(newJob, '@daily')
             }
-
-            // Add private permissions for certain users
-            InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
         }
     }
 }
@@ -231,7 +280,7 @@ def msbuildTypeMap = [
 // Create a job to check that no mixed line endings have been introduced.
 // Note: it is not necessary to run this job daily.
 [true, false].each { isPR -> // Defines a closure over true and false, value assigned to isPR
-    def jobName = InternalUtilities.getFullJobName(project, 'ubuntu_check_eol', isPR)
+    def jobName = Utilities.getFullJobName(project, 'ubuntu_check_eol', isPR)
 
     def taskString = './jenkins.check_eol.sh'
     def newJob = job(jobName) {
@@ -241,16 +290,13 @@ def msbuildTypeMap = [
         }
     }
 
-    // Note: InternalUtilities variant also sets private permission
-    InternalUtilities.simpleInnerLoopJobSetup(newJob, project, isPR, "EOL Check")
-    // Add private permissions for certain users
-    InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+    Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, "EOL Check")
 }
 
 // Create a job to check that all source files have the correct Microsoft copyright notice.
 // Note: it is not necessary to run this job daily.
 [true, false].each { isPR -> // Defines a closure over true and false, value assigned to isPR
-    def jobName = InternalUtilities.getFullJobName(project, 'ubuntu_check_copyright', isPR)
+    def jobName = Utilities.getFullJobName(project, 'ubuntu_check_copyright', isPR)
 
     def taskString = './jenkins.check_copyright.sh'
     def newJob = job(jobName) {
@@ -260,8 +306,5 @@ def msbuildTypeMap = [
         }
     }
 
-    // Note: InternalUtilities variant also sets private permission
-    InternalUtilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Copyright Check")
-    // Add private permissions for certain users
-    InternalUtilities.addPrivatePermissions(newJob, ['nmostafa', 'arunetm', 'litian2025'])
+    Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Copyright Check")
 }

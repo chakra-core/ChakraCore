@@ -68,6 +68,7 @@ namespace Js
         JavascriptFunction* GetProxyConstructor() const { return proxyConstructor; }
         JavascriptFunction* GetPromiseConstructor() const { return promiseConstructor; }
         JavascriptFunction* GetGeneratorFunctionConstructor() const { return generatorFunctionConstructor; }
+        JavascriptFunction* GetAsyncFunctionConstructor() const { return asyncFunctionConstructor; }
 
         JavascriptFunction* GetErrorConstructor() const { return errorConstructor; }
         JavascriptFunction* GetEvalErrorConstructor() const { return evalErrorConstructor; }
@@ -108,6 +109,7 @@ namespace Js
         DynamicObject* GetJavascriptEnumeratorIteratorPrototype() const { return javascriptEnumeratorIteratorPrototype; }
         DynamicObject* GetGeneratorFunctionPrototype() const { return generatorFunctionPrototype; }
         DynamicObject* GetGeneratorPrototype() const { return generatorPrototype; }
+        DynamicObject* GetAsyncFunctionPrototype() const { return asyncFunctionPrototype; }
 
         DynamicObject* GetErrorPrototype() const { return errorPrototype; }
         DynamicObject* GetEvalErrorPrototype() const { return evalErrorPrototype; }
@@ -156,6 +158,7 @@ namespace Js
         RuntimeFunction* proxyConstructor;
         RuntimeFunction* promiseConstructor;
         RuntimeFunction* generatorFunctionConstructor;
+        RuntimeFunction* asyncFunctionConstructor;
 
         JavascriptFunction* defaultAccessorFunction;
         JavascriptFunction* stackTraceAccessorFunction;
@@ -222,6 +225,7 @@ namespace Js
         DynamicObject* javascriptEnumeratorIteratorPrototype;
         DynamicObject* generatorFunctionPrototype;  // aka %Generator%
         DynamicObject* generatorPrototype;          // aka %GeneratorPrototype%
+        DynamicObject* asyncFunctionPrototype;      // aka %AsyncFunctionPrototype%
 
         DynamicObject* errorPrototype;
         DynamicObject* evalErrorPrototype;

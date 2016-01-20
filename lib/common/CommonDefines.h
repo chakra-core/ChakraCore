@@ -11,7 +11,7 @@
 // Chakra Core version
 //----------------------------------------------------------------------------------------------------
 #define CHAKRA_CORE_MAJOR_VERSION 1
-#define CHAKRA_CORE_MINOR_VERSION 0
+#define CHAKRA_CORE_MINOR_VERSION 1
 #define CHAKRA_CORE_VERSION_RELEASE 0
 #define CHAKRA_CORE_VERSION_PRERELEASE 1
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0

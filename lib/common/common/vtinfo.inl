@@ -28,4 +28,4 @@ inline INT_PTR VirtualTableInfo<T>::RegisterVirtualTable(INT_PTR vtable)
 {
     return vtable;
 }
-#endif DBG
+#endif // DBG
