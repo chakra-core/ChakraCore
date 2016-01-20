@@ -291,6 +291,13 @@ LowererMD::LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg)
 }
 
 IR::Instr *
+LowererMD::LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg)
+{
+    return this->lowererMDArch.LoadFloatHelperArgument(instr, opndArg);
+}
+
+
+IR::Instr *
 LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 {
     return this->lowererMDArch.LowerEntryInstr(entryInstr);
@@ -1423,6 +1430,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         }
 
         case Js::OpCode::MOVSD:
+            Assert(AutoSystemInfo::Data.SSE2Available());
         case Js::OpCode::MOVSS:
         {
             Assert(instr->GetDst()->GetType() == (instr->m_opcode == Js::OpCode::MOVSD? TyFloat64 : TyFloat32) || instr->GetDst()->IsSimd128());
@@ -1477,8 +1485,9 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
 
         case Js::OpCode::COMISD:
-        case Js::OpCode::COMISS:
         case Js::OpCode::UCOMISD:
+            Assert(AutoSystemInfo::Data.SSE2Available());
+        case Js::OpCode::COMISS:
         case Js::OpCode::UCOMISS:
             LegalizeOpnds<verify>(
                 instr,
@@ -1512,22 +1521,25 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
 
         case Js::OpCode::ADDSD:
-        case Js::OpCode::ADDPS:
         case Js::OpCode::ADDPD:
         case Js::OpCode::SUBSD:
+        case Js::OpCode::ANDPD:
+        case Js::OpCode::ANDNPD:
+        case Js::OpCode::DIVPD:
+        case Js::OpCode::MAXPD:
+        case Js::OpCode::MINPD:
+        case Js::OpCode::MULPD:
+        case Js::OpCode::SUBPD:
+            Assert(AutoSystemInfo::Data.SSE2Available());
+
+        case Js::OpCode::ADDPS:
         case Js::OpCode::ADDSS:
         case Js::OpCode::SUBSS:
         case Js::OpCode::ANDPS:
-        case Js::OpCode::ANDPD:
         case Js::OpCode::ANDNPS:
-        case Js::OpCode::ANDNPD:
         case Js::OpCode::DIVPS:
-        case Js::OpCode::DIVPD:
-        case Js::OpCode::MAXPD:
         case Js::OpCode::MAXPS:
-        case Js::OpCode::MINPD:
         case Js::OpCode::MINPS:
-        case Js::OpCode::MULPD:
         case Js::OpCode::MULPS:
         case Js::OpCode::ORPS:
         case Js::OpCode::PADDD:
@@ -1538,7 +1550,6 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::POR:
         case Js::OpCode::PSUBD:
         case Js::OpCode::PXOR:
-        case Js::OpCode::SUBPD:
         case Js::OpCode::SUBPS:
         case Js::OpCode::XORPS:
         case Js::OpCode::CMPLTPS:
@@ -1595,6 +1606,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             break;
 
         case Js::OpCode::LZCNT:
+            Assert(AutoSystemInfo::Data.LZCntAvailable());
         case Js::OpCode::BSR:
             LegalizeOpnds<verify>(
                 instr,
@@ -1612,12 +1624,36 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
 
         case Js::OpCode::PSRLDQ:
         case Js::OpCode::PSLLDQ:
+            Assert(AutoSystemInfo::Data.SSE2Available());
             MakeDstEquSrc1<verify>(instr);
             LegalizeOpnds<verify>(
                 instr,
                 L_Reg,
                 L_Reg,
                 L_Imm32);
+            break;
+
+        case Js::OpCode::ROUNDSD:
+        case Js::OpCode::ROUNDSS:
+            Assert(AutoSystemInfo::Data.SSE4_1Available());
+            break;
+
+        case Js::OpCode::CVTDQ2PD:
+        case Js::OpCode::CVTDQ2PS:
+        case Js::OpCode::CVTPD2PS:
+        case Js::OpCode::CVTPS2PD:
+        case Js::OpCode::CVTSD2SI:
+        case Js::OpCode::CVTSD2SS:
+        case Js::OpCode::CVTSI2SD:
+        case Js::OpCode::CVTSS2SD:
+        case Js::OpCode::CVTTPD2DQ:
+        case Js::OpCode::CVTTPS2DQ:
+        case Js::OpCode::CVTTSD2SI:
+        case Js::OpCode::DIVSD:
+        case Js::OpCode::SQRTPD:
+        case Js::OpCode::SQRTSD:
+        case Js::OpCode::SHUFPD:
+            Assert(AutoSystemInfo::Data.SSE2Available());
             break;
 
     }
@@ -8513,68 +8549,24 @@ LowererMD::LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNan)
 }
 void LowererMD::HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble)
 {
-    bool isFloat32 = (instr->GetSrc1()->GetType() == TyFloat32) ? true : false;
-    switch (instr->m_opcode)
+    Assert(instr->m_opcode == Js::OpCode::InlineMathFloor || instr->m_opcode == Js::OpCode::InlineMathCeil);
+    AssertMsg(instr->GetDst()->IsFloat(), "dst must be float.");
+    Assert(instr->GetDst()->GetType() == instr->GetSrc1()->GetType());
+    Assert(!instr->GetSrc2());
+
+    IR::Opnd * argOpnd = instr->UnlinkSrc1();
+    IR::JnHelperMethod helperMethod;
+    if (argOpnd->IsFloat32())
     {
-    case Js::OpCode::InlineMathFloor:
-    case Js::OpCode::InlineMathCeil:
+        helperMethod = helperMethodFloat;
+        LoadFloatHelperArgument(instr, argOpnd);
+    }
+    else
     {
-        AssertMsg(instr->GetDst()->IsFloat(), "dst must be float.");
-        AssertMsg(instr->GetSrc1()->IsFloat(), "src1 must be float.");
-        AssertMsg(!instr->GetSrc2() || instr->GetSrc2()->IsFloat(), "src2 must be float.");
-
-        // Before:
-        //      dst = <Built-in call> src1, src2
-        // After:
-        // I386:
-        //      XMM0 = MOVSD src1
-        //             CALL  helperMethod
-        //      dst  = MOVSD call->dst
-        // AMD64:
-        //      XMM0 = MOVSD src1
-        //      RAX =  MOV helperMethod
-        //             CALL  RAX
-        //      dst =  MOVSD call->dst
-
-        // Src1
-        IR::Instr* argOut = nullptr;
-        IR::RegOpnd* dst1 = nullptr;
-        if (isFloat32)
-        {
-            argOut = IR::Instr::New(Js::OpCode::MOVSS, this->m_func);
-            dst1 = IR::RegOpnd::New(nullptr, (RegNum)FIRST_FLOAT_ARG_REG, TyFloat32, this->m_func);
-        }
-        else
-        {
-            argOut = IR::Instr::New(Js::OpCode::MOVSD, this->m_func);
-            dst1 = IR::RegOpnd::New(nullptr, (RegNum)FIRST_FLOAT_ARG_REG, TyMachDouble, this->m_func);
-        }
-
-        dst1->m_isCallArg = true; // This is to make sure that lifetime of opnd is virtually extended until next CALL instr.
-        argOut->SetDst(dst1);
-        argOut->SetSrc1(instr->UnlinkSrc1());
-        instr->InsertBefore(argOut);
-
-        // Call CRT.
-        IR::RegOpnd* floatCallDst = IR::RegOpnd::New(nullptr, (RegNum)(FIRST_FLOAT_REG), (isFloat32)?TyFloat32:TyMachDouble, this->m_func);   // Dst in XMM0.
-        // s1 = MOV helperAddr
-        IR::RegOpnd* s1 = IR::RegOpnd::New(TyMachReg, this->m_func);
-        IR::AddrOpnd* helperAddr = IR::AddrOpnd::New((Js::Var)IR::GetMethodOriginalAddress((isFloat32)?helperMethodFloat:helperMethodDouble), IR::AddrOpndKind::AddrOpndKindDynamicMisc, this->m_func);
-        IR::Instr* mov = IR::Instr::New(Js::OpCode::MOV, s1, helperAddr, this->m_func);
-        instr->InsertBefore(mov);
-
-        // dst(XMM0) = CALL s1
-        IR::Instr *floatCall = IR::Instr::New(Js::OpCode::CALL, floatCallDst, s1, this->m_func);
-        instr->InsertBefore(floatCall);
-        // Save the result.
-        instr->m_opcode = (isFloat32) ? Js::OpCode::MOVSS:Js::OpCode::MOVSD;
-        instr->SetSrc1(floatCall->GetDst());
-        break;
+        helperMethod = helperMethodDouble;
+        LoadDoubleHelperArgument(instr, argOpnd);
     }
-    default:
-        Assume(false);
-        break;
-    }
+    ChangeToHelperCall(instr, helperMethod);
 }
 void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod)
 {
@@ -8667,6 +8659,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
     case Js::OpCode::InlineMathCeil:
     case Js::OpCode::InlineMathRound:
         {
+            Assert(AutoSystemInfo::Data.SSE4_1Available());
             Assert(instr->GetDst()->IsInt32() || instr->GetDst()->IsFloat());
             //     MOVSD roundedFloat, src
             //
@@ -8821,10 +8814,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             else
             {
                 roundMode = IR::IntConstOpnd::New(0x03, TyInt32, this->m_func);
-            }
-            if (!skipRoundSd)
-            {
-                Assert(AutoSystemInfo::Data.SSE4_1Available());
             }
             IR::Instr* roundInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloat, roundedFloat, roundMode, this->m_func);
 

@@ -173,20 +173,7 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
     //
     //  DllImport methods
     //
-#if defined(_M_X64)
-    case HelperDirectMath_FloorDb:
-        return (double(*)(double))floor;
-
-    case HelperDirectMath_FloorFlt:
-        return (float(*)(float))floor;
-
-    case HelperDirectMath_CeilDb:
-        return (double(*)(double))ceil;
-
-    case HelperDirectMath_CeilFlt:
-        return (float(*)(float))ceil;
-
-#elif defined(_M_IX86)
+#if defined(_M_IX86)
 
     case HelperDirectMath_Acos:
         return (double(*)(double))__libm_sse2_acos;
@@ -220,6 +207,18 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
     case HelperGuardCheckCall:
         return __guard_check_icall_fptr;
 #endif
+
+    case HelperDirectMath_FloorDb:
+        return (double(*)(double))floor;
+
+    case HelperDirectMath_FloorFlt:
+        return (float(*)(float))floor;
+
+    case HelperDirectMath_CeilDb:
+        return (double(*)(double))ceil;
+
+    case HelperDirectMath_CeilFlt:
+        return (float(*)(float))ceil;
 
     //
     // These are statically initialized to an import thunk, but let's keep them out of the table in case a new CRT changes this
