@@ -288,4 +288,20 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>forEach.js</files>
+      <compile-flags>-TTRecord:!forEachTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!forEachTest -TTDStartEvent:20 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
