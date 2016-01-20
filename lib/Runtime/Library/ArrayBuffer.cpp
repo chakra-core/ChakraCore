@@ -1069,4 +1069,30 @@ namespace Js
         : ArrayBuffer(buffer, length, type)
     {
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType ExternalArrayBuffer::GetSnapTag_TTD() const
+    {
+        //We re-map ExternalArrayBuffers to regular buffers since the 'real' host will be gone when we replay
+        return TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject;
+    }
+
+    void ExternalArrayBuffer::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapArrayBufferInfo* sabi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapArrayBufferInfo>();
+
+        sabi->Length = this->GetByteLength();
+        if(sabi->Length == 0)
+        {
+            sabi->Buff = nullptr;
+        }
+        else
+        {
+            sabi->Buff = alloc.SlabAllocateArray<byte>(sabi->Length);
+            memcpy(sabi->Buff, this->GetBuffer(), sabi->Length);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
+    }
+#endif
 }

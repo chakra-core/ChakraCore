@@ -306,11 +306,14 @@ namespace Js
         }
 
         argsInfo->DeletedArgFlags = (this->formalCount != 0) ? alloc.SlabAllocateArrayZ<byte>(argsInfo->FormalCount) : nullptr;
-        for(uint32 i = 0; i < this->formalCount; ++i)
+        if(this->deletedArgs != nullptr)
         {
-            if(this->deletedArgs->Test(i))
+            for(uint32 i = 0; i < this->formalCount; ++i)
             {
-                argsInfo->DeletedArgFlags[i] = true;
+                if(this->deletedArgs->Test(i))
+                {
+                    argsInfo->DeletedArgFlags[i] = true;
+                }
             }
         }
 

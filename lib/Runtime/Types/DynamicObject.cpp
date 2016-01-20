@@ -396,7 +396,36 @@ namespace Js
         JavascriptString* propertyString= nullptr;
         PropertyId propertyId = Constants::NoProperty;
 
-        if (!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols))
+#if ENABLE_TTD
+        BOOL findResult = FALSE;
+        ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            Js::PropertyAttributes dummyAttributes = PropertyNone;
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                int32 pIndex = -1;
+                elog->ReplayPropertyEnumEvent(&findResult, &pIndex, this, &propertyId, &dummyAttributes, &propertyString);
+                index = (Js::PropertyIndex)pIndex;
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+
+                elog->RecordPropertyEnumEvent(findResult, propertyId, dummyAttributes, propertyString);
+            }
+        }
+        else
+        {
+            findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+        }
+#else
+        BOOL findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#endif
+
+        if (!findResult)
         {
             return nullptr;
         }
@@ -440,7 +469,36 @@ namespace Js
         JavascriptString* propertyString = nullptr;
         PropertyId propertyId = Constants::NoProperty;
 
-        if (!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols))
+#if ENABLE_TTD
+        BOOL findResult = FALSE;
+        ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            Js::PropertyAttributes dummyAttributes = PropertyNone;
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction())
+            {
+                int32 pIndex = -1;
+                elog->ReplayPropertyEnumEvent(&findResult, &pIndex, this, &propertyId, &dummyAttributes, &propertyString);
+                index = (Js::PropertyIndex)pIndex;
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+
+                elog->RecordPropertyEnumEvent(findResult, propertyId, dummyAttributes, propertyString);
+            }
+        }
+        else
+        {
+            findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+        }
+#else
+        BOOL findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
+#endif
+
+        if (!findResult)
         {
             return nullptr;
         }
@@ -495,7 +553,6 @@ namespace Js
             }
         }
 
-        //if we don't hit one of the TTD cases and return early then do the regular thing here
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 #else
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
@@ -534,7 +591,6 @@ namespace Js
             }
         }
 
-        //if we don't hit one of the TTD cases and return early then do the regular thing here
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 #else
         return this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
