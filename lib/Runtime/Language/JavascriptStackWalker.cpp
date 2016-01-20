@@ -300,7 +300,11 @@ namespace Js
     {
         if (this->IsJavascriptFrame())
         {
-            if (this->interpreterFrame && this->lastInternalFrameInfo.codeAddress == nullptr)
+            if (this->interpreterFrame
+#if ENABLE_NATIVE_CODEGEN
+                && this->lastInternalFrameInfo.codeAddress == nullptr
+#endif
+                )
             {
                 uint32 offset = this->interpreterFrame->GetReader()->GetCurrentOffset();
                 if (offset == 0)
@@ -765,10 +769,12 @@ namespace Js
 
     bool JavascriptStackWalker::CheckJavascriptFrame(bool includeInlineFrames)
     {
+#if ENABLE_NATIVE_CODEGEN
         if (this->lastInternalFrameInfo.frameConsumed)
         {
             ClearCachedInternalFrameInfo();
         }
+#endif
 
         this->isNativeLibraryFrame = false; // Clear previous result
 
@@ -806,7 +812,8 @@ namespace Js
 
             this->tempInterpreterFrame = this->interpreterFrame->GetPreviousFrame();
 
-#if DBG && ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN
+#if DBG
             if (((CallInfo const *)&argv[JavascriptFunctionArgIndex_CallInfo])->Flags & CallFlags_InternalFrame)
             {
                 // The return address of the interpreterFrame is the same as the entryPoint for a jitted loop body.
@@ -818,7 +825,7 @@ namespace Js
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
-#endif
+#endif //DBG
 
             if (!this->interpreterFrame->IsCurrentLoopNativeAddr(this->lastInternalFrameInfo.codeAddress))
             {
@@ -829,6 +836,7 @@ namespace Js
                 Assert(this->lastInternalFrameInfo.codeAddress);
                 this->lastInternalFrameInfo.frameConsumed = true;
             }
+#endif //ENABLE_NATIVE_CODEGEN
 
             return true;
         }
@@ -1021,6 +1029,7 @@ namespace Js
         return this->GetCurrentArgv()[JavascriptFunctionArgIndex_This];
     }
 
+#if ENABLE_NATIVE_CODEGEN
     void JavascriptStackWalker::ClearCachedInternalFrameInfo()
     {
         this->lastInternalFrameInfo.Clear();
@@ -1034,6 +1043,7 @@ namespace Js
         }
         this->lastInternalFrameInfo.loopBodyFrameType = loopBodyFrameType;
     }
+#endif
 
     bool JavascriptStackWalker::IsCurrentPhysicalFrameForLoopBody() const
     {
