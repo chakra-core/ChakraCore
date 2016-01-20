@@ -597,7 +597,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::InlineMathFloor:
-#ifdef ASMJS_PLAT
+#if defined(ASMJS_PLAT) && (defined(_M_X64) || defined(_M_IX86))
             if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_FloorFlt, IR::HelperDirectMath_FloorDb);
@@ -608,7 +608,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::InlineMathCeil:
-#ifdef ASMJS_PLAT
+#if defined(ASMJS_PLAT) && (defined(_M_X64) || defined(_M_IX86))
             if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_CeilFlt, IR::HelperDirectMath_CeilDb);
