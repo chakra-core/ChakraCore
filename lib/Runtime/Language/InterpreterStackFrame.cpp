@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 #include "EHBailoutData.h"
 #include "Library/JavascriptRegularExpression.h"
@@ -1504,8 +1505,17 @@ namespace Js
                 Float      = AsmJsRetType::Float,
                 Double     = AsmJsRetType::Double,
                 Int32x4    = AsmJsRetType::Int32x4,
+                Bool32x4   = AsmJsRetType::Bool32x4,
+                Bool16x8   = AsmJsRetType::Bool16x8,
+                Bool8x16   = AsmJsRetType::Bool8x16,
                 Float32x4  = AsmJsRetType::Float32x4,
-                Float64x2  = AsmJsRetType::Float64x2
+                Float64x2  = AsmJsRetType::Float64x2,
+                Int16x8    = AsmJsRetType::Int16x8,
+                Int8x16    = AsmJsRetType::Int8x16,
+                Uint32x4   = AsmJsRetType::Uint32x4,
+                Uint16x8   = AsmJsRetType::Uint16x8,
+                Uint8x16   = AsmJsRetType::Uint8x16,
+
             };
 
             //Prolog
@@ -1967,8 +1977,16 @@ namespace Js
         switch (retType)
         {
         case AsmJsRetType::Int32x4:
+        case AsmJsRetType::Bool32x4:
+        case AsmJsRetType::Bool16x8:
+        case AsmJsRetType::Bool8x16:
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Float64x2:
+        case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
+        case AsmJsRetType::Uint32x4:
+        case AsmJsRetType::Uint16x8:
+        case AsmJsRetType::Uint8x16:
             if (function->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
             {
                 function->GetScriptContext()->retAsmSimdVal = newInstance->m_localSimdSlots[0];
@@ -2023,8 +2041,16 @@ namespace Js
             break;
         }
         case Js::AsmJsRetType::Int32x4:
+        case Js::AsmJsRetType::Bool32x4:
+        case Js::AsmJsRetType::Bool16x8:
+        case Js::AsmJsRetType::Bool8x16:
         case Js::AsmJsRetType::Float32x4:
         case Js::AsmJsRetType::Float64x2:
+        case Js::AsmJsRetType::Int16x8:
+        case Js::AsmJsRetType::Int8x16:
+        case Js::AsmJsRetType::Uint32x4:
+        case Js::AsmJsRetType::Uint16x8:
+        case Js::AsmJsRetType::Uint8x16:
         {
             entryPoint = Js::InterpreterStackFrame::AsmJsInterpreterSimdJs;
             break;
@@ -2439,6 +2465,18 @@ namespace Js
                         valid = JavascriptSIMDInt32x4::Is(value);
                         val = (valid) ? ((JavascriptSIMDInt32x4*)value)->GetValue() : val;
                         break;
+                    case AsmJsVarType::Bool32x4:
+                        valid = JavascriptSIMDBool32x4::Is(value);
+                        val = (valid) ? ((JavascriptSIMDBool32x4*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Bool16x8:
+                        valid = JavascriptSIMDBool16x8::Is(value);
+                        val = (valid) ? ((JavascriptSIMDBool16x8*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Bool8x16:
+                        valid = JavascriptSIMDBool8x16::Is(value);
+                        val = (valid) ? ((JavascriptSIMDBool8x16*)value)->GetValue() : val;
+                        break;
                     case AsmJsVarType::Float32x4:
                         valid = JavascriptSIMDFloat32x4::Is(value);
                         val = (valid) ? ((JavascriptSIMDFloat32x4*)value)->GetValue() : val;
@@ -2446,6 +2484,26 @@ namespace Js
                     case AsmJsVarType::Float64x2:
                         valid = JavascriptSIMDFloat64x2::Is(value);
                         val = (valid) ? ((JavascriptSIMDFloat64x2*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Int16x8:
+                        valid = JavascriptSIMDInt16x8::Is(value);
+                        val = (valid) ? ((JavascriptSIMDInt16x8*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Int8x16:
+                        valid = JavascriptSIMDInt8x16::Is(value);
+                        val = ((JavascriptSIMDInt8x16*)value)->GetValue();
+                        break;
+                    case AsmJsVarType::Uint32x4:
+                        valid = JavascriptSIMDUint32x4::Is(value);
+                        val = (valid) ? ((JavascriptSIMDUint32x4*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Uint16x8:
+                        valid = JavascriptSIMDUint16x8::Is(value);
+                        val = (valid) ? ((JavascriptSIMDUint16x8*)value)->GetValue() : val;
+                        break;
+                    case AsmJsVarType::Uint8x16:
+                        valid = JavascriptSIMDUint8x16::Is(value);
+                        val = (valid) ? ((JavascriptSIMDUint8x16*)value)->GetValue() : val;
                         break;
                     default:
                         Assert(UNREACHED);
@@ -3459,7 +3517,15 @@ namespace Js
             break;
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Int32x4:
+        case AsmJsRetType::Bool32x4:
+        case AsmJsRetType::Bool16x8:
+        case AsmJsRetType::Bool8x16:
         case AsmJsRetType::Float64x2:
+        case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
+        case AsmJsRetType::Uint32x4:
+        case AsmJsRetType::Uint16x8:
+        case AsmJsRetType::Uint8x16:
             X86SIMDValue simdVal;
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->address, asmInfo->GetArgCount(), m_outParams);
             m_localSimdSlots[0] = X86SIMDValue::ToSIMDValue(simdVal);
@@ -3486,8 +3552,16 @@ namespace Js
             Float = AsmJsRetType::Float,
             Double = AsmJsRetType::Double,
             Int32x4 = AsmJsRetType::Int32x4,
+            Bool32x4 = AsmJsRetType::Bool32x4,
+            Bool16x8 = AsmJsRetType::Bool16x8,
+            Bool8x16 = AsmJsRetType::Bool8x16,
             Float32x4 = AsmJsRetType::Float32x4,
-            Float64x2 = AsmJsRetType::Float64x2
+            Float64x2 = AsmJsRetType::Float64x2,
+            Int16x8   = AsmJsRetType::Int16x8,
+            Int8x16 = AsmJsRetType::Int8x16,
+            Uint32x4  = AsmJsRetType::Uint32x4,
+            Uint16x8  = AsmJsRetType::Uint16x8,
+            Uint8x16  = AsmJsRetType::Uint8x16,
         };
 
         AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
@@ -3577,8 +3651,16 @@ namespace Js
         switch (retType)
         {
         case AsmJsRetType::Int32x4:
+        case AsmJsRetType::Bool32x4:
+        case AsmJsRetType::Bool16x8:
+        case AsmJsRetType::Bool8x16:
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Float64x2:
+        case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
+        case AsmJsRetType::Uint32x4:
+        case AsmJsRetType::Uint16x8:
+        case AsmJsRetType::Uint8x16:
             if (scriptContext->GetConfig()->IsSimdjsEnabled())
             {
                 m_localSimdSlots[0] = retSimdVal;
@@ -7475,6 +7557,162 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SIMD.Int32x4.FromFloat32x4"));
         }
         SetRegRawSimd(playout->I4_0, result);
+    }
+
+    // handler for SIMD.Uint32x4.FromFloat32x4
+    template <class T>
+    void InterpreterStackFrame::OP_SimdUint32x4FromFloat32x4(const unaligned T* playout)
+    {
+        bool throws = false;
+        AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
+        AsmJsSIMDValue result = SIMDUint32x4Operation::OpFromFloat32x4(input, throws);
+
+        // value is out of bound
+        if (throws)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"SIMD.Int32x4.FromFloat32x4");
+        }
+        SetRegRawSimd(playout->U4_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdInt16x8(const unaligned T* playout)
+    {
+        int16 values[8];
+        values[0] = (int16) GetRegRawInt(playout->I1);
+        values[1] = (int16) GetRegRawInt(playout->I2);
+        values[2] = (int16) GetRegRawInt(playout->I3);
+        values[3] = (int16) GetRegRawInt(playout->I4);
+        values[4] = (int16) GetRegRawInt(playout->I5);
+        values[5] = (int16) GetRegRawInt(playout->I6);
+        values[6] = (int16) GetRegRawInt(playout->I7);
+        values[7] = (int16) GetRegRawInt(playout->I8);
+        
+        AsmJsSIMDValue result = SIMDInt16x8Operation::OpInt16x8(values);
+        SetRegRawSimd(playout->I8_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdInt8x16(const unaligned T* playout)
+    {
+        int8 values[16];
+        values[0]  = (int8)GetRegRawInt(playout->I1);
+        values[1]  = (int8)GetRegRawInt(playout->I2);
+        values[2]  = (int8)GetRegRawInt(playout->I3);
+        values[3]  = (int8)GetRegRawInt(playout->I4);
+        values[4]  = (int8)GetRegRawInt(playout->I5);
+        values[5]  = (int8)GetRegRawInt(playout->I6);
+        values[6]  = (int8)GetRegRawInt(playout->I7);
+        values[7]  = (int8)GetRegRawInt(playout->I8);
+        values[8]  = (int8)GetRegRawInt(playout->I9);
+        values[9]  = (int8)GetRegRawInt(playout->I10);
+        values[10] = (int8)GetRegRawInt(playout->I11);
+        values[11] = (int8)GetRegRawInt(playout->I12);
+        values[12] = (int8)GetRegRawInt(playout->I13);
+        values[13] = (int8)GetRegRawInt(playout->I14);
+        values[14] = (int8)GetRegRawInt(playout->I15);
+        values[15] = (int8)GetRegRawInt(playout->I16);
+
+        AsmJsSIMDValue result = SIMDInt8x16Operation::OpInt8x16(values);
+        SetRegRawSimd(playout->I16_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdUint16x8(const unaligned T* playout)
+    {
+        
+        uint16 values[8];
+        values[0] = (uint16) GetRegRawInt(playout->I1);
+        values[1] = (uint16) GetRegRawInt(playout->I2);
+        values[2] = (uint16) GetRegRawInt(playout->I3);
+        values[3] = (uint16) GetRegRawInt(playout->I4);
+        values[4] = (uint16) GetRegRawInt(playout->I5);
+        values[5] = (uint16) GetRegRawInt(playout->I6);
+        values[6] = (uint16) GetRegRawInt(playout->I7);
+        values[7] = (uint16) GetRegRawInt(playout->I8);
+        
+        AsmJsSIMDValue result = SIMDUint16x8Operation::OpUint16x8(values);
+        SetRegRawSimd(playout->U8_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdUint8x16(const unaligned T* playout)
+    {
+        uint8 values[16];
+        values[0]  = (uint8) GetRegRawInt(playout->I1);
+        values[1]  = (uint8) GetRegRawInt(playout->I2);
+        values[2]  = (uint8) GetRegRawInt(playout->I3);
+        values[3]  = (uint8) GetRegRawInt(playout->I4);
+        values[4]  = (uint8) GetRegRawInt(playout->I5);
+        values[5]  = (uint8) GetRegRawInt(playout->I6);
+        values[6]  = (uint8) GetRegRawInt(playout->I7);
+        values[7]  = (uint8) GetRegRawInt(playout->I8);
+        values[8]  = (uint8) GetRegRawInt(playout->I9);
+        values[9]  = (uint8) GetRegRawInt(playout->I10);
+        values[10] = (uint8) GetRegRawInt(playout->I11);
+        values[11] = (uint8) GetRegRawInt(playout->I12);
+        values[12] = (uint8) GetRegRawInt(playout->I13);
+        values[13] = (uint8) GetRegRawInt(playout->I14);
+        values[14] = (uint8) GetRegRawInt(playout->I15);
+        values[15] = (uint8) GetRegRawInt(playout->I16);
+
+        AsmJsSIMDValue result = SIMDUint8x16Operation::OpUint8x16(values);
+        SetRegRawSimd(playout->U16_0, result);
+    }
+
+    // Bool constructors
+    template <class T>
+    void InterpreterStackFrame::OP_SimdBool32x4(const unaligned T* playout)
+    {
+        bool arg1 = GetRegRawInt(playout->I1) ? true : false;
+        bool arg2 = GetRegRawInt(playout->I2) ? true : false;
+        bool arg3 = GetRegRawInt(playout->I3) ? true : false;
+        bool arg4 = GetRegRawInt(playout->I4) ? true : false;
+        AsmJsSIMDValue result = SIMDBool32x4Operation::OpBool32x4(arg1, arg2, arg3, arg4);
+        SetRegRawSimd(playout->B4_0, result);
+
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdBool16x8(const unaligned T* playout)
+    {
+        bool values[8];
+        values[0] = GetRegRawInt(playout->I1) ? true : false;
+        values[1] = GetRegRawInt(playout->I2) ? true : false;
+        values[2] = GetRegRawInt(playout->I3) ? true : false;
+        values[3] = GetRegRawInt(playout->I4) ? true : false;
+        values[4] = GetRegRawInt(playout->I5) ? true : false;
+        values[5] = GetRegRawInt(playout->I6) ? true : false;
+        values[6] = GetRegRawInt(playout->I7) ? true : false;
+        values[7] = GetRegRawInt(playout->I8) ? true : false;
+        
+        AsmJsSIMDValue result = SIMDBool16x8Operation::OpBool16x8(values);
+        SetRegRawSimd(playout->B8_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdBool8x16(const unaligned T* playout)
+    {
+        bool values[16];
+        values[0] = GetRegRawInt(playout->I1) ? true : false;
+        values[1] = GetRegRawInt(playout->I2) ? true : false;
+        values[2] = GetRegRawInt(playout->I3) ? true : false;
+        values[3] = GetRegRawInt(playout->I4) ? true : false;
+        values[4] = GetRegRawInt(playout->I5) ? true : false;
+        values[5] = GetRegRawInt(playout->I6) ? true : false;
+        values[6] = GetRegRawInt(playout->I7) ? true : false;
+        values[7] = GetRegRawInt(playout->I8) ? true : false;
+        values[8] = GetRegRawInt(playout->I9) ? true : false;
+        values[9] = GetRegRawInt(playout->I10) ? true : false;
+        values[10] = GetRegRawInt(playout->I11) ? true : false;
+        values[11] = GetRegRawInt(playout->I12) ? true : false;
+        values[12] = GetRegRawInt(playout->I13) ? true : false;
+        values[13] = GetRegRawInt(playout->I14) ? true : false;
+        values[14] = GetRegRawInt(playout->I15) ? true : false;
+        values[15] = GetRegRawInt(playout->I16) ? true : false;
+        
+        AsmJsSIMDValue result = SIMDBool8x16Operation::OpBool8x16(values);
+        SetRegRawSimd(playout->B16_0, result);
     }
 
     Var InterpreterStackFrame::GetNonVarReg(RegSlot localRegisterID) const

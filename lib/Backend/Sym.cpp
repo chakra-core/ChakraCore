@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "Backend.h"
 
 const Js::ArgSlot StackSym::InvalidSlot = (Js::ArgSlot)-1;
@@ -741,6 +742,9 @@ StackSym::GetSimd128EquivSym(IRType type, Func *func)
     case TySimd128I4:
         return this->GetSimd128I4EquivSym(func);
         break;
+    case TySimd128I16:
+        return this->GetSimd128I16EquivSym(func);
+        break;
     case TySimd128D2:
         return this->GetSimd128D2EquivSym(func);
         break;
@@ -760,6 +764,12 @@ StackSym *
 StackSym::GetSimd128I4EquivSym(Func *func)
 {
     return this->GetTypeEquivSym(TySimd128I4, func);
+}
+
+StackSym *
+StackSym::GetSimd128I16EquivSym(Func *func)
+{
+    return this->GetTypeEquivSym(TySimd128I16, func);
 }
 
 StackSym *

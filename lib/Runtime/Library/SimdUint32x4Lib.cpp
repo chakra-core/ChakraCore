@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLibraryPch.h"
 
 namespace Js
@@ -24,7 +25,7 @@ namespace Js
         unsigned int intSIMDZ = JavascriptConversion::ToUInt32(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
         unsigned int intSIMDW = JavascriptConversion::ToUInt32(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
 
-        SIMDValue lanes = SIMDUint32x4Operation::OpUInt32x4(intSIMDX, intSIMDY, intSIMDZ, intSIMDW);
+        SIMDValue lanes = SIMDUint32x4Operation::OpUint32x4(intSIMDX, intSIMDY, intSIMDZ, intSIMDW);
 
         return JavascriptSIMDUint32x4::New(&lanes, scriptContext);
     }
@@ -166,7 +167,6 @@ namespace Js
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromInt8x16Bits"));
     }
-    // Enable with UInt16x8 and UInt8x16 implementation
 
     Var SIMDUint32x4Lib::EntryFromUint16x8Bits(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -184,7 +184,7 @@ namespace Js
 
             return SIMDConvertTypeFromBits<JavascriptSIMDUint16x8, JavascriptSIMDUint32x4>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromUInt16x8Bits"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromUint16x8Bits"));
     }
 
     Var SIMDUint32x4Lib::EntryFromUint8x16Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -203,9 +203,8 @@ namespace Js
 
             return SIMDConvertTypeFromBits<JavascriptSIMDUint8x16, JavascriptSIMDUint32x4>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromUInt8x16Bits"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromUint8x16Bits"));
     }
-
 
     //Lane Access
     Var SIMDUint32x4Lib::EntryExtractLane(RecyclableObject* function, CallInfo callInfo, ...)
@@ -281,6 +280,32 @@ namespace Js
         }
 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("not"));
+    }
+
+    Var SIMDUint32x4Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count >= 2 && JavascriptSIMDUint32x4::Is(args[1]))
+        {
+            JavascriptSIMDUint32x4 *a = JavascriptSIMDUint32x4::FromVar(args[1]);
+            Assert(a);
+
+            SIMDValue value, result;
+
+            value = a->GetValue();
+            result = SIMDInt32x4Operation::OpNeg(value);
+
+            return JavascriptSIMDUint32x4::New(&result, scriptContext);
+        }
+
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"neg");
     }
 
     Var SIMDUint32x4Lib::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -666,8 +691,7 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint32x4Operation::OpLessThanOrEqual(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
+            result = SIMDUint32x4Operation::OpGreaterThan(aValue, bValue);
             return JavascriptSIMDBool32x4::New(&result, scriptContext);
         }
 
@@ -696,9 +720,8 @@ namespace Js
 
             aValue = a->GetValue();
             bValue = b->GetValue();
-
-            result = SIMDUint32x4Operation::OpLessThan(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
+            result = SIMDUint32x4Operation::OpGreaterThanOrEqual(aValue, bValue);
+            
             return JavascriptSIMDBool32x4::New(&result, scriptContext);
         }
 

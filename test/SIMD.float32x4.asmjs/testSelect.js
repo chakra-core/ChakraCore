@@ -1,24 +1,53 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
-var i4 = stdlib.SIMD.Int32x4;
+    var b4  = stdlib.SIMD.Bool32x4;
+    var b8  = stdlib.SIMD.Bool16x8;
+    var b16 = stdlib.SIMD.Bool8x16;
+    
+    var b4check  = b4.check;
+    var b8check  = b8.check;
+    var b16check = b16.check;
+    
+    var b4and  = b4.and;
+    var b8and  = b8.and;
+    var b16and = b16.and;
+    
+    var b4or = b4.or;
+    var b8or = b8.or;
+    var b16or= b16.or;
+    
+    var b4xor = b4.xor;
+    var b8xor = b8.xor;
+    var b16xor= b16.xor;
+    
+    var b4not = b4.not;
+    var b8not  = b8.not;
+    var b16not = b16.not;
+    
+    var b4allTrue = b4.allTrue;
+    var b8allTrue  = b8.allTrue;
+    var b16allTrue = b16.allTrue;
+    
+    var b4anyTrue = b4.anyTrue;
+    var b8anyTrue  = b8.anyTrue;
+    var b16anyTrue = b16.anyTrue;
+    
+    var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    var i4fromFloat64x2 = i4.fromFloat64x2;
-    var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
-    //var i4abs = i4.abs;
+
     var i4neg = i4.neg;
     var i4add = i4.add;
     var i4sub = i4.sub;
     var i4mul = i4.mul;
-    //var i4swizzle = i4.swizzle;
-    //var i4shuffle = i4.shuffle;
     var i4lessThan = i4.lessThan;
     var i4equal = i4.equal;
     var i4greaterThan = i4.greaterThan;
@@ -27,15 +56,11 @@ var i4 = stdlib.SIMD.Int32x4;
     var i4or = i4.or;
     var i4xor = i4.xor;
     var i4not = i4.not;
-    //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
-    //var i4shiftRightByScalar = i4.shiftRightByScalar;
-    //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
+
 
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
-    var f4fromFloat64x2 = f4.fromFloat64x2;
-    var f4fromFloat64x2Bits = f4.fromFloat64x2Bits;
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -44,13 +69,11 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     
     var f4sqrt = f4.sqrt;
-    //var f4swizzle = f4.swizzle;
-    //var f4shuffle = f4.shuffle;
     var f4lessThan = f4.lessThan;
     var f4lessThanOrEqual = f4.lessThanOrEqual;
     var f4equal = f4.equal;
@@ -64,48 +87,17 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4xor = f4.xor;
     var f4not = f4.not;
 
-    var d2 = stdlib.SIMD.Float64x2;  
-    var d2check = d2.check;
-    var d2splat = d2.splat;
-    var d2fromFloat32x4 = d2.fromFloat32x4;
-    var d2fromFloat32x4Bits = d2.fromFloat32x4Bits;
-    var d2fromInt32x4 = d2.fromInt32x4;
-    var d2fromInt32x4Bits = d2.fromInt32x4Bits;
-    var d2abs = d2.abs;
-    var d2neg = d2.neg;
-    var d2add = d2.add;
-    var d2sub = d2.sub;
-    var d2mul = d2.mul;
-    var d2div = d2.div;
-    var d2clamp = d2.clamp;
-    var d2min = d2.min;
-    var d2max = d2.max;
-
-    var d2sqrt = d2.sqrt;
-    //var d2swizzle = d2.swizzle;
-    //var d2shuffle = d2.shuffle;
-    var d2lessThan = d2.lessThan;
-    var d2lessThanOrEqual = d2.lessThanOrEqual;
-    var d2equal = d2.equal;
-    var d2notEqual = d2.notEqual;
-    var d2greaterThan = d2.greaterThan;
-    var d2greaterThanOrEqual = d2.greaterThanOrEqual;
-    var d2select = d2.select;
-    
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
-    var globImportI4 = i4check(imports.g2);       // global var import
-    var globImportD2 = d2check(imports.g3);       // global var import
+    var globImportB4 = b4check(imports.g2);       // global var import
+    
 
     var f4g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var f4g2 = f4(1194580.33,-11201.5,63236.93,334.8);          // global var initialized
 
     var i4g1 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
     var i4g2 = i4(353216, -492529, -1128, 1085);          // global var initialized
-
-    var d2g1 = d2(0.12344,-1.6578);          // global var initialized
-    var d2g2 = d2(5455.4395,-100324.688);          // global var initialized
 
     var gval = 1234;
     var gval2 = 1234.0;
@@ -117,7 +109,7 @@ var i4 = stdlib.SIMD.Int32x4;
         a = a|0;
         var b = f4(5033.2,-3401.0,665.34,-32234.1);
         var c = f4(-34183.8985, 212344.12, 665.34, 65534.99);
-        var d = i4(0,-1,0,-1);
+        var d = b4(0,-1,0,-1);
 
 
         var loopIndex = 0;
@@ -137,7 +129,7 @@ var i4 = stdlib.SIMD.Int32x4;
         a = a|0;
         var b = f4(5033.2,-3401.0,665.34,-32234.1);
         var c = f4(-34183.8985, 212344.12, -569437.0, 65534.99);
-        var d = i4(0,-1,0,-1);
+        var d = b4(0,-1,0,-1);
 
         var loopIndex = 0;
         for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
@@ -156,7 +148,7 @@ var i4 = stdlib.SIMD.Int32x4;
         a = a|0;
         var b = f4(5033.2,-3401.0,665.34,-32234.1);
         var c = f4(-34183.8985, 212344.12, -569437.0, 65534.99);
-        var d = i4(0,-1,0,-1);
+        var d = b4(0,-1,0,-1);
 
 
         var loopIndex = 0;
@@ -178,7 +170,7 @@ var i4 = stdlib.SIMD.Int32x4;
     return {func1:func1, func2:func2, func3:func3};
 }
 
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Bool32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
 
 var ret;
 ret = m.func1();

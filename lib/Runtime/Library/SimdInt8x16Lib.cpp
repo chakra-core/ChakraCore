@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLibraryPch.h"
 
 namespace Js
@@ -19,27 +20,14 @@ namespace Js
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
 
-        int8 intSIMDX0 = JavascriptConversion::ToInt8(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        int8 intSIMDX1 = JavascriptConversion::ToInt8(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        int8 intSIMDX2 = JavascriptConversion::ToInt8(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        int8 intSIMDX3 = JavascriptConversion::ToInt8(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        int8 intSIMDX4 = JavascriptConversion::ToInt8(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        int8 intSIMDX5 = JavascriptConversion::ToInt8(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        int8 intSIMDX6 = JavascriptConversion::ToInt8(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        int8 intSIMDX7 = JavascriptConversion::ToInt8(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
-        int8 intSIMDX8 = JavascriptConversion::ToInt8(args.Info.Count >= 10 ? args[9] : undefinedVar, scriptContext);
-        int8 intSIMDX9 = JavascriptConversion::ToInt8(args.Info.Count >= 11 ? args[10] : undefinedVar, scriptContext);
-        int8 intSIMDX10 = JavascriptConversion::ToInt8(args.Info.Count >= 12 ? args[11] : undefinedVar, scriptContext);
-        int8 intSIMDX11 = JavascriptConversion::ToInt8(args.Info.Count >= 13 ? args[12] : undefinedVar, scriptContext);
-        int8 intSIMDX12 = JavascriptConversion::ToInt8(args.Info.Count >= 14 ? args[13] : undefinedVar, scriptContext);
-        int8 intSIMDX13 = JavascriptConversion::ToInt8(args.Info.Count >= 15 ? args[14] : undefinedVar, scriptContext);
-        int8 intSIMDX14 = JavascriptConversion::ToInt8(args.Info.Count >= 16 ? args[15] : undefinedVar, scriptContext);
-        int8 intSIMDX15 = JavascriptConversion::ToInt8(args.Info.Count >= 17 ? args[16] : undefinedVar, scriptContext);
+        const uint LANES = 16;
+        int8 values[LANES];
 
-        SIMDValue lanes = SIMDInt8x16Operation::OpInt8x16(intSIMDX0,  intSIMDX1,  intSIMDX2,  intSIMDX3
-                                                        , intSIMDX4,  intSIMDX5,  intSIMDX6,  intSIMDX7
-                                                        , intSIMDX8,  intSIMDX9,  intSIMDX10, intSIMDX11
-                                                        , intSIMDX12, intSIMDX13, intSIMDX14, intSIMDX15);
+        for (uint i = 0; i < LANES; i++)
+        {
+            values[i] = JavascriptConversion::ToInt8(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
+        }
+        SIMDValue lanes = SIMDInt8x16Operation::OpInt8x16(values);
 
         return JavascriptSIMDInt8x16::New(&lanes, scriptContext);
     }
@@ -885,7 +873,6 @@ namespace Js
             {
                 lanes[i] = args[i + 3];
             }
-                //arun::ToDo shuffle can take 2*lanes indices.
             return SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[2], lanes, 32, scriptContext);
 
         }

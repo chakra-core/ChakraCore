@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 //
 // NOTE: This file is intended to be "#include" multiple times. The call site should define various
 // macros to be executed for each entry. Macros that are not provided will be given a default,
@@ -84,7 +85,6 @@ ENTRY(fround)
 
 // SIMD
 ENTRY(check)
-ENTRY(signMask)
 ENTRY(Float32x4)
 ENTRY(Float64x2)
 ENTRY(Int32x4)
@@ -93,23 +93,14 @@ ENTRY(Int16x8)
 ENTRY(Bool32x4)
 ENTRY(Bool16x8)
 ENTRY(Bool8x16)
-
 ENTRY(Uint32x4)
 ENTRY(Uint16x8)
 ENTRY(Uint8x16)
-
-ENTRY(zero)
 ENTRY(splat)
-ENTRY2(bool_, _u("bool")) // "bool" cannot be an identifier in C++ so using "bool_" instead
-ENTRY2(default_, _u("default"))
-
 ENTRY(fromFloat32x4)
-
 ENTRY(fromInt32x4)
 ENTRY(fromUint32x4)
-ENTRY(fromInt8x16)
 ENTRY(fromFloat64x2)
-
 ENTRY(fromFloat32x4Bits)
 ENTRY(fromFloat64x2Bits)
 ENTRY(fromInt32x4Bits)
@@ -118,16 +109,7 @@ ENTRY(fromInt8x16Bits)
 ENTRY(fromUint32x4Bits)
 ENTRY(fromUint16x8Bits)
 ENTRY(fromUint8x16Bits)
-
 // keep these contiguous
-ENTRY(withFlagX)
-ENTRY(withFlagY)
-ENTRY(withFlagZ)
-ENTRY(withFlagW)
-ENTRY(flagX)
-ENTRY(flagY)
-ENTRY(flagZ)
-ENTRY(flagW)
 ENTRY(extractLane)
 ENTRY(replaceLane)
 //
@@ -148,11 +130,9 @@ ENTRY(neg)
 ENTRY(not)
 ENTRY(swizzle)
 ENTRY(shuffle)
-ENTRY(clamp)
 ENTRY(select)
 ENTRY(reciprocalApproximation)
 ENTRY(reciprocalSqrtApproximation)
-ENTRY(scale)
 ENTRY(lessThan)
 ENTRY(lessThanOrEqual)
 ENTRY(equal)
@@ -162,17 +142,12 @@ ENTRY(greaterThan)
 ENTRY(minNum)
 ENTRY(maxNum)
 ENTRY(shiftLeft)
-ENTRY(shiftRightLogical)
-ENTRY(shiftRightArithmetic)
 ENTRY(shiftLeftByScalar)
 ENTRY(shiftRightByScalar)
-
 ENTRY(allTrue)
 ENTRY(anyTrue)
 ENTRY(addSaturate)
 ENTRY(subSaturate)
-ENTRY(extractLaneAsBool)
-ENTRY(selectBits)
 // End SIMD
 
 
@@ -206,6 +181,7 @@ ENTRY(create)
 ENTRY(Date)
 ENTRY(decodeURI)
 ENTRY(decodeURIComponent)
+ENTRY2(default_, _u("default"))
 ENTRY2(delete_, _u("delete")) // "delete" cannot be an identifier in C++ so using "delete_" instead
 ENTRY(deleteProperty)
 ENTRY(description)

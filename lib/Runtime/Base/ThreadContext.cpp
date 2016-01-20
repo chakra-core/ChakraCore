@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeBasePch.h"
 #include "BackendApi.h"
 #include "ThreadServiceWrapper.h"
@@ -569,6 +570,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
     va_start(arguments, op);
 
     int argumentsCount = va_arg(arguments, int);
+    AssertMsg(argumentsCount >= 0 && argumentsCount <= 20, "Invalid arguments count for SIMD opcode");
     if (argumentsCount == 0)
     {
         // no info to add

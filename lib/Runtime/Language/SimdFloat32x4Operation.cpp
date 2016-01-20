@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if defined(_M_ARM32_OR_ARM64)
@@ -15,15 +16,6 @@ namespace Js
         result.f32[SIMD_Y] = y;
         result.f32[SIMD_Z] = z;
         result.f32[SIMD_W] = w;
-
-        return result;
-    }
-
-    SIMDValue SIMDFloat32x4Operation::OpZero()
-    {
-        SIMDValue result;
-
-        result.f32[SIMD_X] = result.f32[SIMD_Y] = result.f32[SIMD_Z] = result.f32[SIMD_W] = 0;
 
         return result;
     }
@@ -454,21 +446,6 @@ namespace Js
         SIMDValue falseResult = SIMDInt32x4Operation::OpAnd(notValue, fV);
 
         result = SIMDInt32x4Operation::OpOr(trueResult, falseResult);
-
-        return result;
-    }
-
-    // Get SignMask
-    int SIMDFloat32x4Operation::OpGetSignMask(const SIMDValue& v)
-    {
-        int result;
-
-        int mx = (v.f32[SIMD_X] < 0.0 || 1 / v.f32[SIMD_X] == JavascriptNumber::NEGATIVE_INFINITY) ? 1 : 0;
-        int my = (v.f32[SIMD_Y] < 0.0 || 1 / v.f32[SIMD_Y] == JavascriptNumber::NEGATIVE_INFINITY) ? 1 : 0;
-        int mz = (v.f32[SIMD_Z] < 0.0 || 1 / v.f32[SIMD_Z] == JavascriptNumber::NEGATIVE_INFINITY) ? 1 : 0;
-        int mw = (v.f32[SIMD_W] < 0.0 || 1 / v.f32[SIMD_W] == JavascriptNumber::NEGATIVE_INFINITY) ? 1 : 0;
-
-        result = mx | my << 1 | mz << 2 | mw << 3;
 
         return result;
     }
