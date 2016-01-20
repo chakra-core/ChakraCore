@@ -1197,7 +1197,7 @@ case_2:
             wchar_t const * start = inputStr;
             wchar_t const * current = inputStr + min(position, len - 1);
             wchar_t const * searchStrEnd = searchStr + searchLen - 1;
-            while (current >= start)
+            while (current >= (start + searchLen - 1))
             {
                 wchar_t const * s1 = current;
                 wchar_t const * s2 = searchStrEnd;

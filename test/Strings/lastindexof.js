@@ -29,6 +29,10 @@ WScript.Echo(str3.lastIndexOf("\u0112\u0113"));
 
 var str4 = "\u0061\u0062\u0063\u3042\u3044";
 WScript.Echo(str4.lastIndexOf("\u3042\u3044", 1));
+WScript.Echo(str4.lastIndexOf("\u3042\u3044"));
+WScript.Echo(str4.lastIndexOf("\u3042\u3044", 4));
+WScript.Echo("\u3042\u3044\u0061".lastIndexOf("\u3042\u3044", 3));
+WScript.Echo(str4.lastIndexOf("\u3044\0", 5));
 
 //implicit calls
 var a = 1;
