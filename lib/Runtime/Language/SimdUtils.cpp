@@ -4,6 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+
+// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+#if _M_IX86 || _M_AMD64
+_x86_SIMDValue X86_TEMP_SIMD[] = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+#endif
+
 namespace Js
 {
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index)
@@ -76,6 +82,8 @@ namespace Js
     }
 #endif
 
+
+
     template <int laneCount>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3)
     {
@@ -83,15 +91,15 @@ namespace Js
         CompileAssert(laneCount == 4 || laneCount == 2);
         if (laneCount == 4)
         {
-            result.i32[SIMD_X] = lane0 < 4 ? src1.i32[lane0] : src2.i32[lane0 - 4];
-            result.i32[SIMD_Y] = lane1 < 4 ? src1.i32[lane1] : src2.i32[lane1 - 4];
-            result.i32[SIMD_Z] = lane2 < 4 ? src1.i32[lane2] : src2.i32[lane2 - 4];
-            result.i32[SIMD_W] = lane3 < 4 ? src1.i32[lane3] : src2.i32[lane3 - 4];
+            result.i32[SIMD_X] = lane0 < laneCount ? src1.i32[lane0] : src2.i32[lane0 - laneCount];
+            result.i32[SIMD_Y] = lane1 < laneCount ? src1.i32[lane1] : src2.i32[lane1 - laneCount];
+            result.i32[SIMD_Z] = lane2 < laneCount ? src1.i32[lane2] : src2.i32[lane2 - laneCount];
+            result.i32[SIMD_W] = lane3 < laneCount ? src1.i32[lane3] : src2.i32[lane3 - laneCount];
         }
         else
         {
-            result.f64[SIMD_X] = lane0 < 2 ? src1.f64[lane0] : src2.f64[lane0 - 2];
-            result.f64[SIMD_Y] = lane1 < 2 ? src1.f64[lane1] : src2.f64[lane1 - 2];
+            result.f64[SIMD_X] = lane0 < laneCount ? src1.f64[lane0] : src2.f64[lane0 - laneCount];
+            result.f64[SIMD_Y] = lane1 < laneCount ? src1.f64[lane1] : src2.f64[lane1 - laneCount];
         }
         return result;
     }

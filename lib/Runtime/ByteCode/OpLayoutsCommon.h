@@ -20,7 +20,7 @@ namespace Js {
     typedef int32 JumpOffset;
 #endif
     // This is used to estimate when we need to emit long branches
-    uint const MaxLayoutSize = 28; // Increase this when we see larger layout
+    uint const MaxLayoutSize = 76; // Increase this when we see larger layout
 
     uint const MaxOpCodeSize = 2;
 

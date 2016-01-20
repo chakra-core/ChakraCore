@@ -268,6 +268,7 @@ enum Forms : BYTE
 
 #define OPBYTE_POR      {0xeb}                  // modrm
 #define OPBYTE_PSHUFD   {0x70}                  // special
+#define OPBYTE_PSLLD    {0x72}                  // mmx lane shift
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
 #define OPBYTE_PSUBD    {0xfa}                  // modrm
@@ -324,3 +325,4 @@ enum Forms : BYTE
 #define OPBYTE_XCHG     {0x90, 0x86}             // xchg
 #define OPBYTE_XOR      {0x34, 0x80, 0x30}       // binop, byte2=0x6
 #define OPBYTE_XORPS    {0x57}                   // modrm
+#define OPBYTE_PINSRW   {0xC4}                   // special

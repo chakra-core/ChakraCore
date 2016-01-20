@@ -94,8 +94,15 @@ namespace Js
         case Intish:      return L"intish";
         case Void:        return L"void";
         case Int32x4:     return L"SIMD.Int32x4";
+        case Bool32x4:    return L"SIMD.Bool32x4";
+        case Bool16x8:    return L"SIMD.Bool16x8";
+        case Bool8x16:    return L"SIMD.Bool8x16";
         case Float32x4:   return L"SIMD.Float32x4";
         case Float64x2:   return L"SIMD.Float64x2";
+        case Int16x8:     return L"SIMD.Int16x8";
+        case Uint32x4:     return L"SIMD.Uint32x4";
+        case Uint16x8:     return L"SIMD.Uint16x8";
+        case Uint8x16:     return L"SIMD.Uint8x16";
         }
         Assert(false);
         return L"none";
@@ -103,12 +110,32 @@ namespace Js
 
     bool AsmJsType::isSIMDType() const
     {
-        return isSIMDInt32x4() || isSIMDFloat32x4() || isSIMDFloat64x2();
+        return isSIMDInt32x4()  || isSIMDFloat32x4() || isSIMDFloat64x2() ||
+               isSIMDBool32x4() || isSIMDBool16x8()  || isSIMDBool8x16()  ||
+               isSIMDInt16x8()  || isSIMDUint32x4()  || isSIMDUint16x8()  || 
+               isSIMDUint8x16();
+            
     }
 
     bool AsmJsType::isSIMDInt32x4() const
     {
         return which_ == Int32x4;
+    }
+    bool AsmJsType::isSIMDBool32x4() const
+    {
+        return which_ == Bool32x4;
+    }
+    bool AsmJsType::isSIMDBool16x8() const
+    {
+        return which_ == Bool16x8;
+    }
+    bool AsmJsType::isSIMDBool8x16() const
+    {
+        return which_ == Bool8x16;
+    }
+    bool AsmJsType::isSIMDInt16x8() const
+    {
+        return which_ == Int16x8;
     }
     bool AsmJsType::isSIMDFloat32x4() const
     {
@@ -117,6 +144,19 @@ namespace Js
     bool AsmJsType::isSIMDFloat64x2() const
     {
         return which_ == Float64x2;
+    }
+
+    bool AsmJsType::isSIMDUint32x4() const
+    {
+        return which_ == Uint32x4;
+    }
+    bool AsmJsType::isSIMDUint16x8() const
+    {
+        return which_ == Uint16x8;
+    }
+    bool AsmJsType::isSIMDUint8x16() const
+    {
+        return which_ == Uint8x16;
     }
 
     bool AsmJsType::isVarAsmJsType() const
@@ -246,11 +286,32 @@ namespace Js
         case AsmJsType::Int32x4:
             return isSIMDInt32x4();
             break;
+        case AsmJsType::Bool32x4:
+            return isSIMDBool32x4();
+            break;
+        case AsmJsType::Bool16x8:
+            return isSIMDBool16x8();
+            break;
+        case AsmJsType::Bool8x16:
+            return isSIMDBool8x16();
+            break;
         case AsmJsType::Float32x4:
             return isSIMDFloat32x4();
             break;
         case AsmJsType::Float64x2:
             return isSIMDFloat64x2();
+            break;
+        case AsmJsType::Int16x8:
+            return isSIMDInt16x8();
+            break;
+        case AsmJsType::Uint32x4:
+            return isSIMDUint32x4();
+            break;
+        case AsmJsType::Uint16x8:
+            return isSIMDUint16x8();
+            break;
+        case AsmJsType::Uint8x16:
+            return isSIMDUint8x16();
             break;
         default:
             break;
@@ -309,8 +370,15 @@ namespace Js
         case AsmJS_ToNumber: which_ = Double; break;
         case AsmJS_FRound: which_ = Float; break;
         case AsmJS_Int32x4: which_ = Int32x4; break;
+        case AsmJS_Bool32x4: which_ = Bool32x4; break;
+        case AsmJS_Bool16x8: which_ = Bool16x8; break;
+        case AsmJS_Bool8x16: which_ = Bool8x16; break;
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
+        case AsmJS_Int16x8: which_ = Int16x8; break;
+        case AsmJS_Uint32x4: which_ = Uint32x4; break;
+        case AsmJS_Uint16x8: which_ = Uint16x8; break;
+        case AsmJS_Uint8x16: which_ = Uint8x16; break;
         }
     }
 
@@ -362,8 +430,15 @@ namespace Js
         case Double:  return AsmJS_ToNumber;
         case Float:   return AsmJS_FRound;
         case Int32x4:   return AsmJS_Int32x4;
+        case Bool32x4:  return AsmJS_Bool32x4;
+        case Bool16x8:  return AsmJS_Bool16x8;
+        case Bool8x16:  return AsmJS_Bool8x16;
         case Float32x4: return AsmJS_Float32x4;
         case Float64x2: return AsmJS_Float64x2;
+        case Int16x8:   return AsmJS_Int16x8;
+        case Uint32x4:   return AsmJS_Uint32x4;
+        case Uint16x8:   return AsmJS_Uint16x8;
+        case Uint8x16:   return AsmJS_Uint8x16;
         }
         Assert(false);
         return AsmJS_ToInt32;
@@ -387,8 +462,15 @@ namespace Js
         case AsmJS_ToNumber: which_ = Double; break;
         case AsmJS_FRound: which_ = Float; break;
         case AsmJS_Int32x4: which_ = Int32x4; break;
+        case AsmJS_Bool32x4: which_ = Bool32x4; break;
+        case AsmJS_Bool16x8: which_ = Bool16x8; break;
+        case AsmJS_Bool8x16: which_ = Bool8x16; break;
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
+        case AsmJS_Int16x8: which_ = Int16x8; break;
+        case AsmJS_Uint32x4: which_ = Uint32x4; break;
+        case AsmJS_Uint16x8: which_ = Uint16x8; break;
+        case AsmJS_Uint8x16: which_ = Uint8x16; break;
         }
     }
 
@@ -546,10 +628,14 @@ namespace Js
 
     bool AsmJsFunctionDeclaration::CheckAndSetReturnType(Js::AsmJsRetType val)
     {
-        Assert((val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish) || GetSymbolType() == AsmJsSymbol::MathBuiltinFunction);
+        Assert((val != AsmJsRetType::Fixnum && val != AsmJsRetType::Unsigned && val != AsmJsRetType::Floatish) ||
+               GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
+               GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
         if (mReturnTypeKnown)
         {
-            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) || GetSymbolType() == AsmJsSymbol::MathBuiltinFunction);
+            Assert((mReturnType != AsmJsRetType::Fixnum && mReturnType != AsmJsRetType::Unsigned && mReturnType != AsmJsRetType::Floatish) || 
+                   GetSymbolType() == AsmJsSymbol::MathBuiltinFunction ||
+                   GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction);
             return mReturnType.toType().isSubType(val.toType());
         }
         mReturnType = val;
@@ -1145,7 +1231,16 @@ namespace Js
 
     bool AsmJsSIMDFunction::IsTypeCheck()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check || mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || mBuiltIn == AsmJsSIMDBuiltin_float64x2_check;
+        return mBuiltIn == AsmJsSIMDBuiltin_int32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_float64x2_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_int16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_bool32x4_check ||
+               mBuiltIn == AsmJsSIMDBuiltin_bool16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_bool8x16_check;
     }
 
     AsmJsVarType AsmJsSIMDFunction::GetTypeCheckVarType()
@@ -1155,7 +1250,16 @@ namespace Js
     }
     bool AsmJsSIMDFunction::IsConstructor()
     {
-        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 || mBuiltIn == AsmJsSIMDBuiltin_Float32x4 || mBuiltIn == AsmJsSIMDBuiltin_Float64x2;
+        return mBuiltIn == AsmJsSIMDBuiltin_Int32x4 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Float32x4 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Float64x2 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Int16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint32x4 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Uint8x16 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool32x4 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool16x8 ||
+            mBuiltIn == AsmJsSIMDBuiltin_Bool8x16 ;
     }
 
     // Is a constructor with the correct argCount ?
@@ -1172,7 +1276,16 @@ namespace Js
             return argCount == 2;
         case AsmJsSIMDBuiltin_Float32x4:
         case AsmJsSIMDBuiltin_Int32x4:
+        case AsmJsSIMDBuiltin_Uint32x4:
+        case AsmJsSIMDBuiltin_Bool32x4:
             return argCount == 4;
+        case AsmJsSIMDBuiltin_Int16x8:
+        case AsmJsSIMDBuiltin_Uint16x8:
+        case AsmJsSIMDBuiltin_Bool16x8:
+            return argCount == 8;
+        case AsmJsSIMDBuiltin_Uint8x16:
+        case AsmJsSIMDBuiltin_Bool8x16:
+            return argCount == 16;
         };
         return false;
     }

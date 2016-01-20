@@ -136,6 +136,11 @@ struct InlineeFrameInfo
 
     BVSparse<JitArenaAllocator>* simd128F4Syms;
     BVSparse<JitArenaAllocator>* simd128I4Syms;
+    BVSparse<JitArenaAllocator>* simd128I8Syms;
+    BVSparse<JitArenaAllocator>* simd128I16Syms;
+    BVSparse<JitArenaAllocator>* simd128U4Syms;
+    BVSparse<JitArenaAllocator>* simd128U8Syms;
+    BVSparse<JitArenaAllocator>* simd128U16Syms;
     bool isRecorded;
 
     static InlineeFrameInfo* New(JitArenaAllocator* alloc)

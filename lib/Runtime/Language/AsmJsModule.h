@@ -7,7 +7,7 @@
 #ifndef TEMP_DISABLE_ASMJS
 #define ASMMATH_BUILTIN_SIZE (32)
 #define ASMARRAY_BUILTIN_SIZE (16)
-#define ASMSIMD_BUILTIN_SIZE (128)
+#define ASMSIMD_BUILTIN_SIZE (512)
 namespace Js {
     // ModuleCompiler encapsulates the compilation of an entire asm.js module. Over
     // the course of a ModuleCompiler object's lifetime, many FunctionCompiler
@@ -166,8 +166,15 @@ namespace Js {
         // Maps functions names to func symbols. Three maps since names are not unique across SIMD types (e.g. SIMD.{float32x4|int32x4}.add)
         // Also used to find if an operation is supported on a SIMD type.
         SIMDNameMap                         mStdLibSIMDInt32x4Map;
+        SIMDNameMap                         mStdLibSIMDBool32x4Map;
+        SIMDNameMap                         mStdLibSIMDBool16x8Map;
+        SIMDNameMap                         mStdLibSIMDBool8x16Map;
         SIMDNameMap                         mStdLibSIMDFloat32x4Map;
         SIMDNameMap                         mStdLibSIMDFloat64x2Map;
+        SIMDNameMap                         mStdLibSIMDInt16x8Map;
+        SIMDNameMap                         mStdLibSIMDUint32x4Map;
+        SIMDNameMap                         mStdLibSIMDUint16x8Map;
+        SIMDNameMap                         mStdLibSIMDUint8x16Map;
         // global SIMD values space.
         ModuleSIMDVars                  mSimdVarSpace;
         BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsedBV;

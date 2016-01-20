@@ -8,32 +8,14 @@
 
 namespace Js
 {
-    SIMDValue SIMDUint16x8Operation::OpUint16x8(uint16 x0,  uint16 x1,  uint16 x2,  uint16 x3
-        , uint16 x4,  uint16 x5,  uint16 x6,  uint16 x7)
+    SIMDValue SIMDUint16x8Operation::OpUint16x8(uint16 values[])
     {
         SIMDValue result;
 
-        result.u16[0]  = x0;
-        result.u16[1]  = x1;
-        result.u16[2]  = x2;
-        result.u16[3]  = x3;
-        result.u16[4]  = x4;
-        result.u16[5]  = x5;
-        result.u16[6]  = x6;
-        result.u16[7]  = x7;
-
-        return result;
-    }
-
-    SIMDValue SIMDUint16x8Operation::OpMul(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        SIMDValue result;
-
-        for(uint idx = 0; idx < 8; ++idx)
+        for (uint i = 0; i < 8; i++)
         {
-            result.u16[idx] = aValue.u16[idx] * bValue.u16[idx];
+            result.u16[i] = values[i];
         }
-
         return result;
     }
 
@@ -80,6 +62,22 @@ namespace Js
         {
             result.u16[idx] = (aValue.u16[idx] <= bValue.u16[idx]) ? 0xff : 0x0;
         }
+        return result;
+    }
+
+    SIMDValue SIMDUint16x8Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint16x8Operation::OpLessThan(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+
+    SIMDValue SIMDUint16x8Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint16x8Operation::OpLessThanOrEqual(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
         return result;
     }
 

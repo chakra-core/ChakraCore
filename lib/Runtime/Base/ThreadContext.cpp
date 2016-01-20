@@ -578,6 +578,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
     va_start(arguments, op);
 
     int argumentsCount = va_arg(arguments, int);
+    AssertMsg(argumentsCount >= 0 && argumentsCount <= 20, "Invalid arguments count for SIMD opcode");
     if (argumentsCount == 0)
     {
         // no info to add

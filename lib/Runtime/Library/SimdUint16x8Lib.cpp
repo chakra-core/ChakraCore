@@ -16,18 +16,15 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
+        const uint LANES = 8;
+        uint16 values[LANES];
 
-        uint16 uintSIMDX0 = JavascriptConversion::ToUInt16(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        uint16 uintSIMDX1 = JavascriptConversion::ToUInt16(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        uint16 uintSIMDX2 = JavascriptConversion::ToUInt16(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        uint16 uintSIMDX3 = JavascriptConversion::ToUInt16(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        uint16 uintSIMDX4 = JavascriptConversion::ToUInt16(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        uint16 uintSIMDX5 = JavascriptConversion::ToUInt16(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        uint16 uintSIMDX6 = JavascriptConversion::ToUInt16(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        uint16 uintSIMDX7 = JavascriptConversion::ToUInt16(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
+        for (uint i = 0; i < LANES; i++)
+        {
+            values[i] = JavascriptConversion::ToUInt16(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
+        }
 
-        SIMDValue lanes = SIMDUint16x8Operation::OpUint16x8(uintSIMDX0,  uintSIMDX1,  uintSIMDX2,  uintSIMDX3
-                                                        , uintSIMDX4,  uintSIMDX5,  uintSIMDX6,  uintSIMDX7);
+        SIMDValue lanes = SIMDUint16x8Operation::OpUint16x8(values);
 
         return JavascriptSIMDUint16x8::New(&lanes, scriptContext);
     }
@@ -607,8 +604,8 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint16x8Operation::OpLessThanOrEqual(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
+            result = SIMDUint16x8Operation::OpGreaterThan(aValue, bValue);
+            
 
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
@@ -639,9 +636,7 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint16x8Operation::OpLessThan(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
-
+            result = SIMDUint16x8Operation::OpGreaterThanOrEqual(aValue, bValue);
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 

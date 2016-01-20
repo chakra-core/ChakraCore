@@ -408,21 +408,43 @@ namespace Js
                         {
                             // SIMD_JS
                             Assert(var->GetType().isSIMDType());
+                            Js::OpCodeAsmJs opcode = Js::OpCodeAsmJs::Simd128_Ld_F4;
                             switch (var->GetType().GetWhich())
                             {
                                 case AsmJsType::Float32x4:
-                                    mWriter.AsmReg2(Js::OpCodeAsmJs::Simd128_Ld_F4, var->GetLocation(), mFunction->GetConstRegister<AsmJsSIMDValue>(var->GetSimdConstInitialiser()));
                                     break;
                                 case AsmJsType::Float64x2:
-                                    mWriter.AsmReg2(Js::OpCodeAsmJs::Simd128_Ld_D2, var->GetLocation(), mFunction->GetConstRegister<AsmJsSIMDValue>(var->GetSimdConstInitialiser()));
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_D2;
                                     break;
                                 case AsmJsType::Int32x4:
-                                    mWriter.AsmReg2(Js::OpCodeAsmJs::Simd128_Ld_I4, var->GetLocation(), mFunction->GetConstRegister<AsmJsSIMDValue>(var->GetSimdConstInitialiser()));
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_I4;
+                                    break;
+                                case AsmJsType::Int16x8:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_I8;
+                                    break;
+                                case AsmJsType::Uint32x4:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_U4;
+                                    break;
+                                case AsmJsType::Uint16x8:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_U8;
+                                    break;
+                                case AsmJsType::Uint8x16:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_U16;
+                                    break;
+                                case AsmJsType::Bool32x4:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_B4;
+                                    break;
+                                case AsmJsType::Bool16x8:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_B8;
+                                    break;
+                                case AsmJsType::Bool8x16:
+                                    opcode = Js::OpCodeAsmJs::Simd128_Ld_B16;
                                     break;
                                 default:
                                     Assert(UNREACHED);
 
                             }
+                            mWriter.AsmReg2(opcode, var->GetLocation(), mFunction->GetConstRegister<AsmJsSIMDValue>(var->GetSimdConstInitialiser()));
                         }
                     }
                 }
@@ -823,6 +845,30 @@ namespace Js
                 emitInfo.type = AsmJsType::Int32x4;
                 retType = AsmJsRetType::Int32x4;
             }
+            else if (info.type.isSubType(AsmJsType::Bool32x4))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B4, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Bool32x4;
+                retType = AsmJsRetType::Bool32x4;
+            }
+            else if (info.type.isSubType(AsmJsType::Bool16x8))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B8, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Bool16x8;
+                retType = AsmJsRetType::Bool16x8;
+            }
+            else if (info.type.isSubType(AsmJsType::Bool8x16))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_B16, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Bool8x16;
+                retType = AsmJsRetType::Bool8x16;
+            }
             else if (info.type.isSubType(AsmJsType::Float64x2))
             {
                 CheckNodeLocation(info, AsmJsSIMDValue);
@@ -830,6 +876,38 @@ namespace Js
                 mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
                 emitInfo.type = AsmJsType::Float64x2;
                 retType = AsmJsRetType::Float64x2;
+            }
+            else if (info.type.isSubType(AsmJsType::Int16x8))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_I8, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Int16x8;
+                retType = AsmJsRetType::Int16x8;
+            }
+            else if (info.type.isSubType(AsmJsType::Uint32x4))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U4, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Uint32x4;
+                retType = AsmJsRetType::Uint32x4;
+            }
+            else if (info.type.isSubType(AsmJsType::Uint16x8))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U8, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Uint16x8;
+                retType = AsmJsRetType::Uint16x8;
+            }
+            else if (info.type.isSubType(AsmJsType::Uint8x16))
+            {
+                CheckNodeLocation(info, AsmJsSIMDValue);
+                mWriter.Conv(OpCodeAsmJs::Simd128_Return_U16, 0, info.location);
+                mFunction->ReleaseLocation<AsmJsSIMDValue>(&info);
+                emitInfo.type = AsmJsType::Uint8x16;
+                retType = AsmJsRetType::Uint8x16;
             }
             else
             {
@@ -954,8 +1032,14 @@ namespace Js
 
         if (sym->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
         {
-            // Special handling for .load*/.store* operations
+            // SIMD boolean constructors are a special case. They are only used to declare variable types in AsmJs module. They are
+            // not allowed to be used for creating simd bool values explicitly within asmjs. 
+            // And Special handling for .load*/.store* operations
             AsmJsSIMDFunction *simdFun = sym->Cast<AsmJsSIMDFunction>();
+            if (simdFun->IsSimdBoolConstructor())
+            {
+                throw AsmJsCompilationException(L"SIMD bool types cannot be constructed from within AsmJs function body.");
+            }
             if (simdFun->IsSimdLoadFunc() || simdFun->IsSimdStoreFunc())
             {
                 return EmitSimdLoadStoreBuiltin(pnode, sym->Cast<AsmJsSIMDFunction>(), expectedType);
@@ -1086,18 +1170,42 @@ namespace Js
                     }
 
                     CheckNodeLocation(argInfo, AsmJsSIMDValue);
+                    OpCodeAsmJs opcode = OpCodeAsmJs::Simd128_I_ArgOut_I4;
                     switch (argInfo.type.GetWhich())
                     {
                     case AsmJsType::Int32x4:
-                        mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_ArgOut_I4, regSlotLocation, argInfo.location);
                         break;
                     case    AsmJsType::Float32x4:
-                        mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_ArgOut_F4, regSlotLocation, argInfo.location);
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_F4;
                         break;
                     case    AsmJsType::Float64x2:
-                        mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_ArgOut_D2, regSlotLocation, argInfo.location);
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_D2;
                         break;
+                    case AsmJsType::Int16x8:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_I8;
+                        break;
+                    case AsmJsType::Uint32x4:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U4;
+                        break;
+                    case AsmJsType::Uint16x8:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U8;
+                        break;
+                    case AsmJsType::Uint8x16:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_U16;
+                        break;
+                     case AsmJsType::Bool32x4:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_B4;
+                        break;
+                    case AsmJsType::Bool16x8:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_B8;
+                        break;
+                    case AsmJsType::Bool8x16:
+                        opcode = OpCodeAsmJs::Simd128_I_ArgOut_B16;
+                        break;
+                    default:
+                        Assert(UNREACHED);
                     }
+                    mWriter.AsmReg2(opcode, regSlotLocation, argInfo.location);
                     regSlotLocation += sizeof(AsmJsSIMDValue) / sizeof(Var);
                     mFunction->ReleaseLocation<AsmJsSIMDValue>(&argInfo);
                 }
@@ -1240,6 +1348,62 @@ namespace Js
             info.location = simdReg;
             break;
         }
+        case AsmJsRetType::Int16x8:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTI8, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Uint32x4:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTU4, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Uint16x8:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTU8, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Uint8x16:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTU16, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Bool32x4:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTB4, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Bool16x8:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTB8, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
+        case AsmJsRetType::Bool8x16:
+        {
+            Assert(!isFFI);
+            RegSlot simdReg = mFunction->AcquireTmpRegister<AsmJsSIMDValue>();
+            mWriter.AsmReg2(OpCodeAsmJs::Simd128_I_Conv_VTB16, simdReg, AsmJsFunctionMemory::CallReturnRegister);
+            info.location = simdReg;
+            break;
+        }
         default:
             break;
         }
@@ -1324,9 +1488,9 @@ namespace Js
                                 throw AsmJsCompilationException(L"Invalid call as SIMD argument. Expecting fround.");
                             }
                         }
-                        else if (argCall->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction  &&  AsmJsSIMDFunction::SameTypeOperations(simdFunc, argCall->Cast<AsmJsSIMDFunction>()))
+                        else if (argCall->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction  &&  argCall->Cast<AsmJsSIMDFunction>()->GetReturnType().toType() == simdFunc->GetArgType(i))
                         {
-                            // any other simd operation. call arguments have to be SIMD operations of same type.
+                            // any other simd operation. call arguments have to be SIMD operations of expected arg type.
                             argInfo = EmitCall(arg, simdFunc->GetArgType(i).toRetType());
                         }
                         else
@@ -1362,7 +1526,7 @@ namespace Js
                             int lane = (int)arg->sxInt.lw;
                             if (arg->nop == knopInt)
                             {
-                                if (lane < 0 || lane > 3)
+                                if (lane < 0 || lane >= (int)simdFunc->LanesCount())
                                 {
                                     throw AsmJsCompilationException(L"Invalid arguments to ExtractLane/ReplaceLane, out of range lane indices.");
                                 }
@@ -1381,11 +1545,11 @@ namespace Js
                     }
                     else if ((simdFunc->IsShuffleFunc() || simdFunc->IsSwizzleFunc()) && simdFunc->GetArgType(i) == AsmJsType::Int)
                     {
-                        /* Int args to shuffle/swizzle should be literals and in-range to match MD instruction*/
+                        /* Int args to shuffle/swizzle should be literals and in-range */
                         if (arg->nop == knopInt)
                         {
                             // E.g.
-                            // f4shuffle(v1, v2, [0-3], [0-3], [4-7], [4-7])
+                            // f4shuffle(v1, v2, [0-7], [0-7], [0-7], [0-7])
                             // f4swizzle(v1, [0-3], [0-3], [0-3], [0-3])
                             bool valid = true;
                             long laneValue = (int) arg->sxInt.lw;
@@ -1395,14 +1559,33 @@ namespace Js
                             {
                             case AsmJsSIMDBuiltin_float32x4_shuffle:
                             case AsmJsSIMDBuiltin_int32x4_shuffle:
-                                valid = ((argPos == 2 || argPos == 3) && (laneValue >= 0 && laneValue <= 3)) || ((argPos == 4 || argPos == 5) && (laneValue >= 4 && laneValue <= 7));
+                            case AsmJsSIMDBuiltin_uint32x4_shuffle:
+                                valid = (argPos >= 2 && argPos <= 5) && (laneValue >= 0 && laneValue <= 7);
+                                break;
+                            case AsmJsSIMDBuiltin_int16x8_shuffle:
+                            case AsmJsSIMDBuiltin_uint16x8_shuffle:
+                                valid = (argPos >= 2 && argPos <= 9) && (laneValue >= 0 && laneValue <= 15);
+                                break;
+                            //case AsmJsSIMDBuiltin_int8x16_shuffle:
+                            case AsmJsSIMDBuiltin_uint8x16_shuffle:
+                                valid = (argPos >= 2 && argPos <= 17) && (laneValue >= 0 && laneValue <= 31);
                                 break;
                             case AsmJsSIMDBuiltin_float64x2_shuffle:
-                                valid = (argPos == 2 && (laneValue >= 0 && laneValue <= 1)) || (argPos == 3 && (laneValue >= 2 && laneValue <= 3));
+                                valid = (argPos >= 2 && argPos <= 3) && (laneValue >= 0 && laneValue <= 3);
                                 break;
+
                             case AsmJsSIMDBuiltin_float32x4_swizzle:
                             case AsmJsSIMDBuiltin_int32x4_swizzle:
+                            case AsmJsSIMDBuiltin_uint32x4_swizzle:
                                 valid = (argPos >=1 && argPos <= 4) && (laneValue >= 0 && laneValue <= 3);
+                                break;
+                            case AsmJsSIMDBuiltin_int16x8_swizzle:
+                            case AsmJsSIMDBuiltin_uint16x8_swizzle:
+                                valid = (argPos >= 1 && argPos <= 8) && (laneValue >= 0 && laneValue <= 7);
+                                break;
+                            //case AsmJsSIMDBuiltin_int8x16_swizzle:
+                            case AsmJsSIMDBuiltin_uint8x16_swizzle:
+                                valid = (argPos >= 1 && argPos <= 16) && (laneValue >= 0 && laneValue <= 15);
                                 break;
                             case AsmJsSIMDBuiltin_float64x2_swizzle:
                                 valid = (argPos >= 1 && argPos <= 2) && (laneValue >= 0 && laneValue <= 1);
@@ -1525,9 +1708,11 @@ namespace Js
         }
 
         // If a simd built-in is used without coercion, then expectedType is Void
-        // e.g. x = f4add(a, b);
-
-        if (expectedType != AsmJsRetType::Void && retType != expectedType)
+        // All SIMD ops are allowed without coercion except a few that return bool. E.g. b4anyTrue()
+        if ( 
+             (simdFunction->ReturnsBool() && expectedType != AsmJsRetType::Signed) ||
+             (expectedType != AsmJsRetType::Void && retType != expectedType)
+           )
         {
             throw AsmJsCompilationException(L"SIMD builtin function returns wrong type");
         }
@@ -1546,6 +1731,10 @@ namespace Js
         case AsmJsType::Signed:
             dst = mFunction->AcquireTmpRegister<int>();
             dstType = AsmJsType::Signed;
+            break;
+        case AsmJsType::Unsigned:
+            dst = mFunction->AcquireTmpRegister<int>();
+            dstType = AsmJsType::Unsigned;
             break;
         case AsmJsType::Float:
             dst = mFunction->AcquireTmpRegister<float>();
@@ -1579,6 +1768,35 @@ namespace Js
             break;
         case 6:
             mWriter.AsmReg7(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location);
+            break;
+        case 8:
+            mWriter.AsmReg9(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
+                                     argsInfo[6].location, argsInfo[7].location);
+            break;
+        case 9:
+            mWriter.AsmReg10(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location, 
+                                      argsInfo[6].location, argsInfo[7].location, argsInfo[8].location);
+            break;
+        case 10:
+            mWriter.AsmReg11(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
+                                      argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location);
+            break;
+        case 16:
+            mWriter.AsmReg17(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
+                                      argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location, argsInfo[10].location, argsInfo[11].location, 
+                                      argsInfo[12].location, argsInfo[13].location, argsInfo[14].location, argsInfo[15].location);
+            break;
+
+        case 17:
+            mWriter.AsmReg18(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
+                             argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location, argsInfo[10].location, argsInfo[11].location,
+                             argsInfo[12].location, argsInfo[13].location, argsInfo[14].location, argsInfo[15].location, argsInfo[16].location);
+            break;
+
+        case 18:
+            mWriter.AsmReg19(op, dst, argsInfo[0].location, argsInfo[1].location, argsInfo[2].location, argsInfo[3].location, argsInfo[4].location, argsInfo[5].location,
+                                       argsInfo[6].location, argsInfo[7].location, argsInfo[8].location, argsInfo[9].location, argsInfo[10].location, argsInfo[11].location,
+                                       argsInfo[12].location, argsInfo[13].location, argsInfo[14].location, argsInfo[15].location, argsInfo[16].location, argsInfo[17].location);
             break;
         default:
             AssertMsg(UNREACHED, "Wrong argument count to SIMD function");
@@ -1652,6 +1870,18 @@ namespace Js
             case OpCodeAsmJs::Simd128_LdArr_I4:
                 opcode = OpCodeAsmJs::Simd128_LdArrConst_I4;
                 break;
+            case OpCodeAsmJs::Simd128_LdArr_I8:
+                opcode = OpCodeAsmJs::Simd128_LdArrConst_I8;
+                break;
+            case OpCodeAsmJs::Simd128_LdArr_U4:
+                opcode = OpCodeAsmJs::Simd128_LdArrConst_U4;
+                break;
+            case OpCodeAsmJs::Simd128_LdArr_U8:
+                opcode = OpCodeAsmJs::Simd128_LdArrConst_U8;
+                break;
+            case OpCodeAsmJs::Simd128_LdArr_U16:
+                opcode = OpCodeAsmJs::Simd128_LdArrConst_U16;
+                break;
             case OpCodeAsmJs::Simd128_LdArr_F4:
                 opcode = OpCodeAsmJs::Simd128_LdArrConst_F4;
                 break;
@@ -1660,6 +1890,18 @@ namespace Js
                 break;
             case OpCodeAsmJs::Simd128_StArr_I4:
                 opcode = OpCodeAsmJs::Simd128_StArrConst_I4;
+                break;
+            case OpCodeAsmJs::Simd128_StArr_I8:
+                opcode = OpCodeAsmJs::Simd128_StArrConst_I8;
+                break;
+            case OpCodeAsmJs::Simd128_StArr_U4:
+                opcode = OpCodeAsmJs::Simd128_StArrConst_U4;
+                break;
+            case OpCodeAsmJs::Simd128_StArr_U8:
+                opcode = OpCodeAsmJs::Simd128_StArrConst_U8;
+                break;
+            case OpCodeAsmJs::Simd128_StArr_U16:
+                opcode = OpCodeAsmJs::Simd128_StArrConst_U16;
                 break;
             case OpCodeAsmJs::Simd128_StArr_F4:
                 opcode = OpCodeAsmJs::Simd128_StArrConst_F4;
@@ -1681,6 +1923,8 @@ namespace Js
         case AsmJsSIMDBuiltin_float32x4_store1:
         case AsmJsSIMDBuiltin_int32x4_load1:
         case AsmJsSIMDBuiltin_int32x4_store1:
+        case AsmJsSIMDBuiltin_uint32x4_load1:
+        case AsmJsSIMDBuiltin_uint32x4_store1:
             dataWidth = 4;
             break;
         case AsmJsSIMDBuiltin_float64x2_load1:
@@ -1689,12 +1933,16 @@ namespace Js
         case AsmJsSIMDBuiltin_float32x4_store2:
         case AsmJsSIMDBuiltin_int32x4_load2:
         case AsmJsSIMDBuiltin_int32x4_store2:
+        case AsmJsSIMDBuiltin_uint32x4_load2:
+        case AsmJsSIMDBuiltin_uint32x4_store2:
             dataWidth = 8;
             break;
         case AsmJsSIMDBuiltin_float32x4_load3:
         case AsmJsSIMDBuiltin_float32x4_store3:
         case AsmJsSIMDBuiltin_int32x4_load3:
         case AsmJsSIMDBuiltin_int32x4_store3:
+        case AsmJsSIMDBuiltin_uint32x4_load3:
+        case AsmJsSIMDBuiltin_uint32x4_store3:
             dataWidth = 12;
             break;
         case AsmJsSIMDBuiltin_int32x4_load:
@@ -1703,6 +1951,14 @@ namespace Js
         case AsmJsSIMDBuiltin_float32x4_store:
         case AsmJsSIMDBuiltin_float64x2_load:
         case AsmJsSIMDBuiltin_float64x2_store:
+        case AsmJsSIMDBuiltin_int16x8_load:
+        case AsmJsSIMDBuiltin_int16x8_store:
+        case AsmJsSIMDBuiltin_uint32x4_load:
+        case AsmJsSIMDBuiltin_uint32x4_store:
+        case AsmJsSIMDBuiltin_uint16x8_load:
+        case AsmJsSIMDBuiltin_uint16x8_store:
+        case AsmJsSIMDBuiltin_uint8x16_load:
+        case AsmJsSIMDBuiltin_uint8x16_store:
             dataWidth = 16;
             break;
         default:
@@ -3136,8 +3392,6 @@ namespace Js
         //         --tab;
     }
 
-
-
    // int tab = 0;
     void AsmJSByteCodeGenerator::LoadModuleInt( RegSlot dst, RegSlot index )
     {
@@ -3185,59 +3439,122 @@ namespace Js
 
     void AsmJSByteCodeGenerator::LoadModuleSimd(RegSlot dst, RegSlot index, AsmJsVarType type)
     {
+        OpCodeAsmJs opcode = OpCodeAsmJs::Simd128_LdSlot_I4;
         switch (type.which())
         {
             case AsmJsVarType::Int32x4:
-                mWriter.AsmSlot(OpCodeAsmJs::Simd128_LdSlot_I4, dst, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+                break;
+            case AsmJsVarType::Bool32x4:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_B4;
+                break;
+            case AsmJsVarType::Bool16x8:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_B8;
+                break;
+            case AsmJsVarType::Bool8x16:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_B16;
                 break;
             case AsmJsVarType::Float32x4:
-                mWriter.AsmSlot(OpCodeAsmJs::Simd128_LdSlot_F4, dst, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+                opcode = OpCodeAsmJs::Simd128_LdSlot_F4;
                 break;
             case AsmJsVarType::Float64x2:
-                mWriter.AsmSlot(OpCodeAsmJs::Simd128_LdSlot_D2, dst, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+                opcode = OpCodeAsmJs::Simd128_LdSlot_D2;
+                break;
+            case AsmJsVarType::Int16x8:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_I8;
+                break;
+            case AsmJsVarType::Uint32x4:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_U4;
+                break;
+            case AsmJsVarType::Uint16x8:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_U8;
+                break;
+            case AsmJsVarType::Uint8x16:
+                opcode = OpCodeAsmJs::Simd128_LdSlot_U16;
                 break;
             default:
                 Assert(UNREACHED);
         }
+        mWriter.AsmSlot(opcode, dst, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
     }
 
     void AsmJSByteCodeGenerator::SetModuleSimd(RegSlot index, RegSlot src, AsmJsVarType type)
     {
+        OpCodeAsmJs opcode = OpCodeAsmJs::Simd128_StSlot_I4;
         switch (type.which())
         {
         case AsmJsVarType::Int32x4:
-            mWriter.AsmSlot(OpCodeAsmJs::Simd128_StSlot_I4, src, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+            break;
+        case AsmJsVarType::Bool32x4:
+            opcode = OpCodeAsmJs::Simd128_StSlot_B4;
+            break;
+        case AsmJsVarType::Bool16x8:
+            opcode = OpCodeAsmJs::Simd128_StSlot_B8;
+            break;
+        case AsmJsVarType::Bool8x16:
+            opcode = OpCodeAsmJs::Simd128_StSlot_B16;
             break;
         case AsmJsVarType::Float32x4:
-            mWriter.AsmSlot(OpCodeAsmJs::Simd128_StSlot_F4, src, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+            opcode = OpCodeAsmJs::Simd128_StSlot_F4;
             break;
         case AsmJsVarType::Float64x2:
-            mWriter.AsmSlot(OpCodeAsmJs::Simd128_StSlot_D2, src, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
+            opcode = OpCodeAsmJs::Simd128_StSlot_D2;
+            break;
+        case AsmJsVarType::Int16x8:
+            opcode = OpCodeAsmJs::Simd128_StSlot_I8;
+            break;
+        case AsmJsVarType::Uint32x4:
+            opcode = OpCodeAsmJs::Simd128_StSlot_U4;
+            break;
+        case AsmJsVarType::Uint16x8:
+            opcode = OpCodeAsmJs::Simd128_StSlot_U8;
+            break;
+        case AsmJsVarType::Uint8x16:
+            opcode = OpCodeAsmJs::Simd128_StSlot_U16;
             break;
         default:
             Assert(UNREACHED);
         }
+        mWriter.AsmSlot(opcode, src, AsmJsFunctionMemory::ModuleEnvRegister, index + mCompiler->GetSimdOffset());
     }
 
     void AsmJSByteCodeGenerator::LoadSimd(RegSlot dst, RegSlot src, AsmJsVarType type)
     {
+        OpCodeAsmJs opcode = OpCodeAsmJs::Simd128_Ld_I4;
         switch (type.which())
         {
         case AsmJsVarType::Int32x4:
-
-            mWriter.AsmReg2(OpCodeAsmJs::Simd128_Ld_I4, dst, src);
+            break;
+        case AsmJsVarType::Bool32x4:
+            opcode = OpCodeAsmJs::Simd128_Ld_B4;
+            break;
+        case AsmJsVarType::Bool16x8:
+            opcode = OpCodeAsmJs::Simd128_Ld_B8;
+            break;
+        case AsmJsVarType::Bool8x16:
+            opcode = OpCodeAsmJs::Simd128_Ld_B16;
             break;
         case AsmJsVarType::Float32x4:
-            mWriter.AsmReg2(OpCodeAsmJs::Simd128_Ld_F4, dst, src);
+            opcode = OpCodeAsmJs::Simd128_Ld_F4;
             break;
         case AsmJsVarType::Float64x2:
-            mWriter.AsmReg2(OpCodeAsmJs::Simd128_Ld_D2, dst, src);
+            opcode = OpCodeAsmJs::Simd128_Ld_D2;
+            break;
+        case AsmJsVarType::Int16x8:
+            opcode = OpCodeAsmJs::Simd128_Ld_I8;
+            break;
+        case AsmJsVarType::Uint32x4:
+            opcode = OpCodeAsmJs::Simd128_Ld_U4;
+            break;
+        case AsmJsVarType::Uint16x8:
+            opcode = OpCodeAsmJs::Simd128_Ld_U8;
+            break;
+        case AsmJsVarType::Uint8x16:
+            opcode = OpCodeAsmJs::Simd128_Ld_U16;
             break;
         default:
             Assert(UNREACHED);
-
         }
-
+        mWriter.AsmReg2(opcode, dst, src);
     }
 
     void AsmJsFunctionCompilation::CleanUp()

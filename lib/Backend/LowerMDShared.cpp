@@ -809,6 +809,41 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         {
             regType = TySimd128I4;
         }
+        else if (asmType.which() == Js::AsmJsRetType::Int16x8)
+        {
+            regType = TySimd128I8;
+        }
+        /* Enable with Int8x16 support*/
+        /*
+        else if (asmType.which() == Js::AsmJsRetType::Int8x16)
+        {
+            regType = TySimd128I16;
+        }
+        */
+        else if (asmType.which() == Js::AsmJsRetType::Uint32x4)
+        {
+            regType = TySimd128U4;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Uint16x8)
+        {
+            regType = TySimd128U8;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Uint8x16)
+        {
+            regType = TySimd128U16;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool32x4)
+        {
+            regType = TySimd128B4;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool16x8)
+        {
+            regType = TySimd128B8;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool8x16)
+        {
+            regType = TySimd128B16;
+        }
         else if (asmType.which() == Js::AsmJsRetType::Float64x2)
         {
             regType = TySimd128D2;
@@ -824,10 +859,6 @@ LowererMD::LowerRet(IR::Instr * retInstr)
     {
         retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturn(TyMachReg), TyMachReg, m_func);
     }
-
-
-
-
 
     retInstr->SetDst(retReg);
 

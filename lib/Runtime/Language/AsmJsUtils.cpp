@@ -284,6 +284,27 @@ namespace Js
                     }
                     simdVal = ((JavascriptSIMDInt32x4*)(*origArgs))->GetValue();
                     break;
+                case AsmJsType::Bool32x4:
+                    if (!JavascriptSIMDBool32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
+                    }
+                    simdVal = ((JavascriptSIMDBool32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Bool16x8:
+                    if (!JavascriptSIMDBool16x8::Is(*origArgs))
+                        {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
+                    }
+                    simdVal = ((JavascriptSIMDBool16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Bool8x16:
+                    if (!JavascriptSIMDBool8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
+                    }
+                    simdVal = ((JavascriptSIMDBool8x16*)(*origArgs))->GetValue();
+                    break;
                 case AsmJsType::Float32x4:
                     if (!JavascriptSIMDFloat32x4::Is(*origArgs))
                     {
@@ -297,6 +318,34 @@ namespace Js
                         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"Float64x2");
                     }
                     simdVal = ((JavascriptSIMDFloat64x2*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Int16x8:
+                    if (!JavascriptSIMDInt16x8::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
+                    }
+                    simdVal = ((JavascriptSIMDInt16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint32x4:
+                    if (!JavascriptSIMDUint32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
+                    }
+                    simdVal = ((JavascriptSIMDUint32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint16x8:
+                    if (!JavascriptSIMDUint16x8::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
+                    }
+                    simdVal = ((JavascriptSIMDUint16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint8x16:
+                    if (!JavascriptSIMDUint8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
+                    }
+                    simdVal = ((JavascriptSIMDUint8x16*)(*origArgs))->GetValue();
                     break;
                 default:
                     Assert(UNREACHED);
@@ -348,11 +397,60 @@ namespace Js
             returnValue = JavascriptSIMDInt32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
             break;
         }
+        case AsmJsRetType::Bool32x4:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDBool32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Bool16x8:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDBool16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Bool8x16:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDBool8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
         case AsmJsRetType::Float64x2:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
             returnValue = JavascriptSIMDFloat64x2::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Int16x8:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Uint32x4:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDUint32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Uint16x8:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDUint16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Uint8x16:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
             break;
         }
         default:
@@ -445,6 +543,27 @@ namespace Js
                         }
                         simdVal = ((JavascriptSIMDInt32x4*)(args.Values[i + 1]))->GetValue();
                         break;
+                    case AsmJsType::Bool32x4:
+                        if (i >= argInCount || !JavascriptSIMDBool32x4::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
+                        }
+                        simdVal = ((JavascriptSIMDBool32x4*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Bool16x8:
+                        if (i >= argInCount || !JavascriptSIMDBool16x8::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
+                        }
+                        simdVal = ((JavascriptSIMDBool16x8*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Bool8x16:
+                        if (i >= argInCount || !JavascriptSIMDBool8x16::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
+                        }
+                        simdVal = ((JavascriptSIMDBool8x16*)(args.Values[i + 1]))->GetValue();
+                        break;
                     case AsmJsType::Float32x4:
                         if (i >= argInCount || !JavascriptSIMDFloat32x4::Is(args.Values[i + 1]))
                         {
@@ -458,6 +577,34 @@ namespace Js
                             JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, L"Float64x2");
                         }
                         simdVal = ((JavascriptSIMDFloat64x2*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Int16x8:
+                        if (i >= argInCount || !JavascriptSIMDInt16x8::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
+                        }
+                        simdVal = ((JavascriptSIMDInt16x8*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Uint32x4:
+                        if (i >= argInCount || !JavascriptSIMDUint32x4::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
+                        }
+                        simdVal = ((JavascriptSIMDUint32x4*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Uint16x8:
+                        if (i >= argInCount || !JavascriptSIMDUint16x8::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
+                        }
+                        simdVal = ((JavascriptSIMDUint16x8*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Uint8x16:
+                        if (i >= argInCount || !JavascriptSIMDUint8x16::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
+                        }
+                        simdVal = ((JavascriptSIMDUint8x16*)(args.Values[i + 1]))->GetValue();
                         break;
                     default:
                         Assert(UNREACHED);
@@ -548,7 +695,48 @@ namespace Js
             }
             returnValue = JavascriptSIMDInt32x4::New(&simdVal, func->GetScriptContext());
             break;
-
+        case AsmJsRetType::Bool32x4:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDBool32x4::New(&simdVal, func->GetScriptContext());
+            break;
+        case AsmJsRetType::Bool16x8:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDBool16x8::New(&simdVal, func->GetScriptContext());
+            break;
+        case AsmJsRetType::Bool8x16:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDBool8x16::New(&simdVal, func->GetScriptContext());
+            break;
         case AsmJsRetType::Float32x4:
             simdVal.Zero();
             __asm
@@ -579,6 +767,65 @@ namespace Js
             returnValue = JavascriptSIMDFloat64x2::New(&simdVal, func->GetScriptContext());
             break;
 
+        case AsmJsRetType::Int16x8:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDInt16x8::New(&simdVal, func->GetScriptContext());
+            break;
+
+        case AsmJsRetType::Uint32x4:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDUint32x4::New(&simdVal, func->GetScriptContext());
+            break;
+
+        case AsmJsRetType::Uint16x8:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDUint16x8::New(&simdVal, func->GetScriptContext());
+            break;
+
+        case AsmJsRetType::Uint8x16:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDUint8x16::New(&simdVal, func->GetScriptContext());
+            break;
         default:
             Assume(UNREACHED);
         }

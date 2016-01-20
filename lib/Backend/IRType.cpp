@@ -52,7 +52,8 @@ bool IRType_IsSimd(IRType type)
 
 bool IRType_IsSimd128(IRType type)
 {
-    return type == TySimd128F4 || type == TySimd128I4 || type == TySimd128D2;
+    return type >= TySimd128F4 && type <= TySimd128D2;
+           
 }
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

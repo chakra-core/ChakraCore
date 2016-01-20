@@ -148,7 +148,7 @@ namespace Js
             }
 
             simdSym = m.LookupSimdTypeCheck(target->name());
-            // var x = f4(ffi.field)
+            // var x = f4.check(ffi.field)
             if (simdSym)
             {
                 if (coercionNode->sxCall.argCount == simdSym->GetArgCount())
@@ -158,11 +158,32 @@ namespace Js
                     case AsmJsSIMDBuiltin_int32x4_check:
                         *coercion = AsmJS_Int32x4;
                         break;
+                    case AsmJsSIMDBuiltin_bool32x4_check:
+                        *coercion = AsmJS_Bool32x4;
+                        break;
+                    case AsmJsSIMDBuiltin_bool16x8_check:
+                        *coercion = AsmJS_Bool16x8;
+                        break;
+                    case AsmJsSIMDBuiltin_bool8x16_check:
+                        *coercion = AsmJS_Bool8x16;
+                        break;
                     case AsmJsSIMDBuiltin_float32x4_check:
                         *coercion = AsmJS_Float32x4;
                         break;
                     case AsmJsSIMDBuiltin_float64x2_check:
                         *coercion = AsmJS_Float64x2;
+                        break;
+                    case AsmJsSIMDBuiltin_int16x8_check:
+                        *coercion = AsmJS_Int16x8;
+                        break;
+                    case AsmJsSIMDBuiltin_uint32x4_check:
+                        *coercion = AsmJS_Uint32x4;
+                        break;
+                    case AsmJsSIMDBuiltin_uint16x8_check:
+                        *coercion = AsmJS_Uint16x8;
+                        break;
+                    case AsmJsSIMDBuiltin_uint8x16_check:
+                        *coercion = AsmJS_Uint8x16;
                         break;
                     default:
                         Assert(UNREACHED);

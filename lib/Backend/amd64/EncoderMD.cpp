@@ -1192,6 +1192,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                 }
                 break;
 
+            case Js::OpCode::PSLLD:
             case Js::OpCode::PSLLDQ:
             case Js::OpCode::PSRLDQ:
                 // SSE shift

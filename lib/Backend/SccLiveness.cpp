@@ -563,9 +563,17 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
         lifetime = this->InsertLifetime(stackSym, regDef->GetReg(), instr);
         lifetime->region = this->curRegion;
         lifetime->isFloat = regDef->IsFloat();
-        lifetime->isSimd128F4 = regDef->IsSimd128F4();
-        lifetime->isSimd128I4 = regDef->IsSimd128I4();
-        lifetime->isSimd128D2 = regDef->IsSimd128D2();
+        lifetime->isSimd128F4   = regDef->IsSimd128F4();
+        lifetime->isSimd128I4   = regDef->IsSimd128I4 ();
+        lifetime->isSimd128I8   = regDef->IsSimd128I8 ();
+        lifetime->isSimd128I16  = regDef->IsSimd128I16();
+        lifetime->isSimd128U4   = regDef->IsSimd128U4 ();
+        lifetime->isSimd128U8   = regDef->IsSimd128U8 ();
+        lifetime->isSimd128U16  = regDef->IsSimd128U16();
+        lifetime->isSimd128B4 = regDef->IsSimd128B4();
+        lifetime->isSimd128B8 = regDef->IsSimd128B8();
+        lifetime->isSimd128B16 = regDef->IsSimd128B16();
+        lifetime->isSimd128D2   = regDef->IsSimd128D2();
     }
     else
     {

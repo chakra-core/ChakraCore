@@ -8,30 +8,15 @@
 
 namespace Js
 {
-    SIMDValue SIMDInt8x16Operation::OpInt8x16(int8 x0,  int8 x1,  int8 x2,  int8 x3
-        , int8 x4,  int8 x5,  int8 x6,  int8 x7
-        , int8 x8,  int8 x9,  int8 x10, int8 x11
-        , int8 x12, int8 x13, int8 x14, int8 x15)
+    SIMDValue SIMDInt8x16Operation::OpInt8x16(int8 values[])
     {
         SIMDValue result;
 
-        result.i8[0]  = x0;
-        result.i8[1]  = x1;
-        result.i8[2]  = x2;
-        result.i8[3]  = x3;
-        result.i8[4]  = x4;
-        result.i8[5]  = x5;
-        result.i8[6]  = x6;
-        result.i8[7]  = x7;
-        result.i8[8]  = x8;
-        result.i8[9]  = x9;
-        result.i8[10] = x10;
-        result.i8[11] = x11;
-        result.i8[12] = x12;
-        result.i8[13] = x13;
-        result.i8[14] = x14;
-        result.i8[15] = x15;
-
+        for (uint8 i = 0; i < 16; i++)
+        {
+            result.i8[i] = values[i];
+        }
+        
         return result;
     }
 
@@ -246,7 +231,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftLeftByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftLeftByScalar(const SIMDValue& value, int count)
     {
         SIMDValue result;
         if (count < 0 || count > 8) // Similar to polyfill, maximum shift will happen if the shift amounts and invalid
@@ -262,7 +247,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int count)
     {
         SIMDValue result;
 

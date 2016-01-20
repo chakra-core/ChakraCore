@@ -130,6 +130,11 @@ const _x86_SIMDValue X86_4LANES_MASKS[] = {{ 0xffffffff, 0x00000000, 0x00000000,
                                            { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
                                            { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
 
+
+
+// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+extern _x86_SIMDValue X86_TEMP_SIMD[];
+
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);
 #endif
@@ -145,6 +150,7 @@ namespace Js {
 
     template <int laneCount = 4>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3);
+    template <int laneCount = 8>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, const int32* lanes = nullptr);
 
     template <class SIMDType, int laneCount = 4>
@@ -177,8 +183,8 @@ namespace Js {
     int32 SIMDCheckInt32Number(ScriptContext* scriptContext, Var value);
     bool        SIMDIsSupportedTypedArray(Var value);
     SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);
-    AsmJsSIMDValue SIMDLdData(AsmJsSIMDValue *data, uint8 dataWidth);
-    void SIMDStData(AsmJsSIMDValue *data, AsmJsSIMDValue simdValue, uint8 dataWidth);
+    SIMDValue SIMDLdData(SIMDValue *data, uint8 dataWidth);
+    void SIMDStData(SIMDValue *data, SIMDValue simdValue, uint8 dataWidth);
 
     template <class SIMDType>
     Var SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext)

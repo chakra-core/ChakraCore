@@ -175,6 +175,7 @@ MACRO(PCMPGTD,  Reg2,   None,           RNON,   f(MODRM),   o(PCMPGTD), DNO16|DO
 MACRO(PMULUDQ,  Reg2,   None,           RNON,   f(MODRM),   o(PMULUDQ), DNO16|DOPEQ|D66|DCOMMOP,    OLB_0F)
 MACRO(POR,      Reg2,   None,           RNON,   f(MODRM),   o(POR),     DNO16|DOPEQ|D66|DCOMMOP,    OLB_0F)
 MACRO(PSHUFD,   Reg3,   None,           RNON,   f(MODRM),   o(PSHUFD),  DDST|DNO16|D66|DSSE,        OLB_0F)
+MACRO(PSLLD,    Reg2,   None,           R110,   f(SPECIAL), o(PSLLD),   DDST|DNO16|DOPEQ|D66|DSSE,  OLB_0F)
 MACRO(PSLLDQ,   Reg2,   None,           R111,   f(SPECIAL), o(PSLLDQ),  DDST|DNO16|DOPEQ|D66|DSSE,  OLB_0F)
 MACRO(PSRLDQ,   Reg2,   None,           R011,   f(SPECIAL), o(PSRLDQ),  DDST|DNO16|DOPEQ|D66|DSSE,  OLB_0F)
 MACRO(PSUBD,    Reg3,   None,           RNON,   f(MODRM),   o(PSUBD),   DNO16|DOPEQ|D66,            OLB_0F)
@@ -222,6 +223,7 @@ MACRO(UCOMISS,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISS), DNO16|DSE
 MACRO(XCHG,     Reg2,   None,          R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)
 MACRO(XOR,      Reg2,   OpSideEffect,  R110,   f(BINOP),   o(XOR),     DOPEQ|DSETCC|DCOMMOP,        OLB_NONE)
 MACRO(XORPS,    Reg3,   None,          RNON,   f(MODRM),   o(XORPS),   DNO16|DOPEQ|DCOMMOP,         OLB_0F)
+MACRO(PINSRW,   Reg2,   None,          RNON,   f(MODRM),   o(PINSRW),  DDST|DNO16|DSSE|D66,         OLB_0F)
 
 #undef o
 #undef f

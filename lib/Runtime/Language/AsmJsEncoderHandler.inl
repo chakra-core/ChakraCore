@@ -275,25 +275,25 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM                              , Simd128_Max_F4                , OP_Simd128_MaxF4                  , Float32x4_3            )
   DEF3_WMS( CUSTOM                              , Simd128_Max_D2                , OP_Simd128_MaxD2                  , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Lt_F4                 , OP_Simd128_LtF4                   , Float32x4_3            )
-  DEF3_WMS( CUSTOM                              , Simd128_Lt_I4                 , OP_Simd128_LtI4                   , Int32x4_3              )
+  DEF3_WMS( CUSTOM                              , Simd128_Lt_F4                 , OP_Simd128_LtF4                   , Bool32x4_1Float32x4_2  )
+  DEF3_WMS( CUSTOM                              , Simd128_Lt_I4                 , OP_Simd128_LtI4                   , Bool32x4_1Int32x4_2    )
   DEF3_WMS( CUSTOM                              , Simd128_Lt_D2                 , OP_Simd128_LtD2                   , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Gt_F4                 , OP_Simd128_GtF4                   , Float32x4_3            )
-  DEF3_WMS( CUSTOM                              , Simd128_Gt_I4                 , OP_Simd128_GtI4                   , Int32x4_3              )
+  DEF3_WMS( CUSTOM                              , Simd128_Gt_F4                 , OP_Simd128_GtF4                   , Bool32x4_1Float32x4_2  )
+  DEF3_WMS( CUSTOM                              , Simd128_Gt_I4                 , OP_Simd128_GtI4                   , Bool32x4_1Int32x4_2    )
   DEF3_WMS( CUSTOM                              , Simd128_Gt_D2                 , OP_Simd128_GtD2                   , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_LtEq_F4               , OP_Simd128_LtEqF4                 , Float32x4_3            )
+  DEF3_WMS( CUSTOM                              , Simd128_LtEq_F4               , OP_Simd128_LtEqF4                 , Bool32x4_1Float32x4_2  )
   DEF3_WMS( CUSTOM                              , Simd128_LtEq_D2               , OP_Simd128_LtEqD2                 , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_GtEq_F4               , OP_Simd128_GtEqF4                 , Float32x4_3            )
+  DEF3_WMS( CUSTOM                              , Simd128_GtEq_F4               , OP_Simd128_GtEqF4                 , Bool32x4_1Float32x4_2  )
   DEF3_WMS( CUSTOM                              , Simd128_GtEq_D2               , OP_Simd128_GtEqD2                 , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Eq_F4                 , OP_Simd128_EqF4                   , Float32x4_3            )
-  DEF3_WMS( CUSTOM                              , Simd128_Eq_I4                 , OP_Simd128_EqI4                   , Int32x4_3              )
+  DEF3_WMS( CUSTOM                              , Simd128_Eq_F4                 , OP_Simd128_EqF4                   , Bool32x4_1Float32x4_2  )
+  DEF3_WMS( CUSTOM                              , Simd128_Eq_I4                 , OP_Simd128_EqI4                   , Bool32x4_1Int32x4_2    )
   DEF3_WMS( CUSTOM                              , Simd128_Eq_D2                 , OP_Simd128_EqD2                   , Float64x2_3            )
 
-  DEF3_WMS( CUSTOM                              , Simd128_Neq_F4                , OP_Simd128_NeqF4                  , Float32x4_3            )
+  DEF3_WMS( CUSTOM                              , Simd128_Neq_F4                , OP_Simd128_NeqF4                  , Bool32x4_1Float32x4_2  )
   DEF3_WMS( CUSTOM                              , Simd128_Neq_D2                , OP_Simd128_NeqD2                  , Float64x2_3            )
 
   DEF3_WMS( CUSTOM                              , Simd128_And_F4                , OP_Simd128_AndF4                  , Float32x4_3            )
@@ -306,9 +306,9 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM                              , Simd128_Xor_I4                , OP_Simd128_XorI4                  , Int32x4_3              )
 
   // ToDO: Spec change: Change to BitSelect
-  DEF3_WMS( CUSTOM                              , Simd128_Select_F4             , OP_Simd128_SelectF4               , Float32x4_1Int32x4_1Float32x4_2)
-  DEF3_WMS( CUSTOM                              , Simd128_Select_I4             , OP_Simd128_SelectI4               , Int32x4_4              )
-  DEF3_WMS( CUSTOM                              , Simd128_Select_D2             , OP_Simd128_SelectD2               , Float64x2_1Int32x4_1Float64x2_2)
+  DEF3_WMS( CUSTOM                              , Simd128_Select_F4             , OP_Simd128_SelectF4               , Float32x4_1Bool32x4_1Float32x4_2)
+  DEF3_WMS( CUSTOM                              , Simd128_Select_I4             , OP_Simd128_SelectI4               , Int32x4_1Bool32x4_1Int32x4_2    )
+  DEF3_WMS( CUSTOM                              , Simd128_Select_D2             , OP_Simd128_SelectD2               , Float64x2_1Int32x4_1Float64x2_2 )
 
   DEF3_WMS( CUSTOM                              , Simd128_LdSignMask_F4         , OP_Simd128_LdSignMaskF4           , Int1Float32x4_1      )
   DEF3_WMS( CUSTOM                              , Simd128_LdSignMask_I4         , OP_Simd128_LdSignMaskI4           , Int1Int32x4_1        )

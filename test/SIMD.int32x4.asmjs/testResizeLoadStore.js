@@ -46,10 +46,10 @@ equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
 o.store(SIMD.Int32x4(-5,6,17,8000), i32.length-4);
 var ret = o.load(i32.length-4);
 equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
-try {o.store(SIMD.Int32x4(11, 304, -22239, 34010), f32.length); print("Wrong")} catch(err) { print("Correct");}
+try {o.store(SIMD.Int32x4(11, 304, -22239, 34010), f32.length); print("Wrong")} catch(err) { }
 
 var buf2 = new ArrayBuffer(0x2000000);
-print(o.changeHeap(buf2));
+o.changeHeap(buf2);
 
 // heap doubled, no OOB
 o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length);

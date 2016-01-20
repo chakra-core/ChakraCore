@@ -105,6 +105,14 @@ LowererMDArch::GetAssignOp(IRType type)
         return Js::OpCode::MOVSS;
     case TySimd128F4:
     case TySimd128I4:
+    case TySimd128I8:
+    case TySimd128I16:
+    case TySimd128U4:
+    case TySimd128U8:
+    case TySimd128U16:
+    case TySimd128B4:
+    case TySimd128B8:
+    case TySimd128B16:
     case TySimd128D2:
         return Js::OpCode::MOVUPS;
     default:
@@ -1520,6 +1528,34 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
                 this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128I4);
                 offset += 2;
                 break;
+            case Js::AsmJsVarType::Int16x8:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128I8);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Uint32x4:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128U4);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Uint16x8:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128U8);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Uint8x16:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128U16);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Bool32x4:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128B4);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Bool16x8:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128B8);
+                offset += 2;
+                break;
+            case Js::AsmJsVarType::Bool8x16:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128B16);
+                offset += 2;
+                break;
             case Js::AsmJsVarType::Float64x2:
                 this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128D2);
                 offset += 2;
@@ -1783,6 +1819,27 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
             break;
         case Js::AsmJsRetType::Int32x4:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I4), TySimd128I4, this->m_func);
+            break;
+        case Js::AsmJsRetType::Int16x8:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I8), TySimd128I8, this->m_func);
+            break;
+        case Js::AsmJsRetType::Uint32x4:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128U4), TySimd128U4, this->m_func);
+            break;
+        case Js::AsmJsRetType::Uint16x8:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128U8), TySimd128U8, this->m_func);
+            break;
+        case Js::AsmJsRetType::Uint8x16:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128U16), TySimd128U16, this->m_func);
+            break;
+        case Js::AsmJsRetType::Bool32x4:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128B4), TySimd128B4, this->m_func);
+            break;
+        case Js::AsmJsRetType::Bool16x8:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128B8), TySimd128B8, this->m_func);
+            break;
+        case Js::AsmJsRetType::Bool8x16:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128B16), TySimd128B16, this->m_func);
             break;
         case Js::AsmJsRetType::Float32x4:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128F4), TySimd128F4, this->m_func);

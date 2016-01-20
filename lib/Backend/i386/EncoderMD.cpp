@@ -1164,6 +1164,7 @@ modrm:
                     this->EmitModRM(instr, src1, this->GetRegEncode(src2->AsRegOpnd()));
                 }
                 break;
+            case Js::OpCode::PSLLD:
             case Js::OpCode::PSLLDQ:
             case Js::OpCode::PSRLDQ:
                 // SSE shift

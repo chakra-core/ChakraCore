@@ -131,9 +131,17 @@ public:
     StackSym *      GetSimd128D2EquivSym(Func *func);
     bool            IsSimd128() const { return IRType_IsSimd128(this->GetType()); }
 
-    bool            IsSimd128F4() const { return this->GetType() == TySimd128F4; }
-    bool            IsSimd128I4() const { return this->GetType() == TySimd128I4; }
-    bool            IsSimd128D2() const { return this->GetType() == TySimd128D2; }
+    bool            IsSimd128F4() const  { return this->GetType() == TySimd128F4; }
+    bool            IsSimd128I4() const  { return this->GetType() == TySimd128I4; }
+    bool            IsSimd128I8() const  { return this->GetType() == TySimd128I8; }
+    bool            IsSimd128I16() const { return this->GetType() == TySimd128I16; }
+    bool            IsSimd128U4() const  { return this->GetType() == TySimd128U4; }
+    bool            IsSimd128U8() const  { return this->GetType() == TySimd128U8; }
+    bool            IsSimd128U16() const { return this->GetType() == TySimd128U16; }
+    bool            IsSimd128B4() const { return this->GetType() == TySimd128B4; }
+    bool            IsSimd128B8() const { return this->GetType() == TySimd128B8; }
+    bool            IsSimd128B16() const { return this->GetType() == TySimd128B16; }
+    bool            IsSimd128D2() const  { return this->GetType() == TySimd128D2; }
 
 
 

@@ -126,6 +126,13 @@ namespace Js
         return op;
     }
 
+    OpCodeAsmJs ByteCodeReader::ReadAsmJsOp(LayoutSize& layoutSize)
+    {
+        OpCode op = ReadOp(m_currentLocation, layoutSize);
+
+        return (OpCodeAsmJs)op;
+    }
+
     OpCode ByteCodeReader::ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix)
     {
         Assert(OpCodeUtil::IsPrefixOpcode(prefix));

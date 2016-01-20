@@ -265,6 +265,11 @@ enum VTableValue {
     // SIMD_JS
     VtableSimd128F4,
     VtableSimd128I4,
+    VtableSimd128I8,
+    VtableSimd128I16,
+    VtableSimd128U4,
+    VtableSimd128U8,
+    VtableSimd128U16,
     Count
 };
 

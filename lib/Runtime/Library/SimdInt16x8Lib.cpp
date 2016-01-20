@@ -8,7 +8,6 @@
 namespace Js
 {
 
-    // Q: Are we allowed to call this as a constructor ?
     Var SIMDInt16x8Lib::EntryInt16x8(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -16,29 +15,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        //Assert(!(callInfo.Flags & CallFlags_New));    //comment out due to -ls -stress run
-        if (args.Info.Count == 2)
+        Assert(!(callInfo.Flags & CallFlags_New));
+        Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
+        const uint LANES = 8;
+        int16 values[LANES];
+
+        for (uint i = 0; i < LANES; i++)
         {
-            if (JavascriptSIMDInt16x8::Is(args[1]))
-            {
-                return args[1];
-            }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"int16x8");
+            values[i] = JavascriptConversion::ToInt16(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
         }
 
-        Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
-
-        short s0 = JavascriptConversion::ToInt16(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        short s1 = JavascriptConversion::ToInt16(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        short s2 = JavascriptConversion::ToInt16(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        short s3 = JavascriptConversion::ToInt16(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        short s4 = JavascriptConversion::ToInt16(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        short s5 = JavascriptConversion::ToInt16(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        short s6 = JavascriptConversion::ToInt16(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        short s7 = JavascriptConversion::ToInt16(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
-
-        SIMDValue lanes = SIMDInt16x8Operation::OpInt16x8(s0, s1, s2, s3, s4, s5, s6, s7);
-
+        SIMDValue lanes = SIMDInt16x8Operation::OpInt16x8(values);
         return JavascriptSIMDInt16x8::New(&lanes, scriptContext);
     }
 

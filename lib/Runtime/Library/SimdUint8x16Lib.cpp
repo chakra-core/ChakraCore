@@ -17,27 +17,15 @@ namespace Js
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
 
-        uint8 uintSIMDX0 = JavascriptConversion::ToUInt8(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        uint8 uintSIMDX1 = JavascriptConversion::ToUInt8(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        uint8 uintSIMDX2 = JavascriptConversion::ToUInt8(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        uint8 uintSIMDX3 = JavascriptConversion::ToUInt8(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        uint8 uintSIMDX4 = JavascriptConversion::ToUInt8(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        uint8 uintSIMDX5 = JavascriptConversion::ToUInt8(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        uint8 uintSIMDX6 = JavascriptConversion::ToUInt8(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        uint8 uintSIMDX7 = JavascriptConversion::ToUInt8(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
-        uint8 uintSIMDX8 = JavascriptConversion::ToUInt8(args.Info.Count >= 10 ? args[9] : undefinedVar, scriptContext);
-        uint8 uintSIMDX9 = JavascriptConversion::ToUInt8(args.Info.Count >= 11 ? args[10] : undefinedVar, scriptContext);
-        uint8 uintSIMDX10 = JavascriptConversion::ToUInt8(args.Info.Count >= 12 ? args[11] : undefinedVar, scriptContext);
-        uint8 uintSIMDX11 = JavascriptConversion::ToUInt8(args.Info.Count >= 13 ? args[12] : undefinedVar, scriptContext);
-        uint8 uintSIMDX12 = JavascriptConversion::ToUInt8(args.Info.Count >= 14 ? args[13] : undefinedVar, scriptContext);
-        uint8 uintSIMDX13 = JavascriptConversion::ToUInt8(args.Info.Count >= 15 ? args[14] : undefinedVar, scriptContext);
-        uint8 uintSIMDX14 = JavascriptConversion::ToUInt8(args.Info.Count >= 16 ? args[15] : undefinedVar, scriptContext);
-        uint8 uintSIMDX15 = JavascriptConversion::ToUInt8(args.Info.Count >= 17 ? args[16] : undefinedVar, scriptContext);
+        const uint LANES = 16;
+        uint8 values[LANES];
 
-        SIMDValue lanes = SIMDUint8x16Operation::OpUint8x16(uintSIMDX0, uintSIMDX1, uintSIMDX2, uintSIMDX3
-            , uintSIMDX4, uintSIMDX5, uintSIMDX6, uintSIMDX7
-            , uintSIMDX8, uintSIMDX9, uintSIMDX10, uintSIMDX11
-            , uintSIMDX12, uintSIMDX13, uintSIMDX14, uintSIMDX15);
+        for (uint i = 0; i < LANES; i++)
+        {
+            values[i] = JavascriptConversion::ToUInt8(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
+        }
+
+        SIMDValue lanes = SIMDUint8x16Operation::OpUint8x16(values);
 
         return JavascriptSIMDUint8x16::New(&lanes, scriptContext);
     }
@@ -616,9 +604,8 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint8x16Operation::OpLessThanOrEqual(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
-
+            result = SIMDUint8x16Operation::OpGreaterThan(aValue, bValue);
+            
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
@@ -648,9 +635,8 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint8x16Operation::OpLessThan(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
-
+            result = SIMDUint8x16Operation::OpGreaterThanOrEqual(aValue, bValue);
+            
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 

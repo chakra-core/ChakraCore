@@ -38,6 +38,7 @@ namespace Js
         OpCode ReadPrefixedOp(const byte *&ip, LayoutSize& layoutSize, OpCode prefix) const;
     public:
         OpCode ReadOp(LayoutSize& layoutSize);
+        OpCodeAsmJs ReadAsmJsOp(LayoutSize& layoutSize);
         OpCode ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix);
         OpCode PeekOp(LayoutSize& layoutSize) const;
         OpCode PeekOp() const { LayoutSize layoutSize; return PeekOp(layoutSize); }

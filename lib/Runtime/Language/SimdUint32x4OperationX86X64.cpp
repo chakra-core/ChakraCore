@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    SIMDValue SIMDUint32x4Operation::OpUInt32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
+    SIMDValue SIMDUint32x4Operation::OpUint32x4(unsigned int x, unsigned int y, unsigned int z, unsigned int w)
     {
         X86SIMDValue x86Result;
         x86Result.m128i_value = _mm_set_epi32(w, z, y, x);
@@ -88,10 +88,6 @@ namespace Js
     }
 
     // Unary Ops
-    SIMDValue SIMDUint32x4Operation::OpMul(const SIMDValue& aValue, const SIMDValue& bValue)
-    {
-        return SIMDInt32x4Operation::OpMul(aValue, bValue);
-    }
 
     SIMDValue SIMDUint32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
@@ -152,6 +148,23 @@ namespace Js
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThan(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+
+    SIMDValue SIMDUint32x4Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint32x4Operation::OpLessThanOrEqual(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+    
 }
 
 #endif
