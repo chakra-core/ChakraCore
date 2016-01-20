@@ -3458,12 +3458,14 @@ PAL_GetLogicalProcessorCacheSizeFromOS();
 
 typedef BOOL (*ReadMemoryWordCallback)(SIZE_T address, SIZE_T *value);
 
+#if defined(_AMD64_) || defined(_ARM_) || defined(_ARM64_)
 PALIMPORT BOOL PALAPI PAL_VirtualUnwind(CONTEXT *context, KNONVOLATILE_CONTEXT_POINTERS *contextPointers);
 
 PALIMPORT BOOL PALAPI PAL_VirtualUnwindOutOfProc(CONTEXT *context, 
                                                  KNONVOLATILE_CONTEXT_POINTERS *contextPointers, 
                                                  DWORD pid, 
                                                  ReadMemoryWordCallback readMemCallback);
+#endif
 
 #define GetLogicalProcessorCacheSizeFromOS PAL_GetLogicalProcessorCacheSizeFromOS
 
