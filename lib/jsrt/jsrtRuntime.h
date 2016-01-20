@@ -4,8 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "chakracommon.h"
-#include "chakrartdebug.h"
+#include "ChakraCore.h"
 #include "JsrtThreadService.h"
 #include "JsrtDebug.h"
 

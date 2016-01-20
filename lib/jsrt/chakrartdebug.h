@@ -18,10 +18,6 @@
 #ifndef _CHAKRARTDEBUG_H_
 #define _CHAKRARTDEBUG_H_
 
-// For now APIs are Desktop only
-#pragma region Desktop Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-
     /// <summary>
     ///     Debug events reported from ChakraCore engine.
     /// </summary>
@@ -466,9 +462,5 @@
             /* ToDo (SaAgarwa): Do we need JsSourceContext, library code flags and no beakpoint? */
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
-
-
-#endif // WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-#pragma endregion
 
 #endif // _CHAKRARTDEBUG_H_
