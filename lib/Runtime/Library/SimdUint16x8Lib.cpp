@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLibraryPch.h"
 
 namespace Js
@@ -16,18 +17,15 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
+        const uint LANES = 8;
+        uint16 values[LANES];
 
-        uint16 uintSIMDX0 = JavascriptConversion::ToUInt16(args.Info.Count >= 2 ? args[1] : undefinedVar, scriptContext);
-        uint16 uintSIMDX1 = JavascriptConversion::ToUInt16(args.Info.Count >= 3 ? args[2] : undefinedVar, scriptContext);
-        uint16 uintSIMDX2 = JavascriptConversion::ToUInt16(args.Info.Count >= 4 ? args[3] : undefinedVar, scriptContext);
-        uint16 uintSIMDX3 = JavascriptConversion::ToUInt16(args.Info.Count >= 5 ? args[4] : undefinedVar, scriptContext);
-        uint16 uintSIMDX4 = JavascriptConversion::ToUInt16(args.Info.Count >= 6 ? args[5] : undefinedVar, scriptContext);
-        uint16 uintSIMDX5 = JavascriptConversion::ToUInt16(args.Info.Count >= 7 ? args[6] : undefinedVar, scriptContext);
-        uint16 uintSIMDX6 = JavascriptConversion::ToUInt16(args.Info.Count >= 8 ? args[7] : undefinedVar, scriptContext);
-        uint16 uintSIMDX7 = JavascriptConversion::ToUInt16(args.Info.Count >= 9 ? args[8] : undefinedVar, scriptContext);
+        for (uint i = 0; i < LANES; i++)
+        {
+            values[i] = JavascriptConversion::ToUInt16(args.Info.Count >= (i + 2) ? args[i + 1] : undefinedVar, scriptContext);
+        }
 
-        SIMDValue lanes = SIMDUint16x8Operation::OpUint16x8(uintSIMDX0,  uintSIMDX1,  uintSIMDX2,  uintSIMDX3
-                                                        , uintSIMDX4,  uintSIMDX5,  uintSIMDX6,  uintSIMDX7);
+        SIMDValue lanes = SIMDUint16x8Operation::OpUint16x8(values);
 
         return JavascriptSIMDUint16x8::New(&lanes, scriptContext);
     }
@@ -259,6 +257,32 @@ namespace Js
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Uint16x8.store"));
+    }
+
+    Var SIMDUint16x8Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count >= 2 && JavascriptSIMDUint16x8::Is(args[1]))
+        {
+            JavascriptSIMDUint16x8 *a = JavascriptSIMDUint16x8::FromVar(args[1]);
+            Assert(a);
+
+            SIMDValue value, result;
+
+            value = a->GetValue();
+            result = SIMDInt16x8Operation::OpNeg(value);
+
+            return JavascriptSIMDUint16x8::New(&result, scriptContext);
+        }
+
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"neg");
     }
 
     Var SIMDUint16x8Lib::EntryNot(RecyclableObject* function, CallInfo callInfo, ...)
@@ -607,8 +631,8 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint16x8Operation::OpLessThanOrEqual(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
+            result = SIMDUint16x8Operation::OpGreaterThan(aValue, bValue);
+            
 
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
@@ -639,9 +663,7 @@ namespace Js
             aValue = a->GetValue();
             bValue = b->GetValue();
 
-            result = SIMDUint16x8Operation::OpLessThan(aValue, bValue);
-            result = SIMDInt32x4Operation::OpNot(result);
-
+            result = SIMDUint16x8Operation::OpGreaterThanOrEqual(aValue, bValue);
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 

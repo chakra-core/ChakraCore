@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -71,13 +71,6 @@ namespace Js
 
     bool JavascriptSIMDFloat32x4::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {
-        switch (propertyId)
-        {
-        case PropertyIds::signMask:
-            *value = GetSignMask();
-            return true;
-        }
-
         return false;
     }
 
@@ -86,9 +79,4 @@ namespace Js
         return JavascriptSIMDFloat32x4::New(&this->value, requestContext);
     }
 
-    __inline Var JavascriptSIMDFloat32x4::GetSignMask()
-    {
-        int signMask = SIMDFloat32x4Operation::OpGetSignMask(value);
-        return TaggedInt::ToVarUnchecked(signMask);
-    }
 }

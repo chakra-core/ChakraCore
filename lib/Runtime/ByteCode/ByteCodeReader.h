@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js
@@ -38,6 +39,7 @@ namespace Js
         OpCode ReadPrefixedOp(const byte *&ip, LayoutSize& layoutSize, OpCode prefix) const;
     public:
         OpCode ReadOp(LayoutSize& layoutSize);
+        OpCodeAsmJs ReadAsmJsOp(LayoutSize& layoutSize);
         OpCode ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix);
         OpCode PeekOp(LayoutSize& layoutSize) const;
         OpCode PeekOp() const { LayoutSize layoutSize; return PeekOp(layoutSize); }

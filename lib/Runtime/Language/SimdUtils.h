@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #define SIMD128_TYPE_SPEC_FLAG Js::Configuration::Global.flags.Simd128TypeSpec
@@ -115,18 +116,32 @@ const _x86_SIMDValue X86_ALL_ONES_D2 = { 0x00000000, 0x3ff00000, 0x00000000, 0x3
 
 const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
 
-const _x86_SIMDValue X86_ALL_ZEROS    = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_ALL_ONES_I8  = { 0x00010001, 0x00010001, 0x00010001, 0x00010001 }; // {1, 1, 1, 1, 1, 1, 1, 1}
+
+const _x86_SIMDValue X86_ALL_ZEROS          = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_ALL_ONES_I16       = { 0x01010101, 0x01010101, 0x01010101, 0x01010101 }; // {1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+const _x86_SIMDValue X86_LANE0_ONES_I16     = { 0x000000ff, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_LOWBYTES_MASK      = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
+const _x86_SIMDValue X86_HIGHBYTES_MASK     = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
+
 const _x86_SIMDValue X86_LANE_W_ZEROS = { 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 };
 
-const _x86_SIMDValue X86_TWO_31_F4 = { 0x4f000000, 0x4f000000, 0x4f000000, 0x4f000000 }; // f32(2^31), ....
-const _x86_SIMDValue X86_NEG_TWO_31_F4 = { 0xcf000000, 0xcf000000, 0xcf000000, 0xcf000000 }; // f32(-2^31), ....
-const _x86_SIMDValue X86_TWO_32_F4 = { 0x4f800000, 0x4f800000, 0x4f800000, 0x4f800000 }; // f32(2^32), ....
-const _x86_SIMDValue X86_TWO_31_I4 = X86_NEG_MASK_F4;                                    // 2^31, ....
-const _x86_SIMDValue X86_WORD_SIGNBITS = { { 0x80008000, 0x80008000, 0x80008000, 0x80008000 } };
-const _x86_SIMDValue X86_4LANES_MASKS[] = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
-                                           { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
-                                           { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
-                                           { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
+const _x86_SIMDValue X86_TWO_31_F4          = { 0x4f000000, 0x4f000000, 0x4f000000, 0x4f000000 }; // f32(2^31), ....
+const _x86_SIMDValue X86_NEG_TWO_31_F4      = { 0xcf000000, 0xcf000000, 0xcf000000, 0xcf000000 }; // f32(-2^31), ....
+const _x86_SIMDValue X86_TWO_32_F4          = { 0x4f800000, 0x4f800000, 0x4f800000, 0x4f800000 }; // f32(2^32), ....
+const _x86_SIMDValue X86_TWO_31_I4          = X86_NEG_MASK_F4;                                    // 2^31, ....
+const _x86_SIMDValue X86_WORD_SIGNBITS      = { 0x80008000, 0x80008000, 0x80008000, 0x80008000 };
+const _x86_SIMDValue X86_DWORD_SIGNBITS     = { 0x80000000, 0x80000000, 0x80000000, 0x80000000 };
+const _x86_SIMDValue X86_BYTE_SIGNBITS      = { 0x80808080, 0x80808080, 0x80808080, 0x80808080 };
+const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
+                                               { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
+                                               { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
+                                               { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
+
+
+
+// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+extern _x86_SIMDValue X86_TEMP_SIMD[];
 
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);
@@ -145,6 +160,7 @@ namespace Js {
 
     template <int laneCount = 4>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3);
+    template <int laneCount = 8>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, const int32* lanes = nullptr);
 
     template <class SIMDType, int laneCount = 4>
@@ -177,8 +193,8 @@ namespace Js {
     int32 SIMDCheckInt32Number(ScriptContext* scriptContext, Var value);
     bool        SIMDIsSupportedTypedArray(Var value);
     SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);
-    AsmJsSIMDValue SIMDLdData(AsmJsSIMDValue *data, uint8 dataWidth);
-    void SIMDStData(AsmJsSIMDValue *data, AsmJsSIMDValue simdValue, uint8 dataWidth);
+    SIMDValue SIMDLdData(SIMDValue *data, uint8 dataWidth);
+    void SIMDStData(SIMDValue *data, SIMDValue simdValue, uint8 dataWidth);
 
     template <class SIMDType>
     Var SIMD128TypedArrayLoad(Var arg1, Var arg2, uint32 dataWidth, ScriptContext *scriptContext)

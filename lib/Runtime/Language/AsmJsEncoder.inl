@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #define PROCESS_ENCODE_READ_LAYOUT_ASMJS(name, layout, suffix) \
@@ -813,12 +814,12 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LtF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Lt_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_Lt_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LtI4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Lt_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
+        AsmJsJitTemplate::Simd128_Lt_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LtD2(const unaligned T* playout)
@@ -829,12 +830,12 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_GtF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Gt_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_Gt_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_GtI4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Gt_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
+        AsmJsJitTemplate::Simd128_Gt_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_GtD2(const unaligned T* playout)
@@ -845,7 +846,7 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LtEqF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_LtEq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_LtEq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_LtEqD2(const unaligned T* playout)
@@ -856,7 +857,7 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_GtEqF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_GtEq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_GtEq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_GtEqD2(const unaligned T* playout)
@@ -867,12 +868,12 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_EqF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Eq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_Eq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_EqI4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Eq_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
+        AsmJsJitTemplate::Simd128_Eq_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_EqD2(const unaligned T* playout)
@@ -883,7 +884,7 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_NeqF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Neq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
+        AsmJsJitTemplate::Simd128_Neq_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->B4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_NeqD2(const unaligned T* playout)
@@ -928,12 +929,12 @@ namespace Js
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_SelectF4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Select_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2), CalculateOffset<AsmJsSIMDValue>(playout->F4_3));
+        AsmJsJitTemplate::Simd128_Select_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->B4_1), CalculateOffset<AsmJsSIMDValue>(playout->F4_2), CalculateOffset<AsmJsSIMDValue>(playout->F4_3));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_SelectI4(const unaligned T* playout)
     {
-        AsmJsJitTemplate::Simd128_Select_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2), CalculateOffset<AsmJsSIMDValue>(playout->I4_3));
+        AsmJsJitTemplate::Simd128_Select_I4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->I4_0), CalculateOffset<AsmJsSIMDValue>(playout->B4_1), CalculateOffset<AsmJsSIMDValue>(playout->I4_2), CalculateOffset<AsmJsSIMDValue>(playout->I4_3));
     }
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_SelectD2(const unaligned T* playout)
@@ -960,22 +961,6 @@ namespace Js
     {
         AsmJsJitTemplate::Simd128_ReplaceLane_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<int>(playout->I2), CalculateOffset<float>(playout->F3));
     }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskF4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_F4::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1));
-    }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskI4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_I4::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1));
-    }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskD2(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_D2::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->D2_1));
-    }
-
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_I_ArgOutF4(const unaligned T* playout)
     {

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 
@@ -10,12 +11,12 @@
 namespace Js
 {
     // SIMD.Uint16x8 operation wrappers that cover instrinsics for x86/x64 system
-    SIMDValue SIMDUint16x8Operation::OpUint16x8(uint16 x0, uint16 x1, uint16 x2, uint16 x3
-        , uint16 x4, uint16 x5, uint16 x6, uint16 x7)
+    SIMDValue SIMDUint16x8Operation::OpUint16x8(uint16 values[])
     {
         X86SIMDValue x86Result;
         // Sets the 8 signed 16-bit integer values, note in revised order: starts with x7 below
-        x86Result.m128i_value = _mm_set_epi16((int16)x7, (int16)x6, (int16)x5, (int16)x4, (int16)x3, (int16)x2, (int16)x1, (int16)x0);
+        x86Result.m128i_value = _mm_set_epi16((int16)values[7], (int16)values[6], (int16)values[5], (int16)values[4], 
+                                              (int16)values[3], (int16)values[2], (int16)values[1], (int16)values[0]);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -86,6 +87,22 @@ namespace Js
         x86Result.m128i_value = _mm_or_si128(x86Result.m128i_value, tmpaValue.m128i_value);   // result = (a<b)|(a==b)
 
         return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+    SIMDValue SIMDUint16x8Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint16x8Operation::OpLessThan(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
+    }
+
+    SIMDValue SIMDUint16x8Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        SIMDValue result;
+        result = SIMDUint16x8Operation::OpLessThanOrEqual(aValue, bValue);
+        result = SIMDInt32x4Operation::OpNot(result);
+        return result;
     }
 
     SIMDValue SIMDUint16x8Operation::OpShiftRightByScalar(const SIMDValue& value, int count)

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #ifndef InstructionStart
 #define InstructionStart(name, SupportedOperationSize, MaxTemplateSize)
 #endif
@@ -538,6 +539,12 @@ InstructionStart(PADDD, 16, 9, AffectOp1)
     FormatRegPtr(EncodeModRM_RegPtr)
 InstructionEnd(PADDD)
 
+InstructionStart(PADDB, 16, 9, AffectOp1)
+Format2Reg(EncodeModRM_2Reg)
+FormatRegAddr(EncodeModRM_RegRM)
+FormatRegPtr(EncodeModRM_RegPtr)
+InstructionEnd(PADDB)
+
 InstructionStart(SUBPS, 16, 8, AffectOp1)
     Format2Reg(EncodeModRM_2Reg)
     FormatRegAddr(EncodeModRM_RegRM)
@@ -552,6 +559,11 @@ InstructionStart(PSUBD, 16, 9, AffectOp1)
     Format2Reg(EncodeModRM_2Reg)
     FormatRegAddr(EncodeModRM_RegRM)
 InstructionEnd(PSUBD)
+
+InstructionStart(PSUBB, 16, 9, AffectOp1)
+Format2Reg(EncodeModRM_2Reg)
+FormatRegAddr(EncodeModRM_RegRM)
+InstructionEnd(PSUBB)
 
 InstructionStart(MULPS, 16, 8, AffectOp1)
     Format2Reg(EncodeModRM_2Reg)
@@ -624,10 +636,20 @@ InstructionStart(PCMPGTD, 16, 9, AffectOp1)
     FormatRegAddr(EncodeModRM_RegRM)
 InstructionEnd(PCMPGTD)
 
+InstructionStart(PCMPGTB, 16, 9, AffectOp1)
+Format2Reg(EncodeModRM_2Reg)
+FormatRegAddr(EncodeModRM_RegRM)
+InstructionEnd(PCMPGTB)
+
 InstructionStart(PCMPEQD, 16, 9, AffectOp1)
     Format2Reg(EncodeModRM_2Reg)
     FormatRegAddr(EncodeModRM_RegRM)
 InstructionEnd(PCMPEQD)
+
+InstructionStart(PCMPEQB, 16, 9, AffectOp1)
+Format2Reg(EncodeModRM_2Reg)
+FormatRegAddr(EncodeModRM_RegRM)
+InstructionEnd(PCMPEQB)
 
 InstructionStart(ANDPS, 16, 8, AffectOp1)
     Format2Reg(EncodeModRM_2Reg)

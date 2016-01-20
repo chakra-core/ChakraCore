@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeByteCodePch.h"
 
 namespace Js
@@ -124,6 +125,13 @@ namespace Js
         Assert(!OpCodeAttr::BackEndOnly(op));
 #endif
         return op;
+    }
+
+    OpCodeAsmJs ByteCodeReader::ReadAsmJsOp(LayoutSize& layoutSize)
+    {
+        OpCode op = ReadOp(m_currentLocation, layoutSize);
+
+        return (OpCodeAsmJs)op;
     }
 
     OpCode ByteCodeReader::ReadPrefixedOp(LayoutSize& layoutSize, OpCode prefix)

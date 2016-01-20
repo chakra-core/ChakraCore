@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 
 var DEBUG = false;
 function sameValue(x, y) {
@@ -34,14 +35,14 @@ function equal(ev, v) {
     {
         WScript.Echo(">> Fail!");
         WScript.Echo("Expected "+ev+" Found "+v);
+        return false;
     }
 }
 
 function equalSimd(values, simdValue, type, msg)
 {   var ok = true;
     
-    if (type == SIMD.Float32x4 || type === SIMD.Int32x4)
-        length = 4;
+    length = getLength(type);
     
     if (Array.isArray(values))
     {
@@ -57,7 +58,7 @@ function equalSimd(values, simdValue, type, msg)
         else
         {
             
-            WScript.Echo(">> Fail!");
+            WScript.Echo(">> Fail!!");
             if (msg !== undefined)
             {
                 WScript.Echo(msg);
@@ -81,7 +82,7 @@ function equalSimd(values, simdValue, type, msg)
             return;
         else
         {
-            WScript.Echo(">> Fail!");
+            WScript.Echo(">> Fail!!");
             if (msg !== undefined)
             {
                 WScript.Echo(msg);
@@ -96,15 +97,105 @@ function printSimd(simdValue, type)
     var length;
     var vals = "";
     
-    if (type === SIMD.Float32x4 || type === SIMD.Int32x4)
-    {
-        length = 4;
-    }
+    length = getLength(type);
+    
     for (var i = 0; i < length; i ++)
     {
         vals += type.extractLane(simdValue,i);
-        if (i < 3)
+        if (i < length - 1)
             vals += ", "
     }
     WScript.Echo(type.toString() + "(" + vals + ")");
+}
+
+function printSimdBaseline(simdValue, typeName, varName, msg)
+{
+    var length;
+    var vals = "";
+    
+    if (typeName === "SIMD.Float32x4")
+    {
+        type = SIMD.Float32x4;
+    }
+    else if (typeName === "SIMD.Int32x4")
+    {
+        type = SIMD.Int32x4;
+        
+    }
+    else if (typeName === "SIMD.Int16x8")
+    {
+        type = SIMD.Int16x8;
+        
+    }
+    else if (typeName === "SIMD.Int8x16")
+    {
+        type = SIMD.Int8x16;
+    }
+    else if (typeName === "SIMD.Uint32x4")
+    {
+        type = SIMD.Uint32x4;
+    }
+    else if (typeName === "SIMD.Uint16x8")
+    {
+        type = SIMD.Uint16x8;
+    }
+    else if (typeName === "SIMD.Uint8x16")
+    {
+        type = SIMD.Uint8x16;
+    }
+    else if (typeName === "SIMD.Bool32x4")
+    {
+        type = SIMD.Bool32x4;
+    }
+    else if (typeName === "SIMD.Bool16x8")
+    {
+        type = SIMD.Bool16x8;
+    }
+    else if (typeName === "SIMD.Bool8x16")
+    {
+        type = SIMD.Bool8x16;
+    }
+    else
+    {
+        throw "Unsupported type";
+
+    }
+    
+    length = getLength(type);
+    
+    for (var i = 0; i < length; i ++)
+    {
+        vals += type.extractLane(simdValue,i);
+        if (i < length - 1)
+            vals += ", "
+    }
+   print("equalSimd([" + vals + "], " + varName + ", " + typeName + ", \"" + msg + "\")");
+   
+}
+
+function getLength(type)
+{
+    var length;
+    switch (type)
+    {
+        case SIMD.Float32x4:
+        case SIMD.Int32x4:
+        case SIMD.Uint32x4:
+        case SIMD.Bool32x4:
+            length = 4;
+            break;
+        case SIMD.Int16x8:
+        case SIMD.Uint16x8:
+        case SIMD.Bool16x8:
+            length = 8;
+            break;
+        case SIMD.Int8x16:
+        case SIMD.Uint8x16:
+        case SIMD.Bool8x16:
+            length = 16;
+            break;
+        default:
+            throw "Undefined type";
+    }
+    return length;
 }
