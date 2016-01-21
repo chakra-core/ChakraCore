@@ -54,6 +54,7 @@ namespace TTD
             DoubleTag,
             StringTag,
             PropertyEnumTag,
+            SymbolCreationTag,
             ExternalCallBeginTag,
             ExternalCallEndTag,
             JsRTActionTag
@@ -241,6 +242,27 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static PropertyEnumStepEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
+    };
+
+    //////////////////
+
+    //A class that represents the creation of a symbol (which we need to make sure gets the correct property id)
+    class SymbolCreationEventLogEntry : public EventLogEntry
+    {
+    private:
+        //The property id of the created symbol
+        Js::PropertyId m_pid;
+
+    public:
+        SymbolCreationEventLogEntry(int64 eventTimestamp, Js::PropertyId pid);
+        virtual ~SymbolCreationEventLogEntry() override;
+
+        static SymbolCreationEventLogEntry* As(EventLogEntry* e);
+
+        Js::PropertyId GetPropertyId() const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static SymbolCreationEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
     };
 
     //////////////////

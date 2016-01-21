@@ -3411,7 +3411,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordCodeParse(scriptContext, scriptFunction, script);
+            threadContext->TTDLog->RecordCodeParse(scriptContext, result != nullptr, scriptFunction, script);
         }
 #endif
 

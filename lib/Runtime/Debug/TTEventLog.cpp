@@ -285,6 +285,8 @@ namespace TTD
 
         ctx->SetMode_TTD(this->m_currentMode);
         this->m_ttdContext = ctx;
+
+        ctx->InitializeRecordingActionsAsNeeded_TTD();
     }
 
     void EventLog::StopTimeTravelOnScript(Js::ScriptContext* ctx)
@@ -491,6 +493,31 @@ namespace TTD
 
             *newIndex = obj->GetDynamicType()->GetTypeHandler()->GetPropertyCount();
         }
+
+        this->AdvanceTimeAndPositionForReplay();
+    }
+
+    void EventLog::RecordSymbolCreationEvent(Js::PropertyId pid)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
+
+        SymbolCreationEventLogEntry* sevent = this->m_slabAllocator.SlabNew<SymbolCreationEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), pid);
+        this->InsertEventAtHead(sevent);
+    }
+
+    void EventLog::ReplaySymbolCreationEvent(Js::PropertyId* pid)
+    {
+        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
+
+        if(this->m_currentEvent == nullptr)
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        SymbolCreationEventLogEntry* sevent = SymbolCreationEventLogEntry::As(this->m_currentEvent);
+        *pid = sevent->GetPropertyId();
 
         this->AdvanceTimeAndPositionForReplay();
     }
@@ -1445,21 +1472,20 @@ namespace TTD
         this->InsertEventAtHead(createAction);
     }
 
-    void EventLog::RecordCodeParse(Js::ScriptContext* ctx, Js::JavascriptFunction* func, LPCWSTR srcCode)
+    void EventLog::RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
 
-        bool isEval = fb->IsEval();
         LPCWSTR optSrcUri = this->m_slabAllocator.CopyStringInto(fb->GetSourceContextInfo()->url);
         DWORD_PTR optDocumentID = fb->GetSourceContextId();
 
         LPCWSTR sourceCode = this->m_slabAllocator.CopyStringInto(srcCode);
         LPCWSTR dir = this->m_slabAllocator.CopyStringInto(this->m_logInfoRootDir);
 
-        JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isEval, sourceCode, optDocumentID, optSrcUri, dir);
+        JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir);
 
         this->InsertEventAtHead(parseEvent);
     }

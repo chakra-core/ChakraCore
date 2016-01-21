@@ -2614,6 +2614,12 @@ namespace Js
         END_JS_RUNTIME_CALL(this);
     }
 
+    void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
+    {
+        //Ensure that we behave somewhat nicely
+        this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
+    }
+
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
     {
         this->ForceNoNative();

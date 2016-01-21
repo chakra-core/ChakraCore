@@ -150,6 +150,9 @@ namespace TTD
         case EventKind::PropertyEnumTag:
             res = PropertyEnumStepEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
+        case EventKind::SymbolCreationTag:
+            res = SymbolCreationEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
         case EventKind::ExternalCallBeginTag:
             res = ExternalCallEventBeginLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
@@ -497,6 +500,46 @@ namespace TTD
         }
 
         return alloc.SlabNew<PropertyEnumStepEventLogEntry>(eTime, retCode, pid, attr, pname);
+    }
+
+    //////////////////
+
+    SymbolCreationEventLogEntry::SymbolCreationEventLogEntry(int64 eventTimestamp, Js::PropertyId pid)
+        : EventLogEntry(EventLogEntry::EventKind::SymbolCreationTag, eventTimestamp), m_pid(pid)
+    {
+        ;
+    }
+
+    SymbolCreationEventLogEntry::~SymbolCreationEventLogEntry()
+    {
+        ;
+    }
+
+    SymbolCreationEventLogEntry* SymbolCreationEventLogEntry::As(EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::SymbolCreationTag, "Not a property enum event!");
+
+        return static_cast<SymbolCreationEventLogEntry*>(e);
+    }
+
+    Js::PropertyId SymbolCreationEventLogEntry::GetPropertyId() const
+    {
+        return this->m_pid;
+    }
+
+    void SymbolCreationEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        writer->WriteUInt32(NSTokens::Key::propertyId, this->m_pid, NSTokens::Separator::CommaSeparator);
+        
+        writer->WriteRecordEnd();
+    }
+
+    SymbolCreationEventLogEntry* SymbolCreationEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    {
+        Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
+
+        return alloc.SlabNew<SymbolCreationEventLogEntry>(eTime, pid);
     }
 
     //////////////////

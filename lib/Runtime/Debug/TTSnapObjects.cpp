@@ -736,7 +736,21 @@ namespace TTD
 
             SnapHeapArgumentsInfo* argsInfo = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject);
 
-            Js::RecyclableObject* activationObj = (argsInfo->FrameObject != TTD_INVALID_PTR_ID) ? inflator->LookupObject(argsInfo->FrameObject) : nullptr;
+            Js::RecyclableObject* activationObj = nullptr;
+            if(argsInfo->IsFrameNullPtr)
+            {
+                activationObj = nullptr;
+            }
+            else if(argsInfo->IsFrameJsNull)
+            {
+                activationObj = ctx->GetLibrary()->GetNull();
+            }
+            else
+            {
+                AssertMsg(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
+
+                activationObj = inflator->LookupObject(argsInfo->FrameObject);
+            }
 
             return  ctx->GetLibrary()->CreateHeapArguments_TTD(argsInfo->NumOfArguments, argsInfo->FormalCount, static_cast<Js::ActivationObject*>(activationObj), argsInfo->DeletedArgFlags);
         }
@@ -747,6 +761,8 @@ namespace TTD
 
             writer->WriteUInt32(NSTokens::Key::numberOfArgs, argsInfo->NumOfArguments, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
+            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameNullPtr, NSTokens::Separator::CommaAndBigSpaceSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, argsInfo->IsFrameJsNull, NSTokens::Separator::CommaAndBigSpaceSeparator);
             writer->WriteAddr(NSTokens::Key::objectId, argsInfo->FrameObject, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
             writer->WriteLengthValue(argsInfo->FormalCount, NSTokens::Separator::CommaSeparator);
@@ -766,6 +782,8 @@ namespace TTD
 
             argsInfo->NumOfArguments = reader->ReadUInt32(NSTokens::Key::numberOfArgs, true);
 
+            argsInfo->IsFrameNullPtr = reader->ReadBool(NSTokens::Key::boolVal, true);
+            argsInfo->IsFrameJsNull = reader->ReadBool(NSTokens::Key::boolVal, true);
             argsInfo->FrameObject = reader->ReadAddr(NSTokens::Key::objectId, true);
 
             argsInfo->FormalCount = reader->ReadLengthValue(true);

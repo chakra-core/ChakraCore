@@ -226,6 +226,12 @@ namespace TTD
         //Replay a property enumeration step
         void ReplayPropertyEnumEvent(BOOL* returnCode, int32* newIndex, const Js::DynamicObject* obj, Js::PropertyId* pid, Js::PropertyAttributes* attributes, Js::JavascriptString** propertyName);
 
+        //Log symbol creation
+        void RecordSymbolCreationEvent(Js::PropertyId pid);
+
+        //Replay symbol creation
+        void ReplaySymbolCreationEvent(Js::PropertyId* pid);
+
         //Log a value event for return from an external call
         ExternalCallEventBeginLogEntry* RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime);
         void RecordExternalCallEndEvent(Js::JavascriptFunction* func, int32 rootDepth, Js::Var value);
@@ -375,7 +381,7 @@ namespace TTD
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);
 
         //Record code parse
-        void RecordCodeParse(Js::ScriptContext* ctx, Js::JavascriptFunction* func, LPCWSTR srcCode);
+        void RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode);
 
         //Record callback of an existing function
         JsRTCallFunctionAction* RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);

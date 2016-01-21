@@ -91,6 +91,14 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!dateBasicTest -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
       <compile-flags>-TTDebug:!dateBasicTest -TTDStartEvent:10 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
@@ -332,6 +340,30 @@
     <default>
       <files>ttdSentinal.js</files>
       <compile-flags>-TTDebug:!proxyTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>symbol.js</files>
+      <compile-flags>-TTRecord:!symbolTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!symbolTest -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!symbolTest -TTDStartEvent:10 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>

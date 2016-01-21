@@ -295,8 +295,18 @@ namespace Js
         uint32 depOnCount = 0;
         TTD_PTR_ID* depOnArray = nullptr;
 
+        argsInfo->IsFrameNullPtr = false;
+        argsInfo->IsFrameJsNull = false;
         argsInfo->FrameObject = TTD_INVALID_PTR_ID;
-        if(this->frameObject != nullptr)
+        if(this->frameObject == nullptr)
+        {
+            argsInfo->IsFrameNullPtr = true;
+        }
+        else if(Js::JavascriptOperators::GetTypeId(this->frameObject) == TypeIds_Null)
+        {
+            argsInfo->IsFrameJsNull = true;
+        }
+        else
         {
             argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
 

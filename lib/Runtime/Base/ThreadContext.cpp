@@ -886,6 +886,20 @@ ThreadContext::CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRe
 Js::PropertyRecord const *
 ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertyName, bool bind, bool isSymbol)
 {
+#if ENABLE_TTD
+    if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction())
+    {
+        //We reload all properties that occour in the trace so they only way we get here in TTD mode is if the program is creating a new symbol (which always gets a fresh id)
+        AssertMsg(isSymbol, "Something went wrong.");
+
+        Js::PropertyId propertyId = Js::Constants::NoProperty;
+        this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
+
+        //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
+        return this->GetPropertyName(propertyId);
+    }
+#endif
+
     this->propertyMap->EnsureCapacity();
 
     // Automatically bind direct (single-character) property names, so that they can be
@@ -908,14 +922,6 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     uint hash = JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(propertyName.GetBuffer(), propertyName.GetLength());
 
     size_t allocLength = bytelength + sizeof(wchar_t) + (isNumeric ? sizeof(uint32) : 0);
-
-#if ENABLE_TTD
-    //
-    //TODO: if the property is a symbol and TTD is enabled then we need to record/replay the correct symbol
-    //      Change is Symbol to take the creating ScriptContext(?) and check TTD enabled state on
-    //      Add log entry kind
-    //
-#endif
 
     // If it's bound, create it in the thread arena, along with a fake weak ref
     Js::PropertyRecord * propertyRecord;
@@ -941,6 +947,14 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     }
 
     Js::PropertyId propertyId = this->GetNextPropertyId();
+
+#if ENABLE_TTD
+    if(isSymbol & (this->TTDLog != nullptr && this->TTDLog->ShouldPerformRecordAction()))
+    {
+        this->TTDLog->RecordSymbolCreationEvent(propertyId);
+    }
+#endif
+
     propertyRecord->pid = propertyId;
 
     AddPropertyRecordInternal(propertyRecord);

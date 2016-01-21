@@ -397,6 +397,7 @@ namespace Js
         PropertyId propertyId = Constants::NoProperty;
 
 #if ENABLE_TTD
+        bool handled = false;
         BOOL findResult = FALSE;
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
@@ -408,6 +409,8 @@ namespace Js
                 int32 pIndex = -1;
                 elog->ReplayPropertyEnumEvent(&findResult, &pIndex, this, &propertyId, &dummyAttributes, &propertyString);
                 index = (Js::PropertyIndex)pIndex;
+
+                handled = true;
             }
 
             if(elog->ShouldPerformRecordAction())
@@ -415,9 +418,12 @@ namespace Js
                 findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 
                 elog->RecordPropertyEnumEvent(findResult, propertyId, dummyAttributes, propertyString);
+
+                handled = true;
             }
         }
-        else
+
+        if(!handled)
         {
             findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
         }
@@ -470,6 +476,7 @@ namespace Js
         PropertyId propertyId = Constants::NoProperty;
 
 #if ENABLE_TTD
+        bool handled = false;
         BOOL findResult = FALSE;
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
@@ -481,6 +488,8 @@ namespace Js
                 int32 pIndex = -1;
                 elog->ReplayPropertyEnumEvent(&findResult, &pIndex, this, &propertyId, &dummyAttributes, &propertyString);
                 index = (Js::PropertyIndex)pIndex;
+
+                handled = true;
             }
 
             if(elog->ShouldPerformRecordAction())
@@ -488,9 +497,12 @@ namespace Js
                 findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 
                 elog->RecordPropertyEnumEvent(findResult, propertyId, dummyAttributes, propertyString);
+
+                handled = true;
             }
         }
-        else
+
+        if(!handled)
         {
             findResult = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, &propertyString, &propertyId, nullptr, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
         }

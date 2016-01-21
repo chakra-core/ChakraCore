@@ -188,8 +188,8 @@ namespace TTD
     class JsRTCodeParseAction : public JsRTActionLogEntry
     {
     private:
-        //True if the body is from an "eval"
-        bool m_isEval;
+        //True if the body has expression semantics
+        bool m_isExpression;
 
         //The actual source code
         LPCWSTR m_sourceCode;
@@ -202,7 +202,7 @@ namespace TTD
         LPCWSTR m_srcDir;
 
     public:
-        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isEval, LPCWSTR sourceCode, DWORD_PTR optDocumentId, LPCWSTR optSourceUri, LPCWSTR srcDir);
+        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR optDocumentId, LPCWSTR optSourceUri, LPCWSTR srcDir);
         virtual ~JsRTCodeParseAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;

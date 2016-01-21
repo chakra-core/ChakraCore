@@ -5,6 +5,10 @@ Object.defineProperty(x, "b", {
     set: function (x) { this.foo = x / 2; }
 });
 
+Object.defineProperty(x, "onlyone", {
+    get: function () { return this.bar; }
+});
+
 WScript.SetTimeout(testFunction, 50);
 
 /////////////////
@@ -15,6 +19,8 @@ function testFunction()
 
     ttdTestReport("x.foo", x.foo, 3);
     ttdTestReport("x.b", x.b, 4);
+
+    ttdTestReport("x.onlyone", x.onlyone, null);
 
     ////
     x.b = 12;

@@ -1094,6 +1094,7 @@ private:
         }
 
         //Initialize debug script generation and no-native as needed for replay/debug at script context initialization
+        void InitializeRecordingActionsAsNeeded_TTD();
         void InitializeDebuggingActionsAsNeeded_TTD();
 
         //Check if we want to do object tagging for this context

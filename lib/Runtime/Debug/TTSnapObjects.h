@@ -293,6 +293,8 @@ namespace TTD
             uint32 NumOfArguments;
 
             //The frame object 
+            bool IsFrameNullPtr;
+            bool IsFrameJsNull;
             TTD_PTR_ID FrameObject;
 
             uint32 FormalCount;
