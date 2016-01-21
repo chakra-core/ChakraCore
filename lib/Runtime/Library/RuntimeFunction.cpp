@@ -57,6 +57,16 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void RuntimeFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        Var revokableProxy = nullptr;
+        RuntimeFunction* function = const_cast<RuntimeFunction*>(this);
+        if(function->GetInternalProperty(function, Js::InternalPropertyIds::RevocableProxy, &revokableProxy, nullptr, this->GetScriptContext()))
+        {
+            extractor->MarkVisitVar(revokableProxy);
+        }
+    }
+
     TTD::NSSnapObjects::SnapObjectType RuntimeFunction::GetSnapTag_TTD() const
     {
         Var revokableProxy = nullptr;
