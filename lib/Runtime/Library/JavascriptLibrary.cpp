@@ -3596,6 +3596,14 @@ namespace Js
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::assign, &JavascriptObject::EntryInfo::Assign, 2));
         }
 
+        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
+        {
+            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Values.GetOriginalEntryPoint(),
+                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::values, &JavascriptObject::EntryInfo::Values, 1));
+            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Entries.GetOriginalEntryPoint(),
+                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::entries, &JavascriptObject::EntryInfo::Entries, 1));
+        }
+
         objectConstructor->SetHasNoEnumerableProperties(true);
     }
 
@@ -6169,6 +6177,12 @@ namespace Js
         {
             REG_OBJECTS_LIB_FUNC(is, JavascriptObject::EntryIs);
             REG_OBJECTS_LIB_FUNC(assign, JavascriptObject::EntryAssign);
+        }
+
+        if (config.IsES7BuiltinsEnabled())
+        {
+            REG_OBJECTS_LIB_FUNC(values, JavascriptObject::EntryValues);
+            REG_OBJECTS_LIB_FUNC(entries, JavascriptObject::EntryEntries);
         }
 
         return hr;
