@@ -176,7 +176,7 @@ protected:
 /*
  * Page Segments allows a client to deal with virtual memory on a page level
  * unlike Segment, which gives you access on a segment basis. Pages managed
- * by the page segment are initially in a “free list”, and have the no access
+ * by the page segment are initially in a "free list", and have the no access
  * bit set on them. When a client wants pages, we get them from the free list
  * and commit them into memory. When the client no longer needs those pages,
  * we simply decommit them- this means that the pages are still reserved for
