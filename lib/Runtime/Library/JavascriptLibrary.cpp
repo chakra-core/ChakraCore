@@ -1235,7 +1235,8 @@ namespace Js
 
         booleanTrue = RecyclerNew(recycler, JavascriptBoolean, true, booleanTypeStatic);
         booleanFalse = RecyclerNew(recycler, JavascriptBoolean, false, booleanTypeStatic);
-        randSeed = 0;
+        randSeed0 = 0;
+        randSeed1 = 0;
 
         AddMember(globalObject, PropertyIds::NaN, nan, PropertyNone);
         AddMember(globalObject, PropertyIds::Infinity, positiveInfinite, PropertyNone);

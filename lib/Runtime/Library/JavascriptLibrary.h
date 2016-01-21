@@ -162,6 +162,8 @@ namespace Js
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
         void SetGlobalObject(GlobalObject* globalObject) {globalObject = globalObject; }
+        static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
+        static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
 
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
 
@@ -384,7 +386,7 @@ namespace Js
         // and prototypes contain only writable data properties, which is reset upon invalidating the status.
         JsUtil::List<Type *> *typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain;
 
-        uint64 randSeed;
+        uint64 randSeed0, randSeed1;
         bool inProfileMode;
         bool inDispatchProfileMode;
         bool arrayObjectHasUserDefinedSpecies;
@@ -844,8 +846,10 @@ namespace Js
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
-        uint64 GetRandSeed(){return randSeed;}
-        void SetRandSeed(uint64 rs){randSeed = rs;}
+        uint64 GetRandSeed0() { return randSeed0; }
+        uint64 GetRandSeed1() { return randSeed1; }
+        void SetRandSeed0(uint64 rs) { randSeed0 = rs;}
+        void SetRandSeed1(uint64 rs) { randSeed1 = rs; }
 
         void SetProfileMode(bool fSet);
         void SetDispatchProfile(bool fSet, JavascriptMethod dispatchInvoke);

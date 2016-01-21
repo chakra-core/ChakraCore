@@ -13,6 +13,10 @@
 const Js::OpCode LowererMD::MDUncondBranchOpcode = Js::OpCode::JMP;
 const Js::OpCode LowererMD::MDTestOpcode = Js::OpCode::TEST;
 const Js::OpCode LowererMD::MDOrOpcode = Js::OpCode::OR;
+const Js::OpCode LowererMD::MDXorOpcode = Js::OpCode::XOR;
+#if _M_X64
+const Js::OpCode LowererMD::MDMovUint64ToFloat64Opcode = Js::OpCode::MOVQ;
+#endif
 const Js::OpCode LowererMD::MDOverflowBranchOpcode = Js::OpCode::JO;
 const Js::OpCode LowererMD::MDNotOverflowBranchOpcode = Js::OpCode::JNO;
 const Js::OpCode LowererMD::MDConvertFloat32ToFloat64Opcode = Js::OpCode::CVTSS2SD;

@@ -20,6 +20,7 @@ namespace Js
         static const uint64     k_PointFive = 0x3FE0000000000000ull;
         static const uint64     k_NegPointFive = 0xBFE0000000000000ull;
         static const uint64     k_NegOne    = 0xBFF0000000000000ull;
+        static const uint64     k_OnePointZero = 0x3FF0000000000000ull;
 
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
@@ -31,6 +32,7 @@ namespace Js
         static const double     NEGATIVE_INFINITY;
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
+        static const double     ONE_POINT_ZERO;
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];

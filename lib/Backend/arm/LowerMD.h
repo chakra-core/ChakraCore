@@ -52,6 +52,7 @@ public:
     static const Js::OpCode MDUncondBranchOpcode;
     static const Js::OpCode MDTestOpcode;
     static const Js::OpCode MDOrOpcode;
+    static const Js::OpCode MDXorOpcode;
     static const Js::OpCode MDOverflowBranchOpcode;
     static const Js::OpCode MDNotOverflowBranchOpcode;
     static const Js::OpCode MDConvertFloat32ToFloat64Opcode;
