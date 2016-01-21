@@ -4143,17 +4143,25 @@ Instr::Dump(IRDumpFlags flags)
     {
         BranchInstr * branchInstr = this->AsBranchInstr();
         LabelInstr * targetInstr = branchInstr->GetTarget();
+        bool labelPrinted = true;
         if (targetInstr == NULL)
         {
             // Checking the 'm_isMultiBranch' field here directly as well to bypass asserting when tracing IR builder
             if(branchInstr->m_isMultiBranch && branchInstr->IsMultiBranch())
             {
                 IR::MultiBranchInstr * multiBranchInstr = branchInstr->AsMultiBrInstr();
-
-                multiBranchInstr->MapMultiBrLabels([](IR::LabelInstr * labelInstr) -> void
+                
+                if (this->m_opcode == Js::OpCode::MultiBr)
                 {
-                    Output::Print(L"$L%d ", labelInstr->m_id);
-                });
+                    multiBranchInstr->MapMultiBrLabels([](IR::LabelInstr * labelInstr) -> void
+                    {
+                        Output::Print(L"$L%d ", labelInstr->m_id);
+                    });
+                }
+                else
+                {
+                    labelPrinted = false;
+                }
             }
             else
             {
@@ -4164,7 +4172,7 @@ Instr::Dump(IRDumpFlags flags)
         {
             Output::Print(L"$L%d", targetInstr->m_id);
         }
-        if (this->GetSrc1())
+        if (this->GetSrc1() && labelPrinted)
         {
             Output::Print(L", ");
         }
