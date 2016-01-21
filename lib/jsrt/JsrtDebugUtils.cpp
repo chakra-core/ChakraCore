@@ -4,20 +4,19 @@
 
 #include "JsrtPch.h"
 #include "JsrtDebugUtils.h"
-#include "..\Runtime\Debug\RuntimeDebugPch.h"
+#include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
 
-void JsrtDebugUtils::AddSouceIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtDebugUtils::AddScriptIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
 {
-    JsrtDebugUtils::AddDoublePropertyToObject(object, L"id", utf8SourceInfo->GetSourceInfoId(), utf8SourceInfo->GetScriptContext());
-    JsrtDebugUtils::AddDoublePropertyToObject(object, L"sourceContext", utf8SourceInfo->GetHostSourceContext(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddDoublePropertyToObject(object, L"scriptId", utf8SourceInfo->GetSourceInfoId(), utf8SourceInfo->GetScriptContext());
 }
 
-void JsrtDebugUtils::AddSouceUrlToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtDebugUtils::AddFileNameToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
 {
     const wchar_t* url = utf8SourceInfo->GetSourceContextInfo()->url == nullptr ? L"" : utf8SourceInfo->GetSourceContextInfo()->url;
 
-    JsrtDebugUtils::AddStringPropertyToObject(object, L"name", url, utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddStringPropertyToObject(object, L"fileName", url, utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddErrorToObject(Js::DynamicObject* object, Js::ScriptContext* scriptContext, BSTR description)

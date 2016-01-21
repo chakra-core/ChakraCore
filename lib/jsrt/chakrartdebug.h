@@ -365,15 +365,15 @@
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsDiagGetProperties(
+        JsDiagGetStackProperties(
             _In_ unsigned int stackFrameHandle,
             _Out_ JsValueRef *properties);
 
 
     /// <summary>
-    ///     Gets the list of properties corresponding to the scope or global
+    ///     Gets the list of properties corresponding to the scope, global or object
     /// </summary>
-    /// <param name="handlesArray">Handles of scope or globals</param>
+    /// <param name="handlesArray">Handles of scope, globals or object</param>
     /// <param name="propertiesObject">Array of properties</param>
     /// <remarks>
     ///     <para>
@@ -401,7 +401,7 @@
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsDiagGetScopeProperties(
+        JsDiagGetProperties(
             _In_ JsValueRef handlesArray,
             _Out_ JsValueRef *propertiesObject);
 

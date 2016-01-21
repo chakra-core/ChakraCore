@@ -100,7 +100,6 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
     return childrensObject;
 }
 
-
 DebuggerObjectsManager::DebuggerObjectsManager(JsrtDebug* debugObject) :
     handleId(0),
     debugObject(debugObject),
@@ -273,6 +272,16 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     Js::FunctionBody* functionBody = stackFrame->GetFunction();
     Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
 
+    JsrtDebugUtils::AddDoublePropertyToObject(this->stackTraceObject, L"index", frameIndex, frameScriptContext);
+    JsrtDebugUtils::AddScriptIdToObject(this->stackTraceObject, utf8SourceInfo);
+    JsrtDebugUtils::AddFileNameToObject(this->stackTraceObject, utf8SourceInfo);
+
+    //JsrtDebugUtils::AddStringPropertyToObject(this->stackTraceObject, L"funcName", stackFrame->GetDisplayName(), frameScriptContext);
+
+    int currentByteCodeOffset = stackFrame->GetByteCodeOffset();
+    JsrtDebugUtils::AddLineColumnToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
+    JsrtDebugUtils::AddSourceTextToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
+
     DebuggerObjectBase* debuggerObject = nullptr;
     uint functionHandle = 0;
     if (!this->GetDebuggerObjectsManager()->TryGetFunctionObjectFromFunctionNumber(functionBody->GetFunctionNumber(), &debuggerObject))
@@ -298,39 +307,10 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     JsrtDebugUtils::AddDoublePropertyToObject(scriptObject, L"handle", scriptHandle, frameScriptContext);
     JsrtDebugUtils::AddVarPropertyToObject(stackTraceObject, L"script", scriptObject, frameScriptContext);
 
-    JsrtDebugUtils::AddDoublePropertyToObject(this->stackTraceObject, L"index", frameIndex, frameScriptContext);
-    JsrtDebugUtils::AddSouceIdToObject(this->stackTraceObject, utf8SourceInfo);
-    JsrtDebugUtils::AddSouceUrlToObject(this->stackTraceObject, utf8SourceInfo);
-
-    JsrtDebugUtils::AddStringPropertyToObject(this->stackTraceObject, L"funcName", stackFrame->GetDisplayName(), frameScriptContext);
-
-    int currentByteCodeOffset = stackFrame->GetByteCodeOffset();
-    JsrtDebugUtils::AddLineColumnToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
-    JsrtDebugUtils::AddSourceTextToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
-
     JsrtDebugUtils::AddDoublePropertyToObject(stackTraceObject, L"handle", this->GetHandle(), frameScriptContext);
 
-    // ToDo (SaAgarwa): Do we need to prevent collection of this object
     return this->stackTraceObject;
 }
-
-/*
-template<class DebuggerObjectType, class PostFunction>
-void DebuggerObjectBase::CreateDebuggerObject(DebuggerObjectsManager* debuggerObjectsManager, Js::ResolvedObject resolvedObject, Js::ScriptContext* scriptContext, PostFunction postFunction)
-{
-    AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
-    Js::IDiagObjectModelDisplay* objectDisplay = objectDisplayWeakRef->GetStrongReference();
-    if (objectDisplay != nullptr)
-    {
-        DebuggerObjectBase* debuggerObject = DebuggerObjectType::Make(debuggerObjectsManager, objectDisplayWeakRef);
-        Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
-        Assert(object != nullptr);
-        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
-        postFunction(marshaledObj);
-        objectDisplayWeakRef.Detach();
-    }
-}
-*/
 
 Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
 {
@@ -541,13 +521,12 @@ Js::DynamicObject * DebuggerObjectScript::GetJSONObject(Js::ScriptContext* scrip
 
     this->sourceObject = utf8SourceScriptContext->GetLibrary()->CreateObject();
 
-    JsrtDebugUtils::AddSouceIdToObject(this->sourceObject, utf8SourceInfo);
-    JsrtDebugUtils::AddSouceUrlToObject(this->sourceObject, utf8SourceInfo);
+    JsrtDebugUtils::AddScriptIdToObject(this->sourceObject, utf8SourceInfo);
+    JsrtDebugUtils::AddFileNameToObject(this->sourceObject, utf8SourceInfo);
     JsrtDebugUtils::AddLineCountToObject(this->sourceObject, utf8SourceInfo);
     JsrtDebugUtils::AddSouceLengthToObject(this->sourceObject, utf8SourceInfo);
     JsrtDebugUtils::AddDoublePropertyToObject(this->sourceObject, L"handle", this->GetHandle(), utf8SourceScriptContext);
 
-    // ToDo (SaAgarwa): Do we need to prevent collection of this object
     return this->sourceObject;
 }
 
@@ -673,6 +652,19 @@ Js::DynamicObject * DebuggerObjectScope::GetChildrens(Js::ScriptContext * script
     return __super::GetChildrens(this->objectDisplay, scriptContext);
 }
 
+DebuggerObjectFunction::DebuggerObjectFunction(DebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody) :
+    DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Function, debuggerObjectsManager),
+    functionBody(functionBody),
+    functionObject(nullptr)
+{
+}
+
+DebuggerObjectFunction::~DebuggerObjectFunction()
+{
+    this->functionBody = nullptr;
+    this->functionObject = nullptr;
+}
+
 DebuggerObjectBase * DebuggerObjectFunction::Make(DebuggerObjectsManager * debuggerObjectsManager, Js::FunctionBody * functionBody)
 {
     DebuggerObjectBase* debuggerObject = nullptr;
@@ -688,19 +680,6 @@ DebuggerObjectBase * DebuggerObjectFunction::Make(DebuggerObjectsManager * debug
     return debuggerObject;
 }
 
-DebuggerObjectFunction::DebuggerObjectFunction(DebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody) :
-    DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Function, debuggerObjectsManager),
-    functionBody(functionBody),
-    functionObject(nullptr)
-{
-}
-
-DebuggerObjectFunction::~DebuggerObjectFunction()
-{
-    this->functionBody = nullptr;
-    this->functionObject = nullptr;
-}
-
 Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * scriptContext)
 {
     if (this->functionObject != nullptr)
@@ -711,7 +690,7 @@ Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * sc
     this->functionObject = scriptContext->GetLibrary()->CreateObject();
     if (this->functionBody != nullptr)
     {
-        JsrtDebugUtils::AddSouceIdToObject(this->functionObject, this->functionBody->GetUtf8SourceInfo());
+        JsrtDebugUtils::AddScriptIdToObject(this->functionObject, this->functionBody->GetUtf8SourceInfo());
         JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"line", this->functionBody->GetLineNumber(), scriptContext);
         JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"column", this->functionBody->GetColumnNumber(), scriptContext);
         JsrtDebugUtils::AddStringPropertyToObject(this->functionObject, L"name", this->functionBody->GetDisplayName(), scriptContext);
@@ -720,6 +699,24 @@ Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * sc
         JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"handle", this->GetHandle(), scriptContext);
     }
     return this->functionObject;
+}
+
+DebuggerObjectGlobalsNode::DebuggerObjectGlobalsNode(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
+    DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Globals, debuggerObjectsManager),
+    objectDisplay(objectDisplay),
+    propertyObject(nullptr)
+{
+    Assert(objectDisplay != nullptr);
+}
+
+DebuggerObjectGlobalsNode::~DebuggerObjectGlobalsNode()
+{
+    if (this->objectDisplay != nullptr)
+    {
+        HeapDelete(this->objectDisplay);
+        this->objectDisplay = nullptr;
+    }
+    this->propertyObject = nullptr;
 }
 
 DebuggerObjectBase * DebuggerObjectGlobalsNode::Make(DebuggerObjectsManager * debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay)
@@ -751,23 +748,3 @@ Js::DynamicObject * DebuggerObjectGlobalsNode::GetChildrens(Js::ScriptContext * 
 {
     return __super::GetChildrens(this->objectDisplay, scriptContext);
 }
-
-
-DebuggerObjectGlobalsNode::DebuggerObjectGlobalsNode(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
-    DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Globals, debuggerObjectsManager),
-    objectDisplay(objectDisplay),
-    propertyObject(nullptr)
-{
-    Assert(objectDisplay != nullptr);
-}
-
-DebuggerObjectGlobalsNode::~DebuggerObjectGlobalsNode()
-{
-    if (this->objectDisplay != nullptr)
-    {
-        HeapDelete(this->objectDisplay);
-        this->objectDisplay = nullptr;
-    }
-    this->propertyObject = nullptr;
-}
-

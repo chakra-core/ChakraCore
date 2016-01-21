@@ -88,7 +88,6 @@ private:
     DebuggerObjectsDictionary* GetFunctionNumberToObjectDictionary();
 };
 
-
 class DebuggerObjectFunction : public DebuggerObjectBase
 {
 public:

@@ -123,15 +123,19 @@ JsDiagGetSource(
 
         *source = JS_INVALID_REFERENCE;
 
-        // ToDo (SaAgarwa): Add checks for validating like script context close, not debugging etc.
-
         JsrtContext *currentContext = JsrtContext::GetCurrent();
 
         JsrtDebug* debugObject = currentContext->GetRuntime()->GetDebugObject();
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        *source = debugObject->GetSource(scriptId);
+        Js::DynamicObject* sourceObject = debugObject->GetSource(scriptId);
+        if (sourceObject == nullptr)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        *source = sourceObject;
 
         return JsNoError;
     });
@@ -414,8 +418,8 @@ JsDiagGetFunctionPosition(
 
                     if (funcInfoObject != nullptr)
                     {
-                        JsrtDebugUtils::AddSouceIdToObject(funcInfoObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddSouceUrlToObject(funcInfoObject, utf8SourceInfo);
+                        JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
+                        JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
                         JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"line", lineNumber, scriptContext);
                         JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"column", columnNumber, scriptContext);
                         JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"stmtStartLine", stmtStartLineNumber, scriptContext);
@@ -462,7 +466,7 @@ JsDiagGetStacktrace(
 
 
 STDAPI_(JsErrorCode)
-JsDiagGetProperties(
+JsDiagGetStackProperties(
     _In_ unsigned int stackFrameHandle,
     _Out_ JsValueRef *properties)
 {
@@ -486,7 +490,7 @@ JsDiagGetProperties(
             debuggerObject == nullptr || debuggerObject->GetType() != DebuggerObjectType_StackFrame)
         {
             // ToDo (SaAgarwa): JsErrorDiagInvalidHandle;
-            return JsErrorCategoryUsage;
+            return JsErrorInvalidArgument;
         }
 
         DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;
@@ -498,7 +502,7 @@ JsDiagGetProperties(
 }
 
 STDAPI_(JsErrorCode)
-JsDiagGetScopeProperties(
+JsDiagGetProperties(
     _In_ JsValueRef handlesArray,
     _Out_ JsValueRef *propertiesObject)
 {
@@ -648,14 +652,12 @@ JsDiagLookupHandles(
                             case DebuggerObjectType_Script:
                             case DebuggerObjectType_StackFrame:
                             case DebuggerObjectType_Property:
+                            case DebuggerObjectType_Globals:
+                            case DebuggerObjectType_Scope:
                             {
                                 JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, debuggerObject->GetJSONObject(scriptContext), scriptContext);
                                 break;
                             }
-                            case DebuggerObjectType_Globals:
-                            case DebuggerObjectType_Scope:
-                                //AssertMsg(false, "DebuggerObjectType needs to be handled");
-                                break;
                             default:
                                 AssertMsg(false, "Unhandled DebuggerObjectType");
                                 break;
@@ -699,7 +701,7 @@ JsDiagEvaluate(
         if (!debugObject->GetDebuggerObjectsManager()->TryGetFrameObjectFromFrameIndex(stackFrameIndex, &debuggerObject))
         {
             // ToDo (SaAgarwa): JsErrorDiagInvalidHandle;
-            return JsErrorCategoryUsage;
+            return JsErrorInvalidArgument;
         }
 
         DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;

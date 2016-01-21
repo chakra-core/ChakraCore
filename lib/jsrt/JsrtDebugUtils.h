@@ -7,8 +7,8 @@
 class JsrtDebugUtils
 {
 public:
-    static void AddSouceIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
-    static void AddSouceUrlToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
+    static void AddScriptIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
+    static void AddFileNameToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
     static void AddErrorToObject(Js::DynamicObject* object, Js::ScriptContext* scriptContext, BSTR description);
     static void AddLineColumnToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset);
     static void AddSourceTextToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset);
