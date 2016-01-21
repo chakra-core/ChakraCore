@@ -32,12 +32,19 @@ namespace Js
         SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithLengthAndNameTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable),
+        SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
+    };
+
     SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(BuiltInPropertyRecords::constructor, PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(BuiltInPropertyRecords::name, PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(BuiltInPropertyRecords::prototype, PropertyWritable);
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandler(SharedFunctionPropertyDescriptors);
     SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(BuiltInPropertyRecords::prototype);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(BuiltInPropertyRecords::length);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(FunctionWithLengthAndNameTypeDescriptors);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -1046,6 +1053,11 @@ namespace Js
         return CreateFunctionWithLengthType(this->GetFunctionPrototype(), functionInfo);
     }
 
+    DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo)
+    {
+        return CreateFunctionWithLengthAndNameType(this->GetFunctionPrototype(), functionInfo);
+    }
+
     DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndPrototypeType(FunctionInfo * functionInfo)
     {
         return CreateFunctionWithLengthAndPrototypeType(this->GetFunctionPrototype(), functionInfo);
@@ -1057,6 +1069,14 @@ namespace Js
         return DynamicType::New(scriptContext, TypeIds_Function, prototype,
             this->inProfileMode? ProfileEntryThunk : functionInfo->GetOriginalEntryPoint(),
             &SharedFunctionWithLengthTypeHandler);
+    }
+
+    DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndNameType(DynamicObject * prototype, FunctionInfo * functionInfo)
+    {
+        Assert(!functionInfo->HasBody());
+        return DynamicType::New(scriptContext, TypeIds_Function, prototype,
+            this->inProfileMode ? ProfileEntryThunk : functionInfo->GetOriginalEntryPoint(),
+            &SharedFunctionWithLengthAndNameTypeHandler);
     }
 
     DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo)
@@ -4511,10 +4531,14 @@ namespace Js
     {
         Assert(nameId != nullptr);
         RuntimeFunction * function;
+
         if (nullptr == functionType)
         {
             functionType = (nullptr == prototype) ?
-                CreateFunctionWithLengthType(functionInfo) : CreateFunctionWithLengthAndPrototypeType(functionInfo);
+                                scriptContext->GetConfig()->IsES6FunctionNameEnabled() ? 
+                                    CreateFunctionWithLengthAndNameType(functionInfo) : 
+                                    CreateFunctionWithLengthType(functionInfo) : 
+                                CreateFunctionWithLengthAndPrototypeType(functionInfo);
         }
 
         function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction, functionType, functionInfo);
