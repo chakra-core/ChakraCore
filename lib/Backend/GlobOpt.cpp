@@ -6094,9 +6094,20 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         {
             // Note: Jit loop body generates some i32 operands...
             Assert(opnd->IsInt32() || opnd->IsInt64() || opnd->IsUInt32());
-            IRType opndType = opnd->IsUInt32() ? TyUint32 : TyInt32;
-
-            IR::IntConstOpnd *intOpnd = IR::IntConstOpnd::New(intConstantValue, opndType, instr->m_func);
+            IRType opndType;
+            IntConstType constVal;
+            if (opnd->IsUInt32())
+            {
+                // avoid sign extension
+                constVal = (uint32)intConstantValue;
+                opndType = TyUint32;
+            }
+            else
+            {
+                constVal = intConstantValue;
+                opndType = TyInt32;
+            }
+            IR::IntConstOpnd *intOpnd = IR::IntConstOpnd::New(constVal, opndType, instr->m_func);
 
             GOPT_TRACE_OPND(opnd, L"Constant prop %d (value:%d)\n", intOpnd->GetImmediateValue(), intConstantValue);
             constOpnd = intOpnd;
