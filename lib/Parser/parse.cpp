@@ -240,7 +240,7 @@ CatchPidRefList *Parser::EnsureCatchPidRefList()
     return this->m_catchPidRefList;
 }
 
-HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, CompileScriptException *pse, void (Parser::*validateFunction)())
+HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
 {
     AssertPsz(pszSrc);
     AssertMemN(pse);
@@ -274,6 +274,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         // Give the scanner the source and get the first token
         m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
         m_pscan->SetYieldIsKeyword(isGenerator);
+        m_pscan->SetAwaitIsKeyword(isAsync);
         m_pscan->Scan();
 
         uint nestedCount = 0;
@@ -305,6 +306,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
             pnodeFnc->sxFnc.pnodeRest  = nullptr;
             pnodeFnc->sxFnc.deferredStub = nullptr;
             pnodeFnc->sxFnc.SetIsGenerator(isGenerator);
+            pnodeFnc->sxFnc.SetIsAsync(isAsync);
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
             m_currentNodeFunc = pnodeFnc;
             m_currentNodeDeferredFunc = NULL;
@@ -897,6 +899,13 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             }
             break;
         case knopVarDecl:
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
+            {
+                // If this is a parameter list, mark the scope to indicate that it has duplicate definition.
+                // If later this turns out to be a non-simple param list (like function f(a, a, c = 1) {}) then it is a SyntaxError to have duplicate formals.
+                m_currentScope->SetHasDuplicateFormals();
+            }
+
             if (sym->GetDecl() == nullptr)
             {
                 Assert(symbolType == STFunction);
@@ -3709,19 +3718,25 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     m_scopeCountNoAst = 0;
 
     long* pAstSizeSave = m_pCurrentAstSize;
+    bool noStmtContext = false;
 
     if (buildAST || BindDeferredPidRefs())
     {
         if (fDeclaration && m_scriptContext->GetConfig()->IsBlockScopeEnabled())
         {
-            bool needsBlockNode =
+            noStmtContext =
                 (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
                 (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
 
-            if (needsBlockNode)
+            if (noStmtContext)
             {
                 // We have a function declaration like "if (a) function f() {}". We didn't see
-                // a block scope on the way in, so we need to pretend we did.
+                // a block scope on the way in, so we need to pretend we did. Note that this is a syntax error
+                // in strict mode.
+                if (!this->FncDeclAllowedWithoutContext(flags))
+                {
+                    Error(ERRsyntax);
+                }
                 pnodeFncBlockScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
                 if (buildAST)
                 {
@@ -3853,7 +3868,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     }
 
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, &needScanRCurly);
+    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly);
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -4037,6 +4052,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     return pnodeFnc;
 }
 
+bool Parser::FncDeclAllowedWithoutContext(ushort flags)
+{
+    // Statement context required for strict mode, async functions, and generators.
+    // Note that generators aren't detected yet when this method is called; they're checked elsewhere.
+    return !IsStrictMode() && !(flags & fFncAsync);
+}
+
 uint Parser::CalculateFunctionColumnNumber()
 {
     uint columnNumber;
@@ -4089,7 +4111,7 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodePtr pnodeFnc)
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool *pNeedScanRCurly)
+bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly)
 {
     bool fDeclaration = (flags & fFncDeclaration) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
@@ -4119,6 +4141,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     }
 
     *pHasName = !fLambda && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncParent, flags, &lastNodeRef);
+
+    if (noStmtContext && pnodeFnc->sxFnc.IsGenerator())
+    {
+        // Generator decl not allowed outside stmt context. (We have to wait until we've parsed the '*' to
+        // detect generator.)
+        Error(ERRsyntax, pnodeFnc);
+    }
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
@@ -5341,10 +5370,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                             MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
                         }
                     }
-                    else
-                    {
-                        isNonSimpleParameterList = true;
-                    }
+
+                    isNonSimpleParameterList = true;
                 }
                 else
                 {
@@ -5410,19 +5437,30 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         }
                     }
 
+                    // In defer parse mode we have to flag the function node to indicate that it has default arguments
+                    // so that it will be considered for any syntax error scenario.
+                    ParseNode* currentFncNode = GetCurrentFunctionNode();
+                    if (!currentFncNode->sxFnc.HasDefaultArguments())
+                    {
+                        currentFncNode->sxFnc.SetHasDefaultArguments();
+                        currentFncNode->sxFnc.firstDefaultArg = argPos;
+                    }
 
                     if (buildAST)
                     {
                         if (!m_currentNodeFunc->sxFnc.HasDefaultArguments())
                         {
-                            m_currentNodeFunc->sxFnc.SetHasDefaultArguments();
-                            m_currentNodeFunc->sxFnc.firstDefaultArg = argPos;
                             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunctionCount, m_scriptContext);
                         }
                         pnodeT->sxVar.pnodeInit = pnodeInit;
                         pnodeT->ichLim = m_pscan->IchLimTok();
                     }
                 }
+            }
+
+            if (isNonSimpleParameterList && m_currentScope->GetHasDuplicateFormals())
+            {
+                Error(ERRFormalSame);
             }
 
             if (m_token.tk != tkComma)
@@ -9462,6 +9500,12 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             {
                 if (isUseStrictDirective)
                 {
+                    // Functions with non-simple parameter list cannot be made strict mode
+                    if (!GetCurrentFunctionNode()->sxFnc.IsSimpleParameterList())
+                    {
+                        Error(ERRNonSimpleParamListInStrictMode);
+                    }
+
                     if (seenDirectiveContainingOctal)
                     {
                         // Directives seen before a "use strict" cannot contain an octal.

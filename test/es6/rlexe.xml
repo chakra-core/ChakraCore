@@ -2,32 +2,6 @@
 <regress-exe>
   <test>
     <default>
-      <files>AsyncAwait-syntax.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-syntax.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-functionality.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
-      <baseline>AsyncAwait-functionality.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-functionality.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
-      <baseline>AsyncAwait-functionality.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>lambda1.js</files>
       <compile-flags> -es6lambda -off:deferparse -args summary -endargs</compile-flags>
     </default>
@@ -233,20 +207,21 @@
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
+      <compile-flags>-ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-force:deferparse</compile-flags>
+      <compile-flags>-force:deferparse -ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
+      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar -ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
       <tags>exclude_fre</tags>
     </default>
@@ -904,9 +879,20 @@
   </test>
   <test>
     <default>
+      <files>regex-prototype-properties.js</files>
+      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regexflags.js</files>
-      <baseline>regexflags.baseline</baseline>
-      <compile-flags>-version:6 -ES6RegExSticky</compile-flags>
+      <compile-flags>-version:6 -ES6RegExSticky -ES6Unicode -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regexflags-disabled-features.js</files>
+      <compile-flags>-ES6RegExSticky- -ES6Unicode- -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

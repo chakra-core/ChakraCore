@@ -1,8 +1,13 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
 param (
     [ValidateSet("x86", "x64", "arm", "*")]
     [string]$arch="*",
 
-    [ValidateSet("debug", "release", "test", "*")]
+    [ValidateSet("debug", "release", "test", "codecoverage", "*")]
     [string]$flavor = "*",
 
     [string]$srcpath = "",
@@ -22,7 +27,6 @@ param (
 )
 
 $global:exitcode = 0
-
 
 if ($arch -eq "*") {
 

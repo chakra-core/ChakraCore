@@ -1,4 +1,9 @@
-# Need to make sure that the reference to master is available.
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
+# Need to make sure that the reference to origin/master is available.
 # We know that HEAD is checked out so that the tests on that source can be run.
 
 # configure the sh environment to run scripts from the bin dir in case that's missing

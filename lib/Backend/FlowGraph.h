@@ -618,8 +618,10 @@ public:
 
     struct MemSetCandidate : public MemOpCandidate
     {
-        int constant;
-        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET) {}
+        BailoutConstantValue constant;
+        StackSym* varSym;
+
+        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET), varSym(nullptr) {}
     };
 
     struct MemCopyCandidate : public MemOpCandidate

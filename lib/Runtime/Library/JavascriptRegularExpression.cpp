@@ -18,10 +18,6 @@ namespace Js
         lastIndexOrFlag(0)
     {
         Assert(type->GetTypeId() == TypeIds_RegEx);
-
-        // See JavascriptRegExp::IsWritable for special non-writable properties
-        // The JavascriptLibrary should have cleared the bits already
-        Assert(!this->GetTypeHandler()->GetHasOnlyWritableDataProperties());
         Assert(!this->GetType()->AreThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties());
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -101,8 +97,14 @@ namespace Js
         return GetPattern()->GetFlags();
     }
 
-    JavascriptRegExp* JavascriptRegExp::GetJavascriptRegExp(Var var, ScriptContext* scriptContext)
+    JavascriptRegExp* JavascriptRegExp::GetJavascriptRegExp(Arguments& args, PCWSTR propertyName, ScriptContext* scriptContext)
     {
+        if (args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
+        }
+
+        Var var = args[0];
         if (JavascriptRegExp::Is(var))
         {
             return JavascriptRegExp::FromVar(var);
@@ -119,7 +121,7 @@ namespace Js
             }
         }
 
-        return nullptr;
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
     }
 
     Var JavascriptRegExp::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -294,7 +296,7 @@ namespace Js
         }
     }
 
-    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly)
+    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly, bool useFlagsProperty)
     {
         Js::InternalString str = pattern->GetSource();
         CompoundString *const builder = CompoundString::NewWithCharCapacity(str.GetLength() + 5, GetLibrary());
@@ -385,26 +387,37 @@ namespace Js
         {
             builder->AppendChars(L'/');
 
-            // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
-            if (pattern->IsGlobal())
+            if (!useFlagsProperty)
             {
-                builder->AppendChars(L'g');
+                // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+                // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
+                if (pattern->IsGlobal())
+                {
+                    builder->AppendChars(L'g');
+                }
+                if (pattern->IsIgnoreCase())
+                {
+                    builder->AppendChars(L'i');
+                }
+                if (pattern->IsMultiline())
+                {
+                    builder->AppendChars(L'm');
+                }
+                if (pattern->IsUnicode())
+                {
+                    builder->AppendChars(L'u');
+                }
+                if (pattern->IsSticky())
+                {
+                    builder->AppendChars(L'y');
+                }
             }
-            if (pattern->IsIgnoreCase())
+            else
             {
-                builder->AppendChars(L'i');
-            }
-            if (pattern->IsMultiline())
-            {
-                builder->AppendChars(L'm');
-            }
-            if (pattern->IsUnicode())
-            {
-                builder->AppendChars(L'u');
-            }
-            if (pattern->IsSticky())
-            {
-                builder->AppendChars(L'y');
+                ScriptContext* scriptContext = GetScriptContext();
+                Var flags = JavascriptOperators::GetProperty(this, PropertyIds::flags, scriptContext);
+                JavascriptString* flagsString = JavascriptConversion::ToString(flags, scriptContext);
+                builder->AppendCharsSz(flagsString->GetString());
             }
         }
 
@@ -417,17 +430,8 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        // enforce 'this' arg generic
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.compile");
-        }
 
-        JavascriptRegExp* thisRegularExpression = GetJavascriptRegExp(args[0], scriptContext);
-        if (!thisRegularExpression)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.compile");
-        }
+        JavascriptRegExp* thisRegularExpression = GetJavascriptRegExp(args, L"RegExp.prototype.compile", scriptContext);
 
         UnifiedRegex::RegexPattern* pattern;
         UnifiedRegex::RegexPattern* splitPattern = nullptr;
@@ -511,17 +515,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        // enforce 'this' arg generic
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.exec");
-        }
-
-        JavascriptRegExp * pRegEx = GetJavascriptRegExp(args[0], scriptContext);
-        if (!pRegEx)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.exec");
-        }
+        JavascriptRegExp * pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.exec", scriptContext);
 
         JavascriptString * pStr;
         if(args.Info.Count == 1)
@@ -548,17 +542,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        // enforce 'this' arg generic
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.test");
-        }
-
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args[0], scriptContext);
-        if (!pRegEx)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.test");
-        }
+        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.test", scriptContext);
         JavascriptString * pStr;
 
         if(args.Info.Count == 1)
@@ -587,20 +571,13 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
+        Assert(args.Info.Count > 0);
 
-        // enforce 'this' arg generic
-        if (args.Info.Count == 0)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.toString");
-        }
+        JavascriptRegExp* obj = GetJavascriptRegExp(args, L"RegExp.prototype.toString", scriptContext);
 
-        JavascriptRegExp* obj = GetJavascriptRegExp(args[0], scriptContext);
-        if (!obj)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, L"RegExp.prototype.toString");
-        }
-
-        return obj->ToString();
+        bool sourceOnly = false;
+        bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
+        return obj->ToString(sourceOnly, useFlagsProperty);
     }
 
     Var JavascriptRegExp::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)
@@ -611,6 +588,138 @@ namespace Js
 
         return args[0];
     }
+
+    Var JavascriptRegExp::EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"RegExp.prototype.flags");
+        }
+
+        RecyclableObject *thisObj = JavascriptObject::FromVar(args[0]);
+        Var flags;
+
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JavascriptRegExp")
+        {
+            StringBuilder<ArenaAllocator> bs(tempAlloc, 5);
+
+#define APPEND_FLAG(propertyId, flag) AppendFlagForFlagsProperty(&bs, thisObj, propertyId, flag, scriptContext)
+            // If you change the order of the flags, don't forget to change it in GetOptions() and ToString() too.
+            APPEND_FLAG(PropertyIds::global, L'g');
+            APPEND_FLAG(PropertyIds::ignoreCase, L'i');
+            APPEND_FLAG(PropertyIds::multiline, L'm');
+
+            ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
+
+            if (scriptConfig->IsES6UnicodeExtensionsEnabled())
+            {
+                APPEND_FLAG(PropertyIds::unicode, L'u');
+            }
+
+            if (scriptConfig->IsES6RegExStickyEnabled())
+            {
+                APPEND_FLAG(PropertyIds::sticky, L'y');
+            }
+#undef APPEND_FLAG
+
+            flags = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
+        }
+        END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+
+        return flags;
+    }
+
+    void JavascriptRegExp::AppendFlagForFlagsProperty(
+        StringBuilder<ArenaAllocator>* builder,
+        RecyclableObject* thisObj,
+        PropertyId propertyId,
+        wchar_t flag,
+        ScriptContext* scriptContext)
+    {
+        Var propertyValue = JavascriptOperators::GetProperty(thisObj, propertyId, scriptContext);
+        if (JavascriptConversion::ToBoolean(propertyValue, scriptContext))
+        {
+            builder->Append(flag);
+        }
+    }
+
+    Var JavascriptRegExp::EntryGetterOptions(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        return GetJavascriptRegExp(args, L"RegExp.prototype.options", function->GetScriptContext())->GetOptions();
+    }
+
+    Var JavascriptRegExp::GetOptions()
+    {
+        Var options;
+
+        ScriptContext* scriptContext = this->GetLibrary()->GetScriptContext();
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JavascriptRegExp")
+        {
+            StringBuilder<ArenaAllocator> bs(tempAlloc, 4);
+
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and ToString() too.
+            if(GetPattern()->IsGlobal())
+            {
+                bs.Append(L'g');
+            }
+            if(GetPattern()->IsIgnoreCase())
+            {
+                bs.Append(L'i');
+            }
+            if(GetPattern()->IsMultiline())
+            {
+                bs.Append(L'm');
+            }
+            if (GetPattern()->IsUnicode())
+            {
+                bs.Append(L'u');
+            }
+            if (GetPattern()->IsSticky())
+            {
+                bs.Append(L'y');
+            }
+            options = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
+        }
+        END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+
+        return options;
+    }
+
+    Var JavascriptRegExp::EntryGetterSource(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        return GetJavascriptRegExp(args, L"RegExp.prototype.source", function->GetScriptContext())->ToString(true);
+    }
+
+#define DEFINE_FLAG_GETTER(methodName, propertyName, patternMethodName) \
+    Var JavascriptRegExp::##methodName##(RecyclableObject* function, CallInfo callInfo, ...) \
+    { \
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault); \
+        ARGUMENTS(args, callInfo); \
+        Assert(!(callInfo.Flags & CallFlags_New)); \
+        \
+        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype." L#propertyName, function->GetScriptContext()); \
+        return pRegEx->GetLibrary()->CreateBoolean(pRegEx->GetPattern()->##patternMethodName##()); \
+    }
+
+    DEFINE_FLAG_GETTER(EntryGetterGlobal, global, IsGlobal)
+    DEFINE_FLAG_GETTER(EntryGetterIgnoreCase, ignoreCase, IsIgnoreCase)
+    DEFINE_FLAG_GETTER(EntryGetterMultiline, multiline, IsMultiline)
+    DEFINE_FLAG_GETTER(EntryGetterSticky, sticky, IsSticky)
+    DEFINE_FLAG_GETTER(EntryGetterUnicode, unicode, IsUnicode)
 
     JavascriptRegExp * JavascriptRegExp::BoxStackInstance(JavascriptRegExp * instance)
     {
@@ -655,30 +764,30 @@ namespace Js
 
     BOOL JavascriptRegExp::HasProperty(PropertyId propertyId)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define HAS_PROPERTY(ownProperty) \
+        return (ownProperty ? true : DynamicObject::HasProperty(propertyId));
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            return true;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            return true;
+            HAS_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                return true;
-            }
-            return DynamicObject::HasProperty(propertyId);
+            HAS_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                return true;
-            }
-            return DynamicObject::HasProperty(propertyId);
+            HAS_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         default:
             return DynamicObject::HasProperty(propertyId);
         }
+
+#undef HAS_PROPERTY
     }
 
     BOOL JavascriptRegExp::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -713,6 +822,20 @@ namespace Js
 
     bool JavascriptRegExp::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define GET_FLAG(patternMethod) \
+        if (!scriptConfig->IsES6RegExPrototypePropertiesEnabled()) \
+        { \
+            *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->##patternMethod##()); \
+            *result = true; \
+            return true; \
+        } \
+        else \
+        { \
+            return false; \
+        }
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
@@ -725,81 +848,42 @@ namespace Js
             *result = true;
             return true;
         case PropertyIds::global:
-            *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->IsGlobal());
-            *result = true;
-            return true;
+            GET_FLAG(IsGlobal)
         case PropertyIds::multiline:
-            *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->IsMultiline());
-            *result = true;
-            return true;
+            GET_FLAG(IsMultiline)
         case PropertyIds::ignoreCase:
-            *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->IsIgnoreCase());
-            *result = true;
-            return true;
+            GET_FLAG(IsIgnoreCase)
         case PropertyIds::unicode:
-            if (GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->IsUnicode());
-                *result = true;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            GET_FLAG(IsUnicode)
         case PropertyIds::sticky:
-            if (GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                *value = this->GetLibrary()->CreateBoolean(this->GetPattern()->IsSticky());
-                *result = true;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            GET_FLAG(IsSticky)
         case PropertyIds::source:
+            if (!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
             {
                 *value = this->ToString(true);
                 *result = true;
                 return true;
             }
-        case PropertyIds::options:
-        {
-            ScriptContext* scriptContext = this->GetLibrary()->GetScriptContext();
-            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JavascriptRegExp")
+            else
             {
-                StringBuilder<ArenaAllocator> bs(tempAlloc, 4);
-
-                if(GetPattern()->IsGlobal())
-                {
-                    bs.Append(L'g');
-                }
-                if(GetPattern()->IsIgnoreCase())
-                {
-                    bs.Append(L'i');
-                }
-                if(GetPattern()->IsMultiline())
-                {
-                    bs.Append(L'm');
-                }
-                if (GetPattern()->IsUnicode())
-                {
-                    bs.Append(L'u');
-                }
-                if (GetPattern()->IsSticky())
-                {
-                    bs.Append(L'y');
-                }
-                *value = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
+                return false;
             }
-            END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
-            *result = true;
-            return true;
-        }
+        case PropertyIds::options:
+            if (!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+            {
+                *value = GetOptions();
+                *result = true;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         default:
             return false;
         }
+
+#undef GET_FLAG
     }
 
     BOOL JavascriptRegExp::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -829,6 +913,17 @@ namespace Js
 
     bool JavascriptRegExp::SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define SET_PROPERTY(ownProperty) \
+        if (ownProperty) \
+        { \
+            JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext()); \
+            *result = false; \
+            return true; \
+        } \
+        return false;
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
@@ -841,28 +936,16 @@ namespace Js
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
-            *result = false;
-            return true;
+            SET_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
-                *result = false;
-                return true;
-            }
-            return false;
+            SET_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
-                *result = false;
-                return true;
-            }
-            return false;
+            SET_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return false;
         }
+
+#undef SET_PROPERTY
     }
 
     BOOL JavascriptRegExp::InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -872,33 +955,35 @@ namespace Js
 
     BOOL JavascriptRegExp::DeleteProperty(PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define DELETE_PROPERTY(ownProperty) \
+        if (ownProperty) \
+        { \
+            JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), this->GetScriptContext()->GetPropertyName(propertyId)->GetBuffer()); \
+            return false; \
+        } \
+        return DynamicObject::DeleteProperty(propertyId, propertyOperationFlags);
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            DELETE_PROPERTY(true);
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), this->GetScriptContext()->GetPropertyName(propertyId)->GetBuffer());
-            return false;
+            DELETE_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), this->GetScriptContext()->GetPropertyName(propertyId)->GetBuffer());
-                return false;
-            }
-            return DynamicObject::DeleteProperty(propertyId, propertyOperationFlags);
+            DELETE_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, this->GetScriptContext(), this->GetScriptContext()->GetPropertyName(propertyId)->GetBuffer());
-                return false;
-            }
-            return DynamicObject::DeleteProperty(propertyId, propertyOperationFlags);
+            DELETE_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return DynamicObject::DeleteProperty(propertyId, propertyOperationFlags);
         }
+
+#undef DELETE_PROPERTY
     }
 
     DescriptorFlags JavascriptRegExp::GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -928,36 +1013,36 @@ namespace Js
 
     bool JavascriptRegExp::GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define GET_SETTER(ownProperty) \
+        if (ownProperty) \
+        { \
+            PropertyValueInfo::SetNoCache(info, this); \
+            *result = JavascriptRegExp::IsWritable(propertyId) ? WritableData : Data; \
+            return true; \
+        } \
+        return false;
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            GET_SETTER(true);
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            PropertyValueInfo::SetNoCache(info, this);
-            *result = JavascriptRegExp::IsWritable(propertyId) ? WritableData : Data;
-            return true;
+            GET_SETTER(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                PropertyValueInfo::SetNoCache(info, this);
-                *result = JavascriptRegExp::IsWritable(propertyId) ? WritableData : Data;
-                return true;
-            }
-            return false;
+            GET_SETTER(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                PropertyValueInfo::SetNoCache(info, this);
-                *result = JavascriptRegExp::IsWritable(propertyId) ? WritableData : Data;
-                return true;
-            }
-            return false;
+            GET_SETTER(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return false;
         }
+
+#undef GET_SETTER
     }
 
     BOOL JavascriptRegExp::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
@@ -975,62 +1060,67 @@ namespace Js
 
     BOOL JavascriptRegExp::IsEnumerable(PropertyId propertyId)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define IS_ENUMERABLE(ownProperty) \
+        return (ownProperty ? false : DynamicObject::IsEnumerable(propertyId));
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            return false;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            return false;
+            IS_ENUMERABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsEnumerable(propertyId);
+            IS_ENUMERABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsEnumerable(propertyId);
+            IS_ENUMERABLE(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return DynamicObject::IsEnumerable(propertyId);
         }
+
+#undef IS_ENUMERABLE
     }
 
     BOOL JavascriptRegExp::IsConfigurable(PropertyId propertyId)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define IS_CONFIGURABLE(ownProperty) \
+        return (ownProperty ? false : DynamicObject::IsConfigurable(propertyId));
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            return false;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            return false;
+            IS_CONFIGURABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsConfigurable(propertyId);
+            IS_CONFIGURABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsConfigurable(propertyId);
+            IS_CONFIGURABLE(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return DynamicObject::IsConfigurable(propertyId);
         }
+
+#undef IS_CONFIGURABLE
     }
 
     BOOL JavascriptRegExp::IsWritable(PropertyId propertyId)
     {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+
+#define IS_WRITABLE(ownProperty) \
+        return (ownProperty ? false : DynamicObject::IsWritable(propertyId));
+
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
@@ -1040,22 +1130,16 @@ namespace Js
         case PropertyIds::ignoreCase:
         case PropertyIds::source:
         case PropertyIds::options:
-            return false;
+            IS_WRITABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         case PropertyIds::unicode:
-            if (this->GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsWritable(propertyId);
+            IS_WRITABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
-            if (this->GetScriptContext()->GetConfig()->IsES6RegExStickyEnabled())
-            {
-                return false;
-            }
-            return DynamicObject::IsWritable(propertyId);
+            IS_WRITABLE(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
             return DynamicObject::IsWritable(propertyId);
         }
+
+#undef IS_WRITABLE
     }
     BOOL JavascriptRegExp::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
     {
@@ -1072,6 +1156,11 @@ namespace Js
     // Returns the number of special non-enumerable properties this type has.
     uint JavascriptRegExp::GetSpecialPropertyCount() const
     {
+        if (GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
+        {
+            return 1; // lastIndex
+        }
+
         uint specialPropertyCount = defaultSpecialPropertyIdsCount;
 
         if (GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled())

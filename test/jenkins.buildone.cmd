@@ -17,12 +17,12 @@ if "%_ENTRY_SCRIPT_NAME%"=="" (
 
 pushd %~dp0
 
-call jenkins.build.init.cmd
+call jenkins.build.init.cmd %*
 
 set _BuildArch=
 set _BuildType=
 
-call jenkins.build.cmd %*
+call jenkins.build.cmd %JENKINS_BUILD_ARGS%
 
 popd
 

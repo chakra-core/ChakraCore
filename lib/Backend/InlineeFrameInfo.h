@@ -6,7 +6,11 @@
 
 struct BailoutConstantValue {
 public:
-    void InitIntConstValue(IntConstType value) { this->type = TyInt32; this->u.intConst.value = value; };
+    void InitIntConstValue(int32 value) { this->type = TyInt32; this->u.intConst.value = (IntConstType)value; };
+    void InitIntConstValue(IntConstType value, IRType type) {
+        Assert(IRType_IsSignedInt(type));
+        this->type = type; this->u.intConst.value = value;
+    };
     void InitVarConstValue(Js::Var value);
     void InitFloatConstValue(FloatConstType value) { this->type = TyFloat64; this->u.floatConst.value = value; }
 public:

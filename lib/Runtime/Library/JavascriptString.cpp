@@ -1195,9 +1195,9 @@ case_2:
         if (!fAsciiJumpTable)
         {
             wchar_t const * start = inputStr;
-            wchar_t const * current = inputStr + len - 1;
+            wchar_t const * current = inputStr + min(position, len - 1);
             wchar_t const * searchStrEnd = searchStr + searchLen - 1;
-            while (current >= start)
+            while (current >= (start + searchLen - 1))
             {
                 wchar_t const * s1 = current;
                 wchar_t const * s2 = searchStrEnd;
@@ -1266,7 +1266,7 @@ case_2:
         {
             if (!isRegExpAnAllowedArg && JavascriptRegExp::Is(args[1]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, apiNameForErrorMsg);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_FirstCannotBeRegExp, apiNameForErrorMsg);
             }
             else if (JavascriptString::Is(args[1]))
             {
@@ -1304,8 +1304,6 @@ case_2:
 #ifdef ENABLE_INTL_OBJECT
         if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled())
         {
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
-
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
@@ -1323,6 +1321,14 @@ case_2:
                     {
                         return func->CallFunction(args);
                     }
+                    // Initialize String.prototype.toLocaleCompare
+                    scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
+                    func = intlExtenionObject->GetStringLocaleCompare();
+                    if (func)
+                    {
+                        return func->CallFunction(args);
+                    }
+                    AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleCompare method.");
                 }
             }
         }

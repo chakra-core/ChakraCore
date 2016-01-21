@@ -224,4 +224,4 @@ void ScriptMemoryDumper::FillObjectWithStats(Js::DynamicObject* dynamicObject, H
     dynamicObject->SetProperty(finalizeCountId, Js::JavascriptNumber::New(stats.finalizeCount, scriptContext),  Js::PropertyOperation_None, NULL);
 }
 
-#endif ENABLE_DEBUG_CONFIG_OPTIONS
+#endif // ENABLE_DEBUG_CONFIG_OPTIONS

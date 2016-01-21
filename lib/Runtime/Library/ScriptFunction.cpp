@@ -350,8 +350,8 @@ namespace Js
             return inputString;
         }
 
-        ScriptContext * scriptContext = this->GetScriptContext();
-        JavascriptLibrary *javascriptLibrary = scriptContext->GetLibrary();
+        ScriptContext* scriptContext = this->GetScriptContext();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
         bool isClassMethod = this->GetFunctionInfo()->IsClassMethod() || this->GetFunctionInfo()->IsClassConstructor();
 
         JavascriptString* prefixString = nullptr;
@@ -362,10 +362,14 @@ namespace Js
 
         if (!isClassMethod)
         {
-            prefixString = javascriptLibrary->GetFunctionPrefixString();
+            prefixString = library->GetFunctionPrefixString();
             if (pFuncBody->IsGenerator())
             {
-                prefixString = javascriptLibrary->GetGeneratorFunctionPrefixString();
+                prefixString = library->GetGeneratorFunctionPrefixString();
+            }
+            else if (pFuncBody->IsAsync())
+            {
+                prefixString = library->GetAsyncFunctionPrefixString();
             }
             prefixStringLength = prefixString->GetLength();
 

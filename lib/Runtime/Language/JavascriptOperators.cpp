@@ -4380,9 +4380,9 @@ CommonNumber:
             (Js::JavascriptNumber *)buffer), scriptContext, flags, dValue);
 #endif
     }
-    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
@@ -4461,13 +4461,13 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(dstInstance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
                 else
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
             }
             break;
         }
@@ -4481,56 +4481,65 @@ CommonNumber:
         return returnValue;
     }
 
-    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
         TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         BOOL  returnValue = false;
+
+        // The typed array will deal with all possible values for the index
+#define MEMSET_TYPED_ARRAY(type, conversion) type ## ::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion:: ## conversion)
         switch (instanceType)
         {
         case TypeIds_Int8Array:
         {
-            // The typed array will deal with all possible values for the index
-            returnValue = Int8Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToInt8);
+            returnValue = MEMSET_TYPED_ARRAY(Int8Array, ToInt8);
             break;
         }
-
         case TypeIds_Uint8Array:
         {
-            returnValue = Uint8Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToUInt8);
+            returnValue = MEMSET_TYPED_ARRAY(Uint8Array, ToUInt8);
             break;
         }
-
         case TypeIds_Uint8ClampedArray:
         {
-            returnValue = Uint8ClampedArray::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToUInt8Clamped);
+            returnValue = MEMSET_TYPED_ARRAY(Uint8ClampedArray, ToUInt8Clamped);
             break;
         }
-
         case TypeIds_Int16Array:
         {
-            returnValue = Int16Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToInt16);
+            returnValue = MEMSET_TYPED_ARRAY(Int16Array, ToInt16);
             break;
         }
-
         case TypeIds_Uint16Array:
         {
-            returnValue = Uint16Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToUInt16);
+            returnValue = MEMSET_TYPED_ARRAY(Uint16Array, ToUInt16);
             break;
         }
         case TypeIds_Int32Array:
         {
-            returnValue = Int32Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToInt32);
+            returnValue = MEMSET_TYPED_ARRAY(Int32Array, ToInt32);
             break;
         }
         case TypeIds_Uint32Array:
         {
-            returnValue = Uint32Array::FromVar(instance)->DirectSetItemAtRange(start, length, value, JavascriptConversion::ToUInt32);
+            returnValue = MEMSET_TYPED_ARRAY(Uint32Array, ToUInt32);
             break;
         }
+        case TypeIds_Float32Array:
+        {
+            returnValue = MEMSET_TYPED_ARRAY(Float32Array, ToFloat);
+            break;
+        }
+        case TypeIds_Float64Array:
+        {
+            returnValue = MEMSET_TYPED_ARRAY(Float64Array, ToNumber);
+            break;
+        }
+        case TypeIds_NativeFloatArray:
         case TypeIds_NativeIntArray:
         case TypeIds_Array:
         {
@@ -4549,13 +4558,17 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(instance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
+                }
+                else if (instanceType == TypeIds_NativeIntArray)
+                {
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
                 }
                 else
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(instance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
             break;
         }
@@ -4566,6 +4579,7 @@ CommonNumber:
         }
         }
 
+#undef MEMSET_TYPED_ARRAY
         return returnValue;
     }
 

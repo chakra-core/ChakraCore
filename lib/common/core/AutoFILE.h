@@ -22,6 +22,7 @@ public:
         if (ptr != nullptr)
         {
             fclose(ptr);
+            ptr = nullptr;
         }
     }
 };

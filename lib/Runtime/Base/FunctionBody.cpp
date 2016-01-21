@@ -2803,22 +2803,22 @@ namespace Js
     BOOL FunctionBody::GetMatchingStatementMapFromNativeAddress(DWORD_PTR codeAddress, StatementData &data, uint loopNum, FunctionBody *inlinee /* = nullptr */)
     {
         SmallSpanSequence * spanSequence = nullptr;
-        FunctionEntryPointInfo * entryPoint = GetEntryPointFromNativeAddress(codeAddress);
         DWORD_PTR nativeBaseAddress = NULL;
+
+        EntryPointInfo * entryPoint;
+        if (loopNum == -1)
+        {
+            entryPoint = GetEntryPointFromNativeAddress(codeAddress);
+        }
+        else
+        {
+            entryPoint = GetLoopEntryPointInfoFromNativeAddress(codeAddress, loopNum);
+        }
 
         if (entryPoint != nullptr)
         {
             spanSequence = entryPoint->GetNativeThrowSpanSequence();
             nativeBaseAddress = entryPoint->GetNativeAddress();
-        }
-        else
-        {
-            LoopEntryPointInfo * entryPoint = GetLoopEntryPointInfoFromNativeAddress(codeAddress, loopNum);
-            if (entryPoint != nullptr)
-            {
-                spanSequence = entryPoint->GetNativeThrowSpanSequence();
-                nativeBaseAddress = entryPoint->GetNativeAddress();
-            }
         }
 
         int statementIndex = GetStatementIndexFromNativeAddress(spanSequence, codeAddress, nativeBaseAddress);
@@ -2826,16 +2826,20 @@ namespace Js
         return GetMatchingStatementMap(data, statementIndex, inlinee);
     }
 
-    BOOL FunctionBody::GetMatchingStatementMapFromNativeOffset(DWORD_PTR codeAddress, uint32 offset, StatementData &data, FunctionBody *inlinee /* = nullptr */)
+    BOOL FunctionBody::GetMatchingStatementMapFromNativeOffset(DWORD_PTR codeAddress, uint32 offset, StatementData &data, uint loopNum, FunctionBody *inlinee /* = nullptr */)
     {
-        SmallSpanSequence * spanSequence = nullptr;
-        FunctionEntryPointInfo * entryPoint = GetEntryPointFromNativeAddress(codeAddress);
+        EntryPointInfo * entryPoint;
 
-        if (entryPoint != nullptr)
+        if (loopNum == -1)
         {
-            spanSequence = entryPoint->GetNativeThrowSpanSequence();
+            entryPoint = GetEntryPointFromNativeAddress(codeAddress);
+        }
+        else
+        {
+            entryPoint = GetLoopEntryPointInfoFromNativeAddress(codeAddress, loopNum);
         }
 
+        SmallSpanSequence *spanSequence = entryPoint ? entryPoint->GetNativeThrowSpanSequence() : nullptr;
         int statementIndex = GetStatementIndexFromNativeOffset(spanSequence, offset);
 
         return GetMatchingStatementMap(data, statementIndex, inlinee);

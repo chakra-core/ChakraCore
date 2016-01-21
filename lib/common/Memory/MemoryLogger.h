@@ -46,6 +46,6 @@ namespace Js
         StackTraceHelper(TAllocator* alloc) : m_alloc(alloc) {}
         void Print();
     };
-#endif STACK_BACK_TRACE
+#endif // STACK_BACK_TRACE
 } // namespace Js.
-#endif ENABLE_TRACE
+#endif // ENABLE_TRACE

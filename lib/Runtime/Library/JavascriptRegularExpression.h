@@ -39,12 +39,14 @@ namespace Js
         //  3. ToNumber(lastIndexVar) yields NaN, +0, -0 or an integer in range [0, MaxCharCount]
         CharCount lastIndexOrFlag;
 
-        static JavascriptRegExp * GetJavascriptRegExp(Var var, ScriptContext* scriptContext);
+        static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result);
         inline PropertyId const * GetSpecialPropertyIdsInlined() const;
+
+        Var GetOptions();
 
         inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
         inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
@@ -97,7 +99,7 @@ namespace Js
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
-        JavascriptString *ToString(bool sourceOnly = false);
+        JavascriptString *ToString(bool sourceOnly = false, bool useFlagsProperty = false);
 
         class EntryInfo
         {
@@ -107,6 +109,14 @@ namespace Js
             static FunctionInfo Test;
             static FunctionInfo ToString;
             static FunctionInfo GetterSymbolSpecies;
+            static FunctionInfo GetterGlobal;
+            static FunctionInfo GetterFlags;
+            static FunctionInfo GetterIgnoreCase;
+            static FunctionInfo GetterMultiline;
+            static FunctionInfo GetterOptions;
+            static FunctionInfo GetterSource;
+            static FunctionInfo GetterSticky;
+            static FunctionInfo GetterUnicode;
             // v5.8 only
             static FunctionInfo Compile;
         };
@@ -116,6 +126,15 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
+        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);
+        static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterOptions(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSource(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSticky(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterUnicode(RecyclableObject* function, CallInfo callInfo, ...);
         // v5.8 only
         static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
 
