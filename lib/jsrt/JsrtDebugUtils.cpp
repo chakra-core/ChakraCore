@@ -10,6 +10,12 @@
 void JsrtDebugUtils::AddScriptIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
 {
     JsrtDebugUtils::AddDoublePropertyToObject(object, L"scriptId", utf8SourceInfo->GetSourceInfoId(), utf8SourceInfo->GetScriptContext());
+
+    Js::Utf8SourceInfo* callerUtf8SourceInfo = utf8SourceInfo->GetCallerUtf8SourceInfo();
+    if (callerUtf8SourceInfo != nullptr)
+    {
+        JsrtDebugUtils::AddDoublePropertyToObject(object, L"parentScriptId", callerUtf8SourceInfo->GetSourceInfoId(), callerUtf8SourceInfo->GetScriptContext());
+    }
 }
 
 void JsrtDebugUtils::AddFileNameToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
