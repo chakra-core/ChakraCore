@@ -283,8 +283,6 @@
     /// <summary>
     ///     Gets the stack trace information
     /// </summary>
-    /// <param name="fromIndex">0-based start index, topmost frame is 0</param>
-    /// <param name="count">Number of frames to return</param>
     /// <param name="stackTrace">Stack trace information</param>
     /// <remarks>
     ///     <para>
@@ -312,8 +310,6 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsDiagGetStacktrace(
-            _In_ unsigned int fromIndex,
-            _In_ unsigned int count,
             _Out_ JsValueRef *stackTrace);
 
 

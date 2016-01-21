@@ -440,8 +440,6 @@ JsDiagGetFunctionPosition(
 
 STDAPI_(JsErrorCode)
 JsDiagGetStacktrace(
-    _In_ unsigned int fromIndex,
-    _In_ unsigned int count,
     _Out_ JsValueRef *stackTrace)
 {
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
@@ -458,7 +456,7 @@ JsDiagGetStacktrace(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        *stackTrace = debugObject->GetStackFrames(scriptContext, fromIndex, count);
+        *stackTrace = debugObject->GetStackFrames(scriptContext);
 
         return JsNoError;
     });

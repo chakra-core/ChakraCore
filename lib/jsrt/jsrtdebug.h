@@ -29,7 +29,7 @@ public:
     Js::DynamicObject* GetScript(Js::Utf8SourceInfo* utf8SourceInfo);
     Js::DynamicObject * GetSource(uint scriptId);
 
-    Js::JavascriptArray * GetStackFrames(Js::ScriptContext* scriptContext, uint fromIndex, uint totalFrames);
+    Js::JavascriptArray * GetStackFrames(Js::ScriptContext* scriptContext);
     Js::DynamicObject * GetStackFrame(Js::DiagStackFrame* stackFrame, uint frameIndex);
 
     HRESULT SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, UINT *breakpointId);

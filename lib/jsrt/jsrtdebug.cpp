@@ -368,7 +368,7 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
     return sourceObject;
 }
 
-Js::JavascriptArray * JsrtDebug::GetStackFrames(Js::ScriptContext* scriptContext, uint fromIndex, uint totalFrames)
+Js::JavascriptArray * JsrtDebug::GetStackFrames(Js::ScriptContext* scriptContext)
 {
     Js::JavascriptArray* stackTraceArray = scriptContext->GetLibrary()->CreateArray();
 
