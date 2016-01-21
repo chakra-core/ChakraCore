@@ -457,16 +457,6 @@ namespace Js
 
         ScriptContext * scriptContext = this->GetScriptContext();
 
-        if (isDefaultConstructor)
-        {
-            PCWSTR fakeCode = hasSuperReference ? diagDefaultExtendsCtor : diagDefaultCtor;
-            charcount_t fakeStrLen = hasSuperReference ? _countof(diagDefaultExtendsCtor) : _countof(diagDefaultCtor);
-            Var fakeString = JavascriptString::NewCopyBuffer(fakeCode, fakeStrLen - 1, scriptContext);
-
-            pFuncBody->SetCachedSourceString(fakeString);
-            return fakeString;
-        }
-
         //Library code should behave the same way as RuntimeFunctions
         Utf8SourceInfo* source = pFuncBody->GetUtf8SourceInfo();
         if (source != nullptr && source->GetIsLibraryCode())
@@ -490,7 +480,7 @@ namespace Js
             // TODO: What about surrogate pairs?
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
             utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(L"ScriptFunction::EnsureSourceString"), pFuncBody->LengthInChars(), options);
-            if (pFuncBody->IsLambda() || isActiveScript
+            if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()
 #endif
