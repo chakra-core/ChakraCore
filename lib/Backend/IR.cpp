@@ -4151,6 +4151,8 @@ Instr::Dump(IRDumpFlags flags)
             {
                 IR::MultiBranchInstr * multiBranchInstr = branchInstr->AsMultiBrInstr();
                 
+                // If this MultiBranchInstr has been lowered to a machine instruction, which means
+                // its opcode is not Js::OpCode::MultiBr, there is no need to print the labels.
                 if (this->m_opcode == Js::OpCode::MultiBr)
                 {
                     multiBranchInstr->MapMultiBrLabels([](IR::LabelInstr * labelInstr) -> void
