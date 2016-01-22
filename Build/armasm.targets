@@ -110,7 +110,7 @@
        ToolArchitecture                   ="$(CLToolArchitecture)"
        TrackerFrameworkPath               ="$(CLTrackerFrameworkPath)"
        TrackerSdkPath                     ="$(CLTrackerSdkPath)"
-       TrackedInputFilesToIgnore             ="@(ClNoDependencies)"
+       TrackedInputFilesToIgnore          ="@(ClNoDependencies)"
 
        AcceptableNonZeroExitCodes         ="%(ClCompile.AcceptableNonZeroExitCodes)"
        YieldDuringToolExecution           ="$(ClYieldDuringToolExecution)"
