@@ -550,8 +550,14 @@ namespace Js
             {
                 BOOL res = FALSE;
                 int32 pIndex = -1;
-                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, attributes, propertyString);
+                PropertyAttributes tmpAttributes = PropertyNone;
+                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, &tmpAttributes, propertyString);
                 index = (Js::PropertyIndex)pIndex;
+
+                if(attributes != nullptr)
+                {
+                    *attributes = tmpAttributes;
+                }
 
                 return res;
             }
@@ -560,7 +566,8 @@ namespace Js
             {
                 BOOL res = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 
-                elog->RecordPropertyEnumEvent(res, *propertyId, *attributes, *propertyString);
+                PropertyAttributes tmpAttributes = (attributes != nullptr) ? *attributes : PropertyNone;
+                elog->RecordPropertyEnumEvent(res, *propertyId, tmpAttributes, *propertyString);
                 return res;
             }
         }
@@ -588,8 +595,14 @@ namespace Js
             {
                 BOOL res = FALSE;
                 int32 pIndex = -1;
-                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, attributes, propertyString);
+                PropertyAttributes tmpAttributes = PropertyNone;
+                elog->ReplayPropertyEnumEvent(&res, &pIndex, this, propertyId, &tmpAttributes, propertyString);
                 index = (Js::BigPropertyIndex)pIndex;
+
+                if(attributes != nullptr)
+                {
+                    *attributes = tmpAttributes;
+                }
 
                 return res;
             }
@@ -598,7 +611,8 @@ namespace Js
             {
                 BOOL res = this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, requireEnumerable, enumSymbols);
 
-                elog->RecordPropertyEnumEvent(res, *propertyId, *attributes, *propertyString);
+                PropertyAttributes tmpAttributes = (attributes != nullptr) ? *attributes : PropertyNone;
+                elog->RecordPropertyEnumEvent(res, *propertyId, tmpAttributes, *propertyString);
                 return res;
             }
         }
@@ -1024,7 +1038,7 @@ namespace Js
 
 #if ENABLE_TTD
 
-#ifdef ENABLE_TTD_IDENTITY_TRACING
+#if ENABLE_TTD_IDENTITY_TRACING
     void DynamicObject::SetIdentity_TTD(TTD_IDENTITY_TAG identityTag)
     {
         this->TTDObjectIdentityTag = identityTag;

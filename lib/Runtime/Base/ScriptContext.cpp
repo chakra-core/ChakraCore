@@ -2616,8 +2616,10 @@ namespace Js
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
+#if ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD
         //Ensure that we behave somewhat nicely
         this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
+#endif
     }
 
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()

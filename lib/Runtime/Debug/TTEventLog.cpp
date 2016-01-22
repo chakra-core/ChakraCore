@@ -454,7 +454,7 @@ namespace TTD
         LPCWSTR optName = nullptr;
         if(pid == Js::Constants::NoProperty)
         {
-            LPCWSTR optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
+            optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
         }
 #endif
 

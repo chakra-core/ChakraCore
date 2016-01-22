@@ -264,7 +264,10 @@
 
 #if ENABLE_TTD
 //Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
-#define ENABLE_TTD_IDENTITY_TRACING 1
+#define ENABLE_TTD_IDENTITY_TRACING 0
+
+//A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
+#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
 
 //Flags to control special features turned on for debugging
 #define ENABLE_TTD_DEBUGGING 1
