@@ -111,7 +111,10 @@ const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0x
 const _x86_SIMDValue X86_ALL_ZEROS    = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 const _x86_SIMDValue X86_LANE_W_ZEROS = { 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 };
 
-const _x86_SIMDValue X86_LANE0_MASK   = { 0xffffffff, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_4LANES_MASKS[] = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
+                                           { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
+                                           { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
+                                           { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
 
 typedef _x86_SIMDValue X86SIMDValue;
 CompileAssert(sizeof(X86SIMDValue) == 16);

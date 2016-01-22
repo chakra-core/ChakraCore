@@ -810,9 +810,14 @@ IR::Instr* LowererMD::Simd128LowerSwizzle4(IR::Instr* instr)
         Assert(lane0 >= 0 && lane0 < 2);
         Assert(lane1 >= 0 && lane1 < 2);
         shufMask = (int8)((lane1 << 1) | lane0);
+        shufOpcode = Js::OpCode::SHUFPD;
     }
     else
     {
+        if (irOpcode == Js::OpCode::Simd128_Swizzle_I4)
+        {
+            shufOpcode = Js::OpCode::PSHUFD;
+        }
         AnalysisAssert(srcs[3] != nullptr && srcs[4] != nullptr);
         lane0 = srcs[1]->AsIntConstOpnd()->AsInt32();
         lane1 = srcs[2]->AsIntConstOpnd()->AsInt32();
@@ -823,11 +828,6 @@ IR::Instr* LowererMD::Simd128LowerSwizzle4(IR::Instr* instr)
         Assert(lane2 >= 0 && lane2 < 4);
         Assert(lane3 >= 0 && lane3 < 4);
         shufMask = (int8)((lane3 << 6) | (lane2 << 4) | (lane1 << 2) | lane0);
-    }
-
-    if (instr->m_opcode == Js::OpCode::Simd128_Swizzle_D2)
-    {
-        shufOpcode = Js::OpCode::SHUFPD;
     }
 
     instr->m_opcode = shufOpcode;
@@ -861,7 +861,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle4(IR::Instr* instr)
     uint8 lanes[4], lanesSrc[4];
     uint fromSrc1, fromSrc2;
     IR::Instr *pInstr = instr->m_prev;
-
+    
     Assert(dst->IsSimd128() && srcs[0] && srcs[0]->IsSimd128() && srcs[1] && srcs[1]->IsSimd128());
     Assert(irOpcode == Js::OpCode::Simd128_Shuffle_I4 || irOpcode == Js::OpCode::Simd128_Shuffle_F4);
 
@@ -870,6 +870,8 @@ IR::Instr* LowererMD::Simd128LowerShuffle4(IR::Instr* instr)
               srcs[3] && srcs[3]->IsIntConstOpnd() &&
               srcs[4] && srcs[4]->IsIntConstOpnd() &&
               srcs[5] && srcs[5]->IsIntConstOpnd(), "Type-specialized shuffle is supported only with constant lane indices");
+
+    
 
     lanes[0] = (uint8) srcs[2]->AsIntConstOpnd()->AsInt32();
     lanes[1] = (uint8) srcs[3]->AsIntConstOpnd()->AsInt32();
@@ -942,8 +944,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle4(IR::Instr* instr)
         // Algorithm:
         // SHUFPS temp1, majSrc, lanes
         // SHUFPS temp2, minSrc, lanes
-        // MOVUPS temp3, [lane0_mask]
-        // PSLLDQ temp2, minortyLane
+        // MOVUPS temp3, [minorityLane mask]
         // ANDPS  temp2, temp3          // mask all lanes but minorityLane
         // ANDNPS temp3, temp1          // zero minorityLane
         // ORPS   dst, temp2, temp3
@@ -958,13 +959,11 @@ IR::Instr* LowererMD::Simd128LowerShuffle4(IR::Instr* instr)
                 break;
             }
         }
+        IR::MemRefOpnd * laneMask = IR::MemRefOpnd::New((void*)&X86_4LANES_MASKS[minorityLane], dst->GetType(), m_func);
 
         InsertShufps(lanes, temp1, majSrc, majSrc, instr);
         InsertShufps(lanes, temp2, minSrc, minSrc, instr);
-        newInstr = IR::Instr::New(Js::OpCode::MOVUPS, temp3, IR::MemRefOpnd::New((void*)&X86_LANE0_MASK, dst->GetType(), m_func), m_func);
-        instr->InsertBefore(newInstr);
-        Legalize(newInstr);
-        newInstr = IR::Instr::New(Js::OpCode::PSLLDQ, temp3, temp3, IR::IntConstOpnd::New(minorityLane * 4, TyInt32, m_func), m_func);
+        newInstr = IR::Instr::New(Js::OpCode::MOVUPS, temp3, laneMask, m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
         newInstr = IR::Instr::New(Js::OpCode::ANDPS, temp2, temp2, temp3, m_func);
@@ -1567,6 +1566,7 @@ void LowererMD::InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::O
 {
     int8 shufMask;
     uint8 normLanes[4];
+    
     for (uint i = 0; i < 4; i++)
     {
         normLanes[i] = (lanes[i] >= 4) ? (lanes[i] - 4) : lanes[i];
