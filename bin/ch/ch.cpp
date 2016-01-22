@@ -617,7 +617,7 @@ void DeleteDirectory(const wchar_t* path)
 
 void GetFileFromURI(const wchar_t* uri, std::wstring& res)
 {
-    int urilen = wcslen(uri);
+    int urilen = (int)wcslen(uri);
     int fpos = 0;
     for(int spos = urilen - 1; spos >= 0; --spos)
     {
@@ -642,7 +642,7 @@ void GetDefaultTTDDirectory(std::wstring& res, const wchar_t* optExtraDir)
     wchar_t* spos = wcsstr(path, L"\\Build\\VcBuild\\");
     AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
-    int ccount = (((byte*)spos) - ((byte*)path)) / sizeof(wchar_t);
+    int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
     res.append(path, 0, ccount);
     res.append(L"\\test\\_ttdlog\\");
 
@@ -682,7 +682,7 @@ static void CALLBACK GetTTDDirectory(const wchar_t* uri, wchar_t** fullTTDUri)
         logDir.push_back(L'\\');
     }
 
-    int uriLength = logDir.length() + 1;
+    int uriLength = (int)(logDir.length() + 1);
     *fullTTDUri = (wchar_t*)CoTaskMemAlloc(uriLength * sizeof(wchar_t));
     memcpy(*fullTTDUri, logDir.c_str(), uriLength * sizeof(wchar_t));
 }
@@ -735,7 +735,7 @@ static HANDLE CALLBACK TTGetSnapshotStreamCallback(const wchar_t* logRootUri, co
     snapDir.append(snapId);
     snapDir.append(L"\\");
 
-    int resUriCount = wcslen(snapDir.c_str()) + 1;
+    int resUriCount = (int)(wcslen(snapDir.c_str()) + 1);
     *snapContainerUri = (wchar_t*)CoTaskMemAlloc(resUriCount * sizeof(wchar_t));
     memcpy(*snapContainerUri, snapDir.c_str(), resUriCount * sizeof(wchar_t));
 

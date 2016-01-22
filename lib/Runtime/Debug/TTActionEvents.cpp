@@ -614,8 +614,8 @@ namespace TTD
         LPCUTF8 srcEnd = nullptr;
         ULONG srcLine = 0;
         LONG srcColumn = -1;
-        const size_t startOffset = lastFrame.Function->GetStatementStartOffset(lastFrame.CurrentStatementIndex);
-        lastFrame.Function->GetSourceLineFromStartOffset(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
+        uint32 startOffset = lastFrame.Function->GetStatementStartOffset(lastFrame.CurrentStatementIndex);
+        lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
 
         this->m_lastExecuted_line = (uint32)srcLine;
         this->m_lastExecuted_column = (uint32)srcColumn;

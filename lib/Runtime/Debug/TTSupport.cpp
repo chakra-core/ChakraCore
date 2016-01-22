@@ -19,10 +19,10 @@ namespace TTD
         TTAutoString::TTAutoString(LPCWSTR str)
             : m_allocSize(-1), m_contents(nullptr), m_optFormatBuff(nullptr)
         {
-            uint32 wclen = wcslen(str) + 1;
+            size_t wclen = wcslen(str) + 1;
 
             this->m_contents = HeapNewArrayZ(wchar, wclen);
-            this->m_allocSize = wclen;
+            this->m_allocSize = (int32)wclen;
 
             wcscat_s(this->m_contents, wclen, str);
         }
@@ -105,18 +105,18 @@ namespace TTD
                 return;
             }
 
-            int32 origsize = (this->m_contents != nullptr ? wcslen(this->m_contents) : 0);
+            size_t origsize = (this->m_contents != nullptr ? wcslen(this->m_contents) : 0);
             int32 strsize = -1;
             if(start == 0 && end == INT32_MAX)
             {
-                strsize = (str != nullptr ? wcslen(str) : 0);
+                strsize = (str != nullptr ? (int32)wcslen(str) : 0);
             }
             else
             {
                 strsize = (end - start) + 1;
             }
 
-            int32 nsize = origsize + strsize + 1;
+            size_t nsize = origsize + strsize + 1;
             wchar* nbuff = HeapNewArrayZ(wchar, nsize);
 
             if(this->m_contents != nullptr)
@@ -130,7 +130,7 @@ namespace TTD
 
             if(str != nullptr)
             {
-                int32 curr = origsize;
+                int32 curr = (int32)origsize;
                 for(int32 i = start; i <= end && str[i] != '\0'; ++i)
                 {
                     nbuff[curr] = str[i];
@@ -140,7 +140,7 @@ namespace TTD
             }
 
             this->m_contents = nbuff;
-            this->m_allocSize = nsize;
+            this->m_allocSize = (int32)nsize;
         }
 
         void TTAutoString::Append(const TTAutoString& str, int32 start, int32 end)
@@ -162,8 +162,8 @@ namespace TTD
 
         void TTAutoString::Append(LPCUTF8 strBegin, LPCUTF8 strEnd)
         {
-            int32 strCount = (strEnd - strBegin) + 1;
-            wchar* buff = HeapNewArrayZ(wchar, strCount);
+            int32 strCount = (int32)((strEnd - strBegin) + 1);
+            wchar* buff = HeapNewArrayZ(wchar, (size_t)strCount);
 
             LPCUTF8 curr = strBegin;
             int32 i = 0;
@@ -178,14 +178,14 @@ namespace TTD
             buff[i] = L'\0';
             this->Append(buff);
 
-            HeapDeleteArray(strCount, buff);
+            HeapDeleteArray((size_t)strCount, buff);
         }
 
         int32 TTAutoString::GetLength() const
         {
             AssertMsg(!this->IsNullString(), "That doesn't make sense.");
 
-            return wcslen(this->m_contents);
+            return (int32)wcslen(this->m_contents);
         }
 
         wchar TTAutoString::GetCharAt(int32 pos) const

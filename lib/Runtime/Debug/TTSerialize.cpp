@@ -103,9 +103,9 @@ namespace TTD
         return this->m_totalBytesWritten;
     }
 
-    LPCWSTR FileWriter::FormatNumber(DWORD value)
+    LPCWSTR FileWriter::FormatNumber(DWORD_PTR value)
     {
-        swprintf_s(this->m_numberFormatBuff, L"%u", value);
+        swprintf_s(this->m_numberFormatBuff, L"%u", (uint32)value);
 
         return this->m_numberFormatBuff;
     }
@@ -600,9 +600,9 @@ namespace TTD
         }
     }
 
-    LPCWSTR FileReader::FormatNumber(DWORD value)
+    LPCWSTR FileReader::FormatNumber(DWORD_PTR value)
     {
-        swprintf_s(this->m_numberFormatBuff, L"%u", value);
+        swprintf_s(this->m_numberFormatBuff, L"%u", (uint32)value);
 
         return this->m_numberFormatBuff;
     }
@@ -989,7 +989,7 @@ namespace TTD
         uint64 value = 0;
         uint64 multiplier = 1;
 
-        int32 digitCount = wcslen(buff);
+        int32 digitCount = (int32)wcslen(buff);
         for(int32 i = digitCount - 1; i >= 0; --i)
         {
             wchar digit = buff[i];
@@ -1024,7 +1024,7 @@ namespace TTD
             lastIdx = 1;
         }
 
-        int32 digitCount = wcslen(buff);
+        int32 digitCount = (int32)wcslen(buff);
         for(int32 i = digitCount - 1; i >= lastIdx; --i)
         {
             wchar digit = buff[i];
@@ -1042,7 +1042,7 @@ namespace TTD
         uint64 value = 0;
         uint64 multiplier = 1;
 
-        int32 digitCount = wcslen(buff);
+        int32 digitCount = (int32)wcslen(buff);
         for(int32 i = digitCount - 1; i >= 0; --i)
         {
             wchar digit = buff[i];

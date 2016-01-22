@@ -566,7 +566,7 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
             LPCWSTR snapName = SnapObjectGetAddtlInfoAs<LPCWSTR, SnapObjectType::SnapExternalFunctionObject>(snpObject);
 
-            Js::JavascriptString* fname = Js::JavascriptString::NewCopyBuffer(snapName, wcslen(snapName), ctx);
+            Js::JavascriptString* fname = Js::JavascriptString::NewCopyBuffer(snapName, (charcount_t)wcslen(snapName), ctx);
             return ctx->GetLibrary()->CreateExternalFunction_TTD(fname);
         }
 

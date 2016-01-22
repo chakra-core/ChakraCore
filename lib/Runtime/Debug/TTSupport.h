@@ -382,7 +382,7 @@ namespace TTD
         //clone a string into the allocator
         LPCWSTR CopyStringInto(LPCWSTR str)
         {
-            uint32 byteLen = (wcslen(str) + 1) * sizeof(wchar_t);
+            size_t byteLen = (wcslen(str) + 1) * sizeof(wchar_t);
             wchar_t* copystr = (wchar_t*)this->SlabAllocateArray<byte>(byteLen);
             memcpy(copystr, str, byteLen);
 
@@ -442,7 +442,7 @@ namespace TTD
         template <typename T>
         T* SlabAllocateArray(size_t count)
         {
-            uint32 size = count * sizeof(T);
+            size_t size = count * sizeof(T);
             if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 return (T*)this->SlabAllocateRawSize<true, true>(size);
@@ -459,7 +459,7 @@ namespace TTD
         {
             T* res = nullptr;
 
-            uint32 size = count * sizeof(T);
+            size_t size = count * sizeof(T);
             if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 res = (T*)this->SlabAllocateRawSize<true, true>(size);
@@ -491,7 +491,7 @@ namespace TTD
         template <typename T>
         T* SlabReserveArraySpace(size_t count)
         {
-            uint32 size = count * sizeof(T);
+            size_t size = count * sizeof(T);
             if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 return (T*)this->SlabAllocateRawSize<true, false>(size);
@@ -506,7 +506,7 @@ namespace TTD
         template <typename T>
         void SlabCommitArraySpace(size_t count)
         {
-            uint32 size = count * sizeof(T);
+            size_t size = count * sizeof(T);
             if(size <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
                 this->SlabAllocateRawSize<false, true>(size);
@@ -690,18 +690,18 @@ namespace TTD
         //NOT constant time
         uint32 Count() const
         {
-            uint32 count = (((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T);
+            size_t count = (((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T);
             AssertMsg(count <= allocSize, "We somehow wrote in too much data.");
 
             for(UnorderedArrayListLink* curr = this->m_inlineHeadBlock.Next; curr != nullptr; curr = curr->Next)
             {
-                uint32 ncount = (((byte*)curr->CurrPos) - ((byte*)curr->BlockData)) / sizeof(T);
+                size_t ncount = (((byte*)curr->CurrPos) - ((byte*)curr->BlockData)) / sizeof(T);
                 AssertMsg(ncount <= allocSize, "We somehow wrote in too much data.");
 
                 count += ncount;
             }
 
-            return count;
+            return (uint32)count;
         }
 
         class Iterator
@@ -1132,7 +1132,7 @@ namespace TTD
         template<typename T>
         T GetPtrValue() const
         {
-            uint32 offset = (this->m_iter.m_currOffset - this->m_markPages[this->m_iter.m_currPageIdx]);
+            uint64 offset = (this->m_iter.m_currOffset - this->m_markPages[this->m_iter.m_currPageIdx]);
             uint64 addr = TTD_REBUILD_ADDR(this->m_iter.m_currPageIdx, offset);
 
             AssertMsg(this->m_iter.m_currPageIdx < TTD_PAGES_PER_HEAP && offset < TTD_OFFSETS_PER_PAGE, "This address does not exist!!!");

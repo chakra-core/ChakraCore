@@ -90,7 +90,7 @@ namespace TTD
         uint64 GetBytesWritten() const;
 
         //Format a value (at U64) into a temp buffer for you to use (do not free this buffer)
-        LPCWSTR FormatNumber(DWORD value);
+        LPCWSTR FormatNumber(DWORD_PTR value);
 
         //////////////////
 
@@ -258,7 +258,7 @@ namespace TTD
         virtual ~FileReader();
 
         //Format a value (at U64) into a temp buffer for you to use (do not free this buffer)
-        LPCWSTR FormatNumber(DWORD value);
+        LPCWSTR FormatNumber(DWORD_PTR value);
 
         virtual void ReadSeperator(bool readSeparator) = 0;
         virtual void ReadKey(NSTokens::Key keyCheck, bool readSeparator = false) = 0;

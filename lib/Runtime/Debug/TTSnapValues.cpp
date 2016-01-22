@@ -48,7 +48,7 @@ namespace TTD
 
             Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
             Js::ScriptContext* ctx = obj->GetScriptContext();
-            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, wcslen(pname)));
+            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, (charcount_t)wcslen(pname)));
 
             if(!Js::JavascriptOperators::HasProperty(obj, propertyId))
             {
@@ -67,7 +67,7 @@ namespace TTD
 
             Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
             Js::ScriptContext* ctx = obj->GetScriptContext();
-            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, wcslen(pname)));
+            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, (charcount_t)wcslen(pname)));
 
             BOOL ok = Js::JavascriptOperators::SetProperty(instance, obj, propertyId, value, ctx, Js::PropertyOperationFlags::PropertyOperation_Force);
             AssertMsg(ok, "Store that we expected to always succeed failed?");
@@ -101,7 +101,7 @@ namespace TTD
 
         LPCWSTR CopyStringToHeapAllocator(LPCWSTR string)
         {
-            uint32 strWCharCount = wcslen(string) + 1;
+            size_t strWCharCount = wcslen(string) + 1;
 
             wchar* buff = HeapNewArray(wchar, strWCharCount);
             memcpy(buff, string, sizeof(wchar) * strWCharCount);
@@ -246,7 +246,7 @@ namespace TTD
                         res = Js::JavascriptUInt64Number::ToVar(snapValue->u_uint64Value, ctx);
                         break;
                     case Js::TypeIds_String:
-                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue, wcslen(snapValue->u_stringValue), ctx);
+                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue, (charcount_t)wcslen(snapValue->u_stringValue), ctx);
                         break;
                     case Js::TypeIds_Symbol:
                         res = jslib->CreatePrimitveSymbol_TTD(snapValue->u_propertyIdValue);
@@ -817,7 +817,7 @@ namespace TTD
             Js::ModuleID moduleID = kmodGlobal;
             BOOL strictMode = FALSE;
 
-            Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, fbInfo->TopLevelBase.SourceCode, wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
+            Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, fbInfo->TopLevelBase.SourceCode, (int32)wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
             AssertMsg(pfuncScript != nullptr, "Something went wrong!!!");
 
             // Indicate that this is a top-level function. We don't pass the fscrGlobalCode flag to the eval helper,
@@ -826,7 +826,7 @@ namespace TTD
             Js::ParseableFunctionInfo* functionInfo = pfuncScript->GetParseableFunctionInfo();
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            Js::EvalMapString key(fbInfo->TopLevelBase.SourceCode, wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, strictMode, /* isLibraryCode = */ false);
+            Js::EvalMapString key(fbInfo->TopLevelBase.SourceCode, (int32)wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, strictMode, /* isLibraryCode = */ false);
             ctx->AddToNewFunctionMap(key, functionInfo);
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
@@ -891,7 +891,7 @@ namespace TTD
             ulong grfscr = ((ulong)fbInfo->EvalFlags) | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
             LPCWSTR source = fbInfo->TopLevelBase.SourceCode;
-            uint32 sourceLen = wcslen(source);
+            int32 sourceLen = (int32)wcslen(source);
             Js::ScriptFunction* pfuncScript = ctx->GetLibrary()->GetGlobalObject()->EvalHelper(ctx, source, sourceLen, fbInfo->TopLevelBase.ModuleId, grfscr, Js::Constants::EvalCode, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
             Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 

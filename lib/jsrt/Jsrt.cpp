@@ -507,7 +507,7 @@ STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ J
 
             if(Js::Configuration::Global.flags.TTDebug != nullptr && Js::Configuration::Global.flags.TTDCmdsFromFile != nullptr)
             {
-                uint32 cmdFileLen = wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
+                uint32 cmdFileLen = (uint32)wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
                 char* cmdFile = HeapNewArrayZ(char, cmdFileLen);
 
                 for(uint32 i = 0; i < cmdFileLen; ++i)

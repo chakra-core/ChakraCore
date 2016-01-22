@@ -211,7 +211,7 @@ namespace TTD
         , BPBreakAtNextStmtDepth(-1)
 #endif
     {
-        uint32 logDirPathLength = wcslen(logDir) + 1;
+        size_t logDirPathLength = wcslen(logDir) + 1;
         wchar* pathBuff = HeapNewArrayZ(wchar, logDirPathLength);
         memcpy(pathBuff, logDir, logDirPathLength * sizeof(wchar));
         this->m_logInfoRootDir = pathBuff;
@@ -414,7 +414,7 @@ namespace TTD
 
         StringValueEventLogEntry* sevent = StringValueEventLogEntry::As(this->m_currentEvent);
         LPCWSTR str = sevent->GetStringValue();
-        *result = Js::JavascriptString::NewCopyBuffer(str, wcslen(str), ctx);
+        *result = Js::JavascriptString::NewCopyBuffer(str, (charcount_t)wcslen(str), ctx);
 
         this->AdvanceTimeAndPositionForReplay();
     }
@@ -763,7 +763,7 @@ namespace TTD
 
         ULONG srcLine = 0;
         LONG srcColumn = -1;
-        const size_t startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
         cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
         *line = (uint32)srcLine;
@@ -809,7 +809,7 @@ namespace TTD
 
         ULONG srcLine = 0;
         LONG srcColumn = -1;
-        const size_t startOffset = fbody->GetStatementStartOffset(statementIndex);
+        uint32 startOffset = fbody->GetStatementStartOffset(statementIndex);
         fbody->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
         *line = (uint32)srcLine;
@@ -841,7 +841,7 @@ namespace TTD
 
             ULONG srcLine = 0;
             LONG srcColumn = -1;
-            const size_t startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
+            uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
             *line = (uint32)srcLine;
@@ -874,7 +874,7 @@ namespace TTD
 
             ULONG srcLine = 0;
             LONG srcColumn = -1;
-            const size_t startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
+            uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
             *line = (uint32)srcLine;
@@ -1070,7 +1070,7 @@ namespace TTD
         {
             ULONG srcLine = 0;
             LONG srcColumn = -1;
-            const size_t startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
             cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
             bool lineMatch = (this->BPLine == (uint32)srcLine);
@@ -1112,8 +1112,8 @@ namespace TTD
             LONG srcColumn = -1;
             LPCUTF8 srcBegin = nullptr;
             LPCUTF8 srcEnd = nullptr;
-            const size_t startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-            cfinfo.Function->GetSourceLineFromStartOffset(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
+            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+            cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
 
             wprintf(L"----\n");
             wprintf(L"%ls @ ", this->m_callStack.Last().Function->GetDisplayName());

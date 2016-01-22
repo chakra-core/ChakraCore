@@ -34,7 +34,7 @@ namespace TTD
         const Js::PropertyRecord* InflatePropertyRecord_CreateNew(const SnapPropertyRecord* pRecord, ThreadContext* threadContext)
         {
             LPCWSTR pname = pRecord->PropertyName;
-            uint32 plen = wcslen(pname);
+            int32 plen = (int32)wcslen(pname);
 
             const Js::PropertyRecord* newPropertyRecord = nullptr;
             if(pRecord->IsSymbol)
@@ -57,7 +57,7 @@ namespace TTD
                 {
                     AssertMsg(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order to ensure property ids all match!!!");
 
-                    newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, wcslen(pRecord->PropertyName), /*bind*/pRecord->IsBound, /*isSymbol*/false);
+                    newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, (int32)wcslen(pRecord->PropertyName), /*bind*/pRecord->IsBound, /*isSymbol*/false);
                 }
             }
 

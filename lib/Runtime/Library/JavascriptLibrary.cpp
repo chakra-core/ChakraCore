@@ -4462,7 +4462,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateRegex_TTD(const wchar_t* pSource, UnifiedRegex::RegexFlags flags, CharCount lastIndex)
     {
-        Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(pSource, wcslen(pSource), flags, this->scriptContext);
+        Js::JavascriptRegExp* re = Js::JavascriptRegExp::CreateRegEx(pSource, (CharCount)wcslen(pSource), flags, this->scriptContext);
         re->SetLastIndex(lastIndex);
 
         return re;
