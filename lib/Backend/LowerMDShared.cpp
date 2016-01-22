@@ -857,7 +857,7 @@ LowererMD::LowerMultiBranch(IR::Instr * instr)
 
 ///----------------------------------------------------------------------------
 ///
-/// LowererMD::LowerUncondBranch
+/// LowererMD::LowerCondBranch
 ///
 ///----------------------------------------------------------------------------
 
