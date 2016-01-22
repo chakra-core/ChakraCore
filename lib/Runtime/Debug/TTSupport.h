@@ -845,7 +845,25 @@ namespace TTD
 
             uint32 desiredSize = capacity * TTD_DICTIONARY_LOAD_FACTOR;
 
-            if(desiredSize < 1024)
+            if(desiredSize < 128)
+            {
+                this->m_h1Prime = 127;
+                this->m_h2Prime = 61;
+                this->m_capacity = 128;
+            }
+            else if(desiredSize < 256)
+            {
+                this->m_h1Prime = 251;
+                this->m_h2Prime = 127;
+                this->m_capacity = 256;
+            }
+            else if(desiredSize < 512)
+            {
+                this->m_h1Prime = 511;
+                this->m_h2Prime = 251;
+                this->m_capacity = 512;
+            }
+            else if(desiredSize < 1024)
             {
                 this->m_h1Prime = 1021;
                 this->m_h2Prime = 509;
@@ -886,6 +904,30 @@ namespace TTD
                 this->m_h1Prime = 65521;
                 this->m_h2Prime = 32749;
                 this->m_capacity = 65536;
+            }
+            else if(desiredSize < 131072)
+            {
+                this->m_h1Prime = 131071;
+                this->m_h2Prime = 65521;
+                this->m_capacity = 131072;
+            }
+            else if(desiredSize < 262144)
+            {
+                this->m_h1Prime = 262139;
+                this->m_h2Prime = 131071;
+                this->m_capacity = 262144;
+            }
+            else if(desiredSize < 524288)
+            {
+                this->m_h1Prime = 524287;
+                this->m_h2Prime = 262139;
+                this->m_capacity = 524288;
+            }
+            else if(desiredSize < 1048576)
+            {
+                this->m_h1Prime = 1048573;
+                this->m_h2Prime = 524287;
+                this->m_capacity = 1048576;
             }
             else
             {
