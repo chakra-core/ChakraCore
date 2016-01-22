@@ -200,7 +200,7 @@
 #define ARENA_ALLOCATOR_FREE_LIST_SIZE
 
 // TODO (t-doilij) combine IR_VIEWER and ENABLE_IR_VIEWER
-#ifdef _M_IX86
+#if 0
 #define IR_VIEWER
 #define ENABLE_IR_VIEWER
 #define ENABLE_IR_VIEWER_DBG_DUMP  // TODO (t-doilij) disable this before check-in
