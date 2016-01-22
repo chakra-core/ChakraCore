@@ -561,7 +561,7 @@ STDAPI_(JsErrorCode) JsSetCurrentContext(_In_ JsContextRef newContext)
 
 #if ENABLE_TTD
         //If we are unloading the context then we are done with TTD so write out the result and call it a day
-        if(currentContext)
+        if(currentContext != nullptr && currentContext != newContext)
         {
             ThreadContext* threadContext = currentContext->GetRuntime()->GetThreadContext();
             if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
@@ -3471,7 +3471,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //May want to look into more sophisticated means for making this decision later
             if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
             {
-                if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+                if(scriptContext->TTDRootNestingCount == 0 && Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                     threadContext->TTDLog->DoSnapshotExtract(false);

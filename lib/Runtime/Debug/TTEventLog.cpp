@@ -1167,8 +1167,6 @@ namespace TTD
 
     bool EventLog::HasDoneFirstSnapshot() const
     {
-        AssertMsg(this->m_events == nullptr || this->m_events->GetEventKind() == EventLogEntry::EventKind::SnapshotTag, "First event should always be a snapshot.");
-
         return this->m_events != nullptr;
     }
 

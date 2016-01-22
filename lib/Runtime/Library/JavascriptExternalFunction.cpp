@@ -290,11 +290,13 @@ namespace Js
 
             if(elog->ShouldPerformDebugAction())
             {
+                scriptContext->TTDRootNestingCount++;
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
                 {
                     elog->ReplayExternalCallEvent(scriptContext, &result);
                 }
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+                scriptContext->TTDRootNestingCount--;
             }
 
             if(elog->ShouldPerformRecordAction())
@@ -302,8 +304,8 @@ namespace Js
                 Js::HiResTimer timer;
                 double startTime = timer.Now();
 
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
                 scriptContext->TTDRootNestingCount++;
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
 
                 Var result = nullptr;
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
@@ -316,8 +318,8 @@ namespace Js
                 double endTime = timer.Now();
                 beginEvent->SetElapsedTime(endTime - startTime);
 
-                scriptContext->TTDRootNestingCount--;
                 elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
+                scriptContext->TTDRootNestingCount--;
             }
         }
         else
@@ -392,11 +394,13 @@ namespace Js
 
             if(elog->ShouldPerformDebugAction())
             {
+                scriptContext->TTDRootNestingCount++;
                 BEGIN_LEAVE_SCRIPT(scriptContext)
                 {
                     elog->ReplayExternalCallEvent(scriptContext, &result);
                 }
                 END_LEAVE_SCRIPT(scriptContext);
+                scriptContext->TTDRootNestingCount--;
             }
 
             if(elog->ShouldPerformRecordAction())
@@ -404,8 +408,8 @@ namespace Js
                 Js::HiResTimer timer;
                 double startTime = timer.Now();
 
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
                 scriptContext->TTDRootNestingCount++;
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
 
                 BEGIN_LEAVE_SCRIPT(scriptContext)
                 {
@@ -416,8 +420,8 @@ namespace Js
                 double endTime = timer.Now();
                 beginEvent->SetElapsedTime(endTime - startTime);
 
-                scriptContext->TTDRootNestingCount--;
                 elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
+                scriptContext->TTDRootNestingCount--;
             }
         }
         else
