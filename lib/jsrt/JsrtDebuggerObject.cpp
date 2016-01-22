@@ -569,21 +569,7 @@ Js::DynamicObject * DebuggerObjectProperty::GetJSONObject(Js::ScriptContext* scr
 
         JsrtDebugUtils::AddStringPropertyToObject(this->propertyObject, L"name", objectDisplayRef->Name(), scriptContext);
 
-        Js::Var varValue = objectDisplayRef->GetVarValue(FALSE);
-        const wchar_t* typeofStr = L"BUG"; // ToDo (SaAgarwa): Modify objectDisplayRef->Type() to return the type
-        //JsrtDebugUtils::AddStringPropertyToObject(this->propertyObject, L"type", objectDisplayRef->Type(), scriptContext);
-        if (varValue != nullptr)
-        {
-            Js::Var typeOfVar = Js::JavascriptOperators::Typeof(varValue, scriptContext);
-            if (Js::JavascriptString::Is(typeOfVar))
-            {
-                Js::JavascriptString* typeOfString = Js::JavascriptString::FromVar(typeOfVar);
-                typeofStr = typeOfString->GetSz();
-            }
-        }
-        JsrtDebugUtils::AddStringPropertyToObject(this->propertyObject, L"type", typeofStr, scriptContext);
-
-        JsrtDebugUtils::AddStringPropertyToObject(this->propertyObject, L"display", objectDisplayRef->Value(10), scriptContext);
+        JsrtDebugUtils::AddPropertyType(this->propertyObject, objectDisplayRef, scriptContext); // Will add type, value, display, className
 
         if (objectDisplayRef->HasChildren())
         {
@@ -591,6 +577,7 @@ Js::DynamicObject * DebuggerObjectProperty::GetJSONObject(Js::ScriptContext* scr
         }
 
         JsrtDebugUtils::AddDoublePropertyToObject(this->propertyObject, L"handle", this->GetHandle(), scriptContext);
+
         this->objectDisplay->ReleaseStrongReference();
     }
 

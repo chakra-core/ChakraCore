@@ -20,4 +20,9 @@ public:
     static void AddStringPropertyToObject(Js::DynamicObject* object, const wchar_t* propertyName, const wchar_t * value, Js::ScriptContext* scriptContext);
     static void AddBooleanPropertyToObject(Js::DynamicObject* object, const wchar_t* propertyName, bool value, Js::ScriptContext* scriptContext);
     static void AddVarPropertyToObject(Js::DynamicObject* object, const wchar_t* propertyName, Js::Var value, Js::ScriptContext* scriptContext);
+
+    static void AddPropertyType(Js::DynamicObject * object, Js::IDiagObjectModelDisplay* objectDisplayRef, Js::ScriptContext * scriptContext);
+
+private:
+    static wchar_t* GetClassName(Js::TypeId typeId);
 };

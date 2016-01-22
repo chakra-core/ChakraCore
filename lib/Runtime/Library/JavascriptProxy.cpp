@@ -938,7 +938,9 @@ namespace Js
         {
             return FALSE;
         }
-        return propertyDescriptor.IsWritable();
+
+        // If property descriptor has getter/setter we should check if writable is specified before checking IsWritable
+        return propertyDescriptor.WritableSpecified() ? propertyDescriptor.IsWritable() : FALSE;
     }
 
     BOOL JavascriptProxy::IsConfigurable(PropertyId propertyId)
