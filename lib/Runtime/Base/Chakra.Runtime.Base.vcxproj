@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -52,7 +52,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextProfiler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContextOptimizationOverrideInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceHolder.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ScriptMemoryDumper.cpp" />    
+    <ClCompile Include="$(MSBuildThisFileDirectory)ScriptMemoryDumper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StackProber.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TestEtwEventSink.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TempArenaAllocatorObject.cpp" />
@@ -107,8 +107,7 @@
     <ClInclude Include="Utf8SourceInfo.h" />
     <ClInclude Include="WindowsFoundationAdapter.h" />
     <ClInclude Include="WindowsGlobalizationAdapter.h" />
-    <None Include="ScriptContext.inl" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
