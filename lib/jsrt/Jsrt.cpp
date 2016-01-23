@@ -2965,6 +2965,9 @@ STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
 
 STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeTTDUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
 {
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
     ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
 
     threadContext->TTDInitializeTTDUriFunction = ttdInitializeUriFunction;
@@ -2977,6 +2980,7 @@ STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTT
     threadContext->TTDStreamFunctions.pfFlushAndCloseStream = flushAndCloseStream;
 
     return JsNoError;
+#endif
 }
 
 STDAPI_(JsErrorCode) JsTTDPrintVariable(wchar_t* varName)

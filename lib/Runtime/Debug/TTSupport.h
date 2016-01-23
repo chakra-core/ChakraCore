@@ -31,16 +31,18 @@
 //
 
 //Sizes for each of the layers in the mark table
-#define TTD_OFFSETS_PER_PAGE 65536
-#define TTD_PAGES_PER_HEAP 16384
+#define TTD_OFFSETS_PER_PAGE 4194304
+#define TTD_PAGES_PER_REGION 1048576
+#define TTD_REGIONS_PER_HEAP 1048576
 
 #define TTD_OBJECT_ALIGNMENT_MASK 0x3
 
 //How to get the index values for each level in the table + how to get the upper addr for our simple cache
-#define TTD_MARK_GET_OFFSET(X) ((X >> 2) & 0xFFFF)
-#define TTD_MARK_GET_PAGE(X) ((X >> 18) & 0x3FFF)
+#define TTD_MARK_GET_OFFSET(X) ((X >> 2) & 0x3FFFFF)
+#define TTD_MARK_GET_PAGE(X) ((X >> 24) & 0xFFFFF)
+#define TTD_MARK_GET_REGION(X) (X >> 44)
 
-#define TTD_REBUILD_ADDR(PAGE, OFFSET) ((PAGE << 18) | (OFFSET << 2))
+#define TTD_REBUILD_ADDR(REGION, PAGE, OFFSET) ((REGION << 44) | (PAGE << 24) | (OFFSET << 2))
 
 //A basic universal hash function for our dictionary
 #define TTD_DICTIONARY_LOAD_FACTOR 2
@@ -1032,6 +1034,11 @@ namespace TTD
     //////////////////
     //A simple table to do object marking
 
+    //
+    //TODO: This table isn't great performance wise (around 2/3 of the time for a snapshot is spent in the mark-phase)
+    //      Right now perf. isn't a limiting factor but we probably want to improve on this.
+    //
+
     //Mark the table and what kind of value is at the address
     enum class MarkTableTag : byte
     {
@@ -1053,11 +1060,9 @@ namespace TTD
     };
     DEFINE_ENUM_FLAG_OPERATORS(MarkTableTag);
 
-    //
-    //TODO: This assumes a max 4GB heap in with the upper 32bits of the addresses as 0.
-    //      We either want to make this work for true 64 bit addresses or (assume) we don't span 4GB (or smaller) boundaries
-    //      and then we can just mask out (restore) the top part of the address and keep the basics of the mark code that we have.
-    //
+    //3 level table of tags (regions -> pages -> tags)
+    typedef MarkTableTag** MarkRegion;
+    typedef MarkTableTag* MarkPage;
 
     class MarkTable
     {
@@ -1065,14 +1070,15 @@ namespace TTD
 
         struct MarkIterator
         {
+            uint32 m_currRegionIdx;
             uint32 m_currPageIdx;
 
+            MarkTableTag* m_currBaseOffset;
             MarkTableTag* m_currOffset;
             MarkTableTag* m_currOffsetEnd;
         };
 
-        //Array of BitPages
-        MarkTableTag** m_markPages;
+        MarkRegion* m_markHeap;
 
         //Iterator for this mark table (only 1 allowed at a time)
         MarkIterator m_iter;
@@ -1082,30 +1088,40 @@ namespace TTD
 
         const MarkTableTag* GetMarkPageForAddrNoCreate(uint64 addr) const
         {
+            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
             uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
 
-            AssertMsg(pageAddr < TTD_PAGES_PER_HEAP, "We have a problem with our address space or bit masking!!");
-            AssertMsg(this->m_markPages[pageAddr] != nullptr, "Missing a page");
+            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
+            AssertMsg((this->m_markHeap[regionAddr] != nullptr) & (this->m_markHeap[regionAddr][pageAddr] != nullptr), "Missing a page");
 
-            return this->m_markPages[pageAddr];
+            return this->m_markHeap[regionAddr][pageAddr];
         }
 
         MarkTableTag* GetMarkPageForAddrNoCreate(uint64 addr)
         {
+            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
             uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
 
-            AssertMsg(pageAddr < TTD_PAGES_PER_HEAP, "We have a problem with our address space or bit masking!!");
-            AssertMsg(this->m_markPages[pageAddr] != nullptr, "Missing a page");
+            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
+            AssertMsg((this->m_markHeap[regionAddr] != nullptr) & (this->m_markHeap[regionAddr][pageAddr] != nullptr), "Missing a page");
 
-            return this->m_markPages[pageAddr];
+            return this->m_markHeap[regionAddr][pageAddr];
         }
 
         MarkTableTag* GetMarkPageForAddrWithCreate(uint64 addr)
         {
+            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
             uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
-            AssertMsg(pageAddr < TTD_PAGES_PER_HEAP, "We have a problem with our address space or bit masking!!");
 
-            MarkTableTag** pagePtr = (this->m_markPages + pageAddr);
+            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
+
+            MarkRegion* regionPtr = (this->m_markHeap + regionAddr);
+            if(*regionPtr == nullptr)
+            {
+                *regionPtr = HeapNewArrayZ(MarkTableTag*, TTD_PAGES_PER_REGION);
+            }
+
+            MarkPage* pagePtr = (*regionPtr + pageAddr);
             if(*pagePtr == nullptr)
             {
                 *pagePtr = HeapNewArrayZ(MarkTableTag, TTD_OFFSETS_PER_PAGE);
@@ -1124,8 +1140,8 @@ namespace TTD
         template <MarkTableTag kindtag>
         bool MarkAndTestAddr(const void* vaddr)
         {
-            AssertMsg((reinterpret_cast<uint64>(vaddr)& TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+            AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
+            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
 
             MarkTableTag* page = this->GetMarkPageForAddrWithCreate(reinterpret_cast<uint64>(vaddr));
 
@@ -1148,8 +1164,8 @@ namespace TTD
         template <MarkTableTag specialtag>
         void MarkAddrWithSpecialInfo(const void* vaddr)
         {
-            AssertMsg((reinterpret_cast<uint64>(vaddr)& TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+            AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
+            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
 
             MarkTableTag* page = this->GetMarkPageForAddrNoCreate(reinterpret_cast<uint64>(vaddr));
 
@@ -1174,10 +1190,10 @@ namespace TTD
         template<typename T>
         T GetPtrValue() const
         {
-            uint64 offset = (this->m_iter.m_currOffset - this->m_markPages[this->m_iter.m_currPageIdx]);
-            uint64 addr = TTD_REBUILD_ADDR(this->m_iter.m_currPageIdx, offset);
+            uint64 offset = (this->m_iter.m_currOffset - this->m_iter.m_currBaseOffset);
+            uint64 addr = TTD_REBUILD_ADDR((uint64)this->m_iter.m_currRegionIdx, (uint64)this->m_iter.m_currPageIdx, offset);
 
-            AssertMsg(this->m_iter.m_currPageIdx < TTD_PAGES_PER_HEAP && offset < TTD_OFFSETS_PER_PAGE, "This address does not exist!!!");
+            AssertMsg(this->m_iter.m_currRegionIdx < TTD_REGIONS_PER_HEAP && this->m_iter.m_currPageIdx < TTD_PAGES_PER_REGION && offset < TTD_OFFSETS_PER_PAGE, "This address does not exist!!!");
 
             return reinterpret_cast<T>(addr);
         }
@@ -1191,8 +1207,44 @@ namespace TTD
             return this->m_handlerCounts[(uint32)kindtag];
         }
 
-        void MoveToNextAddress();
+        template<bool advance>
+        bool MoveToNextMark()
+        {
+            if(advance)
+            {
+                //advance at least one position
+                this->m_iter.m_currOffset++;
+            }
+
+            while(this->m_iter.m_currOffset < this->m_iter.m_currOffsetEnd)
+            {
+                MarkTableTag tag = *(this->m_iter.m_currOffset);
+                if((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
+                {
+                    return true;
+                }
+                this->m_iter.m_currOffset++;
+            }
+
+            return false;
+        }
+
+        void MoveToNextAddressSlow();
+
+        void MoveToNextAddress()
+        {
+            //usual case just walk to next mark
+            bool foundMark = this->MoveToNextMark<true>();
+            if(foundMark)
+            {
+                return;
+            }
+
+            this->MoveToNextAddressSlow();
+        }
+
         void InitializeIter();
+        void SetIterInvalid();
     };
 }
 

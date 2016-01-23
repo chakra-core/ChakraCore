@@ -1294,22 +1294,33 @@ namespace TTD
         return alloc.CopyStringInto(this->ReadNakedString());
     }
 
-    void JSONReader::ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, int32* intVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator)
+    void JSONReader::ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, bool* isDouble, int32* intVal, double* doubleVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
 
         *isNull = (tok == NSTokens::ParseTokenKind::Null);
-        *isInt = (tok == NSTokens::ParseTokenKind::Number);
+        *isInt = false;
+        *isDouble = false;
         *isAddr = (tok == NSTokens::ParseTokenKind::String);
 
-        if(*isInt)
+        if(tok == NSTokens::ParseTokenKind::Number)
         {
             this->m_charListOpt.Add(L'\0');
-            int64 ival = this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
-            FileReader::FileReadAssert(INT32_MIN <= ival && ival <= INT32_MAX);
-            *intVal = (int32)ival;
+            double dval = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
+
+            //it is really an int
+            if((INT32_MIN <= dval && dval <= INT32_MAX) && (floor(dval) == dval))
+            {
+                *isInt = true;
+                *intVal = (int32)dval;
+            }
+            else
+            {
+                *isDouble = true;
+                *doubleVal = dval;
+            }
         }
 
         if(*isAddr)

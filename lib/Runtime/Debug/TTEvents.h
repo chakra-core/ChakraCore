@@ -275,6 +275,9 @@ namespace TTD
 
             RawNull,
             ChakraTaggedInteger,
+#if FLOATVAR
+            ChakraTaggedDouble,
+#endif
             ChakraLoggedObject,
             ChakraPropertyId,
             RawUIntValue, //also used for bools
@@ -291,6 +294,7 @@ namespace TTD
             {
                 int64 u_int64Val;
                 int64 u_uint64Val;
+                double u_doubleVal;
                 Js::PropertyId u_propertyId;
                 TTD_LOG_TAG u_objectTag;
             };

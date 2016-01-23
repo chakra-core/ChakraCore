@@ -557,8 +557,22 @@ namespace TTD
             {
                 if(JsSupport::IsVarTaggedInline(var))
                 {
-                    val->Tag = ArgRetValueTag::ChakraTaggedInteger;
-                    val->u_int64Val = Js::TaggedInt::ToInt32(var);
+#if FLOATVAR
+                    if(Js::TaggedInt::Is(var))
+                    {
+#endif
+                        val->Tag = ArgRetValueTag::ChakraTaggedInteger;
+                        val->u_int64Val = Js::TaggedInt::ToInt32(var);
+#if FLOATVAR
+                    }
+                    else
+                    {
+                        AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
+
+                        val->Tag = ArgRetValueTag::ChakraTaggedDouble;
+                        val->u_doubleVal = Js::JavascriptNumber::GetValue(var);
+                    }
+#endif
                 }
                 else
                 {
@@ -610,16 +624,19 @@ namespace TTD
             {
                 res = nullptr;
             }
+            else if(val->Tag == ArgRetValueTag::ChakraTaggedInteger)
+            {
+                res = Js::TaggedInt::ToVarUnchecked((int32)val->u_int64Val);
+            }
+#if FLOATVAR
+            else if(val->Tag == ArgRetValueTag::ChakraTaggedDouble)
+            {
+                res = Js::JavascriptNumber::NewInlined(val->u_doubleVal, nullptr);
+            }
+#endif
             else
             {
-                if(val->Tag == ArgRetValueTag::ChakraTaggedInteger)
-                {
-                    res = Js::TaggedInt::ToVarUnchecked((int32)val->u_int64Val);
-                }
-                else
-                {
-                    res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val->u_objectTag);
-                }
+                res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val->u_objectTag);
             }
 
             return res;
@@ -659,6 +676,11 @@ namespace TTD
             case ArgRetValueTag::ChakraTaggedInteger:
                 writer->WriteInt32(NSTokens::Key::i32Val, (int32)val->u_int64Val, NSTokens::Separator::CommaSeparator);
                 break;
+#if FLOATVAR
+            case ArgRetValueTag::ChakraTaggedDouble:
+                writer->WriteDouble(NSTokens::Key::doubleVal, val->u_doubleVal, NSTokens::Separator::CommaSeparator);
+                break;
+#endif
             case ArgRetValueTag::ChakraLoggedObject:
                 writer->WriteLogTag(NSTokens::Key::tagVal, val->u_objectTag, NSTokens::Separator::CommaSeparator);
                 break;
@@ -700,6 +722,11 @@ namespace TTD
             case ArgRetValueTag::ChakraTaggedInteger:
                 val->u_int64Val = reader->ReadInt32(NSTokens::Key::i32Val, true);
                 break;
+#if FLOATVAR
+            case ArgRetValueTag::ChakraTaggedDouble:
+                val->u_doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
+                break;
+#endif
             case ArgRetValueTag::ChakraLoggedObject:
                 val->u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
                 break;

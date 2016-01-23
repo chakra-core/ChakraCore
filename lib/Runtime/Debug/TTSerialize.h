@@ -311,7 +311,7 @@ namespace TTD
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) = 0;
         TTD_WELLKNOWN_TOKEN ReadWellKnownToken(SlabAllocator& alloc, NSTokens::Key keyCheck, bool readSeparator = false);
 
-        virtual void ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, int32* intVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator) = 0;
+        virtual void ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, bool* isDouble, int32* intVal, double* doubleVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator) = 0;
         virtual uint32 ReadNakedTag(bool readSeparator = false) = 0;
 
         template <typename T>
@@ -380,7 +380,7 @@ namespace TTD
         virtual TTD_IDENTITY_TAG ReadNakedIdentityTag(bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
 
-        virtual void ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, int32* intVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator) override;
+        virtual void ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, bool* isDouble, int32* intVal, double* doubleVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator) override;
         virtual uint32 ReadNakedTag(bool readSeparator = false) override;
 
         //////////////////

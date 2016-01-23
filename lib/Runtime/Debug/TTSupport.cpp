@@ -205,9 +205,11 @@ namespace TTD
 
     MarkTable::MarkTable()
     {
-        this->m_markPages = HeapNewArrayZ(MarkTableTag*, TTD_PAGES_PER_HEAP);
+        this->m_markHeap = HeapNewArrayZ(MarkRegion, TTD_REGIONS_PER_HEAP);
 
+        this->m_iter.m_currRegionIdx = 0;
         this->m_iter.m_currPageIdx = 0;
+        this->m_iter.m_currBaseOffset = nullptr;
         this->m_iter.m_currOffset = nullptr;
         this->m_iter.m_currOffsetEnd = nullptr;
 
@@ -218,21 +220,34 @@ namespace TTD
     {
         this->Clear();
 
-        HeapDeleteArray(TTD_PAGES_PER_HEAP, this->m_markPages);
+        HeapDeleteArray(TTD_REGIONS_PER_HEAP, this->m_markHeap);
     }
 
     void MarkTable::Clear()
     {
-        for(uint32 i = 0; i < TTD_PAGES_PER_HEAP; ++i)
+        for(uint32 i = 0; i < TTD_REGIONS_PER_HEAP; ++i)
         {
-            if(this->m_markPages[i] != nullptr)
+            MarkRegion* regionArray = this->m_markHeap + i;
+            if(*regionArray != nullptr)
             {
-                HeapDeleteArray(TTD_OFFSETS_PER_PAGE, this->m_markPages[i]);
-                this->m_markPages[i] = nullptr;
+                for(uint32 j = 0; j < TTD_PAGES_PER_REGION; ++j)
+                {
+                    MarkPage* pageArray = *regionArray + j;
+                    if(*pageArray != nullptr)
+                    {
+                        HeapDeleteArray(TTD_OFFSETS_PER_PAGE, *pageArray);
+                        *pageArray = nullptr;
+                    }
+                }
+
+                HeapDeleteArray(TTD_PAGES_PER_REGION, *regionArray);
+                *regionArray = nullptr;
             }
         }
 
+        this->m_iter.m_currRegionIdx = 0;
         this->m_iter.m_currPageIdx = 0;
+        this->m_iter.m_currBaseOffset = nullptr;
         this->m_iter.m_currOffset = nullptr;
         this->m_iter.m_currOffsetEnd = nullptr;
 
@@ -241,8 +256,8 @@ namespace TTD
 
     bool MarkTable::IsMarked(const void* vaddr) const
     {
-        AssertMsg((reinterpret_cast<uint64>(vaddr)& TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+        AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
+        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
 
         const MarkTableTag* page = this->GetMarkPageForAddrNoCreate(reinterpret_cast<uint64>(vaddr));
         AssertMsg(page != nullptr, "Missing a mark for this address");
@@ -255,8 +270,8 @@ namespace TTD
 
     bool MarkTable::IsTaggedAsWellKnown(const void* vaddr) const
     {
-        AssertMsg((reinterpret_cast<uint64>(vaddr)& TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+        AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
+        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
 
         const MarkTableTag* page = this->GetMarkPageForAddrNoCreate(reinterpret_cast<uint64>(vaddr));
         AssertMsg(page != nullptr, "Missing a mark for this address");
@@ -291,8 +306,8 @@ namespace TTD
 
     void MarkTable::ClearMark(const void* vaddr)
     {
-        AssertMsg((reinterpret_cast<uint64>(vaddr)& TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+        AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
+        AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
 
         MarkTableTag* page = this->GetMarkPageForAddrNoCreate(reinterpret_cast<uint64>(vaddr));
         AssertMsg(page != nullptr, "Missing a mark for this address");
@@ -303,73 +318,83 @@ namespace TTD
         page[offset] = MarkTableTag::Clear;
     }
 
-    void MarkTable::MoveToNextAddress()
+    void MarkTable::MoveToNextAddressSlow()
     {
-        //advance at least one position
-        this->m_iter.m_currOffset++;
+        //we only call this at the end of page so always advance
+        this->m_iter.m_currPageIdx++;
 
         while(true)
         {
-            while(this->m_iter.m_currOffset < this->m_iter.m_currOffsetEnd)
+            while(this->m_markHeap[this->m_iter.m_currRegionIdx] == nullptr)
             {
-                MarkTableTag tag = *(this->m_iter.m_currOffset);
-                if((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
+                this->m_iter.m_currRegionIdx++;
+                this->m_iter.m_currPageIdx = 0; //we moved to a new region so reset the page ctr
+
+                if(this->m_iter.m_currRegionIdx == TTD_REGIONS_PER_HEAP)
                 {
+                    //hit the end so clear everything
+                    this->SetIterInvalid();
                     return;
                 }
-                this->m_iter.m_currOffset++;
             }
 
-            this->m_iter.m_currPageIdx++;
-            while(this->m_iter.m_currPageIdx < TTD_PAGES_PER_HEAP)
+            while(this->m_iter.m_currPageIdx < TTD_PAGES_PER_REGION && this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx] == nullptr)
             {
-                if(this->m_markPages[this->m_iter.m_currPageIdx] != nullptr)
+                this->m_iter.m_currPageIdx++;
+            }
+
+            if(this->m_iter.m_currPageIdx == TTD_PAGES_PER_REGION)
+            {
+                this->m_iter.m_currRegionIdx++;
+                this->m_iter.m_currPageIdx = 0; //we moved to a new region so reset the page ctr
+            }
+            else
+            {
+                //we must be at a new page so set the offest info
+                this->m_iter.m_currBaseOffset = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx];
+                this->m_iter.m_currOffset = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx];
+                this->m_iter.m_currOffsetEnd = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx] + TTD_OFFSETS_PER_PAGE;
+
+                bool internalFoundMark = this->MoveToNextMark<false>();
+                if(internalFoundMark)
                 {
-                    break;
+                    return;
                 }
 
                 this->m_iter.m_currPageIdx++;
             }
-
-
-            if(this->m_iter.m_currPageIdx == TTD_PAGES_PER_HEAP)
-            {
-                this->m_iter.m_currPageIdx = 0;
-                this->m_iter.m_currOffset = nullptr;
-                this->m_iter.m_currOffsetEnd = nullptr;
-
-                return;
-            }
-
-            this->m_iter.m_currOffset = this->m_markPages[this->m_iter.m_currPageIdx];
-            this->m_iter.m_currOffsetEnd = this->m_markPages[this->m_iter.m_currPageIdx] + TTD_OFFSETS_PER_PAGE;
         }
     }
 
     void MarkTable::InitializeIter()
     {
+        this->m_iter.m_currRegionIdx = 0;
         this->m_iter.m_currPageIdx = 0;
+        this->m_iter.m_currBaseOffset = nullptr;
         this->m_iter.m_currOffset = nullptr;
         this->m_iter.m_currOffsetEnd = nullptr;
 
-        this->m_iter.m_currPageIdx++;
-        while(this->m_iter.m_currPageIdx < TTD_PAGES_PER_HEAP)
+        while(this->m_markHeap[this->m_iter.m_currRegionIdx] == nullptr)
         {
-            if(this->m_markPages[this->m_iter.m_currPageIdx] != nullptr)
+            this->m_iter.m_currRegionIdx++;
+
+            if(this->m_iter.m_currRegionIdx == TTD_REGIONS_PER_HEAP)
             {
-                break;
+                this->m_iter.m_currRegionIdx = 0;
+                return;
             }
+        }
+
+        while(this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx] == nullptr)
+        {
+            AssertMsg(this->m_iter.m_currPageIdx < TTD_PAGES_PER_REGION, "Always have a page if a region is non-null");
 
             this->m_iter.m_currPageIdx++;
         }
 
-        if(this->m_iter.m_currPageIdx == TTD_PAGES_PER_HEAP)
-        {
-            return;
-        }
-
-        this->m_iter.m_currOffset = this->m_markPages[this->m_iter.m_currPageIdx];
-        this->m_iter.m_currOffsetEnd = this->m_markPages[this->m_iter.m_currPageIdx] + TTD_OFFSETS_PER_PAGE;
+        this->m_iter.m_currBaseOffset = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx];
+        this->m_iter.m_currOffset = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx];
+        this->m_iter.m_currOffsetEnd = this->m_markHeap[this->m_iter.m_currRegionIdx][this->m_iter.m_currPageIdx] + TTD_OFFSETS_PER_PAGE;
 
         //the first address in the first page might be marked, if it is we don't want to advance otherwise move to first marked address
         MarkTableTag tag = *(this->m_iter.m_currOffset);
@@ -377,6 +402,15 @@ namespace TTD
         {
             this->MoveToNextAddress();
         }
+    }
+
+    void MarkTable::SetIterInvalid()
+    {
+        this->m_iter.m_currRegionIdx = 0;
+        this->m_iter.m_currPageIdx = 0;
+        this->m_iter.m_currBaseOffset = nullptr;
+        this->m_iter.m_currOffset = nullptr;
+        this->m_iter.m_currOffsetEnd = nullptr;
     }
 }
 

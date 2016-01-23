@@ -125,9 +125,20 @@ namespace TTD
             }
             else if(Js::TaggedNumber::Is(var))
             {
-                AssertMsg(Js::TaggedInt::Is(var), "We need FloatVar check too");
+#if FLOATVAR
+                if(Js::TaggedInt::Is(var))
+                {
+#endif
+                    writer->WriteNakedInt32(Js::TaggedInt::ToInt32(var), separator);
+#if FLOATVAR
+                }
+                else
+                {
+                    AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
 
-                writer->WriteNakedInt32(Js::TaggedInt::ToInt32(var), separator);
+                    writer->WriteNakedDouble(Js::JavascriptNumber::GetValue(var), separator);
+                }
+#endif
             }
             else
             {
@@ -137,11 +148,12 @@ namespace TTD
 
         TTDVar ParseTTDVar(bool readSeperator, FileReader* reader)
         {
-            bool isInt, isAddr, isNull;
+            bool isInt, isDouble, isAddr, isNull;
             int32 intVal;
+            double doubleVal;
             TTD_PTR_ID addrVal;
 
-            reader->ReadNakedNumberOrAddressOrNull(&isNull, &isInt, &intVal, &isAddr, &addrVal, readSeperator);
+            reader->ReadNakedNumberOrAddressOrNull(&isNull, &isInt, &isDouble, &intVal, &doubleVal, &isAddr, &addrVal, readSeperator);
 
             if(isNull)
             {
@@ -151,6 +163,12 @@ namespace TTD
             {
                 return Js::TaggedInt::ToVarUnchecked(intVal);
             }
+#if FLOATVAR
+            else if(isDouble)
+            {
+                return Js::JavascriptNumber::NewInlined(doubleVal, nullptr);
+            }
+#endif
             else
             {
                 AssertMsg(isAddr, "Is there something else?");
