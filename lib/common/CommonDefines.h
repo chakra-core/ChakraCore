@@ -267,16 +267,16 @@
 #define ENABLE_TTD_IDENTITY_TRACING 0
 
 //A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
-#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
+#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 0
 
 //Flags to control special features turned on for debugging
-#define ENABLE_TTD_DEBUGGING 1
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 1
+#define ENABLE_TTD_DEBUGGING 0
+#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 0
 
 //Enable various sanity checking features and asserts
-#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 0
 
-#define TTD_WRITE_JSON_OUTPUT TRUE
+#define TTD_WRITE_JSON_OUTPUT FALSE
 #define TTD_WRITE_BINARY_OUTPUT FALSE
 
 #endif

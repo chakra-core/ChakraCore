@@ -26,28 +26,10 @@
 #define TTD_ARRAY_LIST_SIZE_DEFAULT 2048
 #define TTD_ARRAY_LIST_SIZE_SMALL 32
 
-//
-//We are assuming a 4GB pointer address space here (starting at 0) so we probably want to revisit this when we add better GC support
-//
-
-//Sizes for each of the layers in the mark table
-#define TTD_OFFSETS_PER_PAGE 4194304
-#define TTD_PAGES_PER_REGION 1048576
-#define TTD_REGIONS_PER_HEAP 1048576
-
-#define TTD_OBJECT_ALIGNMENT_MASK 0x3
-
-//How to get the index values for each level in the table + how to get the upper addr for our simple cache
-#define TTD_MARK_GET_OFFSET(X) ((X >> 2) & 0x3FFFFF)
-#define TTD_MARK_GET_PAGE(X) ((X >> 24) & 0xFFFFF)
-#define TTD_MARK_GET_REGION(X) (X >> 44)
-
-#define TTD_REBUILD_ADDR(REGION, PAGE, OFFSET) ((REGION << 44) | (PAGE << 24) | (OFFSET << 2))
-
 //A basic universal hash function for our dictionary
 #define TTD_DICTIONARY_LOAD_FACTOR 2
-#define TTD_DICTIONARY_HASH(X, P) ((uint32)(X % P))
-#define TTD_DICTIONARY_INDEX(X, M) ((uint32)(X & (M - 1)))
+#define TTD_DICTIONARY_HASH(X, P) ((uint32)((X) % P))
+#define TTD_DICTIONARY_INDEX(X, M) ((uint32)((X) & (M - 1)))
 
 namespace TTD
 {
@@ -805,17 +787,17 @@ namespace TTD
 
             //do a hash for the second offset to avoid clustering and then do linear probing
             uint32 offset = TTD_DICTIONARY_HASH(id, this->m_h2Prime);
-            uint32 probeIndex = primaryIndex + offset;
+            uint32 probeIndex = TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity);
             while(true)
             {
-                Entry* curr = (this->m_hashArray + TTD_DICTIONARY_INDEX(probeIndex, this->m_capacity));
+                Entry* curr = (this->m_hashArray + probeIndex);
                 if(curr->Key == searchKey)
                 {
                     return curr;
                 }
-                probeIndex++;
+                probeIndex = TTD_DICTIONARY_INDEX(probeIndex + 1, this->m_capacity);
 
-                AssertMsg(TTD_DICTIONARY_INDEX(probeIndex, this->m_capacity) != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
+                AssertMsg(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
             }
         }
 
@@ -994,10 +976,10 @@ namespace TTD
 
             //do a hash for the second offset to avoid clustering and then do linear probing
             uint32 offset = TTD_DICTIONARY_HASH(id, this->m_h2Prime);
-            uint32 probeIndex = primaryIndex + offset;
+            uint32 probeIndex = TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity);
             while(true)
             {
-                Entry* curr = (this->m_hashArray + TTD_DICTIONARY_INDEX(probeIndex, this->m_capacity));
+                Entry* curr = (this->m_hashArray + probeIndex);
                 if(curr->Key == id)
                 {
                     return true;
@@ -1008,9 +990,9 @@ namespace TTD
                     return false;
                 }
 
-                probeIndex++;
+                probeIndex = TTD_DICTIONARY_INDEX(probeIndex + 1, this->m_capacity);
 
-                AssertMsg(TTD_DICTIONARY_INDEX(probeIndex, this->m_capacity) != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
+                AssertMsg(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
             }
         }
 
@@ -1060,74 +1042,82 @@ namespace TTD
     };
     DEFINE_ENUM_FLAG_OPERATORS(MarkTableTag);
 
-    //3 level table of tags (regions -> pages -> tags)
-    typedef MarkTableTag** MarkRegion;
-    typedef MarkTableTag* MarkPage;
-
     class MarkTable
     {
     private:
+        //The addresses and their marks 
+        uint64* m_addrArray;
+        MarkTableTag* m_markArray;
 
-        struct MarkIterator
-        {
-            uint32 m_currRegionIdx;
-            uint32 m_currPageIdx;
+        //Capcity and count of the table (we use capcity for fast & hashing instead of %);
+        uint32 m_capcity;
+        uint32 m_count;
 
-            MarkTableTag* m_currBaseOffset;
-            MarkTableTag* m_currOffset;
-            MarkTableTag* m_currOffsetEnd;
-        };
-
-        MarkRegion* m_markHeap;
-
-        //Iterator for this mark table (only 1 allowed at a time)
-        MarkIterator m_iter;
+        //iterator position
+        uint32 m_iterPos;
 
         //Counts of how many handlers/types/... we have marked
         uint32 m_handlerCounts[(uint32)MarkTableTag::KindTagCount];
 
-        const MarkTableTag* GetMarkPageForAddrNoCreate(uint64 addr) const
+        int32 FindIndexForKey(uint64 addr) const
         {
-            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
-            uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
+            AssertMsg(this->m_addrArray != nullptr, "Not valid!!");
 
-            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
-            AssertMsg((this->m_markHeap[regionAddr] != nullptr) & (this->m_markHeap[regionAddr][pageAddr] != nullptr), "Missing a page");
+            uint32 primaryMask = this->m_capcity - 1;
 
-            return this->m_markHeap[regionAddr][pageAddr];
-        }
-
-        MarkTableTag* GetMarkPageForAddrNoCreate(uint64 addr)
-        {
-            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
-            uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
-
-            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
-            AssertMsg((this->m_markHeap[regionAddr] != nullptr) & (this->m_markHeap[regionAddr][pageAddr] != nullptr), "Missing a page");
-
-            return this->m_markHeap[regionAddr][pageAddr];
-        }
-
-        MarkTableTag* GetMarkPageForAddrWithCreate(uint64 addr)
-        {
-            uint32 regionAddr = TTD_MARK_GET_REGION(addr);
-            uint32 pageAddr = TTD_MARK_GET_PAGE(addr);
-
-            AssertMsg((regionAddr < TTD_REGIONS_PER_HEAP) & (pageAddr < TTD_PAGES_PER_REGION), "We have a problem with our address space or bit masking!!");
-
-            MarkRegion* regionPtr = (this->m_markHeap + regionAddr);
-            if(*regionPtr == nullptr)
+            uint32 primaryIndex = (addr & primaryMask);
+            uint64 primaryAddr = this->m_addrArray[primaryIndex];
+            if((primaryAddr == addr) | (primaryAddr == 0))
             {
-                *regionPtr = HeapNewArrayZ(MarkTableTag*, TTD_PAGES_PER_REGION);
+                return (int32)primaryIndex;
             }
 
-            MarkPage* pagePtr = (*regionPtr + pageAddr);
-            if(*pagePtr == nullptr)
+            //do a hash for the second offset to avoid clustering and then do linear probing
+            uint32 offset = (addr % 32749);
+            uint32 probeIndex = ((primaryIndex + offset) & primaryMask);
+            while(true)
             {
-                *pagePtr = HeapNewArrayZ(MarkTableTag, TTD_OFFSETS_PER_PAGE);
+                uint64 currAddr = this->m_addrArray[probeIndex];
+                if((currAddr == addr) | (currAddr == 0))
+                {
+                    return (int32)probeIndex;
+                }
+                probeIndex = ((probeIndex + 1) & primaryMask);
+
+                AssertMsg(probeIndex != ((primaryIndex + offset) & primaryMask), "We messed up.");
+            }
+        }
+
+        void Grow()
+        {
+            uint32 oldCapacity = this->m_capcity;
+            uint64* oldAddrArray = this->m_addrArray;
+            MarkTableTag* oldMarkArray = this->m_markArray;
+
+            this->m_capcity = this->m_capcity << 1; //double capacity
+            this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
+            this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
+
+            for(uint32 i = 0; i < oldCapacity; ++i)
+            {
+                int32 idx = this->FindIndexForKey(oldAddrArray[i]);
+                this->m_addrArray[idx] = oldAddrArray[i];
+                this->m_markArray[idx] = oldMarkArray[i];
             }
 
-            return *pagePtr;
+            HeapDeleteArray(oldCapacity, oldAddrArray);
+            HeapDeleteArray(oldCapacity, oldMarkArray);
+        }
+
+        int32 FindIndexForKeyWGrow(const void* addr)
+        {
+            //keep the load factor < 25%
+            if((this->m_capcity >> 2) < this->m_count)
+            {
+                this->Grow();
+            }
+
+            return this->FindIndexForKey(reinterpret_cast<uint64>(addr));
         }
 
     public:
@@ -1140,22 +1130,20 @@ namespace TTD
         template <MarkTableTag kindtag>
         bool MarkAndTestAddr(const void* vaddr)
         {
-            AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+            int32 idx = this->FindIndexForKeyWGrow(vaddr);
 
-            MarkTableTag* page = this->GetMarkPageForAddrWithCreate(reinterpret_cast<uint64>(vaddr));
+            //we really want to do the check on m_markArray but since we know nothing has been cleared we can check the addrArray for better cache behavior
+            bool notMarked = this->m_addrArray[idx] == 0;
 
-            uint32 offset = TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr));
-            AssertMsg(offset < TTD_OFFSETS_PER_PAGE, "We are writing off the end of the page");
-            AssertMsg((page[offset] & MarkTableTag::JsWellKnownObj) == MarkTableTag::Clear, "We are supposed to rundown mark after live marking.");
-
-            bool notMarked = page[offset] == MarkTableTag::Clear;
             if(notMarked)
             {
-                page[offset] = kindtag;
+                this->m_addrArray[idx] = reinterpret_cast<uint64>(vaddr);
+                this->m_markArray[idx] = kindtag;
+
+                this->m_count++;
                 (this->m_handlerCounts[(uint32)kindtag])++;
             }
-            AssertMsg(page[offset] == kindtag, "We had some sort of collision.");
+            AssertMsg(this->m_markArray[idx] == kindtag, "We had some sort of collision.");
 
             return notMarked;
         }
@@ -1164,42 +1152,67 @@ namespace TTD
         template <MarkTableTag specialtag>
         void MarkAddrWithSpecialInfo(const void* vaddr)
         {
-            AssertMsg((reinterpret_cast<uint64>(vaddr) & TTD_OBJECT_ALIGNMENT_MASK) == 0, "Not word aligned!!");
-            AssertMsg(TTD_REBUILD_ADDR(TTD_MARK_GET_REGION(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_PAGE(reinterpret_cast<uint64>(vaddr)), TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr))) == reinterpret_cast<uint64>(vaddr), "Lost some bits in the address.");
+            int32 idx = this->FindIndexForKey(reinterpret_cast<uint64>(vaddr));
 
-            MarkTableTag* page = this->GetMarkPageForAddrNoCreate(reinterpret_cast<uint64>(vaddr));
-
-            if(page != nullptr)
+            if(this->m_markArray[idx] != MarkTableTag::Clear)
             {
-                uint32 offset = TTD_MARK_GET_OFFSET(reinterpret_cast<uint64>(vaddr));
-                AssertMsg(offset < TTD_OFFSETS_PER_PAGE, "We are writing off the end of the page");
-
-                page[offset] |= specialtag;
+                this->m_markArray[idx] |= specialtag;
             }
         }
 
-        //Return true if the location is marked and if it is tagged as well-known
-        bool IsMarked(const void* vaddr) const;
-        bool IsTaggedAsWellKnown(const void* vaddr) const;
+        //Return true if the location is marked
+        bool IsMarked(const void* vaddr) const
+        {
+            int32 idx = this->FindIndexForKey(reinterpret_cast<uint64>(vaddr));
+
+            return this->m_markArray[idx] != MarkTableTag::Clear;
+        }
+
+        //Return true if the location is tagged as well-known
+        bool IsTaggedAsWellKnown(const void* vaddr) const
+        {
+            int32 idx = this->FindIndexForKey(reinterpret_cast<uint64>(vaddr));
+
+            return (this->m_markArray[idx] & MarkTableTag::JsWellKnownObj) != MarkTableTag::Clear;
+        }
 
         //return clear if no more addresses
-        MarkTableTag GetTagValue() const;
-        bool GetTagValueIsWellKnown() const;
-        bool GetTagValueIsLogged() const;
+        MarkTableTag GetTagValue() const
+        {
+            if(this->m_iterPos >= this->m_capcity)
+            {
+                return MarkTableTag::Clear;
+            }
+            else
+            {
+                return this->m_markArray[this->m_iterPos];
+            }
+        }
+
+        bool GetTagValueIsWellKnown() const
+        {
+            return (this->m_markArray[this->m_iterPos] & MarkTableTag::JsWellKnownObj) != MarkTableTag::Clear;
+        }
+
+        bool GetTagValueIsLogged() const
+        {
+            return (this->m_markArray[this->m_iterPos] & MarkTableTag::LogTaggedObj) != MarkTableTag::Clear;
+        }
 
         template<typename T>
         T GetPtrValue() const
         {
-            uint64 offset = (this->m_iter.m_currOffset - this->m_iter.m_currBaseOffset);
-            uint64 addr = TTD_REBUILD_ADDR((uint64)this->m_iter.m_currRegionIdx, (uint64)this->m_iter.m_currPageIdx, offset);
-
-            AssertMsg(this->m_iter.m_currRegionIdx < TTD_REGIONS_PER_HEAP && this->m_iter.m_currPageIdx < TTD_PAGES_PER_REGION && offset < TTD_OFFSETS_PER_PAGE, "This address does not exist!!!");
-
-            return reinterpret_cast<T>(addr);
+            return reinterpret_cast<T>(this->m_addrArray[this->m_iterPos]);
         }
 
         //Clear the mark at the given address
-        void ClearMark(const void* vaddr);
+        void ClearMark(const void* vaddr)
+        {
+            int32 idx = this->FindIndexForKey(reinterpret_cast<uint64>(vaddr));
+
+            //DON'T CLEAR THE ADDR JUST CLEAR THE MARK
+            this->m_markArray[idx] = MarkTableTag::Clear;
+        }
 
         template <MarkTableTag kindtag>
         uint32 GetCountForTag()
@@ -1207,44 +1220,32 @@ namespace TTD
             return this->m_handlerCounts[(uint32)kindtag];
         }
 
-        template<bool advance>
-        bool MoveToNextMark()
-        {
-            if(advance)
-            {
-                //advance at least one position
-                this->m_iter.m_currOffset++;
-            }
-
-            while(this->m_iter.m_currOffset < this->m_iter.m_currOffsetEnd)
-            {
-                MarkTableTag tag = *(this->m_iter.m_currOffset);
-                if((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
-                {
-                    return true;
-                }
-                this->m_iter.m_currOffset++;
-            }
-
-            return false;
-        }
-
-        void MoveToNextAddressSlow();
-
         void MoveToNextAddress()
         {
-            //usual case just walk to next mark
-            bool foundMark = this->MoveToNextMark<true>();
-            if(foundMark)
-            {
-                return;
-            }
+            this->m_iterPos++;
 
-            this->MoveToNextAddressSlow();
+            while(this->m_iterPos < this->m_capcity)
+            {
+                MarkTableTag tag = this->m_markArray[this->m_iterPos];
+
+                if((tag & MarkTableTag::AllKindMask) != MarkTableTag::Clear)
+                {
+                    return;
+                }
+
+                this->m_iterPos++;
+            }
         }
 
-        void InitializeIter();
-        void SetIterInvalid();
+        void InitializeIter()
+        {
+            this->m_iterPos = 0;
+
+            if(this->m_markArray[0] == MarkTableTag::Clear)
+            {
+                this->MoveToNextAddress();
+            }
+        }
     };
 }
 
