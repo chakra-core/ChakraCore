@@ -31,6 +31,17 @@
 #define TTD_DICTIONARY_HASH(X, P) ((uint32)((X) % P))
 #define TTD_DICTIONARY_INDEX(X, M) ((uint32)((X) & (M - 1)))
 
+//Support for our mark table
+#define TTD_MARK_TABLE_INIT_SIZE 65536
+#define TTD_MARK_TABLE_INIT_H2PRIME 32749
+#define TTD_MARK_TABLE_HASH1(X, S) ((uint32)((X) & (S - 1)))
+#define TTD_MARK_TABLE_HASH2(X, P) ((uint32)((X) % P))
+#define TTD_MARK_TABLE_INDEX(X, M) ((uint32)((X) & (M - 1)))
+
+#define TTD_TABLE_FACTORLOAD_BASE(C, P1, P2) if(targetSize < C) { *powerOf2 = C; *closePrime = P1; *midPrime = P2; }
+#define TTD_TABLE_FACTORLOAD(C, P1, P2) else TTD_TABLE_FACTORLOAD_BASE(C, P1, P2)
+#define TTD_TABLE_FACTORLOAD_FINAL(C, P1, P2) else { *powerOf2 = C; *closePrime = P1; *midPrime = P2; }
+
 namespace TTD
 {
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
@@ -93,6 +104,9 @@ namespace TTD
             LPCWSTR GetStrValue() const;
         };
     }
+
+    //Given a target capacity return (1) the nearest upper power of 2, (2) a good close prime, and (3) a good mid prime
+    void LoadValuesForHashTables(uint32 targetSize, uint32* powerOf2, uint32* closePrime, uint32* midPrime);
 
     //////////////////
 
@@ -829,98 +843,7 @@ namespace TTD
 
             uint32 desiredSize = capacity * TTD_DICTIONARY_LOAD_FACTOR;
 
-            if(desiredSize < 128)
-            {
-                this->m_h1Prime = 127;
-                this->m_h2Prime = 61;
-                this->m_capacity = 128;
-            }
-            else if(desiredSize < 256)
-            {
-                this->m_h1Prime = 251;
-                this->m_h2Prime = 127;
-                this->m_capacity = 256;
-            }
-            else if(desiredSize < 512)
-            {
-                this->m_h1Prime = 511;
-                this->m_h2Prime = 251;
-                this->m_capacity = 512;
-            }
-            else if(desiredSize < 1024)
-            {
-                this->m_h1Prime = 1021;
-                this->m_h2Prime = 509;
-                this->m_capacity = 1024;
-            }
-            else if(desiredSize < 2048)
-            {
-                this->m_h1Prime = 2039;
-                this->m_h2Prime = 1031;
-                this->m_capacity = 2048;
-            }
-            else if(desiredSize < 4096)
-            {
-                this->m_h1Prime = 4093;
-                this->m_h2Prime = 2039;
-                this->m_capacity = 4096;
-            }
-            else if(desiredSize < 8192)
-            {
-                this->m_h1Prime = 8191;
-                this->m_h2Prime = 4093;
-                this->m_capacity = 8192;
-            }
-            else if(desiredSize < 16384)
-            {
-                this->m_h1Prime = 16381;
-                this->m_h2Prime = 8191;
-                this->m_capacity = 16384;
-            }
-            else if(desiredSize < 32768)
-            {
-                this->m_h1Prime = 32749;
-                this->m_h2Prime = 16381;
-                this->m_capacity = 32768;
-            }
-            else if(desiredSize < 65536)
-            {
-                this->m_h1Prime = 65521;
-                this->m_h2Prime = 32749;
-                this->m_capacity = 65536;
-            }
-            else if(desiredSize < 131072)
-            {
-                this->m_h1Prime = 131071;
-                this->m_h2Prime = 65521;
-                this->m_capacity = 131072;
-            }
-            else if(desiredSize < 262144)
-            {
-                this->m_h1Prime = 262139;
-                this->m_h2Prime = 131071;
-                this->m_capacity = 262144;
-            }
-            else if(desiredSize < 524288)
-            {
-                this->m_h1Prime = 524287;
-                this->m_h2Prime = 262139;
-                this->m_capacity = 524288;
-            }
-            else if(desiredSize < 1048576)
-            {
-                this->m_h1Prime = 1048573;
-                this->m_h2Prime = 524287;
-                this->m_capacity = 1048576;
-            }
-            else
-            {
-                AssertMsg(false, "That is a lot of objects -- we need to do some performance analysis.");
-
-                this->m_h1Prime = 0;
-                this->m_h2Prime = 0;
-                this->m_capacity = 0;
-            }
+            LoadValuesForHashTables(desiredSize, &(this->m_capacity), &(this->m_h1Prime), &(this->m_h2Prime));
 
             this->m_hashArray = HeapNewArrayZ(Entry, this->m_capacity);
         }
@@ -1052,6 +975,7 @@ namespace TTD
         //Capcity and count of the table (we use capcity for fast & hashing instead of %);
         uint32 m_capcity;
         uint32 m_count;
+        uint32 m_h2Prime;
 
         //iterator position
         uint32 m_iterPos;
@@ -1065,7 +989,7 @@ namespace TTD
 
             uint32 primaryMask = this->m_capcity - 1;
 
-            uint32 primaryIndex = (addr & primaryMask);
+            uint32 primaryIndex = TTD_MARK_TABLE_HASH1(addr, this->m_capcity);
             uint64 primaryAddr = this->m_addrArray[primaryIndex];
             if((primaryAddr == addr) | (primaryAddr == 0))
             {
@@ -1073,8 +997,8 @@ namespace TTD
             }
 
             //do a hash for the second offset to avoid clustering and then do linear probing
-            uint32 offset = (addr % 32749);
-            uint32 probeIndex = ((primaryIndex + offset) & primaryMask);
+            uint32 offset = TTD_MARK_TABLE_HASH2(addr, this->m_h2Prime);
+            uint32 probeIndex = TTD_MARK_TABLE_INDEX(primaryIndex + offset, this->m_capcity);
             while(true)
             {
                 uint64 currAddr = this->m_addrArray[probeIndex];
@@ -1082,7 +1006,7 @@ namespace TTD
                 {
                     return (int32)probeIndex;
                 }
-                probeIndex = ((probeIndex + 1) & primaryMask);
+                probeIndex = TTD_MARK_TABLE_INDEX(probeIndex + 1, this->m_capcity);
 
                 AssertMsg(probeIndex != ((primaryIndex + offset) & primaryMask), "We messed up.");
             }
@@ -1095,6 +1019,11 @@ namespace TTD
             MarkTableTag* oldMarkArray = this->m_markArray;
 
             this->m_capcity = this->m_capcity << 1; //double capacity
+
+            uint32 dummyPowerOf2 = 0;
+            uint32 dummyNearPrime = 0;
+            LoadValuesForHashTables(this->m_capcity, &dummyPowerOf2, &dummyNearPrime, &(this->m_h2Prime));
+
             this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
             this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
 

@@ -201,10 +201,37 @@ namespace TTD
             return this->m_contents;
         }
     }
+
+    //////////////////
+
+    void LoadValuesForHashTables(uint32 targetSize, uint32* powerOf2, uint32* closePrime, uint32* midPrime)
+    {
+        TTD_TABLE_FACTORLOAD_BASE(128, 127, 61)
+
+            TTD_TABLE_FACTORLOAD(256, 251, 127)
+            TTD_TABLE_FACTORLOAD(512, 511, 251)
+            TTD_TABLE_FACTORLOAD(1024, 1021, 511)
+            TTD_TABLE_FACTORLOAD(2048, 2039, 1021)
+            TTD_TABLE_FACTORLOAD(4096, 4093, 2039)
+            TTD_TABLE_FACTORLOAD(8192, 8191, 4093)
+            TTD_TABLE_FACTORLOAD(16384, 16381, 8191)
+            TTD_TABLE_FACTORLOAD(32768, 32749, 16381)
+            TTD_TABLE_FACTORLOAD(65536, 65521, 32749)
+            TTD_TABLE_FACTORLOAD(131072, 131071, 65521)
+            TTD_TABLE_FACTORLOAD(262144, 262139, 131071)
+            TTD_TABLE_FACTORLOAD(524288, 524287, 262139)
+            TTD_TABLE_FACTORLOAD(1048576, 1048573, 524287)
+            TTD_TABLE_FACTORLOAD(2097152, 2097143, 1048573)
+            TTD_TABLE_FACTORLOAD(4194304, 4194301, 2097143)
+            TTD_TABLE_FACTORLOAD(8388608, 8388593, 4194301)
+
+        TTD_TABLE_FACTORLOAD_FINAL(16777216, 16777213, 8388593)
+    }
+
     //////////////////
 
     MarkTable::MarkTable()
-        : m_capcity(65536), m_count(0), m_iterPos(0)
+        : m_capcity(TTD_MARK_TABLE_INIT_SIZE), m_h2Prime(TTD_MARK_TABLE_INIT_H2PRIME), m_count(0), m_iterPos(0)
     {
         this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
         this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
@@ -220,17 +247,18 @@ namespace TTD
 
     void MarkTable::Clear()
     {
-        if(this->m_capcity == 65536)
+        if(this->m_capcity == TTD_MARK_TABLE_INIT_SIZE)
         {
-            memset(this->m_addrArray, 0, 65536 * sizeof(uint64));
-            memset(this->m_markArray, 0, 65536 * sizeof(MarkTableTag));
+            memset(this->m_addrArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(uint64));
+            memset(this->m_markArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(MarkTableTag));
         }
         else
         {
             HeapDeleteArray(this->m_capcity, this->m_addrArray);
             HeapDeleteArray(this->m_capcity, this->m_markArray);
 
-            this->m_capcity = 65536;
+            this->m_capcity = TTD_MARK_TABLE_INIT_SIZE;
+            this->m_h2Prime = TTD_MARK_TABLE_INIT_H2PRIME;
             this->m_addrArray = HeapNewArrayZ(uint64, this->m_capcity);
             this->m_markArray = HeapNewArrayZ(MarkTableTag, this->m_capcity);
         }
