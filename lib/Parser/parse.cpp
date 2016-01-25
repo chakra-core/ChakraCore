@@ -6404,6 +6404,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         }
     }
 
+    if (buildAST)
+    {
+        pnodeClass->ichLim = m_pscan->IchLimTok();
+    }
+
     if (!hasConstructor)
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Generating constructor (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
@@ -6436,6 +6441,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
 
     if (buildAST)
     {
+        pnodeConstructor->sxFnc.cbMin = pnodeClass->ichMin;
+        pnodeConstructor->sxFnc.cbLim = pnodeClass->ichLim;
+        pnodeConstructor->ichMin = pnodeClass->ichMin;
+        pnodeConstructor->ichLim = pnodeClass->ichLim;
+
         PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
 
         pnodeClass->sxClass.pnodeDeclName = pnodeDeclName;

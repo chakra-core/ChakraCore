@@ -6,9 +6,6 @@
 
 namespace Js
 {
-    const wchar_t ScriptFunction::diagDefaultCtor[]         = JS_DEFAULT_CTOR_DISPLAY_STRING;
-    const wchar_t ScriptFunction::diagDefaultExtendsCtor[]  = JS_DEFAULT_EXTENDS_CTOR_DISPLAY_STRING;
-
     ScriptFunctionBase::ScriptFunctionBase(DynamicType * type) :
         JavascriptFunction(type)
     {}
@@ -31,13 +28,13 @@ namespace Js
     ScriptFunction::ScriptFunction(DynamicType * type) :
         ScriptFunctionBase(type), environment((FrameDisplay*)&NullFrameDisplay),
         cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false),
-        isDefaultConstructor(false), isActiveScript(false)
+        isActiveScript(false)
     {}
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
-        hasInlineCaches(false), hasSuperReference(false), isDefaultConstructor(false), isActiveScript(false)
+        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
         Assert(proxy->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType)
@@ -72,7 +69,6 @@ namespace Js
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();
-        bool isDefaultConstructor = functionProxy->IsDefaultConstructor();
 
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
         {
@@ -96,7 +92,6 @@ namespace Js
             }
 
             pfuncScriptWithInlineCache->SetHasSuperReference(hasSuperReference);
-            pfuncScriptWithInlineCache->SetIsDefaultConstructor(isDefaultConstructor);
 
             if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
             {
@@ -115,7 +110,6 @@ namespace Js
 
             Assert(!hasSuperReference);
             asmJsFunc->SetHasSuperReference(hasSuperReference);
-            asmJsFunc->SetIsDefaultConstructor(isDefaultConstructor);
 
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(asmJsFunc, EtwTrace::GetFunctionId(functionProxy)));
 
@@ -127,7 +121,6 @@ namespace Js
             pfuncScript->SetEnvironment(environment);
 
             pfuncScript->SetHasSuperReference(hasSuperReference);
-            pfuncScript->SetIsDefaultConstructor(isDefaultConstructor);
 
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
@@ -457,16 +450,6 @@ namespace Js
 
         ScriptContext * scriptContext = this->GetScriptContext();
 
-        if (isDefaultConstructor)
-        {
-            PCWSTR fakeCode = hasSuperReference ? diagDefaultExtendsCtor : diagDefaultCtor;
-            charcount_t fakeStrLen = hasSuperReference ? _countof(diagDefaultExtendsCtor) : _countof(diagDefaultCtor);
-            Var fakeString = JavascriptString::NewCopyBuffer(fakeCode, fakeStrLen - 1, scriptContext);
-
-            pFuncBody->SetCachedSourceString(fakeString);
-            return fakeString;
-        }
-
         //Library code should behave the same way as RuntimeFunctions
         Utf8SourceInfo* source = pFuncBody->GetUtf8SourceInfo();
         if (source != nullptr && source->GetIsLibraryCode())
@@ -490,7 +473,7 @@ namespace Js
             // TODO: What about surrogate pairs?
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
             utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(L"ScriptFunction::EnsureSourceString"), pFuncBody->LengthInChars(), options);
-            if (pFuncBody->IsLambda() || isActiveScript
+            if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()
 #endif
@@ -510,21 +493,6 @@ namespace Js
         Assert(cachedSourceString != nullptr);
         pFuncBody->SetCachedSourceString(cachedSourceString);
         return cachedSourceString;
-    }
-
-    BOOL ScriptFunction::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
-    {
-        if (!isDefaultConstructor)
-        {
-            return JavascriptFunction::GetDiagValueString(stringBuilder, requestContext);
-        }
-
-        if (hasSuperReference)
-            stringBuilder->AppendCppLiteral(diagDefaultExtendsCtor);
-        else
-            stringBuilder->AppendCppLiteral(diagDefaultCtor);
-
-        return TRUE;
     }
 
     AsmJsScriptFunction::AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
