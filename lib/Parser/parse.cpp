@@ -3656,6 +3656,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     if (fDeclaration)
     {
+        AnalysisAssert(m_pstmtCur->isDeferred || m_pstmtCur->pnodeStmt != nullptr);
         noStmtContext =
             (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
             (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
