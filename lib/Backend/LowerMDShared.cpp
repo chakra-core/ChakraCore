@@ -8665,14 +8665,27 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //
             // if(round)
             // {
-            //     CMP roundedFloat. -0.5
-            //     JL $addHalfToRoundSrc
             //     CMP roundedFloat, 0
-            //     JL $bailoutLabel
-            // }
-            //
+            //     JG $ltHalf
+            //     JE $negZeroTest
+            //     CMP roundedFloat, -0.5
+            //     JGE $bailoutLabel
+            //     J $addHalfToRoundSrcLabel
+            // $negZeroTest:
+            //     if isNegZero(roundedFloat)
+            //          J $bailoutLabel
+            //     J $skipRoundSd
+            // $ltHalf:
+            //     CMP roundedFloat, 0.5
+            //     JL $skipAddHalf
             // $addHalfToRoundSrc:
-            //     ADDSD roundedFloat, 0.5
+            //     MOV roundedFloatCopy, roundedFloat
+            //     ROUNDSD roundedFloat, roundedFloat, 0x1
+            //     CMP roundefFloat, roundedFloatCopy
+            //     JE $skipRoundSd
+            //     ADDSD roundedFloat, roundedFloatCopy, 0.5
+            // $skipAddHalf
+            // }
             //
             // if(isNotCeil)
             // {
@@ -8745,17 +8758,18 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 Assert(src->IsFloat32());
                 zero = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32Zero, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
             }
+
+            IR::LabelInstr * skipRoundSd = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
             if(instr->m_opcode == Js::OpCode::InlineMathRound)
             {
+                IR::LabelInstr* addHalfToRoundSrcLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+                IR::LabelInstr* skipAddHalfLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
                 if(instr->ShouldCheckForNegativeZero())
                 {
-                    IR::LabelInstr * addHalfToRoundSrcLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-
-                    IR::LabelInstr* negativeCheckLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/ true);
+                    IR::LabelInstr* ltHalfLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
                     IR::LabelInstr* negZeroTest = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/ true);
-                    this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
-                    instr->InsertBefore(negativeCheckLabel);
-
+                    this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGt_A, ltHalfLabel, instr);
                     this->m_lowerer->InsertBranch(Js::OpCode::BrEq_A, negZeroTest, instr);
 
                     IR::Opnd * negPointFive;
@@ -8774,11 +8788,11 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     instr->InsertBefore(negZeroTest);
                     IR::Opnd* isNegZero = IsOpndNegZero(src, instr);
                     this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, addHalfToRoundSrcLabel, instr);
+                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
                     negZeroCheckDone = true;
-
-                    instr->InsertBefore(addHalfToRoundSrcLabel);
+                    instr->InsertBefore(ltHalfLabel);
                 }
+
                 IR::Opnd * pointFive;
                 if (src->IsFloat64())
                 {
@@ -8790,12 +8804,34 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     Assert(src->IsFloat32());
                     pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
-                IR::Instr * addInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ADDSD : Js::OpCode::ADDSS, roundedFloat, roundedFloat, pointFive, this->m_func);
+                this->m_lowerer->InsertCompareBranch(roundedFloat, pointFive, Js::OpCode::BrLt_A, skipAddHalfLabel, instr);
+
+                instr->InsertBefore(addHalfToRoundSrcLabel);
+                IR::RegOpnd* roundedFloatCopy = IR::RegOpnd::New(roundedFloat->GetType(), this->m_func);
+                IR::Instr* roundedFloatBackup = IR::Instr::New(LowererMDArch::GetAssignOp(roundedFloat->GetType()), roundedFloatCopy, roundedFloat, this->m_func);
+                instr->InsertBefore(roundedFloatBackup);
+
+                IR::Instr* roundInstr =
+                    IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloat, roundedFloat, IR::IntConstOpnd::New(0x01, TyInt32, this->m_func), this->m_func);
+                instr->InsertBefore(roundInstr);
+                this->m_lowerer->InsertCompareBranch(roundedFloat, roundedFloatCopy, Js::OpCode::BrEq_A, skipRoundSd, instr);
+
+                if (src->IsFloat64())
+                {
+                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func,
+                        IR::AddrOpndKindDynamicDoubleRef);
+                }
+                else
+                {
+                    Assert(src->IsFloat32());
+                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                }
+                IR::Instr * addInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ADDSD : Js::OpCode::ADDSS, roundedFloat, roundedFloatCopy, pointFive, this->m_func);
                 instr->InsertBefore(addInstr);
                 Legalize(addInstr);
+                instr->InsertBefore(skipAddHalfLabel);
             }
 
-            IR::LabelInstr * skipRoundSd = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
             if (instr->m_opcode == Js::OpCode::InlineMathFloor && instr->GetDst()->IsInt32())
             {
                 this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGe_A, skipRoundSd, instr);
@@ -8819,6 +8855,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
             instr->InsertBefore(roundInstr);
 
+            if (instr->m_opcode == Js::OpCode::InlineMathRound)
+            {
+                instr->InsertBefore(skipRoundSd);
+            }
 
             if (instr->GetDst()->IsInt32())
             {
