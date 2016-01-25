@@ -177,25 +177,13 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             break;
 
         case Js::TypeIds_Symbol:
-            AssertMsg(false, "Handle symbol correctly");
-            break;
-
-        case Js::TypeIds_Proxy:
-            //AssertMsg(false, "Handle proxy correctly");
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, objectDisplayRef->Type(), scriptContext);
+            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSymbolTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
             break;
 
         case Js::TypeIds_Function:
             JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetFunctionTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
-            break;
-
-        case Js::TypeIds_SIMDFloat32x4:
-        case Js::TypeIds_SIMDFloat64x2:
-        case Js::TypeIds_SIMDInt32x4:
-        case Js::TypeIds_SIMDInt8x16:
-            AssertMsg(false, "Handle SIMD types correctly");
             break;
 
         case Js::TypeIds_Enumerator:
@@ -258,6 +246,14 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
         case Js::TypeIds_SpreadArgument:
+
+        case Js::TypeIds_Proxy:
+
+        case Js::TypeIds_SIMDFloat32x4:
+        case Js::TypeIds_SIMDFloat64x2:
+        case Js::TypeIds_SIMDInt32x4:
+        case Js::TypeIds_SIMDInt8x16:
+
             JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, classNameString, JsrtDebugUtils::GetClassName(typeId), scriptContext);
@@ -289,6 +285,7 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     switch (typeId)
     {
     case Js::TypeIds_Object: return L"Object";
+    case Js::TypeIds_Proxy: return L"Proxy";
     case Js::TypeIds_Array: return L"Array";
     case Js::TypeIds_Date: return L"Date";
     case Js::TypeIds_RegEx: return L"RegExp";
@@ -319,6 +316,12 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_Promise: return L"Promise";
     case Js::TypeIds_GlobalObject: return L"Object";
     case Js::TypeIds_SpreadArgument: return L"Spread";
+
+    case Js::TypeIds_SIMDFloat32x4:return L"Float32x4";
+    case Js::TypeIds_SIMDFloat64x2:return L"Float64x2";
+    case Js::TypeIds_SIMDInt32x4:return L"Int32x4";
+    case Js::TypeIds_SIMDInt8x16:return L"Int8x16";
+
     default:
         Assert(false);
     }
