@@ -917,6 +917,36 @@ namespace TTD
         return nullptr;
     }
 
+    int64 EventLog::GetKthEventTime(uint32 k) const
+    {
+        //move to the 0th event
+        EventLogEntry* curr = this->m_events;
+        while(curr->GetPreviousEvent() != nullptr)
+        {
+            curr = curr->GetPreviousEvent();
+        }
+
+        uint32 topLevelCount = 0;
+        while(curr != nullptr)
+        {
+            if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCall())
+            {
+                JsRTCallFunctionAction* rootCallAction = JsRTCallFunctionAction::As(JsRTActionLogEntry::As(curr));
+                topLevelCount++;
+
+                if(topLevelCount == k)
+                {
+                    return rootCallAction->GetEventTime();
+                }
+            }
+
+            curr = curr->GetNextEvent();
+        }
+
+        AssertMsg(false, "Bad event index!!!");
+        return -1;
+    }
+
 #if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
     void EventLog::ClearBreakpointOnNextStatement()
     {
@@ -1117,7 +1147,14 @@ namespace TTD
 
             wprintf(L"----\n");
             wprintf(L"%ls @ ", this->m_callStack.Last().Function->GetDisplayName());
-            wprintf(L"line: %u, column: %i, etime: %I64i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
+            if(Js::Configuration::Global.flags.TTDCmdsFromFile == nullptr)
+            {
+                wprintf(L"line: %u, column: %i, etime: %I64i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
+            }
+            else
+            {
+                wprintf(L"line: %u, column: %i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, cfinfo.FunctionTime, cfinfo.LoopTime);
+            }
 
             while(srcBegin != srcEnd)
             {

@@ -119,9 +119,12 @@ namespace TTD
     {
         void EmitTTDVar(TTDVar var, FileWriter* writer, NSTokens::Separator separator)
         {
+            writer->WriteRecordStart(separator);
+
             if(var == nullptr)
             {
-                writer->WriteNakedNull(separator);
+                writer->WriteTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag, TTDVarEmitTag::TTDVarNull);
+                writer->WriteNull(NSTokens::Key::nullVal, NSTokens::Separator::CommaSeparator);
             }
             else if(Js::TaggedNumber::Is(var))
             {
@@ -129,52 +132,62 @@ namespace TTD
                 if(Js::TaggedInt::Is(var))
                 {
 #endif
-                    writer->WriteNakedInt32(Js::TaggedInt::ToInt32(var), separator);
+                    writer->WriteTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag, TTDVarEmitTag::TTDVarInt);
+                    writer->WriteInt32(NSTokens::Key::i32Val, Js::TaggedInt::ToInt32(var), NSTokens::Separator::CommaSeparator);
 #if FLOATVAR
                 }
                 else
                 {
                     AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
 
-                    writer->WriteNakedDouble(Js::JavascriptNumber::GetValue(var), separator);
+                    writer->WriteTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag, TTDVarEmitTag::TTDVarDouble);
+                    writer->WriteDouble(NSTokens::Key::doubleVal, Js::JavascriptNumber::GetValue(var), NSTokens::Separator::CommaSeparator);
                 }
 #endif
             }
             else
             {
-                writer->WriteNakedAddr(TTD_CONVERT_VAR_TO_PTR_ID(var), separator);
+                writer->WriteTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag, TTDVarEmitTag::TTDVarAddr);
+                writer->WriteAddr(NSTokens::Key::ptrIdVal, TTD_CONVERT_VAR_TO_PTR_ID(var), NSTokens::Separator::CommaSeparator);
             }
+
+            writer->WriteRecordEnd();
         }
 
         TTDVar ParseTTDVar(bool readSeperator, FileReader* reader)
         {
-            bool isInt, isDouble, isAddr, isNull;
-            int32 intVal;
-            double doubleVal;
-            TTD_PTR_ID addrVal;
+            reader->ReadRecordStart(readSeperator);
 
-            reader->ReadNakedNumberOrAddressOrNull(&isNull, &isInt, &isDouble, &intVal, &doubleVal, &isAddr, &addrVal, readSeperator);
-
-            if(isNull)
+            TTDVar res = nullptr;
+            TTDVarEmitTag tag = reader->ReadTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag);
+            if(tag == TTDVarEmitTag::TTDVarNull)
             {
-                return nullptr;
+                reader->ReadNull(NSTokens::Key::nullVal, true);
+                res = nullptr;
             }
-            else if(isInt)
+            else if(tag == TTDVarEmitTag::TTDVarInt)
             {
-                return Js::TaggedInt::ToVarUnchecked(intVal);
+                int32 intVal = reader->ReadInt32(NSTokens::Key::i32Val, true);
+                res = Js::TaggedInt::ToVarUnchecked(intVal);
             }
 #if FLOATVAR
-            else if(isDouble)
+            else if(tag == TTDVarEmitTag::TTDVarDouble)
             {
-                return Js::JavascriptNumber::NewInlined(doubleVal, nullptr);
+                double doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
+                res = Js::JavascriptNumber::NewInlined(doubleVal, nullptr);
             }
 #endif
             else
             {
-                AssertMsg(isAddr, "Is there something else?");
+                AssertMsg(tag == TTDVarEmitTag::TTDVarAddr, "Is there something else?");
 
-                return TTD_COERCE_PTR_ID_TO_VAR(addrVal);
+                TTD_PTR_ID addrVal = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+                res = TTD_COERCE_PTR_ID_TO_VAR(addrVal);
             }
+
+            reader->ReadRecordEnd();
+
+            return res;
         }
 
         //////////////////

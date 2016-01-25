@@ -287,6 +287,9 @@ namespace TTD
         //Get the time info around a host id creation/cancelation event -- return null if we can't find the event of interest (not in log or we were called directly by host -- host id == -1)
         JsRTCallbackAction* GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const;
 
+        //Get the event time corresponding to the k-th top-level event in the log
+        int64 GetKthEventTime(uint32 k) const;
+
 #if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
         //The values that we have when we set breakpoints
         bool BPIsSet;

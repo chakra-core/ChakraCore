@@ -40,6 +40,15 @@ namespace TTD
         //////////////////
         //Helpers for TTDVars
 
+        enum class TTDVarEmitTag
+        {
+            TTDVarInvalid = 0x0,
+            TTDVarNull,
+            TTDVarInt,
+            TTDVarDouble,
+            TTDVarAddr
+        };
+
         //serialize the TTDVar
         void EmitTTDVar(TTDVar var, FileWriter* writer, NSTokens::Separator separator);
 

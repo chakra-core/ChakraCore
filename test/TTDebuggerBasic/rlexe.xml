@@ -51,7 +51,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!dbgTest -TTDStartEvent:8 -TTDCmdsFromFile:.\dbgStep2.cmds</compile-flags>
+      <compile-flags>-TTDebug:!dbgTest -TTDStartEvent:2 -TTDCmdsFromFile:.\dbgStep2.cmds</compile-flags>
       <baseline>dbgStep2Cmd.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>

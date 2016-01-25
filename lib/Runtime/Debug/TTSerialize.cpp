@@ -388,9 +388,25 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        if(Js::NumberUtilities::IsNan(val) || !Js::NumberUtilities::IsFinite(val))
+        if(Js::JavascriptNumber::IsNan(val))
         {
-            this->WriteLPCWSTR(L"null"); //as per spec oddity #nan, +/- infty go to null
+            this->WriteLPCWSTR(L"#nan");
+        }
+        else if(Js::JavascriptNumber::IsPosInf(val))
+        {
+            this->WriteLPCWSTR(L"#+inf");
+        }
+        else if(Js::JavascriptNumber::IsNegInf(val))
+        {
+            this->WriteLPCWSTR(L"#-inf");
+        }
+        else if(Js::JavascriptNumber::MAX_VALUE == val)
+        {
+            this->WriteLPCWSTR(L"#ub");
+        }
+        else if(Js::JavascriptNumber::MIN_VALUE == val)
+        {
+            this->WriteLPCWSTR(L"#lb");
         }
         else
         {
@@ -714,6 +730,10 @@ namespace TTD
                 //check for string
                 charList.Add(L'"');
                 return this->ScanString(charList);
+            case '#':
+                //# starts special double/number value representation
+                charList.Add(L'#');
+                return this->ScanSpecialNumber(charList);
             case '-':
             case '+':
             case '0':
@@ -861,6 +881,72 @@ namespace TTD
         }
 
         return NSTokens::ParseTokenKind::String;
+    }
+
+    NSTokens::ParseTokenKind JSONReader::ScanSpecialNumber(JsUtil::List<wchar, HeapAllocator>& charList)
+    {
+        byte b;
+        bool ok = this->ReadByte(&b);
+        charList.Add((wchar)b);
+
+        if(ok && b == 'n')
+        {
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'a')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'n')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            return NSTokens::ParseTokenKind::Number;
+        }
+        else if(ok && (b == '+' || b == '-'))
+        {
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'i')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'n')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'f')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            return NSTokens::ParseTokenKind::Number;
+        }
+        else if(ok && (b == 'u' || b == 'l'))
+        {
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'b')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            return NSTokens::ParseTokenKind::Number;
+        }
+        else
+        {
+            return NSTokens::ParseTokenKind::Error;
+        }
     }
 
     NSTokens::ParseTokenKind JSONReader::ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList)
@@ -1224,23 +1310,43 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number || tok == NSTokens::ParseTokenKind::Null);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
 
-        if(tok == NSTokens::ParseTokenKind::Null)
+        double res = -1.0;
+        if(this->m_charListOpt.Item(0) == L'#')
         {
-            //as per spec oddity #nan, +/- infty go to null -- we inflate assuming this value nan 
-            double dblnan;
-            Js::NumberUtilities::LuHiDbl(dblnan) = 0x7FFFFFFF;
-            Js::NumberUtilities::LuLoDbl(dblnan) = 0xFFFFFFFF;
-            Assert(Js::NumberUtilities::IsNan(dblnan));
-
-            return dblnan;
+            if(this->m_charListOpt.Item(1) == L'n')
+            {
+                res = Js::JavascriptNumber::NaN;
+            }
+            else if(this->m_charListOpt.Item(1) == L'+')
+            {
+                res = Js::JavascriptNumber::POSITIVE_INFINITY;
+            }
+            else if(this->m_charListOpt.Item(1) == L'-')
+            {
+                res = Js::JavascriptNumber::NEGATIVE_INFINITY;
+            }
+            else if(this->m_charListOpt.Item(1) == L'u')
+            {
+                res = Js::JavascriptNumber::MAX_VALUE;
+            }
+            else if(this->m_charListOpt.Item(1) == L'l')
+            {
+                res = Js::JavascriptNumber::MIN_VALUE;
+            }
+            else
+            {
+                FileReader::FileReadAssert(false);
+            }
         }
         else
         {
             this->m_charListOpt.Add(L'\0');
-            return this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
+            res = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
         }
+
+        return res;
     }
 
     LPCWSTR JSONReader::ReadNakedString(bool readSeparator)
@@ -1292,42 +1398,6 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         return alloc.CopyStringInto(this->ReadNakedString());
-    }
-
-    void JSONReader::ReadNakedNumberOrAddressOrNull(bool* isNull, bool* isInt, bool* isDouble, int32* intVal, double* doubleVal, bool* isAddr, TTD_PTR_ID* addrVal, bool readSeparator)
-    {
-        this->ReadSeperator(readSeparator);
-
-        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-
-        *isNull = (tok == NSTokens::ParseTokenKind::Null);
-        *isInt = false;
-        *isDouble = false;
-        *isAddr = (tok == NSTokens::ParseTokenKind::String);
-
-        if(tok == NSTokens::ParseTokenKind::Number)
-        {
-            this->m_charListOpt.Add(L'\0');
-            double dval = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
-
-            //it is really an int
-            if((INT32_MIN <= dval && dval <= INT32_MAX) && (floor(dval) == dval))
-            {
-                *isInt = true;
-                *intVal = (int32)dval;
-            }
-            else
-            {
-                *isDouble = true;
-                *doubleVal = dval;
-            }
-        }
-
-        if(*isAddr)
-        {
-            this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
-            *addrVal = (TTD_PTR_ID)this->ReadHexFromCharArray(this->m_charListOpt.GetBuffer() + 4); //skip off the first "*0x
-        }
     }
 
     uint32 JSONReader::ReadNakedTag(bool readSeparator)

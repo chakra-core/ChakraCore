@@ -1098,7 +1098,7 @@ FLAGR(String,  TTRecord                , "Start in time-travel record mode - wri
 FLAGR(Number,  TTSnapInterval          , "The approximate interval between snapshots", 2000)
 
 FLAGR(String,  TTDebug                 , "Start in time-travel debug mode - load from the given log directory", nullptr)
-FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 2)
+FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 1)
 
 FLAGR(Boolean, TTDFreeRun              , "If we just want to re-run the execution (for testing)", false)
 FLAGR(String,  TTDCmdsFromFile         , "Set a file to read debugger commands from (for testing)", nullptr)

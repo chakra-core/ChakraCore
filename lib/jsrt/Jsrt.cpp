@@ -2603,7 +2603,11 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
 #if ENABLE_TTD
     if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && threadContext->TTDLog->ShouldPerformRecordAction())
     {
-        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*exception));
+        BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*exception));
+        }
+        END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
     }
 #endif
 
@@ -3177,7 +3181,7 @@ STDAPI_(JsErrorCode) JsTTDSetContinueBP()
 
 STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime)
 {
-#if !ENABLE_TTD
+#if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -3192,7 +3196,7 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
     //a special indicator to use the time from the argument flag
     if(targetEventTime == -2)
     {
-        targetEventTime = Js::Configuration::Global.flags.TTDStartEvent;
+        targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
 
     bool createFreshCtxs = false;
@@ -3237,7 +3241,7 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
 
 STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
 {
-#if !ENABLE_TTD
+#if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
@@ -3249,7 +3253,7 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
     //a special indicator to use the time from the argument flag
     if(eventTime == -2)
     {
-        eventTime = Js::Configuration::Global.flags.TTDStartEvent;
+        eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
     }
 
     try
@@ -3284,7 +3288,7 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
 
 STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
 {
-#if !ENABLE_TTD
+#if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();

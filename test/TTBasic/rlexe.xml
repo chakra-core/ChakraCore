@@ -11,7 +11,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!accessorTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!accessorTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -27,7 +27,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!arrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!arrayTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -43,7 +43,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!booleanTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!booleanTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -59,7 +59,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!boundFunctionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!boundFunctionTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -75,7 +75,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!boxedObjectTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!boxedObjectTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -99,7 +99,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!dateBasicTest -TTDStartEvent:10 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!dateBasicTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -115,7 +115,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!functionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!functionTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -131,7 +131,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!mapTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!mapTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -147,7 +147,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!nativeArrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!nativeArrayTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -163,7 +163,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!numberTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!numberTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -179,7 +179,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!objectTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!objectTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -195,7 +195,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!regexTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!regexTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -211,7 +211,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!scopeFunctionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!scopeFunctionTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -227,7 +227,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!setTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!setTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -243,7 +243,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!stringTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!stringTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -259,7 +259,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!typedArrayTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!typedArrayTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -275,7 +275,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!newFunctionTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!newFunctionTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -291,7 +291,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!evalTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!evalTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -307,7 +307,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!forEachTest -TTDStartEvent:20 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!forEachTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -323,7 +323,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!argumentsTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!argumentsTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -339,7 +339,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!proxyTest -TTDStartEvent:8 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!proxyTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -363,7 +363,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!symbolTest -TTDStartEvent:10 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!symbolTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -387,7 +387,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!loadReEntrantTest -TTDStartEvent:12 -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!loadReEntrantTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
       <baseline>replay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
