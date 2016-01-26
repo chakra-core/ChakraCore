@@ -65,6 +65,11 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
 
         runtime->GetDebugObject()->SetDebugEventCallback(debugEventCallback, callbackState);
 
+        if (threadContext->GetDebugManager() != nullptr)
+        {
+            threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
+        }
+
         for (Js::ScriptContext *scriptContext = threadContext->GetScriptContextList(); scriptContext != nullptr; scriptContext = scriptContext->next)
         {
             if (!scriptContext->IsClosed())

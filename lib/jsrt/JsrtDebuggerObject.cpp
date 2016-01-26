@@ -333,13 +333,11 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
 
     if (this->pObjectModelWalker == nullptr)
     {
-        Js::DebugManager* debugManager = scriptContext->GetThreadContext()->GetDebugManager();
-        ReferencedArenaAdapter* pRefArena = debugManager->GetDiagnosticArena();
+        ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
 
         Js::IDiagObjectModelDisplay* pLocalsDisplay = Anew(pRefArena->Arena(), Js::LocalsDisplay, this->stackFrame);
         this->pObjectModelWalker = pLocalsDisplay->CreateWalker();
         Js::LocalsWalker* localsWalker = (Js::LocalsWalker*)this->pObjectModelWalker->GetStrongReference();
-        debugManager->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
 
         ulong totalProperties = localsWalker->GetChildrenCount();
         if (totalProperties > 0)

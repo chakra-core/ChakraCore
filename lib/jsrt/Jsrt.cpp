@@ -475,6 +475,7 @@ STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ J
             context->GetScriptContext()->InitializeDebugging();
             context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
             context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
         }
 
         *newContext = (JsContextRef)context;
