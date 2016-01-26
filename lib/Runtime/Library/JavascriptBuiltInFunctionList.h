@@ -177,6 +177,8 @@ BUILTIN(JavascriptObject, LookupGetter, EntryLookupGetter, FunctionInfo::ErrorOn
 BUILTIN(JavascriptObject, LookupSetter, EntryLookupSetter, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, Is, EntryIs, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, Assign, EntryAssign, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptObject, Values, EntryValues, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptObject, Entries, EntryEntries, FunctionInfo::ErrorOnNew)
 BUILTIN(ObjectPrototypeObject, __proto__getter, Entry__proto__getter, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(ObjectPrototypeObject, __proto__setter, Entry__proto__setter, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptRegExp, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

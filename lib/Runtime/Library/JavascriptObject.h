@@ -47,6 +47,8 @@ namespace Js
             static FunctionInfo LookupSetter;
             static FunctionInfo Is;
             static FunctionInfo Assign;
+            static FunctionInfo Values;
+            static FunctionInfo Entries;
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -77,7 +79,8 @@ namespace Js
         static Var EntryLookupSetter(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIs(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAssign(RecyclableObject* function, CallInfo callInfo, ...);
-
+        static Var EntryValues(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryEntries(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var GetPrototypeOf(RecyclableObject* obj, ScriptContext* scriptContext);
         static BOOL ChangePrototype(RecyclableObject* object, RecyclableObject* newPrototype, bool validate, ScriptContext* scriptContext);
@@ -90,6 +93,9 @@ namespace Js
 
         static Var GetOwnPropertyDescriptorHelper(RecyclableObject* obj, Var propertyKey, ScriptContext* scriptContext);
         static BOOL GetOwnPropertyDescriptorHelper(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor& propertyDescriptor);
+
+        // Param valuesToReturn should be set to true when we are looking for values from an object otherwise entries will be returned
+        static Var GetValuesOrEntries(RecyclableObject* object, bool valuesToReturn, ScriptContext* scriptContext);
 
         // Presently used in the projection as a mechanism of calling the general object prototype toString.
         static JavascriptString* ToStringInternal(Var thisArg, ScriptContext* scriptContext)
