@@ -9738,7 +9738,7 @@ GlobOpt::TypeSpecializeIntBinary(IR::Instr **pInstr, Value *src1Val, Value *src2
             }
 
             // Don't specialize if the element is not likelyInt or a IntConst which is a missing item value.
-            if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
+            if(!(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
             {
                 return false;
             }
@@ -12549,7 +12549,7 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
                     isFloatConstMissingItem = Js::SparseArraySegment<double>::IsMissingItem(&floatValue);
                 }
                 // Don't specialize if the element is not likelyNumber - we will surely bailout
-                if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
+                if(!(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
                 {
                     return false;
                 }
