@@ -792,7 +792,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
                 {
-                    if (localEntries[i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -1391,7 +1391,7 @@ namespace JsUtil
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 
     public:
-        BaseHashSet(AllocatorType * allocator, int capacity = 0) : BaseDictionary(allocator, capacity) {}
+        BaseHashSet(AllocatorType * allocator, int capacity = 0) : Base(allocator, capacity) {}
 
         using Base::GetAllocator;
 

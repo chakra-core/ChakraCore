@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 #ifdef _WIN32
-typedef wchar_t wchar16;
 #include <windows.h>
 #include <wtypes.h>
+typedef wchar_t wchar16;
 #else
 typedef char16_t wchar16;
 

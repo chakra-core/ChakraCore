@@ -84,8 +84,8 @@ namespace Js
 #undef PHASE
     };
 
-    extern const wchar_t* const FlagNames[FlagCount + 1];
-    extern const wchar_t* const PhaseNames[PhaseCount + 1];
+    extern const wchar16* const FlagNames[FlagCount + 1];
+    extern const wchar16* const PhaseNames[PhaseCount + 1];
     extern const Flag           FlagParents[FlagCount + 1];
 
     typedef     int             Number;
@@ -101,9 +101,9 @@ namespace Js
     /// fiddling to make this class as interoperable with strings as possible :-
     ///
     ///     1.  Single argument constructor takes care of initialization
-    ///     2.  Assignment operator overloaded for wchar_t*
-    ///     3.  JavascriptConversion to const wchar_t * is defined. Making this constant ensures
-    ///         that a non constant wchar_t * does not point to our buffer which can
+    ///     2.  Assignment operator overloaded for wchar16*
+    ///     3.  JavascriptConversion to const wchar16 * is defined. Making this constant ensures
+    ///         that a non constant wchar16 * does not point to our buffer which can
     ///         potentially corrupt it.
     ///
     ///----------------------------------------------------------------------------

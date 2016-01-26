@@ -53,6 +53,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     add_definitions("-stdlib=libc++")
     add_definitions(
         -DPAL_STDCPP_COMPAT=1
+        -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         )
 
@@ -67,6 +68,9 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-inconsistent-missing-override
         -Wno-c++14-extensions
         -Wno-macro-redefined
+        -Wno-ignored-pragmas
+        -Wno-invalid-token-paste
+        -Wno-format
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 

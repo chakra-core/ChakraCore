@@ -603,7 +603,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_FixPropsOnPathTypes    (true)
 #define DEFAULT_CONFIG_BailoutTraceFilter (-1)
 #define DEFAULT_CONFIG_TempMin    (0)
-#define DEFAULT_CONFIG_TempMax    (MAXINT)
+#define DEFAULT_CONFIG_TempMax    (INT_MAX)
 
 #define DEFAULT_CONFIG_LibraryStackFrame            (true)
 #define DEFAULT_CONFIG_LibraryStackFrameDebugger    (false)

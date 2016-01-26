@@ -5,7 +5,7 @@
 #include "CommonCorePch.h"
 
 #ifdef DBGHELP_SYMBOL_MANAGER
-#include "core\DbgHelpSymbolManager.h"
+#include "core/DbgHelpSymbolManager.h"
 
 // Initialization order
 //  AB AutoSystemInfo

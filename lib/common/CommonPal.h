@@ -32,6 +32,8 @@ typedef wchar_t wchar16;
 // xplat-todo: get a better name for this macro
 #define CH_WSTR(s) L##s
 
+#define get_cpuid __cpuid
+
 #else // !_WIN32
 
 #include "inc/pal.h"
@@ -40,6 +42,18 @@ typedef wchar_t wchar16;
 
 typedef char16_t wchar16;
 #define CH_WSTR(s) u##s
+
+// xplat-todo: verify below is correct
+#include <cpuid.h>
+inline int get_cpuid(int cpuInfo[4], int function_id)
+{
+    return __get_cpuid(
+            static_cast<unsigned int>(function_id),
+            reinterpret_cast<unsigned int*>(&cpuInfo[0]),
+            reinterpret_cast<unsigned int*>(&cpuInfo[1]),
+            reinterpret_cast<unsigned int*>(&cpuInfo[2]),
+            reinterpret_cast<unsigned int*>(&cpuInfo[3]));
+}
 
 #define _BitScanForward BitScanForward
 #define _BitScanForward64 BitScanForward64
@@ -57,16 +71,30 @@ typedef char16_t wchar16;
 #define __in    _SAL1_Source_(__in, (), _In_)
 #define __out   _SAL1_Source_(__out, (), _Out_)
 
-#define wcscmp        PAL_wcscmp
-#define wcslen        PAL_wcslen
-#define wcsncmp       PAL_wcsncmp
-#define wprintf       PAL_wprintf
+#define fclose          PAL_fclose
+#define fflush          PAL_fflush
+#define fwprintf        PAL_fwprintf
+#define wcschr          PAL_wcschr
+#define wcscmp          PAL_wcscmp
+#define wcslen          PAL_wcslen
+#define wcsncmp         PAL_wcsncmp
+#define wcsrchr         PAL_wcsrchr
+#define wcsstr          PAL_wcsstr
+#define wprintf         PAL_wprintf
+
+#define stdout          PAL_stdout
 #endif // PAL_STDCPP_COMPAT
 
-// wmemcmp not defined in pal
-#define wmemcmp       wcsncmp
-// sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s. 
+#define FILE PAL_FILE
+
+// These are not available in pal
+#define fwprintf_s      fwprintf
+#define wmemcmp         wcsncmp
+// sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
 #undef sprintf_s
+
+// PAL LoadLibraryExW not supported
+#define LOAD_LIBRARY_SEARCH_SYSTEM32 0
 
 // _countof
 #if defined _M_X64 || defined _M_ARM || defined _M_ARM64

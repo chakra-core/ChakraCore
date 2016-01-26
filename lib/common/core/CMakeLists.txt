@@ -1,22 +1,22 @@
 set (SOURCES
   BinaryFeatureControl.cpp
   CmdParser.cpp
-  # CodexAssert.cpp
-  # CommonCorePch.cpp
-  # ConfigFlagsTable.cpp
-  # ConfigParser.cpp
-  # DbgHelpSymbolManager.cpp
-  # DelayLoadLibrary.cpp
-  # EtwTraceCore.cpp
-  # FaultInjection.cpp
-  # Output.cpp
-  # PerfCounter.cpp
-  # PerfCounterImpl.cpp
-  # PerfCounterSet.cpp
-  # ProfileInstrument.cpp
-  # ProfileMemory.cpp
-  # StackBackTrace.cpp
-  # SysInfo.cpp  
+  CodexAssert.cpp
+  CommonCorePch.cpp
+  ConfigFlagsTable.cpp
+  ConfigParser.cpp
+  DbgHelpSymbolManager.cpp
+  DelayLoadLibrary.cpp
+  EtwTraceCore.cpp
+  FaultInjection.cpp
+  Output.cpp
+  PerfCounter.cpp
+  PerfCounterImpl.cpp
+  PerfCounterSet.cpp
+  ProfileInstrument.cpp
+  ProfileMemory.cpp
+  StackBackTrace.cpp
+  SysInfo.cpp
 )
 
 add_library (Chakra.Common.core
