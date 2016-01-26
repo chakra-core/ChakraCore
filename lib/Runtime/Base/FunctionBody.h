@@ -447,7 +447,7 @@ namespace Js
         void * nativeAddress;
         ptrdiff_t codeSize;
         bool isAsmJsFunction; // true if entrypoint is for asmjs function
-        uintptr  mModuleAddress; //asm Module address
+        uintptr_t  mModuleAddress; //asm Module address
 
 #ifdef FIELD_ACCESS_STATS
         FieldAccessStatsPtr fieldAccessStats;
@@ -658,14 +658,14 @@ namespace Js
 #endif
 
 #ifndef TEMP_DISABLE_ASMJS
-        void SetModuleAddress(uintptr moduleAddress)
+        void SetModuleAddress(uintptr_t moduleAddress)
         {
             Assert(this->GetIsAsmJSFunction());
             Assert(moduleAddress);
             mModuleAddress = moduleAddress;
         }
 
-        uintptr GetModuleAddress()const
+        uintptr_t GetModuleAddress()const
         {
             Assert(this->GetIsAsmJSFunction());
             Assert(mModuleAddress); // module address should not be null

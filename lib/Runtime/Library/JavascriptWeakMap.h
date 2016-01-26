@@ -49,8 +49,8 @@ namespace Js
         WeakMapKeyMap* GetWeakMapKeyMapFromKey(DynamicObject* key) const;
         WeakMapKeyMap* AddWeakMapKeyMapToKey(DynamicObject* key);
 
-        WeakMapId GetWeakMapId() const { return (void*)(((uintptr)this) | 1); }
-        static JavascriptWeakMap* GetWeakMapFromId(WeakMapId id) { return reinterpret_cast<JavascriptWeakMap*>((uintptr)id & (~1)); }
+        WeakMapId GetWeakMapId() const { return (void*)(((uintptr_t)this) | 1); }
+        static JavascriptWeakMap* GetWeakMapFromId(WeakMapId id) { return reinterpret_cast<JavascriptWeakMap*>((uintptr_t)id & (~1)); }
 
         bool KeyMapGet(WeakMapKeyMap* map, Var* value) const;
 

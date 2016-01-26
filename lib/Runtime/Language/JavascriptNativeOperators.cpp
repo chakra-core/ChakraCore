@@ -8,12 +8,12 @@
 namespace Js
 {
 #if ENABLE_NATIVE_CODEGEN
-    void * JavascriptNativeOperators::Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<JavascriptString*>* branchTargets, uintptr funcStart, uintptr funcEnd)
+    void * JavascriptNativeOperators::Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<JavascriptString*>* branchTargets, uintptr_t funcStart, uintptr_t funcEnd)
     {
         void* defaultTarget = branchTargets->defaultTarget;
         Js::BranchDictionaryWrapper<JavascriptString*>::BranchDictionary& stringDictionary = branchTargets->dictionary;
         void* target = stringDictionary.Lookup(str, defaultTarget);
-        uintptr utarget = (uintptr)target;
+        uintptr_t utarget = (uintptr_t)target;
 
         if ((utarget - funcStart) > (funcEnd - funcStart))
         {

@@ -557,13 +557,13 @@ class InlineCacheAllocatorInfo
 public:
     struct CacheLayout
     {
-        intptr weakRefs[3];
-        intptr strongRef;
+        intptr_t weakRefs[3];
+        intptr_t strongRef;
     };
 
     struct FreeObject
     {
-        intptr blankSlots[3];
+        intptr_t blankSlots[3];
         FreeObject * next;
     };
 
@@ -692,8 +692,8 @@ class InlineCacheAllocator : public ArenaAllocatorBase<InlineCacheAllocatorTrait
 public:
     struct CacheLayout
     {
-        intptr weakRefs[3];
-        intptr strongRef;
+        intptr_t weakRefs[3];
+        intptr_t strongRef;
     };
 
 #ifdef POLY_INLINE_CACHE_SIZE_STATS
@@ -740,7 +740,7 @@ class IsInstInlineCacheAllocatorInfo
 public:
     struct CacheLayout
     {
-        char bytes[4 * sizeof(intptr)];
+        char bytes[4 * sizeof(intptr_t)];
     };
 
 #if _M_X64 || _M_ARM64

@@ -29,10 +29,10 @@ namespace Js
 #if INT32VAR
     __inline bool TaggedInt::Is(Var aValue)
     {
-        bool result = (((uintptr) aValue) >> VarTag_Shift) == AtomTag;
+        bool result = (((uintptr_t) aValue) >> VarTag_Shift) == AtomTag;
         if(result)
         {
-            Assert((uintptr)aValue >> 32 == (AtomTag << 16));
+            Assert((uintptr_t)aValue >> 32 == (AtomTag << 16));
         }
         return result;
     }
@@ -86,18 +86,18 @@ namespace Js
     {
         //
         // To convert to an var we first cast to uint32 to lose the signedness and then
-        // extend it to a 64-bit uintptr before OR'ing the 64-bit atom tag.
+        // extend it to a 64-bit uintptr_t before OR'ing the 64-bit atom tag.
         //
 
         AssertMsg(!IsOverflow(nValue), "Ensure no information loss from conversion");
 
-        return reinterpret_cast<Var>(((uintptr)(uint32)nValue) | AtomTag_IntPtr);
+        return reinterpret_cast<Var>(((uintptr_t)(uint32)nValue) | AtomTag_IntPtr);
     }
 
 #else
     __inline bool TaggedInt::Is(const Var aValue)
     {
-        return (((uintptr) aValue) & AtomTag) == AtomTag_IntPtr;
+        return (((uintptr_t) aValue) & AtomTag) == AtomTag_IntPtr;
     }
 
     __inline bool TaggedInt::IsPair(Var aLeft, Var aRight)
@@ -110,7 +110,7 @@ namespace Js
         //   short-circuit evaluation.
         //
 
-        return (((uintptr) aLeft) & ((uintptr) aRight) & AtomTag) == AtomTag_IntPtr;
+        return (((uintptr_t) aLeft) & ((uintptr_t) aRight) & AtomTag) == AtomTag_IntPtr;
     }
 
     __inline int32 TaggedInt::ToInt32(Var aValue)

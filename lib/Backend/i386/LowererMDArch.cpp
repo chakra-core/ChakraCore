@@ -922,7 +922,7 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
         Js::ArrayBuffer* arrayBuffer = *(Js::ArrayBuffer**)(module + Js::AsmJsModuleMemory::MemoryTableBeginOffset);
         Assert(arrayBuffer);
-        src1->AsIndirOpnd()->SetOffset((uintptr)arrayBuffer->GetBuffer(), true);
+        src1->AsIndirOpnd()->SetOffset((uintptr_t)arrayBuffer->GetBuffer(), true);
     }
 
     if (isSimdLoad)
@@ -998,7 +998,7 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
         Js::ArrayBuffer* arrayBuffer = *(Js::ArrayBuffer**)(module + Js::AsmJsModuleMemory::MemoryTableBeginOffset);
         Assert(arrayBuffer);
-        dst->AsIndirOpnd()->SetOffset((uintptr)arrayBuffer->GetBuffer(), true);
+        dst->AsIndirOpnd()->SetOffset((uintptr_t)arrayBuffer->GetBuffer(), true);
     }
     return doneLabel;
 }
