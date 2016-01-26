@@ -9671,7 +9671,7 @@ CommonNumber:
             //7.ReturnIfAbrupt(S).
             Var species = nullptr;
             if (!JavascriptOperators::GetProperty(RecyclableObject::FromVar(constructor), PropertyIds::_symbolSpecies, &species, scriptContext)
-                || JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                || JavascriptOperators::IsUndefinedOrNull(species))
             {
                 //8.If S is either undefined or null, return defaultConstructor.
                 return defaultConstructor;
@@ -10002,6 +10002,11 @@ CommonNumber:
         return typeId <= TypeIds_UndefinedOrNull;
     }
 
+    BOOL JavascriptOperators::IsUndefinedOrNull(Var instance)
+    {
+        return IsUndefinedOrNullType(JavascriptOperators::GetTypeId(instance));
+    }
+
     BOOL JavascriptOperators::IsSpecialObjectType(TypeId typeId)
     {
         return typeId > TypeIds_LastTrueJavascriptObjectType;
@@ -10319,7 +10324,7 @@ CommonNumber:
 
             // Let S be Get(C, @@species)
             if (JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolSpecies, &species, scriptContext)
-                && !JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                && !JavascriptOperators::IsUndefinedOrNull(species))
             {
                 // If S is neither undefined nor null, let C be S
                 return species;

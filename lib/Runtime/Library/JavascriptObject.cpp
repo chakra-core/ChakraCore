@@ -1484,7 +1484,7 @@ namespace Js
             //          ii.ReturnIfAbrupt(from).
             //          iii.Let keys be from.[[OwnPropertyKeys]]().
             //          iv.ReturnIfAbrupt(keys).
-            if (JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(args[i])))
+            if (JavascriptOperators::IsUndefinedOrNull(args[i]))
             {
                 continue;
             }
