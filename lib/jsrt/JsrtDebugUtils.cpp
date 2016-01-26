@@ -186,6 +186,23 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
             break;
 
+        case Js::TypeIds_SIMDFloat32x4:
+            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            break;
+        case Js::TypeIds_SIMDFloat64x2:
+            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            break;
+        case Js::TypeIds_SIMDInt32x4:
+            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            break;
+        case Js::TypeIds_SIMDInt8x16:
+            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            break;
+
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_VariantDate:
         case Js::TypeIds_HostDispatch:
@@ -249,11 +266,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
         case Js::TypeIds_Proxy:
 
-        case Js::TypeIds_SIMDFloat32x4:
-        case Js::TypeIds_SIMDFloat64x2:
-        case Js::TypeIds_SIMDInt32x4:
-        case Js::TypeIds_SIMDInt8x16:
-
             JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
             JsrtDebugUtils::AddStringPropertyToObject(object, classNameString, JsrtDebugUtils::GetClassName(typeId), scriptContext);
@@ -316,11 +328,6 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_Promise: return L"Promise";
     case Js::TypeIds_GlobalObject: return L"Object";
     case Js::TypeIds_SpreadArgument: return L"Spread";
-
-    case Js::TypeIds_SIMDFloat32x4:return L"Float32x4";
-    case Js::TypeIds_SIMDFloat64x2:return L"Float64x2";
-    case Js::TypeIds_SIMDInt32x4:return L"Int32x4";
-    case Js::TypeIds_SIMDInt8x16:return L"Int8x16";
 
     default:
         Assert(false);
