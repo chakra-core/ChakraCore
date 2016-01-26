@@ -352,7 +352,7 @@ namespace Js
         }
         dst->length = newLen;
         Assert(dst->length <= dst->size);
-        AssertMsg(srcIndex - src->left >= 0,"src->left > srcIndex resulting in negative indexing of src->elements");
+        AssertMsg(srcIndex >= src->left,"src->left > srcIndex resulting in negative indexing of src->elements");
         js_memcpy_s(dst->elements + dstIndex - dst->left, sizeof(T) * inputLen, src->elements + srcIndex - src->left, sizeof(T) * inputLen);
         return dst;
     }
