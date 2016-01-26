@@ -3,8 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\Int64Math.h"
+#include "common/Int64Math.h"
+
+#ifdef _WIN32
 #include <intrin.h>
+#else
+#include <stdint.h>
+#define MININT64 INT64_MIN
+#endif
 
 #if _M_X64
 #pragma intrinsic(_mul128)
@@ -18,6 +24,7 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
     return ((left ^ *pResult) & (right ^ *pResult)) < 0;
 }
 
+#ifdef _WIN32
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
@@ -30,6 +37,16 @@ Int64Math::Mul(int64 left, int64 right, int64 *pResult)
     return (left != 0 && right != 0 && (*pResult / left) != right);
 #endif
 }
+#else
+// FIXME: this probably needs checks for __int128 at least.
+bool
+Int64Math::Mul(int64 left, int64 right, int64 *pResult)
+{
+    __int128 result = (__int128)left * (__int128)right;
+    *pResult = (int64)result;
+    return (left != 0 && right != 0 && (*pResult / left) != right);
+}
+#endif
 
 bool
 Int64Math::Shl(int64 left, int64 right, int64 *pResult)
