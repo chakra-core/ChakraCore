@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\unicode.h"
+#include "common/unicode.h"
 //
 // This file contains tables used for operations on the Unicode character
 // set, such as changing case.
