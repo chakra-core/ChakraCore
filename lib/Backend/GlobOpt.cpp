@@ -20846,7 +20846,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         IR::RegOpnd *srcIndexOpnd = nullptr;
         IRType srcType;
         GetMemOpSrcInfo(loop, data->ldElemInstr, srcBaseOpnd, srcIndexOpnd, srcType);
-        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(srcIndexOpnd->GetStackSym()));
+        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(indexOpnd->GetStackSym()));
 
         src1 = IR::IndirOpnd::New(srcBaseOpnd, startIndexOpnd, srcType, localFunc);
     }
