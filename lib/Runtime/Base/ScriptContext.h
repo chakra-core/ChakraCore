@@ -913,6 +913,7 @@ private:
         void RestoreRegexStacks(UnifiedRegex::RegexStacks *const contStack);
 
         void InitializeGlobalObject();
+        bool IsIntlEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }
 #if DBG

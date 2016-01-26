@@ -1445,7 +1445,7 @@ namespace Js
         AddMember(globalObject, PropertyIds::JSON, JSONObject);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (scriptContext->GetConfig()->IsIntlEnabled())
+        if (scriptContext->IsIntlEnabled())
         {
             IntlObject = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
