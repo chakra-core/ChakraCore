@@ -547,7 +547,6 @@ void Encoder::TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(BYTE *codeStart
     }
 
     BYTE * jmpTableStartAddress = codeStart + codeSize - totalJmpTableSizeInBytes;
-    JitArenaAllocator * allocator = this->m_func->m_alloc;
     EncoderMD * encoderMD = &m_encoderMD;
 
     jumpTableListForSwitchStatement->Map([&](uint index, BranchJumpTableWrapper * branchJumpTableWrapper) -> void
@@ -575,8 +574,6 @@ void Encoder::TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(BYTE *codeStart
         }
 
         jmpTableStartAddress += (jmpTableSizeInBytes);
-
-        BranchJumpTableWrapper::Delete(allocator, branchJumpTableWrapper);
     });
 
     Assert(jmpTableStartAddress == codeStart + codeSize);
