@@ -81,6 +81,8 @@ FLAG ES6 = 1 - setting child flag ES6RegExSticky = 1
 FLAG ES6RegExSticky = 1
 FLAG ES6 = 1 - setting child flag ES6RegExPrototypeProperties = 1
 FLAG ES6RegExPrototypeProperties = 1
+FLAG ES6 = 1 - setting child flag ES6RegExSymbols = 1
+FLAG ES6RegExSymbols = 1
 FLAG ES6 = 1 - setting child flag ES6HasInstance = 1
 FLAG ES6HasInstance = 1
 FLAG ES6 = 1 - setting child flag ArrayBufferTransfer = 1
