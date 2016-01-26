@@ -324,3 +324,4 @@ RT_ERROR_MSG(JSERR_ClassStaticMethodCannotBePrototype, 5631, "", "Class static m
 RT_ERROR_MSG(JSERR_ClassConstructorCannotBeCalledWithoutNew, 5632, "%s: cannot be called without the new keyword", "Class constructor cannot be called without the new keyword", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5633, "%s: first argument cannot be a RegExp", "First argument cannot be a RegExp", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5634, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)

@@ -171,6 +171,7 @@ var tests = [
             verifySymbol("toStringTag");
             verifySymbol("unscopables");
             verifySymbol("species");
+            verifySymbol("search");
         }
     },
     {

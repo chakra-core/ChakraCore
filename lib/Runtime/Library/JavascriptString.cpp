@@ -1665,27 +1665,61 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, L"String.prototype.search", &pThis);
+        PCWSTR const varName = L"String.prototype.search";
 
-        JavascriptRegExp * pRegEx = nullptr;
-        if(args.Info.Count > 1)
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
-            if (JavascriptRegExp::Is(args[1]))
+            if (args.Info.Count == 0 || !JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
             {
-                pRegEx = JavascriptRegExp::FromVar(args[1]);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, varName);
             }
-            else
+
+            if (args.Info.Count >= 2 && !JavascriptOperators::IsUndefinedOrNull(args[1]))
             {
-                pRegEx = JavascriptRegExp::CreateRegEx(args[1], nullptr, scriptContext);
+                Var regExp = args[1];
+                Var searcher = GetRegExSymbolSearch(regExp, scriptContext);
+                if (!JavascriptOperators::IsUndefinedOrNull(searcher))
+                {
+                    return CallRegExSymbolSearch(searcher, regExp, args[0], varName, scriptContext);
+                }
             }
+        }
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, varName, &pThis);
+
+        Var regExp = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
+            return RegexHelper::RegexSearch(scriptContext, regExObj, pThis);
         }
         else
         {
-            pRegEx = JavascriptRegExp::CreateRegEx(scriptContext->GetLibrary()->GetUndefined(), nullptr, scriptContext);
+            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
+            Var searcher = GetRegExSymbolSearch(regExObj, scriptContext);
+            return CallRegExSymbolSearch(searcher, regExObj, args[0], varName, scriptContext);
         }
-        return RegexHelper::RegexSearch(scriptContext, pRegEx, pThis);
+    }
 
+    Var JavascriptString::GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext)
+    {
+        return JavascriptOperators::GetProperty(
+            RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
+            PropertyIds::_symbolSearch,
+            scriptContext);
+    }
+
+    Var JavascriptString::CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
+    {
+        if (!JavascriptConversion::IsCallable(search))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
+        }
+
+        RecyclableObject* searchFn = RecyclableObject::FromVar(search);
+        return searchFn->GetEntryPoint()(searchFn, CallInfo(CallFlags_Value, 2), regExp, string);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)

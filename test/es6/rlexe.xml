@@ -414,7 +414,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -args summary -endargs</compile-flags>
+      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -881,6 +881,12 @@
     <default>
       <files>regex-prototype-properties.js</files>
       <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-symbols.js</files>
+      <compile-flags>-ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
