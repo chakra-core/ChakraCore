@@ -5870,7 +5870,7 @@ namespace Js
         DynamicType* dynamicType = nullptr;
         const bool useCache = prototype->GetScriptContext() == this->scriptContext;
         if (useCache &&
-            prototype->GetInternalProperty(prototype, Js::InternalPropertyIds::TypeOfPrototypObject, (Js::Var*) &dynamicType, nullptr, this->scriptContext))
+            prototype->GetInternalProperty(prototype, Js::InternalPropertyIds::TypeOfPrototypeObject, (Js::Var*) &dynamicType, nullptr, this->scriptContext))
         {
             //If the prototype is externalObject, then ExternalObject::Reinitialize can set all the properties to undefined in navigation scenario.
             //Check to make sure dynamicType which is stored as a Js::Var is not undefined.
@@ -5899,7 +5899,7 @@ namespace Js
 
         if (useCache)
         {
-            prototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypObject, (Var)dynamicType, PropertyOperationFlags::PropertyOperation_Force, nullptr);
+            prototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypeObject, (Var)dynamicType, PropertyOperationFlags::PropertyOperation_Force, nullptr);
         }
 
         return dynamicType;
