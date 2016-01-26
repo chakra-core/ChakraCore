@@ -176,6 +176,11 @@ namespace Js
         return E_NOTIMPL;
     }
 
+    bool DelayLoadWindowsGlobalization::HasGlobalizationDllLoaded()
+    {
+        return this->hasGlobalizationDllLoaded;
+    }
+
     HRESULT DelayLoadWindowsGlobalization::DllGetActivationFactory(
         __in HSTRING activatibleClassId,
         __out IActivationFactory** factory)
@@ -268,6 +273,11 @@ namespace Js
                 m_hModule = LoadLibraryEx(GetWin7LibraryName(), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
             }
 
+            // Set the flag depending on Windows.globalization.dll or jsintl.dll was loaded successfully or not
+            if (m_hModule != nullptr)
+            {
+                hasGlobalizationDllLoaded = true;
+            }
             this->winRTStringLibrary = winRTStringLibrary;
             this->winRTStringsPresent = GetFunction("WindowsDuplicateString") != nullptr;
         }
