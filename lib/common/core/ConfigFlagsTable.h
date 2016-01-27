@@ -518,10 +518,10 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 #define CONFIG_ISENABLED(flag)      (Js::Configuration::Global.flags.IsEnabled(flag))
 #define CUSTOM_CONFIG_ISENABLED(flags, flag)      (flags.IsEnabled(flag))
-#define CONFIG_FLAG(flag)           (Js::Configuration::Global.flags.##flag##)
-#define CUSTOM_CONFIG_FLAG(flags, flag) (flags.##flag##)
+#define CONFIG_FLAG(flag)           (Js::Configuration::Global.flags.##flag)
+#define CUSTOM_CONFIG_FLAG(flags, flag) (flags.##flag)
 #define CONFIG_FLAG_RELEASE(flag)   CONFIG_FLAG(flag)
-#define CONFIG_FLAG_CONTAINS(flag, func)  (Js::Configuration::Global.flags.##flag##.Contains((func)->GetLocalFunctionId()))
+#define CONFIG_FLAG_CONTAINS(flag, func)  (Js::Configuration::Global.flags.##flag.Contains((func)->GetLocalFunctionId()))
 
 #define PHASE_OFF_PROFILED_BYTE_CODE(phase, func) Js::Configuration::Global.flags.OffProfiledByteCode.IsEnabled((phase),(func)->GetSourceContextId(),(func)->GetLocalFunctionId())
 #define PHASE_OFF_PROFILED_BYTE_CODE_ALL(phase) Js::Configuration::Global.flags.OffProfiledByteCode.IsEnabledForAll((phase))
@@ -710,9 +710,9 @@ namespace Js
 #else
 #define CONFIG_ISENABLED(flag)      (false)             //All flags.IsEnabled(foo) are false by default.
 #define CUSTOM_CONFIG_ISENABLED(flags, flag)      (false)             //All flags.IsEnabled(foo) are false by default.
-#define CONFIG_FLAG(flag)           (DEFAULT_CONFIG_##flag##)
-#define CUSTOM_CONFIG_FLAG(flags, flag)           (DEFAULT_CONFIG_##flag##)
-#define CONFIG_FLAG_RELEASE(flag)   (Js::Configuration::Global.flags.##flag##)
+#define CONFIG_FLAG(flag)           (DEFAULT_CONFIG_##flag)
+#define CUSTOM_CONFIG_FLAG(flags, flag)           (DEFAULT_CONFIG_##flag)
+#define CONFIG_FLAG_RELEASE(flag)   (Js::Configuration::Global.flags.##flag)
 #define CONFIG_FLAG_CONTAINS(flag, func)  (false)
 #define PHASE_OFF_PROFILED_BYTE_CODE(phase, func) (false)
 #define PHASE_OFF_PROFILED_BYTE_CODE_ALL(phase) (false)
@@ -795,9 +795,9 @@ namespace Js
 #endif
 
 #ifdef ENABLE_REGEX_CONFIG_OPTIONS
-#define REGEX_CONFIG_FLAG(flag) (Js::Configuration::Global.flags.##flag##)
+#define REGEX_CONFIG_FLAG(flag) (Js::Configuration::Global.flags.##flag)
 #else
-#define REGEX_CONFIG_FLAG(flag) (DEFAULT_CONFIG_##flag##)
+#define REGEX_CONFIG_FLAG(flag) (DEFAULT_CONFIG_##flag)
 #endif
 
 #ifdef SUPPORT_INTRUSIVE_TESTTRACES
