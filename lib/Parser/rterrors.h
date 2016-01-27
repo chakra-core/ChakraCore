@@ -19,6 +19,9 @@
 #define RT_ERROR_MSG_UNUSED_ENTRY
 #endif
 
+// TODO change VBSERR to JSERR
+// TODO re-space these fields (a la: elastic tabstops)
+
 RT_ERROR_MSG(VBSERR_IllegalFuncCall, 5,    "", "Invalid procedure call or argument", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_OutOfMemory, 7,    "", "Out of memory", kjstError, 0)
 RT_ERROR_MSG(VBSERR_OutOfStack, 28,    "", "Out of stack space", kjstError, 0)
