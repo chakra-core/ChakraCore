@@ -11,6 +11,11 @@
 #define SIMD_Y 1
 #define SIMD_Z 2
 #define SIMD_W 3
+#define FLOAT64_SIZE 8
+#define FLOAT32_SIZE 4
+#define INT32_SIZE   4
+#define INT16_SIZE   2
+#define INT8_SIZE    1
 
 struct _SIMDValue
 {

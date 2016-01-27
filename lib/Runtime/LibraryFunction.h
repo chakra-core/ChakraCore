@@ -82,7 +82,6 @@ LIBRARY_FUNCTION(String,        PadEnd,             2,    BIF_UseSrc0 | BIF_Vari
 // Note: 1st column is currently used only for debug tracing.
 
 // SIMD_JS
-#if ENABLE_NATIVE_CODEGEN
 LIBRARY_FUNCTION(SIMD_Float32x4,    Float32x4,         4, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Float32x4)
 LIBRARY_FUNCTION(SIMD_Float32x4,    Check,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Check)
 LIBRARY_FUNCTION(SIMD_Float32x4,    Splat,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Splat)
@@ -153,4 +152,3 @@ LIBRARY_FUNCTION(SIMD_Int32x4,    Store,             3, BIF_IgnoreDst           
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store1,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store1)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store2,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store2)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store3,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store3)
-#endif

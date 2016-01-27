@@ -1386,7 +1386,6 @@ namespace Js
             simdUint16x8ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint16x8::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdUint8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
-
         debugObject = nullptr;
 
         numberConstructor = CreateBuiltinConstructor(&JavascriptNumber::EntryInfo::NewInstance,
@@ -2717,7 +2716,6 @@ namespace Js
         mathObject->SetHasNoEnumerableProperties(true);
     }
 
-#if ENABLE_NATIVE_CODEGEN
     // SIMD_JS
     void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -3188,7 +3186,6 @@ namespace Js
         library->AddFunctionToLibraryObject(Uint8x16Function, PropertyIds::select, &SIMDUint8x16Lib::EntryInfo::Select, 4, PropertyNone);
         /** end Uint8x16 **/
     }
-#endif
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -7108,7 +7105,6 @@ namespace Js
         return hr;
     }
 
-#if ENABLE_NATIVE_CODEGEN
     HRESULT JavascriptLibrary::ProfilerRegisterSIMD()
     {
         HRESULT hr = S_OK;
@@ -7463,7 +7459,6 @@ namespace Js
 
         return hr;
     }
-#endif
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

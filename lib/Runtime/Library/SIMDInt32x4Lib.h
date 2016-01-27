@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if ENABLE_NATIVE_CODEGEN
 namespace Js {
 
     class SIMDInt32x4Lib
@@ -147,4 +146,4 @@ namespace Js {
     };
 
 } // namespace Js
-#endif
+
