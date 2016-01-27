@@ -4,8 +4,8 @@
 
 #include "JsrtPch.h"
 #include "jsrtInternal.h"
-#include "..\Runtime\Debug\RuntimeDebugPch.h"
-#include "..\Runtime\Base\ThreadContextTLSEntry.h"
+#include "RuntimeDebugPch.h"
+#include "ThreadContextTLSEntry.h"
 #include "JsrtDebugUtils.h"
 
 #define VALIDATE_DEBUG_OBJECT(obj) \

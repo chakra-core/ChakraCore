@@ -4,7 +4,7 @@
 
 #include "JsrtPch.h"
 #include "JsrtDebugEventObject.h"
-#include "..\Runtime\Debug\RuntimeDebugPch.h"
+#include "RuntimeDebugPch.h"
 #include "screrror.h"   // For CompileScriptException
 
 JsrtDebugEventObject::JsrtDebugEventObject(Js::ScriptContext *scriptContext)

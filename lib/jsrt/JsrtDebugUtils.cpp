@@ -97,11 +97,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
     Js::Var varValue = objectDisplayRef->GetVarValue(FALSE);
 
-    const wchar_t* typeString = L"type";
-    const wchar_t* valueString = L"value";
-    const wchar_t* displayString = L"display";
-    const wchar_t* classNameString = L"className";
-
     if (varValue != nullptr)
     {
         Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(varValue);

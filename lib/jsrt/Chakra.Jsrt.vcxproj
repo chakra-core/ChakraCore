@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory);
         $(MSBuildThisFileDirectory)..\Runtime;
         $(MSBuildThisFileDirectory)..\Common;
+        $(MSBuildThisFileDirectory)..\Runtime\Base;
         $(MSBuildThisFileDirectory)..\Runtime\Debug;
         $(MSBuildThisFileDirectory)..\Parser;
         $(MSBuildThisFileDirectory)..\Backend;
