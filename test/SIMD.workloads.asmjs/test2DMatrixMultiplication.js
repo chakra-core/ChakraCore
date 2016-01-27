@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
 
@@ -124,29 +124,51 @@ function asmModule(stdlib, imports, buffer) {
     };
 }
 
-function print2DMatrix(buffer, start) {
-    var IntHeap32 = new Int32Array(buffer);
-    var FloatHeap32 = new Float32Array(buffer);
-    var f4;
-    var dim1 = IntHeap32[start];
-    var dim2 = IntHeap32[start + 1];
-    print(dim1 + " by " + dim2 + " matrix");
-
-    for (var i = 0; i < Math.imul(dim1, dim2) ; i += 4) {
-        f4 = SIMD.Float32x4.load(FloatHeap32, i + start + 2);
-        print(f4.toString());
-    }
+function verify_results(type, results_ex, buffer, count)
+{
+    var i4;
+	for (var i = 0, idx = 0; i < count/* * 16*/; i += 4)
+    {
+        i4 = type.load(buffer, i);
+		equalSimd(results_ex[idx++], i4, type, "Matrix Mul" );
+	}
 }
 
 var buffer = new ArrayBuffer(16 * 1024 * 1024);
 var m = asmModule(this, null, buffer);
 
-print("2D Matrix Multiplication");
 m.new2DMatrix(0, 4, 8);
 m.new2DMatrix(200, 8, 12);
 m.new2DMatrix(400, 4, 4);
 m.new2DMatrix(600, 4, 4);
 m.matrixMultiplication(0, 200, 800);
+
 m.matrixMultiplication(400, 600, 1000);
-print2DMatrix(buffer, 800);
-print2DMatrix(buffer, 1000);
+
+exp_results1 = [
+SIMD.Float32x4(2052,2088,2124,2160),
+SIMD.Float32x4(2196,2232,2268,2304),
+SIMD.Float32x4(2340,2376,2412,2448),
+SIMD.Float32x4(4452,4536,4620,4704),
+SIMD.Float32x4(4788,4872,4956,5040),
+SIMD.Float32x4(5124,5208,5292,5376),
+SIMD.Float32x4(6645,6762,6879,6996),
+SIMD.Float32x4(7113,7230,7347,7464),
+SIMD.Float32x4(7581,7698,7815,7932),
+SIMD.Float32x4(8355,8490,8625,8760),
+SIMD.Float32x4(8895,9030,9165,9300),
+SIMD.Float32x4(9435,9570,9705,9840),
+];
+
+exp_results2 = [
+SIMD.Float32x4(90,100,110,120),
+SIMD.Float32x4(170,188,206,224),
+SIMD.Float32x4(211,230,249,268),
+SIMD.Float32x4(169,182,195,208),
+];
+
+var values = new Float32Array(buffer);
+verify_results(SIMD.Float32x4, exp_results1, values.subarray(800 + 2), 12 * 4);
+
+verify_results(SIMD.Float32x4, exp_results2, values.subarray(1000 + 2), 4 * 4);
+print("PASS");

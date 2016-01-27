@@ -1016,68 +1016,101 @@ StringCommon:
             }
         }
 
-        static const LARGE_INTEGER multiplier = { 0xDEECE66D, 0x00000005 };
-        static const double kdbl2to27 = 134217728.0;
-
-        double JavascriptMath::Random(ScriptContext *scriptContext)
+        void InitializeRandomSeeds(uint64 *seed0, uint64 *seed1, ScriptContext *scriptContext)
         {
-            uint64 seed = scriptContext->GetLibrary()->GetRandSeed();
-
-            ulong temp;
-            if (seed == 0)
+#if DBG
+            if (CONFIG_FLAG(PRNGSeed0) && CONFIG_FLAG(PRNGSeed1))
+            {
+                *seed0 = CONFIG_FLAG(PRNGSeed0);
+                *seed1 = CONFIG_FLAG(PRNGSeed1);
+            }
+            else
+#endif
             {
                 LARGE_INTEGER s0;
                 LARGE_INTEGER s1;
-                QueryPerformanceCounter(&s0);
 
+                if (!rand_s(reinterpret_cast<unsigned int*>(&s0.LowPart)) &&
+                    !rand_s(reinterpret_cast<unsigned int*>(&s0.HighPart)) &&
+                    !rand_s(reinterpret_cast<unsigned int*>(&s1.LowPart)) &&
+                    !rand_s(reinterpret_cast<unsigned int*>(&s1.HighPart)))
+                {
+                    *seed0 = s0.QuadPart;
+                    *seed1 = s1.QuadPart;
+                }
+                else
+                {
+                    AssertMsg(false, "Unable to initialize PRNG seeds with rand_s. Revert to using entropy.");
+
+                    ThreadContext *threadContext = scriptContext->GetThreadContext();
+
+                    threadContext->GetEntropy().AddThreadCycleTime();
+                    threadContext->GetEntropy().AddIoCounters();
+                    *seed0 = threadContext->GetEntropy().GetRand();
+
+                    threadContext->GetEntropy().AddThreadCycleTime();
+                    threadContext->GetEntropy().AddIoCounters();
+                    *seed1 = threadContext->GetEntropy().GetRand();
+                }
+            }
+        }
+
+        double ConvertRandomSeedsToDouble(const uint64 seed0, const uint64 seed1)
+        {
+            static const uint64 mExp  = 0x3FF0000000000000;
+            static const uint64 mMant = 0x000FFFFFFFFFFFFF;
+
+            // Take lower 52 bits of the sum of two seeds to make a double
+            // Subtract 1.0 to negate the implicit integer bit of 1. Final range: [0.0, 1.0)
+            // See IEEE754 Double-precision floating-point format for details
+            //   https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+            uint64 resplusone_ui64 = ((seed0 + seed1) & mMant) | mExp;
+            double res = *(reinterpret_cast<double*>(&resplusone_ui64)) - 1.0;
+            return res;
+        }
+
+        void Xorshift128plus(uint64 *seed0, uint64 *seed1)
+        {
+            uint64 s1 = *seed0;
+            uint64 s0 = *seed1;
+            *seed0 = s0;
+            s1 ^= s1 << 23;
+            s1 ^= s1 >> 17;
+            s1 ^= s0;
+            s1 ^= s0 >> 26;
+            *seed1 = s1;
+        }
+
+        double JavascriptMath::Random(ScriptContext *scriptContext)
+        {
+            uint64 seed0 = scriptContext->GetLibrary()->GetRandSeed0();
+            uint64 seed1 = scriptContext->GetLibrary()->GetRandSeed1();
+
+            if (seed0 == 0 && seed1 == 0)
+            {
+                InitializeRandomSeeds(&seed0, &seed1, scriptContext);
 #if DBG_DUMP
                 if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
                 {
-                    Output::Print(L"[PRNG:%x] INIT %I64x\n", scriptContext, s0.QuadPart);
+                    Output::Print(L"[PRNG:%x] INIT %I64x %I64x\n", scriptContext, seed0, seed1);
                 }
 #endif
-
-                temp = s0.LowPart ^ multiplier.LowPart;
-                // Put bytes in order 0213.
-                temp = ((temp & 0xFF000000) >>24) | ((temp & 0x000000FF) <<24) | (temp & 0x00FFFF00);
-
-                // Interleave the bits : generator is 3120.
-                temp = ((temp & 0x0F000F00) >> 4) | ((temp & 0x00F000F0) << 4) | (temp & 0xF00FF00F);
-                temp = ((temp & 0x30303030) >> 2) | ((temp & 0x0C0C0C0C) << 2) | (temp & 0xC3C3C3C3);
-                temp = ((temp & 0x44444444) >> 1) | ((temp & 0x22222222) << 1) | (temp & 0x99999999);
-
-                s1.HighPart = temp >> 16;
-                s1.LowPart = (temp << 16) | ((s0.HighPart ^ s0.LowPart)& 0x0000FFFF);
-                seed = s1.QuadPart;
-
-                ThreadContext *threadContext = scriptContext->GetThreadContext();
-                threadContext->GetEntropy().AddThreadCycleTime();
-                threadContext->GetEntropy().AddIoCounters();
-                seed ^= (threadContext->GetEntropy().GetRand() & 0x0000FFFFFFFFFFFFull);
             }
-
-            Assert((seed >>32)  < 0x00010000 );  // only up to 48 bits should be in the previous value
 
 #if DBG_DUMP
             if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
             {
-                Output::Print(L"[PRNG:%x] SEED %I64x\n", scriptContext, seed);
+                Output::Print(L"[PRNG:%x] SEED %I64x %I64x\n", scriptContext, seed0, seed1);
             }
 #endif
 
-            uint64 sn;
-            sn = (seed * multiplier.QuadPart + 11) & 0x0000FFFFFFFFFFFFull; // apply linear recurrence and keep just 48 bits
-            double res = double((uint)(sn >> 21)); //use for the result the high 27 bits of the 45 bits above
+            Xorshift128plus(&seed0, &seed1);
 
-            // one more iteration and keep only 48 bits
-            seed = (sn * multiplier.QuadPart + 11) & 0x0000FFFFFFFFFFFFull;
+            //update the seeds in script context
+            scriptContext->GetLibrary()->SetRandSeed0(seed0);
+            scriptContext->GetLibrary()->SetRandSeed1(seed1);
 
-            // Merge in the high 27 bits and normalize.
-            res += (double)((uint)(seed >> 21)) / kdbl2to27;
-            res /= kdbl2to27;
-            //update the seed
-            scriptContext->GetLibrary()->SetRandSeed(seed);
-
+            double res = ConvertRandomSeedsToDouble(seed0, seed1);
 #if DBG_DUMP
             if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
             {
@@ -1086,7 +1119,6 @@ StringCommon:
 #endif
             return res;
         }
-
 
         uint32 JavascriptMath::ToUInt32(double T1)
         {

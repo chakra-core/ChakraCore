@@ -1908,6 +1908,94 @@ case_2:
         return SubString::New(pThis, idxStart, span);
     }
 
+    Var JavascriptString::EntryPadStart(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadStartCount);
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, L"String.prototype.padStart", &pThis);
+
+        return PadCore(args, pThis, true /*isPadStart*/, scriptContext);
+    }
+
+    Var JavascriptString::EntryPadEnd(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadEndCount);
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, L"String.prototype.padEnd", &pThis);
+
+        return PadCore(args, pThis, false /*isPadStart*/, scriptContext);
+    }
+
+    JavascriptString* JavascriptString::PadCore(ArgumentReader& args, JavascriptString *mainString, bool isPadStart, ScriptContext* scriptContext)
+    {
+        Assert(mainString != nullptr);
+        Assert(args.Info.Count > 0);
+
+        if (args.Info.Count == 1)
+        {
+            return mainString;
+        }
+
+        int64 maxLength = JavascriptConversion::ToLength(args[1], scriptContext);
+        charcount_t currentLength = mainString->GetLength();
+        if (maxLength <= currentLength)
+        {
+            return mainString;
+        }
+
+        if (maxLength > JavascriptString::MaxCharLength)
+        {
+            Throw::OutOfMemory();
+        }
+
+        JavascriptString * fillerString = nullptr;
+        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+        {
+            JavascriptString *argStr = JavascriptConversion::ToString(args[2], scriptContext);
+            if (argStr->GetLength() > 0)
+            {
+                fillerString = argStr;
+            }
+        }
+
+        if (fillerString == nullptr)
+        {
+            fillerString = NewWithBuffer(L" ", 1, scriptContext);
+        }
+
+        Assert(fillerString->GetLength() > 0);
+
+        charcount_t fillLength = (charcount_t)(maxLength - currentLength);
+        charcount_t count = fillLength / fillerString->GetLength();
+        JavascriptString * finalPad = scriptContext->GetLibrary()->GetEmptyString();
+        if (count > 0)
+        {
+            finalPad = RepeatCore(fillerString, count, scriptContext);
+            fillLength -= (count * fillerString->GetLength());
+        }
+
+        if (fillLength > 0)
+        {
+            finalPad = Concat(finalPad, SubString::New(fillerString, 0, fillLength));
+        }
+
+        return isPadStart ? Concat(finalPad, mainString) : Concat(mainString, finalPad);
+    }
+
     Var JavascriptString::EntryToLocaleLowerCase(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -2182,9 +2270,6 @@ case_2:
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, L"String.prototype.repeat", &pThis);
 
-        const wchar_t* thisStr = pThis->GetString();
-        int thisStrLen = pThis->GetLength();
-
         charcount_t count = 0;
 
         if (args.Info.Count > 1)
@@ -2201,7 +2286,7 @@ case_2:
             }
         }
 
-        if (count == 0 || thisStrLen == 0)
+        if (count == 0 || pThis->GetLength() == 0)
         {
             return scriptContext->GetLibrary()->GetEmptyString();
         }
@@ -2210,30 +2295,42 @@ case_2:
             return pThis;
         }
 
-        charcount_t charCount = UInt32Math::Add(UInt32Math::Mul(count, thisStrLen), 1);
-        wchar_t* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, charCount);
+        return RepeatCore(pThis, count, scriptContext);
+    }
 
-        if (thisStrLen == 1)
+    JavascriptString* JavascriptString::RepeatCore(JavascriptString* currentString, charcount_t count, ScriptContext* scriptContext)
+    {
+        Assert(currentString != nullptr);
+        Assert(currentString->GetLength() > 0);
+        Assert(count > 0);
+
+        const wchar_t* currentRawString = currentString->GetString();
+        int currentLength = currentString->GetLength();
+
+        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        wchar_t* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, finalBufferCount);
+
+        if (currentLength == 1)
         {
-            wmemset(buffer, thisStr[0], charCount - 1);
-            buffer[charCount - 1] = '\0';
+            wmemset(buffer, currentRawString[0], finalBufferCount - 1);
+            buffer[finalBufferCount - 1] = '\0';
         }
         else
         {
             wchar_t* bufferDst = buffer;
-            size_t bufferDstSize = charCount;
+            size_t bufferDstSize = finalBufferCount;
 
             for (charcount_t i = 0; i < count; i += 1)
             {
-                js_wmemcpy_s(bufferDst, bufferDstSize, thisStr, thisStrLen);
-                bufferDst += thisStrLen;
-                bufferDstSize -= thisStrLen;
+                js_wmemcpy_s(bufferDst, bufferDstSize, currentRawString, currentLength);
+                bufferDst += currentLength;
+                bufferDstSize -= currentLength;
             }
             Assert(bufferDstSize == 1);
             *bufferDst = '\0';
         }
 
-        return JavascriptString::NewWithBuffer(buffer, charCount - 1, scriptContext);
+        return JavascriptString::NewWithBuffer(buffer, finalBufferCount - 1, scriptContext);
     }
 
     ///----------------------------------------------------------------------------

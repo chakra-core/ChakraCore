@@ -7,7 +7,7 @@ this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function asmModule(stdlib, imports, buffer) {
     "use asm";
-
+    
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
@@ -59,8 +59,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -103,8 +102,7 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+    
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -135,7 +133,7 @@ function asmModule(stdlib, imports, buffer) {
 
     var OFFSET_1 = 10;
     var OFFSET_2 = 15;
-
+    
     var loopCOUNT = 10;
 
     var Int8Heap = new stdlib.Int8Array (buffer);
@@ -290,7 +288,7 @@ function validateBuffer(buffer, count)
     for (var i = 0; i < count/* * 16*/; i += 4)
     {
         f4 = SIMD.Float32x4.load(buffer, i);
-           equalSimd(data[i/4], f4, SIMD.Float32x4, "validateBuffer");
+        equalSimd(data[i/4], f4, SIMD.Float32x4, "validateBuffer");
     }
 }
 function validateBuffer1(buffer, count)
@@ -346,5 +344,4 @@ validateBuffer(values, 4 * 25);
 initI32(buffer);
 var ret = m.merge1(0, 5 * 16, 10 * 16, 5);
 validateBuffer1(values, 4 * 25);
-
-WScript.Echo("PASS");
+print("PASS");

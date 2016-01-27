@@ -2044,6 +2044,9 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         {
             callInstr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(callInstr->m_opcode, simdFuncSignature);
             Assert(simdFuncSignature.valid);
+            // if we have decided to inline, then actual arg count == signature arg count == required arg count from inlinee list (LibraryFunction.h)
+            Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
+            Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
         }
 //
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
@@ -2133,6 +2136,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             argInsertInstr = argInstr;
             return false;
         });
+
+        //SIMD_JS
+        Simd128FixLoadStoreInstr(builtInId, callInstr);
+
         if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz32)
         {
             // Convert:
@@ -3168,6 +3175,13 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_TrimRight, callInstr->m_func));
         break;
 
+    case Js::BuiltinFunction::String_PadStart:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadStart, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::String_PadEnd:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadEnd, callInstr->m_func));
+        break;
 
     case Js::BuiltinFunction::GlobalObject_ParseInt:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperGlobalObject_ParseInt, callInstr->m_func));
@@ -5239,4 +5253,105 @@ Inline::GetMethodLdOpndForCallInstr(IR::Instr* callInstr)
         return nullptr;
     }
     return nullptr;
+}
+
+// SIMD_JS
+/*
+Fixes the format of a SIMD load/store to match format expected by globOpt. Namely:
+Load:
+    dst = Simd128LdArr arr, index
+    becomes
+    dst = Simd128LdArr [arr, indx]
+
+Store:
+    t3 =    EA arr
+    t2 =    EA index, t3
+    t1 =    EA value, t2
+            Simd128StArr t1
+    becomes
+    [arr, index] = Simd128StArr value
+
+It also sets width in bytes of data to be loaded. Needed for bound check generation in GlobOpt.
+*/
+void
+Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * callInstr)
+{
+    bool isStore = false;
+    callInstr->dataWidth = 0;
+    switch (builtInId)
+    {
+        case Js::BuiltinFunction::SIMD_Float32x4_Store:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load:
+            callInstr->dataWidth = 16;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store3:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store3:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load3:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load3:
+            callInstr->dataWidth = 12;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store2:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store2:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load2:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load2:
+            callInstr->dataWidth = 8;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store1:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store1:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load1:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load1:
+            callInstr->dataWidth = 4;
+            break;
+        default:
+            // nothing to do
+            return;
+    }
+
+    IR::IndirOpnd *indirOpnd;
+    if (!isStore)
+    {
+        // load
+        indirOpnd = IR::IndirOpnd::New(callInstr->GetSrc1()->AsRegOpnd(), callInstr->GetSrc2()->AsRegOpnd(), TyVar, callInstr->m_func);
+        callInstr->ReplaceSrc1(indirOpnd);
+        callInstr->FreeSrc2();
+    }
+    else
+    {
+        IR::Opnd *linkOpnd = callInstr->GetSrc1();
+        IR::Instr *eaInstr1, *eaInstr2, *eaInstr3;
+        IR::Opnd *value, *index, *arr;
+
+        eaInstr1 = linkOpnd->GetStackSym()->m_instrDef;
+        value = eaInstr1->GetSrc1();
+        linkOpnd = eaInstr1->GetSrc2();
+
+        eaInstr2 = linkOpnd->GetStackSym()->m_instrDef;
+        index = eaInstr2->GetSrc1();
+        linkOpnd = eaInstr2->GetSrc2();
+
+        eaInstr3 = linkOpnd->GetStackSym()->m_instrDef;
+        Assert(!eaInstr3->GetSrc2()); // end of args list
+        arr = eaInstr3->GetSrc1();
+
+        indirOpnd = IR::IndirOpnd::New(arr->AsRegOpnd(), index->AsRegOpnd(), TyVar, callInstr->m_func);
+        callInstr->SetDst(indirOpnd);
+        callInstr->ReplaceSrc1(value);
+
+        // remove ea instructions
+        eaInstr1->Remove(); eaInstr2->Remove(); eaInstr3->Remove();
+
+    }
 }

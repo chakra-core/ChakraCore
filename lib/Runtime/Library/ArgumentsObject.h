@@ -130,7 +130,7 @@ namespace Js
     //   - When SetWritable/Enumerable/Configurable/Accessors is called, convert HeapArgumentsObject  to ES5HeapArgumentsObject by swapping vtable.
     //   - Override GetItemAt/SetItemAt -- for disconnected items force GetItem/SetItem to use "this" rather than from frameObject.
     //   - Override GetEnumerator -- take care of enumerable = false arguments.
-    //   - The “disconnect” happens when (as ES5 spec says) setting writable to false and setting accessors.
+    //   - The "disconnect" happens when (as ES5 spec says) setting writable to false and setting accessors.
     // Note: This implementation depends on v-table swapping so that HeapArgumentsObject instance can be
     //       converted to ES5HeapArgumentsObject at runtime when ES5 attribute/getter/setter support is needed.
     //       Thus, CAUTION: as a result, this class can't add any new instance fields,

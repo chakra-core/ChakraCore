@@ -138,6 +138,7 @@ MACRO(MOVLHPS,  Reg2,       None,           RNON,   f(SPECIAL), o(MOVLHPS), DDST
 MACRO(MOVMSKPD, Reg2,       None,           RNON,   f(SPECIAL), o(MOVMSKPD), DDST|DNO16|D66,         OLB_0F)
 MACRO(MOVMSKPS, Reg2,       None,           RNON,   f(SPECIAL), o(MOVMSKPS), DDST|DNO16,             OLB_0F)
 
+MACRO(MOVQ,     Reg2,   None,          RNON,   f(SPECIAL), o(MOVQ),    DDST|DNO16|D66,              OLB_0F)
 
 MACRO(MOVSD,    Reg2,   None,          RNON,   f(SPECIAL), o(MOVSD),   DDST|DNO16|DF2,              OLB_0F)
 MACRO(MOVSD_ZERO,Reg2,      None,      RNON,   f(MODRM),   o(MOVSD),   0,                           OLB_NONE)

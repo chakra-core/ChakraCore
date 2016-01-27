@@ -91,6 +91,7 @@ private:
     bool        IsArgumentsOpnd(IR::Opnd* opnd,SymID argumentsSymId);
     void        Cleanup(IR::Instr *callInstr);
     IR::PropertySymOpnd* GetMethodLdOpndForCallInstr(IR::Instr* callInstr);
+    void        Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * callInstr);
     IR::Instr* InsertInlineeBuiltInStartEndTags(IR::Instr* callInstr, uint actualcount, IR::Instr** builtinStartInstr = nullptr);
     bool IsInliningOutSideLoops(){return  topFunc->GetJnFunction()->GetHasLoops() && isInLoop == 0; }
 

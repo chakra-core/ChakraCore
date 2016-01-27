@@ -13,6 +13,8 @@
 
 #include "ExternalLowerer.h"
 
+#include "ExternalLowerer.h"
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::Lower
@@ -10254,6 +10256,76 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
     AssertMsg(instr->GetDst()->IsFloat(), "dst must be float.");
     IR::Instr* retInstr = instr->m_prev;
     IR::Opnd* dst = instr->GetDst();
+
+#if defined(_M_X64)
+    static const uint64 mExp = 0x3FF0000000000000;
+    static const uint64 mMant = 0x000FFFFFFFFFFFFF;
+
+    IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, this->m_func);  // s0
+    IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, this->m_func);  // s1
+    IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, this->m_func);  // helper uint64 reg
+    IR::RegOpnd* r4 = IR::RegOpnd::New(TyFloat64, this->m_func); // helper float64 reg
+
+    // ===========================================================
+    // s0 = scriptContext->GetLibrary()->GetRandSeed1();
+    // s1 = scriptContext->GetLibrary()->GetRandSeed0();
+    // ===========================================================
+    this->m_lowererMD.CreateAssign(r0,
+        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
+    this->m_lowererMD.CreateAssign(r1,
+        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
+
+    // ===========================================================
+    // s1 ^= s1 << 23;
+    // ===========================================================
+    this->m_lowererMD.CreateAssign(r3, r1, instr);
+    this->InsertShift(Js::OpCode::Shl_A, false, r3, r3, IR::IntConstOpnd::New(23, TyInt8, this->m_func), instr);
+    this->InsertXor(r1, r1, r3, instr);
+
+    // ===========================================================
+    // s1 ^= s1 >> 17;
+    // ===========================================================
+    this->m_lowererMD.CreateAssign(r3, r1, instr);
+    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(17, TyInt8, this->m_func), instr);
+    this->InsertXor(r1, r1, r3, instr);
+
+    // ===========================================================
+    // s1 ^= s0;
+    // ===========================================================
+    this->InsertXor(r1, r1, r0, instr);
+
+    // ===========================================================
+    // s1 ^= s0 >> 26;
+    // ===========================================================
+    this->m_lowererMD.CreateAssign(r3, r0, instr);
+    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(26, TyInt8, this->m_func), instr);
+    this->InsertXor(r1, r1, r3, instr);
+
+    // ===========================================================
+    // scriptContext->GetLibrary()->SetRandSeed0(s0);
+    // scriptContext->GetLibrary()->SetRandSeed1(s1);
+    // ===========================================================
+    this->m_lowererMD.CreateAssign(
+        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, this->m_func), r0, instr);
+    this->m_lowererMD.CreateAssign(
+        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, this->m_func), r1, instr);
+
+    // ===========================================================
+    // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
+    // ===========================================================
+    this->InsertAdd(false, r1, r1, r0, instr);
+    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
+    this->InsertAnd(r1, r1, r3, instr);
+    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
+    this->InsertOr(r1, r1, r3, instr);
+    this->InsertMoveBitCast(dst, r1, instr);
+
+    // ===================================================================
+    // dst -= 1.0;
+    // ===================================================================
+    this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
+    this->InsertSub(false, dst, dst, r4, instr);
+#else
     IR::Opnd* tmpdst = dst;
     if(!dst->IsRegOpnd())
     {
@@ -10269,6 +10341,7 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
     {
         InsertMove(dst, tmpdst, instr);
     }
+#endif
 
     instr->Remove();
     return retInstr;
@@ -12957,7 +13030,7 @@ IRType Lowerer::GetArrayIndirType(const ValueType valueType)
     return IndirTypes[static_cast<ValueType::TSize>(valueType.GetObjectType())];
 }
 
-BYTE Lowerer::GetArrayIndirScale(const ValueType valueType) const
+BYTE Lowerer::GetArrayIndirScale(const ValueType valueType)
 {
     Assert(valueType.IsLikelyAnyOptimizedArray());
     if(valueType.IsLikelyArrayOrObjectWithArray())
@@ -12973,6 +13046,16 @@ BYTE Lowerer::GetArrayIndirScale(const ValueType valueType) const
     }
 
     return IndirScales[static_cast<ValueType::TSize>(valueType.GetObjectType())];
+}
+
+int Lowerer::SimdGetElementCountFromBytes(ValueType arrValueType, uint8 dataWidth)
+{
+    Assert(dataWidth == 4 || dataWidth == 8 || dataWidth == 12 || dataWidth == 16);
+    Assert(arrValueType.IsTypedArray());
+    BYTE bpe = 1 << Lowerer::GetArrayIndirScale(arrValueType);
+
+    // round up
+    return (int)::ceil(((float)dataWidth) / bpe);
 }
 
 bool Lowerer::ShouldGenerateArrayFastPath(
@@ -13624,6 +13707,48 @@ IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::I
 
     insertBeforeInstr->InsertBefore(instr);
     return LowererMD::ChangeToLea(instr);
+}
+
+#if _M_X64
+IR::Instr *Lowerer::InsertMoveBitCast(
+    IR::Opnd *const dst,
+    IR::Opnd *const src1,
+    IR::Instr *const insertBeforeInstr)
+{
+    Assert(dst);
+    Assert(dst->GetType() == TyFloat64);
+    Assert(src1);
+    Assert(src1->GetType() == TyUint64);
+    Assert(insertBeforeInstr);
+
+    Func *const func = insertBeforeInstr->m_func;
+
+    IR::Instr *const instr = IR::Instr::New(LowererMD::MDMovUint64ToFloat64Opcode, dst, src1, func);
+
+    insertBeforeInstr->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+    return instr;
+}
+#endif
+
+IR::Instr *Lowerer::InsertXor(
+    IR::Opnd *const dst,
+    IR::Opnd *const src1,
+    IR::Opnd *const src2,
+    IR::Instr *const insertBeforeInstr)
+{
+    Assert(dst);
+    Assert(src1);
+    Assert(src2);
+    Assert(insertBeforeInstr);
+
+    Func *const func = insertBeforeInstr->m_func;
+
+    IR::Instr *const instr = IR::Instr::New(LowererMD::MDXorOpcode, dst, src1, src2, func);
+
+    insertBeforeInstr->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+    return instr;
 }
 
 IR::Instr *Lowerer::InsertAnd(

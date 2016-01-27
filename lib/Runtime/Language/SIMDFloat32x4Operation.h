@@ -15,13 +15,12 @@ namespace Js {
         static SIMDValue OpZero();
 
         static SIMDValue OpSplat(float x);
-        static SIMDValue OpSplat(const SIMDValue& v);
 
         // conversion
         static SIMDValue OpFromFloat64x2(const SIMDValue& value);
-        static SIMDValue OpFromFloat64x2Bits(const SIMDValue& value);
         static SIMDValue OpFromInt32x4(const SIMDValue& value);
-        static SIMDValue OpFromInt32x4Bits(const SIMDValue& value);
+        static SIMDValue OpFromUint32x4(const SIMDValue& value);
+
 
 
         // Unary Ops
@@ -45,6 +44,9 @@ namespace Js {
         static SIMDValue OpXor(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpMin(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpMax(const SIMDValue& aValue, const SIMDValue& bValue);
+        static SIMDValue OpMinNum(const SIMDValue& aValue, const SIMDValue& bValue);
+        static SIMDValue OpMaxNum(const SIMDValue& aValue, const SIMDValue& bValue);
+
 
         static SIMDValue OpScale(const SIMDValue& Value, float scaleValue);
 

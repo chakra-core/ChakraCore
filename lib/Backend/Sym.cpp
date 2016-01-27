@@ -795,7 +795,7 @@ StackSym::GetTypeEquivSym(IRType type, Func *func)
     int i = 1;
     while (sym != this)
     {
-        Assert(i <= 5); // circular of at most 6 syms : var, f64, i32, simd128I4, simd128F4, simd12D2
+        Assert(i <= 5); // circular of at most 6 syms : var, f64, i32, simd128I4, simd128F4, simd128D2
         if (sym->m_type == type)
         {
             return sym;

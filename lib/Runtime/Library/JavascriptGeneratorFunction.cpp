@@ -49,9 +49,6 @@ namespace Js
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();
-        bool isDefaultConstructor = functionProxy->IsDefaultConstructor();
-
-        AssertMsg(!isDefaultConstructor, "How is generator function is a default constructor?");
 
         GeneratorVirtualScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(functionProxy);
         scriptFunction->SetEnvironment(environment);

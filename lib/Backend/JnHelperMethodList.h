@@ -463,6 +463,8 @@ HELPERCALL(String_TrimLeft, Js::JavascriptString::EntryTrimLeft, 0)
 HELPERCALL(String_TrimRight, Js::JavascriptString::EntryTrimRight, 0)
 HELPERCALL(String_GetSz, Js::JavascriptString::GetSzHelper, 0)
 HELPERCALL(GlobalObject_ParseInt, Js::GlobalObject::EntryParseInt, 0)
+HELPERCALL(String_PadStart, Js::JavascriptString::EntryPadStart, 0)
+HELPERCALL(String_PadEnd, Js::JavascriptString::EntryPadEnd, 0)
 
 HELPERCALL(RegExp_SplitResultUsed, Js::RegexHelper::RegexSplitResultUsed, 0)
 HELPERCALL(RegExp_SplitResultUsedAndMayBeTemp, Js::RegexHelper::RegexSplitResultUsedAndMayBeTemp, 0)

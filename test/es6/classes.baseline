@@ -95,4 +95,6 @@ PASSED
 PASSED
 *** Running test #30 (29): Classes with caller/arguments methods
 PASSED
-Summary of tests: total executed: 30; passed: 30; failed: 0
+*** Running test #31 (30): toString on constructor should return class declaration or expression
+PASSED
+Summary of tests: total executed: 31; passed: 31; failed: 0
