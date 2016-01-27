@@ -24,6 +24,7 @@
 
 RT_ERROR_MSG(VBSERR_IllegalFuncCall, 5,    "", "Invalid procedure call or argument", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_OutOfMemory, 7,    "", "Out of memory", kjstError, 0)
+RT_ERROR_MSG(VBSERR_TypeMismatch, 13,    "",   "Type mismatch", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_OutOfStack, 28,    "", "Out of stack space", kjstError, 0)
 RT_ERROR_MSG(VBSERR_InternalError, 51,    "",  "Internal error", kjstError, 0)
 RT_ERROR_MSG(VBSERR_PermissionDenied, 70,    "",   "Permission denied", kjstError, 0)
