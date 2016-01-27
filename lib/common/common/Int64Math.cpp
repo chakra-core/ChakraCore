@@ -4,11 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 #include "common/Int64Math.h"
-#include <intrin.h>
 #include <stdint.h>
 
+#if _WIN32
+#include <intrin.h>
 #if _M_X64
 #pragma intrinsic(_mul128)
+#endif
 #endif
 
 bool
@@ -22,7 +24,8 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
-#if _M_X64
+// TODO: we should use an optimized version of mul128 in !windows too.
+#if defined(_M_X64) && defined(_MSC_VER)
     int64 high;
     *pResult = _mul128(left, right, &high);
     return high != 0;
