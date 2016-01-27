@@ -133,6 +133,8 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
 
         JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddFileNameToObject(eventDataObject, utf8SourceInfo);
+        JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
+        JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
 
         JsDiagDebugEvent jsDiagDebugEvent = JsDiagDebugEventCompileError;
 
