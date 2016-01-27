@@ -131,9 +131,6 @@ const MHR g_rgmhr[] =
 #error Neither __WIN32, nor _WIN64 is defined
 #endif
 
-    // FACILITY_DISPATCH - Typelib errors.
-    /*0x8002802F*/ MAPHR(TYPE_E_DLLFUNCTIONNOTFOUND, VBSERR_InvalidDllFunctionName),
-
     // FACILITY_STORAGE errors
     /*0x80030005*/ MAPHR(STG_E_ACCESSDENIED, VBSERR_PermissionDenied),
     /*0x80030008*/ MAPHR(STG_E_INSUFFICIENTMEMORY, VBSERR_OutOfMemory),
@@ -148,7 +145,6 @@ const MHR g_rgmhr[] =
     // FACILITY_WIN32 errors
     /*0x80070005*/ MAPHR(E_ACCESSDENIED, VBSERR_PermissionDenied),
     /*0x8007000E*/ MAPHR(E_OUTOFMEMORY, VBSERR_OutOfMemory),
-    /*0x800706BA*/ MAPHR(_HRESULT_TYPEDEF_(0x800706BA), VBSERR_ServerNotFound),
 #endif // _WIN32 || _WIN64
 };
 const long kcmhr = sizeof(g_rgmhr) / sizeof(g_rgmhr[0]);
