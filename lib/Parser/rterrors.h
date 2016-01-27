@@ -4,11 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #define IDS_COMPILATION_ERROR_SOURCE    4096
 #define IDS_RUNTIME_ERROR_SOURCE        4097
-#define IDS_UNKNOWN_RUNTIME_ERROR        4098
+#define IDS_UNKNOWN_RUNTIME_ERROR       4098
 
 #define IDS_INFINITY                    6000
 #define IDS_MINUSINFINITY               6001
-
 
 #ifndef RT_ERROR_MSG
 #define RT_ERROR_MSG(name, errnum, str1, str2, jst, errorNumSource)
@@ -24,17 +23,8 @@ RT_ERROR_MSG(VBSERR_IllegalFuncCall, 5,    "", "Invalid procedure call or argume
 RT_ERROR_MSG(VBSERR_OutOfMemory, 7,    "", "Out of memory", kjstError, 0)
 RT_ERROR_MSG(VBSERR_OutOfStack, 28,    "", "Out of stack space", kjstError, 0)
 RT_ERROR_MSG(VBSERR_InternalError, 51,    "",  "Internal error", kjstError, 0)
-
-RT_ERROR_MSG(VBSERR_IOError, 57,    "",    "Device I/O error", kjstError, 0)
-RT_ERROR_MSG(VBSERR_FileAlreadyExists, 58,    "",  "File already exists", kjstError, 0)
-RT_ERROR_MSG(VBSERR_DiskFull, 61,    "",   "Disk full", kjstError, 0)
-RT_ERROR_MSG(VBSERR_TooManyFiles, 67,    "",   "Too many files", kjstError, 0)
 RT_ERROR_MSG(VBSERR_PermissionDenied, 70,    "",   "Permission denied", kjstError, 0)
-RT_ERROR_MSG(VBSERR_PathFileAccess, 75,    "", "Path/File access error", kjstError, 0)
-RT_ERROR_MSG(VBSERR_PathNotFound, 76,    "",   "Path not found", kjstError, 0)
-RT_ERROR_MSG(VBSERR_CantCreateTmpFile, 322,    "", "Can't create necessary temporary file", kjstError, 0)
-RT_ERROR_MSG(VBSERR_OLENotSupported, 430,    "",   "Class doesn't support Automation", kjstError, 0)
-RT_ERROR_MSG(VBSERR_OLEFileNotFound, 432,    "",   "File name or class name not found during Automation operation", kjstError, 0)
+
 RT_ERROR_MSG(VBSERR_OLENoPropOrMethod, 438,    "Object doesn't support property or method '%s'",    "Object doesn't support this property or method", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_ActionNotSupported, 445,    "",    "Object doesn't support this action", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_NamedArgsNotSupported, 446,    "", "Object doesn't support named arguments", kjstError, 0)
