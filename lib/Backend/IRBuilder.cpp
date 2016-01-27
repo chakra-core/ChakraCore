@@ -5752,7 +5752,7 @@ IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset)
     BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset);
 }
 
-void
+IR::Instr*
 IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                                Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset)
 {
@@ -5760,7 +5760,7 @@ IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     {
         BuildLdSpreadIndices(offset, spreadAuxOffset);
     }
-    BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId);
+    return BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId);
 }
 
 template <typename SizePolicy>
@@ -5781,7 +5781,27 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    AssertMsg(false, "NYI");
+    this->m_func->m_isLeaf = false;
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallIExtendedFlags<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->Return);
+        this->DoClosureRegCheck(layout->Function);
+    }
+
+    IR::Instr* instr = BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset);
+
+    Assert(instr->m_opcode == Js::OpCode::CallIExtendedFlags);
+    if (instr->m_opcode == Js::OpCode::CallIExtendedFlags)
+    {
+        instr->m_opcode =
+            layout->callFlags == Js::CallFlags::CallFlags_ExtraArg ? Js::OpCode::CallIEval :
+            layout->callFlags == Js::CallFlags::CallFlags_New ? Js::OpCode::CallIExtendedNew :
+            layout->callFlags == (Js::CallFlags::CallFlags_New | Js::CallFlags::CallFlags_ExtraArg | Js::CallFlags::CallFlags_NewTarget) ? Js::OpCode::CallIExtendedNewTargetNew :
+            instr->m_opcode;
+    }
 }
 
 template <typename SizePolicy>

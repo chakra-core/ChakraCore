@@ -228,4 +228,11 @@
       <baseline>fabs1.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>OS_5248645.js</files>
+      <tags>exclude_dynapogo</tags>
+      <compile-flags>-maxinterpretCount:2 -off:simplejit -off:dynamicProfile -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
