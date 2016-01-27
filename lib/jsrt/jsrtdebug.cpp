@@ -139,7 +139,7 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
         if (scriptFunction == nullptr)
         {
             // Report JsDiagDebugEventCompileError event
-            JsrtDebugUtils::AddStringPropertyToObject(eventDataObject, L"error", compileException->ei.bstrDescription, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::error, compileException->ei.bstrDescription, scriptContext);
         }
         else
         {
@@ -214,8 +214,7 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
         int currentByteCodeOffset = haltState->topFrame->GetByteCodeOffset();
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
         JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
-
-        JsrtDebugUtils::AddBooleanPropertyToObject(eventDataObject, L"uncaught", !haltState->exceptionObject->IsFirstChanceException(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::uncaught, !haltState->exceptionObject->IsFirstChanceException(), scriptContext);
 
         Js::ResolvedObject resolvedObject;
         resolvedObject.scriptContext = scriptContext;
@@ -231,7 +230,7 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
 
         DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(this->debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
         {
-            JsrtDebugUtils::AddVarPropertyToObject(eventDataObject, L"exception", marshaledObj, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
         });
 
         BEGIN_LEAVE_SCRIPT(scriptContext)
@@ -361,7 +360,7 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
         JsrtDebugUtils::AddScriptIdToObject(sourceObject, utf8SourceInfo);
         JsrtDebugUtils::AddFileNameToObject(sourceObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineCountToObject(sourceObject, utf8SourceInfo);
-        JsrtDebugUtils::AddSouceLengthToObject(sourceObject, utf8SourceInfo);
+        JsrtDebugUtils::AddPropertyToObject(sourceObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
         JsrtDebugUtils::AddSouceToObject(sourceObject, utf8SourceInfo);
     }
 
@@ -457,7 +456,8 @@ void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext
 
         Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
 
-        JsrtDebugUtils::AddDoublePropertyToObject(bpObject, L"breakpointId", bp->GetId(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, (double)bp->GetId(), scriptContext);
+
         JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
 
         charcount_t lineNumber = 0;
@@ -465,8 +465,8 @@ void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext
         charcount_t byteOffset = 0;
         utf8SourceInfo->GetLineInfoForCharPosition(bp->GetCharacterOffset(), &lineNumber, &column, &byteOffset);
 
-        JsrtDebugUtils::AddDoublePropertyToObject(bpObject, L"line", lineNumber, scriptContext);
-        JsrtDebugUtils::AddDoublePropertyToObject(bpObject, L"column", column, scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::column, column, scriptContext);
 
         Js::Var marshaledObj = Js::CrossSite::MarshalVar(arrayScriptContext, bpObject);
         Js::JavascriptOperators::OP_SetElementI((Js::Var)(*bpsArray), Js::JavascriptNumber::ToVar((*bpsArray)->GetLength(), arrayScriptContext), marshaledObj, arrayScriptContext);

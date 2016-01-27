@@ -425,10 +425,10 @@ JsDiagGetFunctionPosition(
                     {
                         JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
                         JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"line", lineNumber, scriptContext);
-                        JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"column", columnNumber, scriptContext);
-                        JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"stmtStartLine", stmtStartLineNumber, scriptContext);
-                        JsrtDebugUtils::AddDoublePropertyToObject(funcInfoObject, L"stmtStartColumn", stmtStartColumnNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartLine, stmtStartLineNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartColumn, stmtStartColumnNumber, scriptContext);
 
                         *funcInfo = funcInfoObject;
                         return JsNoError;

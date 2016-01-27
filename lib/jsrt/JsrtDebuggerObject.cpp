@@ -94,8 +94,8 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
     }
     objectDisplay->ReleaseStrongReference();
 
-    JsrtDebugUtils::AddVarPropertyToObject(childrensObject, L"properties", propertiesArray, scriptContext);
-    JsrtDebugUtils::AddVarPropertyToObject(childrensObject, L"debuggerOnlyProperties", debuggerOnlyPropertiesArray, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::properties, propertiesArray, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::debuggerOnlyProperties, debuggerOnlyPropertiesArray, scriptContext);
 
     return childrensObject;
 }
@@ -272,11 +272,9 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     Js::FunctionBody* functionBody = stackFrame->GetFunction();
     Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
 
-    JsrtDebugUtils::AddDoublePropertyToObject(this->stackTraceObject, L"index", frameIndex, frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(this->stackTraceObject, JsrtDebugPropertyId::index, frameIndex, scriptContext);
     JsrtDebugUtils::AddScriptIdToObject(this->stackTraceObject, utf8SourceInfo);
     JsrtDebugUtils::AddFileNameToObject(this->stackTraceObject, utf8SourceInfo);
-
-    //JsrtDebugUtils::AddStringPropertyToObject(this->stackTraceObject, L"funcName", stackFrame->GetDisplayName(), frameScriptContext);
 
     int currentByteCodeOffset = stackFrame->GetByteCodeOffset();
     JsrtDebugUtils::AddLineColumnToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
@@ -292,8 +290,8 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     functionHandle = debuggerObject->GetHandle();
 
     Js::DynamicObject* funcObject = frameScriptContext->GetLibrary()->CreateObject();
-    JsrtDebugUtils::AddDoublePropertyToObject(funcObject, L"handle", functionHandle, frameScriptContext);
-    JsrtDebugUtils::AddVarPropertyToObject(stackTraceObject, L"func", funcObject, frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(funcObject, JsrtDebugPropertyId::handle, functionHandle, frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::func, funcObject, frameScriptContext);
 
     debuggerObject = nullptr;
     uint scriptHandle = 0;
@@ -304,10 +302,10 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     scriptHandle = debuggerObject->GetHandle();
 
     Js::DynamicObject* scriptObject = frameScriptContext->GetLibrary()->CreateObject();
-    JsrtDebugUtils::AddDoublePropertyToObject(scriptObject, L"handle", scriptHandle, frameScriptContext);
-    JsrtDebugUtils::AddVarPropertyToObject(stackTraceObject, L"script", scriptObject, frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(scriptObject, JsrtDebugPropertyId::handle, scriptHandle, frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::script, scriptObject, frameScriptContext);
 
-    JsrtDebugUtils::AddDoublePropertyToObject(stackTraceObject, L"handle", this->GetHandle(), frameScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::handle, this->GetHandle(), frameScriptContext);
 
     return this->stackTraceObject;
 }
@@ -352,7 +350,7 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
             {
                 DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
                 {
-                    JsrtDebugUtils::AddVarPropertyToObject(this->propertiesObject, L"exception", marshaledObj, scriptContext);
+                    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
                 });
             }
 
@@ -360,7 +358,7 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
             {
                 DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
                 {
-                    JsrtDebugUtils::AddVarPropertyToObject(this->propertiesObject, L"arguments", marshaledObj, scriptContext);
+                    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::arguments, marshaledObj, scriptContext);
                 });
             }
             else
@@ -412,15 +410,15 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
         this->pObjectModelWalker->ReleaseStrongReference();
     }
 
-    JsrtDebugUtils::AddVarPropertyToObject(this->propertiesObject, L"locals", localsArray, scriptContext);
-    JsrtDebugUtils::AddVarPropertyToObject(this->propertiesObject, L"scopes", scopesArray, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::locals, localsArray, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::scopes, scopesArray, scriptContext);
 
     if (globalsObject == nullptr)
     {
         globalsObject = scriptContext->GetLibrary()->CreateObject();
     }
 
-    JsrtDebugUtils::AddVarPropertyToObject(this->propertiesObject, L"globals", globalsObject, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::globals, globalsObject, scriptContext);
 
     return this->propertiesObject;
 }
@@ -522,8 +520,8 @@ Js::DynamicObject * DebuggerObjectScript::GetJSONObject(Js::ScriptContext* scrip
     JsrtDebugUtils::AddScriptIdToObject(this->sourceObject, utf8SourceInfo);
     JsrtDebugUtils::AddFileNameToObject(this->sourceObject, utf8SourceInfo);
     JsrtDebugUtils::AddLineCountToObject(this->sourceObject, utf8SourceInfo);
-    JsrtDebugUtils::AddSouceLengthToObject(this->sourceObject, utf8SourceInfo);
-    JsrtDebugUtils::AddDoublePropertyToObject(this->sourceObject, L"handle", this->GetHandle(), utf8SourceScriptContext);
+    JsrtDebugUtils::AddPropertyToObject(this->sourceObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(this->sourceObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
 
     return this->sourceObject;
 }
@@ -565,16 +563,16 @@ Js::DynamicObject * DebuggerObjectProperty::GetJSONObject(Js::ScriptContext* scr
     {
         this->propertyObject = scriptContext->GetLibrary()->CreateObject();
 
-        JsrtDebugUtils::AddStringPropertyToObject(this->propertyObject, L"name", objectDisplayRef->Name(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::name, objectDisplayRef->Name(), scriptContext);
 
         JsrtDebugUtils::AddPropertyType(this->propertyObject, objectDisplayRef, scriptContext); // Will add type, value, display, className
 
         if (objectDisplayRef->HasChildren())
         {
-            JsrtDebugUtils::AddBooleanPropertyToObject(this->propertyObject, L"haveChildrens", true, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::haveChildrens, true, scriptContext);
         }
 
-        JsrtDebugUtils::AddDoublePropertyToObject(this->propertyObject, L"handle", this->GetHandle(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
 
         this->objectDisplay->ReleaseStrongReference();
     }
@@ -624,8 +622,9 @@ Js::DynamicObject * DebuggerObjectScope::GetJSONObject(Js::ScriptContext* script
     if (moelDisplay != nullptr)
     {
         this->scopeObject = scriptContext->GetLibrary()->CreateObject();
-        JsrtDebugUtils::AddDoublePropertyToObject(this->scopeObject, L"index", this->index, scriptContext);
-        JsrtDebugUtils::AddDoublePropertyToObject(this->scopeObject, L"handle", this->GetHandle(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->scopeObject, JsrtDebugPropertyId::index, this->index, scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->scopeObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
+
         this->objectDisplay->ReleaseStrongReference();
     }
 
@@ -676,12 +675,12 @@ Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * sc
     if (this->functionBody != nullptr)
     {
         JsrtDebugUtils::AddScriptIdToObject(this->functionObject, this->functionBody->GetUtf8SourceInfo());
-        JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"line", this->functionBody->GetLineNumber(), scriptContext);
-        JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"column", this->functionBody->GetColumnNumber(), scriptContext);
-        JsrtDebugUtils::AddStringPropertyToObject(this->functionObject, L"name", this->functionBody->GetDisplayName(), scriptContext);
-        JsrtDebugUtils::AddStringPropertyToObject(this->functionObject, L"inferredName", this->functionBody->GetDisplayName(), scriptContext);
-        JsrtDebugUtils::AddStringPropertyToObject(this->functionObject, L"type", L"function", scriptContext);
-        JsrtDebugUtils::AddDoublePropertyToObject(this->functionObject, L"handle", this->GetHandle(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::line, this->functionBody->GetLineNumber(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::column, this->functionBody->GetColumnNumber(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::name, this->functionBody->GetDisplayName(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::inferredName, this->functionBody->GetDisplayName(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::type, L"function", scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
     }
     return this->functionObject;
 }
@@ -722,7 +721,7 @@ Js::DynamicObject * DebuggerObjectGlobalsNode::GetJSONObject(Js::ScriptContext *
     if (objectDisplayRef != nullptr)
     {
         this->propertyObject = scriptContext->GetLibrary()->CreateObject();
-        JsrtDebugUtils::AddDoublePropertyToObject(this->propertyObject, L"handle", this->GetHandle(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
         this->objectDisplay->ReleaseStrongReference();
     }
 

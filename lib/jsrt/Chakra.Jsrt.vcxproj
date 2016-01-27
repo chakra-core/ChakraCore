@@ -58,6 +58,7 @@
     <ClInclude Include="JsrtDebug.h" />
     <ClInclude Include="JsrtDebugEventObject.h" />
     <ClInclude Include="JsrtDebuggerObject.h" />
+    <ClInclude Include="JsrtDebugPropertiesEnum.h" />
     <ClInclude Include="JsrtDebugUtils.h" />
     <ClInclude Include="JsrtExternalArrayBuffer.h" />
     <ClInclude Include="JsrtExternalObject.h" />

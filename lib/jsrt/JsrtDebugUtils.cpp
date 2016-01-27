@@ -9,12 +9,12 @@
 
 void JsrtDebugUtils::AddScriptIdToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo)
 {
-    JsrtDebugUtils::AddDoublePropertyToObject(object, L"scriptId", utf8SourceInfo->GetSourceInfoId(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::scriptId, utf8SourceInfo->GetSourceInfoId(), utf8SourceInfo->GetScriptContext());
 
     Js::Utf8SourceInfo* callerUtf8SourceInfo = utf8SourceInfo->GetCallerUtf8SourceInfo();
     if (callerUtf8SourceInfo != nullptr)
     {
-        JsrtDebugUtils::AddDoublePropertyToObject(object, L"parentScriptId", callerUtf8SourceInfo->GetSourceInfoId(), callerUtf8SourceInfo->GetScriptContext());
+        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::parentScriptId, callerUtf8SourceInfo->GetSourceInfoId(), callerUtf8SourceInfo->GetScriptContext());
     }
 }
 
@@ -22,14 +22,7 @@ void JsrtDebugUtils::AddFileNameToObject(Js::DynamicObject* object, Js::Utf8Sour
 {
     const wchar_t* url = utf8SourceInfo->GetSourceContextInfo()->url == nullptr ? L"" : utf8SourceInfo->GetSourceContextInfo()->url;
 
-    JsrtDebugUtils::AddStringPropertyToObject(object, L"fileName", url, utf8SourceInfo->GetScriptContext());
-}
-
-void JsrtDebugUtils::AddErrorToObject(Js::DynamicObject* object, Js::ScriptContext* scriptContext, BSTR description)
-{
-    Assert(description != nullptr);
-
-    JsrtDebugUtils::AddStringPropertyToObject(object, L"error", description, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::fileName, url, utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddLineColumnToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset)
@@ -40,8 +33,8 @@ void JsrtDebugUtils::AddLineColumnToObject(Js::DynamicObject* object, Js::Functi
         LONG col = 0;
         if (functionBody->GetLineCharOffset(byteCodeOffset, &line, &col, false))
         {
-            JsrtDebugUtils::AddDoublePropertyToObject(object, L"line", line, functionBody->GetScriptContext());
-            JsrtDebugUtils::AddDoublePropertyToObject(object, L"column", col, functionBody->GetScriptContext());
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::line, line, functionBody->GetScriptContext());
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::column, col, functionBody->GetScriptContext());
         }
     }
 }
@@ -61,20 +54,14 @@ void JsrtDebugUtils::AddSourceTextToObject(Js::DynamicObject* object, Js::Functi
         utf8::DecodeOptions options = functionBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
         utf8::DecodeIntoAndNullTerminate(sourceContent, source + startByte, byteLength, options);
     }
-
-    JsrtDebugUtils::AddStringPropertyToObject(object, L"sourceText", sourceContent, functionBody->GetScriptContext());
-}
-
-void JsrtDebugUtils::AddSouceLengthToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
-{
-    JsrtDebugUtils::AddDoublePropertyToObject(object, L"sourceLength", utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent, functionBody->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
 {
     utf8SourceInfo->EnsureLineOffsetCache();
 
-    JsrtDebugUtils::AddDoublePropertyToObject(object, L"lineCount", utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
@@ -88,22 +75,7 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
         utf8::DecodeIntoAndNullTerminate(sourceContent, utf8SourceInfo->GetSource(), cchLength, options);
     }
 
-    JsrtDebugUtils::AddStringPropertyToObject(object, L"source", sourceContent, utf8SourceInfo->GetScriptContext());
-}
-
-void JsrtDebugUtils::AddDoublePropertyToObject(Js::DynamicObject * object, const wchar_t * propertyName, double value, Js::ScriptContext* scriptContext)
-{
-    JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, Js::JavascriptNumber::ToVarNoCheck(value, scriptContext), scriptContext);
-}
-
-void JsrtDebugUtils::AddStringPropertyToObject(Js::DynamicObject * object, const wchar_t * propertyName, const wchar_t * value, Js::ScriptContext * scriptContext)
-{
-    JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, Js::JavascriptString::NewCopyBuffer(value, wcslen(value), scriptContext), scriptContext);
-}
-
-void JsrtDebugUtils::AddBooleanPropertyToObject(Js::DynamicObject * object, const wchar_t * propertyName, bool value, Js::ScriptContext * scriptContext)
-{
-    JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, Js::JavascriptBoolean::ToVar(value, scriptContext), scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, sourceContent, utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const wchar_t * propertyName, Js::Var value, Js::ScriptContext * scriptContext)
@@ -137,70 +109,70 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         switch (typeId)
         {
         case Js::TypeIds_Undefined:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetUndefinedDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddVarPropertyToObject(object, valueString, scriptContext->GetLibrary()->GetUndefined(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetUndefinedDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, scriptContext->GetLibrary()->GetUndefined(), scriptContext);
             break;
 
         case Js::TypeIds_Null:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetObjectDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddVarPropertyToObject(object, valueString, scriptContext->GetLibrary()->GetNull(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, scriptContext->GetLibrary()->GetNull(), scriptContext);
             break;
 
         case Js::TypeIds_Boolean:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetBooleanTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddBooleanPropertyToObject(object, valueString, Js::JavascriptBoolean::FromVar(varValue)->GetValue() == TRUE ? true : false, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetBooleanTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptBoolean::FromVar(varValue)->GetValue() == TRUE ? true : false, scriptContext);
             break;
 
         case Js::TypeIds_Integer:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddDoublePropertyToObject(object, valueString, Js::TaggedInt::ToDouble(varValue), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::TaggedInt::ToDouble(varValue), scriptContext);
             break;
 
         case Js::TypeIds_Number:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddDoublePropertyToObject(object, valueString, Js::JavascriptNumber::GetValue(varValue), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptNumber::GetValue(varValue), scriptContext);
             break;
 
         case Js::TypeIds_Int64Number:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddDoublePropertyToObject(object, valueString, (double)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (LONG)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_UInt64Number:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddDoublePropertyToObject(object, valueString, (double)Js::JavascriptUInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (LONG)Js::JavascriptUInt64Number::FromVar(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_String:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetStringTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, valueString, Js::JavascriptString::FromVar(varValue)->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetStringTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptString::FromVar(varValue)->GetSz(), scriptContext);
             break;
 
         case Js::TypeIds_Symbol:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSymbolTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSymbolTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
 
         case Js::TypeIds_Function:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetFunctionTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetFunctionTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
 
         case Js::TypeIds_SIMDFloat32x4:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
         case Js::TypeIds_SIMDFloat64x2:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
         case Js::TypeIds_SIMDInt32x4:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
         case Js::TypeIds_SIMDInt8x16:
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
             break;
 
         case Js::TypeIds_Enumerator:
@@ -266,9 +238,9 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
         case Js::TypeIds_Proxy:
 
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, classNameString, JsrtDebugUtils::GetClassName(typeId), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::className, JsrtDebugUtils::GetClassName(typeId), scriptContext);
             break;
 
         default:
@@ -280,16 +252,56 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     {
         if (objectDisplayRef->HasChildren())
         {
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, displayString, objectDisplayRef->Value(10), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, classNameString, JsrtDebugUtils::GetClassName(Js::TypeIds_Object), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::display, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::className, JsrtDebugUtils::GetClassName(Js::TypeIds_Object), scriptContext);
         }
         else
         {
-            JsrtDebugUtils::AddStringPropertyToObject(object, typeString, scriptContext->GetLibrary()->GetStringTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddStringPropertyToObject(object, valueString, objectDisplayRef->Value(10), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetStringTypeDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, objectDisplayRef->Value(10), scriptContext);
         }
     }
+}
+
+void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, JsrtDebugUtils::GetDebugPropertyName(propertyId), value, scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, double value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptNumber::ToVarNoCheck(value, scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, UINT value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptNumber::ToVarNoCheck(value, scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, ULONG value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptNumber::ToVarNoCheck(value, scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, LONG value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptNumber::ToVarNoCheck(value, scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, const wchar_t * value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptString::NewCopyBuffer(value, wcslen(value), scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptBoolean::ToVar(value, scriptContext), scriptContext);
+}
+
+void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext * scriptContext)
+{
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, value, scriptContext);
 }
 
 wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
@@ -333,4 +345,14 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
         Assert(false);
     }
     return L"";
+}
+
+wchar_t * JsrtDebugUtils::GetDebugPropertyName(JsrtDebugPropertyId propertyId)
+{
+    switch (propertyId)
+    {
+#define DEBUGOBJECTPROPERTY(name) case JsrtDebugPropertyId::##name: return L###name;
+#include "JsrtDebugPropertiesEnum.h"
+    }
+    return nullptr;
 }
