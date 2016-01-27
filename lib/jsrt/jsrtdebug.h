@@ -23,7 +23,8 @@ public:
 
     bool EnableAsyncBreak(Js::ScriptContext* scriptContext);
 
-    void CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject);
+    void CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext);
+    void CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::DynamicObject* eventDataObject, Js::ScriptContext* scriptContext);
 
     Js::JavascriptArray * GetScripts(Js::ScriptContext* scriptContext);
     Js::DynamicObject* GetScript(Js::Utf8SourceInfo* utf8SourceInfo);

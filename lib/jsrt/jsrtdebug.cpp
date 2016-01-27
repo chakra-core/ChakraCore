@@ -153,8 +153,8 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
             }
             jsDiagDebugEvent = JsDiagDebugEventSourceCompilation;
         }
-
-        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject);
+        
+        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
 
@@ -181,16 +181,7 @@ void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
         JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
 
-        BEGIN_LEAVE_SCRIPT(scriptContext)
-        {
-            AutoSetDispatchHaltFlag autoSetDispatchHaltFlag(scriptContext, scriptContext->GetThreadContext());
-#if DBG
-            void *frameAddress = _AddressOfReturnAddress();
-            scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
-#endif
-            this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject);
-        }
-        END_LEAVE_SCRIPT(scriptContext);
+        this->CallDebugEventCallbackForBreak(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
 
@@ -234,17 +225,8 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
         {
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
         });
-
-        BEGIN_LEAVE_SCRIPT(scriptContext)
-        {
-            AutoSetDispatchHaltFlag autoSetDispatchHaltFlag(scriptContext, scriptContext->GetThreadContext());
-#if DBG
-            void *frameAddress = _AddressOfReturnAddress();
-            scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
-#endif
-            this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject);
-        }
-        END_LEAVE_SCRIPT(scriptContext);
+        
+        this->CallDebugEventCallbackForBreak(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
 
@@ -286,17 +268,44 @@ bool JsrtDebug::EnableAsyncBreak(Js::ScriptContext* scriptContext)
     return false;
 }
 
-void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject)
+void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject, Js::ScriptContext* scriptContext)
 {
-    this->callBackDepth++;
-    this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
-    this->callBackDepth--;
-
-    if (this->callBackDepth == 0)
+    auto funcPtr = [&]()
     {
-        this->GetDebuggerObjectsManager()->ClearAll();
+        this->callBackDepth++;
+        this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
+        this->callBackDepth--;
+
+        if (this->callBackDepth == 0)
+        {
+            this->GetDebuggerObjectsManager()->ClearAll();
+        }
+    };
+
+    if (scriptContext->GetThreadContext()->IsScriptActive())
+    {
+        BEGIN_LEAVE_SCRIPT(scriptContext)
+        {
+            funcPtr();
+        }
+        END_LEAVE_SCRIPT(scriptContext);
+    }
+    else
+    {
+        funcPtr();
     }
 }
+
+void JsrtDebug::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject, Js::ScriptContext * scriptContext)
+{
+    AutoSetDispatchHaltFlag autoSetDispatchHaltFlag(scriptContext, scriptContext->GetThreadContext());
+#if DBG
+    void *frameAddress = _AddressOfReturnAddress();
+    scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
+#endif
+    this->CallDebugEventCallback(debugEvent, eventDataObject, scriptContext);
+}
+
 
 Js::DynamicObject * JsrtDebug::GetScript(Js::Utf8SourceInfo * utf8SourceInfo)
 {

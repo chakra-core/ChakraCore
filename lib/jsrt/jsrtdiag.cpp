@@ -290,8 +290,6 @@ JsDiagRemoveBreakpoint(
             return JsErrorWrongThread;
         }
 
-        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
-
         JsrtDebug* debugObject = runtime->GetDebugObject();
 
         VALIDATE_DEBUG_OBJECT(debugObject);
@@ -319,13 +317,11 @@ JsDiagSetBreakOnException(
             return JsErrorWrongThread;
         }
 
-        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
-
         JsrtDebug* debugObject = runtime->GetDebugObject();
 
-        debugObject->SetBreakOnException(exceptionType);
-
         VALIDATE_DEBUG_OBJECT(debugObject);
+
+        debugObject->SetBreakOnException(exceptionType);
 
         return JsNoError;
     });
@@ -350,8 +346,6 @@ JsDiagGetBreakOnException(
             return JsErrorWrongThread;
         }
 
-        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
-
         JsrtDebug* debugObject = runtime->GetDebugObject();
 
         VALIDATE_DEBUG_OBJECT(debugObject);
@@ -370,6 +364,9 @@ JsDiagResume(
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
         JsrtRuntime* runtime = currentContext->GetRuntime();
+
+        VALIDATE_RUNTIME_IS_AT_BREAK(runtime);
+
         JsrtDebug* debugObject = runtime->GetDebugObject();
 
         VALIDATE_DEBUG_OBJECT(debugObject);
