@@ -586,26 +586,6 @@ namespace JsUtil
 
 namespace Js
 {
-    class DefaultListLockPolicy
-    {
-    public:
-        class NoLock
-        {
-        public:
-            template <class SyncObject>
-            NoLock(SyncObject*)
-            {
-                // No lock, do nothing.
-            }
-        };
-
-        typedef AutoCriticalSection DefaultLock;
-
-        typedef NoLock      ReadLock;       // To read/map items. Default to no lock.
-        typedef NoLock      WriteLock;      // To write an item. Default to no lock.
-        typedef DefaultLock AddRemoveLock;  // To add/remove item
-    };
-
     //
     // A simple wrapper on List to synchronize access.
     // Note that this wrapper class only exposes a few methods of List (through "private" inheritance).
@@ -614,7 +594,7 @@ namespace Js
     template <
         class T,                                    // Item type in the list
         class ListType,
-        class LockPolicy = DefaultListLockPolicy,   // Controls lock policy for read/map/write/add/remove items
+        class LockPolicy = DefaultContainerLockPolicy,   // Controls lock policy for read/map/write/add/remove items
         class SyncObject = CriticalSection
     >
     class SynchronizableList sealed: private ListType // Make base class private to lock down exposed methods

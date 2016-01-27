@@ -3,8 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
+#ifdef _WIN32
 #include <psapi.h>
-#include <Wincrypt.h>
+#endif
+#include <wincrypt.h>
 #include <VersionHelpers.h>
 
 // Initialization order
@@ -36,7 +38,7 @@ AutoSystemInfo::Initialize()
     // Make the page size constant so calculation are faster.
     Assert(this->dwPageSize == AutoSystemInfo::PageSize);
 #if defined(_M_IX86) || defined(_M_X64)
-    __cpuid(CPUInfo, 1);
+    get_cpuid(CPUInfo, 1);
     isAtom = CheckForAtom();
 #endif
 #if defined(_M_ARM32_OR_ARM64)
@@ -57,7 +59,7 @@ AutoSystemInfo::Initialize()
     initialized = true;
 #endif
     WCHAR DisableDebugScopeCaptureFlag[MAX_PATH];
-    if (::GetEnvironmentVariable(L"JS_DEBUG_SCOPE", DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
+    if (::GetEnvironmentVariable(CH_WSTR("JS_DEBUG_SCOPE"), DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
     {
         disableDebugScopeCapture = true;
     }
@@ -73,19 +75,20 @@ AutoSystemInfo::Initialize()
     // 0 indicates we haven't retrieved the available commit. We get it lazily.
     this->availableCommit = 0;
 
-    ::ChakraBinaryAutoSystemInfoInit(this);
+    ChakraBinaryAutoSystemInfoInit(this);
 }
 
 
 bool
 AutoSystemInfo::InitPhysicalProcessorCount()
 {
+#ifdef _WIN32
     DWORD size = 0;
     DWORD countPhysicalProcessor = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pBufferCurrent;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pBufferStart;
     BOOL bResult;
-
+#endif // _WIN32
     Assert(!this->initialized);
 
     // Initialize physical processor to number of logical processors.
@@ -93,6 +96,8 @@ AutoSystemInfo::InitPhysicalProcessorCount()
 
     this->dwNumberOfPhyscialProcessors = this->dwNumberOfProcessors;
 
+    // xplat-todo: figure out #physical_cores
+#ifdef _WIN32
     bResult = GetLogicalProcessorInformation(NULL, &size);
 
     if (bResult || GetLastError() != ERROR_INSUFFICIENT_BUFFER || !size)
@@ -132,6 +137,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     NoCheckHeapDeleteArray(count, pBufferStart);
 
     this->dwNumberOfPhyscialProcessors = countPhysicalProcessor;
+#endif // _WIN32
     return true;
 }
 
@@ -209,7 +215,7 @@ AutoSystemInfo::LZCntAvailable() const
 {
     Assert(initialized);
     int CPUInfo[4];
-    __cpuid(CPUInfo, 0x80000001);
+    get_cpuid(CPUInfo, 0x80000001);
 
     return VirtualSseAvailable(4) && (CPUInfo[2] & (1 << 5));
 }
@@ -236,14 +242,14 @@ AutoSystemInfo::CheckForAtom() const
               ATOM_PLATFORM_F = 0x030670; /* tbd - extended model 37, type 0, family code 6 */
     int platformSignature;
 
-    __cpuid(CPUInfo, 0);
+    get_cpuid(CPUInfo, 0);
 
     // See if CPU is ATOM HW. First check if CPU is genuine Intel.
     if( CPUInfo[1]==GENUINE_INTEL_0 &&
         CPUInfo[3]==GENUINE_INTEL_1 &&
         CPUInfo[2]==GENUINE_INTEL_2)
     {
-        __cpuid(CPUInfo, 1);
+        get_cpuid(CPUInfo, 1);
         // get platform signature
         platformSignature = CPUInfo[0];
         if((( PLATFORM_MASK & platformSignature) == ATOM_PLATFORM_A) ||
@@ -366,6 +372,7 @@ HRESULT AutoSystemInfo::GetJscriptFileVersion(DWORD* majorVersion, DWORD* minorV
 //
 HRESULT AutoSystemInfo::GetVersionInfo(__in LPCWSTR pszPath, DWORD* majorVersion, DWORD* minorVersion)
 {
+#ifdef _WIN32
     DWORD   dwTemp;
     DWORD   cbVersionSz;
     HRESULT hr = E_FAIL;
@@ -415,4 +422,10 @@ HRESULT AutoSystemInfo::GetVersionInfo(__in LPCWSTR pszPath, DWORD* majorVersion
         NoCheckHeapDeleteArray(cbVersionSz, pVerBuffer);
     }
     return hr;
+#else // !_WIN32
+    // xplat-todo: how to handle version resource?
+    *majorVersion = INVALID_VERSION;
+    *minorVersion = INVALID_VERSION;
+    return NOERROR;
+#endif
 }

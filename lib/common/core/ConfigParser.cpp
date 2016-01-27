@@ -3,15 +3,17 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
+#ifdef _WIN32
 #include <io.h>
-#include <fcntl.h>
 #include <share.h>
+#endif
+#include <fcntl.h>
 #include <strsafe.h>
-#include "Memory\MemoryLogger.h"
-#include "Memory\ForcedMemoryConstraints.h"
-#include "core\ICustomConfigFlags.h"
-#include "core\CmdParser.h"
-#include "core\ConfigParser.h"
+#include "Memory/MemoryLogger.h"
+#include "Memory/ForcedMemoryConstraints.h"
+#include "core/ICustomConfigFlags.h"
+#include "core/CmdParser.h"
+#include "core/ConfigParser.h"
 
 ConfigParser ConfigParser::s_moduleConfigParser(Js::Configuration::Global.flags);
 
@@ -57,6 +59,8 @@ void ConfigParser::ParseOnModuleLoad(CmdLineArgsParser& parser, HANDLE hmod)
 
 void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 {
+    // xplat-todo: registry?
+#ifdef _WIN32
     HKEY hk;
     bool includeUserHive = true;
 
@@ -81,10 +85,13 @@ void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
         ParseRegistryKey(hk, parser);
         RegCloseKey(hk);
     }
+#endif // _WIN32
 }
 
 void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 {
+    // xplat-todo: registry?
+#ifdef _WIN32
     DWORD dwSize;
     DWORD dwValue;
 
@@ -295,6 +302,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
             Js::Configuration::Global.flags.Asmjs = true;
         }
     }
+#endif // _WIN32
 }
 
 
@@ -464,7 +472,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
     // If present, replace the {PID} token with the process ID
     const WCHAR* pidStr = nullptr;
     WCHAR buffer[_MAX_PATH];
-    if ((pidStr = wcsstr(outputFile, L"{PID}")) != nullptr)
+    if ((pidStr = wcsstr(outputFile, CH_WSTR("{PID}"))) != nullptr)
     {
         size_t pidStartPosition = pidStr - outputFile;
 
@@ -477,7 +485,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         bufferLen = bufferLen - pidStartPosition;
 
         // Copy the PID
-        _ultow_s(GetCurrentProcessId(), pDest, /*bufferSize=*/_MAX_PATH - pidStartPosition, /*radix=*/10);
+        _itow_s(GetCurrentProcessId(), pDest, /*bufferSize=*/_MAX_PATH - pidStartPosition, /*radix=*/10);
 #pragma prefast(suppress: 26014, "ultow string length is smaller than 256")
         pDest += wcslen(pDest);
         bufferLen = bufferLen - wcslen(pDest);
@@ -489,20 +497,23 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         outputFile = buffer;
     }
 
-    wchar_t fileName[_MAX_PATH];
-    wchar_t moduleName[_MAX_PATH];
+    wchar16 fileName[_MAX_PATH];
+    wchar16 moduleName[_MAX_PATH];
     GetModuleFileName(0, moduleName, _MAX_PATH);
     _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-    if (_wcsicmp(fileName, L"WWAHost") == 0 || _wcsicmp(fileName, L"ByteCodeGenerator") == 0 ||
-        _wcsicmp(fileName, L"spartan") == 0 || _wcsicmp(fileName, L"spartan_edge") == 0 ||
-        _wcsicmp(fileName, L"MicrosoftEdge") == 0 || _wcsicmp(fileName, L"MicrosoftEdgeCP") == 0)
+    if (_wcsicmp(fileName, CH_WSTR("WWAHost")) == 0 ||
+        _wcsicmp(fileName, CH_WSTR("ByteCodeGenerator")) == 0 ||
+        _wcsicmp(fileName, CH_WSTR("spartan")) == 0 ||
+        _wcsicmp(fileName, CH_WSTR("spartan_edge")) == 0 ||
+        _wcsicmp(fileName, CH_WSTR("MicrosoftEdge")) == 0 ||
+        _wcsicmp(fileName, CH_WSTR("MicrosoftEdgeCP")) == 0)
     {
 
         // we need to output to %temp% directory in wwa. we don't have permission otherwise.
-        if (GetEnvironmentVariable(L"temp", fileName, _MAX_PATH) != 0)
+        if (GetEnvironmentVariable(CH_WSTR("temp"), fileName, _MAX_PATH) != 0)
         {
-            wcscat_s(fileName, _MAX_PATH, L"\\");
-            const wchar_t * fileNameOnly = wcsrchr(outputFile, L'\\');
+            wcscat_s(fileName, _MAX_PATH, CH_WSTR("\\"));
+            const wchar16* fileNameOnly = wcsrchr(outputFile, CH_WSTR('\\'));
             // if outputFile is full path we just need filename, discard the path
             wcscat_s(fileName, _MAX_PATH, fileNameOnly == nullptr ? outputFile : fileNameOnly);
         }

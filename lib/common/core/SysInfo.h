@@ -60,7 +60,7 @@ public:
 # elif defined(_M_IX86)
     static DWORD const StackAlign = 4;
 # else
-    #  error_missing_target
+    # error missing_target
 # endif
 #endif
 

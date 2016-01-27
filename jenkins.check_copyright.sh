@@ -32,6 +32,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
+    grep -v -E 'pal/.*' |
     xargs -I % sh -c "echo 'Check Copyright > Checking %'; python jenkins.check_copyright.py % > $ERRFILETEMP; if [ \$? -ne 0 ]; then cat $ERRFILETEMP >> $ERRFILE; fi"
 
 if [ -e $ERRFILE ]; then # if error file exists then there were errors

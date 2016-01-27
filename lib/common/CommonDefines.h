@@ -458,7 +458,9 @@
 #endif
 
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
+#ifdef _WIN32
 #define STACK_BACK_TRACE
+#endif
 #endif
 
 #if defined(STACK_BACK_TRACE) || defined(CONTROL_FLOW_GUARD_LOGGER)

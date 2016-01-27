@@ -792,7 +792,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
                 {
-                    if (localEntries[i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -834,7 +834,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (*i = localBuckets[*targetBucket]; *i >= 0; *last = *i, *i = localEntries[*i].next)
                 {
-                    if (localEntries[*i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[*i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -897,7 +897,7 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
                 {
-                    if (localEntries[i].KeyEquals<Comparer<TKey>>(key, hashCode))
+                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
                     {
 #if PROFILE_DICTIONARY
                         if (stats)
@@ -1023,7 +1023,7 @@ namespace JsUtil
 
                 if (!IsFreeEntry(newEntries[i]))
                 {
-                    uint hashCode = newEntries[i].GetHashCode<Comparer<TKey>>();
+                    uint hashCode = newEntries[i].template GetHashCode<Comparer<TKey>>();
                     int bucket = GetBucket(hashCode, newBucketCount);
                     newEntries[i].next = newBuckets[bucket];
                     newBuckets[bucket] = i;
@@ -1142,7 +1142,7 @@ namespace JsUtil
 
     protected:
         template<class TDictionary, class Leaf>
-        class IteratorBase abstract
+        class IteratorBase ABSTRACT
         {
         protected:
             EntryType *const entries;
@@ -1387,11 +1387,11 @@ namespace JsUtil
     {
         typedef BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock> Base;
         typedef Entry<TKey, TElement> EntryType;
-
+        typedef typename Base::AllocatorType AllocatorType;
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 
     public:
-        BaseHashSet(AllocatorType * allocator, int capacity = 0) : BaseDictionary(allocator, capacity) {}
+        BaseHashSet(AllocatorType * allocator, int capacity = 0) : Base(allocator, capacity) {}
 
         using Base::GetAllocator;
 
@@ -1458,17 +1458,17 @@ namespace JsUtil
             return __super::Remove(ValueToKey<TKey, TElement>::ToKey(element));
         }
 
-        EntryIterator<const BaseHashSet> GetIterator() const
+        typename Base::template EntryIterator<const BaseHashSet> GetIterator() const
         {
             return EntryIterator<const BaseHashSet>(*this);
         }
 
-        EntryIterator<BaseHashSet> GetIterator()
+        typename Base::template EntryIterator<BaseHashSet> GetIterator()
         {
             return EntryIterator<BaseHashSet>(*this);
         }
 
-        BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()
+        typename Base::template BucketEntryIterator<BaseHashSet> GetIteratorWithRemovalSupport()
         {
             return BucketEntryIterator<BaseHashSet>(*this);
         }
@@ -1542,26 +1542,8 @@ namespace JsUtil
         {
             __super::UnlockResize();
         }
-    public:
-        using Base::EntryIterator;
-        using Base::BucketEntryIterator;
 
-        friend class Base;
-
-        // The following syntax works in BaseDictionary (where the classes are defined), but not in derived
-        // classes such as BaseHashSet
-        //     template<class TDictionary, class Leaf> friend class IteratorBase;
-        //     template<class TDictionary> friend class EntryIterator;
-        //     template<class TDictionary> friend class BucketEntryIterator;
-        friend class Base::IteratorBase<const BaseHashSet, EntryIterator<const BaseHashSet>>;
-        friend class Base::IteratorBase<const BaseHashSet, BucketEntryIterator<const BaseHashSet>>;
-        friend class Base::IteratorBase<BaseHashSet, EntryIterator<BaseHashSet>>;
-        friend class Base::IteratorBase<BaseHashSet, BucketEntryIterator<BaseHashSet>>;
-        friend class EntryIterator<const BaseHashSet>;
-        friend class EntryIterator<BaseHashSet>;
-        friend class BucketEntryIterator<const BaseHashSet>;
-        friend class BucketEntryIterator<BaseHashSet>;
-
+        friend Base;
         PREVENT_ASSIGN(BaseHashSet);
     };
 
@@ -1572,7 +1554,7 @@ namespace JsUtil
         class SizePolicy = PowerOf2SizePolicy,
         template <typename ValueOrKey> class Comparer = DefaultComparer,
         template <typename K, typename V> class Entry = SimpleDictionaryEntry,
-        class LockPolicy = Js::DefaultListLockPolicy,   // Controls lock policy for read/map/write/add/remove items
+        class LockPolicy = Js::DefaultContainerLockPolicy,   // Controls lock policy for read/map/write/add/remove items
         class SyncObject = CriticalSection
     >
     class SynchronizedDictionary: protected BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>
@@ -1580,10 +1562,12 @@ namespace JsUtil
     private:
         SyncObject* syncObj;
 
+        typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry> Base;
     public:
         typedef TKey KeyType;
         typedef TValue ValueType;
-        typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>::EntryType EntryType;
+        typedef typename Base::AllocatorType AllocatorType;
+        typedef typename Base::EntryType EntryType;
         typedef SynchronizedDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry, LockPolicy, SyncObject> DictionaryType;
     private:
         friend class Js::RemoteDictionary<DictionaryType>;

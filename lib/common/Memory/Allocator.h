@@ -220,7 +220,7 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
 }
 
 template <typename TAllocator, typename T>
-void DeleteObjectInline(typename TAllocator * allocator, T * obj)
+void DeleteObjectInline(TAllocator * allocator, T * obj)
 {
     obj->~T();
     allocator->FreeInline(obj, sizeof(T));

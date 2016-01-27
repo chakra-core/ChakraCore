@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "Memory\PageHeapBlockTypeFilter.h"
+#include "Memory/PageHeapBlockTypeFilter.h"
 
 #include <initguid.h>
 // {17DC713D-8B3E-4434-9DC8-90C275C75194}
@@ -99,7 +99,7 @@ namespace Js
         if(NULL != pszValue)
         {
             size_t size    = 1 + wcslen(pszValue);
-            this->pszValue  = NoCheckHeapNewArray(wchar_t, size);
+            this->pszValue  = NoCheckHeapNewArray(wchar16, size);
             wcscpy_s(this->pszValue, size, pszValue);
         }
         else
@@ -117,22 +117,22 @@ namespace Js
             (n.sourceContextId <= unit.j.sourceContextId)
             )
         {
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-2 == unit.j.functionId) ||  //#.#-#.* case
-                (n.sourceContextId == unit.i.sourceContextId) && (-2 == unit.i.functionId)     //#.*-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -2 == unit.j.functionId) ||  //#.#-#.* case
+                (n.sourceContextId == unit.i.sourceContextId && -2 == unit.i.functionId)     //#.*-#.# case
                 )
             {
                 return true;
             }
 
-            if ((n.sourceContextId == unit.j.sourceContextId) && (-1 == unit.j.functionId) || //#.#-#.+ case
-                (n.sourceContextId == unit.i.sourceContextId) && (-1 == unit.i.functionId)     //#.+-#.# case
+            if ((n.sourceContextId == unit.j.sourceContextId && -1 == unit.j.functionId) || //#.#-#.+ case
+                (n.sourceContextId == unit.i.sourceContextId && -1 == unit.i.functionId)     //#.+-#.# case
                 )
             {
                 return n.functionId != 0;
             }
 
-            if (((n.sourceContextId == unit.i.sourceContextId) && (n.functionId < unit.i.functionId)) || //excludes all values less than functionId LHS
-                ((n.sourceContextId == unit.j.sourceContextId) && (n.functionId > unit.j.functionId))) ////excludes all values greater than functionId RHS
+            if ((n.sourceContextId == unit.i.sourceContextId && n.functionId < unit.i.functionId) || //excludes all values less than functionId LHS
+                (n.sourceContextId == unit.j.sourceContextId && n.functionId > unit.j.functionId)) ////excludes all values greater than functionId RHS
             {
                 return false;
             }
@@ -202,9 +202,9 @@ namespace Js
     // List of names of all the flags
     //
 
-    const wchar_t* const FlagNames[FlagCount + 1] =
+    const wchar16* const FlagNames[FlagCount + 1] =
     {
-    #define FLAG(type, name, ...) L## #name ,
+    #define FLAG(type, name, ...) CH_WSTR(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -215,9 +215,9 @@ namespace Js
     // List of names of all the Phases
     //
 
-    const wchar_t* const PhaseNames[PhaseCount + 1] =
+    const wchar16* const PhaseNames[PhaseCount + 1] =
     {
-    #define PHASE(name) L## #name,
+    #define PHASE(name) CH_WSTR(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef PHASE
@@ -227,9 +227,9 @@ namespace Js
     //
     // Description of flags
     //
-    const wchar_t* const FlagDecriptions[FlagCount + 1] =
+    const wchar16* const FlagDecriptions[FlagCount + 1] =
     {
-    #define FLAG(type, name, description, ...) L##description,
+    #define FLAG(type, name, description, ...) CH_WSTR(description),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -895,26 +895,26 @@ namespace Js
 #define FLAG(type, name, ...) \
         if (IsEnabled(name##Flag)) \
         { \
-            Output::Print(L"-%s", L#name); \
+            Output::Print(CH_WSTR("-%s"), CH_WSTR(#name)); \
             switch (Flag##type) \
             { \
             case FlagBoolean: \
                 if (!*GetAsBoolean(name##Flag)) \
                 { \
-                    Output::Print(L"-"); \
+                    Output::Print(CH_WSTR("-")); \
                 } \
                 break; \
             case FlagString: \
                 if (GetAsString(name##Flag) != nullptr) \
                 { \
-                    Output::Print(L":%s", *GetAsString(name##Flag)); \
+                    Output::Print(CH_WSTR(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
                 } \
                 break; \
             case FlagNumber: \
-                Output::Print(L":%d", *GetAsNumber(name##Flag)); \
+                Output::Print(CH_WSTR(":%d"), *GetAsNumber(name##Flag)); \
                 break; \
             }; \
-            Output::Print(L"\n"); \
+            Output::Print(CH_WSTR("\n")); \
         }
 #include "ConfigFlagsList.h"
 #undef FLAG
@@ -1001,7 +1001,7 @@ namespace Js
         Boolean* settingAsBoolean = this->GetAsBoolean(flag);
         Assert(settingAsBoolean != nullptr);
 
-        Output::VerboseNote(L"FLAG %s = %d\n", FlagNames[(int) flag], value);
+        Output::VerboseNote(CH_WSTR("FLAG %s = %d\n"), FlagNames[(int) flag], value);
         *settingAsBoolean = value;
 
         // check if parent flag
@@ -1017,7 +1017,7 @@ namespace Js
                 // if the parent flag is FALSE, the children flag values are FALSE (always - as disabled)
                 Boolean childValue = value == TRUE ? childDefaultValue : FALSE;
 
-                Output::VerboseNote(L"FLAG %s = %d - setting child flag %s = %d\n", FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(CH_WSTR("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
 
                 // get next child flag

@@ -15,5 +15,9 @@ class BinaryFeatureControl
 {
 public:
     static bool RecyclerTest();
+
+    // This needs to be defined only on Windows since this is related to CFG
+#ifdef _WIN32
     static BOOL GetMitigationPolicyForProcess(__in HANDLE hProcess, __in PROCESS_MITIGATION_POLICY MitigationPolicy, __out_bcount(nLength) PVOID lpBuffer, __in SIZE_T nLength);
+#endif
 };

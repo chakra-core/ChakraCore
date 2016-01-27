@@ -23,6 +23,7 @@ extern "C" {
 #define RtlUlonglongByteSwap(_x) _byteswap_uint64((_x))
 #else
 
+#ifdef _WIN32
 #if (NTDDI_VERSION >= NTDDI_WIN2K)
 NTSYSAPI
 USHORT
@@ -48,6 +49,7 @@ FASTCALL
 RtlUlonglongByteSwap(
     _In_ ULONGLONG Source
     );
+#endif
 #endif
 
 #endif
