@@ -8812,7 +8812,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(roundedFloatBackup);
 
                 IR::Instr* roundInstr =
-                    IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloat, roundedFloat, IR::IntConstOpnd::New(0x01, TyInt32, this->m_func), this->m_func);
+                    IR::Instr::New(src->IsFloat64() ? Js::OpCode::ROUNDSD : Js::OpCode::ROUNDSS, roundedFloatCopy, roundedFloatCopy, IR::IntConstOpnd::New(0x01, TyInt32, this->m_func), this->m_func);
                 instr->InsertBefore(roundInstr);
                 this->m_lowerer->InsertCompareBranch(roundedFloat, roundedFloatCopy, Js::OpCode::BrEq_A, skipRoundSd, instr);
 
@@ -8826,7 +8826,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     Assert(src->IsFloat32());
                     pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
-                IR::Instr * addInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ADDSD : Js::OpCode::ADDSS, roundedFloat, roundedFloatCopy, pointFive, this->m_func);
+                IR::Instr * addInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ADDSD : Js::OpCode::ADDSS, roundedFloat, roundedFloat, pointFive, this->m_func);
                 instr->InsertBefore(addInstr);
                 Legalize(addInstr);
                 instr->InsertBefore(skipAddHalfLabel);
