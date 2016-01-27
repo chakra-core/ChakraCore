@@ -596,15 +596,19 @@ typedef LONG_PTR LPARAM;
 
 #ifdef PAL_STDCPP_COMPAT
 
+#ifdef __APPLE__
+static_assert(sizeof(unsigned long) == sizeof(void*), "This platform is not supported");
+#else
 #ifdef BIT64
 typedef unsigned long int uintptr_t;
 #else // !BIT64
 typedef unsigned int uintptr_t;
 #endif // !BIT64
+#endif
 
 typedef char16_t WCHAR;
 
-#else // PAL_STDCPP_COMPAT
+#else // !PAL_STDCPP_COMPAT
 
 typedef wchar_t WCHAR;
 #if defined(__LINUX__) 
