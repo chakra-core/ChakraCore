@@ -6,7 +6,7 @@ set (SOURCES
   # DaylightTimeHelper.cpp
   Event.cpp
   Int32Math.cpp
-  # Int64Math.cpp
+  Int64Math.cpp
   # Jobs.cpp
   # MathUtil.cpp
   # NumberUtilities.cpp
