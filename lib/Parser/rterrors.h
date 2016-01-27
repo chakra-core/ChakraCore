@@ -21,7 +21,6 @@
 #endif
 
 
-RT_ERROR_MSG(VBSERR_None, 0,    "", "", kjstError, 0)
 //RT_ERROR_MSG(VBSERR_ReturnWOGoSub, 3,    "",   "Return without GoSub")
 RT_ERROR_MSG(VBSERR_IllegalFuncCall, 5,    "", "Invalid procedure call or argument", kjstTypeError, 0)
 RT_ERROR_MSG(VBSERR_Overflow, 6,    "",    "Overflow", kjstRangeError, 0)
@@ -68,7 +67,6 @@ RT_ERROR_MSG(VBSERR_CantCreateTmpFile, 322,    "", "Can't create necessary tempo
 //RT_ERROR_MSG(VBSERR_InvalidPropertyValue, 380,    "",  "Invalid property value")
 //RT_ERROR_MSG(VBSERR_NoSuchControlOrProperty, 423,    "",   "Property or method not found")
 //RT_ERROR_MSG(VBSERR_NotObject, 424,    "", "Object required", kjstTypeError, 0)
-RT_ERROR_MSG(VBSERR_CantCreateObject, 429,    "",  "Automation server can't create object", kjstError, 0)
 RT_ERROR_MSG(VBSERR_OLENotSupported, 430,    "",   "Class doesn't support Automation", kjstError, 0)
 RT_ERROR_MSG(VBSERR_OLEFileNotFound, 432,    "",   "File name or class name not found during Automation operation", kjstError, 0)
 RT_ERROR_MSG(VBSERR_OLENoPropOrMethod, 438,    "Object doesn't support property or method '%s'",    "Object doesn't support this property or method", kjstTypeError, 0)
