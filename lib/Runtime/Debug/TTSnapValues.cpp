@@ -659,6 +659,60 @@ namespace TTD
 
         //////////////////
 
+        Js::JavascriptPromiseCapability* InflatePromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, Js::ScriptContext* ctx, InflateMap* inflator)
+        {
+            AssertMsg(false, "Not implemented yet!!!");
+
+            return nullptr;
+        }
+
+        void EmitPromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, FileWriter* writer, NSTokens::Separator separator)
+        {
+            writer->WriteRecordStart(separator);
+
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->CapabilityId);
+
+            writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+            EmitTTDVar(capabilityInfo->PromiseVar, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->ResolveObjId, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->CapabilityId, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteRecordEnd();
+        }
+
+        void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        {
+            AssertMsg(false, "Not implemented yet!!!");
+        }
+
+        Js::JavascriptPromiseReaction* InflatePromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, Js::ScriptContext* ctx, InflateMap* inflator)
+        {
+            AssertMsg(false, "Not implemented yet!!!");
+
+            return nullptr;
+        }
+
+        void EmitPromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, FileWriter* writer, NSTokens::Separator separator)
+        {
+            writer->WriteRecordStart(separator);
+
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, reactionInfo->PromiseReactionId);
+
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, reactionInfo->HandlerObjId, NSTokens::Separator::CommaSeparator);
+            writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+            EmitPromiseCapabilityInfo(&reactionInfo->Capabilities, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteRecordEnd();
+        }
+
+        void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        {
+            AssertMsg(false, "Not implemented yet!!!");
+        }
+
+        //////////////////
+
         void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source)
         {
             fbInfo->FunctionBodyId = TTD_CONVERT_VAR_TO_PTR_ID(fb);

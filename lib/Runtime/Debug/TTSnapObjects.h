@@ -44,6 +44,9 @@ namespace TTD
             SnapSetObject,
             SnapMapObject,
             SnapProxyObject,
+            SnapPromiseObject,
+            SnapPromiseResolveOrRejectFunctionObject,
+            SnapPromiseReactionTaskFunctionObject,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,
@@ -307,6 +310,63 @@ namespace TTD
         Js::RecyclableObject* DoObjectInflation_SnapHeapArgumentsInfo(const SnapObject* snpObject, InflateMap* inflator);
         void EmitAddtlInfo_SnapHeapArgumentsInfo(const SnapObject* snpObject, FileWriter* writer);
         void ParseAddtlInfo_SnapHeapArgumentsInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        //////////////////
+
+        ////
+        //Promise Info
+        struct SnapPromiseInfo
+        {
+            uint32 Status;
+            TTDVar Result;
+
+            //
+            //We have the reaction info's inline even theought we want to preserve their pointer identity when inflating. 
+            //So we duplicate data here but avoid needed to add more kinds to the mark/extract logic and will check on inflation.
+            //
+
+            uint32 ResolveReactionCount;
+            NSSnapValues::SnapPromiseReactionInfo* ResolveReactions;
+
+            uint32 RejectReactionCount;
+            NSSnapValues::SnapPromiseReactionInfo* RejectReactions;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        ////
+        //PromiseResolveOrRejectFunction Info
+        struct SnapPromiseResolveOrRejectFunctionInfo
+        {
+            TTD_PTR_ID PromiseId;
+            bool IsReject;
+
+            //This has a pointer identity but we duplicate here and check on inflate
+            TTD_PTR_ID AlreadyResolvedWrapperId;
+            bool AlreadyResolvedValue;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+        ////
+        //ReactionTaskFunction Info
+        struct SnapPromiseReactionTaskFunctionInfo
+        {
+            TTDVar Argument;
+
+            TTD::NSSnapValues::SnapPromiseReactionInfo Reaction;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
 
         //////////////////
 

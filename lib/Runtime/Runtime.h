@@ -70,6 +70,10 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_CONVERT_SLOTARRAY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_SCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 
+//Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
+#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_PROMISE_INFO_TO_SPECIFIC_TYPE(T, X) static_cast<T*>(X)
+
 #define TTD_EXTRACT_CTX_LOG_TAG(X) ((X)->ScriptContextLogTag)
 
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))

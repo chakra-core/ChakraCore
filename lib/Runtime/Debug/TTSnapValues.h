@@ -155,6 +155,39 @@ namespace TTD
 
         //////////////////
 
+        //Capability info for a promise
+        struct SnapPromiseCapabilityInfo
+        {
+            //The unique id for the capability entry
+            TTD_PTR_ID CapabilityId;
+
+            TTDVar PromiseVar;
+            TTD_PTR_ID ResolveObjId;
+            TTD_PTR_ID RejectObjId;
+        };
+
+        Js::JavascriptPromiseCapability* InflatePromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, Js::ScriptContext* ctx, InflateMap* inflator);
+
+        void EmitPromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, FileWriter* writer, NSTokens::Separator separator);
+        void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+
+        //A struct to represent a PromiseReaction
+        struct SnapPromiseReactionInfo
+        {
+            //The unique id for PromiseReaction
+            TTD_PTR_ID PromiseReactionId;
+
+            TTD_PTR_ID HandlerObjId;
+            SnapPromiseCapabilityInfo Capabilities;
+        };
+
+        Js::JavascriptPromiseReaction* InflatePromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, Js::ScriptContext* ctx, InflateMap* inflator);
+
+        void EmitPromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, FileWriter* writer, NSTokens::Separator separator);
+        void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+
+        //////////////////
+
         //Information that is common to all top-level bodies
         struct TopLevelCommonBodyResolveInfo
         {

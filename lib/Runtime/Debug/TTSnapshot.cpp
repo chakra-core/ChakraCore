@@ -251,6 +251,10 @@ namespace TTD
 
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapProxyObject] = { &NSSnapObjects::DoObjectInflation_SnapProxyInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapProxyInfo, &NSSnapObjects::ParseAddtlInfo_SnapProxyInfo };
 
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseReactionTaskFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo };
+
         ////
         //For the objects that are always well known
 
