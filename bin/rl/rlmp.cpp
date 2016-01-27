@@ -455,7 +455,7 @@ COutputBuffer::~COutputBuffer()
     _start = _end = NULL;
     _bufSize = 0;
     if (_type == OUT_FILENAME) {
-        delete[] _filename;
+        free(_filename);
         _filename = NULL;
     }
 }
