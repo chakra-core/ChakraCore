@@ -392,4 +392,52 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>promise.js</files>
+      <compile-flags>-TTRecord:!promiseTest -TTSnapInterval:0</compile-flags>
+      <baseline>record.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!promiseTest -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!promiseTest -TTDStartEvent:2 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!promiseTest -TTDStartEvent:4 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!promiseTest -TTDStartEvent:6 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTDebug:!promiseTest -TTDStartEvent:7 -TTDFreeRun</compile-flags>
+      <baseline>replay.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
