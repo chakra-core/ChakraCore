@@ -778,4 +778,11 @@
       <compile-flags>-maic:1 -testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>asmjscctx.js</files>
+      <baseline>asmjscctx.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
