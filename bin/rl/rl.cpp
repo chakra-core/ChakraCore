@@ -2358,7 +2358,7 @@ WriteEnvLst
          }
 
          // how we translate testinfo into env.lst specific stuffs
-         static const char * const TestInfoEnvLstFmt[] =
+         const char * const TestInfoEnvLstFmt[] =
          {
              " TESTFILE=\"%s\"",
              " BASELINE=\"%s\"",
