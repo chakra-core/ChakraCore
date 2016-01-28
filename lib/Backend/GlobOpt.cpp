@@ -4254,17 +4254,8 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
         IR::RegOpnd* opnd = srcDef->AsRegOpnd();
         if (this->OptIsInvariant(opnd, this->currentBlock, loop, this->FindValue(opnd->m_sym), true, true))
         {
-            StackSym* sym = opnd->GetStackSym();
-            if (sym->GetType() != TyVar)
-            {
-                varSym = sym->GetVarEquivSym(instr->m_func);
-            }
-            else
-            {
-                varSym = sym;
-            }
+            varSym = opnd->GetStackSym();
         }
-
     }
 
     BailoutConstantValue constant = {TyIllegal, 0};
@@ -20824,8 +20815,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         const Loop::MemSetCandidate* candidate = data->candidate->AsMemSet();
         if (candidate->varSym)
         {
-            Assert(candidate->varSym->GetType() == TyVar);
-            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->varSym, TyVar, func);
+            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->varSym, candidate->varSym->GetType(), func);
             regSrc->SetIsJITOptimizedReg(true);
             src1 = regSrc;
         }
