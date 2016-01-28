@@ -3,11 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\Int64Math.h"
-#include <intrin.h>
+#include "common/Int64Math.h"
+#include <stdint.h>
 
+#if _WIN32
+#include <intrin.h>
 #if _M_X64
 #pragma intrinsic(_mul128)
+#endif
 #endif
 
 bool
@@ -21,7 +24,8 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
-#if _M_X64
+// TODO: we should use an optimized version of mul128 in !windows too.
+#if defined(_M_X64) && defined(_MSC_VER)
     int64 high;
     *pResult = _mul128(left, right, &high);
     return high != 0;
@@ -52,7 +56,7 @@ Int64Math::Div(int64 left, int64 right, int64 *pResult)
 {
     AssertMsg(right != 0, "Divide by zero...");
 
-    if (right == -1 && left == MININT64)
+    if (right == -1 && left == INT64_MIN)
     {
         //Special check for INT64_MIN/-1
         return true;
@@ -66,7 +70,7 @@ bool
 Int64Math::Mod(int64 left, int64 right, int64 *pResult)
 {
     AssertMsg(right != 0, "Mod by zero...");
-    if (right == -1 && left == MININT64)
+    if (right == -1 && left == INT64_MIN)
     {
         //Special check for INT64_MIN/-1
         return true;
@@ -115,7 +119,7 @@ bool
 Int64Math::Neg(int64 val, int64 *pResult)
 {
     *pResult = -val;
-    return *pResult == MININT64;
+    return *pResult == INT64_MIN;
 }
 
 bool
