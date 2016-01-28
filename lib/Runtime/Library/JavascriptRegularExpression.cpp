@@ -592,6 +592,9 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSearchCount);
+
         PCWSTR const varName = L"RegExp.prototype[Symbol.search]";
 
         if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
