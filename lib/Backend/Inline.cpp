@@ -1980,10 +1980,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         )
     {
         // Emit byteCodeUses for function object
-        IR::Instr * inlineBuilitInStartInstr = inlineBuiltInEndInstr;
-        while(inlineBuilitInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
+        IR::Instr * inlineBuiltInStartInstr = inlineBuiltInEndInstr;
+        while(inlineBuiltInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
         {
-            inlineBuilitInStartInstr = inlineBuilitInStartInstr->m_prev;
+            inlineBuiltInStartInstr = inlineBuiltInStartInstr->m_prev;
         }
 
         IR::Opnd * tmpDst = nullptr;
@@ -2033,7 +2033,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(callInstr->m_func);
         byteCodeUsesInstr->SetByteCodeOffset(callInstr);
         byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(callInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, callInstr->m_func->m_alloc);
-        IR::Instr *argInsertInstr = inlineBuilitInStartInstr;
+        IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
 // SIMD_JS
         IR::Instr *eaInsertInstr = callInstr;

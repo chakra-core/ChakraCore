@@ -340,15 +340,15 @@ var tests = [
             a[4294967294] = 3;
             a[4294967295] = 4;
             var sum = 0;
-            function sumation(element, index, array) {
+            function summation(element, index, array) {
                 sum += element;
             }
 
-            //a.forEach(sumation); // same issue as Map, Filter, Some, & Every
+            //a.forEach(summation); // same issue as Map, Filter, Some, & Every
             //assert.areEqual(6,sum);
             sum = 0;
             var oNeg = { length : -1, [-5] : 2, [-2]: 3 };
-            Array.prototype.forEach.call(oNeg, sumation);
+            Array.prototype.forEach.call(oNeg, summation);
             assert.areEqual(0,sum,"oNeg has length coerced 0, so we never perform a summation");
 
             // Given that is not practical to write tests for arrays with boundary numbers I'm not going to bother with typed Arrays and other objects

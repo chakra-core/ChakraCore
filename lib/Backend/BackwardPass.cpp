@@ -29,7 +29,7 @@ BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
 #if DBG_DUMP
     this->numDeadStore = 0;
     this->numMarkTempNumber = 0;
-    this->numMarkTempNumberTransfered = 0;
+    this->numMarkTempNumberTransferred = 0;
     this->numMarkTempObject = 0;
 #endif
 }
@@ -328,7 +328,7 @@ BackwardPass::Optimize()
         if (this->DoMarkTempNumbers())
         {
             Output::Print(L"  Temp Number           : %3d\n", this->numMarkTempNumber);
-            Output::Print(L"  Transfered Temp Number: %3d\n", this->numMarkTempNumberTransfered);
+            Output::Print(L"  Transfered Temp Number: %3d\n", this->numMarkTempNumberTransferred);
         }
         if (this->DoMarkTempObjects())
         {

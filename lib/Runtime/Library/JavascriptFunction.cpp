@@ -2880,8 +2880,8 @@ LABEL1:
         {
             if (TaggedInt::Is(sourceString))
             {
-                int32 propertIdOfSourceString = TaggedInt::ToInt32(sourceString);
-                *name = scriptContext->GetPropertyString(propertIdOfSourceString);
+                int32 propertyIdOfSourceString = TaggedInt::ToInt32(sourceString);
+                *name = scriptContext->GetPropertyString(propertyIdOfSourceString);
                 return true;
             }
             Assert(JavascriptString::Is(sourceString));

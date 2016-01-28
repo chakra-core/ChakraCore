@@ -1307,23 +1307,23 @@ case_2:
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtenionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
                     auto undefined = scriptContext->GetLibrary()->GetUndefined();
                     CallInfo toPass(callInfo.Flags, 7);
-                    return intlExtenionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
                 }
                 else
                 {
-                    JavascriptFunction* func = intlExtenionObject->GetStringLocaleCompare();
+                    JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
                     }
                     // Initialize String.prototype.toLocaleCompare
                     scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
-                    func = intlExtenionObject->GetStringLocaleCompare();
+                    func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);

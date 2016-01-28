@@ -728,7 +728,7 @@ namespace Js
 #define PHASE_ON1(phase)            (false)
 #define CUSTOM_PHASE_ON1(flags, phase) (false)
 #define PHASE_ON(phase, func)       (false)
-#define PHASE_ON_RAW(phase, sourceId, funcionId) (false)
+#define PHASE_ON_RAW(phase, sourceId, functionId) (false)
 
 #define PHASE_FORCE1(phase)         (false)
 #define CUSTOM_PHASE_FORCE1(flags, phase)         (false)

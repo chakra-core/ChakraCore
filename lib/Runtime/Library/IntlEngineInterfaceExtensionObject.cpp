@@ -606,7 +606,7 @@ namespace Js
         }
 
         AutoCOMPtr<ILanguage> language;
-        AutoCOMPtr<ILanguageExtensionSubtags> extensionSubtatgs;
+        AutoCOMPtr<ILanguageExtensionSubtags> extensionSubtags;
         HRESULT hr;
         if (FAILED(hr = wga->CreateLanguage(scriptContext, JavascriptString::FromVar(args.Values[1])->GetSz(), &language)))
         {
@@ -614,18 +614,18 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        if (FAILED(hr = language->QueryInterface(__uuidof(ILanguageExtensionSubtags), reinterpret_cast<void**>(&extensionSubtatgs))))
+        if (FAILED(hr = language->QueryInterface(__uuidof(ILanguageExtensionSubtags), reinterpret_cast<void**>(&extensionSubtags))))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
         }
-        Assert(extensionSubtatgs);
+        Assert(extensionSubtags);
 
         AutoHSTRING singletonString;
         AutoCOMPtr<Windows::Foundation::Collections::IVectorView<HSTRING>> subtags;
         uint32 length;
 
-        if (FAILED(hr = wgl->WindowsCreateString(L"u", 1, &singletonString)) || FAILED(hr = extensionSubtatgs->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
+        if (FAILED(hr = wgl->WindowsCreateString(L"u", 1, &singletonString)) || FAILED(hr = extensionSubtags->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();

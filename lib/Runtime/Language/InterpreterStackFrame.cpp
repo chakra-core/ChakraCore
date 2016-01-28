@@ -2497,14 +2497,14 @@ namespace Js
             if (!info->IsRuntimeProcessed())
             {
                 // don't reset entrypoint upon relinking
-                FunctionEntryPointInfo* entypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
+                entrypointInfo->SetIsAsmJSFunction(true);
+                entrypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
 
 #if DYNAMIC_INTERPRETER_THUNK
                 if (!PHASE_ON1(AsmJsJITTemplatePhase))
                 {
-                    entypointInfo->address = AsmJsDefaultEntryThunk;
+                    entrypointInfo->address = AsmJsDefaultEntryThunk;
                 }
 #endif
             }

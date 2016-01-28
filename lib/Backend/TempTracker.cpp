@@ -289,7 +289,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
 
     IR::Instr * instr = backwardPass->currentInstr;
     BOOLEAN nonTemp = this->nonTempSyms.TestAndClear(sym->m_id);
-    BOOLEAN isTempTransfered;
+    BOOLEAN isTempTransferred;
     BVSparse<JitArenaAllocator> * bvTempTransferDependencies = nullptr;
 
     bool const isTransferOperation =
@@ -305,16 +305,16 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
         // Check if this dst is transferred (assigned) to another symbol
         if (isTransferOperation)
         {
-            isTempTransfered = this->tempTransferredSyms.Test(sym->m_id);
+            isTempTransferred = this->tempTransferredSyms.Test(sym->m_id);
         }
         else
         {
-            isTempTransfered = this->tempTransferredSyms.TestAndClear(sym->m_id);
+            isTempTransferred = this->tempTransferredSyms.TestAndClear(sym->m_id);
         }
 
         // We only need to look at the dependencies if we are in a loop because of the back edge
         // Also we don't need to if we are in pre pass
-        if (isTempTransfered)
+        if (isTempTransferred)
         {
             if (!backwardPass->IsPrePass())
             {
@@ -343,7 +343,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
     }
     else
     {
-        isTempTransfered = this->tempTransferredSyms.TestAndClear(sym->m_id);
+        isTempTransferred = this->tempTransferredSyms.TestAndClear(sym->m_id);
     }
 
     // Reset the dst is temp bit (we set it optimistically on the loop pre pass)
@@ -388,7 +388,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
     {
         dstIsTemp = true;
 
-        if (isTempTransfered)
+        if (isTempTransferred)
         {
             // Track whether the dst is transferred or not, and allocate separate stack slot for them
             // so that another dst will not overrides the value
@@ -658,7 +658,7 @@ NumberTemp::SetDstIsTemp(bool dstIsTemp, bool dstIsTempTransferred, IR::Instr * 
     if (!backwardPass->IsPrePass() && IsTempProducing(instr))
     {
         backwardPass->numMarkTempNumber += dstIsTemp;
-        backwardPass->numMarkTempNumberTransfered += dstIsTempTransferred;
+        backwardPass->numMarkTempNumberTransferred += dstIsTempTransferred;
     }
 #endif
 }

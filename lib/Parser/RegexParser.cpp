@@ -2042,8 +2042,8 @@ namespace UnifiedRegex
 
         CharSet<codepoint_t> codePointSet;
 
-        MatchSetNode defferedSetNode(false, false);
-        MatchCharNode defferedCharNode(0);
+        MatchSetNode deferredSetNode(false, false);
+        MatchCharNode deferredCharNode(0);
 
         bool isNegation = false;
 
@@ -2081,7 +2081,7 @@ namespace UnifiedRegex
             }
             else if (nextChar == '\\')
             {
-                Node* returnedNode = ClassEscapePass1(&defferedCharNode, &defferedSetNode, previousWasASurrogate);
+                Node* returnedNode = ClassEscapePass1(&deferredCharNode, &deferredSetNode, previousWasASurrogate);
 
                 if (returnedNode->tag == Node::MatchSet)
                 {
@@ -2092,13 +2092,13 @@ namespace UnifiedRegex
                         codePointSet.Set(ctAllocator, '-');
                     }
                     pendingRangeStart = INVALID_CODEPOINT;
-                    codePointSet.UnionInPlace(ctAllocator, defferedSetNode.set);
+                    codePointSet.UnionInPlace(ctAllocator, deferredSetNode.set);
                 }
                 else
                 {
                     // Just a character
                     codePointToSet = pendingCodePoint;
-                    pendingCodePoint = defferedCharNode.cs[0];
+                    pendingCodePoint = deferredCharNode.cs[0];
                 }
             }
             else if (nextChar == '-')
