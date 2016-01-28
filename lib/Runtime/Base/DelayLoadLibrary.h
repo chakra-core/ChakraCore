@@ -166,13 +166,15 @@ namespace Js
         PFNCWDllGetActivationFactory m_pfnFNCWDllGetActivationFactory;
 
         Js::DelayLoadWinRtString *winRTStringLibrary;
-        BOOL winRTStringsPresent;
+        bool winRTStringsPresent;
+        bool hasGlobalizationDllLoaded;
 
     public:
         DelayLoadWindowsGlobalization() : DelayLoadWinRtString(),
             m_pfnFNCWDllGetActivationFactory(nullptr),
             winRTStringLibrary(nullptr),
-            winRTStringsPresent(false) { }
+            winRTStringsPresent(false),
+            hasGlobalizationDllLoaded(false) { }
 
         virtual ~DelayLoadWindowsGlobalization() { }
 
@@ -187,6 +189,7 @@ namespace Js
         void Ensure(Js::DelayLoadWinRtString *winRTStringLibrary);
 
         HRESULT DllGetActivationFactory(__in HSTRING activatibleClassId, __out IActivationFactory** factory);
+        bool HasGlobalizationDllLoaded();
 
         HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;
         HRESULT WindowsCreateStringReference(_In_reads_opt_(length+1) const WCHAR * sourceString, UINT32 length, _Out_ HSTRING_HEADER * header, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;

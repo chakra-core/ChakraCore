@@ -711,18 +711,20 @@ class CThreadInfo
     struct TmpFileList
     {
         TmpFileList* _next;
-        char* _fullPath;
+        char* const _fullPath;
 
         TmpFileList(TmpFileList* next, char* fullPath)
-            : _next(next)
+            : _next(next), _fullPath(_strdup(fullPath))
         {
-            _fullPath = _strdup(fullPath);
         }
 
         ~TmpFileList()
         {
-            delete [] _fullPath;
+            free(_fullPath);
         }
+
+        TmpFileList(const TmpFileList&) = delete;
+        void operator=(const TmpFileList&) = delete;
     };
 
     TmpFileList* _head;

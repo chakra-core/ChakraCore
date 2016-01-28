@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
     
@@ -59,8 +59,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -103,8 +102,7 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -187,10 +185,11 @@ function initF32(buffer) {
     }
     return values.length;
 }
-function printBuffer(Float32Heap, start, end) {
-    for (var i = start; i < end; i += 4) {
+function printBuffer(Float32Heap, start, end, result) {
+    for (var i = start, idx = 0; i < end; i += 4) {
         var f4 = SIMD.Float32x4.load(Float32Heap, i);
-        print(f4.toString());
+        equalSimd(result[idx++], f4, Float32x4.SIMD, "VectorRotate");
+        // print(f4.toString());
     }
 }
 
@@ -200,11 +199,27 @@ var Float32Heap = new Float32Array(buffer);
 
 //Resetting the buffer.
 initF32(buffer);
-
 print("Vector Rotate - Start");
-printBuffer(Float32Heap, 0, 32);
-
+var RESULTS = [SIMD.Float32x4(0.0,10.0,20.0,30.0),
+SIMD.Float32x4(40.0,50.0,60.0,70.0),
+SIMD.Float32x4(80.0,90.0,100.0,110.0),
+SIMD.Float32x4(120.0,130.0,140.0,150.0),
+SIMD.Float32x4(160.0,170.0,180.0,190.0),
+SIMD.Float32x4(200.0,210.0,220.0,230.0),
+SIMD.Float32x4(240.0,250.0,260.0,270.0),
+SIMD.Float32x4(280.0,290.0,300.0,310.0)
+];
+printBuffer(Float32Heap, 0, 32, RESULTS);
 m.rotate(4, 20, 8);
-print();
+var RESULTS = [SIMD.Float32x4(0.0,10.0,20.0,30.0),
+SIMD.Float32x4(120.0,130.0,140.0,150.0),
+SIMD.Float32x4(160.0,170.0,180.0,190.0),
+SIMD.Float32x4(200.0,210.0,220.0,230.0),
+SIMD.Float32x4(40.0,50.0,60.0,70.0),
+SIMD.Float32x4(80.0,90.0,100.0,110.0),
+SIMD.Float32x4(240.0,250.0,260.0,270.0),
+SIMD.Float32x4(280.0,290.0,300.0,310.0)];
 
-printBuffer(Float32Heap, 0, 32);
+printBuffer(Float32Heap, 0, 32, RESULTS);
+
+print("PASS");

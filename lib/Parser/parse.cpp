@@ -2118,7 +2118,9 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         m_pscan->Scan();
 
         // We search an Async expression (a function declaration or a async lambda expression)
-        if (pid == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (pid == wellKnownPropertyPids.async &&
+            !m_pscan->FHadNewLine() &&
+            m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             if (m_token.tk == tkFUNCTION)
             {
@@ -3281,7 +3283,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->ScanForcingPid();
-            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly)
+            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -6218,7 +6220,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkLParen)
+            if (m_token.tk == tkLParen || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -6404,6 +6406,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         }
     }
 
+    if (buildAST)
+    {
+        pnodeClass->ichLim = m_pscan->IchLimTok();
+    }
+
     if (!hasConstructor)
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Generating constructor (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
@@ -6436,6 +6443,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
 
     if (buildAST)
     {
+        pnodeConstructor->sxFnc.cbMin = pnodeClass->ichMin;
+        pnodeConstructor->sxFnc.cbLim = pnodeClass->ichLim;
+        pnodeConstructor->ichMin = pnodeClass->ichMin;
+        pnodeConstructor->ichLim = pnodeClass->ichLim;
+
         PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
 
         pnodeClass->sxClass.pnodeDeclName = pnodeDeclName;
@@ -7535,7 +7547,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 iecpMin = m_pscan->IecpMinTok();
                 m_pscan->Scan();
 
-                if (m_token.tk == tkID || m_token.tk == tkLParen)
+                if ((m_token.tk == tkID || m_token.tk == tkLParen) && !m_pscan->FHadNewLine())
                 {
                     flags |= fFncAsync;
                     isAsyncMethod = true;
@@ -8448,7 +8460,7 @@ LFunctionStatement:
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkFUNCTION)
+            if (m_token.tk == tkFUNCTION && !m_pscan->FHadNewLine())
             {
                 isAsyncMethod = true;
                 goto LFunctionStatement;

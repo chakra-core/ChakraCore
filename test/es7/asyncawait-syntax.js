@@ -128,6 +128,16 @@ var tests = [
             var d = async (a, b) => { };
         }
     },
+    {
+        name: "[no LineTerminator here] after `async` in grammar",
+        body: function () {
+            assert.throws(function () { eval("async\nfunction af() { }"); }, ReferenceError, "AsyncFunctionDeclaration", "'async' is undefined");
+            assert.throws(function () { eval("var af = async\nfunction () { }"); }, SyntaxError, "AsyncFunctionExpression", "Expected identifier");
+            assert.throws(function () { eval("var o = { async\nam() { } };"); }, SyntaxError, "AsyncMethod in object literal", "Expected ':'");
+            assert.throws(function () { eval("class C { async\nam() { } };"); }, SyntaxError, "AsyncMethod in class", "Expected '('");
+            assert.throws(function () { eval("var aaf = async\n(x, y) => { };"); }, SyntaxError, "AsyncArrowFunction", "Syntax error");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

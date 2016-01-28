@@ -128,4 +128,15 @@ namespace Js
     {
         return  *(reinterpret_cast<uint64 *>(&value));
     }
+
+    NUMBER_UTIL_INLINE uint32 NumberUtilities::ToSpecial(float value)
+    {
+        return  *(reinterpret_cast<uint32 *>(&value));
+    }
+
+    NUMBER_UTIL_INLINE bool NumberUtilities::IsFloat32NegZero(float value)
+    {
+        uint32 nCompare = ToSpecial(value);
+        return nCompare == NumberConstants::k_Float32NegZero;
+    }
 }

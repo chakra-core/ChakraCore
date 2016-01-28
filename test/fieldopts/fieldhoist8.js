@@ -25,3 +25,4 @@
     } while (1 && i < 3);
     WScript.Echo("obj0.e = " + (obj0.e | 0));
 })()
+

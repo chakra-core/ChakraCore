@@ -17,12 +17,12 @@ function equal(a, b) {
 function testSwizzle() {
     print("Float32x4 Shuffle");
     var a = SIMD.Float32x4(1.0, 2.0, 3.0, 4.0);
-    var xyxy = SIMD.Float32x4.swizzle(a, 0, 1, 0, 1);
-    var zwzw = SIMD.Float32x4.swizzle(a, 2, 3, 2, 3);
+    var xyxy = SIMD.Float32x4.swizzle(a, false, true, 0, 1);
+    var zwzw = SIMD.Float32x4.swizzle(a, 2, 3, ["2"], 3);
     var xxxx = SIMD.Float32x4.swizzle(a, 0, 0, 0, 0);
-    equal(1.0, SIMD.Float32x4.extractLane(xyxy, 0));
-    equal(2.0, SIMD.Float32x4.extractLane(xyxy, 1));
-    equal(1.0, SIMD.Float32x4.extractLane(xyxy, 2));
+    equal(1.0, SIMD.Float32x4.extractLane(xyxy, false));
+    equal(2.0, SIMD.Float32x4.extractLane(xyxy, true));
+    equal(1.0, SIMD.Float32x4.extractLane(xyxy, ["2"]));
     equal(2.0, SIMD.Float32x4.extractLane(xyxy, 3));
     equal(3.0, SIMD.Float32x4.extractLane(zwzw, 0));
     equal(4.0, SIMD.Float32x4.extractLane(zwzw, 1));

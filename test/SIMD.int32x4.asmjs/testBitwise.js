@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
 var i4 = stdlib.SIMD.Int32x4;
@@ -47,8 +47,8 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+
+
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -81,8 +81,8 @@ var i4 = stdlib.SIMD.Int32x4;
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
+
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -186,12 +186,7 @@ var i4 = stdlib.SIMD.Int32x4;
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
 
-
-print("Func1");
-print(m.func1().toString());
-
-print("Func2");
-print(m.func2().toString());
-
-print("Func3");
-print(m.func3().toString());
+equalSimd([-1, -1, -1, -1], m.func1(), SIMD.Int32x4, "Func1");
+equalSimd([1065348182, -1073738424, -666, -1082098199], m.func2(), SIMD.Int32x4, "Func2");
+equalSimd([38447, 208944, -1077366075, 33303], m.func3(), SIMD.Int32x4, "Func3");
+print("PASS");

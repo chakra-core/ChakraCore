@@ -3,16 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function equal(a, b) {
-    if (a == b) {
-        print("Correct");
-    } else {
-        print(">> Fail!");
-    }
-}
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function testAdd() {
-    print("Int32x4 add");
     var a = SIMD.Int32x4(0xFFFFFFFF, 0xFFFFFFFF, 0x7fffffff, 0x0);
     var b = SIMD.Int32x4(0x1, 0xFFFFFFFF, 0x1, 0xFFFFFFFF);
     var c = SIMD.Int32x4.add(a, b);
@@ -31,7 +24,6 @@ function testAdd() {
 }
 
 function testSub() {
-    print("Int32x4 sub");
     var a = SIMD.Int32x4(0xFFFFFFFF, 0xFFFFFFFF, 0x80000000, 0x0);
     var b = SIMD.Int32x4(0x1, 0xFFFFFFFF, 0x1, 0xFFFFFFFF);
     var c = SIMD.Int32x4.sub(a, b);
@@ -64,3 +56,5 @@ testSub();
 testSub();
 testSub();
 testSub();
+
+print("PASS");

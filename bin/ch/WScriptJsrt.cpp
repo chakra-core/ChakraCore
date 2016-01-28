@@ -478,26 +478,25 @@ bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)
     {
         if (jsErrorCode == JsErrorCode::JsErrorScriptCompile || jsErrorCode == JsErrorCode::JsErrorScriptException)
         {
-            JsPropertyIdRef messagePropertyId = JS_INVALID_REFERENCE;
-            JsValueRef messageProperty = JS_INVALID_REFERENCE;
-
-            JsPropertyIdRef linePropertyId = JS_INVALID_REFERENCE;
-            JsValueRef lineProperty = JS_INVALID_REFERENCE;
-
-            JsPropertyIdRef columnPropertyId = JS_INVALID_REFERENCE;
-            JsValueRef columnProperty = JS_INVALID_REFERENCE;
-
             LPCWSTR errorMessage = nullptr;
             size_t errorMessageLength = 0;
+            
+            JsValueRef errorString = JS_INVALID_REFERENCE;
 
-            IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"message", &messagePropertyId), false);
-            IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, messagePropertyId, &messageProperty), false);
-            IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(messageProperty, &errorMessage, &errorMessageLength), false);
-
+            IfJsrtErrorFail(ChakraRTInterface::JsConvertValueToString(exception, &errorString), false);
+            IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(errorString, &errorMessage, &errorMessageLength), false);
+            
             if (jsErrorCode == JsErrorCode::JsErrorScriptCompile)
             {
+                JsPropertyIdRef linePropertyId = JS_INVALID_REFERENCE;
+                JsValueRef lineProperty = JS_INVALID_REFERENCE;
+
+                JsPropertyIdRef columnPropertyId = JS_INVALID_REFERENCE;
+                JsValueRef columnProperty = JS_INVALID_REFERENCE;
+                
                 int line;
                 int column;
+                
                 IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"line", &linePropertyId), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, linePropertyId, &lineProperty), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(lineProperty, &line), false);
@@ -509,10 +508,11 @@ bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)
                 WCHAR shortFileName[_MAX_PATH];
                 WCHAR ext[_MAX_EXT];
                 _wsplitpath_s(fileName, nullptr, 0, nullptr, 0, shortFileName, _countof(shortFileName), ext, _countof(ext));
-                fwprintf(stderr, L"%ls: %ls\n\tat code (%ls%ls:%d:%d)\n", errorTypeString, errorMessage, shortFileName, ext, (int)line + 1, (int)column + 1);
+                fwprintf(stderr, L"%ls\n\tat code (%ls%ls:%d:%d)\n", errorMessage, shortFileName, ext, (int)line + 1, (int)column + 1);
             }
             else
             {
+                JsValueType propertyType = JsUndefined;
                 JsPropertyIdRef stackPropertyId = JS_INVALID_REFERENCE;
                 JsValueRef stackProperty = JS_INVALID_REFERENCE;
                 LPCWSTR errorStack = nullptr;
@@ -520,9 +520,18 @@ bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)
 
                 IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"stack", &stackPropertyId), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, stackPropertyId, &stackProperty), false);
-                IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(stackProperty, &errorStack, &errorStackLength), false);
 
-                fwprintf(stderr, L"%ls\n", errorStack);
+                IfJsrtErrorFail(ChakraRTInterface::JsGetValueType(stackProperty, &propertyType), false);
+
+                if (propertyType == JsUndefined)
+                {
+                    fwprintf(stderr, L"%ls\n", errorMessage);
+                }
+                else
+                {
+                    IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(stackProperty, &errorStack, &errorStackLength), false);
+                    fwprintf(stderr, L"%ls\n", errorStack);
+                }
             }
         }
         else

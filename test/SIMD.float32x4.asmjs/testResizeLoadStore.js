@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 var m = function(stdlib,imports,buffer){
     "use asm";
     //var F32=stdlib.Int32Array; 
@@ -38,11 +38,11 @@ var o = m(this,{},buf1);
 o.store(SIMD.Float32x4(5.1,6.1,-0.0,0.0),4);
 
 var ret = o.load(4);
-print(ret.toString());
+equalSimd([5.099999904632568, 6.099999904632568, 0, 0], ret, SIMD.Float32x4, "TestResizeLoadStore");
 
 o.store(SIMD.Float32x4(5.1,6.1,7.1,8.1), f32.length-4);
 var ret = o.load(f32.length-4);
-print(ret.toString());
+equalSimd([5.099999904632568, 6.099999904632568, 7.099999904632568, 8.100000381469726], ret, SIMD.Float32x4, "TestResizeLoadStore");
 try {o.store(SIMD.Float32x4(5.1,6.1,7.1,8.1), f32.length);print("Wrong");} catch(err) { print("Correct"); }
 
 var buf2 = new ArrayBuffer(0x2000000);
@@ -50,5 +50,5 @@ print(o.changeHeap(buf2));
 
 o.store(SIMD.Float32x4(5.1,6.1,7.1,8.1), f32.length);
 var ret = o.load(f32.length);
-print(ret.toString());
+equalSimd([5.099999904632568, 6.099999904632568, 7.099999904632568, 8.100000381469726], ret, SIMD.Float32x4, "TestResizeLoadStore");
 o.store(SIMD.Float32x4(5.1,6.1,7.1,8.1), f32.length * 2 - 4);

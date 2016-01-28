@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -481,7 +481,7 @@
       <files>unicode_6_identifiers.js</files>
       <baseline>unicode_6_identifiers.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
+      <tags>exclude_win7,exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -984,7 +984,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>BugFix</tags>
+      <tags>exclude_win7,BugFix</tags>
     </default>
   </test>
   <test>
@@ -1103,13 +1103,13 @@
         <compile-flags>-args summary -endargs</compile-flags>
     </default>
 </test>
-  <test>
+<test>
     <default>
       <files>object_literal_bug.js</files>
       <compile-flags>-ES6Destructuring -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-  </test>
+</test>
   <test>
     <default>
       <files>OS_5403724.js</files>

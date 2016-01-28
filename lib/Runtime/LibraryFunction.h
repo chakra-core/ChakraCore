@@ -75,14 +75,81 @@ LIBRARY_FUNCTION(Function,      Call,               15,   BIF_UseSrc0 | BIF_Igno
 LIBRARY_FUNCTION(GlobalObject,  ParseInt,           1,    BIF_IgnoreDst                                         , GlobalObject::EntryInfo::ParseInt)
 LIBRARY_FUNCTION(RegExp,        Exec,               2,    BIF_UseSrc0 | BIF_IgnoreDst                           , JavascriptRegExp::EntryInfo::Exec)
 LIBRARY_FUNCTION(Math,          Fround,             1,    BIF_TypeSpecUnaryToFloat                              , Math::EntryInfo::Fround)
+LIBRARY_FUNCTION(String,        PadStart,           2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadStart)
+LIBRARY_FUNCTION(String,        PadEnd,             2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadEnd)
 
 // Note: 1st column is currently used only for debug tracing.
 
 // SIMD_JS
 #if ENABLE_NATIVE_CODEGEN
 LIBRARY_FUNCTION(SIMD_Float32x4,    Float32x4,         4, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Float32x4)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Check,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Check)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Splat,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Splat)
+
+LIBRARY_FUNCTION(SIMD_Float32x4,    ExtractLane,       2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::ExtractLane)
+LIBRARY_FUNCTION(SIMD_Float32x4,    ReplaceLane,       3, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::ReplaceLane)
+
+LIBRARY_FUNCTION(SIMD_Float32x4,    FromInt32x4,       1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::FromInt32x4)
+LIBRARY_FUNCTION(SIMD_Float32x4,    FromInt32x4Bits,   1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::FromInt32x4Bits)
+
 LIBRARY_FUNCTION(SIMD_Float32x4,    Add,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Add)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Sub,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Sub)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Mul,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Mul)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Div,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Div)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Min,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Min)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Max,               2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Max)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Abs,               1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Abs)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Neg,               1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Neg)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Sqrt,              1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Sqrt)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Reciprocal,        1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Reciprocal)
+LIBRARY_FUNCTION(SIMD_Float32x4,    ReciprocalSqrt,    1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::ReciprocalSqrt)
+
+LIBRARY_FUNCTION(SIMD_Float32x4,    LessThan,          2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::LessThan)
+LIBRARY_FUNCTION(SIMD_Float32x4,    LessThanOrEqual,   2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::LessThanOrEqual)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Equal,             2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Equal)
+LIBRARY_FUNCTION(SIMD_Float32x4,    NotEqual,          2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::NotEqual)
+LIBRARY_FUNCTION(SIMD_Float32x4,    GreaterThan,       2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::GreaterThan)
+LIBRARY_FUNCTION(SIMD_Float32x4,    GreaterThanOrEqual,2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::GreaterThanOrEqual)
+
+LIBRARY_FUNCTION(SIMD_Float32x4,    Shuffle,           6, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Shuffle)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Swizzle,           5, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Swizzle)
+
+LIBRARY_FUNCTION(SIMD_Float32x4,    Load,              2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Load)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Load1,             2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Load1)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Load2,             2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Load2)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Load3,             2, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Load3)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Store,             3, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Store)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Store1,            3, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Store1)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Store2,            3, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Store2)
+LIBRARY_FUNCTION(SIMD_Float32x4,    Store3,            3, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Store3)
 
 LIBRARY_FUNCTION(SIMD_Int32x4,      Int32x4,           4, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Int32x4)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Check,             1, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Check)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Splat,             1, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Splat)
+LIBRARY_FUNCTION(SIMD_Int32x4,      ExtractLane,       2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::ExtractLane)
+LIBRARY_FUNCTION(SIMD_Int32x4,      ReplaceLane,       3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::ReplaceLane)
+
+LIBRARY_FUNCTION(SIMD_Int32x4,      FromFloat32x4,       1, BIF_IgnoreDst                                               , SIMDInt32x4Lib::EntryInfo::FromFloat32x4)
+LIBRARY_FUNCTION(SIMD_Int32x4,      FromFloat32x4Bits,   1, BIF_IgnoreDst                                               , SIMDInt32x4Lib::EntryInfo::FromFloat32x4Bits)
+
 LIBRARY_FUNCTION(SIMD_Int32x4,      Add,               2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Add)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Sub,               2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Sub)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Mul,               2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Mul)
+LIBRARY_FUNCTION(SIMD_Int32x4,      And,               2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::And)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Or,                2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Or)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Xor,               2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Xor)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Neg,               1, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Neg)
+LIBRARY_FUNCTION(SIMD_Int32x4,      Not,               1, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Not)
+
+LIBRARY_FUNCTION(SIMD_Int32x4,    Shuffle,             6, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Shuffle)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Swizzle,             5, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Swizzle)
+
+LIBRARY_FUNCTION(SIMD_Int32x4,    Load,              2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Load)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Load1,             2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Load1)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Load2,             2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Load2)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Load3,             2, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Load3)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Store,             3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Store1,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store1)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Store2,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store2)
+LIBRARY_FUNCTION(SIMD_Int32x4,    Store3,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store3)
 #endif

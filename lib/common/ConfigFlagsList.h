@@ -1323,6 +1323,11 @@ FLAGNR(Number,  MaxTrackedObjectListCount,  "Restrict recycler tracked object co
 FLAGNR(Boolean, InitializeInterpreterSlotsWithInvalidStackVar, "Enable the initialization of the interpreter local slots with invalid stack vars", false)
 #endif
 
+#if DBG
+FLAGNR(Number, PRNGSeed0, "Override seed0 for Math.Random()", 0)
+FLAGNR(Number, PRNGSeed1, "Override seed1 for Math.Random()", 0)
+#endif
+
 FLAGNR(Boolean, ClearInlineCachesOnCollect, "Clear all inline caches on every garbage collection", false)
 FLAGNR(Number, InlineCacheInvalidationListCompactionThreshold, "Compact inline cache invalidation lists if their utilization falls below this threshold", DEFAULT_CONFIG_InlineCacheInvalidationListCompactionThreshold)
 

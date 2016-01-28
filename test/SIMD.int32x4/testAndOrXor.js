@@ -3,16 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function equal(a, b) {
-    if (a == b) {
-        print("Correct");
-    } else {
-        print(">> Fail!");
-    }
-}
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
+
 
 function testAnd() {
-    print("Int32x4 and");
     var m = SIMD.Int32x4(0xAAAAAAAA, 0xAAAAAAAA, -1431655766, 0xAAAAAAAA);
     var n = SIMD.Int32x4(0x55555555, 0x55555555, 0x55555555, 0x55555555);
     equal(-1431655766, SIMD.Int32x4.extractLane(m, 0));
@@ -39,7 +33,6 @@ function testAnd() {
 }
 
 function testOr() {
-    print("Int32x4 or");
     var m = SIMD.Int32x4(0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA);
     var n = SIMD.Int32x4(0x55555555, 0x55555555, 0x55555555, 0x55555555);
     var o = SIMD.Int32x4.or(m, n);  // or
@@ -89,3 +82,5 @@ testXor();
 testXor();
 testXor();
 testXor();
+
+print("PASS");
