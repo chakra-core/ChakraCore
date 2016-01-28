@@ -8669,11 +8669,16 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //
             // if(round)
             // {
-            //         CMP roundedFloat, 0
-            //         JA $greaterThanZero
-            //         JE $negZeroTest
+            //         CMP roundedFloat, 0.5
+            //         JA $geHalf
+            //     if (shouldCheckNegZero) {
             //         CMP roundedFloat, -0.5
-            //         JGE $bailout
+            //         JL $ltNegHalf
+            //         CMP roundedFloat, 0
+            //         JA $skipAddHalf
+            //         JE $negZeroTest
+            //         J $bailout
+            //     $ltNegHalf:
             //         CMP roundedFloat, NegTwoToFraction
             //         JLE skipRoundSd
             //         J $addHalfToRoundSrc
@@ -8682,10 +8687,11 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //             J $bailout
             //         else
             //             J $skipRoundSd
-            //     $greaterThanZero:
+            //     }
+            //     else
+            //         J $skipAddHalf
             // }
-            //     CMP roundedFloat, 0.5
-            //     JL $skipAddHalf
+            // $geHalf:
             //     CMP roundedFloat, TwoToFraction
             //     JAE skipRoundSd
             // $addHalfToRoundSrc:
@@ -8794,7 +8800,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if(instr->ShouldCheckForNegativeZero())
                 {
-                    IR::LabelInstr* ltNegPointFive = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+                    IR::LabelInstr* ltNegHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
                     IR::LabelInstr* negZeroTest = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/ true);
 
                     IR::Opnd * negPointFive;
@@ -8810,12 +8816,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                         negPointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegPointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                         negTwoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegTwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                     }
-                    this->m_lowerer->InsertCompareBranch(roundedFloat, negPointFive, Js::OpCode::BrLt_A, ltNegPointFive, instr);
+                    this->m_lowerer->InsertCompareBranch(roundedFloat, negPointFive, Js::OpCode::BrLt_A, ltNegHalf, instr);
                     this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGt_A, skipAddHalf, instr);
                     this->m_lowerer->InsertBranch(Js::OpCode::BrEq_A, negZeroTest, instr);
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, bailoutLabel, instr);
 
-                    instr->InsertBefore(ltNegPointFive);
+                    instr->InsertBefore(ltNegHalf);
                     this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrLe_A, skipRoundSd, instr);
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, addHalfToRoundSrcLabel, instr);
 
