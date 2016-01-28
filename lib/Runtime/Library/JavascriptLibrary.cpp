@@ -1254,6 +1254,8 @@ namespace Js
 
         booleanTrue = RecyclerNew(recycler, JavascriptBoolean, true, booleanTypeStatic);
         booleanFalse = RecyclerNew(recycler, JavascriptBoolean, false, booleanTypeStatic);
+
+        isPRNGSeeded = false;
         randSeed0 = 0;
         randSeed1 = 0;
 

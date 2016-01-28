@@ -409,6 +409,7 @@ namespace Js
         JsUtil::List<Type *> *typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain;
 
         uint64 randSeed0, randSeed1;
+        bool isPRNGSeeded;
         bool inProfileMode;
         bool inDispatchProfileMode;
         bool arrayObjectHasUserDefinedSpecies;
@@ -892,8 +893,10 @@ namespace Js
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
+        bool IsPRNGSeeded() { return isPRNGSeeded; }
         uint64 GetRandSeed0() { return randSeed0; }
         uint64 GetRandSeed1() { return randSeed1; }
+        void SetIsPRNGSeeded(bool val) { isPRNGSeeded = val; }
         void SetRandSeed0(uint64 rs) { randSeed0 = rs;}
         void SetRandSeed1(uint64 rs) { randSeed1 = rs; }
 

@@ -10258,90 +10258,95 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
     IR::Opnd* dst = instr->GetDst();
 
 #if defined(_M_X64)
-    static const uint64 mExp = 0x3FF0000000000000;
-    static const uint64 mMant = 0x000FFFFFFFFFFFFF;
-
-    IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, this->m_func);  // s0
-    IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, this->m_func);  // s1
-    IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, this->m_func);  // helper uint64 reg
-    IR::RegOpnd* r4 = IR::RegOpnd::New(TyFloat64, this->m_func); // helper float64 reg
-
-    // ===========================================================
-    // s0 = scriptContext->GetLibrary()->GetRandSeed1();
-    // s1 = scriptContext->GetLibrary()->GetRandSeed0();
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r0,
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
-    this->m_lowererMD.CreateAssign(r1,
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
-
-    // ===========================================================
-    // s1 ^= s1 << 23;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r1, instr);
-    this->InsertShift(Js::OpCode::Shl_A, false, r3, r3, IR::IntConstOpnd::New(23, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // s1 ^= s1 >> 17;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r1, instr);
-    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(17, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // s1 ^= s0;
-    // ===========================================================
-    this->InsertXor(r1, r1, r0, instr);
-
-    // ===========================================================
-    // s1 ^= s0 >> 26;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r0, instr);
-    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(26, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // scriptContext->GetLibrary()->SetRandSeed0(s0);
-    // scriptContext->GetLibrary()->SetRandSeed1(s1);
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, this->m_func), r0, instr);
-    this->m_lowererMD.CreateAssign(
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, this->m_func), r1, instr);
-
-    // ===========================================================
-    // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
-    // ===========================================================
-    this->InsertAdd(false, r1, r1, r0, instr);
-    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
-    this->InsertAnd(r1, r1, r3, instr);
-    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
-    this->InsertOr(r1, r1, r3, instr);
-    this->InsertMoveBitCast(dst, r1, instr);
-
-    // ===================================================================
-    // dst -= 1.0;
-    // ===================================================================
-    this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
-    this->InsertSub(false, dst, dst, r4, instr);
-#else
-    IR::Opnd* tmpdst = dst;
-    if(!dst->IsRegOpnd())
+    if (m_func->GetScriptContext()->GetLibrary()->IsPRNGSeeded())
     {
-        tmpdst = IR::RegOpnd::New(dst->GetType(), instr->m_func);
-    }
+        const uint64 mExp = 0x3FF0000000000000;
+        const uint64 mMant = 0x000FFFFFFFFFFFFF;
 
-    LoadScriptContext(instr);
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, tmpdst, instr->m_func);
-    instr->InsertBefore(helperCallInstr);
-    m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperDirectMath_Random);
+        IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, m_func);  // s0
+        IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, m_func);  // s1
+        IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, m_func);  // helper uint64 reg
+        IR::RegOpnd* r4 = IR::RegOpnd::New(TyFloat64, m_func); // helper float64 reg
 
-    if(tmpdst != dst)
-    {
-        InsertMove(dst, tmpdst, instr);
+        // ===========================================================
+        // s0 = scriptContext->GetLibrary()->GetRandSeed1();
+        // s1 = scriptContext->GetLibrary()->GetRandSeed0();
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r0,
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
+        this->m_lowererMD.CreateAssign(r1,
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
+
+        // ===========================================================
+        // s1 ^= s1 << 23;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r1, instr);
+        this->InsertShift(Js::OpCode::Shl_A, false, r3, r3, IR::IntConstOpnd::New(23, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // s1 ^= s1 >> 17;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r1, instr);
+        this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(17, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // s1 ^= s0;
+        // ===========================================================
+        this->InsertXor(r1, r1, r0, instr);
+
+        // ===========================================================
+        // s1 ^= s0 >> 26;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r0, instr);
+        this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(26, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // scriptContext->GetLibrary()->SetRandSeed0(s0);
+        // scriptContext->GetLibrary()->SetRandSeed1(s1);
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, m_func), r0, instr);
+        this->m_lowererMD.CreateAssign(
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, m_func), r1, instr);
+
+        // ===========================================================
+        // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
+        // ===========================================================
+        this->InsertAdd(false, r1, r1, r0, instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->InsertAnd(r1, r1, r3, instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->InsertOr(r1, r1, r3, instr);
+        this->InsertMoveBitCast(dst, r1, instr);
+
+        // ===================================================================
+        // dst -= 1.0;
+        // ===================================================================
+        this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
+        this->InsertSub(false, dst, dst, r4, instr);
     }
+    else
 #endif
+    {
+        IR::Opnd* tmpdst = dst;
+        if (!dst->IsRegOpnd())
+        {
+            tmpdst = IR::RegOpnd::New(dst->GetType(), instr->m_func);
+        }
+
+        LoadScriptContext(instr);
+        IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, tmpdst, instr->m_func);
+        instr->InsertBefore(helperCallInstr);
+        m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperDirectMath_Random);
+
+        if (tmpdst != dst)
+        {
+            InsertMove(dst, tmpdst, instr);
+        }
+    }
 
     instr->Remove();
     return retInstr;
