@@ -1016,14 +1016,20 @@ LDone:
             }
 
             double x = JavascriptConversion::ToNumber(args[1], scriptContext);
-            if(JavascriptNumber::IsNan(x))
+            if (JavascriptNumber::IsNan(x))
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
-            if(x == 0.0 || !NumberUtilities::IsFinite(x) )
+
+            // x is positive or negative infinity, or an integer, or negative zero
+            if (!NumberUtilities::IsFinite(x) || x == ::floor(x))
             {
-                // 0.0 catches the -0 case...
                 return JavascriptNumber::ToVarNoCheck(x, scriptContext);
+            }
+
+            if (x > 0 && x < 0.5)
+            {
+                return JavascriptNumber::ToVarNoCheck((double)Js::JavascriptNumber::k_Zero, scriptContext);
             }
 
             if(x < 0 && x >= -0.5)
