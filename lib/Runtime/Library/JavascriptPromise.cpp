@@ -1119,6 +1119,25 @@ namespace Js
             TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseObject>(objData, spi, alloc, depOnCount, depOnArray);
         }
     }
+
+    JavascriptPromise* JavascriptPromise::InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    {
+        Recycler* recycler = scriptContext->GetRecycler();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        JavascriptPromise* promise = library->CreatePromise();
+
+        promise->status = (PromiseStatus)status;
+        promise->result = result;
+
+        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->resolveReactions->Copy(&resolveReactions);
+
+        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->rejectReactions->Copy(&rejectReactions);
+
+        return promise;
+    }
 #endif
 
     // NewPromiseCapability as described in ES6.0 (draft 29) Section 25.4.1.6

@@ -815,9 +815,28 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapPromiseInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            const SnapPromiseInfo* promiseInfo = SnapObjectGetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
 
-            return nullptr;
+            Js::Var result = (promiseInfo->Result != nullptr) ? inflator->InflateTTDVar(promiseInfo->Result) : nullptr;
+
+            JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator> resolveReactions(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < promiseInfo->ResolveReactionCount; ++i)
+            {
+                Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(promiseInfo->ResolveReactions + i, ctx, inflator);
+                resolveReactions.Add(reaction);
+            }
+
+            JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator> rejectReactions(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < promiseInfo->RejectReactionCount; ++i)
+            {
+                Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(promiseInfo->RejectReactions + i, ctx, inflator);
+                rejectReactions.Add(reaction);
+            }
+
+            Js::RecyclableObject* res = ctx->GetLibrary()->CreatePromise_TTD(promiseInfo->Status, result, resolveReactions, rejectReactions);
+
+            return res;
         }
 
         void EmitAddtlInfo_SnapPromiseInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -850,7 +869,42 @@ namespace TTD
 
         void ParseAddtlInfo_SnapPromiseInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            SnapPromiseInfo* promiseInfo = alloc.SlabAllocateStruct<SnapPromiseInfo>();
+
+            promiseInfo->Status = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+
+            reader->ReadKey(NSTokens::Key::resultValue, true);
+            promiseInfo->Result = NSSnapValues::ParseTTDVar(false, reader);
+
+            promiseInfo->ResolveReactionCount = reader->ReadLengthValue(true);
+            promiseInfo->ResolveReactions = nullptr;
+            reader->ReadSequenceStart_WDefaultKey(true);
+            if(promiseInfo->ResolveReactionCount != 0)
+            {
+                promiseInfo->ResolveReactions = alloc.SlabAllocateArray<NSSnapValues::SnapPromiseReactionInfo>(promiseInfo->ResolveReactionCount);
+
+                for(uint32 i = 0; i < promiseInfo->ResolveReactionCount; ++i)
+                {
+                    NSSnapValues::ParsePromiseReactionInfo(promiseInfo->ResolveReactions + i, i != 0, reader, alloc);
+                }
+            }
+            reader->ReadSequenceEnd();
+
+            promiseInfo->RejectReactionCount = reader->ReadLengthValue(true);
+            promiseInfo->RejectReactions = nullptr;
+            reader->ReadSequenceStart_WDefaultKey(true);
+            if(promiseInfo->RejectReactionCount != 0)
+            {
+                promiseInfo->RejectReactions = alloc.SlabAllocateArray<NSSnapValues::SnapPromiseReactionInfo>(promiseInfo->RejectReactionCount);
+
+                for(uint32 i = 0; i < promiseInfo->RejectReactionCount; ++i)
+                {
+                    NSSnapValues::ParsePromiseReactionInfo(promiseInfo->RejectReactions + i, i != 0, reader, alloc);
+                }
+            }
+            reader->ReadSequenceEnd();
+
+            SnapObjectSetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(snpObject, promiseInfo);
         }
 
         ////
@@ -858,9 +912,19 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            const SnapPromiseResolveOrRejectFunctionInfo* rrfInfo = SnapObjectGetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
 
-            return nullptr;
+            Js::RecyclableObject* promise = inflator->LookupObject(rrfInfo->PromiseId);
+
+            if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper>(rrfInfo->AlreadyResolvedWrapperId))
+            {
+                Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* wrapper = ctx->GetLibrary()->CreateAlreadyDefinedWrapper_TTD(rrfInfo->AlreadyResolvedValue);
+                inflator->AddInflatedPromiseInfo<Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper>(rrfInfo->AlreadyResolvedWrapperId, wrapper);
+            }
+            Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved = inflator->LookupInflatedPromiseInfo<Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper>(rrfInfo->AlreadyResolvedWrapperId);
+
+            return ctx->GetLibrary()->CreatePromiseResolveOrRejectFunction_TTD(promise, rrfInfo->IsReject, alreadyResolved);
         }
 
         void EmitAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -876,16 +940,28 @@ namespace TTD
 
         void ParseAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            SnapPromiseResolveOrRejectFunctionInfo* rrfInfo = alloc.SlabAllocateStruct<SnapPromiseResolveOrRejectFunctionInfo>();
+
+            rrfInfo->PromiseId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            rrfInfo->IsReject = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+            rrfInfo->AlreadyResolvedWrapperId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            rrfInfo->AlreadyResolvedValue = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+            SnapObjectSetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(snpObject, rrfInfo);
         }
 
         ////
         //ReactionTaskFunction Info
         Js::RecyclableObject* DoObjectInflation_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            const SnapPromiseReactionTaskFunctionInfo* rInfo = SnapObjectGetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
 
-            return nullptr;
+            Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(&rInfo->Reaction, ctx, inflator);
+            Js::Var argument = inflator->InflateTTDVar(rInfo->Argument);
+
+            return ctx->GetLibrary()->CreatePromiseReactionTaskFunction_TTD(reaction, argument);
         }
 
         void EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -896,14 +972,21 @@ namespace TTD
             NSSnapValues::EmitTTDVar(rInfo->Argument, writer, NSTokens::Separator::NoSeparator);
 
             writer->WriteKey(NSTokens::Key::reaction, NSTokens::Separator::CommaSeparator);
-            TTD::NSSnapValues::EmitPromiseReactionInfo(&rInfo->Reaction, writer, NSTokens::Separator::NoSeparator);
+            NSSnapValues::EmitPromiseReactionInfo(&rInfo->Reaction, writer, NSTokens::Separator::NoSeparator);
         }
 
         void ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
         {
-            AssertMsg(false, "Not implemented yet!!!");
-        }
+            SnapPromiseReactionTaskFunctionInfo* rInfo = alloc.SlabAllocateStruct<SnapPromiseReactionTaskFunctionInfo>();
 
+            reader->ReadKey(NSTokens::Key::entry, true);
+            rInfo->Argument = NSSnapValues::ParseTTDVar(false, reader);
+
+            reader->ReadKey(NSTokens::Key::reaction, true);
+            NSSnapValues::ParsePromiseReactionInfo(&rInfo->Reaction, false, reader, alloc);
+
+            SnapObjectSetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(snpObject, rInfo);
+        }
 
         //////////////////
 

@@ -553,6 +553,37 @@ namespace TTD
         this->InsertEventAtHead(eevent);
     }
 
+    ExternalCallEventBeginLogEntry* EventLog::RecordPromiseRegisterBeginEvent(int32 rootDepth, double beginTime)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
+
+        ExternalCallEventBeginLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        eevent->SetFunctionName(L"Register Promise Function");
+#endif
+
+        this->InsertEventAtHead(eevent);
+
+        return eevent;
+    }
+
+    void EventLog::RecordPromiseRegisterEndEvent(int32 rootDepth, Js::Var value)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
+
+        NSLogValue::ArgRetValue* retVal = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_slabAllocator);
+
+        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, retVal);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        eevent->SetFunctionName(L"Register Promise Function");
+#endif
+
+        this->InsertEventAtHead(eevent);
+    }
+
     void EventLog::ReplayExternalCallEvent(Js::ScriptContext* ctx, Js::Var* result)
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");

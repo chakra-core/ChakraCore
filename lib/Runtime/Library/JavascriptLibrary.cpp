@@ -4287,7 +4287,7 @@ namespace Js
     {
         Assert(JavascriptFunction::Is(taskVar));
 
-        if (this->nativeHostPromiseContinuationFunction)
+        if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
             ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
@@ -4295,8 +4295,69 @@ namespace Js
             {
                 threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
             }
-#endif
 
+            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+            {
+                TTD::EventLog* elog = threadContext->TTDLog;
+                Js::Var result = this->GetUndefined();
+
+                if(elog->ShouldPerformDebugAction())
+                {
+                    scriptContext->TTDRootNestingCount++;
+                    BEGIN_LEAVE_SCRIPT(scriptContext)
+                    {
+                        elog->ReplayExternalCallEvent(scriptContext, &result);
+                    }
+                    END_LEAVE_SCRIPT(scriptContext);
+                    scriptContext->TTDRootNestingCount--;
+                }
+
+                if(elog->ShouldPerformRecordAction())
+                {
+                    Js::HiResTimer timer;
+                    double startTime = timer.Now();
+
+                    scriptContext->TTDRootNestingCount++;
+                    TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordPromiseRegisterBeginEvent(scriptContext->TTDRootNestingCount, startTime);
+
+                    BEGIN_LEAVE_SCRIPT(scriptContext);
+                    try
+                    {
+                        this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
+                    }
+                    catch(...)
+                    {
+                        // Hosts are required not to pass exceptions back across the callback boundary. If
+                        // this happens, it is a bug in the host, not something that we are expected to
+                        // handle gracefully.
+                        Js::Throw::FatalInternalError();
+                    }
+                    END_LEAVE_SCRIPT(scriptContext);
+
+                    double endTime = timer.Now();
+                    beginEvent->SetElapsedTime(endTime - startTime);
+
+                    elog->RecordPromiseRegisterEndEvent(scriptContext->TTDRootNestingCount, result);
+                    scriptContext->TTDRootNestingCount--;
+                }
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT(scriptContext);
+                try
+                {
+                    this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
+                }
+                catch(...)
+                {
+                    // Hosts are required not to pass exceptions back across the callback boundary. If
+                    // this happens, it is a bug in the host, not something that we are expected to
+                    // handle gracefully.
+                    Js::Throw::FatalInternalError();
+                }
+                END_LEAVE_SCRIPT(scriptContext);
+            }
+#else
             BEGIN_LEAVE_SCRIPT(scriptContext);
             try
             {
@@ -4310,10 +4371,15 @@ namespace Js
                 Js::Throw::FatalInternalError();
             }
             END_LEAVE_SCRIPT(scriptContext);
+#endif
         }
         else
         {
             JavascriptFunction* hostPromiseContinuationFunction = this->GetHostPromiseContinuationFunction();
+
+#if ENABLE_TTD
+            AssertMsg(false, "Path not implemented in TTD!!!");
+#endif
 
             hostPromiseContinuationFunction->GetEntryPoint()(hostPromiseContinuationFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
                 this->GetUndefined(),
@@ -4540,6 +4606,41 @@ namespace Js
         }
 
         return argsObj;
+    }
+
+    Js::JavascriptPromiseCapability* JavascriptLibrary::CreatePromiseCapability_TTD(Var promise, RecyclableObject* resolve, RecyclableObject* reject)
+    {
+        return JavascriptPromiseCapability::New(promise, resolve, reject, this->scriptContext);
+    }
+
+    Js::JavascriptPromiseReaction* JavascriptLibrary::CreatePromiseReaction_TTD(RecyclableObject* handler, JavascriptPromiseCapability* capabilities)
+    {
+        return JavascriptPromiseReaction::New(capabilities, handler, this->scriptContext);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    {
+        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, result, resolveReactions, rejectReactions);
+    }
+
+    JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* JavascriptLibrary::CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined)
+    {
+        JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
+        alreadyResolvedRecord->alreadyResolved = alreadyDefined;
+
+        return alreadyResolvedRecord;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
+    {
+        AssertMsg(JavascriptPromise::Is(promise), "Not a promise!");
+
+        return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument)
+    {
+        return this->CreatePromiseReactionTaskFunction(JavascriptPromise::EntryReactionTaskFunction, reaction, argument);
     }
 #endif
 

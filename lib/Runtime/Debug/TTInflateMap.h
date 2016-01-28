@@ -24,6 +24,9 @@ namespace TTD
         TTDIdentifierDictionary<TTD_PTR_ID, Js::FrameDisplay*> m_environmentMap;
         TTDIdentifierDictionary<TTD_PTR_ID, Js::Var*> m_slotArrayMap;
 
+        //A dictionary for the Promise related bits (not typesafe and a bit ugly but I prefer it to creating multiple additional collections)
+        JsUtil::BaseDictionary<TTD_PTR_ID, void*, HeapAllocator> m_promiseDataMap;
+
         //A set we use to pin all the inflated objects live during/after inflate process (to avoid accidental collection)
         ReferencePinSet* m_inflatePinSet;
         ReferencePinSet* m_oldInflatePinSet;
@@ -78,6 +81,26 @@ namespace TTD
         JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator>& GetPropertyResetSet();
 
         Js::Var InflateTTDVar(TTDVar var) const;
+
+        ////
+
+        template <typename T>
+        bool IsPromiseInfoDefined(TTD_PTR_ID ptrId) const
+        {
+            return this->m_promiseDataMap.ContainsKey(ptrId);
+        }
+
+        template <typename T>
+        void AddInflatedPromiseInfo(TTD_PTR_ID ptrId, T* data)
+        {
+            this->m_promiseDataMap.AddNew(ptrId, data);
+        }
+
+        template <typename T>
+        T* LookupInflatedPromiseInfo(TTD_PTR_ID ptrId) const
+        {
+            return (T*)this->m_promiseDataMap.LookupWithKey(ptrId, nullptr);
+        }
     };
 }
 

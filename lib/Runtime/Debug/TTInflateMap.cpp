@@ -11,7 +11,7 @@ namespace TTD
     InflateMap::InflateMap()
         : m_typeMap(), m_handlerMap(),
         m_tagToGlobalObjectMap(), m_objectMap(),
-        m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(),
+        m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
         m_inflatePinSet(nullptr), m_oldInflatePinSet(nullptr),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
@@ -42,6 +42,7 @@ namespace TTD
         this->m_functionBodyMap.Initialize(bodyCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
+        this->m_promiseDataMap.Clear();
 
         this->m_inflatePinSet = RecyclerNew(threadContext->GetRecycler(), ReferencePinSet, threadContext->GetRecycler(), objectCount);
         threadContext->GetRecycler()->RootAddRef(this->m_inflatePinSet);
@@ -54,6 +55,7 @@ namespace TTD
         this->m_tagToGlobalObjectMap.Initialize(ctxCount);
         this->m_environmentMap.Initialize(envCount);
         this->m_slotArrayMap.Initialize(slotCount);
+        this->m_promiseDataMap.Clear();
 
         //We re-use these values (and reset things below) so we don't neet to initialize them here
         //m_objectMap
@@ -83,6 +85,7 @@ namespace TTD
         this->m_tagToGlobalObjectMap.Unload();
         this->m_environmentMap.Unload();
         this->m_slotArrayMap.Unload();
+        this->m_promiseDataMap.Clear();
 
         //We re-use these values (and reset things later) so we don't want to unload them here
         //m_objectMap

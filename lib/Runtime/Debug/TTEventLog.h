@@ -236,6 +236,9 @@ namespace TTD
         ExternalCallEventBeginLogEntry* RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime);
         void RecordExternalCallEndEvent(Js::JavascriptFunction* func, int32 rootDepth, Js::Var value);
 
+        ExternalCallEventBeginLogEntry* RecordPromiseRegisterBeginEvent(int32 rootDepth, double beginTime);
+        void RecordPromiseRegisterEndEvent(int32 rootDepth, Js::Var value);
+
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::ScriptContext* ctx, Js::Var* result);
 

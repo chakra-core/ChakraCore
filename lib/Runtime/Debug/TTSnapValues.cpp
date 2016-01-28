@@ -661,9 +661,17 @@ namespace TTD
 
         Js::JavascriptPromiseCapability* InflatePromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, Js::ScriptContext* ctx, InflateMap* inflator)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseCapability>(capabilityInfo->CapabilityId))
+            {
+                Js::Var promise = inflator->InflateTTDVar(capabilityInfo->PromiseVar);
+                Js::RecyclableObject* resolve = inflator->LookupObject(capabilityInfo->ResolveObjId);
+                Js::RecyclableObject* reject = inflator->LookupObject(capabilityInfo->RejectObjId);
 
-            return nullptr;
+                Js::JavascriptPromiseCapability* res = ctx->GetLibrary()->CreatePromiseCapability_TTD(promise, resolve, reject);
+                inflator->AddInflatedPromiseInfo<Js::JavascriptPromiseCapability>(capabilityInfo->CapabilityId, res);
+            }
+
+            return inflator->LookupInflatedPromiseInfo<Js::JavascriptPromiseCapability>(capabilityInfo->CapabilityId);
         }
 
         void EmitPromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, FileWriter* writer, NSTokens::Separator separator)
@@ -676,21 +684,38 @@ namespace TTD
             EmitTTDVar(capabilityInfo->PromiseVar, writer, NSTokens::Separator::NoSeparator);
 
             writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->ResolveObjId, NSTokens::Separator::CommaSeparator);
-            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->CapabilityId, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, capabilityInfo->RejectObjId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteRecordEnd();
         }
 
         void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            reader->ReadRecordStart(readSeperator);
+
+            capabilityInfo->CapabilityId = reader->ReadAddr(NSTokens::Key::ptrIdVal);
+
+            reader->ReadKey(NSTokens::Key::entry, true);
+            capabilityInfo->PromiseVar = ParseTTDVar(false, reader);
+
+            capabilityInfo->ResolveObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            capabilityInfo->RejectObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+
+            reader->ReadRecordEnd();
         }
 
         Js::JavascriptPromiseReaction* InflatePromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, Js::ScriptContext* ctx, InflateMap* inflator)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseReaction>(reactionInfo->PromiseReactionId))
+            {
+                Js::RecyclableObject* handler = inflator->LookupObject(reactionInfo->HandlerObjId);
+                Js::JavascriptPromiseCapability* capabilities = InflatePromiseCapabilityInfo(&reactionInfo->Capabilities, ctx, inflator);
 
-            return nullptr;
+                Js::JavascriptPromiseReaction* res = ctx->GetLibrary()->CreatePromiseReaction_TTD(handler, capabilities);
+                inflator->AddInflatedPromiseInfo<Js::JavascriptPromiseReaction>(reactionInfo->PromiseReactionId, res);
+            }
+
+            return inflator->LookupInflatedPromiseInfo<Js::JavascriptPromiseReaction>(reactionInfo->PromiseReactionId);
         }
 
         void EmitPromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, FileWriter* writer, NSTokens::Separator separator)
@@ -708,7 +733,15 @@ namespace TTD
 
         void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
         {
-            AssertMsg(false, "Not implemented yet!!!");
+            reader->ReadRecordStart(readSeperator);
+
+            reactionInfo->PromiseReactionId = reader->ReadAddr(NSTokens::Key::ptrIdVal);
+
+            reactionInfo->HandlerObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            reader->ReadKey(NSTokens::Key::entry, true);
+            ParsePromiseCapabilityInfo(&reactionInfo->Capabilities, false, reader, alloc);
+
+            reader->ReadRecordEnd();
         }
 
         //////////////////
