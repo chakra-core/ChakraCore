@@ -17,7 +17,7 @@ template <class TBlockType>
 SmallFinalizableHeapBucketBaseT<TBlockType>::~SmallFinalizableHeapBucketBaseT()
 {
     Assert(this->AllocatorsAreEmpty());
-    DeleteHeapBlockList(this->pendingDisposeList);
+    this->DeleteHeapBlockList(this->pendingDisposeList);
     Assert(this->tempPendingDisposeList == nullptr);
 }
 
@@ -121,7 +121,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
     TBlockType * currentDisposeList = pendingDisposeList;
     this->pendingDisposeList = nullptr;
 
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [=](RecyclerSweep& recyclerSweep)
+    BaseT::template SweepBucket<pageheap>(recyclerSweep, [=](RecyclerSweep& recyclerSweep)
     {
 #if DBG
         if (TBlockType::HeapBlockAttributes::IsSmallBlock)
@@ -138,7 +138,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
         }
 #endif
 
-        HeapBucketT<TBlockType>::SweepHeapBlockList<pageheap>(recyclerSweep, currentDisposeList, false);
+        HeapBucketT<TBlockType>::template SweepHeapBlockList<pageheap>(recyclerSweep, currentDisposeList, false);
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
         Assert(this->tempPendingDisposeList == currentDisposeList);
@@ -265,13 +265,15 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::VerifyMark()
 }
 #endif
 
-template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
+namespace Memory
+{
+    template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
 #endif
 
-template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
+    template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
 #endif
-
+}

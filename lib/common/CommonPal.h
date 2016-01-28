@@ -194,5 +194,18 @@ typedef union _SLIST_HEADER {
 
 #endif
 
+PALIMPORT VOID PALAPI InitializeSListHead(IN OUT PSLIST_HEADER ListHead);
+PALIMPORT PSLIST_ENTRY PALAPI InterlockedPushEntrySList(IN OUT PSLIST_HEADER ListHead, IN OUT PSLIST_ENTRY  ListEntry);
+PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER ListHead);
+
+#define WRITE_WATCH_FLAG_RESET 1
 
 #endif // _WIN32
+
+#ifdef _MSC_VER
+// MSVC2015 does not support C++11 semantics for `typename QualifiedName` declarations
+// outside of template code.
+#    define TYPENAME
+#else
+#    define TYPENAME typename
+#endif

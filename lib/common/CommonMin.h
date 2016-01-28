@@ -34,24 +34,24 @@
 #include "core/Output.h"
 
 // === Basic Memory Header Files ===
-namespace Memory {
+namespace Memory
+{
     class ArenaAllocator;
 }
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
-#include "Memory/HeapConstants.h"
 
 // === Data structures Header Files ===
+#include "DataStructures/DefaultContainerLockPolicy.h"
 #include "DataStructures/comparer.h"
 #include "DataStructures/SizePolicy.h"
 #include "DataStructures/BitVector.h"
 #include "DataStructures/SList.h"
 #include "DataStructures/Dlist.h"
 #include "DataStructures/KeyValuePair.h"
-#include "DataStructures/DictionaryEntry.h"
-#include "DataStructures/DefaultContainerLockPolicy.h"
 #include "DataStructures/BaseDictionary.h"
+#include "DataStructures/DictionaryEntry.h"
 
 // === Configurations Header ===
 #include "core/ConfigFlagsTable.h"

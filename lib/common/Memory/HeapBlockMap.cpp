@@ -679,7 +679,7 @@ HeapBlockMap32::RescanHeapBlock(void * dirtyPage, HeapBlock::HeapBlockType block
     Assert(chunk != nullptr);
     char* heapBlockPageAddress = TBlockType::GetBlockStartAddress((char*) dirtyPage);
 
-    typedef TBlockType::HeapBlockAttributes TBlockAttributes;
+    typedef typename TBlockType::HeapBlockAttributes TBlockAttributes;
 
     // We need to check the entire mark bit vector here. It's not sufficient to just check the page's
     // mark bit vector because the object that's dirty on the page could have started on an earlier page
@@ -1067,7 +1067,7 @@ HeapBlockMap32::RescanHeapBlockOnOOM(TBlockType* heapBlock, char* pageAddress, H
         char* pageAddressToScan = blockStartAddress + (i * AutoSystemInfo::PageSize);
 
         if (!SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(heapBlock,
-            pageAddressToScan, blockStartAddress, markBits, HeapInfo::GetObjectSizeForBucketIndex<TBlockType::HeapBlockAttributes>(bucketIndex), bucketIndex, nullptr, recycler))
+            pageAddressToScan, blockStartAddress, markBits, HeapInfo::template GetObjectSizeForBucketIndex<typename TBlockType::HeapBlockAttributes>(bucketIndex), bucketIndex, nullptr, recycler))
         {
             // Failed due to OOM
             ((TBlockType*)heapBlock)->SetNeedOOMRescan(recycler);

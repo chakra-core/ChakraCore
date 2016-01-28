@@ -453,7 +453,7 @@ private:
 
 #define FOREACH_DLISTBASE_ENTRY(T, data, list) \
 { \
-    DListBase<T>::Iterator __iter(list); \
+    TYPENAME DListBase<T>::Iterator __iter(list); \
     while (__iter.Next()) \
     { \
         T& data = __iter.Data();
@@ -463,7 +463,7 @@ private:
 }
 
 #define FOREACH_DLISTBASE_ENTRY_EDITING(T, data, list, iter) \
-    DListBase<T>::EditingIterator iter(list); \
+    TYPENAME DListBase<T>::EditingIterator iter(list); \
     while (iter.Next()) \
     { \
         T& data = iter.Data();

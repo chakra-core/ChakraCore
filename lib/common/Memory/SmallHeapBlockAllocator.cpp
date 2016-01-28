@@ -4,9 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(SmallHeapBlockAllocator)
+namespace Memory
+{
+    EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(SmallHeapBlockAllocator)
 
-template __forceinline char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
+    template __forceinline char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
+}
 
 template <typename TBlockType>
 SmallHeapBlockAllocator<TBlockType>::SmallHeapBlockAllocator() :

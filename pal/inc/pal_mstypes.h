@@ -92,7 +92,11 @@ extern "C" {
 #define __inline        inline
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#define __forceinline   __attribute__((always_inline))
+#elif !defined(_MSC_VER)
 #define __forceinline   inline
+#endif
 
 #endif // !_MSC_VER
 

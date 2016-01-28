@@ -142,6 +142,10 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         ((LargeHeapBlock*)chunk->map[id2])->Mark(candidate, markContext);
         break;
 
+    case HeapBlock::HeapBlockType::BlockTypeCount:
+        AssertMsg(false, "code should be unreachable");
+        break;
+
 #if DBG
     default:
         AssertMsg(false, "what's the new heap block type?");
@@ -303,6 +307,10 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
 
             ((LargeHeapBlock*)chunk->map[GetLevel2Id(realCandidate)])->Mark(realCandidate, markContext);
         }
+        break;
+
+    case HeapBlock::HeapBlockType::BlockTypeCount:
+        AssertMsg(false, "code should be unreachable");
         break;
 
 #if DBG

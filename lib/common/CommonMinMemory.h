@@ -24,6 +24,7 @@ class FinalizableObject;
 #include "DataStructures/ContinuousPageStack.h"
 
 #include "Memory/RecyclerWriteBarrierManager.h"
+#include "Memory/HeapConstants.h"
 #include "Memory/HeapBlock.h"
 #include "Memory/SmallHeapBlockAllocator.h"
 #include "Memory/SmallNormalHeapBlock.h"
