@@ -45,6 +45,56 @@ public:
             objectDisplayWeakRef.Detach();
         }
     }
+
+    template<class PostFunction>
+    static JsErrorCode ProcessHandlesArray(JsrtDebug* debugObject, Js::ScriptContext* scriptContext, JsValueRef handlesArray, PostFunction postFunction)
+    {
+        if (!Js::JavascriptArray::Is(handlesArray))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        Js::JavascriptArray* handles = Js::JavascriptArray::FromVar(handlesArray);
+
+        uint32 length = handles->GetLength();
+        uint32 index = handles->GetNextIndex(Js::JavascriptArray::InvalidIndex);
+
+        for (uint32 i = index; i < length; ++i)
+        {
+            Js::Var item = nullptr;
+            if (handles->GetItem(handles, i, &item, scriptContext))
+            {
+                uint handle = 0;
+                if (Js::JavascriptNumber::Is(item))
+                {
+                    handle = (uint)Js::JavascriptNumber::GetValue(item);
+                }
+                else if (Js::TaggedInt::Is(item))
+                {
+                    handle = Js::TaggedInt::ToUInt32(item);
+                }
+
+                if (handle) // valid handle starts with 1 see DebuggerObjectsManager::GetNextHandle
+                {
+                    DebuggerObjectBase* debuggerObject = nullptr;
+                    if (debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(handle, &debuggerObject))
+                    {
+                        wchar_t propertyName[11]; // 4294967295 - Max 10 characters
+                        ::_ui64tow_s(debuggerObject->GetHandle(), propertyName, sizeof(propertyName) / sizeof(wchar_t), 10);
+
+                        const Js::PropertyRecord* propertyRecord;
+                        scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
+
+                        Assert(propertyRecord != nullptr);
+
+                        postFunction(propertyRecord, debuggerObject);
+                    }
+                }
+            }
+        }
+        return JsNoError;
+    }
+
 protected:
     Js::DynamicObject* GetChildrens(WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, Js::ScriptContext * scriptContext);
 private:

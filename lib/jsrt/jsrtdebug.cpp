@@ -327,7 +327,6 @@ Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
             Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
             if (sourceInfo != nullptr)
             {
-                // ToDo (SaAgarwa): This can allocate memory and can trigger GC, what if some Utf8SourceInfo gets recycle at that time?
                 Js::DynamicObject* sourceObj = this->GetScript(sourceInfo);
                 if (sourceObj != nullptr)
                 {

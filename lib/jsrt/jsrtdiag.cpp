@@ -11,13 +11,13 @@
 #define VALIDATE_DEBUG_OBJECT(obj) \
     if (obj == nullptr) \
     { \
-        return JsErrorNullArgument; /* ToDo (SaAgarwa): Should be JsErrorNotDebugging*/\
+        return JsErrorDiagNotDebugging; \
     }
 
 #define VALIDATE_RUNTIME_IS_AT_BREAK(runtime) \
     if (!runtime->GetThreadContext()->GetDebugManager()->IsAtDispatchHalt()) \
     { \
-        return JsErrorCategoryUsage; /* ToDo (SaAgarwa): Should be JsErrorNotAtBreak*/\
+        return JsErrorDiagNotAtBreak; \
     }
 
 STDAPI_(JsErrorCode) JsDiagStartDebugging(
@@ -49,8 +49,7 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
         }
         else if (runtime->GetDebugObject() != nullptr)
         {
-            // ToDo (SaAgarwa): Should have new error as JsErrorAlreadyDebugging?
-            return JsErrorAlreadyDebuggingContext;
+            return JsErrorDiagAlreadyInDebugMode;
         }
 
         ThreadContextScope scope(threadContext);
@@ -79,7 +78,6 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
                 if (FAILED(scriptContext->OnDebuggerAttached()))
                 {
                     AssertMsg(false, "Failed to start debugging");
-                    // ToDo (SaAgarwa): New different error?
                     return JsErrorFatal; // Inconsistent state, we can't continue from here?
                 }
                 scriptContext->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
@@ -101,8 +99,6 @@ JsDiagGetScripts(
         PARAM_NOT_NULL(scriptsArray);
 
         *scriptsArray = JS_INVALID_REFERENCE;
-
-        // ToDo (SaAgarwa): Add checks for validating like script context close, not debugging etc.
 
         JsrtContext *currentContext = JsrtContext::GetCurrent();
 
@@ -264,11 +260,10 @@ JsDiagSetBreakpoint(
             }
             else
             {
-                // ToDo (SaAgarwa): New error
-                return JsErrorFatal;
+                return JsErrorDiagUnableToPerformAction;
             }
         }
-        return JsNoError;
+        return JsErrorDiagObjectNotFound;
     });
 }
 
@@ -400,42 +395,43 @@ JsDiagGetFunctionPosition(
 
         *funcInfo = JS_INVALID_REFERENCE;
 
-        if (Js::RecyclableObject::Is(value) && Js::ScriptFunction::Is(value))
+        if (!Js::RecyclableObject::Is(value) || !Js::ScriptFunction::Is(value))
         {
-            Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(value);
+            return JsErrorInvalidArgument;
+        }
 
-            Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
-            if (functionBody != nullptr)
+        Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(value);
+
+        Js::FunctionBody* functionBody = jsFunction->GetFunctionBody();
+        if (functionBody != nullptr)
+        {
+            Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+            ULONG lineNumber = functionBody->GetLineNumber();
+            ULONG columnNumber = functionBody->GetColumnNumber();
+            uint startOffset = functionBody->GetStatementStartOffset(0);
+            ULONG stmtStartLineNumber;
+            LONG stmtStartColumnNumber;
+
+            if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber))
             {
-                Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
-                ULONG lineNumber = functionBody->GetLineNumber();
-                ULONG columnNumber = functionBody->GetColumnNumber();
-                uint startOffset = functionBody->GetStatementStartOffset(0);
-                ULONG stmtStartLineNumber;
-                LONG stmtStartColumnNumber;
+                Js::DynamicObject* funcInfoObject = scriptContext->GetLibrary()->CreateObject();
 
-                if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber))
+                if (funcInfoObject != nullptr)
                 {
-                    Js::DynamicObject* funcInfoObject = scriptContext->GetLibrary()->CreateObject();
+                    JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
+                    JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
+                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
+                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
+                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartLine, stmtStartLineNumber, scriptContext);
+                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartColumn, stmtStartColumnNumber, scriptContext);
 
-                    if (funcInfoObject != nullptr)
-                    {
-                        JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
-                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartLine, stmtStartLineNumber, scriptContext);
-                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartColumn, stmtStartColumnNumber, scriptContext);
-
-                        *funcInfo = funcInfoObject;
-                        return JsNoError;
-                    }
+                    *funcInfo = funcInfoObject;
+                    return JsNoError;
                 }
             }
         }
 
-        // ToDo (SaAgarwa): New error
-        return JsErrorFatal;
+        return JsErrorDiagObjectNotFound;
     });
 }
 
@@ -489,8 +485,7 @@ JsDiagGetStackProperties(
         if (!debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(stackFrameHandle, &debuggerObject) ||
             debuggerObject == nullptr || debuggerObject->GetType() != DebuggerObjectType_StackFrame)
         {
-            // ToDo (SaAgarwa): JsErrorDiagInvalidHandle;
-            return JsErrorInvalidArgument;
+            return JsErrorDiagInvalidHandle;
         }
 
         DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;
@@ -522,63 +517,26 @@ JsDiagGetProperties(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        if (!Js::JavascriptArray::Is(handlesArray))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::JavascriptArray* handles = Js::JavascriptArray::FromVar(handlesArray);
-
-        uint32 length = handles->GetLength();
-        uint32 index = handles->GetNextIndex(Js::JavascriptArray::InvalidIndex);
-
         Js::DynamicObject* object = scriptContext->GetLibrary()->CreateObject();
 
-        for (uint32 i = index; i < length; ++i)
+        JsErrorCode error = DebuggerObjectBase::ProcessHandlesArray(debugObject, scriptContext, handlesArray, [&](const Js::PropertyRecord* propertyRecord, DebuggerObjectBase* debuggerObject)
         {
-            Js::Var item = nullptr;
-            if (handles->GetItem(handles, i, &item, scriptContext))
+            if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
             {
-                // ToDo (SaAgarwa): Improve this
-                uint handle = 0;
-                bool valid = false;
-                if (Js::JavascriptNumber::Is(item))
+                Js::DynamicObject* properties = debuggerObject->GetChildrens(scriptContext);
+                if (properties != nullptr)
                 {
-                    handle = (uint)Js::JavascriptNumber::GetValue(item);
-                    valid = true;
-                }
-                else if (Js::TaggedInt::Is(item))
-                {
-                    handle = Js::TaggedInt::ToUInt32(item);
-                    valid = true;
-                }
-
-                if (valid)
-                {
-                    DebuggerObjectBase* debuggerObject = nullptr;
-                    if (debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(handle, &debuggerObject))
-                    {
-                        wchar_t propertyName[11]; // 4294967295 - Max 10 characters
-                        ::_ui64tow_s(handle, propertyName, sizeof(propertyName) / sizeof(wchar_t), 10);
-
-                        const Js::PropertyRecord* propertyRecord;
-                        scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
-                        if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
-                        {
-                            Js::DynamicObject* properties = debuggerObject->GetChildrens(scriptContext);
-                            if (properties != nullptr)
-                            {
-                                JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, properties, scriptContext);
-                            }
-                        }
-                    }
+                    JsrtDebugUtils::AddVarPropertyToObject(object, propertyRecord->GetBuffer(), properties, scriptContext);
                 }
             }
+        });
+
+        if (error == JsNoError)
+        {
+            *propertiesObject = object;
         }
 
-        *propertiesObject = object;
-
-        return JsNoError;
+        return error;
     });
 }
 
@@ -603,74 +561,37 @@ JsDiagLookupHandles(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        if (!Js::JavascriptArray::Is(handlesArray))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::JavascriptArray* handles = Js::JavascriptArray::FromVar(handlesArray);
-
-        uint32 length = handles->GetLength();
-        uint32 index = handles->GetNextIndex(Js::JavascriptArray::InvalidIndex);
-
         Js::DynamicObject* object = scriptContext->GetLibrary()->CreateObject();
 
-        for (uint32 i = index; i < length; ++i)
+        JsErrorCode error = DebuggerObjectBase::ProcessHandlesArray(debugObject, scriptContext, handlesArray, [&](const Js::PropertyRecord* propertyRecord, DebuggerObjectBase* debuggerObject)
         {
-            Js::Var item = nullptr;
-            if (handles->GetItem(handles, i, &item, scriptContext))
+            if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
             {
-                // ToDo (SaAgarwa): Improve this
-                uint handle = 0;
-                bool valid = false;
-                if (Js::JavascriptNumber::Is(item))
+                switch (debuggerObject->GetType())
                 {
-                    handle = (uint)Js::JavascriptNumber::GetValue(item);
-                    valid = true;
+                case DebuggerObjectType_Function:
+                case DebuggerObjectType_Script:
+                case DebuggerObjectType_StackFrame:
+                case DebuggerObjectType_Property:
+                case DebuggerObjectType_Globals:
+                case DebuggerObjectType_Scope:
+                {
+                    JsrtDebugUtils::AddVarPropertyToObject(object, propertyRecord->GetBuffer(), debuggerObject->GetJSONObject(scriptContext), scriptContext);
+                    break;
                 }
-                else if (Js::TaggedInt::Is(item))
-                {
-                    handle = Js::TaggedInt::ToUInt32(item);
-                    valid = true;
-                }
-
-                if (valid)
-                {
-                    DebuggerObjectBase* debuggerObject = nullptr;
-                    if (debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(handle, &debuggerObject))
-                    {
-                        wchar_t propertyName[11]; // 4294967295 - Max 10 characters
-                        ::_ui64tow_s(handle, propertyName, sizeof(propertyName) / sizeof(wchar_t), 10);
-
-                        const Js::PropertyRecord* propertyRecord;
-                        scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
-                        if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
-                        {
-                            switch (debuggerObject->GetType())
-                            {
-                            case DebuggerObjectType_Function:
-                            case DebuggerObjectType_Script:
-                            case DebuggerObjectType_StackFrame:
-                            case DebuggerObjectType_Property:
-                            case DebuggerObjectType_Globals:
-                            case DebuggerObjectType_Scope:
-                            {
-                                JsrtDebugUtils::AddVarPropertyToObject(object, propertyName, debuggerObject->GetJSONObject(scriptContext), scriptContext);
-                                break;
-                            }
-                            default:
-                                AssertMsg(false, "Unhandled DebuggerObjectType");
-                                break;
-                            }
-                        }
-                    }
+                default:
+                    AssertMsg(false, "Unhandled DebuggerObjectType");
+                    break;
                 }
             }
+        });
+
+        if (error == JsNoError)
+        {
+            *valuesObject = object;
         }
 
-        *valuesObject = object;
-
-        return JsNoError;
+        return error;
     });
 }
 
@@ -700,8 +621,7 @@ JsDiagEvaluate(
 
         if (!debugObject->GetDebuggerObjectsManager()->TryGetFrameObjectFromFrameIndex(stackFrameIndex, &debuggerObject))
         {
-            // ToDo (SaAgarwa): JsErrorDiagInvalidHandle;
-            return JsErrorInvalidArgument;
+            return JsErrorDiagInvalidHandle;
         }
 
         DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;

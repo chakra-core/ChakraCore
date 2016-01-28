@@ -268,7 +268,6 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     Js::ScriptContext *frameScriptContext = stackFrame->GetScriptContext();
     this->stackTraceObject = frameScriptContext->GetLibrary()->CreateObject();
 
-    // ToDo (SaAgarwa): Handle functions which don't have body, like built-ins functions
     Js::FunctionBody* functionBody = stackFrame->GetFunction();
     Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
 
