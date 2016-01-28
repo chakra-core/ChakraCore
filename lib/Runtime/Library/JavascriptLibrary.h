@@ -354,6 +354,8 @@ namespace Js
         // Int8x16
         JavascriptFunction* simdInt8x16ToStringFunction;
 
+        JavascriptSymbol* symbolSearch;
+
         UnifiedRegex::RegexPattern * emptyRegexPattern;
 
         mutable CharStringCache charStringCache;
