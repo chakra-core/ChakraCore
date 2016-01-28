@@ -481,7 +481,7 @@
       <files>unicode_6_identifiers.js</files>
       <baseline>unicode_6_identifiers.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
+      <tags>exclude_win7,exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -984,7 +984,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>BugFix</tags>
+      <tags>exclude_win7,BugFix</tags>
     </default>
   </test>
   <test>
