@@ -34,6 +34,13 @@ if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
   set(CLR_CMAKE_PLATFORM_ARCH_AMD64 1)
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL Clang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+  # Color diagnostics for g++ and clang++
+  add_definitions("-fdiagnostics-color=always")
+endif()
+
 if(CLR_CMAKE_PLATFORM_UNIX)
     add_definitions(-DPLATFORM_UNIX=1)
 
