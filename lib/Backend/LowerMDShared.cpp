@@ -8670,7 +8670,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             // if(round)
             // {
             //         CMP roundedFloat, 0.5
-            //         JA $geHalf
+            //         JAE $geHalf
             //     if (shouldCheckNegZero) {
             //         CMP roundedFloat, -0.5
             //         JL $ltNegHalf
