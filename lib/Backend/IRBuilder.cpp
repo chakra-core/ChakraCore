@@ -1113,7 +1113,7 @@ IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
         }
         instr->SetByteCodeOffset(offset);
     }
-    else if (m_lastInstr)
+    else
     {
         instr->SetByteCodeOffset(m_lastInstr->GetByteCodeOffset());
     }

@@ -1811,6 +1811,8 @@ FlowGraph::PeepTypedCm(IR::Instr *instr)
         return nullptr;
     }
 
+    AssertMsg(instrLd || (!instrLd && !instrLd2), "Either instrLd is non-null or both null");
+
     // if we have intermediate Lds, then make sure pattern is:
     //      t1 = CmEq a, b
     //      t2 = Ld_A t1

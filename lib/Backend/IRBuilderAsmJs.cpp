@@ -225,7 +225,7 @@ IRBuilderAsmJs::AddInstr(IR::Instr * instr, uint32 offset)
         }
         instr->SetByteCodeOffset(offset);
     }
-    else if (m_lastInstr)
+    else
     {
         instr->SetByteCodeOffset(m_lastInstr->GetByteCodeOffset());
     }
@@ -1943,7 +1943,7 @@ IRBuilderAsmJs::BuildReg1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     {
     case Js::OpCodeAsmJs::ArgOut_Db:
         symDst = m_func->m_symTable->GetArgSlotSym((uint16)(dstReg+1));
-        if (symDst == nullptr || (uint16)(dstReg + 1) != (dstReg + 1))
+        if ((uint16)(dstReg + 1) != (dstReg + 1))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -1964,7 +1964,7 @@ IRBuilderAsmJs::BuildReg1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::R
     case Js::OpCodeAsmJs::I_ArgOut_Db:
         symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyFloat64);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstReg) != (dstReg))
+        if ((uint16)(dstReg) != (dstReg))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -2008,7 +2008,7 @@ IRBuilderAsmJs::BuildReg1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     {
         StackSym * symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyFloat32);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstReg) != (dstReg))
+        if ((uint16)(dstReg) != (dstReg))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -2053,7 +2053,7 @@ IRBuilderAsmJs::BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegS
     {
     case Js::OpCodeAsmJs::ArgOut_Int:
         symDst = m_func->m_symTable->GetArgSlotSym((uint16)(dstReg + 1));
-        if (symDst == nullptr || (uint16)(dstReg + 1) != (dstReg + 1))
+        if ((uint16)(dstReg + 1) != (dstReg + 1))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -2074,7 +2074,7 @@ IRBuilderAsmJs::BuildReg1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegS
     case Js::OpCodeAsmJs::I_ArgOut_Int:
         symDst = StackSym::NewArgSlotSym((uint16)dstReg, m_func, TyInt32);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstReg) != (dstReg))
+        if ((uint16)(dstReg) != (dstReg))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -3589,7 +3589,7 @@ void IRBuilderAsmJs::BuildReg1Float32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offs
     {
         symDst = StackSym::NewArgSlotSym((uint16)dstRegSlot, m_func, TySimd128F4);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstRegSlot) != (dstRegSlot))
+        if ((uint16)(dstRegSlot) != (dstRegSlot))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -4111,7 +4111,7 @@ void IRBuilderAsmJs::BuildReg1Int32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offset
     {
         symDst = StackSym::NewArgSlotSym((uint16)dstRegSlot, m_func, TySimd128I4);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstRegSlot) != (dstRegSlot))
+        if ((uint16)(dstRegSlot) != (dstRegSlot))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();
@@ -4508,7 +4508,7 @@ void IRBuilderAsmJs::BuildReg1Float64x2_1(Js::OpCodeAsmJs newOpcode, uint32 offs
     {
         symDst = StackSym::NewArgSlotSym((uint16)dstRegSlot, m_func, TySimd128D2);
         symDst->m_allocated = true;
-        if (symDst == nullptr || (uint16)(dstRegSlot) != (dstRegSlot))
+        if ((uint16)(dstRegSlot) != (dstRegSlot))
         {
             AssertMsg(UNREACHED, "Arg count too big...");
             Fatal();

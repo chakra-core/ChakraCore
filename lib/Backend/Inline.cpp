@@ -1178,7 +1178,6 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
 {
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
     Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
@@ -2631,7 +2630,6 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
 
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     // inlinee
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
@@ -3668,7 +3666,6 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
 
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
     Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
