@@ -8669,8 +8669,8 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //
             // if(round)
             // {
-            //         CMP roundedFloat, 0.5
-            //         JAE $geHalf
+            //     CMP roundedFloat, 0.5
+            //     JAE $geHalf
             //     if (shouldCheckNegZero) {
             //         CMP roundedFloat, -0.5
             //         JL $ltNegHalf
@@ -8687,17 +8687,17 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //             J $bailout
             //         else
             //             J $skipRoundSd
-            //     }
             //     $setZero:
-            //         MOV roundedFloat, 0
-            //         J $skipRoundSd
-            // }
+            //     }
+            //     MOV roundedFloat, 0
+            //     J $skipRoundSd
             // $geHalf:
             //     CMP roundedFloat, TwoToFraction
             //     JAE skipRoundSd
             // $addHalfToRoundSrc:
             //     ADDSD roundedFloat, 0.5
             // $skipAddHalf:
+            // }
             //
             // if(isNotCeil)
             // {
