@@ -1640,22 +1640,6 @@ case_2:
         }
     }
 
-    ///----------------------------------------------------------------------------
-    ///
-    /// JavascriptString::EntrySearch
-    ///
-    /// When the search method is called with argument regexp the following steps are taken:
-    ///    1. Call CheckObjectCoercible passing the this value as its argument.
-    ///    2. Let string be the result of calling ToString, giving it the this value as its argument.
-    ///    3. If Type(regexp) is Object and the value of the [[Class]] internal property of regexp is "RegExp", then let rx be regexp;
-    ///    4. Else, let rx be a new RegExp object created as if by the expression new RegExp(regexp) where RegExp is the standard built-in constructor with that name.
-    ///    5. Search the value string from its beginning for an occurrence of the regular expression pattern rx. Let result be a number indicating the offset within string where the pattern matched, or -1 if there was no match. The lastIndex and global properties of regexp are ignored when performing the search. The lastIndex property of regexp is left unchanged.
-    ///    6. Return result.
-    ///    NOTE The search function is intentionally generic; it does not require that its this value be a String object. Therefore, it can be transferred to other kinds of objects for use as a method.
-
-    ///
-    ///----------------------------------------------------------------------------
-
     Var JavascriptString::EntrySearch(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
