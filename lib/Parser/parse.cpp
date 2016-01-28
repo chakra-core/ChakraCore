@@ -7708,7 +7708,7 @@ void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
         {
             return;
         }
-        Assert(this->GetIchLim() >= ichLim);
+        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
     }
 
     this->isAsg = true;
@@ -7830,7 +7830,8 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     BOOL singleDefOnly/* = FALSE*/,
     BOOL allowInit/* = TRUE*/,
     BOOL isTopVarParse/* = TRUE*/,
-    BOOL isFor/* = FALSE*/)
+    BOOL isFor/* = FALSE*/,
+    BOOL* nativeForOk /*= nullptr*/)
 {
     ParseNodePtr pnodeThis = nullptr;
     ParseNodePtr pnodeInit;
@@ -7845,7 +7846,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     {
         if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
         {
-            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk);
+            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk, nativeForOk);
             if (pnodeThis != nullptr)
             {
                 pnodeThis->ichMin = ichMin;
@@ -8512,6 +8513,8 @@ LFunctionStatement:
         fForInOrOfOkay = TRUE;
         fCanAssign = TRUE;
         tok = m_token.tk;
+        BOOL nativeForOkay = TRUE;
+
         switch (tok)
         {
         case tkID:
@@ -8535,8 +8538,9 @@ LFunctionStatement:
                                                                 , /*pfForInOk = */&fForInOrOfOkay
                                                                 , /*singleDefOnly*/FALSE
                                                                 , /*allowInit*/TRUE
-                                                                , /*isTopVarParse*/FALSE
-                                                                , /*isFor*/TRUE);
+                                                                , /*isTopVarParse*/TRUE
+                                                                , /*isFor*/TRUE
+                                                                , &nativeForOkay);
                     break;
                 }
                 m_pscan->SeekTo(parsedLet);
@@ -8562,8 +8566,9 @@ LFunctionStatement:
                                                             , /*pfForInOk = */&fForInOrOfOkay
                                                             , /*singleDefOnly*/FALSE
                                                             , /*allowInit*/TRUE
-                                                            , /*isTopVarParse*/FALSE
-                                                            , /*isFor*/TRUE);
+                                                            , /*isTopVarParse*/TRUE
+                                                            , /*isFor*/TRUE
+                                                            , &nativeForOkay);
             }
             break;
         case tkSColon:
@@ -8598,7 +8603,10 @@ LDefaultTokenFor:
                 {
                     pnodeT = ParseExpr<buildAST>(koplNo, &fCanAssign, /*fAllowIn = */FALSE);
                 }
-                if (fLikelyPattern)
+
+                // We would veryfiy the grammar as destructuring grammar only when  for..in/of case. As in the native for loop case the above ParseExpr call
+                // has already converted them appropriately.
+                if (fLikelyPattern && TokIsForInOrForOf())
                 {
                     m_pscan->SeekTo(exprStart);
                     ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
@@ -8669,6 +8677,11 @@ LDefaultTokenFor:
         }
         else
         {
+            if (!nativeForOkay)
+            {
+                Error(ERRDestructInit);
+            }
+
             ChkCurTok(tkSColon, ERRnoSemic);
             ParseNodePtr pnodeCond = nullptr;
             if (m_token.tk != tkSColon)
@@ -11179,7 +11192,8 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
     bool topLevel/* = true*/,
     DestructuringInitializerContext initializerContext/* = DIC_None*/,
     bool allowIn/* = true*/,
-    BOOL *forInOfOkay/* = nullptr*/)
+    BOOL *forInOfOkay/* = nullptr*/,
+    BOOL *nativeForOkay/* = nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     Assert(IsPossiblePatternStart());
@@ -11192,7 +11206,7 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
         pnode = ParseDestructuredArrayLiteral<buildAST>(declarationType, isDecl, topLevel);
     }
 
-    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay);
+    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay, nativeForOkay);
 }
 
 template <bool buildAST>
@@ -11201,10 +11215,11 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
     bool topLevel,
     DestructuringInitializerContext initializerContext,
     bool allowIn,
-    BOOL *forInOfOkay)
+    BOOL *forInOfOkay,
+    BOOL *nativeForOkay)
 {
     m_pscan->Scan();
-    if (topLevel)
+    if (topLevel && nativeForOkay == nullptr)
     {
         if (initializerContext != DIC_ForceErrorOnInitializer && m_token.tk != tkAsg)
         {
@@ -11220,6 +11235,12 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
 
     if (m_token.tk != tkAsg || initializerContext == DIC_ShouldNotParseInitializer)
     {
+        if (topLevel && nativeForOkay != nullptr)
+        {
+            // Native loop should have destructuring initializer
+            *nativeForOkay = FALSE;
+        }
+
         return lhsNode;
     }
 
