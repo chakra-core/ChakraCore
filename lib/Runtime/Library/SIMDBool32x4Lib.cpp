@@ -6,6 +6,7 @@
 
 // SIMD_JS
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     Var SIMDBool32x4Lib::EntryBool32x4(RecyclableObject* function, CallInfo callInfo, ...)
@@ -272,3 +273,4 @@ namespace Js
     }
 
 }
+#endif

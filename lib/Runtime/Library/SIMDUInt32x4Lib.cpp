@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
 
@@ -989,3 +990,4 @@ namespace Js
     }
 
 }
+#endif

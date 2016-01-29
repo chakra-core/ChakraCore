@@ -6,6 +6,7 @@
 
 // SIMD_JS
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     Var SIMDBool16x8Lib::EntryBool16x8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -282,3 +283,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"xor");
     }
 }
+#endif

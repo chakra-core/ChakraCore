@@ -5,6 +5,7 @@
 
 #include "RuntimeLibraryPch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     Var SIMDUint8x16Lib::EntryUint8x16(RecyclableObject* function, CallInfo callInfo, ...)
@@ -920,3 +921,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"select");
     }
 }
+#endif

@@ -6,6 +6,7 @@
 
 // SIMD_JS
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     Var SIMDBool8x16Lib::EntryBool8x16(RecyclableObject* function, CallInfo callInfo, ...)
@@ -279,3 +280,4 @@ namespace Js
     }
 
 }
+#endif

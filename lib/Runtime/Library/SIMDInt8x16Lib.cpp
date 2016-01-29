@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
 
@@ -942,3 +943,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"ReplaceLane");
     }
 }
+#endif

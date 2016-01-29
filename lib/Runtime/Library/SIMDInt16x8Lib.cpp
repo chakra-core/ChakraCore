@@ -5,6 +5,7 @@
 
 #include "RuntimeLibraryPch.h"
 
+#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
 
@@ -940,4 +941,4 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"select");
     }
 }
-
+#endif
