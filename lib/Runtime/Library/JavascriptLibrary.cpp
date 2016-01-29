@@ -1351,6 +1351,7 @@ namespace Js
             DeferredTypeHandler<InitializeMathObject>::GetDefaultInstance()));
         AddMember(globalObject, PropertyIds::Math, mathObject);
 
+#if ENABLE_NATIVE_CODEGEN
         // SIMD_JS
         // we declare global objects and lib functions only if SSE2 is available. Else, we use the polyfill.
         if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
@@ -1377,6 +1378,7 @@ namespace Js
             simdUint16x8ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint16x8::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdUint8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
+#endif
 
         debugObject = nullptr;
 
