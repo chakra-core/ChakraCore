@@ -1668,6 +1668,13 @@ namespace Js
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
 
+            // ToDo (SaAgarwa): HACK - Needs to be removed
+            if (sourceContextInfo->url != nullptr && _wcsicmp(sourceContextInfo->url, L"chakra_debug.js") == 0)
+            {
+                grfscr |= fscrIsLibraryCode;
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             ParseNodePtr parseTree;
             hr = parser.ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
