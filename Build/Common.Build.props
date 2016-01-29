@@ -82,7 +82,7 @@
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'=='StaticLibrary'">$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
 
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">
         %(PreprocessorDefinitions);
         BYTECODE_TESTING=1
@@ -114,7 +114,7 @@
       <AdditionalOptions>%(AdditionalOptions) /release</AdditionalOptions>
       <!-- Ignore Linker warning: This object file does not define any previously undefined public symbols -->
       <AdditionalOptions>%(AdditionalOptions) /ignore:4221</AdditionalOptions>
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
     <Lib>

@@ -5233,8 +5233,8 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     const uint16 upperBoundValue = 8;
     // Generate fast path only if it meets all the conditions:
     // 1. It is the only parameter
-    // 2a. If 1st paramter is a variable, emit fast path with checks
-    // 2b. If 1st paramter is a constant, it is in range 0 and upperBoundValue (inclusive)
+    // 2a. If 1st parameter is a variable, emit fast path with checks
+    // 2b. If 1st parameter is a constant, it is in range 0 and upperBoundValue (inclusive)
     if (opndOfArrayCtor->IsAddrOpnd() || opndOfArrayCtor->IsRegOpnd()) // #1
 
     {
@@ -5244,7 +5244,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
             linkOpnd = argInstr->GetSrc2();
 
             bool emittedFastPath = true;
-            // 2a. If 1st paramter is a variable, emit fast path with checks
+            // 2a. If 1st parameter is a variable, emit fast path with checks
             if (opndOfArrayCtor->IsRegOpnd())
             {
                 // 3. GenerateFastPath
@@ -5265,7 +5265,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                     GenerateProfiledNewScObjArrayFastPath<Js::JavascriptArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor, 0, 0);
                 }
             }
-            // 2b. If 1st paramter is a constant, it is in range 0 and upperBoundValue (inclusive)
+            // 2b. If 1st parameter is a constant, it is in range 0 and upperBoundValue (inclusive)
             else
             {
                 int32 length = linkSym->GetIntConstValue();

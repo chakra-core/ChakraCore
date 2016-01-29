@@ -671,7 +671,7 @@ namespace Js
         }
         else
         {
-            // ES2017 Spec'ed (9.1.9.1): 
+            // ES2017 Spec'd (9.1.9.1): 
             // If existingDescriptor is not undefined, then
             //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
             //    If existingDescriptor.[[Writable]] is false, return false.

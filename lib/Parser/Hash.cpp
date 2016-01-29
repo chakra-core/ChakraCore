@@ -34,7 +34,7 @@ HashTbl * HashTbl::Create(uint cidHash)
         return nullptr;
     if (!phtbl->Init(cidHash))
     {
-        delete phtbl;  // invokes overrided operator delete
+        delete phtbl;  // invokes overridden operator delete
         return nullptr;
     }
 

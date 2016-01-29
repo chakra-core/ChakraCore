@@ -8076,7 +8076,7 @@ Case0:
             return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
         }
 #else
-        // xplat-todo: Support locale-specific seperator
+        // xplat-todo: Support locale-specific separator
         return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
 #endif
     }

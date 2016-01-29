@@ -334,7 +334,7 @@ public:
 
     void Release(void)
     {
-        delete this;  // invokes overrided operator delete
+        delete this;  // invokes overridden operator delete
     }
 
 

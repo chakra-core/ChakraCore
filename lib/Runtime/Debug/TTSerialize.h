@@ -24,7 +24,7 @@ namespace TTD
 {
     namespace NSTokens
     {
-        //Seperator tokens for records
+        //Separator tokens for records
         enum class Separator : byte
         {
             NoSeparator = 0x0,
