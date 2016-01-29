@@ -5364,12 +5364,12 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         {
                             // When only validating formals, we won't have a function node.
                             pnodeFnc->sxFnc.pnodeRest = pnodeT;
-                        }
-                        if (!isNonSimpleParameterList)
-                        {
-                            // This is the first non-simple parameter we've seen. We need to go back
-                            // and set the Symbols of all previous parameters.
-                            MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            if (!isNonSimpleParameterList)
+                            {
+                                // This is the first non-simple parameter we've seen. We need to go back
+                                // and set the Symbols of all previous parameters.
+                                MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            }
                         }
                     }
 
@@ -5430,9 +5430,12 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
                         if (!isNonSimpleParameterList)
                         {
-                            // This is the first non-simple parameter we've seen. We need to go back
-                            // and set the Symbols of all previous parameters.
-                            MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            if (buildAST)
+                            {
+                                // This is the first non-simple parameter we've seen. We need to go back
+                                // and set the Symbols of all previous parameters.
+                                MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            }
 
                             // There may be previous parameters that need to be checked for duplicates.
                             isNonSimpleParameterList = true;

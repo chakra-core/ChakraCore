@@ -24,7 +24,10 @@ var tests = [
       assert.throws(function () { eval("for (let a = 1, []; ;) { }"); }, SyntaxError, "Native for loop's head has second param as destructuring pattern without initializer", "Destructuring declarations must have an initializer");
       assert.throws(function () { eval("for (let [] = [], a = 1, {}; ;) { }"); }, SyntaxError, "Native for loop's head has third param as object destructuring pattern without initializer", "Destructuring declarations must have an initializer");
       assert.throws(function () { eval("for (let [[a] = []]; ;) { }"); }, SyntaxError, "Native for loop's head as destructuring pattern without initializer", "Destructuring declarations must have an initializer");
-      assert.doesNotThrow(function () { eval("for ([]; ;) { break; }"); }, SyntaxError, "Native for loop's head is an expression without initializer is valid syntax");
+      assert.doesNotThrow(function () { eval("for ([]; ;) { break; }"); }, "Native for loop's head is an expression without initializer is valid syntax");
+      assert.doesNotThrow(function () { eval("try { y; } catch({}) { }"); }, "Catching exception to empty pattern should not assert and is a valid syntax");
+      assert.doesNotThrow(function () { eval("for({} = function (...a) { } in '' ) { }"); }, "Having a function with rest parameter as initializer should not assert and is a valid syntax");
+      assert.doesNotThrow(function () { eval("for([] = ((...a) => {}) in '' ) { }"); }, "Having a lambda function with rest parameter as initializer should not assert and is a valid syntax");
     }
   },
   {
