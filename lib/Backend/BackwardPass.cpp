@@ -323,16 +323,16 @@ BackwardPass::Optimize()
         Output::Print(this->tag == Js::BackwardPhase? L"Backward Phase Stats:\n" : L"Deadstore Phase Stats:\n");
         if (this->DoDeadStore())
         {
-            Output::Print(L"  Deadstore             : %3d\n", this->numDeadStore);
+            Output::Print(L"  Deadstore              : %3d\n", this->numDeadStore);
         }
         if (this->DoMarkTempNumbers())
         {
-            Output::Print(L"  Temp Number           : %3d\n", this->numMarkTempNumber);
-            Output::Print(L"  Transfered Temp Number: %3d\n", this->numMarkTempNumberTransferred);
+            Output::Print(L"  Temp Number            : %3d\n", this->numMarkTempNumber);
+            Output::Print(L"  Transferred Temp Number: %3d\n", this->numMarkTempNumberTransferred);
         }
         if (this->DoMarkTempObjects())
         {
-            Output::Print(L"  Temp Object           : %3d\n", this->numMarkTempObject);
+            Output::Print(L"  Temp Object            : %3d\n", this->numMarkTempObject);
         }
     }
 #endif

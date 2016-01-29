@@ -188,7 +188,7 @@ TempTrackerBase::Dump(wchar_t const * traceName)
 {
     Output::Print(L"%s:        Non temp syms:", traceName);
     this->nonTempSyms.Dump();
-    Output::Print(L"%s: Temp transfered syms:", traceName);
+    Output::Print(L"%s: Temp transferred syms:", traceName);
     this->tempTransferredSyms.Dump();
     if (this->tempTransferDependencies != nullptr)
     {
@@ -432,7 +432,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
                     {
                         Output::Print(L"%s: Not temp (s%-03d): ", T::GetTraceName(), sym->m_id);
                         instr->DumpSimple();
-                        Output::Print(L"       Transfered exposed uses: ");
+                        Output::Print(L"       Transferred exposed uses: ");
                         JitArenaAllocator tempAllocator(L"temp", this->GetAllocator()->GetPageAllocator(), Js::Throw::OutOfMemory);
                         bvTempTransferDependencies->AndNew(upwardExposedUses, &tempAllocator)->Dump();
                     }

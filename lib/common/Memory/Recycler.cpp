@@ -6125,7 +6125,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                     }
                     else
                     {
-                        Output::Print(L" Finish mark and sweep (priority boost overrided concurrent sweep)");
+                        Output::Print(L" Finish mark and sweep (priority boost overridden concurrent sweep)");
                     }
                 }
                 else
