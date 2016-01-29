@@ -534,14 +534,14 @@ var tests = {
 
   // Object.freeze(arguments -- not ES5 version) does not set configurable to false on formals.
   test24_1: {
-    name: "arguments (non-ES5 version): call Object.seal, verify desciptor on formal",
+    name: "arguments (non-ES5 version): call Object.seal, verify descriptor on formal",
     body: function () {
       tests.test24Helper(false, "non-ES5 version");
     }
   },
 
   test24_2: {
-    name: "arguments (ES5 version): call Object.seal, verify desciptor on formal",
+    name: "arguments (ES5 version): call Object.seal, verify descriptor on formal",
     body: function () {
       tests.test24Helper(true, "ES5 version");
     }

@@ -356,7 +356,7 @@ var tests = {
 // - descriptor is accessor, current is accessor
 
   test24: {
-    name: "Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case",
+    name: "Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case",
     body: function () {
       var propertyName = "foo24";
       var o = { 
@@ -373,7 +373,7 @@ var tests = {
   },
 
   test25: {
-    name: "8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError",
+    name: "8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError",
     body: function () {
       var propertyName = "foo25";
       var o = helpers.getDummyObject();
@@ -386,7 +386,7 @@ var tests = {
   },
 
   test26: {
-    name: "8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError",
+    name: "8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError",
     body: function () {
       var propertyName = "foo26";
       var o = helpers.getDummyObject();
@@ -399,7 +399,7 @@ var tests = {
   },
 
   test27: {
-    name: "8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same",
+    name: "8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same",
     body: function () {
       var propertyName = "foo27";
       var o = helpers.getDummyObject();

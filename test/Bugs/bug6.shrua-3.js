@@ -104,11 +104,11 @@ function test0(){
     return leaf.call(arrObj0 );
   };
   var func1 = function(){
-    a <<=func0.call(aliasOfobj0 );
+    a <<=func0.call(aliasOfObj0 );
     (function(argMath0, argObj1, argMath2){
       d |=(obj0.prop0 = (- k));
       d <<=(typeof(a)  != 'string') ;
-      a = ((! func0.call(aliasOfobj0 )) * (test0.caller) - (((a === p)&&(k >= a)) - (- argObj1.prop0)));
+      a = ((! func0.call(aliasOfObj0 )) * (test0.caller) - (((a === p)&&(k >= a)) - (- argObj1.prop0)));
       obj0.prop0 =157225836;
       a -=((- (-2067422549 >>> -1636353152.9)) >> ((d &= argObj1.length) * (-2067422549 >>> -1636353152.9) + (k + k)));
     })(p,arrObj0,(~ 2147483647));
@@ -126,8 +126,8 @@ function test0(){
     return (leaf.call(arrObj0 ) + (- (p + -9.50122264758276E+16)));
   };
   var func4 = function(){
-    aliasOfobj0.prop4=a;
-    aliasOfobj0.prop4 -=(~ (-- aliasOfobj0.prop4));
+    aliasOfObj0.prop4=a;
+    aliasOfObj0.prop4 -=(~ (-- aliasOfobj0.prop4));
     var uniqobj0 = [''];
     var uniqobj1 = uniqobj0[__counter%uniqobj0.length];
     uniqobj1.toString();
@@ -203,16 +203,16 @@ function test0(){
   ary[14] = -220;
   ary[ary.length-1] = 1047975887;
   ary.length = makeArrayLength(1022565544.1);
-  var aliasOfobj0 = obj0;;
+  var aliasOfObj0 = obj0;;
   var aliasOfVarArr0 = VarArr0;;
   this.prop0 = 186;
   obj0.prop0 = 170;
   obj0.length = makeArrayLength(4294967297);
-  aliasOfobj0.prop0 = 4.1347939449402E+18;
-  aliasOfobj0.length = makeArrayLength(639922501);
+  aliasOfObj0.prop0 = 4.1347939449402E+18;
+  aliasOfObj0.length = makeArrayLength(639922501);
   arrObj0.prop0 = -103;
   arrObj0.length = makeArrayLength(0);
-  aliasOfobj0.prop4 = -430662160.9;
+  aliasOfObj0.prop4 = -430662160.9;
   IntArr0[IntArr0.length] = 774590552;
   IntArr0[6] = 215;
   IntArr0[0] = 8.2967774148005E+18;
@@ -230,9 +230,9 @@ function test0(){
   d = (p - (test0.caller));
   a +=(((leaf.call(arrObj0 ) + (- (p + -9.50122264758276E+16))) | (a * (k + k))) >> (a ^= (typeof(k)  != 'number') ));
   obj0.prop0 -=(typeof(p)  != 'boolean') ;
-  aliasOfobj0.prop4 = (typeof(a)  == 'boolean') ;
+  aliasOfObj0.prop4 = (typeof(a)  == 'boolean') ;
   a +=(typeof(k)  != 'object') ;
-  aliasOfobj0.prop4 = ((((leaf.call(arrObj0 ) + (- (p + -9.50122264758276E+16))) | (a * (k + k))) >> (a ^= (typeof(k)  != 'number') )) ^ (typeof(a)  == 'boolean') );
+  aliasOfObj0.prop4 = ((((leaf.call(arrObj0 ) + (- (p + -9.50122264758276E+16))) | (a * (k + k))) >> (a ^= (typeof(k)  != 'number') )) ^ (typeof(a)  == 'boolean') );
   obj0.prop0 = ((- (-657539943 << 114)) | (typeof(k)  == 'undefined') );
   obj0.prop0 -=(- ((k == k)||(a !== p)));
   if(((- ((k != a)&&(k <= p))) === ((k << k) * ((obj0.prop0 -= p) - (obj0.prop0 += -4.93175485795449E+18))))) {
@@ -255,17 +255,17 @@ ary0 = arguments;
     var uniqobj5 = [''];
     uniqobj5[__counter%uniqobj5.length].toString();
     a +=((IntArr1.shift()) - 51);
-    obj0.prop4 = ((-- d) * ((~ (- -710887009)) + (~ obj0.method0.call(aliasOfobj0 ))));
+    obj0.prop4 = ((-- d) * ((~ (- -710887009)) + (~ obj0.method0.call(aliasOfObj0 ))));
     uniqobj4.prop0 =((f32[(49) & 255] + (typeof(m)  != 'number') ), (- (~ k)));
     d >>=((obj0.prop0 > l)||(uniqobj4.prop0 == obj0.prop4));
-    obj0.prop0 &=func0.call(aliasOfobj0 );
-    aliasOfobj0.prop0 <<=(~ k);
+    obj0.prop0 &=func0.call(aliasOfObj0 );
+    aliasOfObj0.prop0 <<=(~ k);
   }
   else {
     d = (obj0.prop0 -= ((test0.caller) | -232));
     a <<=810624396;
     a -=(((test0.caller) & (IntArr1.reverse())) * (func1.call(litObj0 ) + (- e)));
-    a = (((typeof(aliasOfobj0.prop4)  != null)  * (-240 - d) + (a |= p)) + (j === f));
+    a = (((typeof(aliasOfObj0.prop4)  != null)  * (-240 - d) + (a |= p)) + (j === f));
     d |=(test0.caller);
     obj0.prop0 |=(-- d);
     a -=obj0.prop0;
@@ -278,7 +278,7 @@ ary0 = arguments;
     litObj0.prop0.prop1 +=obj0.method0.call(this );
     arrObj0.prop3 = (~ (- 4294967295));
     m = (~ (- 4294967295));
-    m = (((- -242) - (c * 2025680025.1 + c)) + (func3.call(aliasOfobj0 , VarArr0, aliasOfobj0, litObj0, arrObj0) ^ (842191728 < arrObj0.length)));
+    m = (((- -242) - (c * 2025680025.1 + c)) + (func3.call(aliasOfObj0 , VarArr0, aliasOfobj0, litObj0, arrObj0) ^ (842191728 < arrObj0.length)));
     litObj0.prop0.prop6 &=((test0.caller) - (-- litObj0.prop0.prop2));
     var uniqobj6 = [''];
     uniqobj6[__counter%uniqobj6.length].toString();
@@ -315,11 +315,11 @@ ary0 = arguments;
   WScript.Echo('this.prop0 = ' + (this.prop0|0));
   WScript.Echo('obj0.prop0 = ' + (obj0.prop0|0));
   WScript.Echo('obj0.length = ' + (obj0.length|0));
-  WScript.Echo('aliasOfobj0.prop0 = ' + (aliasOfobj0.prop0|0));
-  WScript.Echo('aliasOfobj0.length = ' + (aliasOfobj0.length|0));
+  WScript.Echo('aliasOfObj0.prop0 = ' + (aliasOfobj0.prop0|0));
+  WScript.Echo('aliasOfObj0.length = ' + (aliasOfobj0.length|0));
   WScript.Echo('arrObj0.prop0 = ' + (arrObj0.prop0|0));
   WScript.Echo('arrObj0.length = ' + (arrObj0.length|0));
-  WScript.Echo('aliasOfobj0.prop4 = ' + (aliasOfobj0.prop4|0));
+  WScript.Echo('aliasOfObj0.prop4 = ' + (aliasOfobj0.prop4|0));
   WScript.Echo('this.prop2 = ' + (this.prop2|0));
   WScript.Echo('this.prop3 = ' + (this.prop3|0));
   WScript.Echo('litObj0.prop2 = ' + (litObj0.prop2|0));

@@ -106,7 +106,7 @@ var tests = [
       assert.throws(function () { eval("function foo(a = eval('b'), b) {}; foo();"); }, ReferenceError, "Future default references using eval are not allowed", "Use before declaration");
 
       function argsFoo(a = (arguments[1] = 5), b) { return b };
-      assert.areEqual(undefined, argsFoo(),     "Unevaluated paramaters are referencable using the arguments object");
+      assert.areEqual(undefined, argsFoo(),     "Unevaluated parameters are referenceable using the arguments object");
       assert.areEqual(undefined, argsFoo(1),    "Side effects on the arguments object are allowed but has no effect on default parameter initialization");
       assert.areEqual(2,         argsFoo(1, 2), "Side effects on the arguments object are allowed but has no effect on default parameter initialization");
     }
@@ -336,7 +336,7 @@ var tests = [
       }
     }
     // TODO(tcare): Re-enable when split scope support is implemented
-    //assert.areEqual(9, f(), "Paramater scope remains split");
+    //assert.areEqual(9, f(), "Parameter scope remains split");
   },
   {
     name: "OS 1583694: Arguments sym is not set correctly on undo defer",

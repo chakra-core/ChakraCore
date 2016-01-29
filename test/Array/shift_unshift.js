@@ -161,7 +161,7 @@ function foo()
     a.unshift(b,x,x=5, d=Math.sin(n) + 1);
     WScript.Echo (x); //5
 }
-Array.prototype.unshift = function(){WScript.Echo ("Overriden unshift")};
+Array.prototype.unshift = function(){WScript.Echo ("Overridden unshift")};
 foo();
 WScript.Echo (a);
 
