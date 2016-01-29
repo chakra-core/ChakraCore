@@ -9621,7 +9621,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 }
                 // Type specialize to int
                 bool retVal = this->TypeSpecializeIntBinary(pInstr, src1Val, src2Val, pDstVal, newMin, newMax, false /* skipDst */);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any both of the srces are int, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any one of the sources is int, but something failed during the process.");
             }
 
             // Couldn't type specialize to int, type specialize to float
@@ -9631,7 +9631,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 src1Val = src1OriginalVal;
                 src2Val = src2OriginalVal;
                 bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the src is a float, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the sources is float, but something failed during the process.");
             }
             break;
         }

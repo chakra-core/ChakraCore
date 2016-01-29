@@ -196,7 +196,7 @@ Instr::IsProfiledLabelInstr() const
 inline ProfiledLabelInstr *
 Instr::AsProfiledLabelInstr()
 {
-    AssertMsg(this->IsProfiledLabelInstr(), "Bad call to AsProfiledlLabelInstr()");
+    AssertMsg(this->IsProfiledLabelInstr(), "Bad call to AsProfiledLabelInstr()");
 
     return reinterpret_cast<ProfiledLabelInstr *>(this);
 }

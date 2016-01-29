@@ -2822,7 +2822,7 @@ StoreCommon:
 
     void ByteCodeWriter::EndStatement(ParseNode* node)
     {
-        AssertMsg(m_pMatchingNode, "EndStatement unmatched to StartStartment");
+        AssertMsg(m_pMatchingNode, "EndStatement unmatched to StartStatement");
         if (m_pMatchingNode != node)
         {
             return;
