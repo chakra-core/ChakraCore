@@ -60,16 +60,13 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
             }
             catch (Js::JavascriptExceptionObject* exception)
             {
-                exception = nullptr;
-                /*
-                Js::Var error = exception->GetThrownObject();
+                Js::Var error = exception->GetThrownObject(scriptContext);
                 resolvedObject.obj = error;
                 resolvedObject.address = NULL;
                 resolvedObject.scriptContext = exception->GetScriptContext();
                 resolvedObject.typeId = Js::JavascriptOperators::GetTypeId(error);
                 resolvedObject.name = L"{error}";
                 resolvedObject.propId = Js::Constants::NoProperty;
-                */
             }
 
             AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
