@@ -2031,14 +2031,13 @@ public:
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
                   | FunctionInfo::Attributes::SuperReference
-                  | FunctionInfo::Attributes::DefaultConstructor
                   | FunctionInfo::Attributes::Lambda
                   | FunctionInfo::Attributes::Async
                   | FunctionInfo::Attributes::CapturesThis
                   | FunctionInfo::Attributes::Generator
                   | FunctionInfo::Attributes::ClassConstructor
                   | FunctionInfo::Attributes::ClassMethod)) == 0,
-                "Only the ErrorOnNew|SuperReference|DefaultConstructor|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember attributes should be set on a serialized function");
+                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember attributes should be set on a serialized function");
 
         PrependInt32(builder, L"Offset Into Source", sourceDiff);
         if (function->GetNestedCount() > 0)

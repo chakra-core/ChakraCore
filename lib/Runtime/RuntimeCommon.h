@@ -222,9 +222,5 @@ namespace JSON
 #define JS_DIAG_VALUE_JavascriptRegExpConstructor   L"{...}"
 #define JS_DIAG_TYPE_JavascriptRegExpConstructor    L"Object, (RegExp constructor)"
 
-#define JS_DEFAULT_CTOR_DISPLAY_STRING              L"constructor() {}"
-#define JS_DEFAULT_EXTENDS_CTOR_DISPLAY_STRING      L"constructor(...args) { super(...args); }"
-
-
 #include "Language\SIMDUtils.h"
 

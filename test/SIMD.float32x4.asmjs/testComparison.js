@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function asmModule(stdlib, imports) {
     "use asm";
@@ -12,13 +13,11 @@ function asmModule(stdlib, imports) {
     var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
-    //var i4abs = i4.abs;
+
     var i4neg = i4.neg;
     var i4add = i4.add;
     var i4sub = i4.sub;
     var i4mul = i4.mul;
-    //var i4swizzle = i4.swizzle;
-    //var i4shuffle = i4.shuffle;
     var i4lessThan = i4.lessThan;
     var i4equal = i4.equal;
     var i4greaterThan = i4.greaterThan;
@@ -27,9 +26,7 @@ function asmModule(stdlib, imports) {
     var i4or = i4.or;
     var i4xor = i4.xor;
     var i4not = i4.not;
-    //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
-    //var i4shiftRightByScalar = i4.shiftRightByScalar;
-    //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
+
 
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
@@ -47,11 +44,8 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
-    //var f4swizzle = f4.swizzle;
-    //var f4shuffle = f4.shuffle;
     var f4lessThan = f4.lessThan;
     var f4lessThanOrEqual = f4.lessThanOrEqual;
     var f4equal = f4.equal;
@@ -81,8 +75,6 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -237,21 +229,45 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
 
 
-for (var i = 0; i < 6; i++)
-{
     var ret;
-    print("Func1");
-    ret = m.func1(i);
-    print(typeof(ret));
-    print(ret.toString());
+    ret = m.func1(0);
+    equalSimd([0, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func1(1);
+    equalSimd([0, -1, -1, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func1(2);
+    equalSimd([0, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func1(3);
+    equalSimd([-1, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func1(4);
+    equalSimd([-1, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func1(5);
+    equalSimd([-1, 0, 0, 0], ret, SIMD.Int32x4, "Test comparison");
+
     
-    print("Func2");
-    ret = m.func2(i);
-    print(typeof(ret));
-    print(ret.toString());
+    ret = m.func2(0);
+    equalSimd([-1, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func2(1);
+    equalSimd([-1, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func2(2);
+    equalSimd([0, 0, 0, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func2(3);
+    equalSimd([-1, -1, -1, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func2(4);
+    equalSimd([0, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func2(5);
+    equalSimd([0, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
     
-    print("Func3");
-    ret = m.func3(i);
-    print(typeof(ret));
-    print(ret.toString());
-}
+    ret = m.func3(0);
+    equalSimd([-1, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func3(1);
+    equalSimd([-1, 0, -1, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func3(2);
+    equalSimd([0, 0, 0, 0], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func3(3);
+    equalSimd([-1, -1, -1, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func3(4);
+    equalSimd([0, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
+    ret = m.func3(5);
+    equalSimd([0, -1, 0, -1], ret, SIMD.Int32x4, "Test comparison");
+    
+    print("PASS");

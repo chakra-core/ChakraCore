@@ -31,7 +31,7 @@ _declspec(thread, selectany) int IsInAssert = false;
 #endif
 
 #define AssertMsg(f, comment) \
-    { \
+    do { \
         if (!(f)) \
         { \
             AssertCount++; \
@@ -44,7 +44,7 @@ _declspec(thread, selectany) int IsInAssert = false;
             IsInAssert = FALSE; \
             __analysis_assume(false); \
         } \
-    }
+    } while (false)
 
 #define Assert(exp)           AssertMsg(exp, #exp)
 #define AssertVerify(exp)     Assert(exp)

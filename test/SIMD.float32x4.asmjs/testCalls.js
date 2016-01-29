@@ -14,9 +14,6 @@ function asmModule(stdlib, imports) {
     var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
-    //var i4abs = i4.abs;
-    //var i4swizzle = i4.swizzle;
-    //var i4shuffle = i4.shuffle;
     var i4lessThan = i4.lessThan;
     var i4equal = i4.equal;
     var i4greaterThan = i4.greaterThan;
@@ -25,9 +22,7 @@ function asmModule(stdlib, imports) {
     var i4or = i4.or;
     var i4xor = i4.xor;
     var i4not = i4.not;
-    //var i4shiftLeftByScalar = i4.shiftLeftByScalar;
-    //var i4shiftRightByScalar = i4.shiftRightByScalar;
-    //var i4shiftRightArithmeticByScalar = i4.shiftRightArithmeticByScalar;
+
 
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
@@ -45,11 +40,8 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
     var f4sqrt = f4.sqrt;
-    //var f4swizzle = f4.swizzle;
-    //var f4shuffle = f4.shuffle;
+    
     var f4lessThan = f4.lessThan;
     var f4lessThanOrEqual = f4.lessThanOrEqual;
     var f4equal = f4.equal;
@@ -79,11 +71,8 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
     var d2sqrt = d2.sqrt;
-    //var d2swizzle = d2.swizzle;
-    //var d2shuffle = d2.shuffle;
+
     var d2lessThan = d2.lessThan;
     var d2lessThanOrEqual = d2.lessThanOrEqual;
     var d2equal = d2.equal;

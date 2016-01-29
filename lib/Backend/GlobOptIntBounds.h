@@ -99,7 +99,7 @@ public:
         Assert(loopCountMinusOneSym);
     }
 
-    LoopCount(StackSym *const loopCountMinusOneSym, StackSym *const loopCountSym) : 
+    LoopCount(StackSym *const loopCountMinusOneSym, StackSym *const loopCountSym) :
         loopCountMinusOneSym(loopCountMinusOneSym),
         loopCountSym(loopCountSym),
         hasBeenGenerated(true)
@@ -287,6 +287,12 @@ public:
         return offset;
     }
 
+    void UpdateOffset(int newOffset)
+    {
+        Assert(HasAnyInfo());
+        offset = newOffset;
+    }
+
     ValueNumber IndexValueNumber() const
     {
         Assert(HasAnyInfo());
@@ -324,6 +330,7 @@ public:
         return maxMagnitudeChange;
     }
 
+
 public:
     void SetCompatibleBoundCheck(BasicBlock *const compatibleBoundCheckBlock, StackSym *const indexSym, const int offset, const ValueNumber indexValueNumber);
     void SetLoop(::Loop *const loop, const int indexConstantValue, const bool isLoopCountBasedBound = false);
@@ -347,6 +354,7 @@ public:
     using Base::Loop;
     using Base::IndexSym;
     using Base::Offset;
+    using Base::UpdateOffset;
     using Base::IndexValueNumber;
     using Base::IndexValue;
     using Base::IndexConstantBounds;

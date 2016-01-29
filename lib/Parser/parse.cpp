@@ -2118,7 +2118,9 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         m_pscan->Scan();
 
         // We search an Async expression (a function declaration or a async lambda expression)
-        if (pid == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (pid == wellKnownPropertyPids.async &&
+            !m_pscan->FHadNewLine() &&
+            m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             if (m_token.tk == tkFUNCTION)
             {
@@ -3281,7 +3283,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->ScanForcingPid();
-            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly)
+            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -6218,7 +6220,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkLParen)
+            if (m_token.tk == tkLParen || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -6404,6 +6406,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         }
     }
 
+    if (buildAST)
+    {
+        pnodeClass->ichLim = m_pscan->IchLimTok();
+    }
+
     if (!hasConstructor)
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Generating constructor (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
@@ -6436,6 +6443,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
 
     if (buildAST)
     {
+        pnodeConstructor->sxFnc.cbMin = pnodeClass->ichMin;
+        pnodeConstructor->sxFnc.cbLim = pnodeClass->ichLim;
+        pnodeConstructor->ichMin = pnodeClass->ichMin;
+        pnodeConstructor->ichLim = pnodeClass->ichLim;
+
         PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
 
         pnodeClass->sxClass.pnodeDeclName = pnodeDeclName;
@@ -7197,7 +7209,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             if (!m_pscan->YieldIsKeyword() || oplMin > opl)
             {
                 // The case where 'yield' is scanned as a keyword (tkYIELD) but the scanner
-                // is not treating yield as a keyword (!m_pscan->YieldIsKeyword()) happens
+                // is not treating yield as a keyword (!m_pscan->YieldIsKeyword()) occurs
                 // in strict mode non-generator function contexts.
                 //
                 // That is, 'yield' is a keyword because of strict mode, but YieldExpression
@@ -7215,18 +7227,18 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else if (nop == knopAwait)
         {
-            if (!m_pscan->AwaitIsKeyword() || oplMin > opl)
+            if (!m_pscan->AwaitIsKeyword() ||
+                (GetCurrentFunctionNode()->sxFnc.IsAsync() && m_currentScope->GetScopeType() == ScopeType_Parameter))
             {
-                // As 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT) but the scanner
-                // is not treating await as a keyword (!m_pscan->AwaitIsKeyword()) happens
-                // in strict mode non-generator function contexts.
+                // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
+                // but the scanner is not treating await as a keyword (!m_pscan->AwaitIsKeyword())
+                // occurs in strict mode non-async function contexts.
                 //
                 // That is, 'await' is a keyword because of strict mode, but AwaitExpression
-                // is not a grammar production outside of generator functions.
+                // is not a grammar production outside of async functions.
                 //
-                // Otherwise it is an error for a yield to appear in the context of a higher level
-                // binding operator, be it unary or binary.
-                Error(ERRsyntax);
+                // Further, await expressions are disallowed within parameter scopes.
+                Error(ERRbadAwait);
             }
         }
 
@@ -7535,7 +7547,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 iecpMin = m_pscan->IecpMinTok();
                 m_pscan->Scan();
 
-                if (m_token.tk == tkID || m_token.tk == tkLParen)
+                if ((m_token.tk == tkID || m_token.tk == tkLParen) && !m_pscan->FHadNewLine())
                 {
                     flags |= fFncAsync;
                     isAsyncMethod = true;
@@ -7696,7 +7708,7 @@ void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
         {
             return;
         }
-        Assert(this->GetIchLim() >= ichLim);
+        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
     }
 
     this->isAsg = true;
@@ -7818,7 +7830,8 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     BOOL singleDefOnly/* = FALSE*/,
     BOOL allowInit/* = TRUE*/,
     BOOL isTopVarParse/* = TRUE*/,
-    BOOL isFor/* = FALSE*/)
+    BOOL isFor/* = FALSE*/,
+    BOOL* nativeForOk /*= nullptr*/)
 {
     ParseNodePtr pnodeThis = nullptr;
     ParseNodePtr pnodeInit;
@@ -7833,7 +7846,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     {
         if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
         {
-            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk);
+            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk, nativeForOk);
             if (pnodeThis != nullptr)
             {
                 pnodeThis->ichMin = ichMin;
@@ -8448,7 +8461,7 @@ LFunctionStatement:
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkFUNCTION)
+            if (m_token.tk == tkFUNCTION && !m_pscan->FHadNewLine())
             {
                 isAsyncMethod = true;
                 goto LFunctionStatement;
@@ -8500,6 +8513,8 @@ LFunctionStatement:
         fForInOrOfOkay = TRUE;
         fCanAssign = TRUE;
         tok = m_token.tk;
+        BOOL nativeForOkay = TRUE;
+
         switch (tok)
         {
         case tkID:
@@ -8523,8 +8538,9 @@ LFunctionStatement:
                                                                 , /*pfForInOk = */&fForInOrOfOkay
                                                                 , /*singleDefOnly*/FALSE
                                                                 , /*allowInit*/TRUE
-                                                                , /*isTopVarParse*/FALSE
-                                                                , /*isFor*/TRUE);
+                                                                , /*isTopVarParse*/TRUE
+                                                                , /*isFor*/TRUE
+                                                                , &nativeForOkay);
                     break;
                 }
                 m_pscan->SeekTo(parsedLet);
@@ -8550,8 +8566,9 @@ LFunctionStatement:
                                                             , /*pfForInOk = */&fForInOrOfOkay
                                                             , /*singleDefOnly*/FALSE
                                                             , /*allowInit*/TRUE
-                                                            , /*isTopVarParse*/FALSE
-                                                            , /*isFor*/TRUE);
+                                                            , /*isTopVarParse*/TRUE
+                                                            , /*isFor*/TRUE
+                                                            , &nativeForOkay);
             }
             break;
         case tkSColon:
@@ -8586,7 +8603,10 @@ LDefaultTokenFor:
                 {
                     pnodeT = ParseExpr<buildAST>(koplNo, &fCanAssign, /*fAllowIn = */FALSE);
                 }
-                if (fLikelyPattern)
+
+                // We would veryfiy the grammar as destructuring grammar only when  for..in/of case. As in the native for loop case the above ParseExpr call
+                // has already converted them appropriately.
+                if (fLikelyPattern && TokIsForInOrForOf())
                 {
                     m_pscan->SeekTo(exprStart);
                     ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
@@ -8657,6 +8677,11 @@ LDefaultTokenFor:
         }
         else
         {
+            if (!nativeForOkay)
+            {
+                Error(ERRDestructInit);
+            }
+
             ChkCurTok(tkSColon, ERRnoSemic);
             ParseNodePtr pnodeCond = nullptr;
             if (m_token.tk != tkSColon)
@@ -11167,7 +11192,8 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
     bool topLevel/* = true*/,
     DestructuringInitializerContext initializerContext/* = DIC_None*/,
     bool allowIn/* = true*/,
-    BOOL *forInOfOkay/* = nullptr*/)
+    BOOL *forInOfOkay/* = nullptr*/,
+    BOOL *nativeForOkay/* = nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     Assert(IsPossiblePatternStart());
@@ -11180,7 +11206,7 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
         pnode = ParseDestructuredArrayLiteral<buildAST>(declarationType, isDecl, topLevel);
     }
 
-    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay);
+    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay, nativeForOkay);
 }
 
 template <bool buildAST>
@@ -11189,10 +11215,11 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
     bool topLevel,
     DestructuringInitializerContext initializerContext,
     bool allowIn,
-    BOOL *forInOfOkay)
+    BOOL *forInOfOkay,
+    BOOL *nativeForOkay)
 {
     m_pscan->Scan();
-    if (topLevel)
+    if (topLevel && nativeForOkay == nullptr)
     {
         if (initializerContext != DIC_ForceErrorOnInitializer && m_token.tk != tkAsg)
         {
@@ -11208,6 +11235,12 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
 
     if (m_token.tk != tkAsg || initializerContext == DIC_ShouldNotParseInitializer)
     {
+        if (topLevel && nativeForOkay != nullptr)
+        {
+            // Native loop should have destructuring initializer
+            *nativeForOkay = FALSE;
+        }
+
         return lhsNode;
     }
 

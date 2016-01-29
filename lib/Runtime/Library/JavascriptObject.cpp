@@ -1096,6 +1096,92 @@ namespace Js
         return JavascriptOperators::GetOwnEnumerablePropertyNames(object, scriptContext);
     }
 
+    Var JavascriptObject::GetValuesOrEntries(RecyclableObject* object, bool valuesToReturn, ScriptContext* scriptContext)
+    {
+        Assert(object != nullptr);
+        Assert(scriptContext != nullptr);
+        JavascriptArray* valuesArray = scriptContext->GetLibrary()->CreateArray(0);
+
+        Var ownKeysVar = JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
+        JavascriptArray* ownKeysResult = nullptr;
+        if (JavascriptArray::Is(ownKeysVar))
+        {
+            ownKeysResult = JavascriptArray::FromVar(ownKeysVar);
+        }
+        else
+        {
+            return valuesArray;
+        }
+
+        uint32 length = ownKeysResult->GetLength();
+
+        Var nextKey;
+        const PropertyRecord* propertyRecord = nullptr;
+        PropertyId propertyId;
+        for (uint32 i = 0, index = 0; i < length; i++)
+        {
+            nextKey = ownKeysResult->DirectGetItem(i);
+            Assert(JavascriptString::Is(nextKey));
+
+            PropertyDescriptor propertyDescriptor;
+
+            BOOL propertyKeyResult = JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
+            Assert(propertyKeyResult);
+            propertyId = propertyRecord->GetPropertyId();
+            Assert(propertyId != Constants::NoProperty);
+            if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyId, scriptContext, &propertyDescriptor))
+            {
+                if (propertyDescriptor.IsEnumerable())
+                {
+                    Var value = JavascriptOperators::GetProperty(object, propertyId, scriptContext);
+                    if (!valuesToReturn)
+                    {
+                        // For Object.entries each entry is key, value pair
+                        JavascriptArray* entry = scriptContext->GetLibrary()->CreateArray(2);
+                        entry->DirectSetItemAt(0, CrossSite::MarshalVar(scriptContext, nextKey));
+                        entry->DirectSetItemAt(1, CrossSite::MarshalVar(scriptContext, value));
+                        value = entry;
+                    }
+                    valuesArray->DirectSetItemAt(index++, CrossSite::MarshalVar(scriptContext, value));
+                }
+            }
+        }
+
+        return valuesArray;
+    }
+
+    Var JavascriptObject::EntryValues(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectValuesCount);
+
+        Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
+        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+
+        return GetValuesOrEntries(object, true /*valuesToReturn*/, scriptContext);
+    }
+
+    Var JavascriptObject::EntryEntries(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectEntriesCount);
+
+        Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
+        RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
+
+        return GetValuesOrEntries(object, false /*valuesToReturn*/, scriptContext);
+    }
+
     Var JavascriptObject::CreateOwnSymbolPropertiesHelper(RecyclableObject* object, ScriptContext* scriptContext)
     {
         return CreateKeysHelper(object, scriptContext, TRUE, true /*includeSymbolsOnly */, false, true /*includeSpecialProperties*/);

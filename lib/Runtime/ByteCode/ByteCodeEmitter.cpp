@@ -247,6 +247,9 @@ Js::OpCode ByteCodeGenerator::ToChkUndeclOp(Js::OpCode op) const
     case Js::OpCode::StLocalObjSlot:
         return Js::OpCode::StLocalObjSlotChkUndecl;
 
+    case Js::OpCode::StInnerObjSlot:
+        return Js::OpCode::StInnerObjSlotChkUndecl;
+
     case Js::OpCode::StEnvObjSlot:
         return Js::OpCode::StEnvObjSlotChkUndecl;
 

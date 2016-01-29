@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 var m = function(stdlib,imports,buffer){
     "use asm";
     //var F32=stdlib.Int32Array; 
@@ -41,11 +41,11 @@ var o = m(this,{},buf1);
 
 o.store(SIMD.Int32x4(-5,6,17,8000),4);
 var ret = o.load(4);
-print(ret.toString());
+equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
 
 o.store(SIMD.Int32x4(-5,6,17,8000), i32.length-4);
 var ret = o.load(i32.length-4);
-print(ret.toString());
+equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
 try {o.store(SIMD.Int32x4(11, 304, -22239, 34010), f32.length); print("Wrong")} catch(err) { print("Correct");}
 
 var buf2 = new ArrayBuffer(0x2000000);
@@ -54,5 +54,6 @@ print(o.changeHeap(buf2));
 // heap doubled, no OOB
 o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length);
 var ret = o.load(i32.length);
-print(ret.toString());
+equalSimd([511, 304, -22239, 34010],ret, SIMD.Int32x4, "");
 o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length * 2 - 4);
+print("PASS");

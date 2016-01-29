@@ -1057,8 +1057,8 @@ StringCommon:
 
         double ConvertRandomSeedsToDouble(const uint64 seed0, const uint64 seed1)
         {
-            static const uint64 mExp  = 0x3FF0000000000000;
-            static const uint64 mMant = 0x000FFFFFFFFFFFFF;
+            const uint64 mExp  = 0x3FF0000000000000;
+            const uint64 mMant = 0x000FFFFFFFFFFFFF;
 
             // Take lower 52 bits of the sum of two seeds to make a double
             // Subtract 1.0 to negate the implicit integer bit of 1. Final range: [0.0, 1.0)
@@ -1083,25 +1083,25 @@ StringCommon:
 
         double JavascriptMath::Random(ScriptContext *scriptContext)
         {
-            uint64 seed0 = scriptContext->GetLibrary()->GetRandSeed0();
-            uint64 seed1 = scriptContext->GetLibrary()->GetRandSeed1();
+            uint64 seed0;
+            uint64 seed1;
 
-            if (seed0 == 0 && seed1 == 0)
+            if (!scriptContext->GetLibrary()->IsPRNGSeeded())
             {
                 InitializeRandomSeeds(&seed0, &seed1, scriptContext);
 #if DBG_DUMP
-                if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
-                {
-                    Output::Print(L"[PRNG:%x] INIT %I64x %I64x\n", scriptContext, seed0, seed1);
-                }
+                OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] INIT %I64x %I64x\n", scriptContext, seed0, seed1);
 #endif
+                scriptContext->GetLibrary()->SetIsPRNGSeeded(true);
+            }
+            else
+            {
+                seed0 = scriptContext->GetLibrary()->GetRandSeed0();
+                seed1 = scriptContext->GetLibrary()->GetRandSeed1();
             }
 
 #if DBG_DUMP
-            if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
-            {
-                Output::Print(L"[PRNG:%x] SEED %I64x %I64x\n", scriptContext, seed0, seed1);
-            }
+            OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] SEED %I64x %I64x\n", scriptContext, seed0, seed1);
 #endif
 
             Xorshift128plus(&seed0, &seed1);
@@ -1112,10 +1112,7 @@ StringCommon:
 
             double res = ConvertRandomSeedsToDouble(seed0, seed1);
 #if DBG_DUMP
-            if (Configuration::Global.flags.Trace.IsEnabled(PRNGPhase))
-            {
-                Output::Print(L"[PRNG:%x] RAND %I64x\n", scriptContext, *((uint64 *)&res));
-            }
+            OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] RAND %I64x\n", scriptContext, *((uint64 *)&res));
 #endif
             return res;
         }

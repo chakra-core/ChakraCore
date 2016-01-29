@@ -186,19 +186,19 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( SIMD_D1toD2_1    , Simd128_Splat_D2     ,Js::SIMDFloat64x2Operation::OpSplat                )
 
   DEF2_WMS( SIMD_D2_1toF4_1  , Simd128_FromFloat64x2_F4    ,SIMDFloat32x4Operation::OpFromFloat64x2      )
-  DEF2_WMS( SIMD_D2_1toF4_1  , Simd128_FromFloat64x2Bits_F4,SIMDFloat32x4Operation::OpFromFloat64x2Bits  )
+  DEF2_WMS( SIMD_D2_1toF4_1  , Simd128_FromFloat64x2Bits_F4,Js::FromSimdBits                             )
   DEF2_WMS( SIMD_I4_1toF4_1  , Simd128_FromInt32x4_F4      ,SIMDFloat32x4Operation::OpFromInt32x4        )
-  DEF2_WMS( SIMD_I4_1toF4_1  , Simd128_FromInt32x4Bits_F4  ,SIMDFloat32x4Operation::OpFromInt32x4Bits    )
+  DEF2_WMS( SIMD_I4_1toF4_1  , Simd128_FromInt32x4Bits_F4  ,Js::FromSimdBits                             )
+  DEF3_WMS( CUSTOM_ASMJS     , Simd128_FromFloat32x4_I4    , OP_SimdInt32x4FromFloat32x4 ,  Int32x4_1Float32x4_1 )
 
   DEF2_WMS( SIMD_D2_1toI4_1  , Simd128_FromFloat64x2_I4    ,SIMDInt32x4Operation::OpFromFloat64x2        )
-  DEF2_WMS( SIMD_D2_1toI4_1  , Simd128_FromFloat64x2Bits_I4,SIMDInt32x4Operation::OpFromFloat64x2Bits    )
-  DEF2_WMS( SIMD_F4_1toI4_1  , Simd128_FromFloat32x4_I4    ,SIMDInt32x4Operation::OpFromFloat32x4        )
-  DEF2_WMS( SIMD_F4_1toI4_1  , Simd128_FromFloat32x4Bits_I4,SIMDInt32x4Operation::OpFromFloat32x4Bits    )
+  DEF2_WMS( SIMD_D2_1toI4_1  , Simd128_FromFloat64x2Bits_I4,Js::FromSimdBits                             )
+    DEF2_WMS( SIMD_F4_1toI4_1  , Simd128_FromFloat32x4Bits_I4,Js::FromSimdBits                             )
 
   DEF2_WMS( SIMD_F4_1toD2_1  , Simd128_FromFloat32x4_D2    ,SIMDFloat64x2Operation::OpFromFloat32x4      )
-  DEF2_WMS( SIMD_F4_1toD2_1  , Simd128_FromFloat32x4Bits_D2,SIMDFloat64x2Operation::OpFromFloat32x4Bits  )
+  DEF2_WMS( SIMD_F4_1toD2_1  , Simd128_FromFloat32x4Bits_D2,Js::FromSimdBits                             )
   DEF2_WMS( SIMD_I4_1toD2_1  , Simd128_FromInt32x4_D2      ,SIMDFloat64x2Operation::OpFromInt32x4        )
-  DEF2_WMS( SIMD_I4_1toD2_1  , Simd128_FromInt32x4Bits_D2  ,SIMDFloat64x2Operation::OpFromInt32x4Bits    )
+  DEF2_WMS( SIMD_I4_1toD2_1  , Simd128_FromInt32x4Bits_D2  ,Js::FromSimdBits                             )
 
   DEF2_WMS( SIMD_F4_1toF4_1  , Simd128_Abs_F4              ,SIMDFloat32x4Operation::OpAbs                )
   DEF2_WMS( SIMD_D2_1toD2_1  , Simd128_Abs_D2              ,SIMDFloat64x2Operation::OpAbs                )

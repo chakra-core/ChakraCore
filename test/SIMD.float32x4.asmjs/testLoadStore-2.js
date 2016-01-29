@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
     var i4 = stdlib.SIMD.Int32x4;
@@ -56,8 +56,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -100,8 +99,7 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+    
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -139,10 +137,9 @@ function asmModule(stdlib, imports, buffer) {
     var Uint16Heap = new stdlib.Uint16Array(buffer);
     var Int32Heap = new stdlib.Int32Array(buffer);
     var Uint32Heap = new stdlib.Uint32Array(buffer);
+    var Float32Heap = new stdlib.Float32Array(buffer);	
 
-    var Float32Heap = new stdlib.Float32Array(buffer);
-    function storeF32(value, idx)
-
+    function storeF32(value, idx) 
     {
         value= f4check(value);
         idx = idx|0;
@@ -274,8 +271,8 @@ function asmModule(stdlib, imports, buffer) {
     {
         functionPicker = functionPicker|0;
         var v0 = f4(0.0,0.0,0.0,0.0);
+        var loopIndex = 0, idx = 0, end = 256;	
 
-        var loopIndex = 0, idx = 0, end = 256;
         loopIndex = loopCOUNT | 0;
         do {
             idx = 0;
@@ -483,11 +480,11 @@ function asmModule(stdlib, imports, buffer) {
              idx=0;
 
             for(idx = idx<<2; (idx|0) <= (end<<2); idx = (idx + 1)|0)
-            {
+            {		
                 switch(functionPicker|0)
                 {
                     case 1:
-                        v = f4load(Float32Heap, idx>>2);
+                        v = f4load(Float32Heap, idx>>2); 
                         break;
                      case 2:
                         v = f4load1(Float32Heap, idx>>2);
@@ -510,7 +507,7 @@ function asmModule(stdlib, imports, buffer) {
     {
         //length = length|0;
         functionPicker = functionPicker|0;
-
+        
         var idx=0,end=16;//(length-4)|0;;
         var loopIndex = 0;
         var v = f4(0.0,0.0,0.0,0.0);
@@ -519,11 +516,11 @@ function asmModule(stdlib, imports, buffer) {
         do {
             idx = 0;
             for(idx = idx<<2; (idx|0) <= (end<<2); idx = (idx + 1)|0)
-            {
+            {		
                 switch(functionPicker|0)
                 {
                     case 1:
-                        v = f4load(Float32Heap, idx>>2);
+                        v = f4load(Float32Heap, idx>>2); 
                         break;
                      case 2:
                         v = f4load1(Float32Heap, idx>>2);
@@ -542,20 +539,19 @@ function asmModule(stdlib, imports, buffer) {
         }
         while ( (loopIndex | 0) > 0);
         return v;
-    }
-
+    } 
     function load_1_Int8(length)
     {
         length = length|0;
         var idx=0,end=0;
         var loopIndex = 0;
         var v = f4(0.0,0.0,0.0,0.0);
-        end = (((length * 4)|0) - 16)|0;
+        end = (((length * 4)|0) - 16)|0; 
         while ( (loopIndex|0) < (loopCOUNT|0)) {
             idx=0;
             for(idx = idx<<0; (idx|0) <= (end<<0); idx = (idx + 1)|0)
-            {
-                v = f4load(Int8Heap, idx>>0);
+            {		
+                v = f4load(Int8Heap, idx>>0); 
             }
             loopIndex = (loopIndex + 1) | 0;
         }
@@ -567,7 +563,7 @@ function asmModule(stdlib, imports, buffer) {
         var idx=0,end=0;
         var loopIndex = 0;
         var v = f4(0.0,0.0,0.0,0.0);
-        end = (((length * 4)|0) - 16)|0;
+        end = (((length * 4)|0) - 16)|0; 
         while ( (loopIndex|0) < (loopCOUNT|0)) {
             idx=0;
             for(idx = idx<<0; (idx|0) <= (end<<0); idx = (idx + 1)|0)
@@ -732,119 +728,154 @@ print("Stores:");
 
 print("Test1");
 var ret = m.store1(SIMDStore1);//Lane1 store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([5.099999904632568, 10, 20, 30], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore1");
 
 print("Test2");;
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore2);//Lane 1,2 store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([5.099999904632568, -12.300000190734863, 20, 30], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore2");
+
 
 print("Test3");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([5.099999904632568, -12.300000190734863, 0, 30	], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore3");
+
 
 print("Test4");
 inputLength = initF32(buffer); 
 
 //Should change the buffer to  0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
 var ret = m.store1(SIMDStore);//Generic Store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([5.099999904632568, -12.300000190734863, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore4");
+
 
 print("Test5");
 inputLength = initF32(buffer);  
 var ret = m.store2(SIMDStore);//Generic store 
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore5");
+
 
 print("Test6");
 inputLength = initF32(buffer); 
 var ret = m.store3(SIMDStore);//Generic store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore6");
+
 
 print("Test7");
 inputLength = initF32(buffer); 
 var ret = m.store1Int8(inputLength);//Int8Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore7");
+
 
 print("Test8");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint8(inputLength);//Uint8Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore8");
+
 
 print("Test9");
 inputLength = initF32(buffer); 
 var ret = m.store1Int16(inputLength);//Int16Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore9");
+
 
 print("Test10");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint16(inputLength);//Uint16Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore10");
+
 
 print("Test12");
 inputLength = initF32(buffer); 
 var ret = m.store1Int32(inputLength);//Int32Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore12");
+
 
 print("Test13");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint32(inputLength);//Uint32Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([0, 0, 0, 0], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore13");
+
 
 print("Test14");
 inputLength = initF32(buffer); 
 var ret = m.loadStoreIndex1();//Uint32Heap store
-printBuffer(values, 10);
+// printBuffer(values, 10);
+equalSimd([-1, -2, 3.0999999046325683, -4], SIMD.Float32x4.load(values, 0), SIMD.Float32x4, "TestStore14");
+
 
 print("Loads");
 print("Test1");
 
 var ret = m.load1(SIMDLoad1);
-printResults(ret);
+equalSimd([160, 0, 0, 0], ret, SIMD.Float32x4, "TestStore");
+
 
 print("Test2");
 var ret = m.load1(SIMDLoad2);
-printResults(ret);
+equalSimd([160, 170, 0, 0], ret, SIMD.Float32x4, "TestStore2");
+
 
 print("Test3");
 var ret = m.load1(SIMDLoad3);
-printResults(ret);
+equalSimd([160, 170, 180, 0], ret, SIMD.Float32x4, "TestStore3");
+
 
 print("Test4");
 var ret = m.load1(SIMDLoad);
-printResults(ret);
+equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "TestStore4");
+
 
 print("Test5");
 var ret = m.load2(SIMDLoad);
-printResults(ret);
+equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "TestStore5");
+
 
 print("Test6");
 var ret = m.load3(SIMDLoad);
-printResults(ret);
+equalSimd([160, 170, 180, 190], ret, SIMD.Float32x4, "TestStore6");
 
 print("Test7");
 var ret = m.load1Int8(inputLength); //Int8Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore7");
+
 
 print("Test8");
 var ret = m.load1Uint8(inputLength); //Int8Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore8");
+
 
 print("Test9");
 var ret = m.load1Int16(inputLength); //Int16Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore9");
+
 
 print("Test10");
 var ret = m.load1Uint16(inputLength); //Int16Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore10");
+
 
 print("Test11");
 var ret = m.load1Int32(inputLength); //Int32Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore11");
 
 print("Test12");
 var ret = m.load1Uint32(inputLength); //Int32Heap load
-printResults(ret);
+equalSimd([163800, 163810, 163820, 163830], ret, SIMD.Float32x4, "TestStore12");
+
 
 print("BoundCheck");
 var value = SIMD.Float32x4(9.9,1.2,3.4,5.6);

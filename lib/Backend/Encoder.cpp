@@ -547,7 +547,6 @@ void Encoder::TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(BYTE *codeStart
     }
 
     BYTE * jmpTableStartAddress = codeStart + codeSize - totalJmpTableSizeInBytes;
-    JitArenaAllocator * allocator = this->m_func->m_alloc;
     EncoderMD * encoderMD = &m_encoderMD;
 
     jumpTableListForSwitchStatement->Map([&](uint index, BranchJumpTableWrapper * branchJumpTableWrapper) -> void
@@ -575,8 +574,6 @@ void Encoder::TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(BYTE *codeStart
         }
 
         jmpTableStartAddress += (jmpTableSizeInBytes);
-
-        BranchJumpTableWrapper::Delete(allocator, branchJumpTableWrapper);
     });
 
     Assert(jmpTableStartAddress == codeStart + codeSize);
@@ -968,7 +965,7 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
         Assert(origPInstrList->Count() == pInstrList->Count());
 
 #if DBG_DUMP
-        Assert(m_origOffsetBuffer)
+        Assert(m_origOffsetBuffer);
         Assert((uint32)(*m_origOffsetBuffer)->Count() == m_instrNumber);
 #endif
     }

@@ -11,22 +11,16 @@ namespace Js {
         // following are operation wrappers for SIMDInt32x4 general implementation
         // input and output are typically SIMDValue
         static SIMDValue OpInt32x4(int x, int y, int z, int w);
-        static SIMDValue OpInt32x4(const SIMDValue& v);
-
-        static SIMDValue OpZero();
 
         static SIMDValue OpSplat(int x);
-        static SIMDValue OpSplat(const SIMDValue& v);
 
         static SIMDValue OpBool(int x, int y, int z, int w);
         static SIMDValue OpBool(const SIMDValue& v);
 
         // conversion
         static SIMDValue OpFromBool(const SIMDValue& value);
-        static SIMDValue OpFromFloat32x4(const SIMDValue& value);
+        static SIMDValue OpFromFloat32x4(const SIMDValue& value, bool &throws);
         static SIMDValue OpFromFloat64x2(const SIMDValue& value);
-        static SIMDValue OpFromFloat32x4Bits(const SIMDValue& value);
-        static SIMDValue OpFromFloat64x2Bits(const SIMDValue& value);
 
         // Unary Ops
         static SIMDValue OpAbs(const SIMDValue& v);
@@ -43,12 +37,14 @@ namespace Js {
         static SIMDValue OpMax(const SIMDValue& aValue, const SIMDValue& bValue);
 
         static SIMDValue OpLessThan(const SIMDValue& aValue, const SIMDValue& bValue);
+        static SIMDValue OpLessThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpEqual(const SIMDValue& aValue, const SIMDValue& bValue);
+        static SIMDValue OpNotEqual(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue);
+        static SIMDValue OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue);
 
-        static SIMDValue OpShiftLeft(const SIMDValue& value, int count);
-        static SIMDValue OpShiftRightLogical(const SIMDValue& value, int count);
-        static SIMDValue OpShiftRightArithmetic(const SIMDValue& value, int count);
+        static SIMDValue OpShiftLeftByScalar(const SIMDValue& value, int count);
+        static SIMDValue OpShiftRightByScalar(const SIMDValue& value, int count);
 
         static SIMDValue OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV);
 

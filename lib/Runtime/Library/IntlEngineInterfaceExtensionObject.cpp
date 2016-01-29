@@ -30,8 +30,11 @@ using namespace Windows::Globalization;
 
 #pragma warning(pop)
 
-#define IfCOMFailAssertMsgAndThrowHr(op) \
-   IfFailAssertMsgAndThrowHr(op, "Failed to initialize COM interfaces, verify correct version of globalization dll is used.")
+#define IfCOMFailIgnoreSilentlyAndReturn(op) \
+    if(FAILED(hr=(op))) \
+    { \
+        return; \
+    } \
 
 #define IfFailAssertMsgAndThrowHr(op, msg) \
     if (FAILED(hr=(op))) \
@@ -233,7 +236,7 @@ namespace Js
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
-        if (scriptContext->GetConfig()->IsIntlEnabled())
+        if (scriptContext->IsIntlEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
             this->intlNativeInterfaces = DynamicObject::New(library->GetRecycler(),
@@ -383,7 +386,7 @@ namespace Js
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
-            IfCOMFailAssertMsgAndThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->EnsureCommonObjectsInitialized(library));
+            IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureCommonObjectsInitialized(library));
             switch (intlInitializationType)
             {
                 default:
@@ -391,8 +394,8 @@ namespace Js
                     // fall thru
                 case IntlInitializationType::Intl:
 
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureNumberFormatObjectsInitialized(library));
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Intl");
                     break;
                 case IntlInitializationType::StringPrototype:
@@ -400,11 +403,11 @@ namespace Js
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"String");
                     break;
                 case IntlInitializationType::DatePrototype:
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Date");
                     break;
                 case IntlInitializationType::NumberPrototype:
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Number");
                     break;
             }

@@ -128,6 +128,35 @@ var tests = [
             var d = async (a, b) => { };
         }
     },
+    {
+        name: "await is a future reserved keyword and recognized in strict mode as an error in non-async functions",
+        body: function () {
+            assert.throws(function () { eval("function f() { 'use strict'; await 10; }"); }, SyntaxError, "await expression not allowed in self-strict non-async function", "'await' expression not allowed in this context");
+            assert.throws(function () { "use strict"; eval("function f() { await 10; }"); }, SyntaxError, "await expression not allowed in parent-strict non-async function", "'await' expression not allowed in this context");
+        }
+    },
+    {
+        name: "It is a Syntax Error if FormalParameters Contains AwaitExpression is true",
+        body: function () {
+            assert.throws(function () { eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in non-strict async function", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af(a, b = await a) { 'use strict'; }"); }, SyntaxError, "await expressions not allowed in self-strict async function", "'await' expression not allowed in this context");
+            assert.throws(function () { "use strict"; eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in parent-strict async function", "'await' expression not allowed in this context");
+
+            assert.doesNotThrow(function () { eval("function f(a = async function (x) { await x; }) { a(); } f();"); }, "await is allowed within the body of an async function that appears in a default parameter value expression");
+
+            assert.throws(function () { eval("async function af(x) { function f(a = await x) { } f(); } af();"); }, SyntaxError, "await expression is not available within non-async function parameter default expression", "Expected ')'");
+        }
+    },
+    {
+        name: "[no LineTerminator here] after `async` in grammar",
+        body: function () {
+            assert.throws(function () { eval("async\nfunction af() { }"); }, ReferenceError, "AsyncFunctionDeclaration", "'async' is undefined");
+            assert.throws(function () { eval("var af = async\nfunction () { }"); }, SyntaxError, "AsyncFunctionExpression", "Expected identifier");
+            assert.throws(function () { eval("var o = { async\nam() { } };"); }, SyntaxError, "AsyncMethod in object literal", "Expected ':'");
+            assert.throws(function () { eval("class C { async\nam() { } };"); }, SyntaxError, "AsyncMethod in class", "Expected '('");
+            assert.throws(function () { eval("var aaf = async\n(x, y) => { };"); }, SyntaxError, "AsyncArrowFunction", "Syntax error");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -271,40 +271,37 @@ namespace Js
         {
         case TypeIds_Undefined:
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
-
         case TypeIds_Null:
             //null
             return scriptContext->GetLibrary()->GetObjectTypeDisplayString();
-
         case TypeIds_Integer:
         case TypeIds_Number:
         case TypeIds_Int64Number:
         case TypeIds_UInt64Number:
             return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
-
         case TypeIds_SIMDFloat32x4:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString();
         case TypeIds_SIMDFloat64x2:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString();
         case TypeIds_SIMDInt32x4:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString();
+        case TypeIds_SIMDInt16x8:
+            return scriptContext->GetLibrary()->GetSIMDInt16x8DisplayString();
         case TypeIds_SIMDInt8x16:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString();
-            }
-
+            return scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString();
+        case TypeIds_SIMDUint32x4:
+            return scriptContext->GetLibrary()->GetSIMDUint32x4DisplayString();
+        case TypeIds_SIMDUint16x8:
+            return scriptContext->GetLibrary()->GetSIMDUint16x8DisplayString();
+        case TypeIds_SIMDUint8x16:
+            return scriptContext->GetLibrary()->GetSIMDUint8x16DisplayString();
+        case TypeIds_SIMDBool32x4:
+            return scriptContext->GetLibrary()->GetSIMDBool32x4DisplayString();
+        case TypeIds_SIMDBool16x8:
+            return scriptContext->GetLibrary()->GetSIMDBool16x8DisplayString();
+        case TypeIds_SIMDBool8x16:
+            return scriptContext->GetLibrary()->GetSIMDBool8x16DisplayString();
         default:
-
             // Falsy objects are typeof 'undefined'.
             if (RecyclableObject::FromVar(var)->GetType()->IsFalsy())
             {
