@@ -6694,7 +6694,6 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     SetCurrentStatement(nullptr);
 
     bool fPreviousYieldIsKeyword = m_pscan->SetYieldIsKeyword(FALSE);
-    BOOL oldStrictMode = this->m_fUseStrictMode;
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
 
     pnodeBlock = StartParseBlock<true>(PnodeBlockType::Parameter, ScopeType_Parameter);
@@ -6708,8 +6707,6 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
 
     ppnodeExprScopeSave = m_ppnodeExprScope;
     m_ppnodeExprScope = nullptr;
-
-    m_fUseStrictMode = oldStrictMode;
 
     pnodeInnerBlock = StartParseBlock<true>(PnodeBlockType::Function, ScopeType_FunctionBody);
     *m_ppnodeScope = pnodeInnerBlock;
@@ -6803,6 +6800,10 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
         *pnodeBody = nullptr;
         AddToNodeList(pnodeBody, &lastNodeRef, pnodeReturn);
         AddToNodeList(pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
+    }
+    if (pnodeFncGenerator->sxFnc.GetStrictMode())
+    {
+        GetCurrentFunctionNode()->sxFnc.SetStrictMode();
     }
     lastNodeRef = NULL;
 }
