@@ -220,7 +220,7 @@
   <test>
     <default>
       <files>push3.js</files>
-      <compile-flags>-off:nativearray -forcees5array</compile-flags>
+      <compile-flags>-off:nativearray -ForceES5Array</compile-flags>
       <baseline>push3.baseline</baseline>
     </default>
   </test>
