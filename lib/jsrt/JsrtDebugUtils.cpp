@@ -84,7 +84,9 @@ void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const wc
 
     scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
 
-    if (FALSE == Js::JavascriptOperators::InitProperty(object, propertyRecord->GetPropertyId(), value))
+    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, value);
+
+    if (FALSE == Js::JavascriptOperators::InitProperty(object, propertyRecord->GetPropertyId(), marshaledObj))
     {
         Assert("Failed to add property to debugger object");
     }

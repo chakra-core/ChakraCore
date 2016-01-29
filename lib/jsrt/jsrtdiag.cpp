@@ -136,7 +136,7 @@ JsDiagGetSource(
             return JsErrorInvalidArgument;
         }
 
-        *source = sourceObject;
+        *source = Js::CrossSite::MarshalVar(scriptContext, sourceObject);
 
         return JsNoError;
     });
@@ -490,7 +490,12 @@ JsDiagGetStackProperties(
 
         DebuggerObjectStackFrame* debuggerStackFrame = (DebuggerObjectStackFrame*)debuggerObject;
 
-        *properties = debuggerStackFrame->GetLocalsObject();
+        Js::DynamicObject* localsObject = debuggerStackFrame->GetLocalsObject();
+
+        if (localsObject != nullptr)
+        {
+            *properties = Js::CrossSite::MarshalVar(currentScriptContext, localsObject);;
+        }
 
         return JsNoError;
     });
@@ -629,7 +634,7 @@ JsDiagEvaluate(
         Js::DynamicObject* result = debuggerStackFrame->Evaluate(script, false);
         if (result != nullptr)
         {
-            *evalResult = result;
+            *evalResult = Js::CrossSite::MarshalVar(scriptContext, result);
         }
 
         return JsNoError;
