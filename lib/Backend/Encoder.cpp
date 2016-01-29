@@ -965,7 +965,7 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
         Assert(origPInstrList->Count() == pInstrList->Count());
 
 #if DBG_DUMP
-        Assert(m_origOffsetBuffer)
+        Assert(m_origOffsetBuffer);
         Assert((uint32)(*m_origOffsetBuffer)->Count() == m_instrNumber);
 #endif
     }
