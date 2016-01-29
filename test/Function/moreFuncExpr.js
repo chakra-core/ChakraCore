@@ -7,7 +7,7 @@ function write(v) { WScript.Echo(v + ""); }
 
 function Test1()
 {
-    write("Decalaration Test1")
+    write("Declaration Test1")
 };
 
 Test1();

@@ -53,7 +53,7 @@ verify(arr6.length, 0, id++,"\"Testing Array of length 0 \"");
 
 var arr7=new Array(536870911)
 arr7.length=536870912
-verify(arr7.length, 536870912,id++, "\"Testing Array of length 2^29 after changing the legth property \"")
+verify(arr7.length, 536870912,id++, "\"Testing Array of length 2^29 after changing the length property \"")
 
 //test case 8 testing array of length -1
 try
@@ -64,7 +64,7 @@ verify(1,0,"\"Testing an array length property with -1 Did not raise an exceptio
 }
 catch(e)
 {
-verify(arr8.length, 3, id++,"\"Testing negative array legth property \"")
+verify(arr8.length, 3, id++,"\"Testing negative array length property \"")
 
 }
 

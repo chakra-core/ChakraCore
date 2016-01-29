@@ -14,8 +14,8 @@ Success: Expected o.bar get after set = 8, got 8
 Success: Expected o.bar get after set = 18, got 18
 PASS
  (test 4): Object literal parse error check
-Success: Expected get propery accessor in object literal must not accept any args = true, got true
-Success: Expected set propery accessor in object literal must accept only one args = true, got true
+Success: Expected get property accessor in object literal must not accept any args = true, got true
+Success: Expected set property accessor in object literal must accept only one args = true, got true
 Success: Expected Throw parse error in multiple property name = true, got true
 Success: Expected invalid syntax if set keyword is a string (then it is just a normal property name) = true, got true
 Success: Expected invalid syntax if get keyword is a string (then it is just a normal property name) = true, got true

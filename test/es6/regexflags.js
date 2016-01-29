@@ -236,7 +236,7 @@ var tests = [
         }
     },
     {
-        name: "RegExp.prototyp.flags should return the flags in the correct order",
+        name: "RegExp.prototype.flags should return the flags in the correct order",
         body: function () {
             var object = {
                 ignoreCase: true,

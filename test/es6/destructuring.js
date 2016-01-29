@@ -152,8 +152,8 @@ var tests = [
       assert.throws(function () { eval("var [...a = 1] = [];"); },      SyntaxError, "Destructured var array declaration with a rest parameter with a default value throws",   "Unexpected default initializer");
       assert.throws(function () { eval("let [...a = 1] = [];"); },      SyntaxError, "Destructured let array declaration with a rest parameter with a default value throws",   "Unexpected default initializer");
       assert.throws(function () { eval("const [...a = 1] = [];"); },    SyntaxError, "Destructured const array declaration with a rest parameter with a default value throws", "Unexpected default initializer");
-      assert.throws(function () { eval("var a; [...a = 1] = [];"); },   SyntaxError, "Destructured var array assignment with a rest parameter with a default value throws",    "The rest parameter cannot have a default intializer.");
-      assert.throws(function () { eval("let a; [...a = 1] = [];"); },   SyntaxError, "Destructured let array assignment with a rest parameter with a default value throws",    "The rest parameter cannot have a default intializer.");
+      assert.throws(function () { eval("var a; [...a = 1] = [];"); },   SyntaxError, "Destructured var array assignment with a rest parameter with a default value throws",    "The rest parameter cannot have a default initializer.");
+      assert.throws(function () { eval("let a; [...a = 1] = [];"); },   SyntaxError, "Destructured let array assignment with a rest parameter with a default value throws",    "The rest parameter cannot have a default initializer.");
 
       // Nesting
       assert.doesNotThrow(function () { eval("var [[a]] = [[]];"); },    "Destructured var array declaration with nesting does not throw");
@@ -283,7 +283,7 @@ var tests = [
         let a1; [a1] = [1];
         let     [a2] = [1];
 
-        assert.areEqual(a1, a2, "Destructured array declaration and asssignment assigning single values match");
+        assert.areEqual(a1, a2, "Destructured array declaration and assignment assigning single values match");
         assert.areEqual(a1, 1,  "Destructured array assignment assigns single value correctly");
         assert.areEqual(a2, 1,  "Destructured array declaration assigns single value correctly");
       }
@@ -291,14 +291,14 @@ var tests = [
         let a1; [a1] = [];
         let     [a2] = [];
 
-        assert.areEqual(a1, a2,        "Destructured array declaration and asssignment assigning an empty array match");
+        assert.areEqual(a1, a2,        "Destructured array declaration and assignment assigning an empty array match");
         assert.areEqual(a1, undefined, "Destructured array assignment assigning an empty array results in undefined");
         assert.areEqual(a2, undefined, "Destructured array declaration assigning an empty array results in undefined");
 
         let a3; [a3] = [,1];
         let     [a4] = [,1];
 
-        assert.areEqual(a3, a4,        "Destructured array declaration and asssignment assigning an array with missing values match");
+        assert.areEqual(a3, a4,        "Destructured array declaration and assignment assigning an array with missing values match");
         assert.areEqual(a3, undefined, "Destructured array assignment assigning an array with missing values results in undefined");
         assert.areEqual(a4, undefined, "Destructured array declaration assigning an array with missing values in undefined");
       }
@@ -458,7 +458,7 @@ var tests = [
         let a1; [[a1]] = [[1]];
         let     [[a2]] = [[1]];
 
-        assert.areEqual(a1, a2, "Destructured array declaration and asssignment assigning single values match");
+        assert.areEqual(a1, a2, "Destructured array declaration and assignment assigning single values match");
         assert.areEqual(a1, 1,  "Destructured array assignment assigns single value correctly");
         assert.areEqual(a2, 1,  "Destructured array declaration assigns single value correctly");
       }
@@ -476,7 +476,7 @@ var tests = [
         let a1; [[a1, b1] = [1, 2]] = [];
         let     [[a2, b2] = [1, 2]] = [];
 
-        assert.areEqual([a1, b1], [a2, b2], "Destructured array declaration and asssignment using nested values match");
+        assert.areEqual([a1, b1], [a2, b2], "Destructured array declaration and assignment using nested values match");
         assert.areEqual([1, 2],   [a1, b1], "Destructured array assignment assigns nested values correctly");
         assert.areEqual([1, 2],   [a2, b2], "Destructured array declaration assigns nested values correctly");
       }
@@ -484,7 +484,7 @@ var tests = [
         let a1; [[[a1] = [1], [[b1]] = [[2]]] = [, undefined]] = [undefined, ];
         let     [[[a2] = [1], [[b2]] = [[2]]] = [, undefined]] = [undefined, ];
 
-        assert.areEqual([a1, b1], [a2, b2], "Destructured array declaration and asssignment using nested default values match");
+        assert.areEqual([a1, b1], [a2, b2], "Destructured array declaration and assignment using nested default values match");
         assert.areEqual([1, 2],   [a1, b1], "Destructured array assignment assigns nested default values correctly");
         assert.areEqual([1, 2],   [a2, b2], "Destructured array declaration assigns nested default values correctly");
       }
@@ -494,7 +494,7 @@ var tests = [
         let a1; [a1, b1, c1, d1, ...rest1] = "testing";
         let [a2, b2, c2, d2, ...rest2]     = "testing";
 
-        assert.areEqual([a1, b1, c1, d1, rest1],               [a2, b2, c2, d2, rest2], "Destructured array declaration and asssignment using nested values match");
+        assert.areEqual([a1, b1, c1, d1, rest1],               [a2, b2, c2, d2, rest2], "Destructured array declaration and assignment using nested values match");
         assert.areEqual(["t", "e", "s", "t", ["i", "n", "g"]], [a1, b1, c1, d1, rest1], "Destructured array assignment assigns nested values correctly");
         assert.areEqual(["t", "e", "s", "t", ["i", "n", "g"]], [a2, b2, c2, d2, rest2], "Destructured array declaration assigns nested values correctly");
       }
@@ -510,7 +510,7 @@ var tests = [
         let a1; [a1, b1, c1, d1, ...rest1] = map.entries();
         let [a2, b2, c2, d2, ...rest2]     = map.entries();
 
-        assert.areEqual([a1, b1, c1, d1, rest1],                     [a2, b2, c2, d2, rest2], "Destructured array declaration and asssignment using nested values match");
+        assert.areEqual([a1, b1, c1, d1, rest1],                     [a2, b2, c2, d2, rest2], "Destructured array declaration and assignment using nested values match");
         assert.areEqual([[1, 6], [2, 7], [3, 8], [4, 9], [[5, 10]]], [a1, b1, c1, d1, rest1], "Destructured array assignment assigns nested values correctly");
         assert.areEqual([[1, 6], [2, 7], [3, 8], [4, 9], [[5, 10]]], [a2, b2, c2, d2, rest2], "Destructured array declaration assigns nested values correctly");
       }
@@ -597,7 +597,7 @@ var tests = [
                 assert.areEqual(a, undefined, "Nested destructuring - value is present but undefined");
 
                 [[a]=[1]] = [];
-                assert.areEqual(a, 1, "Nested destructuring - value is not present - use defult");
+                assert.areEqual(a, 1, "Nested destructuring - value is not present - use default");
 
                 [[a]=1] = [[]];
                 assert.areEqual(a, undefined, "Nested destructuring - value is present - default is incorrect - does not have @@iterator");

@@ -48,13 +48,13 @@ e instanceOf TypeError = true
 a.length = 1
 ary.length = 18
 arr.length = 6
-Overriden unshift
-Overriden unshift
-Overriden unshift
-Overriden unshift
-Overriden unshift
+Overridden unshift
+Overridden unshift
+Overridden unshift
+Overridden unshift
+Overridden unshift
 2
 4
-Overriden unshift
+Overridden unshift
 5
 1,d,e

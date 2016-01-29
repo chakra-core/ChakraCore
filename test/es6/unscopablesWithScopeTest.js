@@ -349,7 +349,7 @@ var tests = [
                 assert.areEqual(3, c, "c is only on the proto");
                 a = 3;
                 b = 4;
-                assert.areEqual(2,proto.b,"proto.b is never set b\c child b is unnscopable");
+                assert.areEqual(2,proto.b,"proto.b is never set b\c child b is unscopable");
             }
             assert.areEqual(4,b,"root.b is set to 4 b\c child b is unscopable");
             b = globalScope;
