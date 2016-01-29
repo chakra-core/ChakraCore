@@ -7,7 +7,7 @@
 namespace Js
 {
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
-    class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSementics*/true>
+    class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>
     {
     protected:
         int initialPropertyCount;

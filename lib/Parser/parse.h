@@ -627,7 +627,7 @@ private:
         SM_NotUsed,         // StrictMode environment is don't care
         SM_OnGlobalCode,    // The current environment is a global code
         SM_OnFunctionCode,  // The current environment is a function code
-        SM_DeferedParse     // StrictMode used in defered parse cases
+        SM_DeferredParse    // StrictMode used in deferred parse cases
     };
 
     template<bool buildAST> ParseNodePtr ParseArrayLiteral();

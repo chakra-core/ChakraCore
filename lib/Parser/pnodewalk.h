@@ -108,7 +108,7 @@ private:
         return result;
     }
 
-    ResultType WalkTiernary(ParseNode *pnode, Context context)
+    ResultType WalkTernary(ParseNode *pnode, Context context)
     {
         ResultType result = WalkFirstChild(pnode->sxTri.pnode1, context);
         if (ContinueWalk(result))
@@ -424,7 +424,7 @@ private:
         // Ternary operator
         //PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
         case knopQmark:
-            return WalkTiernary(pnode, context);
+            return WalkTernary(pnode, context);
 
         // General nodes.
         //PTNODE(knopList       , "<list>"    ,None    ,Bin  ,fnopNone)

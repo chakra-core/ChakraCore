@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    typedef Var (*PFNCreateTypedArray)(Js::ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascirptLibrary);
+    typedef Var (*PFNCreateTypedArray)(Js::ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascriptLibrary);
 
     template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2);
 
@@ -425,7 +425,7 @@ namespace Js
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
-        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascirptLibrary);
+        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static BOOL Is(Var aValue);
 

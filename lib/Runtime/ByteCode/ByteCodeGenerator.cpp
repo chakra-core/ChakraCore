@@ -1929,7 +1929,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, ulong grfscr, __in ByteC
 
 #ifdef PERF_COUNTERS
     PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, L"TestTrace: deferparse - # of func: %d # deferparsed: %d\n",
-        PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferedFunctionCounter().GetValue());
+        PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferredFunctionCounter().GetValue());
 #endif
 }
 
@@ -4674,7 +4674,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
         if (nonLambdaFunc != func || (func->IsGlobalFunction() && (byteCodeGenerator->GetFlags() & fscrEval)))
         {
-            nonLambdaFunc->root->sxFnc.SetHasNewTargetReferene();
+            nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
             nonLambdaFunc->AssignNewTargetRegister();
             nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
             nonLambdaFunc->GetBodyScope()->SetHasLocalInClosure(true);
@@ -4705,7 +4705,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             {
                 func->AssignNewTargetRegister();
 
-                nonLambdaFunc->root->sxFnc.SetHasNewTargetReferene();
+                nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
                 nonLambdaFunc->AssignNewTargetRegister();
                 nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
                 nonLambdaFunc->AssignUndefinedConstRegister();

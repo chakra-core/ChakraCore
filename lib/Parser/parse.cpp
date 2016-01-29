@@ -4648,7 +4648,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
     }
     else
     {
-        ParseStmtList<false>(nullptr, nullptr, SM_DeferedParse, true /* isSourceElementList */);
+        ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
     }
 
     pnodeFnc->ichLim = m_pscan->IchLimTok();
@@ -5031,7 +5031,7 @@ void Parser::ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *
             m_ppnodeVar = &m_currentNodeDeferredFunc->sxFnc.pnodeVars;
         }
 
-        ParseStmtList<false>(nullptr, nullptr, SM_DeferedParse, true /* isSourceElementList */, detectStrictModeOn);
+        ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */, detectStrictModeOn);
 
         ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
     }
@@ -8921,13 +8921,13 @@ LEndSwitch:
         {
             if (pnode)
             {
-                pnode->grfpn |= PNodeFlags::fpnExplicitSimicolon;
+                pnode->grfpn |= PNodeFlags::fpnExplicitSemicolon;
             }
             m_pscan->Scan();
         }
         else if (pnode)
         {
-            pnode->grfpn |= PNodeFlags::fpnAutomaticSimicolon;
+            pnode->grfpn |= PNodeFlags::fpnAutomaticSemicolon;
         }
 
         break;
@@ -9357,11 +9357,11 @@ LNeedTerminator:
         {
         case tkSColon:
             m_pscan->Scan();
-            if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnExplicitSimicolon;
+            if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnExplicitSemicolon;
             break;
         case tkEOF:
         case tkRCurly:
-            if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnAutomaticSimicolon;
+            if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnAutomaticSemicolon;
             break;
         default:
             if (!m_pscan->FHadNewLine())
@@ -9370,7 +9370,7 @@ LNeedTerminator:
             }
             else
             {
-                if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnAutomaticSimicolon;
+                if (pnode!= nullptr) pnode->grfpn |= PNodeFlags::fpnAutomaticSemicolon;
             }
             break;
         }
@@ -10375,7 +10375,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
         // Process a sequence of statements/declarations
         if (topLevelDeferred)
         {
-            ParseStmtList<false>(nullptr, nullptr, SM_DeferedParse, true);
+            ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true);
         }
         else
         {

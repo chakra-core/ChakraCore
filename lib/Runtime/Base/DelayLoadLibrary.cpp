@@ -491,7 +491,7 @@ namespace Js
         {
             if (m_pfnRoGetMetadataFile == nullptr)
             {
-                m_pfnRoGetMetadataFile = (PFNCWRoGetMettadataFile)GetFunction("RoGetMetaDataFile");
+                m_pfnRoGetMetadataFile = (PFNCWRoGetMetadataFile)GetFunction("RoGetMetaDataFile");
                 if (m_pfnRoGetMetadataFile == nullptr)
                 {
                     return E_UNEXPECTED;

@@ -2198,7 +2198,7 @@ NativeCodeGenerator::GatherCodeGenData(
             //Try and see if this polymorphic call
             Js::FunctionBody* inlineeFunctionBodyArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = {0};
             bool canInlineArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { 0 };
-            uint polyInlineeCount = inliningDecider.InlinePolymorhicCallSite(functionBody, profiledCallSiteId, inlineeFunctionBodyArray,
+            uint polyInlineeCount = inliningDecider.InlinePolymorphicCallSite(functionBody, profiledCallSiteId, inlineeFunctionBodyArray,
                 Js::DynamicProfileInfo::maxPolymorphicInliningSize, canInlineArray);
 
             //We should be able to inline at least two functions here.
@@ -3101,7 +3101,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
                 //Try and see if this polymorphic call
                 Js::FunctionBody* inlineeFunctionBodyArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { 0 };
                 bool canInlineArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { 0 };
-                uint polyInlineeCount = inliningDecider.InlinePolymorhicCallSite(inlineeFunctionBody, profiledCallSiteId, inlineeFunctionBodyArray,
+                uint polyInlineeCount = inliningDecider.InlinePolymorphicCallSite(inlineeFunctionBody, profiledCallSiteId, inlineeFunctionBodyArray,
                     Js::DynamicProfileInfo::maxPolymorphicInliningSize, canInlineArray);
 
                 //We should be able to inline everything here.

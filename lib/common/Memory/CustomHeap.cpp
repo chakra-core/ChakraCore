@@ -21,7 +21,7 @@ namespace CustomHeap
 #pragma region "Constructor and Destructor"
 
 Heap::Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata):
-    auxilliaryAllocator(alloc),
+    auxiliaryAllocator(alloc),
     allocXdata(allocXdata),
 #if DBG_DUMP
     freeObjectSize(0),
@@ -368,7 +368,7 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
     }
 
 
-    Allocation* allocation = this->largeObjectAllocations.PrependNode(this->auxilliaryAllocator);
+    Allocation* allocation = this->largeObjectAllocations.PrependNode(this->auxiliaryAllocator);
     if (allocation == nullptr)
     {
         AutoCriticalSection autocs(&this->cs);
@@ -417,9 +417,9 @@ void Heap::FreeDecommittedLargeObjects()
     {
         VerboseHeapTrace(L"Decommitting large object at address 0x%p of size %u\n", allocation.address, allocation.size);
 
-        this->ReleaseDecommited(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
+        this->ReleaseDecommitted(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-        largeObjectIter.RemoveCurrent(this->auxilliaryAllocator);
+        largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
 }
@@ -438,7 +438,7 @@ bool Heap::FreeLargeObject(Allocation* address)
 #endif
             this->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-            largeObjectIter.RemoveCurrent(this->auxilliaryAllocator);
+            largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
             if (!freeAll) return true;
         }
     }
@@ -478,7 +478,7 @@ Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushor
     }
 #endif
 
-    Allocation* allocation = AnewNoThrowStruct(this->auxilliaryAllocator, Allocation);
+    Allocation* allocation = AnewNoThrowStruct(this->auxiliaryAllocator, Allocation);
     if (allocation == nullptr)
     {
 #if PDATA_ENABLED
@@ -604,7 +604,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
 
     // Switch to allocating on a list of pages so we can do leak tracking later
     VerboseHeapTrace(L"Allocing new page in bucket %d\n", bucket);
-    Page* page = this->buckets[bucket].PrependNode(this->auxilliaryAllocator, address, pageSegment, bucket);
+    Page* page = this->buckets[bucket].PrependNode(this->auxiliaryAllocator, address, pageSegment, bucket);
 
     if (page == nullptr)
     {
@@ -692,7 +692,7 @@ void Heap::RemovePageFromFullList(Page* pageToRemove)
     {
         if (&page == pageToRemove)
         {
-            pageIter.RemoveCurrent(this->auxilliaryAllocator);
+            pageIter.RemoveCurrent(this->auxiliaryAllocator);
             return;
         }
     }
@@ -759,7 +759,7 @@ bool Heap::FreeAllocation(Allocation* object)
 #if DBG_DUMP
             this->totalAllocationSize -= pageSize;
 #endif
-            this->auxilliaryAllocator->Free(object, sizeof(Allocation));
+            this->auxiliaryAllocator->Free(object, sizeof(Allocation));
             {
                 AutoCriticalSection autocs(&this->cs);
                 this->ReleasePages(pageAddress, 1, segment);
@@ -802,7 +802,7 @@ bool Heap::FreeAllocation(Allocation* object)
     this->freesSinceLastCompact += object->size;
 #endif
 
-    this->auxilliaryAllocator->Free(object, sizeof(Allocation));
+    this->auxiliaryAllocator->Free(object, sizeof(Allocation));
 
     if (page->IsEmpty())
     {
@@ -817,7 +817,7 @@ bool Heap::FreeAllocation(Allocation* object)
                     AutoCriticalSection autocs(&this->cs);
                     this->ReleasePages(page->address, 1, page->segment);
                 }
-                pageIter.RemoveCurrent(this->auxilliaryAllocator);
+                pageIter.RemoveCurrent(this->auxiliaryAllocator);
 
 #if DBG_DUMP
                 this->freeObjectSize -= pageSize;
@@ -849,8 +849,8 @@ void Heap::FreeDecommittedBuckets()
     Assert(inDtor);
     FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &this->decommittedPages, iter)
     {
-        this->TrackDecommitedPages(page.address, 1, page.segment);
-        iter.RemoveCurrent(this->auxilliaryAllocator);
+        this->TrackDecommittedPages(page.address, 1, page.segment);
+        iter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
 }
@@ -882,7 +882,7 @@ void Heap::FreeBucket(DListBase<Page>* bucket, bool freeOnlyEmptyPages)
         if (!freeOnlyEmptyPages || page.IsEmpty())
         {
             FreePage(&page);
-            pageIter.RemoveCurrent(this->auxilliaryAllocator);
+            pageIter.RemoveCurrent(this->auxiliaryAllocator);
         }
     }
     NEXT_DLISTBASE_ENTRY_EDITING;

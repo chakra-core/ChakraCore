@@ -1181,7 +1181,7 @@ namespace Js
         Assert(scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
 #ifdef PERF_COUNTERS
-        PERF_COUNTER_INC(Code, DeferedFunction);
+        PERF_COUNTER_INC(Code, DeferredFunction);
 #endif
         uint newFunctionNumber = scriptContext->GetThreadContext()->NewFunctionNumber();
         if (!sourceInfo->GetSourceContextInfo()->IsDynamic())
@@ -1696,7 +1696,7 @@ namespace Js
                 );
 
             this->Copy(funcBody);
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
 
             if (!this->GetSourceContextInfo()->IsDynamic())
             {
@@ -1961,7 +1961,7 @@ namespace Js
             );
 
         this->Copy(funcBody);
-        PERF_COUNTER_DEC(Code, DeferedFunction);
+        PERF_COUNTER_DEC(Code, DeferredFunction);
 
         if (!this->GetSourceContextInfo()->IsDynamic())
         {
@@ -2041,7 +2041,7 @@ namespace Js
             {
                 this->m_utf8SourceInfo->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             }
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
         }
     }
 

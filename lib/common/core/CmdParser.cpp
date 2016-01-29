@@ -17,7 +17,7 @@ using namespace Js;
 ///         1. Quoted   - " " Any character within quotes is parsed as string.
 ///                       if the quotes are not closed, its an error.
 ///         2. UnQuoted - End of string is indicated by a space/end of stream.
-///                       If fTreatColonAsSeperator is mentioned, then we break
+///                       If fTreatColonAsSeparator is mentioned, then we break
 ///                       at colon also.
 ///
 ///
@@ -26,7 +26,7 @@ using namespace Js;
 ///----------------------------------------------------------------------------
 
 LPWSTR
-CmdLineArgsParser::ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ceBuffer, bool fTreatColonAsSeperator)
+CmdLineArgsParser::ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ceBuffer, bool fTreatColonAsSeparator)
 {
 
     wchar_t *out = buffer;
@@ -72,7 +72,7 @@ CmdLineArgsParser::ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ce
                 break;
             case '-':
             case ':':
-                if(fTreatColonAsSeperator)
+                if(fTreatColonAsSeparator)
                 {
                     fDone = true;
                     break;

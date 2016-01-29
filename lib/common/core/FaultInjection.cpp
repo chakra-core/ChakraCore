@@ -1109,7 +1109,7 @@ namespace Js
     }
 
     // For faster fault injection test run, filter out the AVs on same IP/hash
-    void FaultInjection::FaultInjetionAnalyzeException(_EXCEPTION_POINTERS *ep)
+    void FaultInjection::FaultInjectionAnalyzeException(_EXCEPTION_POINTERS *ep)
     {
 #if !defined(_M_ARM32_OR_ARM64) // not support ARM for now, add support in case we run fault injection on ARM
         AutoCriticalSection autocs(&cs_Sym);
@@ -1402,7 +1402,7 @@ namespace Js
             AutoValue() { inExceptionHandler = true; }
             ~AutoValue() { inExceptionHandler = false; }
         } autoVal;
-        FaultInjection::Global.FaultInjetionAnalyzeException(ExceptionInfo);
+        FaultInjection::Global.FaultInjectionAnalyzeException(ExceptionInfo);
         return EXCEPTION_EXECUTE_HANDLER;
     }
 

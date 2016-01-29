@@ -213,16 +213,16 @@ public:
         }
     }
 
-    void TrackDecommitedPages(void * address, uint pageCount, __in void* segment)
+    void TrackDecommittedPages(void * address, uint pageCount, __in void* segment)
     {
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->TrackDecommitedPages(address, pageCount, segment);
+            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->TrackDecommittedPages(address, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->TrackDecommitedPages(address, pageCount, segment);
+            this->GetPageAllocator<VirtualAllocWrapper>(segment)->TrackDecommittedPages(address, pageCount, segment);
         }
     }
 
@@ -280,16 +280,16 @@ public:
         }
     }
 
-    void ReleaseDecommited(void * address, size_t pageCount, __in void *  segment)
+    void ReleaseDecommitted(void * address, size_t pageCount, __in void *  segment)
     {
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseDecommited(address, pageCount, segment);
+            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseDecommitted(address, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseDecommited(address, pageCount, segment);
+            this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseDecommitted(address, pageCount, segment);
         }
     }
 
@@ -511,7 +511,7 @@ private:
      */
     HeapPageAllocator<VirtualAllocWrapper>               pageAllocator;
     HeapPageAllocator<PreReservedVirtualAllocWrapper>    preReservedHeapPageAllocator;
-    ArenaAllocator*                                   auxilliaryAllocator;
+    ArenaAllocator*                                   auxiliaryAllocator;
 
     /*
      * Various tracking lists
