@@ -86,7 +86,7 @@ BackwardPass::DoMarkTempObjects() const
 
     // Why MarkTempObject is disabled under debugger:
     //   We add 'identified so far dead non-temp locals' to byteCodeUpwardExposedUsed in ProcessBailOutInfo,
-    //   this may cause MarkTempObject to convert some temps back to non-temp when it sees a 'transfered exposed use'
+    //   this may cause MarkTempObject to convert some temps back to non-temp when it sees a 'transferred exposed use'
     //   from a temp to non-temp. That's in general not a supported conversion (while non-temp -> temp is fine).
 }
 

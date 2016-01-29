@@ -117,10 +117,10 @@ var tests = [
 
         }
     },
-// In ScriptLangugageVersion6 the ActiveXObject constructor is removed and is unable to be used for this test. Disabling until different object type can be found
+// In ScriptLanguageVersion6 the ActiveXObject constructor is removed and is unable to be used for this test. Disabling until different object type can be found
 // that can be used instead.
 //    {
-//       name: "Object toPrimitve must return  ECMA Type else TypeError",
+//       name: "Object toPrimitive must return  ECMA Type else TypeError",
 //       body: function ()
 //       {
 //            var o = { toString : function () {return "o"}, valueOf : function() { return 0;}};

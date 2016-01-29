@@ -754,8 +754,8 @@ public:
     void TrackDecommitedPages(void * address, uint pageCount, __in void* segment);
     void DecommitPages(__in char* address, size_t pageCount = 1);
 
-    // Release pages that has already been decommited
     void    ReleaseDecommited(void * address, size_t pageCount, __in void * segment);
+    // Release pages that has already been decommitted
     bool    IsAddressFromAllocator(__in void* address);
     char *  InitPageSegment();
 

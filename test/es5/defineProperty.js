@@ -148,7 +148,7 @@ var tests = {
       var propertyName = "foo11";
       var pd = { value: 0, configurable: true };
       Object.defineProperty(o, propertyName, pd);
-      pd = { enumerable: true }; // change enumerable to make sure that descriptor is diferent from current.
+      pd = { enumerable: true }; // change enumerable to make sure that descriptor is different from current.
       Object.defineProperty(o, propertyName, pd);
       var expected = { writable: false, value: 0, configurable: true, enumerable: true };
       assert.areEqual(expected, Object.getOwnPropertyDescriptor(o, propertyName), "wrong value of getOwnPropertyDescriptor");

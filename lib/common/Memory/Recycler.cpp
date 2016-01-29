@@ -2981,7 +2981,7 @@ Recycler::FinishDisposeObjectsWrapped()
         // Dispose may get into message loop and cause a reentrant GC. If those don't allow reentrant
         // it will get added to a pending collect request.
 
-        // FinishDipsosedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
+        // FinishDisposedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
         // and won't check NeedExhaustiveRepeatCollect(), need to check it here to honor those requests
 
          if (!this->CollectionInProgress() && NeedExhaustiveRepeatCollect() && ((flags & CollectOverride_NoExhaustiveCollect) != CollectOverride_NoExhaustiveCollect))

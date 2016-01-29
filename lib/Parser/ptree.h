@@ -42,19 +42,19 @@ enum PNodeFlags : ushort
     fpnArguments                             = 0x0004,
     fpnHidden                                = 0x0008,
 
-    // Statment nodes.
     fpnExplicitSimicolon                     = 0x0010, // statment terminated by an explicit semicolon
     fpnAutomaticSimicolon                    = 0x0020, // statment terminated by an automatic semicolon
     fpnMissingSimicolon                      = 0x0040, // statment missing terminating semicolon, and is not applicable for automatic semicolon insersion
     fpnDclList                               = 0x0080, // statment is a declaration list
+    // Statement nodes.
     fpnSyntheticNode                         = 0x0100, // node is added by the parser or does it represent user code
     fpnIndexOperator                         = 0x0200, // dot operator is an optimization of an index operator
     fpnJumbStatement                         = 0x0400, // break or continue that was removed by error recovery
 
     // Unary/Binary nodes
-    fpnCanFlattenConcatExpr                  = 0x0800, // the result of the binary operation can particpate in concat N
+    fpnCanFlattenConcatExpr                  = 0x0800, // the result of the binary operation can participate in concat N
 
-    // Potentially overlapping transitor flags
+    // Potentially overlapping traversal flags
     // These flags are set and cleared during a single node traversal and their values can be used in other node traversals.
     fpnMemberReference                       = 0x1000, // The node is a member reference symbol
     fpnCapturesSyms                          = 0x2000, // The node is a statement (or contains a sub-statement)
@@ -153,9 +153,9 @@ struct PnArrLit : PnUni
 {
     uint count;
     uint spreadCount;
-    BYTE arrayOfTaggedInts:1;     // indicates that array initialzer nodes are all tagged ints
-    BYTE arrayOfInts:1;           // indicates that array initialzer nodes are all ints
-    BYTE arrayOfNumbers:1;        // indicates that array initialzer nodes are all numbers
+    BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
+    BYTE arrayOfInts:1;           // indicates that array initializer nodes are all ints
+    BYTE arrayOfNumbers:1;        // indicates that array initializer nodes are all numbers
     BYTE hasMissingValues:1;
 };
 

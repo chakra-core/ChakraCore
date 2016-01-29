@@ -957,7 +957,7 @@ namespace Js
         ArgSlot mArgSizesLength;
         uint * mArgSizes;
         ArgSlot mArgByteSize;
-        // offset in Byte from the beggining of the stack aka R0
+        // offset in Byte from the beginning of the stack aka R0
         int mIntByteOffset, mDoubleByteOffset, mFloatByteOffset;
         AsmJsRetType mReturnType;
 

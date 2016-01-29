@@ -1159,7 +1159,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
         // Job was not yet processed
         // originalEntryPoint is the last known good entry point for the function body. Here we verify that
         // it either corresponds with this codegen episode (identified by function->entryPointIndex) of the function body
-        // or one that was scheduled after. In the latter case orginalEntryPoint will get updated if and when
+        // or one that was scheduled after. In the latter case originalEntryPoint will get updated if and when
         // that last episode completes successfully.
         Assert(functionBody->GetDefaultEntryPointInfo() == function->GetEntryPointInfo() &&
             (
@@ -1481,7 +1481,7 @@ NativeCodeGenerator::UpdateQueueForDebugMode()
 
     // If we're going to debug mode, drain the job processors queue of
     // all jobs belonging this native code generator
-    // JobProcesed will be called for existing jobs, and in debug mode
+    // JobProcessed will be called for existing jobs, and in debug mode
     // that method will simply add them back to the NativeCodeGen's queue
     Processor()->RemoveManager(this);
 
@@ -2968,7 +2968,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
 
     if (!inlineeFunctionBody->GetProfiledCallSiteCount())
     {
-        // Nothing to inline. See this as fully inlineable function.
+        // Nothing to inline. See this as fully inlinable function.
         return true;
     }
 

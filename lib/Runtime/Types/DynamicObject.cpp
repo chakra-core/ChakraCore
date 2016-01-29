@@ -671,7 +671,7 @@ namespace Js
 
         // Consider: Because we've disabled fixed properties on DOM objects, we don't need to rely on a type change here to
         // invalidate fixed properties.  Under some circumstances (with F12 tools enabled) an object which
-        // is already in the new context can be reset and newType == oldType. If we reeanable fixed properties on DOM objects
+        // is already in the new context can be reset and newType == oldType. If we reenable fixed properties on DOM objects
         // we'll have to investigate and address this issue.
         // Assert(newType != oldType);
         // We only expect DOM objects to ever be reset and we explicitly disable fixed properties on DOM objects.

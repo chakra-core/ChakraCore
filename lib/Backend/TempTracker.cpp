@@ -24,7 +24,7 @@
  * and on definition of the symbol, if the all the use allow temp object (not in nonTempSyms
  * bitvector) then it is mark them able.
  *
- * However, the complication comes when the stack object is transfered to another symbol
+ * However, the complication comes when the stack object is transferred to another symbol
  * and we are in a loop.  We need to make sure that the stack object isn't still referred
  * by another symbol when we allocate the number/object in the next iteration
  *
@@ -101,7 +101,7 @@ TempTrackerBase::AddTransferDependencies(BVSparse<JitArenaAllocator> * bv, SymID
 {
     bv->Set(dstSymID);
 
-    // Add the indirect transfers (always from tempTransferDepencies)
+    // Add the indirect transfers (always from tempTransferDependencies)
     BVSparse<JitArenaAllocator> *dstBVSparse = this->tempTransferDependencies->GetAndClear(dstSymID);
     if (dstBVSparse != nullptr)
     {
@@ -302,7 +302,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
         // Since we don't iterate "while (!changed)" in loops, we don't have complete accurate dataflow
         // for loop carried dependencies. So don't clear the dependency transfer info.  WOOB:1121525
 
-        // Check if this dst is transfered (assigned) to another symbol
+        // Check if this dst is transferred (assigned) to another symbol
         if (isTransferOperation)
         {
             isTempTransfered = this->tempTransferredSyms.Test(sym->m_id);
@@ -390,7 +390,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
 
         if (isTempTransfered)
         {
-            // Track whether the dst is transfered or not, and allocate separate stack slot for them
+            // Track whether the dst is transferred or not, and allocate separate stack slot for them
             // so that another dst will not overrides the value
             dstIsTempTransferred = true;
 
@@ -399,7 +399,7 @@ TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
 
             if (bvTempTransferDependencies != nullptr)
             {
-                // Inside a loop we need to track if any of the reg that we transfered to is still live
+                // Inside a loop we need to track if any of the reg that we transferred to is still live
                 //      s1 = Add
                 //         = s2
                 //      s2 = s1
@@ -509,7 +509,7 @@ NumberTemp::IsTempUse(IR::Instr * instr, Sym * sym, BackwardPass * backwardPass)
             || !instr->GetDst()->AsIndirOpnd()->GetBaseOpnd()->GetValueType().IsLikelyOptimizedTypedArray())
         {
             // Mark the symbol as non-tempable if the instruction doesn't allow temp sources,
-            // or it is transfered to a non-temp dst
+            // or it is transferred to a non-temp dst
             return false;
         }
     }
@@ -766,7 +766,7 @@ NumberTemp::PropagateTempPropertyTransferStoreDependencies(SymID usedSymID, Prop
     AddTransferDependencies(usedSymID, dstSymID, this->tempTransferDependencies);
 
     Js::PropertyId storedPropertyId = propertySym->m_propertyId;
-    // The symbol this properties are transfered to
+    // The symbol this properties are transferred to
     BVSparse<JitArenaAllocator> ** pPropertyTransferDependencies = this->propertyIdsTempTransferDependencies->Get(storedPropertyId);
     BVSparse<JitArenaAllocator> * transferDependencies = nullptr;
     if (pPropertyTransferDependencies == nullptr)
@@ -1046,7 +1046,7 @@ ObjectTemp::IsTempUseOpCodeSym(IR::Instr * instr, Js::OpCode opcode, Sym * sym)
     }
 
     // Mark the symbol as non-tempable if the instruction doesn't allow temp sources,
-    // or it is transfered to a non-temp dst
+    // or it is transferred to a non-temp dst
     return (OpCodeAttr::TempObjectSources(opcode)
         && (!OpCodeAttr::TempObjectTransfer(opcode) || instr->dstIsTempObject));
 }
@@ -1607,7 +1607,7 @@ ObjectTempVerify::DependencyCheck(IR::Instr * instr, BVSparse<JitArenaAllocator>
 
             if (currentInstr->GetDst() && currentInstr->GetDst()->IsRegOpnd())
             {
-                // Clear the def and mark the src if it is transfered.
+                // Clear the def and mark the src if it is transferred.
 
                 // If the dst sym is a type specialized sym, clear the var sym instead.
                 StackSym * dstSym = currentInstr->GetDst()->AsRegOpnd()->m_sym;

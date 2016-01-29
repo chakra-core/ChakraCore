@@ -33,18 +33,18 @@ enum EditKind
 //      EUGENE W. MYERS: An O(ND) Difference Algorithm and Its Variations
 //
 // The idea is that LCS is a dual problem of shortest path in an edit graph. The edit graph is a grid of lengthA
-// columns and lengthB rows. A path starts from (0,0) and moves toward (lenghA, lengthB).
+// columns and lengthB rows. A path starts from (0,0) and moves toward (lengthA, lengthB).
 //  - A horizontal move (i,j) -> (i+1,j) represents deleting A[i].
 //  - A vertical move (i,j) -> (i,j+1) represents inserting B[j].
 //  - A diagonal move (i,j) -> (i+1,j+1) represents a match, A[i] == B[j].
-// Each diagonal move represents a match. We want more diagnonal moves. Let diagonal move cost 0, horizontal or
-// vertical move each costs 1. The basic algorithm is a greedy algorthm to find a shortest path from (0,0) to
+// Each diagonal move represents a match. We want more diagonal moves. Let diagonal move cost 0, horizontal or
+// vertical move each costs 1. The basic algorithm is a greedy algorithm to find a shortest path from (0,0) to
 // (lengthA, lengthB).
 //
 // Terms:
-//  diagonal k: The diagnonal where x-y==k.
+//  diagonal k: The diagonal where x-y==k.
 //  d-path: A path starting from (0,0) with d number of horizontal or vertical moves. Or, its length is d (note
-//          that each horizontal/vertical move costs 1, diagnonal move costs 0).
+//          that each horizontal/vertical move costs 1, diagonal move costs 0).
 //
 //          0-path can only move along and end on diagonal 0.
 //          1-path can only end on diagonal -1 or 1.
@@ -547,14 +547,14 @@ private:
         //
         // 1) A label may be marked "tied to parent". Let x, y have both label l and l is "tied to parent".
         //    Then (x,y) can be in M only if (parent(x), parent(y)) in M.
-        //    Thus we require labels of children tied to a parent to be preceeded by all their possible parent labels.
+        //    Thus we require labels of children tied to a parent to be preceded by all their possible parent labels.
         //
         // 2) Rather than defining function equal in terms of constants f and t, which are hard to get right,
-        //    we try to match multiple times with different threashold for node distance.
+        //    we try to match multiple times with different thresholds for node distance.
         //    The comparer defines the distance [0..1] between two nodes and it can do so by analyzing
         //    the node structure and value. The comparer can tune the distance specifically for each node kind.
-        //    We first try to match nodes of the same labels to the exactly matching or almost matching counterpars.
-        //    The we keep increasing the threashold and keep adding matches.
+        //    We first try to match nodes of the same labels to the exactly matching or almost matching counterparts.
+        //    Then we keep increasing the threshold and keep adding matches.
         for (int label = 0; label < labelCount; label++)
         {
             if (nodes1[label] && nodes2[label])
@@ -610,7 +610,7 @@ private:
                 if (tiedToAncestor > 0)
                 {
                     // TODO: For nodes tied to their parents,
-                    // consider avoding matching them to all other nodes of the same label.
+                    // consider avoiding matching them to all other nodes of the same label.
                     // Rather we should only match them with their siblings that share the same parent.
 
                     PNode ancestor1 = comparer.GetAncestor(node1, tiedToAncestor);

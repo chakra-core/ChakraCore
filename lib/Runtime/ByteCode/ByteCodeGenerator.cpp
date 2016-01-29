@@ -4387,7 +4387,7 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
 
             // Need to always detect interleaving dynamic scope ('with') for assignments
             // as those may end up escaping into the 'with' scope.
-                // TODO: the with scope is marked as MustInstaniate late during byte code emit
+                // TODO: the with scope is marked as MustInstantiate late during byte code emit
                 // We could detect this using the loop above as well, by marking the with
             // scope as must instantiate early, this is just less risky of a fix for RTM.
 
@@ -4547,7 +4547,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
                 if (pnodeName->nop == knopVarDecl && pnodeName->sxVar.sym != nullptr)
                 {
-                    // Unlike in CheckFuncAssignemnt, we don't have check if there is a interleaving
+                    // Unlike in CheckFuncAssignment, we don't check for interleaving
                     // dynamic scope ('with') here, because we also generate direct assignment for
                     // function decl's names
 

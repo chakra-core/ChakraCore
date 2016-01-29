@@ -2978,7 +2978,7 @@ Instr::ConvertToBailOutInstr(BailOutInfo * bailOutInfo, IR::BailOutKind kind, bo
     if (this->HasAuxBailOut())
     {
         // This instr has already been converted to bailout instr. Only possible with aux bail out.
-        // Typical scenario is when globopt calls to convert to e.g. BailOutOnImplcitCalls for the instr which
+        // Typical scenario is when globopt calls to convert to e.g. BailOutOnImplicitCalls for the instr which
         // was already converted to bail out instr with HasBailOutInfo() == false and HasAuxBailOutInfo() == true,
         // so that aux bail out is hidden in between IRBuilder and lowerer.
 

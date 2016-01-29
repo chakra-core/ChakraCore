@@ -2433,7 +2433,7 @@ GlobOpt::CleanUpValueMaps()
                         deadSymsBv.Set(bucket.value->m_id);
 
                         // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                        // created in backward pass and so their symIds > maxIntitialSymID.
+                        // created in backward pass and so their symIds > maxInitialSymID.
                         if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                         {
                             deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
@@ -2444,7 +2444,7 @@ GlobOpt::CleanUpValueMaps()
                 else
                 {
                     // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                    // created in backward pass and so their symIds > maxIntitialSymID. Perhaps we could remove
+                    // created in backward pass and so their symIds > maxInitialSymID. Perhaps we could remove
                     // it explicitly here, but would it work alright with the iterator?
                     if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                     {
@@ -7019,7 +7019,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             "Creator of this instruction should have set the type");
         // fall-through
     case Js::OpCode::Coerse_StrOrRegex:
-        // We don't set the ValyueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
+        // We don't set the ValueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
         if (this->IsLoopPrePass() || src1ValueInfo == nullptr || !src1ValueInfo->IsString())
         {
             break;
@@ -7147,7 +7147,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if(!this->IsLoopPrePass())
         {
             // We cannot transfer value if the field hasn't been copy prop'd because we don't generate
-            // an implicit call bailout between those values if we don't have "live fields" unnless, we are hoisting the field.
+            // an implicit call bailout between those values if we don't have "live fields" unless, we are hoisting the field.
             PropertySym *propertySym = instr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
             StackSym * fieldHoistSym;
             Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
@@ -20468,7 +20468,7 @@ GlobOpt::KillStateForGeneratorYield()
     GlobOptBlockData* globOptData = &this->currentBlock->globOptData;
 
     /*
-    TODO[generators][ianhall]: Do a ToVar on any typespec'ed syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'ed values
+    TODO[generators][ianhall]: Do a ToVar on any typespec'd syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'd values
     FOREACH_BITSET_IN_SPARSEBV(symId, globOptData->liveInt32Syms)
     {
         this->ToVar(instr, , this->currentBlock, , );

@@ -53,7 +53,7 @@
     // same type path, but land on an earlier type handler.
     var o3 = new Namespace.ConstructedObject2();
 
-    // If we now add more properties to reach the same type handler as o1 and o2, we shoudln't
+    // If we now add more properties to reach the same type handler as o1 and o2, we shouldn't
     // hit any surprises with locked or unlocked inline slot capacity.
     // Bug 170326: EnsureInlineSlotCapacityLocked called when JIT-ing construct1
     // would lock inline slot capacity from the given type handler down the successor tree - 

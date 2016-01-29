@@ -322,7 +322,7 @@ var tests = {
         var propertyName = "foo11";
         var pd = { value: 0, configurable: true };
         Object.defineProperty(o, propertyName, pd);
-        pd = { enumerable: true }; // change enumerable to make sure that descriptor is diferent from current.
+        pd = { enumerable: true }; // change enumerable to make sure that descriptor is different from current.
         Object.defineProperty(o, propertyName, pd);
         var expected = { writable: false, value: 0, configurable: true, enumerable: true };
         assert.areEqual(expected, Object.getOwnPropertyDescriptor(o, propertyName), "wrong value of getOwnPropertyDescriptor");
@@ -832,7 +832,7 @@ var tests = {
             var propertyName = "11";
             var pd = { value: 0, configurable: true };
             Object.defineProperty(o, propertyName, pd);
-            pd = { enumerable: true }; // change enumerable to make sure that descriptor is diferent from current.
+            pd = { enumerable: true }; // change enumerable to make sure that descriptor is different from current.
             Object.defineProperty(o, propertyName, pd);
             var expected = { writable: false, value: 0, configurable: true, enumerable: true };
             assert.areEqual(expected, Object.getOwnPropertyDescriptor(o, propertyName), "wrong value of getOwnPropertyDescriptor");
@@ -1306,7 +1306,7 @@ var tests = {
     test_306_i: {
         name: "Set a property while prototype has a getter",
         body: function() {
-            var propName = "306"; // Without quote it fails on array. Coverred by 310_i
+            var propName = "306"; // Without quote it fails on array. Covered by 310_i
             try {
                 Object.defineProperty(Object.prototype, propName, {
                     get: function () { return 100; },

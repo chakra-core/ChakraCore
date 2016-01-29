@@ -14889,7 +14889,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     // Load the string buffer and make sure it is not null
     //  MOV bufferOpnd, [baseOpnd + offset(m_pszValue)]
     //  TEST bufferOpnd, bufferOpnd
-    //  JEQ $lableHelper
+    //  JEQ $labelHelper
     indirOpnd = IR::IndirOpnd::New(baseOpnd, offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, this->m_func);
 
     InsertMove(bufferOpnd, indirOpnd, ldElem);
@@ -21201,7 +21201,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     }
     else
     {
-        // Just generate all the assignment in loop of loopUnroolCount and the rest as straight line code
+        // Just generate all the assignment in loop of loopUnrollCount and the rest as straight line code
         //
         //      lea currOpnd, [dst + sizeof(Var) * (loopAssignCount + Js::ScopeSlots::FirstSlotIndex - loopUnrollCount)];
         //      mov [currOpnd + loopUnrollCount + leftOverAssignCount - 1] , undefinedOpnd

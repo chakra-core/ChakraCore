@@ -10,7 +10,7 @@
 //   - This script is not called for the default variant.
 // - Idea: 
 //   - Collect dynamic profile cache when called for interpreted variant.
-//   - Use dynamic profle cache when called with -args dynapogo.
+//   - Use dynamic profile cache when called with -args dynapogo.
 //   - Some tests cause bailout by passing different parameter to test function 
 //     as when dynamic profile cache was created.
 // - How to manually run/repro:

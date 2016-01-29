@@ -26,7 +26,7 @@ catch (e)
     WScript.Echo(e);
 }
 
-// do..while withuot a semicolon at the end, followed by another statement
+// do..while without a semicolon at the end, followed by another statement
 // do while surrounds a statement without a semicolon, but ended with a newline
 var a = 10;
 do

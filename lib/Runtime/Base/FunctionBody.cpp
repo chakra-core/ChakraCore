@@ -2271,7 +2271,7 @@ namespace Js
             this->m_isEval = isEval;
             this->m_isDynamicFunction = isDynamicFunction;
 
-            // It would have been better if we detect and reject large source buffer eariler before parsing
+            // It would have been better if we detect and reject large source buffer earlier before parsing
             size_t cbMin = node->sxFnc.cbMin;
             size_t lengthInBytes = node->sxFnc.LengthInBytes();
             if (cbMin > UINT_MAX || lengthInBytes > UINT_MAX)
@@ -7591,7 +7591,7 @@ namespace Js
     {
         // DisableJIT-TODO: Move this to be under if DYNAMIC_PROFILE
 #if ENABLE_NATIVE_CODEGEN
-        // (See also the FunctionBody member written in CaptureDymamicProfileState.)
+        // (See also the FunctionBody member written in CaptureDynamicProfileState.)
         this->savedPolymorphicCacheState = entryPointInfo->GetPendingPolymorphicCacheState();
         this->savedInlinerVersion = entryPointInfo->GetPendingInlinerVersion();
         this->savedImplicitCallsFlags = entryPointInfo->GetPendingImplicitCallFlags();

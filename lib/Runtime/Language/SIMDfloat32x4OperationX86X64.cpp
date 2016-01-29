@@ -247,7 +247,7 @@ namespace Js
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
         X86SIMDValue tmp1, tmp2;
 
-        // if tmp1 and tmp2 are not idential then either
+        // if tmp1 and tmp2 are not identical then either
         // 1) at least one value is NaN, then the OR will set that lane to NaN
         // 2) one value is 0.0 and the other is -0.0, the OR will set the sign bit to have -0.0
         tmp1.m128_value = _mm_min_ps(tmpaValue.m128_value, tmpbValue.m128_value);
@@ -264,7 +264,7 @@ namespace Js
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
         X86SIMDValue tmp1, tmp2, NaNs;
 
-        // if tmp1 and tmp2 are not idential then either
+        // if tmp1 and tmp2 are not identical then either
         // 1) at least one value is NaN, then the OR will set that lane to NaN
         // 2) one value is 0.0 and the other is -0.0, the OR will set the sign bit to have -0.0
 

@@ -3169,7 +3169,7 @@ StoreCommon:
         }
         else
         {
-            ByteBlock* finalByteCodeBlock = ByteBlock::New(alloc, /*intialContent*/nullptr, cbFinalData);
+            ByteBlock* finalByteCodeBlock = ByteBlock::New(alloc, /*initialContent*/nullptr, cbFinalData);
 
             DataChunk* currentChunk = head;
             size_t bytesLeftToCopy = cbFinalData;

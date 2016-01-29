@@ -250,7 +250,7 @@ namespace Js
             Js::Throw::OutOfMemory();
         }
 #else
-        // There shouldn't be enought mamory to have UINT_MAX character.
+        // There shouldn't be enough memory to have UINT_MAX character.
         // INT_MAX is the upper bound for 32-bit;
         Assert(IsValidCharCount(cchActual));
 #endif

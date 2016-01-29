@@ -427,7 +427,7 @@
       <files>nativearray_gen1.js</files>
       <compile-flags>-sse:0 -forceserialized</compile-flags>
       <baseline>nativearray_gen1.baseline</baseline>
-      <!-- Exclude the serialized variants because we're useding -forceserialized here. -->
+      <!-- Exclude the serialized variants because we're using -forceserialized here. -->
       <tags>exclude_serialized</tags>
     </default>
   </test>

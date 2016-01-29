@@ -116,7 +116,7 @@ public:
     // The actual bailout instr, this is normally the instr that has the bailout info.
     // 1) If we haven't generated bailout (which happens in lowerer) for this bailout info, this is either of:
     // - the instr that has bailout info.
-    // - in case of shared bailout this will be the BailTarget instr (corresponds to the call to SaveReesgtersAndBailOut,
+    // - in case of shared bailout this will be the BailTarget instr (corresponds to the call to SaveRegistersAndBailOut,
     //   while other instrs sharing bailout info will just have checks and JMP to BailTarget).
     // 2) After we generated bailout, this becomes label instr. In case of shared bailout other instrs JMP to this label.
     IR::Instr * bailOutInstr;

@@ -3635,7 +3635,7 @@ namespace Js
     // Returns true if the function's return type is always float.
     BOOL JavascriptLibrary::IsFltFunc(BuiltinFunction index)
     {
-        // Note: MathFuncion is one of built-ins.
+        // Note: MathFunction is one of built-ins.
         if (!JavascriptLibrary::CanFloatPreferenceFunc(index))
         {
             return FALSE;

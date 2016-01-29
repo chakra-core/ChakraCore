@@ -2223,7 +2223,7 @@ namespace UnifiedRegex
             // Recalculate firstSet. Since it can only get smaller, and alternative could not have had an exact
             // first set, this recalculation does not make any decisions already made based on the current firstSet
             // unsound.
-            // NOTE: Is it worth recalculating the WillNotProgess/WillNotRegress bools?
+            // NOTE: Is it worth recalculating the WillNotProgress/WillNotRegress bools?
             firstSet = Anew(compiler.ctAllocator, UnicodeCharSet);
             for (AltNode* curr = this; curr != 0; curr = curr->tail)
                 firstSet->UnionInPlace(compiler.ctAllocator, *curr->head->firstSet);

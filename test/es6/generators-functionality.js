@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// ES6 Genertors functionality tests -- verifies behavior of generator functions
+// ES6 Generators functionality tests -- verifies behavior of generator functions
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 

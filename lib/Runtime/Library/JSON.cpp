@@ -951,8 +951,8 @@ namespace JSON
     // Parameters:
     // - object: the object to get the number of properties for.
     // - enumerator: the enumerator to enumerate the object.
-    // - [out] pIsPrecise: receives a boolean indicting whether the value returned is precise or just guessed.
     inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* pIsPresise)
+    // - [out] pIsPrecise: receives a boolean indicating whether the value returned is precise or just guessed.
     {
         Assert(pIsPresise);
         *pIsPresise = false;

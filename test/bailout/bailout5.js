@@ -10,7 +10,7 @@ function test(i)
 
     var a = i + 1;
     var b = a;
-    // Bail out point:  test dead store of copy prop'ed values 
+    // Bail out point:  test dead store of copy prop'd values 
     if (g)
     {
         return b;

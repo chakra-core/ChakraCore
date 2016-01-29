@@ -550,7 +550,7 @@ namespace UnifiedRegex
         enum CompilationScheme
         {
             BeginEnd,     // Protect assertion with begin/end instructions
-            Succ,         // Assertion will always succeeed, without binding groups
+            Succ,         // Assertion will always succeed, without binding groups
             Fail          // Assertion will always fail
         };
 
@@ -591,7 +591,7 @@ namespace UnifiedRegex
         static const CharCount initInstBufSize = 128;
 
         Js::ScriptContext* scriptContext;
-        // Arena for nodes and items needed only during compliation
+        // Arena for nodes and items needed only during compilation
         ArenaAllocator* ctAllocator;
         // Arena for literals, sets and items needed during runtime
         ArenaAllocator* rtAllocator;

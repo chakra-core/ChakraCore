@@ -1364,7 +1364,7 @@ PageAllocatorBase<T>::ReleasePages(__in void * address, uint pageCount, __in voi
      *    - If we're in the free page queuing mode where we have a "pages to zero out" queue
      *      put it in that queue and we're done
      *    - Otherwise, zero it out, and add it to the free page pool
-     *  Now that we've either decommited or freed the pages in the segment,
+     *  Now that we've either decommitted or freed the pages in the segment,
      *  move the segment to the right segment list
      */
     if (this->freePageCount + pageCount > maxFreePageCount)

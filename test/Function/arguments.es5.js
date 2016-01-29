@@ -38,7 +38,7 @@ var tests = {
         var val = 2;
         Object.defineProperty(arguments, 0, { configurable: false, enumerable: false, value: val });
         // Note that we expect writable: true because this was omitted in defineProperty above
-        // which is acually re-define property with all attributes == true.
+        // which is actually re-define property with all attributes == true.
         var expected = { configurable: false, enumerable: false, writable: true, value: val };
         assert.areEqual(expected, Object.getOwnPropertyDescriptor(arguments, 0), "wrong value of getOwnPropertyDescriptor");
         assert.areEqual(val, a, "wrong value of named parameter");
@@ -206,7 +206,7 @@ var tests = {
           accumulator += i.toString() + ": " + arguments[i] + ";";
         }
         // Note that we expect [1].enumerable = true because this was omitted in defineProperty above
-        // which is acually re-define property that previously already had enumerable = true.
+        // which is actually re-define property that previously already had enumerable = true.
         assert.areEqual("1: " + passedValue1 + ";" + "3: " + passedValue2 + ";", accumulator, "accumulator");
       }
       f(1, passedValue1, 3, passedValue2);
@@ -483,7 +483,7 @@ var tests = {
       assert.areEqual(expected, actual, mkerr("wrong descriptor - initial"));
 
       // Try to modify/re-configure
-      // Note: do not change value here as it causes different code path than excersized by identified issue.
+      // Note: do not change value here as it causes different code path than exercised by identified issue.
       Object.defineProperty(arguments, 0, { enumerable: false });
       Object.defineProperty(arguments, 0, { writable: false });
       Object.defineProperty(arguments, 0, { configurable: false });
