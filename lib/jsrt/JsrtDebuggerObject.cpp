@@ -318,7 +318,24 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
 
     Js::ScriptContext* scriptContext = this->stackFrame->GetScriptContext();
 
+    /*
+        {
+            "exception" : {},
+            "arguments" : {},
+            "returnValue" : {},
+            "functionCallsReturn" : [{}, {}],
+            "locals" : [],
+            "scopes" : [{}, {}],
+            "globals" : {}
+        }
+     */
+
     this->propertiesObject = scriptContext->GetLibrary()->CreateObject();
+
+    Js::Var returnValueObject = nullptr;
+
+    uint functionCallsReturnCount = 0;
+    Js::JavascriptArray* functionCallsReturn = scriptContext->GetLibrary()->CreateArray();
 
     uint totalLocalsCount = 0;
     Js::JavascriptArray* localsArray = scriptContext->GetLibrary()->CreateArray();
@@ -360,9 +377,40 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
                     JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::arguments, marshaledObj, scriptContext);
                 });
             }
-            else
+
+            Js::ReturnedValueList *returnedValueList = this->stackFrame->GetScriptContext()->GetDebugContext()->GetProbeContainer()->GetReturnedValueList();
+
+            if (returnedValueList != nullptr && returnedValueList->Count() > 0 && this->stackFrame->IsTopFrame())
             {
-                // Add empty arguments object?
+                for (int i = 0; i < returnedValueList->Count(); ++i)
+                {
+                    Js::ReturnedValue * returnValue = returnedValueList->Item(i);
+                    Js::VariableWalkerBase::GetReturnedValueResolvedObject(returnValue, this->stackFrame, &resolvedObject);
+
+                    DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
+                    {
+
+                        if (returnValue->isValueOfReturnStatement)
+                        {
+                            returnValueObject = marshaledObj;
+                        }
+                        else
+                        {
+                            Js::JavascriptOperators::OP_SetElementI((Js::Var)functionCallsReturn, Js::JavascriptNumber::ToVar(functionCallsReturnCount, scriptContext), marshaledObj, scriptContext);
+                            functionCallsReturnCount++;
+                        }
+                    });
+                }
+
+                if (returnValueObject != nullptr)
+                {
+                    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::returnValue, returnValueObject, scriptContext);
+                }
+
+                if (functionCallsReturnCount > 0)
+                {
+                    JsrtDebugUtils::AddPropertyToObject(this->propertiesObject, JsrtDebugPropertyId::functionCallsReturn, functionCallsReturn, scriptContext);
+                }
             }
 
             ulong localsCount = localsWalker->GetLocalVariablesCount();
@@ -379,6 +427,8 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
                     totalLocalsCount++;
                 });
             }
+
+
             index = 0;
             BOOL foundGroup = TRUE;
             while (foundGroup)

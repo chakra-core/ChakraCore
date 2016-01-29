@@ -236,6 +236,41 @@ namespace Js
     }
 
     /*static*/
+    void VariableWalkerBase::GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
+    {
+        DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
+        WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
+        if (returnValue->isValueOfReturnStatement)
+        {
+            swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[Return value]");
+            pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
+            pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
+        }
+        else
+        {
+            if (returnValue->calledFunction->IsScriptFunction())
+            {
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
+            }
+            else
+            {
+                Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", builtInName->GetSz());
+            }
+            pResolvedObject->obj = returnValue->returnedValue;
+            defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
+            pResolvedObject->address = nullptr;
+        }
+        Assert(pResolvedObject->obj != nullptr);
+
+        pResolvedObject->name = finalName;
+        pResolvedObject->typeId = TypeIds_Object;
+
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
+    }
+
+    /*static*/
     BOOL VariableWalkerBase::GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
     {
         Assert(pResolvedObject);
@@ -248,38 +283,8 @@ namespace Js
         {
             if (index < returnedValueList->Count())
             {
-                DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
-                WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
                 ReturnedValue * returnValue = returnedValueList->Item(index);
-                if (returnValue->isValueOfReturnStatement)
-                {
-                    swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[Return value]");
-                    pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
-                    pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
-                }
-                else
-                {
-                    if (returnValue->calledFunction->IsScriptFunction())
-                    {
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
-                    }
-                    else
-                    {
-                        Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", builtInName->GetSz());
-                    }
-                    pResolvedObject->obj = returnValue->returnedValue;
-                    defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
-                    pResolvedObject->address = nullptr;
-                }
-                Assert(pResolvedObject->obj != nullptr);
-
-                pResolvedObject->name = finalName;
-                pResolvedObject->typeId = TypeIds_Object;
-
-                pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
-                pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
-
+                VariableWalkerBase::GetReturnedValueResolvedObject(returnValue, frame, pResolvedObject);
                 return TRUE;
             }
 

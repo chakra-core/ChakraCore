@@ -397,15 +397,10 @@ Js::JavascriptArray * JsrtDebug::GetStackFrames(Js::ScriptContext* scriptContext
                 for (int frameIndex = 0; frameIndex < count; ++frameIndex)
                 {
                     Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
+                    Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
 
-                    // ToDo (SaAgarwa): Remove this check when we have a way to filter out the debug sim frames
-                    if (stackFrame->GetFunction()->GetUtf8SourceInfo()->GetHostSourceContext() != -2)
-                    {
-                        Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
-
-                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
-                    }
+                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
+                    Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
                 }
             }
             framePointers->ReleaseStrongReference();

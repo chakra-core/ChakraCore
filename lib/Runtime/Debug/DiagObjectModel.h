@@ -191,6 +191,7 @@ namespace Js
 
         static BOOL GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
         static int  GetReturnedValueCount(DiagStackFrame* frame);
+        static void GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
         static BOOL GetBreakMutationBreakpointValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject);
