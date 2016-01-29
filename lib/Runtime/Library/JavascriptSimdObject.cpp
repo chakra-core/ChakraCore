@@ -180,7 +180,7 @@ namespace Js
         }
 
         //Locale specific separator??
-        JavascriptString *seperator = JavascriptString::NewWithSz(_u(", "), scriptContext);
+        JavascriptString *separator = JavascriptString::NewWithSz(_u(", "), scriptContext);
         uint idx = 0;
         Var laneVar = nullptr;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("fromCodePoint"));
@@ -198,7 +198,7 @@ namespace Js
                 newArgs[0] = laneVar;
                 JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
-                result = JavascriptString::Concat(result, seperator);
+                result = JavascriptString::Concat(result, separator);
             }
             laneVar = JavascriptNumber::ToVarWithCheck(laneValues[idx], scriptContext);
             newArgs[0] = laneVar;
@@ -212,7 +212,7 @@ namespace Js
                 newArgs[0] = laneVar;
                 JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
-                result = JavascriptString::Concat(result, seperator);
+                result = JavascriptString::Concat(result, separator);
             }
             laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext);
             newArgs[0] = laneVar;
@@ -227,7 +227,7 @@ namespace Js
                 newArgs[0] = laneVar;
                 JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
-                result = JavascriptString::Concat(result, seperator);
+                result = JavascriptString::Concat(result, separator);
             }
             laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext);
             newArgs[0] = laneVar;

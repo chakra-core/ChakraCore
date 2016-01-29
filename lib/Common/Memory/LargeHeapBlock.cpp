@@ -345,7 +345,7 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
         size_t guardPageCount = pageHeapData->actualPageCount - this->pageCount;
         realPageCount = pageHeapData->actualPageCount;
 
-        if (pageHeapData->isGuardPageDecommited)
+        if (pageHeapData->isGuardPageDecommitted)
         {
             void* addr = nullptr;
 #ifdef RECYCLER_NO_PAGE_REUSE

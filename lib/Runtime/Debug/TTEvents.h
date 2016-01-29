@@ -256,7 +256,7 @@ namespace TTD
 
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator);
-        EventKind EventLogEntry_ParseHeader(bool readSeperator, FileReader* reader);
+        EventKind EventLogEntry_ParseHeader(bool readSeparator, FileReader* reader);
         void EventLogEntry_ParseRest(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         bool EventFailsWithRuntimeError(const EventLogEntry* evt);

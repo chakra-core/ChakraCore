@@ -62,9 +62,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        EventKind EventLogEntry_ParseHeader(bool readSeperator, FileReader* reader)
+        EventKind EventLogEntry_ParseHeader(bool readSeparator, FileReader* reader)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             return reader->ReadTag<EventKind>(NSTokens::Key::eventKind);
         }

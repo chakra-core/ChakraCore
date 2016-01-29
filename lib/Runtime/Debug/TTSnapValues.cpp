@@ -202,9 +202,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        TTDVar ParseTTDVar(bool readSeperator, FileReader* reader)
+        TTDVar ParseTTDVar(bool readSeparator, FileReader* reader)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             TTDVar res = nullptr;
             TTDVarEmitTag tag = reader->ReadTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag);
@@ -456,9 +456,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseSnapPrimitiveValue(SnapPrimitiveValue* snapValue, bool readSeperator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap)
+        void ParseSnapPrimitiveValue(SnapPrimitiveValue* snapValue, bool readSeparator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
             snapValue->PrimitiveValueId = reader->ReadAddr(NSTokens::Key::primitiveId);
 
             TTD_PTR_ID snapTypeId = reader->ReadAddr(NSTokens::Key::typeId, true);
@@ -674,9 +674,9 @@ namespace TTD
             writer->WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
         }
 
-        void ParseSlotArrayInfo(SlotArrayInfo* slotInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParseSlotArrayInfo(SlotArrayInfo* slotInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             slotInfo->SlotId = reader->ReadAddr(NSTokens::Key::slotId);
             slotInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
@@ -820,9 +820,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseScriptFunctionScopeInfo(ScriptFunctionScopeInfo* funcScopeInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParseScriptFunctionScopeInfo(ScriptFunctionScopeInfo* funcScopeInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             funcScopeInfo->ScopeId = reader->ReadAddr(NSTokens::Key::scopeId);
             funcScopeInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
@@ -895,9 +895,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             capabilityInfo->CapabilityId = reader->ReadAddr(NSTokens::Key::ptrIdVal);
 
@@ -952,9 +952,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             reactionInfo->PromiseReactionId = reader->ReadAddr(NSTokens::Key::ptrIdVal);
 
@@ -1099,9 +1099,9 @@ namespace TTD
             }
         }
 
-        void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
+        void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeparator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
             fbInfo->TopLevelBodyCtr = reader->ReadUInt32(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
 
@@ -1251,9 +1251,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
+        void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
         {
-            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, threadContext, reader, alloc);
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeparator, false, threadContext, reader, alloc);
 
             fbInfo->LoadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
 
@@ -1311,9 +1311,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
+        void ParseTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
         {
-            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, threadContext, reader, alloc);
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeparator, false, threadContext, reader, alloc);
 
             reader->ReadRecordEnd();
         }
@@ -1370,9 +1370,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
+        void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
         {
-            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, threadContext, reader, alloc);
+            NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeparator, false, threadContext, reader, alloc);
 
             fbInfo->EvalFlags = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             fbInfo->RegisterDocument = reader->ReadBool(NSTokens::Key::boolVal, true);
@@ -1529,9 +1529,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
@@ -1834,9 +1834,9 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseSnapContext(SnapContext* intoCtx, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParseSnapContext(SnapContext* intoCtx, bool readSeparator, FileReader* reader, SlabAllocator& alloc)
         {
-            reader->ReadRecordStart(readSeperator);
+            reader->ReadRecordStart(readSeparator);
 
             intoCtx->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag);
             intoCtx->IsPNRGSeeded = reader->ReadBool(NSTokens::Key::boolVal, true);

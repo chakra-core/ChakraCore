@@ -177,7 +177,7 @@ namespace TTD
         NSTokens::CleanupKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    void TextFormatWriter::WriteSeperator(NSTokens::Separator separator)
+    void TextFormatWriter::WriteSeparator(NSTokens::Separator separator)
     {
         if((separator & NSTokens::Separator::CommaSeparator) == NSTokens::Separator::CommaSeparator)
         {
@@ -211,7 +211,7 @@ namespace TTD
 
     void TextFormatWriter::WriteKey(NSTokens::Key key, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         TTDAssert(1 <= (uint32)key && (uint32)key < (uint32)NSTokens::Key::Count, "Key not in valid range!");
         const char16* kname = this->m_keyNameArray[(uint32)key];
@@ -223,7 +223,7 @@ namespace TTD
 
     void TextFormatWriter::WriteSequenceStart(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawChar(_u('['));
     }
 
@@ -231,13 +231,13 @@ namespace TTD
     {
         TTDAssert(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawChar(_u(']'));
     }
 
     void TextFormatWriter::WriteRecordStart(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawChar(_u('{'));
     }
 
@@ -245,7 +245,7 @@ namespace TTD
     {
         TTDAssert(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawChar(_u('}'));
     }
 
@@ -261,14 +261,14 @@ namespace TTD
 
     void TextFormatWriter::WriteNakedNull(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteRawCharBuff(_u("null"), 4);
     }
 
     void TextFormatWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("%I32u"), (uint32)val);
     }
 
@@ -287,31 +287,31 @@ namespace TTD
 
     void TextFormatWriter::WriteNakedInt32(int32 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("%I32i"), val);
     }
 
     void TextFormatWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("%I32u"), val);
     }
 
     void TextFormatWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("%I64i"), val);
     }
 
     void TextFormatWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("%I64u"), val);
     }
 
     void TextFormatWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         if(Js::JavascriptNumber::IsNan(val))
         {
@@ -357,19 +357,19 @@ namespace TTD
 
     void TextFormatWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("*%I64u"), val);
     }
 
     void TextFormatWriter::WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("!%I64i"), val);
     }
 
     void TextFormatWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteFormattedCharData(_u("$%I32i"), tagvalue);
     }
 
@@ -377,7 +377,7 @@ namespace TTD
 
     void TextFormatWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         if(IsNullPtrTTString(val))
         {
@@ -395,7 +395,7 @@ namespace TTD
 
     void TextFormatWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteRawChar(_u('~'));
         this->WriteRawCharBuff(val, wcslen(val));
@@ -404,7 +404,7 @@ namespace TTD
 
     void TextFormatWriter::WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteFormattedCharData(_u("@%I32u"), length);
 
@@ -415,7 +415,7 @@ namespace TTD
 
     void TextFormatWriter::WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteFormattedCharData(_u("@%I32u"), length);
 
@@ -435,7 +435,7 @@ namespace TTD
         ;
     }
 
-    void BinaryFormatWriter::WriteSeperator(NSTokens::Separator separator)
+    void BinaryFormatWriter::WriteSeparator(NSTokens::Separator separator)
     {
         if((separator & NSTokens::Separator::CommaSeparator) == NSTokens::Separator::CommaSeparator)
         {
@@ -445,31 +445,31 @@ namespace TTD
 
     void BinaryFormatWriter::WriteKey(NSTokens::Key key, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>((byte)key);
     }
 
     void BinaryFormatWriter::WriteSequenceStart(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>('[');
     }
 
     void BinaryFormatWriter::WriteSequenceEnd(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>(']');
     }
 
     void BinaryFormatWriter::WriteRecordStart(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>('{');
     }
 
     void BinaryFormatWriter::WriteRecordEnd(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>('}');
     }
 
@@ -485,13 +485,13 @@ namespace TTD
 
     void BinaryFormatWriter::WriteNakedNull(NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>((byte)0);
     }
 
     void BinaryFormatWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<byte>(val);
     }
 
@@ -503,55 +503,55 @@ namespace TTD
 
     void BinaryFormatWriter::WriteNakedInt32(int32 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<int32>(val);
     }
 
     void BinaryFormatWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<uint32>(val);
     }
 
     void BinaryFormatWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<int64>(val);
     }
 
     void BinaryFormatWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<uint64>(val);
     }
 
     void BinaryFormatWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<double>(val);
     }
 
     void BinaryFormatWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<TTD_PTR_ID>(val);
     }
 
     void BinaryFormatWriter::WriteNakedLogTag(TTD_LOG_PTR_ID val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<TTD_LOG_PTR_ID>(val);
     }
 
     void BinaryFormatWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
         this->WriteRawByteBuff_Fixed<uint32>(tagvalue);
     }
 
     void BinaryFormatWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         if(IsNullPtrTTString(val))
         {
@@ -566,7 +566,7 @@ namespace TTD
 
     void BinaryFormatWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         uint32 charLen = (uint32)wcslen(val);
         this->WriteRawByteBuff_Fixed<uint32>(charLen);
@@ -575,7 +575,7 @@ namespace TTD
 
     void BinaryFormatWriter::WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteRawByteBuff_Fixed<uint32>(length);
         this->WriteRawByteBuff((const byte*)code, length * sizeof(char16));
@@ -583,7 +583,7 @@ namespace TTD
 
     void BinaryFormatWriter::WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator)
     {
-        this->WriteSeperator(separator);
+        this->WriteSeparator(separator);
 
         this->WriteRawByteBuff_Fixed<uint32>(length);
         this->WriteRawByteBuff((const byte*)pname, length * sizeof(char16));
@@ -1175,7 +1175,7 @@ namespace TTD
         NSTokens::CleanupKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
 
-    void TextFormatReader::ReadSeperator(bool readSeparator)
+    void TextFormatReader::ReadSeparator(bool readSeparator)
     {
         if(readSeparator)
         {
@@ -1186,7 +1186,7 @@ namespace TTD
 
     void TextFormatReader::ReadKey(NSTokens::Key keyCheck, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         //We do a special scan here for a key (instead of the more general scan we call elsewhere)
         NSTokens::ParseTokenKind tok = this->ScanKey(this->m_charListPrimary);
@@ -1207,7 +1207,7 @@ namespace TTD
 
     void TextFormatReader::ReadSequenceStart(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
         TTDAssert(tok == NSTokens::ParseTokenKind::LBrack, "Error in parse.");
@@ -1221,7 +1221,7 @@ namespace TTD
 
     void TextFormatReader::ReadRecordStart(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
         TTDAssert(tok == NSTokens::ParseTokenKind::LCurly, "Error in parse.");
@@ -1235,7 +1235,7 @@ namespace TTD
 
     void TextFormatReader::ReadNakedNull(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
         TTDAssert(tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
@@ -1243,7 +1243,7 @@ namespace TTD
 
     byte TextFormatReader::ReadNakedByte(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
@@ -1266,7 +1266,7 @@ namespace TTD
 
     int32 TextFormatReader::ReadNakedInt32(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
@@ -1279,7 +1279,7 @@ namespace TTD
 
     uint32 TextFormatReader::ReadNakedUInt32(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
@@ -1292,7 +1292,7 @@ namespace TTD
 
     int64 TextFormatReader::ReadNakedInt64(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
@@ -1302,7 +1302,7 @@ namespace TTD
 
     uint64 TextFormatReader::ReadNakedUInt64(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
@@ -1312,7 +1312,7 @@ namespace TTD
 
     double TextFormatReader::ReadNakedDouble(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
 
@@ -1352,7 +1352,7 @@ namespace TTD
 
     TTD_PTR_ID TextFormatReader::ReadNakedAddr(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Address, "Error in parse.");
@@ -1362,7 +1362,7 @@ namespace TTD
 
     TTD_LOG_PTR_ID TextFormatReader::ReadNakedLogTag(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::LogTag, "Error in parse.");
@@ -1372,7 +1372,7 @@ namespace TTD
 
     uint32 TextFormatReader::ReadNakedTag(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::EnumTag, "Error in parse.");
@@ -1387,7 +1387,7 @@ namespace TTD
 
     void TextFormatReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
@@ -1404,7 +1404,7 @@ namespace TTD
 
     void TextFormatReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
@@ -1421,7 +1421,7 @@ namespace TTD
 
     TTD_WELLKNOWN_TOKEN TextFormatReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::WellKnownToken, "Error in parse.");
@@ -1432,7 +1432,7 @@ namespace TTD
 
     TTD_WELLKNOWN_TOKEN TextFormatReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::WellKnownToken, "Error in parse.");
@@ -1443,7 +1443,7 @@ namespace TTD
 
     void TextFormatReader::ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::String, "Error in parse.");
@@ -1462,7 +1462,7 @@ namespace TTD
         ;
     }
 
-    void BinaryFormatReader::ReadSeperator(bool readSeparator)
+    void BinaryFormatReader::ReadSeparator(bool readSeparator)
     {
         if(readSeparator)
         {
@@ -1475,7 +1475,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadKey(NSTokens::Key keyCheck, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         byte key = 0;
         this->ReadBytesInto_Fixed<byte>(key);
@@ -1485,7 +1485,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadSequenceStart(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         byte tok = 0;
         this->ReadBytesInto_Fixed<byte>(tok);
@@ -1503,7 +1503,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadRecordStart(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         byte tok = 0;
         this->ReadBytesInto_Fixed<byte>(tok);
@@ -1521,7 +1521,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadNakedNull(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         byte tok = 0;
         this->ReadBytesInto_Fixed<byte>(tok);
@@ -1531,7 +1531,7 @@ namespace TTD
 
     byte BinaryFormatReader::ReadNakedByte(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         byte b = 0;
         this->ReadBytesInto_Fixed<byte>(b);
@@ -1551,7 +1551,7 @@ namespace TTD
 
     int32 BinaryFormatReader::ReadNakedInt32(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         int32 i = 0;
         this->ReadBytesInto_Fixed<int32>(i);
@@ -1561,7 +1561,7 @@ namespace TTD
 
     uint32 BinaryFormatReader::ReadNakedUInt32(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 i = 0;
         this->ReadBytesInto_Fixed<uint32>(i);
@@ -1571,7 +1571,7 @@ namespace TTD
 
     int64 BinaryFormatReader::ReadNakedInt64(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         int64 i = 0;
         this->ReadBytesInto_Fixed<int64>(i);
@@ -1581,7 +1581,7 @@ namespace TTD
 
     uint64 BinaryFormatReader::ReadNakedUInt64(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint64 i = 0;
         this->ReadBytesInto_Fixed<uint64>(i);
@@ -1591,7 +1591,7 @@ namespace TTD
 
     double BinaryFormatReader::ReadNakedDouble(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         double d = 0.0;
         this->ReadBytesInto_Fixed<double>(d);
@@ -1601,7 +1601,7 @@ namespace TTD
 
     TTD_PTR_ID BinaryFormatReader::ReadNakedAddr(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         TTD_PTR_ID addr = TTD_INVALID_PTR_ID;
         this->ReadBytesInto_Fixed<TTD_PTR_ID>(addr);
@@ -1611,7 +1611,7 @@ namespace TTD
 
     TTD_LOG_PTR_ID BinaryFormatReader::ReadNakedLogTag(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         TTD_LOG_PTR_ID tag = TTD_INVALID_LOG_PTR_ID;
         this->ReadBytesInto_Fixed<TTD_LOG_PTR_ID>(tag);
@@ -1621,7 +1621,7 @@ namespace TTD
 
     uint32 BinaryFormatReader::ReadNakedTag(bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 tag = 0;
         this->ReadBytesInto_Fixed<uint32>(tag);
@@ -1631,7 +1631,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 sizeField = 0;
         this->ReadBytesInto_Fixed<uint32>(sizeField);
@@ -1650,7 +1650,7 @@ namespace TTD
 
     void BinaryFormatReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 sizeField = 0;
         this->ReadBytesInto_Fixed<uint32>(sizeField);
@@ -1669,7 +1669,7 @@ namespace TTD
 
     TTD_WELLKNOWN_TOKEN BinaryFormatReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 charLen = 0;
         this->ReadBytesInto_Fixed<uint32>(charLen);
@@ -1683,7 +1683,7 @@ namespace TTD
 
     TTD_WELLKNOWN_TOKEN BinaryFormatReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
     {
-        this->ReadSeperator(readSeparator);
+        this->ReadSeparator(readSeparator);
 
         uint32 charLen = 0;
         this->ReadBytesInto_Fixed<uint32>(charLen);
@@ -1742,9 +1742,9 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeperator, FileReader* reader)
+    void ParseDiagnosticOriginInformation(DiagnosticOrigin& info, bool readSeparator, FileReader* reader)
     {
-        reader->ReadRecordStart(readSeperator);
+        reader->ReadRecordStart(readSeparator);
         info.SourceLine = reader->ReadInt32(NSTokens::Key::line);
         info.EventTime = reader->ReadUInt32(NSTokens::Key::eventTime, true);
         info.TimeHash = reader->ReadUInt64(NSTokens::Key::u64Val, true);

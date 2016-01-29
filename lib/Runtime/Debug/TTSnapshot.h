@@ -114,7 +114,7 @@ namespace TTD
         void ReLinkThreadContextInfo(InflateMap* inflator, ThreadContextTTD* intoCtx) const;
 
         static void SnapRootPinEntryEmit(const NSSnapValues::SnapRootInfoEntry* spe, FileWriter* snapwriter, NSTokens::Separator separator);
-        static void SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+        static void SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
     public:
         //Performance counter values
