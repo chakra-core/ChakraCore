@@ -8669,8 +8669,15 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //
             // if(round)
             // {
-            //     CMP roundedFloat, 0.5
-            //     JAE $geHalf
+            // /* N.B.: the following CMPs are lowered to COMISDs, whose results can only be >, <, or =.
+            //    In fact, only ">" can be used if NaN has not been handled.
+            // */
+            //     CMP 0.5, roundedFloat
+            //     JA $ltHalf
+            //     CMP TwoToFraction, roundedFloat
+            //     JA $addHalfToRoundSrcLabel
+            //     J $skipRoundSd (NaN is also handled here)
+            //     $ltHalf:
             //     if (shouldCheckNegZero) {
             //         CMP roundedFloat, -0.5
             //         JL $ltNegHalf
@@ -8680,8 +8687,8 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //         J $bailout
             //     $ltNegHalf:
             //         CMP roundedFloat, NegTwoToFraction
-            //         JLE skipRoundSd
-            //         J $addHalfToRoundSrc
+            //         JA $addHalfToRoundSrc
+            //         J $skipRoundSd
             //     $negZeroTest:
             //         if isNegZero(roundedFloat):
             //             J $bailout
@@ -8691,9 +8698,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //     }
             //     MOV roundedFloat, 0
             //     J $skipRoundSd
-            // $geHalf:
-            //     CMP roundedFloat, TwoToFraction
-            //     JAE skipRoundSd
             // $addHalfToRoundSrc:
             //     ADDSD roundedFloat, 0.5
             // $skipAddHalf:
@@ -8776,22 +8780,33 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             if(instr->m_opcode == Js::OpCode::InlineMathRound)
             {
                 IR::LabelInstr * addHalfToRoundSrcLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-                IR::LabelInstr * geHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-                IR::LabelInstr * skipAddHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+                IR::LabelInstr * ltHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
 
                 IR::Opnd * pointFive;
+                IR::Opnd * twoToFraction;
 
                 if (src->IsFloat64())
                 {
                     pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    twoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_TwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
                     pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    twoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32TwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
-                this->m_lowerer->InsertCompareBranch(roundedFloat, pointFive, Js::OpCode::BrGe_A, geHalf, instr);
+                // CMP 0.5, roundedFloat
+                // JA $ltHalf
+                this->m_lowerer->InsertCompareBranch(pointFive, roundedFloat, Js::OpCode::BrGt_A, ltHalf, instr);
+                // CMP 2^fraction, roundedFloat
+                // JA $addHalfToRoundSrcLabel
+                this->m_lowerer->InsertCompareBranch(twoToFraction, roundedFloat, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
+                // J $skipRoundSd (NaN also handled here)
+                this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
+                // $ltHalf
+                instr->InsertBefore(ltHalf);
 
                 if(instr->ShouldCheckForNegativeZero())
                 {
@@ -8812,49 +8827,61 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                         negPointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegPointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                         negTwoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegTwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                     }
+                    // CMP roundedFloat, -0.5
+                    // JL $ltNegHalf
                     this->m_lowerer->InsertCompareBranch(roundedFloat, negPointFive, Js::OpCode::BrLt_A, ltNegHalf, instr);
+                    // CMP roundedFloat, 0
+                    // JA $setZero
                     this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGt_A, setZero, instr);
+                    // JEQ $negZeroTest
                     this->m_lowerer->InsertBranch(Js::OpCode::BrEq_A, negZeroTest, instr);
+                    // J $bailoutLabel
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, bailoutLabel, instr);
 
+                    // $ltNegHalf:
                     instr->InsertBefore(ltNegHalf);
-                    this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrLe_A, skipRoundSd, instr);
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, addHalfToRoundSrcLabel, instr);
+                    // CMP roundedFloat, negTwoToFraction
+                    // JA $addHalfToRoundSrcLabel
+                    this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
+                    // J $skipRoundSd
+                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
 
+                    // $negZeroTest:
                     instr->InsertBefore(negZeroTest);
                     IR::Opnd* isNegZero = IsOpndNegZero(src, instr);
+                    // if isNegZero(src) J $bailoutLabel
                     this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
+                    // else J $skipRoundSd
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
                     negZeroCheckDone = true;
+                    // $setZero:
                     instr->InsertBefore(setZero);
                 }
 
-                IR::Opnd * twoToFraction;
                 if (src->IsFloat64())
                 {
                     zero = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                     pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-                    twoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_TwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
                     zero = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32Zero, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                     pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
-                    twoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32TwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
+                // MOVSD roundedFloat, 0
                 IR::Instr * zeroRoundedFloatInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::MOVSD : Js::OpCode::MOVSS, roundedFloat, zero, this->m_func);
                 instr->InsertBefore(zeroRoundedFloatInstr);
                 Legalize(zeroRoundedFloatInstr);
+                // J $skipRoundSd
                 this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
 
-                instr->InsertBefore(geHalf);
-                this->m_lowerer->InsertCompareBranch(roundedFloat, twoToFraction, Js::OpCode::BrGe_A, skipRoundSd, instr);
+                // $addHalfToRoundSrcLabel
                 instr->InsertBefore(addHalfToRoundSrcLabel);
+                // ADDSD roundedFloat, 0.5
                 IR::Instr * addInstr = IR::Instr::New(src->IsFloat64() ? Js::OpCode::ADDSD : Js::OpCode::ADDSS, roundedFloat, roundedFloat, pointFive, this->m_func);
                 instr->InsertBefore(addInstr);
                 Legalize(addInstr);
-                instr->InsertBefore(skipAddHalf);
             }
 
             if (instr->m_opcode == Js::OpCode::InlineMathFloor && instr->GetDst()->IsInt32())
