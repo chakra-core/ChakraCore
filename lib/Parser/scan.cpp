@@ -2504,11 +2504,32 @@ void Scanner<EncodingPolicy>::Capture(_Out_ RestorePoint* restorePoint, uint fun
 template <typename EncodingPolicy>
 void Scanner<EncodingPolicy>::SeekTo(const RestorePoint& restorePoint)
 {
+    SeekAndScan<false>(restorePoint);
+}
+
+template <typename EncodingPolicy>
+void Scanner<EncodingPolicy>::SeekToForcingPid(const RestorePoint& restorePoint)
+{
+    SeekAndScan<true>(restorePoint);
+}
+
+template <typename EncodingPolicy>
+template <bool forcePid>
+void Scanner<EncodingPolicy>::SeekAndScan(const RestorePoint& restorePoint)
+{
     this->m_currentCharacter = this->m_pchBase + restorePoint.m_ichMinTok + restorePoint.m_cMinTokMultiUnits;
     this->m_pchMinLine = this->m_pchBase + restorePoint.m_ichMinLine + restorePoint.m_cMinLineMultiUnits;
     this->m_cMinLineMultiUnits = restorePoint.m_cMinLineMultiUnits;
     this->RestoreMultiUnits(restorePoint.m_cMinTokMultiUnits);
-    this->Scan();
+
+    if (forcePid)
+    {
+        this->ScanForcingPid();
+    }
+    else
+    {
+        this->Scan();
+    }
 
     this->m_line = restorePoint.m_line;
     this->m_fHadEol = restorePoint.m_fHadEol;

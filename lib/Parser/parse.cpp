@@ -4191,8 +4191,6 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
 
     if (fLambda)
     {
-        // lambda formals are parsed in strict mode always
-        m_fUseStrictMode = TRUE;
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(LambdaCount, m_scriptContext);
     }
 
@@ -4318,7 +4316,6 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         m_ppnodeExprScope = nullptr;
 
         this->ParseFncFormals<buildAST>(pnodeFnc, flags);
-        m_fUseStrictMode = oldStrictMode;
 
         // Create function body scope
         ParseNodePtr pnodeInnerBlock = nullptr;
@@ -4493,12 +4490,10 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         {
             this->m_fUseStrictMode = TRUE; // Now we know this function is in strict mode
 
-            if (!fLambda && !fWasAlreadyStrictMode)
+            if (!fWasAlreadyStrictMode)
             {
                 // If this function turned on strict mode then we didn't check the formal
                 // parameters or function name hint for future reserved word usage. So do that now.
-                // Except for lambdas which always treat formal parameters as strict and do not have
-                // a name.
                 RestorePoint afterFnc;
                 m_pscan->Capture(&afterFnc);
 
@@ -4523,7 +4518,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
 
                 // Fast forward to formal parameter list, check for future reserved words,
                 // then restore scanner as it was.
-                m_pscan->SeekTo(beginFormals);
+                m_pscan->SeekToForcingPid(beginFormals);
                 CheckStrictFormalParameters();
                 m_pscan->SeekTo(afterFnc);
             }
@@ -5255,8 +5250,10 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
     BOOL forcePid = IsStrictMode() && ((flags & (fFncNoArg | fFncOneArg)) == 0);
     AutoTempForcePid autoForcePid(m_pscan, forcePid);
 
+    bool fLambda = (flags & fFncLambda) != 0;
+
     // Lambda's allow single formal specified by a single binding identifier without parentheses, special case it.
-    if (m_token.tk == tkID && (flags & fFncLambda))
+    if (fLambda && m_token.tk == tkID)
     {
         if (buildAST || BindDeferredPidRefs())
         {
@@ -5393,7 +5390,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
                 }
 
-                if (IsStrictMode() || isNonSimpleParameterList)
+                if (IsStrictMode() || isNonSimpleParameterList || fLambda)
                 {
                     IdentPtr pid = m_token.GetIdentifier(m_phtbl);
                     UpdateOrCheckForDuplicateInFormals(pid, &formals);
@@ -5673,6 +5670,14 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
 
 void Parser::CheckStrictFormalParameters()
 {
+    if (m_token.tk == tkID)
+    {
+        // single parameter arrow function case
+        IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+        CheckStrictModeEvalArgumentsUsage(pid);
+        return;
+    }
+
     Assert(m_token.tk == tkLParen);
     m_pscan->ScanForcingPid();
 
