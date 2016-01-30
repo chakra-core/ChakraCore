@@ -376,6 +376,8 @@ namespace Js
 
 
 
+        JavascriptSymbol* symbolSearch;
+
         UnifiedRegex::RegexPattern * emptyRegexPattern;
 
         mutable CharStringCache charStringCache;
@@ -503,6 +505,7 @@ namespace Js
         JavascriptSymbol* GetSymbolHasInstance() { return symbolHasInstance; }
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
+        JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }

@@ -3189,6 +3189,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_Exec, callInstr->m_func));
         break;
 
+    case Js::BuiltinFunction::RegExp_SymbolSearch:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_SymbolSearch, callInstr->m_func));
+        break;
+
     };
     callInstr->SetSrc2(argoutInstr->GetDst());
     return;

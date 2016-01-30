@@ -270,10 +270,15 @@ namespace Js
         }
         else
         {
-            UnifiedRegex::RegexPattern* pattern = CreatePattern(aValue, options, scriptContext);
-
-            return scriptContext->GetLibrary()->CreateRegExp(pattern);
+            return CreateRegExNoCoerce(aValue, options, scriptContext);
         }
+    }
+
+    JavascriptRegExp* JavascriptRegExp::CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext)
+    {
+        UnifiedRegex::RegexPattern* pattern = CreatePattern(aValue, options, scriptContext);
+
+        return scriptContext->GetLibrary()->CreateRegExp(pattern);
     }
 
     void JavascriptRegExp::CacheLastIndex()
@@ -578,6 +583,69 @@ namespace Js
         bool sourceOnly = false;
         bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
         return obj->ToString(sourceOnly, useFlagsProperty);
+    }
+
+    Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSearchCount);
+
+        PCWSTR const varName = L"RegExp.prototype[Symbol.search]";
+
+        if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);;
+        }
+        Var regEx = args[0];
+        RecyclableObject *thisObj = RecyclableObject::FromVar(regEx);
+
+        JavascriptString* string = (args.Info.Count >= 2)
+            ? JavascriptConversion::ToString(args[1], scriptContext)
+            : scriptContext->GetLibrary()->GetUndefinedDisplayString();
+
+        PropertyOperationFlags lastIndexOperationFlags =
+            static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable);
+
+        Var previousLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
+        JavascriptOperators::SetProperty(
+            regEx,
+            thisObj,
+            PropertyIds::lastIndex,
+            TaggedInt::ToVarUnchecked(0),
+            scriptContext,
+            lastIndexOperationFlags);
+
+        Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
+        if (JavascriptConversion::IsCallable(exec))
+        {
+            RecyclableObject* execFn = RecyclableObject::FromVar(exec);
+            Var result = execFn->GetEntryPoint()(execFn, CallInfo(CallFlags_Value, 2), thisObj, string);
+
+            if (!JavascriptOperators::IsObjectOrNull(result))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_RegExpExecInvalidReturnType, varName);
+            }
+
+            JavascriptOperators::SetProperty(
+                regEx,
+                thisObj,
+                PropertyIds::lastIndex,
+                previousLastIndex,
+                scriptContext,
+                lastIndexOperationFlags);
+
+            return (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
+                ? TaggedInt::ToVarUnchecked(-1)
+                : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+        }
+
+        JavascriptRegExp * regExObj = GetJavascriptRegExp(args, varName, scriptContext);
+        return RegexHelper::RegexSearch(scriptContext, regExObj, string);
     }
 
     Var JavascriptRegExp::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)

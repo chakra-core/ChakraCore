@@ -329,3 +329,4 @@ RT_ERROR_MSG(JSERR_SimdUint32x4TypeMismatch, 5637, "SIMD.Uint32x4.%s: Invalid SI
 RT_ERROR_MSG(JSERR_SimdUint16x8TypeMismatch, 5638, "SIMD.Uint16x8.%s: Invalid SIMD types for operation", "Expecting UInt16x8 values", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_SimdUint8x16TypeMismatch, 5639, "SIMD.Uint8x16.%s: Invalid SIMD types for operation", "Expecting UInt8x16 values", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5640, "%s: first argument cannot be a RegExp", "First argument cannot be a RegExp", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)

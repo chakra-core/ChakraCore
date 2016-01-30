@@ -185,6 +185,7 @@ BUILTIN(JavascriptRegExp, NewInstance, NewInstance, FunctionInfo::SkipDefaultNew
 BUILTIN(JavascriptRegExp, Exec, EntryExec, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Test, EntryTest, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, SymbolSearch, EntrySymbolSearch, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Compile, EntryCompile, FunctionInfo::None)
 BUILTIN(JavascriptRegExp, GetterFlags, EntryGetterFlags, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)

@@ -203,6 +203,7 @@ namespace Js
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
+        static BOOL IsUndefinedOrNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
