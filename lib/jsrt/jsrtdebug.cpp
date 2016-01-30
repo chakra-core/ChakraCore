@@ -304,6 +304,18 @@ void JsrtDebug::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::
     scriptContext->GetThreadContext()->GetDebugManager()->SetDispatchHaltFrameAddress(frameAddress);
 #endif
     this->CallDebugEventCallback(debugEvent, eventDataObject, scriptContext);
+
+    for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
+    tempScriptContext != nullptr && !tempScriptContext->IsClosed();
+        tempScriptContext = tempScriptContext->next)
+    {
+        tempScriptContext->GetDebugContext()->GetProbeContainer()->AsyncDeactivate();
+    }
+
+    if (Js::Configuration::Global.EnableJitInDebugMode())
+    {
+        scriptContext->GetThreadContext()->GetDebugManager()->GetDebuggingFlags()->SetForceInterpreter(false);
+    }
 }
 
 
