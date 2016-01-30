@@ -36,25 +36,105 @@ namespace TTD
         this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
     }
 
-    TTDRecordFunctionActionTimePopper::TTDRecordFunctionActionTimePopper(EventLog* log)
-        : m_log(log), m_timer(), m_callAction(nullptr)
+    TTDRecordExternalFunctionCallActionPopper::TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext)
+        : m_log(log), m_scriptContext(scriptContext), m_timer(), m_callAction(nullptr)
     {
         ;
     }
 
-    TTDRecordFunctionActionTimePopper::~TTDRecordFunctionActionTimePopper()
+    TTDRecordExternalFunctionCallActionPopper::~TTDRecordExternalFunctionCallActionPopper()
     {
-        double endTime = this->m_timer.Now();
-        this->m_callAction->SetElapsedTime(endTime - this->m_startTime);
-        this->m_log->IncrementElapsedSnapshotTime(endTime - this->m_startTime);
+        if(this->m_callAction != nullptr)
+        {
+            double endTime = this->m_timer.Now();
+
+            //
+            //TODO: we will want to be a bit more detailed on this later
+            //
+            bool hasScriptException = this->m_scriptContext->HasRecordedException();
+            bool hasTerminalException = false;
+
+            this->m_log->RecordExternalCallEndEvent(this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, this->m_scriptContext->GetLibrary()->GetUndefined());
+
+            this->m_scriptContext->TTDRootNestingCount--;
+        }
     }
 
-    void TTDRecordFunctionActionTimePopper::SetCallAction(JsRTCallFunctionAction* action)
+    void TTDRecordExternalFunctionCallActionPopper::NormalReturn(bool checkException, Js::Var returnValue)
+    {
+        AssertMsg(this->m_callAction != nullptr, "Should never be null on normal return!");
+
+        double endTime = this->m_timer.Now();
+
+        //
+        //TODO: we will want to be a bit more detailed on this later
+        //
+        bool hasScriptException = checkException ? this->m_scriptContext->HasRecordedException() : false;
+        bool hasTerminalException = false;
+
+        this->m_log->RecordExternalCallEndEvent(this->m_callAction->GetEventTime(), this->m_callAction->GetRootNestingDepth(), hasScriptException, hasTerminalException, endTime, returnValue);
+
+        this->m_callAction = nullptr;
+        this->m_scriptContext->TTDRootNestingCount--;
+    }
+
+    void TTDRecordExternalFunctionCallActionPopper::SetCallAction(ExternalCallEventBeginLogEntry* action)
     {
         this->m_callAction = action;
     }
 
-    double TTDRecordFunctionActionTimePopper::GetStartTime()
+    double TTDRecordExternalFunctionCallActionPopper::GetStartTime()
+    {
+        return this->m_startTime;
+    }
+
+    TTDRecordJsRTFunctionCallActionPopper::TTDRecordJsRTFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext)
+        : m_log(log), m_scriptContext(scriptContext), m_timer(), m_callAction(nullptr)
+    {
+        ;
+    }
+
+    TTDRecordJsRTFunctionCallActionPopper::~TTDRecordJsRTFunctionCallActionPopper()
+    {
+        if(this->m_callAction != nullptr)
+        {
+            double endTime = this->m_timer.Now();
+
+            //
+            //TODO: we will want to be a bit more detailed on this later
+            //
+            bool hasScriptException = true; 
+            bool hasTerminalException = false;
+
+            this->m_log->RecordJsRTCallFunctionEnd(this->m_scriptContext, this->m_callAction->GetEventTime(), hasScriptException, hasTerminalException, this->m_callAction->GetCallDepth(), endTime);
+            this->m_log->IncrementElapsedSnapshotTime(endTime - this->m_startTime);
+        }
+    }
+
+    void TTDRecordJsRTFunctionCallActionPopper::NormalReturn()
+    {
+        AssertMsg(this->m_callAction != nullptr, "Should never be null on normal return!");
+
+        double endTime = this->m_timer.Now();
+
+        //
+        //TODO: we will want to be a bit more detailed on this later
+        //
+        bool hasScriptException = false;
+        bool hasTerminalException = false;
+
+        this->m_log->RecordJsRTCallFunctionEnd(this->m_scriptContext, this->m_callAction->GetEventTime(), hasScriptException, hasTerminalException, this->m_callAction->GetCallDepth(), endTime);
+        this->m_log->IncrementElapsedSnapshotTime(endTime - this->m_startTime);
+
+        this->m_callAction = nullptr;
+    }
+
+    void TTDRecordJsRTFunctionCallActionPopper::SetCallAction(JsRTCallFunctionBeginAction* action)
+    {
+        this->m_callAction = action;
+    }
+
+    double TTDRecordJsRTFunctionCallActionPopper::GetStartTime()
     {
         this->m_startTime = this->m_timer.Now();
 
@@ -537,18 +617,14 @@ namespace TTD
         return eevent;
     }
 
-    void EventLog::RecordExternalCallEndEvent(Js::JavascriptFunction* func, int32 rootDepth, Js::Var value)
+    void EventLog::RecordExternalCallEndEvent(int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
         NSLogValue::ArgRetValue* retVal = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
         NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_slabAllocator);
 
-        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, retVal);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        eevent->SetFunctionName(func->GetDisplayName()->GetSz());
-#endif
+        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootNestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
 
         this->InsertEventAtHead(eevent);
     }
@@ -568,18 +644,14 @@ namespace TTD
         return eevent;
     }
 
-    void EventLog::RecordPromiseRegisterEndEvent(int32 rootDepth, Js::Var value)
+    void EventLog::RecordPromiseRegisterEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
         NSLogValue::ArgRetValue* retVal = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
         NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_slabAllocator);
 
-        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, retVal);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        eevent->SetFunctionName(L"Register Promise Function");
-#endif
+        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootDepth, false, false, endTime, retVal);
 
         this->InsertEventAtHead(eevent);
     }
@@ -960,9 +1032,9 @@ namespace TTD
         uint32 topLevelCount = 0;
         while(curr != nullptr)
         {
-            if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCall())
+            if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCallBegin())
             {
-                JsRTCallFunctionAction* rootCallAction = JsRTCallFunctionAction::As(JsRTActionLogEntry::As(curr));
+                JsRTCallFunctionBeginAction* rootCallAction = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
                 topLevelCount++;
 
                 if(topLevelCount == k)
@@ -1263,9 +1335,9 @@ namespace TTD
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
         AssertMsg(this->m_currentEvent != nullptr && this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Something in wrong with the event position.");
-        AssertMsg(JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCall(), "Something in wrong with the event position.");
+        AssertMsg(JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCallBegin(), "Something in wrong with the event position.");
 
-        JsRTCallFunctionAction* rootCall = JsRTCallFunctionAction::As(JsRTActionLogEntry::As(this->m_currentEvent));
+        JsRTCallFunctionBeginAction* rootCall = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(this->m_currentEvent));
 
         if(!rootCall->HasReadyToRunSnapshotInfo())
         {
@@ -1293,9 +1365,9 @@ namespace TTD
                     break;
                 }
 
-                if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCall())
+                if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCallBegin())
                 {
-                    JsRTCallFunctionAction* rootEntry = JsRTCallFunctionAction::As(JsRTActionLogEntry::As(curr));
+                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
 
                     if(rootEntry->HasReadyToRunSnapshotInfo())
                     {
@@ -1353,7 +1425,7 @@ namespace TTD
                 }
                 else
                 {
-                    JsRTCallFunctionAction* rootEntry = JsRTCallFunctionAction::As(JsRTActionLogEntry::As(curr));
+                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
 
                     SnapShot* ncSnap = nullptr;
                     rootEntry->GetReadyToRunSnapshotInfo(&ncSnap, &restoreLogTagCtr, &restoreIdentityTagCtr);
@@ -1556,7 +1628,7 @@ namespace TTD
         this->InsertEventAtHead(parseEvent);
     }
 
-    JsRTCallFunctionAction* EventLog::RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
+    JsRTCallFunctionBeginAction* EventLog::RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
@@ -1570,7 +1642,7 @@ namespace TTD
         }
         Js::Var* execArgs = (argCount != 0) ? this->m_slabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
 
-        JsRTCallFunctionAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
+        JsRTCallFunctionBeginAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionBeginAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         callEvent->SetFunctionName(this->m_slabAllocator.CopyStringInto(func->GetDisplayName()->GetSz()));
@@ -1579,6 +1651,18 @@ namespace TTD
         this->InsertEventAtHead(callEvent);
 
         return callEvent;
+    }
+
+    void EventLog::RecordJsRTCallFunctionEnd(Js::ScriptContext* ctx, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
+
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        JsRTCallFunctionEndAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionEndAction>(etime, ctxTag, matchingBeginTime, hasScriptException, hasTerminatingException, callbackDepth, endTime);
+
+        this->InsertEventAtHead(callEvent);
     }
 
     void EventLog::ReplayActionLoopStep()
@@ -1601,7 +1685,7 @@ namespace TTD
             END_ENTER_SCRIPT;
 
             nextActionValid = (this->m_currentEvent != nullptr && this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag);
-            nextActionRootCall = (nextActionValid && JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCall());
+            nextActionRootCall = (nextActionValid && JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCallBegin());
 
         } while(nextActionValid & !nextActionRootCall);
     }

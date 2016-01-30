@@ -2202,10 +2202,10 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef f
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            TTD::TTDRecordFunctionActionTimePopper actionPopper(threadContext->TTDLog);
-            TTD::JsRTCallFunctionAction* callAction = threadContext->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
-
+            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
+            TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
             actionPopper.SetCallAction(callAction);
+
             if(scriptContext->TTDRootNestingCount == 0)
             {
                 threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
@@ -2217,6 +2217,8 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef f
                 *result = varResult;
                 Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
             }
+
+            actionPopper.NormalReturn();
         }
         else
         {
@@ -3442,10 +3444,10 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
             {
-                TTD::TTDRecordFunctionActionTimePopper actionPopper(threadContext->TTDLog);
-                TTD::JsRTCallFunctionAction* callAction = threadContext->TTDLog->RecordJsRTCallFunction(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
-
+                TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
+                TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, -1, actionPopper.GetStartTime(), scriptFunction, args.Info.Count, args.Values);
                 actionPopper.SetCallAction(callAction);
+
                 if(scriptContext->TTDRootNestingCount == 0)
                 {
                     threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
@@ -3456,6 +3458,8 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 {
                     *result = varResult;
                 }
+
+                actionPopper.NormalReturn();
             }
             else
             {

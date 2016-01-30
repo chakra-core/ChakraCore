@@ -301,11 +301,11 @@ namespace Js
 
             if(elog->ShouldPerformRecordAction())
             {
-                Js::HiResTimer timer;
-                double startTime = timer.Now();
+                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
                 scriptContext->TTDRootNestingCount++;
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, logPopper.GetStartTime());
+                logPopper.SetCallAction(beginEvent); //wil lalso decrement the nesting count as needed
 
                 Var result = nullptr;
                 BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
@@ -315,11 +315,8 @@ namespace Js
                 }
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
 
-                double endTime = timer.Now();
-                beginEvent->SetElapsedTime(endTime - startTime);
-
-                elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
-                scriptContext->TTDRootNestingCount--;
+                //no exception check below so I assume the external call cannot have an exception registered
+                logPopper.NormalReturn(false, result);
             }
         }
         else
@@ -405,11 +402,11 @@ namespace Js
 
             if(elog->ShouldPerformRecordAction())
             {
-                Js::HiResTimer timer;
-                double startTime = timer.Now();
+                TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
                 scriptContext->TTDRootNestingCount++;
-                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, startTime);
+                TTD::ExternalCallEventBeginLogEntry* beginEvent = elog->RecordExternalCallBeginEvent(externalFunction, scriptContext->TTDRootNestingCount, logPopper.GetStartTime());
+                logPopper.SetCallAction(beginEvent);
 
                 BEGIN_LEAVE_SCRIPT(scriptContext)
                 {
@@ -417,11 +414,8 @@ namespace Js
                 }
                 END_LEAVE_SCRIPT(scriptContext);
 
-                double endTime = timer.Now();
-                beginEvent->SetElapsedTime(endTime - startTime);
-
-                elog->RecordExternalCallEndEvent(externalFunction, scriptContext->TTDRootNestingCount, result);
-                scriptContext->TTDRootNestingCount--;
+                //exception check is done explicitly below call can have an exception registered
+                logPopper.NormalReturn(true, result);
             }
         }
         else

@@ -192,8 +192,22 @@ namespace TTD
         writer->AdjustIndent(1);
         for(const EventLogEntry* curr = headEvent; curr != nullptr; curr = curr->m_next)
         {
+            bool isJsRTEndCall = (curr->GetEventKind() == EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->GetActionTypeTag() == JsRTActionType::CallExistingFunctionEnd);
+            bool isExternalEndCall = (curr->GetEventKind() == EventKind::ExternalCallEndTag);
+            if(isJsRTEndCall | isExternalEndCall)
+            {
+                writer->AdjustIndent(-1);
+            }
+
             curr->EmitEvent(logContainerUri, writer, threadContext, !first ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
             first = false;
+
+            bool isJsRTBeginCall = (curr->GetEventKind() == EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->GetActionTypeTag() == JsRTActionType::CallExistingFunctionBegin);
+            bool isExternalBeginCall = (curr->GetEventKind() == EventKind::ExternalCallBeginTag);
+            if(isJsRTBeginCall | isExternalBeginCall)
+            {
+                writer->AdjustIndent(1);
+            }
         }
         writer->AdjustIndent(-1);
         writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
@@ -760,7 +774,7 @@ namespace TTD
     //////////////////
 
     ExternalCallEventBeginLogEntry::ExternalCallEventBeginLogEntry(int64 eTime, int32 rootNestingDepth, double callBeginTime)
-        : EventLogEntry(EventLogEntry::EventKind::ExternalCallBeginTag, eTime), m_rootNestingDepth(rootNestingDepth), m_callBeginTime(callBeginTime), m_elapsedTime(0)
+        : EventLogEntry(EventLogEntry::EventKind::ExternalCallBeginTag, eTime), m_rootNestingDepth(rootNestingDepth), m_callBeginTime(callBeginTime)
     {
         ;
     }
@@ -776,11 +790,6 @@ namespace TTD
         this->m_functionName = fname;
     }
 #endif
-
-    void ExternalCallEventBeginLogEntry::SetElapsedTime(double elapsedTime)
-    {
-        this->m_elapsedTime = elapsedTime;
-    }
 
     ExternalCallEventBeginLogEntry* ExternalCallEventBeginLogEntry::As(EventLogEntry* e)
     {
@@ -804,8 +813,6 @@ namespace TTD
 
         writer->WriteInt32(NSTokens::Key::rootNestingDepth, this->m_rootNestingDepth, NSTokens::Separator::CommaSeparator);
         writer->WriteDouble(NSTokens::Key::beginTime, this->m_callBeginTime, NSTokens::Separator::CommaSeparator);
-        writer->WriteDouble(NSTokens::Key::elapsedTime, this->m_elapsedTime, NSTokens::Separator::CommaSeparator);
-
         writer->WriteRecordEnd();
     }
 
@@ -817,10 +824,8 @@ namespace TTD
 
         int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
         double beginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
-        double elapsedTime = reader->ReadDouble(NSTokens::Key::elapsedTime, true);
 
         ExternalCallEventBeginLogEntry* res = alloc.SlabNew<ExternalCallEventBeginLogEntry>(eTime, nestingDepth, beginTime);
-        res->SetElapsedTime(elapsedTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         res->SetFunctionName(fname);
@@ -829,8 +834,8 @@ namespace TTD
         return res;
     }
 
-    ExternalCallEventEndLogEntry::ExternalCallEventEndLogEntry(int64 eTime, int32 rootNestingDepth, NSLogValue::ArgRetValue* returnVal)
-        : EventLogEntry(EventLogEntry::EventKind::ExternalCallEndTag, eTime), m_hasTerminiatingException(false), m_hasScriptException(false), m_rootNestingDepth(rootNestingDepth), m_returnVal(returnVal)
+    ExternalCallEventEndLogEntry::ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, NSLogValue::ArgRetValue* returnVal)
+        : EventLogEntry(EventLogEntry::EventKind::ExternalCallEndTag, eTime), m_matchingBeginTime(matchingBeginTime), m_rootNestingDepth(rootNestingDepth), m_hasTerminiatingException(false), m_hasScriptException(false), m_callEndTime(endTime), m_returnVal(returnVal)
     {
         ;
     }
@@ -840,28 +845,11 @@ namespace TTD
         ;
     }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-    void ExternalCallEventEndLogEntry::SetFunctionName(LPCWSTR fname)
-    {
-        this->m_functionName = fname;
-    }
-#endif
-
     ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::As(EventLogEntry* e)
     {
         AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::ExternalCallEndTag, "Not an external call event!");
 
         return static_cast<ExternalCallEventEndLogEntry*>(e);
-    }
-
-    void ExternalCallEventEndLogEntry::SetTerminatingException()
-    {
-        this->m_hasTerminiatingException = true;
-    }
-
-    void ExternalCallEventEndLogEntry::SetScriptException()
-    {
-        this->m_hasScriptException = true;
     }
 
     bool ExternalCallEventEndLogEntry::HasTerminatingException() const
@@ -872,6 +860,11 @@ namespace TTD
     bool ExternalCallEventEndLogEntry::HasScriptException() const
     {
         return this->m_hasScriptException;
+    }
+
+    int64 ExternalCallEventEndLogEntry::GetMatchingCallBegin() const
+    {
+        return this->m_matchingBeginTime;
     }
 
     int32 ExternalCallEventEndLogEntry::GetRootNestingDepth() const
@@ -888,35 +881,33 @@ namespace TTD
     {
         this->BaseStdEmit(writer, separator);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        writer->WriteString(NSTokens::Key::name, this->m_functionName, NSTokens::Separator::CommaSeparator);
-#endif
-
+        writer->WriteInt64(NSTokens::Key::matchingCallBegin, this->m_matchingBeginTime, NSTokens::Separator::CommaSeparator);
         writer->WriteInt32(NSTokens::Key::rootNestingDepth, this->m_rootNestingDepth, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_hasScriptException, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_hasTerminiatingException, NSTokens::Separator::CommaSeparator);
+
         writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
         NSLogValue::EmitArgRetValue(this->m_returnVal, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteDouble(NSTokens::Key::endTime, this->m_callEndTime, NSTokens::Separator::CommaSeparator);
 
         writer->WriteRecordEnd();
     }
 
     ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
     {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR fname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
-#endif
-
+        int64 matchingBegin = reader->ReadInt64(NSTokens::Key::matchingCallBegin, true);
         int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
+        bool hasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
+        bool hasTerminatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
+
         NSLogValue::ArgRetValue* retVal = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
         reader->ReadKey(NSTokens::Key::argRetVal, true);
         NSLogValue::ParseArgRetValue(retVal, false, reader, alloc);
 
-        ExternalCallEventEndLogEntry* res = alloc.SlabNew<ExternalCallEventEndLogEntry>(eTime, nestingDepth, retVal);
+        double endTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        res->SetFunctionName(fname);
-#endif
-
-        return res;
+        return alloc.SlabNew<ExternalCallEventEndLogEntry>(eTime, matchingBegin, nestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
     }
 }
 

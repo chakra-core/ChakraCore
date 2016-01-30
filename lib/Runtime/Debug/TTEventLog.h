@@ -23,20 +23,44 @@ namespace TTD
     };
 
     //A class to ensure that even when exceptions are thrown we record the time difference info
-    class TTDRecordFunctionActionTimePopper
+    class TTDRecordExternalFunctionCallActionPopper
     {
     private:
         EventLog* m_log;
+        Js::ScriptContext* m_scriptContext;
         Js::HiResTimer m_timer;
         double m_startTime;
 
-        JsRTCallFunctionAction* m_callAction;
+        ExternalCallEventBeginLogEntry* m_callAction;
 
     public:
-        TTDRecordFunctionActionTimePopper(EventLog* log);
-        ~TTDRecordFunctionActionTimePopper();
+        TTDRecordExternalFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext);
+        ~TTDRecordExternalFunctionCallActionPopper();
 
-        void SetCallAction(JsRTCallFunctionAction* action);
+        void NormalReturn(bool checkException, Js::Var returnValue);
+
+        void SetCallAction(ExternalCallEventBeginLogEntry* action);
+        double GetStartTime();
+    };
+
+    //A class to ensure that even when exceptions are thrown we record the time difference info
+    class TTDRecordJsRTFunctionCallActionPopper
+    {
+    private:
+        EventLog* m_log;
+        Js::ScriptContext* m_scriptContext;
+        Js::HiResTimer m_timer;
+        double m_startTime;
+
+        JsRTCallFunctionBeginAction* m_callAction;
+
+    public:
+        TTDRecordJsRTFunctionCallActionPopper(EventLog* log, Js::ScriptContext* scriptContext);
+        ~TTDRecordJsRTFunctionCallActionPopper();
+
+        void NormalReturn();
+
+        void SetCallAction(JsRTCallFunctionBeginAction* action);
         double GetStartTime();
     };
 
@@ -234,10 +258,10 @@ namespace TTD
 
         //Log a value event for return from an external call
         ExternalCallEventBeginLogEntry* RecordExternalCallBeginEvent(Js::JavascriptFunction* func, int32 rootDepth, double beginTime);
-        void RecordExternalCallEndEvent(Js::JavascriptFunction* func, int32 rootDepth, Js::Var value);
+        void RecordExternalCallEndEvent(int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, Js::Var value);
 
         ExternalCallEventBeginLogEntry* RecordPromiseRegisterBeginEvent(int32 rootDepth, double beginTime);
-        void RecordPromiseRegisterEndEvent(int32 rootDepth, Js::Var value);
+        void RecordPromiseRegisterEndEvent(int64 matchingBeginTime, int32 rootDepth, double endTime, Js::Var value);
 
         //replay an external return event (which should be the current event)
         void ReplayExternalCallEvent(Js::ScriptContext* ctx, Js::Var* result);
@@ -390,7 +414,8 @@ namespace TTD
         void RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode);
 
         //Record callback of an existing function
-        JsRTCallFunctionAction* RecordJsRTCallFunction(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
+        JsRTCallFunctionBeginAction* RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
+        void RecordJsRTCallFunctionEnd(Js::ScriptContext* ctx, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime);
 
         //Replay a sequence of JsRT actions to get to the next event log item
         void ReplayActionLoopStep();

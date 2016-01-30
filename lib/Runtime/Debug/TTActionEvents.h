@@ -20,7 +20,8 @@ namespace TTD
         GetProperty,
         CallbackOp,
         CodeParse,
-        CallExistingFunction,
+        CallExistingFunctionBegin,
+        CallExistingFunctionEnd,
         Limit
     };
     DEFINE_ENUM_FLAG_OPERATORS(JsRTActionType);
@@ -46,13 +47,15 @@ namespace TTD
         Js::ScriptContext* GetScriptContextForAction(ThreadContext* threadContext) const;
 
         //Get the event as a external call event (and do tag checking for consistency)
+        static const JsRTActionLogEntry* As(const EventLogEntry* e);
         static JsRTActionLogEntry* As(EventLogEntry* e);
 
         //Get the action tag -- try not to use this too much
         JsRTActionType GetActionTypeTag() const;
 
         //We need to do some special things with root calls -- so check if this is a root call
-        bool IsRootCall();
+        bool IsRootCallBegin();
+        bool IsRootCallEnd();
 
         //Execute the JsRT action and return false if we should yield back to the enclosing scope (top-level or nested JS context)
         virtual void ExecuteAction(ThreadContext* threadContext) const = 0;
@@ -211,8 +214,8 @@ namespace TTD
         static JsRTCodeParseAction* CompleteParse(ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
-    //A class for calls to that execute existing functions
-    class JsRTCallFunctionAction : public JsRTActionLogEntry
+    //A class for calls to that execute existing functions (when we begin the callback)
+    class JsRTCallFunctionBeginAction : public JsRTActionLogEntry
     {
     private:
         //the function tag and name for the callback function
@@ -229,7 +232,6 @@ namespace TTD
         const int64 m_hostCallbackId;
 
         const double m_beginTime;
-        double m_elapsedTime;
 
         //the number of arguments and the argument array
         const uint32 m_argCount;
@@ -243,19 +245,11 @@ namespace TTD
         mutable SnapShot* m_rtrSnap;
         mutable TTD_LOG_TAG m_rtrRestoreLogTag;
         mutable TTD_IDENTITY_TAG m_rtrRestoreIdentityTag;
-
-        //Info on the last executed statement in this call
-        mutable bool m_lastExecuted_valid;
-        mutable uint64 m_lastExecuted_ftime;
-        mutable uint64 m_lastExecuted_ltime; 
-        mutable uint32 m_lastExecuted_line;
-        mutable uint32 m_lastExecuted_column;
-        mutable uint32 m_lastExecuted_sourceId;
 #endif
 
     public:
-        JsRTCallFunctionAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs);
-        virtual ~JsRTCallFunctionAction() override;
+        JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs);
+        virtual ~JsRTCallFunctionBeginAction() override;
 
         virtual void UnloadSnapshot() const override;
 
@@ -263,17 +257,12 @@ namespace TTD
         void SetFunctionName(LPCWSTR fname);
 #endif
 
-        static JsRTCallFunctionAction* As(JsRTActionLogEntry* action);
+        static JsRTCallFunctionBeginAction* As(JsRTActionLogEntry* action);
 
         //Get/Set/Clear the ready-to-run snapshot information (in debugging mode -- nops for replay mode)
         bool HasReadyToRunSnapshotInfo() const;
         void GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const;
         void SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag) const;
-
-        //Set the last executed statement and frame (in debugging mode -- nops for replay mode)
-        void ClearLastExecutedStatementAndFrameInfo() const;
-        void SetLastExecutedStatementAndFrameInfo(const SingleCallCounter& lastFrame) const;
-        bool GetLastExecutedStatementAndFrameInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const;
 
         //Get the call depth for this
         int32 GetCallDepth() const;
@@ -281,12 +270,60 @@ namespace TTD
         //Get the host callback id info for this (toplevel) event
         int64 GetHostCallbackId() const;
 
-        void SetElapsedTime(double elapsedTime);
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTCallFunctionBeginAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for calls to that execute existing functions (when we complete the callback)
+    class JsRTCallFunctionEndAction : public JsRTActionLogEntry
+    {
+    private:
+        //The corresponding begin action time
+        const int64 m_matchingBeginTime;
+
+        //
+        //TODO: later we should record more detail on the script exception for inflation if needed
+        //
+        const bool m_hasScriptException;
+        const bool m_hasTerminiatingException;
+
+        //The re-entry depth we are at when this happens
+        const int32 m_callbackDepth;
+
+        const double m_endTime;
+
+#if ENABLE_TTD_DEBUGGING
+        //Info on the last executed statement in this call
+        mutable bool m_lastExecuted_valid;
+        mutable uint64 m_lastExecuted_ftime;
+        mutable uint64 m_lastExecuted_ltime;
+        mutable uint32 m_lastExecuted_line;
+        mutable uint32 m_lastExecuted_column;
+        mutable uint32 m_lastExecuted_sourceId;
+#endif
+
+    public:
+        JsRTCallFunctionEndAction(int64 eTime, TTD_LOG_TAG ctxTag, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime);
+        virtual ~JsRTCallFunctionEndAction() override;
+
+        static JsRTCallFunctionEndAction* As(JsRTActionLogEntry* action);
+
+        //Set the last executed statement and frame (in debugging mode -- nops for replay mode)
+        void SetLastExecutedStatementAndFrameInfo(const SingleCallCounter& lastFrame) const;
+        bool GetLastExecutedStatementAndFrameInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const;
+
+        //Get the event time for the matching call begin event
+        int64 GetMatchingCallBegin() const;
+
+        //Get the call depth for this
+        int32 GetCallDepth() const;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static JsRTCallFunctionAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+        static JsRTCallFunctionEndAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 }
 

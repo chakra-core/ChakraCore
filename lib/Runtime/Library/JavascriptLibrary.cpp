@@ -4335,9 +4335,8 @@ namespace Js
                     END_LEAVE_SCRIPT(scriptContext);
 
                     double endTime = timer.Now();
-                    beginEvent->SetElapsedTime(endTime - startTime);
 
-                    elog->RecordPromiseRegisterEndEvent(scriptContext->TTDRootNestingCount, result);
+                    elog->RecordPromiseRegisterEndEvent(beginEvent->GetEventTime(), scriptContext->TTDRootNestingCount, endTime, result);
                     scriptContext->TTDRootNestingCount--;
                 }
             }

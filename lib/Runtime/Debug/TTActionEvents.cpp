@@ -30,6 +30,13 @@ namespace TTD
         return threadContext->TTDInfo->LookupObjectForTag(this->m_ctxTag)->GetScriptContext();
     }
 
+    const JsRTActionLogEntry* JsRTActionLogEntry::As(const EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Not a JsRT action!");
+
+        return static_cast<const JsRTActionLogEntry*>(e);
+    }
+
     JsRTActionLogEntry* JsRTActionLogEntry::As(EventLogEntry* e)
     {
         AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Not a JsRT action!");
@@ -42,9 +49,14 @@ namespace TTD
         return this->m_actionTypeTag;
     }
 
-    bool JsRTActionLogEntry::IsRootCall()
+    bool JsRTActionLogEntry::IsRootCallBegin()
     {
-        return (this->m_actionTypeTag == JsRTActionType::CallExistingFunction && JsRTCallFunctionAction::As(this)->GetCallDepth() == 0);
+        return (this->m_actionTypeTag == JsRTActionType::CallExistingFunctionBegin && JsRTCallFunctionBeginAction::As(this)->GetCallDepth() == 0);
+    }
+
+    bool JsRTActionLogEntry::IsRootCallEnd()
+    {
+        return (this->m_actionTypeTag == JsRTActionType::CallExistingFunctionEnd && JsRTCallFunctionBeginAction::As(this)->GetCallDepth() == 0);
     }
 
     JsRTActionLogEntry* JsRTActionLogEntry::CompleteParse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc, int64 eTime)
@@ -73,8 +85,11 @@ namespace TTD
         case JsRTActionType::CodeParse:
             res = JsRTCodeParseAction::CompleteParse(threadContext, reader, alloc, eTime, ctxTag);
             break;
-        case JsRTActionType::CallExistingFunction:
-            res = JsRTCallFunctionAction::CompleteParse(reader, alloc, eTime, ctxTag);
+        case JsRTActionType::CallExistingFunctionBegin:
+            res = JsRTCallFunctionBeginAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::CallExistingFunctionEnd:
+            res = JsRTCallFunctionEndAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         default:
             AssertMsg(false, "Missing tag in case");
@@ -503,18 +518,17 @@ namespace TTD
         return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, srcCode, documentId, srcUri, srcDir);
     }
 
-    JsRTCallFunctionAction::JsRTCallFunctionAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallExistingFunction), m_callbackDepth(callbackDepth), m_hostCallbackId(hostCallbackId), m_beginTime(beginTime), m_elapsedTime(0),
+    JsRTCallFunctionBeginAction::JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallExistingFunctionBegin), m_callbackDepth(callbackDepth), m_hostCallbackId(hostCallbackId), m_beginTime(beginTime),
         m_functionTagId(functionTagId), m_argCount(argCount), m_argArray(argArray), m_execArgs(execArgs)
 #if ENABLE_TTD_DEBUGGING
         , m_rtrSnap(nullptr), m_rtrRestoreLogTag(TTD_INVALID_LOG_TAG), m_rtrRestoreIdentityTag(TTD_INITIAL_IDENTITY_TAG)
-        , m_lastExecuted_valid(false), m_lastExecuted_ftime(0), m_lastExecuted_ltime(0), m_lastExecuted_line(0), m_lastExecuted_column(0), m_lastExecuted_sourceId(0)
 #endif
     {
         ;
     }
 
-    JsRTCallFunctionAction::~JsRTCallFunctionAction()
+    JsRTCallFunctionBeginAction::~JsRTCallFunctionBeginAction()
     {
 #if ENABLE_TTD_DEBUGGING
         if(this->m_rtrSnap != nullptr)
@@ -528,7 +542,7 @@ namespace TTD
 #endif
     }
 
-    void JsRTCallFunctionAction::UnloadSnapshot() const
+    void JsRTCallFunctionBeginAction::UnloadSnapshot() const
     {
 #if ENABLE_TTD_DEBUGGING
         if(this->m_rtrSnap != nullptr)
@@ -543,20 +557,20 @@ namespace TTD
     }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-    void JsRTCallFunctionAction::SetFunctionName(LPCWSTR fname)
+    void JsRTCallFunctionBeginAction::SetFunctionName(LPCWSTR fname)
     {
         this->m_functionName = fname;
     }
 #endif
 
-    JsRTCallFunctionAction* JsRTCallFunctionAction::As(JsRTActionLogEntry* action)
+    JsRTCallFunctionBeginAction* JsRTCallFunctionBeginAction::As(JsRTActionLogEntry* action)
     {
-        AssertMsg(action->GetActionTypeTag() == JsRTActionType::CallExistingFunction, "Need to ensure this is true first");
+        AssertMsg(action->GetActionTypeTag() == JsRTActionType::CallExistingFunctionBegin, "Need to ensure this is true first");
 
-        return static_cast<JsRTCallFunctionAction*>(action);
+        return static_cast<JsRTCallFunctionBeginAction*>(action);
     }
 
-    bool JsRTCallFunctionAction::HasReadyToRunSnapshotInfo() const
+    bool JsRTCallFunctionBeginAction::HasReadyToRunSnapshotInfo() const
     {
 #if !ENABLE_TTD_DEBUGGING
         return false;
@@ -565,7 +579,7 @@ namespace TTD
 #endif
     }
 
-    void JsRTCallFunctionAction::GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const
+    void JsRTCallFunctionBeginAction::GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const
     {
 #if !ENABLE_TTD_DEBUGGING
         *snap = nullptr;
@@ -580,7 +594,7 @@ namespace TTD
 #endif
     }
 
-    void JsRTCallFunctionAction::SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag) const
+    void JsRTCallFunctionBeginAction::SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag) const
     {
 #if ENABLE_TTD_DEBUGGING
         AssertMsg(this->m_rtrSnap == nullptr, "We already have a rtr snapshot!!!");
@@ -591,19 +605,157 @@ namespace TTD
 #endif
     }
 
-    void JsRTCallFunctionAction::ClearLastExecutedStatementAndFrameInfo() const
+    int32 JsRTCallFunctionBeginAction::GetCallDepth() const
     {
-#if ENABLE_TTD_DEBUGGING
-        this->m_lastExecuted_valid = false;
-        this->m_lastExecuted_ftime = 0;
-        this->m_lastExecuted_ltime = 0;
-        this->m_lastExecuted_line = 0;
-        this->m_lastExecuted_column = 0;
-        this->m_lastExecuted_sourceId = 0;
-#endif
+        return this->m_callbackDepth;
     }
 
-    void JsRTCallFunctionAction::SetLastExecutedStatementAndFrameInfo(const SingleCallCounter& lastFrame) const
+    int64 JsRTCallFunctionBeginAction::GetHostCallbackId() const
+    {
+        AssertMsg(this->m_callbackDepth == 0, "This should be a root call!!!");
+
+        return this->m_hostCallbackId;
+    }
+
+    void JsRTCallFunctionBeginAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::RecyclableObject* fobj = execContext->GetThreadContext()->TTDInfo->LookupObjectForTag(this->m_functionTagId);
+        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(fobj);
+
+        Js::CallInfo callInfo((ushort)this->m_argCount);
+        for(uint32 i = 0; i < this->m_argCount; ++i)
+        {
+            const NSLogValue::ArgRetValue* aval = (this->m_argArray + i);
+            Js::Var avar = NSLogValue::InflateArgRetValueIntoVar(aval, execContext);
+
+            this->m_execArgs[i] = avar;
+        }
+        Js::Arguments jsArgs(callInfo, this->m_execArgs);
+
+        if(this->m_callbackDepth == 0)
+        {
+            threadContext->TTDLog->ResetCallStackForTopLevelCall(this->GetEventTime(), this->m_hostCallbackId);
+        }
+
+        Js::Var result = nullptr;
+        try
+        {
+            result = jsFunction->CallRootFunction(jsArgs, execContext, true);
+        }
+        catch(Js::JavascriptExceptionObject*  exceptionObject)
+        {
+            AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
+
+            threadContext->SetRecordedException(exceptionObject);
+        }
+        catch(Js::ScriptAbortException)
+        {
+            AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
+
+            threadContext->SetRecordedException(threadContext->GetPendingTerminatedErrorObject());
+        }
+        catch(TTDebuggerAbortException)
+        {
+            throw; //re-throw my abort exception up to the top-level.
+        }
+        catch(...)
+        {
+            AssertMsg(false, "What else if dying here?");
+
+            //not sure of our best strategy so just run for now
+        }
+
+        //since we tag in JsRT we need to tag here too
+        if(result != nullptr && JsSupport::IsVarPtrValued(result))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(result));
+        }
+    }
+
+    void JsRTCallFunctionBeginAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteInt32(NSTokens::Key::rootNestingDepth, this->m_callbackDepth, NSTokens::Separator::CommaSeparator);
+        writer->WriteInt64(NSTokens::Key::hostCallbackId, this->m_hostCallbackId, NSTokens::Separator::CommaSeparator);
+        writer->WriteLogTag(NSTokens::Key::logTag, this->m_functionTagId, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteDouble(NSTokens::Key::beginTime, this->m_beginTime, NSTokens::Separator::CommaSeparator);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        writer->WriteString(NSTokens::Key::name, this->m_functionName, NSTokens::Separator::CommaSeparator);
+#endif
+
+        writer->WriteLengthValue(this->m_argCount, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        for(uint32 i = 0; i < this->m_argCount; ++i)
+        {
+            NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+            NSLogValue::EmitArgRetValue(this->m_argArray + i, writer, sep);
+        }
+        writer->WriteSequenceEnd();
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTCallFunctionBeginAction* JsRTCallFunctionBeginAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        int32 callbackDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
+        int64 hostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
+        TTD_LOG_TAG ftag = reader->ReadLogTag(NSTokens::Key::logTag, true);
+
+        double beginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        LPCWSTR fname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+#endif
+
+        uint32 argc = reader->ReadLengthValue(true);
+        NSLogValue::ArgRetValue* args = (argc != 0) ? alloc.SlabAllocateArray<NSLogValue::ArgRetValue>(argc) : nullptr;
+
+        reader->ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < argc; ++i)
+        {
+            NSLogValue::ParseArgRetValue(args + i, i != 0, reader, alloc);
+        }
+        reader->ReadSequenceEnd();
+
+        Js::Var* execArgs = (argc != 0) ? alloc.SlabAllocateArray<Js::Var>(argc) : nullptr;
+
+        JsRTCallFunctionBeginAction* res = alloc.SlabNew<JsRTCallFunctionBeginAction>(eTime, ctxTag, callbackDepth, hostCallbackId, beginTime, ftag, argc, args, execArgs);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        res->SetFunctionName(fname);
+#endif
+
+        return res;
+    }
+
+    JsRTCallFunctionEndAction::JsRTCallFunctionEndAction(int64 eTime, TTD_LOG_TAG ctxTag, int64 matchingBeginTime, bool hasScriptException, bool hasTerminatingException, int32 callbackDepth, double endTime)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallExistingFunctionEnd), m_matchingBeginTime(matchingBeginTime), m_hasScriptException(hasScriptException), m_hasTerminiatingException(hasTerminatingException), m_callbackDepth(callbackDepth), m_endTime(endTime)
+#if ENABLE_TTD_DEBUGGING
+        , m_lastExecuted_valid(false), m_lastExecuted_ftime(0), m_lastExecuted_ltime(0), m_lastExecuted_line(0), m_lastExecuted_column(0), m_lastExecuted_sourceId(0)
+#endif
+    {
+        ;
+    }
+
+    JsRTCallFunctionEndAction::~JsRTCallFunctionEndAction()
+    {
+        ;
+    }
+
+    JsRTCallFunctionEndAction* JsRTCallFunctionEndAction::As(JsRTActionLogEntry* action)
+    {
+        AssertMsg(action->GetActionTypeTag() == JsRTActionType::CallExistingFunctionEnd, "Need to ensure this is true first");
+
+        return static_cast<JsRTCallFunctionEndAction*>(action);
+    }
+
+    void JsRTCallFunctionEndAction::SetLastExecutedStatementAndFrameInfo(const SingleCallCounter& lastFrame) const
     {
 #if ENABLE_TTD_DEBUGGING
         this->m_lastExecuted_valid = true;
@@ -623,7 +775,7 @@ namespace TTD
 #endif
     }
 
-    bool JsRTCallFunctionAction::GetLastExecutedStatementAndFrameInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool JsRTCallFunctionEndAction::GetLastExecutedStatementAndFrameInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
     {
 #if !ENABLE_TTD_DEBUGGING
         return false;
@@ -645,76 +797,18 @@ namespace TTD
 #endif
     }
 
-    int32 JsRTCallFunctionAction::GetCallDepth() const
+    int64 JsRTCallFunctionEndAction::GetMatchingCallBegin() const
+    {
+        return this->m_matchingBeginTime;
+    }
+
+    int32 JsRTCallFunctionEndAction::GetCallDepth() const
     {
         return this->m_callbackDepth;
     }
 
-    int64 JsRTCallFunctionAction::GetHostCallbackId() const
+    void JsRTCallFunctionEndAction::ExecuteAction(ThreadContext* threadContext) const
     {
-        AssertMsg(this->m_callbackDepth == 0, "This should be a root call!!!");
-
-        return this->m_hostCallbackId;
-    }
-
-    void JsRTCallFunctionAction::SetElapsedTime(double elapsedTime)
-    {
-        this->m_elapsedTime = elapsedTime;
-    }
-
-    void JsRTCallFunctionAction::ExecuteAction(ThreadContext* threadContext) const
-    {
-        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
-        Js::RecyclableObject* fobj = execContext->GetThreadContext()->TTDInfo->LookupObjectForTag(this->m_functionTagId);
-        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(fobj);
-
-        Js::CallInfo callInfo((ushort)this->m_argCount);
-        for(uint32 i = 0; i < this->m_argCount; ++i)
-        {
-            const NSLogValue::ArgRetValue* aval = (this->m_argArray + i);
-            Js::Var avar = NSLogValue::InflateArgRetValueIntoVar(aval, execContext);
-
-            this->m_execArgs[i] = avar;
-        }
-        Js::Arguments jsArgs(callInfo, this->m_execArgs);
-        if(this->m_callbackDepth == 0)
-        {
-            threadContext->TTDLog->ResetCallStackForTopLevelCall(this->GetEventTime(), this->m_hostCallbackId);
-        }
-
-        this->ClearLastExecutedStatementAndFrameInfo();
-
-        bool abortIfTopLevel = false;
-        Js::Var result = nullptr;
-        try
-        {
-            result = jsFunction->CallRootFunction(jsArgs, execContext, true);
-        }
-        catch(Js::JavascriptExceptionObject*  exceptionObject)
-        {
-            AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
-
-            threadContext->SetRecordedException(exceptionObject);
-            abortIfTopLevel = true;
-        }
-        catch(Js::ScriptAbortException)
-        {
-            AssertMsg(threadContext->GetRecordedException() == nullptr, "Not sure if this is true or not but seems like a reasonable requirement.");
-
-            threadContext->SetRecordedException(threadContext->GetPendingTerminatedErrorObject());
-            abortIfTopLevel = true;
-        }
-        catch(TTDebuggerAbortException)
-        {
-            throw; //re-throw my abort exception up to the top-level.
-        }
-        catch(...)
-        {
-            AssertMsg(false, "What else if dying here?");
-
-            //not sure of our best strategy so just run for now
-        }
-
 #if ENABLE_TTD_DEBUGGING
         if(this->m_callbackDepth == 0)
         {
@@ -727,82 +821,39 @@ namespace TTD
                 this->SetLastExecutedStatementAndFrameInfo(threadContext->TTDLog->GetImmediateExceptionFrame());
             }
 
-            if(abortIfTopLevel)
+            if(this->m_hasScriptException || this->m_hasTerminiatingException)
             {
                 throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(threadContext->TTDLog->GetCurrentTopLevelEventTime(), L"Uncaught exception -- Propagate to top-level.");
             }
         }
 #endif
-
-        //since we tag in JsRT we need to tag here too
-        if(result != nullptr && JsSupport::IsVarPtrValued(result))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(result));
-        }
     }
 
-    void JsRTCallFunctionAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    void JsRTCallFunctionEndAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
     {
         this->BaseStdEmit(writer, separator);
         this->JsRTBaseEmit(writer);
 
+        writer->WriteInt64(NSTokens::Key::matchingCallBegin, this->m_matchingBeginTime, NSTokens::Separator::CommaSeparator);
         writer->WriteInt32(NSTokens::Key::rootNestingDepth, this->m_callbackDepth, NSTokens::Separator::CommaSeparator);
-        writer->WriteInt64(NSTokens::Key::hostCallbackId, this->m_hostCallbackId, NSTokens::Separator::CommaSeparator);
-        writer->WriteLogTag(NSTokens::Key::logTag, this->m_functionTagId, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_hasScriptException, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_hasTerminiatingException, NSTokens::Separator::CommaSeparator);
 
-        writer->WriteDouble(NSTokens::Key::beginTime, this->m_beginTime, NSTokens::Separator::CommaSeparator);
-        writer->WriteDouble(NSTokens::Key::elapsedTime, this->m_elapsedTime, NSTokens::Separator::CommaSeparator);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        writer->WriteString(NSTokens::Key::name, this->m_functionName, NSTokens::Separator::CommaSeparator);
-#endif
-
-        writer->WriteLengthValue(this->m_argCount, NSTokens::Separator::CommaSeparator);
-
-        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-        for(uint32 i = 0; i < this->m_argCount; ++i)
-        {
-            NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
-            NSLogValue::EmitArgRetValue(this->m_argArray + i, writer, sep);
-        }
-        writer->WriteSequenceEnd();
+        writer->WriteDouble(NSTokens::Key::endTime, this->m_endTime, NSTokens::Separator::CommaSeparator);
 
         writer->WriteRecordEnd();
     }
 
-    JsRTCallFunctionAction* JsRTCallFunctionAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    JsRTCallFunctionEndAction* JsRTCallFunctionEndAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
-        int32 callbackDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
-        int64 hostCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
-        TTD_LOG_TAG ftag = reader->ReadLogTag(NSTokens::Key::logTag, true);
+        int64 matchingBegin = reader->ReadInt64(NSTokens::Key::matchingCallBegin, true);
+        int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
+        bool hasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
+        bool hasTerminatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
 
-        double beginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
-        double elapsedTime = reader->ReadDouble(NSTokens::Key::elapsedTime, true);
+        double endTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR fname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
-#endif
-
-        uint32 argc = reader->ReadLengthValue(true);
-        NSLogValue::ArgRetValue* args = (argc != 0) ? alloc.SlabAllocateArray<NSLogValue::ArgRetValue>(argc) : nullptr;
-
-        reader->ReadSequenceStart_WDefaultKey(true);
-        for(uint32 i = 0; i < argc; ++i)
-        {
-            NSLogValue::ParseArgRetValue(args + i, i != 0, reader, alloc);
-        }
-        reader->ReadSequenceEnd();
-
-        Js::Var* execArgs = (argc != 0) ? alloc.SlabAllocateArray<Js::Var>(argc) : nullptr;
-
-        JsRTCallFunctionAction* res = alloc.SlabNew<JsRTCallFunctionAction>(eTime, ctxTag, callbackDepth, hostCallbackId, beginTime, ftag, argc, args, execArgs);
-        res->SetElapsedTime(elapsedTime);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        res->SetFunctionName(fname);
-#endif
-
-        return res;
+        return alloc.SlabNew<JsRTCallFunctionEndAction>(eTime, ctxTag, matchingBegin, hasScriptException, hasTerminatingException, nestingDepth, endTime);
     }
 }
 

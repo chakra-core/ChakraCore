@@ -337,7 +337,6 @@ namespace TTD
 
         //The time at which the external call began
         const double m_callBeginTime;
-        double m_elapsedTime;
 
     public:
         ExternalCallEventBeginLogEntry(int64 eTime, int32 rootNestingDepth, double callBeginTime);
@@ -346,8 +345,6 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         void SetFunctionName(LPCWSTR fname);
 #endif
-
-        void SetElapsedTime(double elapsedTime);
 
         //Get the event as a external call event (and do tag checking for consistency)
         static ExternalCallEventBeginLogEntry* As(EventLogEntry* e);
@@ -363,39 +360,36 @@ namespace TTD
     class ExternalCallEventEndLogEntry : public EventLogEntry
     {
     private:
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        //the function name for the function that is invoked
-        LPCWSTR m_functionName;
-#endif
+        //The corresponding begin action time
+        int64 m_matchingBeginTime;
+
+        //The time at which the external call ended
+        const double m_callEndTime;
 
         //
         //TODO: later we should record more detail on the script exception for inflation if needed
         //
-        bool m_hasTerminiatingException;
-        bool m_hasScriptException;
+        const bool m_hasScriptException;
+        const bool m_hasTerminiatingException;
 
         //The root nesting depth
-        int32 m_rootNestingDepth;
+        const int32 m_rootNestingDepth;
 
         //the value returned by the external call
         const NSLogValue::ArgRetValue* m_returnVal;
 
     public:
-        ExternalCallEventEndLogEntry(int64 eTime, int32 rootNestingDepth, NSLogValue::ArgRetValue* returnVal);
+        ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, NSLogValue::ArgRetValue* returnVal);
         virtual ~ExternalCallEventEndLogEntry() override;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void SetFunctionName(LPCWSTR fname);
-#endif
 
         //Get the event as a external call event (and do tag checking for consistency)
         static ExternalCallEventEndLogEntry* As(EventLogEntry* e);
 
-        void SetTerminatingException();
-        void SetScriptException();
-
         bool HasTerminatingException() const;
         bool HasScriptException() const;
+
+        //Get the event time for the matching call begin event
+        int64 GetMatchingCallBegin() const;
 
         //Return the root nesting depth
         int32 GetRootNestingDepth() const;
