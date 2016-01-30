@@ -334,6 +334,7 @@ namespace std
     };
  #endif /* _HAS_CHAR16_T_LANGUAGE_SUPPORT */
 
+#ifndef BIT64
     template<>
     struct _Is_integral<unsigned __int64>
         : true_type
@@ -345,6 +346,7 @@ namespace std
         : true_type
     {    // determine whether _Ty is integral
     };
+#endif
 
     // TEMPLATE CLASS is_integral
     template<class _Ty>
