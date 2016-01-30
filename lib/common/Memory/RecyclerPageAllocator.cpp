@@ -104,7 +104,7 @@ template <typename T>
 bool
 RecyclerPageAllocator::ResetAllWriteWatch(DListBase<T> * segmentList)
 {
-    DListBase<T>::Iterator i(segmentList);
+    typename DListBase<T>::Iterator i(segmentList);
     while (i.Next())
     {
         T& segment = i.Data();

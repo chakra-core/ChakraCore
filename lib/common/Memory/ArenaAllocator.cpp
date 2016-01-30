@@ -780,7 +780,10 @@ void InPlaceFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_
 }
 #endif
 
-template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+}
 
 void * StandAloneFreeListPolicy::New(ArenaAllocatorBase<StandAloneFreeListPolicy> * /*allocator*/)
 {
@@ -916,7 +919,10 @@ bool StandAloneFreeListPolicy::TryEnsureFreeListEntry(StandAloneFreeListPolicy *
     return true;
 }
 
-template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+}
 
 #ifdef PERSISTENT_INLINE_CACHES
 
@@ -1012,7 +1018,10 @@ void InlineCacheFreeListPolicy::Release(void * policy)
     }
 }
 
-template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+namespace Memory
+{
+    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+}
 
 #if DBG
 bool InlineCacheAllocator::IsAllZero()
@@ -1417,8 +1426,6 @@ void InlineCacheAllocator::ZeroAll()
 }
 
 #endif
-
-template class ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>;
 
 #if DBG
 bool IsInstInlineCacheAllocator::IsAllZero()

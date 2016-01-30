@@ -465,7 +465,7 @@ HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
     auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
-    return bucket.RealAlloc<attributes, nothrow>(recycler, sizeCat);
+    return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat);
 }
 
 #if defined(BUCKETIZE_MEDIUM_ALLOCATIONS)
@@ -476,7 +476,7 @@ HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat)
 {
     auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
 
-    return bucket.RealAlloc<attributes, nothrow>(recycler, sizeCat);
+    return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat);
 }
 
 #else

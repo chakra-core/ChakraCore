@@ -187,6 +187,7 @@ protected:
 template<typename TVirtualAlloc>
 class PageSegmentBase : public SegmentBase<TVirtualAlloc>
 {
+    typedef SegmentBase<TVirtualAlloc> Base;
 public:
     PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool external);
     // Maximum possible size of a PageSegment; may be smaller.
@@ -198,7 +199,7 @@ public:
 
     uint GetAvailablePageCount() const
     {
-        size_t availablePageCount = SegmentBase::GetAvailablePageCount();
+        size_t availablePageCount = Base::GetAvailablePageCount();
         Assert(availablePageCount < MAXUINT32);
         return static_cast<uint>(availablePageCount);
     }
@@ -742,9 +743,14 @@ protected:
     }
 };
 
+template <>
+char *
+PageAllocatorBase<VirtualAllocWrapper>::AllocPages(uint pageCount, PageSegmentBase<VirtualAllocWrapper> ** pageSegment);
+
 template<typename TVirtualAlloc>
 class HeapPageAllocator : public PageAllocatorBase<TVirtualAlloc>
 {
+    typedef PageAllocatorBase<TVirtualAlloc> Base;
 public:
     HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages);
 

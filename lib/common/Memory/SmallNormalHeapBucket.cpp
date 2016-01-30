@@ -32,12 +32,12 @@ template <typename TBlockType>
 void
 SmallNormalHeapBucketBase<TBlockType>::ScanInitialImplicitRoots(Recycler * recycler)
 {
-    HeapBlockList::ForEach(fullBlockList, [recycler](TBlockType * heapBlock)
+    HeapBlockList::ForEach(this->fullBlockList, [recycler](TBlockType * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
 
-    HeapBlockList::ForEach(heapBlockList, [recycler](TBlockType * heapBlock)
+    HeapBlockList::ForEach(this->heapBlockList, [recycler](TBlockType * heapBlock)
     {
         heapBlock->ScanInitialImplicitRoots(recycler);
     });
@@ -103,7 +103,7 @@ SmallNormalHeapBucketBase<TBlockType>::RescanObjectsOnPage(TBlockType * block, c
 
     Assert(pageByteOffset / AutoSystemInfo::PageSize < USHRT_MAX);
     const ushort pageNumber = static_cast<const ushort>(pageByteOffset / AutoSystemInfo::PageSize);
-    const TBlockType::BlockInfo& blockInfoForPage = HeapInfo::GetBlockInfo<TBlockAttributes>(localObjectSize)[pageNumber];
+    const typename TBlockType::BlockInfo& blockInfoForPage = HeapInfo::GetBlockInfo<TBlockAttributes>(localObjectSize)[pageNumber];
 
     bool lastObjectOnPreviousPageMarked = false;
     // Calculate the mark count here since we no longer keep track during marking
@@ -200,7 +200,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
 {
     RECYCLER_SLOW_CHECK(VerifyHeapBlockCount(recyclerSweep.IsBackground()));
 
-    CompileAssert(!IsLeafBucket);
+    CompileAssert(!BaseT::IsLeafBucket);
     TBlockType *& pendingSweepList = recyclerSweep.GetPendingSweepBlockList(this);
     TBlockType * const list = pendingSweepList;
     Recycler * const recycler = recyclerSweep.GetRecycler();
@@ -220,10 +220,10 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
                 // The sweepable objects will be collected in a future Sweep.
 
                 // Note, page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<false, SweepMode_ConcurrentPartial>(recycler);
+                heapBlock->template SweepObjects<false, SweepMode_ConcurrentPartial>(recycler);
 
                 // page heap mode should never reach here, so don't check pageheap enabled or not
-                if (heapBlock->HasFreeObject<false>())
+                if (heapBlock->template HasFreeObject<false>())
                 {
                     // We have pre-existing free objects, so put this in the partialSweptHeapBlockList
                     heapBlock->SetNextBlock(this->partialSweptHeapBlockList);
@@ -264,7 +264,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
     HeapBlockList::ForEach(list, [recycler, &tail](TBlockType * heapBlock)
     {
         // Note, page heap blocks are never swept concurrently
-        heapBlock->SweepObjects<false, mode>(recycler);
+        heapBlock->template SweepObjects<false, mode>(recycler);
         tail = heapBlock;
     });
     return tail;
@@ -275,9 +275,9 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, 
 template <typename TBlockType>
 SmallNormalHeapBucketBase<TBlockType>::~SmallNormalHeapBucketBase()
 {
-    DeleteHeapBlockList(this->partialHeapBlockList);
+    this->DeleteHeapBlockList(this->partialHeapBlockList);
 #ifdef CONCURRENT_GC_ENABLED
-    DeleteHeapBlockList(this->partialSweptHeapBlockList);
+    this->DeleteHeapBlockList(this->partialSweptHeapBlockList);
 #endif
 }
 
@@ -348,7 +348,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPartialReusePages(RecyclerSweep& rec
                 Assert(!heapBlock->IsAnyFinalizableBlock());
 
                 // Page heap blocks are never swept concurrently
-                heapBlock->SweepObjects<false, SweepMode_InThread>(recycler);
+                heapBlock->template SweepObjects<false, SweepMode_InThread>(recycler);
 
                 // This block has been counted as concurrently swept, and now we changed our mind
                 // and sweep it in thread. Remove the count
@@ -485,7 +485,7 @@ SmallNormalHeapBucketBase<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
 #endif
     this->SweepVerifyPartialBlocks(recycler, this->partialHeapBlockList);
 #endif
-    BaseT::SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
+    BaseT::template SweepBucket<pageheap>(recyclerSweep, [](RecyclerSweep& recyclerSweep){});
 }
 
 
@@ -564,30 +564,33 @@ SmallNormalHeapBucketBase<TBlockType>::VerifyMark()
 #endif // RECYCLER_VERIFY_MARK
 #endif // PARTIAL_GC_ENABLED
 
-template class SmallNormalHeapBucketBase<SmallNormalHeapBlock>;
-template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;
+namespace Memory
+{
+    template class SmallNormalHeapBucketBase<SmallNormalHeapBlock>;
+    template class SmallNormalHeapBucketBase<MediumNormalHeapBlock>;
 
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>;
-template class SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>;
+    template class SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>;
+    template class SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>;
 #endif
 
-template class SmallNormalHeapBucketBase<SmallFinalizableHeapBlock>;
-template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
+    template class SmallNormalHeapBucketBase<SmallFinalizableHeapBlock>;
+    template class SmallNormalHeapBucketBase<MediumFinalizableHeapBlock>;
 
 #ifdef RECYCLER_WRITE_BARRIER
-template class SmallNormalHeapBucketBase<SmallFinalizableWithBarrierHeapBlock>;
-template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;
+    template class SmallNormalHeapBucketBase<SmallFinalizableWithBarrierHeapBlock>;
+    template class SmallNormalHeapBucketBase<MediumFinalizableWithBarrierHeapBlock>;
 #endif
 
-template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<SmallNormalHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<MediumNormalHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
 
 #ifdef RECYCLER_WRITE_BARRIER
-template void SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
-template void SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>::Sweep<true>(RecyclerSweep& recyclerSweep);
+    template void SmallNormalHeapBucketBase<MediumNormalWithBarrierHeapBlock>::Sweep<false>(RecyclerSweep& recyclerSweep);
 #endif
+}
