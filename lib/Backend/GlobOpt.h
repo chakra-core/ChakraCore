@@ -1443,7 +1443,7 @@ private:
     void                    ProcessMemOp();
     bool                    InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, struct MemSetEmitData* emitData, bool& errorInInstr);
     bool                    InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, struct MemCopyEmitData* emitData, bool& errorInInstr);
-    bool                    ValidateMemOpCandidates(Loop * loop, struct MemOpEmitData** emitData, int& iEmitData);
+    bool                    ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) struct MemOpEmitData** emitData, int& iEmitData);
     void                    HoistHeadSegmentForMemOp(IR::Instr *instr, IR::ArrayRegOpnd *arrayRegOpnd, IR::Instr *insertBeforeInstr);
     void                    EmitMemop(Loop * loop, LoopCount *loopCount, const struct MemOpEmitData* emitData);
     IR::Opnd*               GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::Instr *insertBeforeInstr = nullptr);

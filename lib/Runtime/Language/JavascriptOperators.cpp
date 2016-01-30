@@ -9507,6 +9507,7 @@ CommonNumber:
             {
                 element = GetElementAtIndex(arrayObject, i, scriptContext);
                 AnalysisAssert((i + 1) * sizeof(int8) <= allocSize);
+#pragma prefast(suppress:22102)
                 ((int8*)buffer)[i] = Js::JavascriptConversion::ToInt8(element, scriptContext);
             }
             break;

@@ -60,7 +60,7 @@ namespace Js
     // Initialize all Internal property records
 #define INTERNALPROPERTY(name) \
     const BuiltInPropertyRecord<1> InternalPropertyRecords::name = { PropertyRecord((PropertyId)InternalPropertyIds::name, (uint)InternalPropertyIds::name, false, 0, false), L"" };
-#include "..\InternalPropertyList.h"
+#include "InternalPropertyList.h"
 
     const PropertyRecord* InternalPropertyRecords::GetInternalPropertyName(PropertyId propertyId)
     {
@@ -71,7 +71,7 @@ namespace Js
 #define INTERNALPROPERTY(name) \
             case InternalPropertyIds::name: \
                 return InternalPropertyRecords::name;
-#include "..\InternalPropertyList.h"
+#include "InternalPropertyList.h"
         }
 
         Throw::FatalInternalError();

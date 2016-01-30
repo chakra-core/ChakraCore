@@ -268,7 +268,7 @@ namespace Js
         }
     }
 #pragma warning( pop )
-#pragma optimize( "g", on )
+#pragma optimize( "", on )
 #define CaptureStack(FramesToSkip, FramesToCapture, BackTrace, BackTraceHash) \
     RtlCaptureStackBackTrace(FramesToSkip, FramesToCapture, BackTrace, BackTraceHash)
 #else

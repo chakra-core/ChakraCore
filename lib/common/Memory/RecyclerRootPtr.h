@@ -17,12 +17,17 @@ public:
 
     T * operator->() const { Assert(ptr != nullptr); return ptr; }
     operator T*() const { return ptr; }
+
+    RecyclerRootPtr(RecyclerRootPtr<T>&&);
+    RecyclerRootPtr& operator=(RecyclerRootPtr<T> &&);
+
 protected:
     T * ptr;
 private:
     RecyclerRootPtr(const RecyclerRootPtr<T>& ptr); // Disable
     RecyclerRootPtr& operator=(RecyclerRootPtr<T> const& ptr); // Disable
 };
+
 
 typedef RecyclerRootPtr<void> RecyclerRootVar;
 

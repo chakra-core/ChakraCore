@@ -11160,7 +11160,7 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     DestructuringInitializerContext initializerContext/* = DIC_None*/,
     bool allowIn /*= true*/)
 {
-    // We are going to parse the text again to validate the current grammar as Destructuring. Saving some scopes and 
+    // We are going to parse the text again to validate the current grammar as Destructuring. Saving some scopes and
     // AST related information before the validation parsing and later they will be restored.
 
     ParseNodePtr pnodeFncSave = m_currentNodeFunc;

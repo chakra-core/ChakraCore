@@ -76,7 +76,7 @@ namespace Js
 {
     EngineExtensionObjectBase* EngineInterfaceObject::GetEngineExtension(EngineInterfaceExtensionKind extensionKind) const
     {
-        Assert(extensionKind <= MaxEngineInterfaceExtensionKind);
+        AnalysisAssert(extensionKind >= 0 && extensionKind <= MaxEngineInterfaceExtensionKind);
         if (extensionKind <= MaxEngineInterfaceExtensionKind)
         {
             Assert(engineExtensions[extensionKind] == nullptr || engineExtensions[extensionKind]->GetExtensionKind() == extensionKind);
@@ -87,7 +87,7 @@ namespace Js
 
     void EngineInterfaceObject::SetEngineExtension(EngineInterfaceExtensionKind extensionKind, EngineExtensionObjectBase* extensionObject)
     {
-        Assert(extensionKind <= MaxEngineInterfaceExtensionKind);
+        AnalysisAssert(extensionKind >= 0 && extensionKind <= MaxEngineInterfaceExtensionKind);
         if (extensionKind <= MaxEngineInterfaceExtensionKind)
         {
             Assert(engineExtensions[extensionKind] == nullptr);
