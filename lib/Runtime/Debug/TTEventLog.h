@@ -239,10 +239,10 @@ namespace TTD
         void ReplayDateStringEvent(Js::ScriptContext* ctx, Js::JavascriptString** result);
 
         //Log a random seed value that is being generated using external entropy
-        void RecordExternalEntropyRandomEvent(uint64 seed);
+        void RecordExternalEntropyRandomEvent(uint64 seed0, uint64 seed1);
 
         //Replay a random seed value that is being generated using external entropy
-        void ReplayExternalEntropyRandomEvent(uint64* result);
+        void ReplayExternalEntropyRandomEvent(uint64* seed0, uint64* seed1);
 
         //Log property enumeration step
         void RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName);

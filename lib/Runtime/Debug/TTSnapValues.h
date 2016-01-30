@@ -314,7 +314,8 @@ namespace TTD
             TTD_LOG_TAG m_scriptContextTagId;
 
             //The random seed for the context
-            uint64 m_randomSeed;
+            uint64 m_randomSeed0;
+            uint64 m_randomSeed1;
 
             //The main URI of the context
             LPCWSTR m_contextSRC;

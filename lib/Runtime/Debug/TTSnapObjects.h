@@ -214,7 +214,7 @@ namespace TTD
             //Flags matching the runtime definitions
             bool HasInlineCaches;
             bool HasSuperReference;
-            bool IsDefaultConstructor;
+            bool IsActiveScript;
         };
 
         ////

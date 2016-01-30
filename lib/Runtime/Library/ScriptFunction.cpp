@@ -548,9 +548,15 @@ namespace Js
                 uint slotArrayCount = slotArray.GetCount();
 
                 //get the function body associated with the scope
-                Js::FunctionBody* sfb = slotArray.GetFunctionBody();
-
-                rctxInfo->EnqueueNewFunctionBodyObject(this, sfb, scopePathString.GetStrValue());
+                if(slotArray.IsFunctionScopeSlotArray())
+                {
+                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
+                }
+                else
+                {
+                    DebuggerScope* dbgScope = slotArray.GetDebuggerScope();
+                    AssertMsg(dbgScope != nullptr, "Argh");
+                }
 
                 for(ulong j = 0; j < slotArrayCount; j++)
                 {
@@ -608,7 +614,7 @@ namespace Js
 
         ssfi->HasInlineCaches = this->hasInlineCaches;
         ssfi->HasSuperReference = this->hasSuperReference;
-        ssfi->IsDefaultConstructor = this->isDefaultConstructor;
+        ssfi->IsActiveScript = this->isActiveScript;
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
     }

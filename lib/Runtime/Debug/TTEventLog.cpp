@@ -499,15 +499,15 @@ namespace TTD
         this->AdvanceTimeAndPositionForReplay();
     }
 
-    void EventLog::RecordExternalEntropyRandomEvent(uint64 seed)
+    void EventLog::RecordExternalEntropyRandomEvent(uint64 seed0, uint64 seed1)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        UInt64EventLogEntry* uevent = this->m_slabAllocator.SlabNew<UInt64EventLogEntry>(this->GetCurrentEventTimeAndAdvance(), seed);
-        this->InsertEventAtHead(uevent);
+        RandomSeedEventLogEntry* revent = this->m_slabAllocator.SlabNew<RandomSeedEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), seed0, seed1);
+        this->InsertEventAtHead(revent);
     }
 
-    void EventLog::ReplayExternalEntropyRandomEvent(uint64* result)
+    void EventLog::ReplayExternalEntropyRandomEvent(uint64* seed0, uint64* seed1)
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
@@ -518,8 +518,9 @@ namespace TTD
 
         AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        UInt64EventLogEntry* uevent = UInt64EventLogEntry::As(this->m_currentEvent);
-        *result = uevent->GetUInt64();
+        RandomSeedEventLogEntry* revent = RandomSeedEventLogEntry::As(this->m_currentEvent);
+        *seed0 = revent->GetSeed0();
+        *seed1 = revent->GetSeed1();
 
         this->AdvanceTimeAndPositionForReplay();
     }

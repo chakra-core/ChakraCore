@@ -488,7 +488,7 @@ namespace TTD
 
                 func->SetHasInlineCaches(snapFuncInfo->HasInlineCaches);
                 func->SetHasSuperReference(snapFuncInfo->HasSuperReference);
-                func->SetIsDefaultConstructor(snapFuncInfo->IsDefaultConstructor);
+                func->SetIsActiveScript(snapFuncInfo->IsActiveScript);
 
                 return func;
             }
@@ -535,7 +535,7 @@ namespace TTD
 
             writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->HasInlineCaches, NSTokens::Separator::CommaSeparator);
             writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->HasSuperReference, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->IsDefaultConstructor, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->IsActiveScript, NSTokens::Separator::CommaSeparator);
         }
 
         void ParseAddtlInfo_SnapScriptFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
@@ -556,7 +556,7 @@ namespace TTD
 
             snapFuncInfo->HasInlineCaches = reader->ReadBool(NSTokens::Key::boolVal, true);
             snapFuncInfo->HasSuperReference = reader->ReadBool(NSTokens::Key::boolVal, true);
-            snapFuncInfo->IsDefaultConstructor = reader->ReadBool(NSTokens::Key::boolVal, true);
+            snapFuncInfo->IsActiveScript = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             SnapObjectSetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject, snapFuncInfo);
         }

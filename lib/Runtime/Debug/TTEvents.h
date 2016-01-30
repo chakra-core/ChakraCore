@@ -50,9 +50,9 @@ namespace TTD
         enum class EventKind
         {
             SnapshotTag,
-            UInt64Tag,
             DoubleTag,
             StringTag,
+            RandomSeedTag,
             PropertyEnumTag,
             SymbolCreationTag,
             ExternalCallBeginTag,
@@ -158,25 +158,6 @@ namespace TTD
 
     //////////////////
 
-    //A class that represents a simple event that needs a uint64 value (e.g. rand seed)
-    class UInt64EventLogEntry : public EventLogEntry
-    {
-    private:
-        //The value associated with the event
-        const uint64 m_uint64Value;
-
-    public:
-        UInt64EventLogEntry(int64 eventTimestamp, uint64 val);
-        virtual ~UInt64EventLogEntry() override;
-
-        static UInt64EventLogEntry* As(EventLogEntry* e);
-
-        uint64 GetUInt64() const;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static UInt64EventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
-    };
-
     //A class that represents a simple event that needs a double value (e.g. date values)
     class DoubleEventLogEntry : public EventLogEntry
     {
@@ -213,6 +194,27 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static StringValueEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
+    };
+
+    //A class that represents the generation of random seeds
+    class RandomSeedEventLogEntry : public EventLogEntry
+    {
+    private:
+        //The values associated with the event
+        const uint64 m_seed0;
+        const uint64 m_seed1;
+
+    public:
+        RandomSeedEventLogEntry(int64 eventTimestamp, uint64 seed0, uint64 seed1);
+        virtual ~RandomSeedEventLogEntry() override;
+
+        static RandomSeedEventLogEntry* As(EventLogEntry* e);
+
+        uint64 GetSeed0() const;
+        uint64 GetSeed1() const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static RandomSeedEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
     };
 
     //////////////////

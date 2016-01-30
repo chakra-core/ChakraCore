@@ -138,14 +138,14 @@ namespace TTD
         case EventKind::SnapshotTag:
             res = SnapshotEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
-        case EventKind::UInt64Tag:
-            res = UInt64EventLogEntry::CompleteParse(true, reader, alloc, etime);
-            break;
         case EventKind::DoubleTag:
             res = DoubleEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
         case EventKind::StringTag:
             res = StringValueEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
+        case EventKind::RandomSeedTag:
+            res = RandomSeedEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
         case EventKind::PropertyEnumTag:
             res = PropertyEnumStepEventLogEntry::CompleteParse(true, reader, alloc, etime);
@@ -327,41 +327,48 @@ namespace TTD
 
     //////////////////
 
-    UInt64EventLogEntry::UInt64EventLogEntry(int64 eventTimestamp, uint64 val)
-        : EventLogEntry(EventLogEntry::EventKind::UInt64Tag, eventTimestamp), m_uint64Value(val)
+    RandomSeedEventLogEntry::RandomSeedEventLogEntry(int64 eventTimestamp, uint64 seed0, uint64 seed1)
+        : EventLogEntry(EventLogEntry::EventKind::RandomSeedTag, eventTimestamp), m_seed0(seed0), m_seed1(seed1)
     {
         ;
     }
 
-    UInt64EventLogEntry::~UInt64EventLogEntry()
+    RandomSeedEventLogEntry::~RandomSeedEventLogEntry()
     {
         ;
     }
 
-    UInt64EventLogEntry* UInt64EventLogEntry::As(EventLogEntry* e)
+    RandomSeedEventLogEntry* RandomSeedEventLogEntry::As(EventLogEntry* e)
     {
-        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::UInt64Tag, "Not a uint64 event!");
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::RandomSeedTag, "Not a uint64 event!");
 
-        return static_cast<UInt64EventLogEntry*>(e);
+        return static_cast<RandomSeedEventLogEntry*>(e);
     }
 
-    uint64 UInt64EventLogEntry::GetUInt64() const
+    uint64 RandomSeedEventLogEntry::GetSeed0() const
     {
-        return this->m_uint64Value;
+        return this->m_seed0;
     }
 
-    void UInt64EventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    uint64 RandomSeedEventLogEntry::GetSeed1() const
+    {
+        return this->m_seed1;
+    }
+
+    void RandomSeedEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
     {
         this->BaseStdEmit(writer, separator);
-        writer->WriteUInt64(NSTokens::Key::u64Val, this->m_uint64Value, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::u64Val, this->m_seed0, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::u64Val, this->m_seed1, NSTokens::Separator::CommaSeparator);
         writer->WriteRecordEnd();
     }
 
-    UInt64EventLogEntry* UInt64EventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    RandomSeedEventLogEntry* RandomSeedEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
     {
-        uint64 val = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+        uint64 seed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+        uint64 seed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
 
-        return alloc.SlabNew<UInt64EventLogEntry>(eTime, val);
+        return alloc.SlabNew<RandomSeedEventLogEntry>(eTime, seed0, seed1);
     }
 
     DoubleEventLogEntry::DoubleEventLogEntry(int64 eventTimestamp, double val)

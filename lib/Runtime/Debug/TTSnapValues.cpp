@@ -1223,7 +1223,8 @@ namespace TTD
         {
             snapCtx->m_scriptContextTagId = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-            snapCtx->m_randomSeed = ctx->GetLibrary()->GetRandSeed();
+            snapCtx->m_randomSeed0 = ctx->GetLibrary()->GetRandSeed0();
+            snapCtx->m_randomSeed1 = ctx->GetLibrary()->GetRandSeed1();
             snapCtx->m_contextSRC = alloc.CopyStringInto((ctx->GetUrl() != nullptr) ? ctx->GetUrl() : L"Default");
 
             JsUtil::List<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance); 
@@ -1270,7 +1271,8 @@ namespace TTD
         {
             AssertMsg(wcscmp(snpCtx->m_contextSRC, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
-            intoCtx->GetLibrary()->SetRandSeed(snpCtx->m_randomSeed);
+            intoCtx->GetLibrary()->SetRandSeed0(snpCtx->m_randomSeed0);
+            intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
             inflator->AddScriptContext(snpCtx->m_scriptContextTagId, intoCtx);
 
             for(uint32 i = 0; i < snpCtx->m_loadedScriptCount; ++i)
@@ -1325,7 +1327,8 @@ namespace TTD
             writer->WriteRecordStart(separator);
 
             writer->WriteLogTag(NSTokens::Key::ctxTag, snapCtx->m_scriptContextTagId);
-            writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed0, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::u64Val, snapCtx->m_randomSeed1, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::ctxUri, snapCtx->m_contextSRC, NSTokens::Separator::CommaSeparator);
 
             writer->WriteLengthValue(snapCtx->m_loadedScriptCount, NSTokens::Separator::CommaSeparator);
@@ -1372,7 +1375,8 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             intoCtx->m_scriptContextTagId = reader->ReadLogTag(NSTokens::Key::ctxTag);
-            intoCtx->m_randomSeed = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+            intoCtx->m_randomSeed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
+            intoCtx->m_randomSeed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             intoCtx->m_contextSRC = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::ctxUri, true));
 
             intoCtx->m_loadedScriptCount = reader->ReadLengthValue(true);
