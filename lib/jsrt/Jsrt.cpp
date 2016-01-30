@@ -2175,7 +2175,12 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
     END_JSRT_NO_EXCEPTION
 }
 
+
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
 STDAPI_(JsErrorCode) JsCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
+#else
+STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
+#endif
 {
     if (result != nullptr)
     {
@@ -2954,6 +2959,8 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
 
 /////////////////////
 
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+
 STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
 {
 #if !ENABLE_TTD_DEBUGGING
@@ -3334,6 +3341,8 @@ STDAPI_(JsErrorCode) JsTTDTestingCompareArtifacts()
     return JsNoError;
 }
 
+#endif //ENABLE_TTD
+
 /////////////////////
 
 JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
@@ -3503,10 +3512,17 @@ STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceC
     return RunScriptCore(-1, script, sourceContext, sourceUrl, true, result);
 }
 
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
 STDAPI_(JsErrorCode) JsRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, result);
 }
+#else
+STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+{
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, false, result);
+}
+#endif
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
 {

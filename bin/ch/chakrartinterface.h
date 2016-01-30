@@ -27,8 +27,15 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtGetPropertyIdFromNamePtr)(const wchar_t *name, JsPropertyIdRef *propertyId);
     typedef JsErrorCode (WINAPI *JsrtGetPropertyPtr)(JsValueRef object, JsPropertyIdRef property, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtHasPropertyPtr)(JsValueRef object, JsPropertyIdRef property, bool *hasProperty);
+
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
     typedef JsErrorCode (WINAPI *JsrtRunScriptPtr)(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
+#else
+    typedef JsErrorCode(WINAPI *JsrtRunScriptPtr)(const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
+    typedef JsErrorCode(WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
+#endif
+
     typedef JsErrorCode (WINAPI *JsrtNumberToDoublePtr)(JsValueRef value, double *doubleValue);
     typedef JsErrorCode (WINAPI *JsrtNumberToIntPtr)(JsValueRef value, int *intValue);
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
@@ -217,8 +224,15 @@ public:
     static JsErrorCode WINAPI JsGetPropertyIdFromName(const wchar_t *name, JsPropertyIdRef *propertyId) { return m_jsApiHooks.pfJsrtGetPropertyIdFromName(name, propertyId); }
     static JsErrorCode WINAPI JsGetProperty(JsValueRef object, JsPropertyIdRef property, JsValueRef* value) { return m_jsApiHooks.pfJsrtGetProperty(object, property, value); }
     static JsErrorCode WINAPI JsHasProperty(JsValueRef object, JsPropertyIdRef property, bool *hasProperty) { return m_jsApiHooks.pfJsrtHasProperty(object, property, hasProperty); }
+
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
     static JsErrorCode WINAPI JsRunScript(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunScript(hostCallbackId, script, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsCallFunction(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtCallFunction(hostCallbackId, function, arguments, argumentCount, result); }
+#else
+    static JsErrorCode WINAPI JsRunScript(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtRunScript(script, sourceContext, sourceUrl, result); }
+    static JsErrorCode WINAPI JsCallFunction(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtCallFunction(function, arguments, argumentCount, result); }
+#endif
+
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return m_jsApiHooks.pfJsrtNumbertoDouble(value, doubleValue); }
     static JsErrorCode WINAPI JsNumberToInt(JsValueRef value, int* intValue) { return m_jsApiHooks.pfJsrtNumbertoInt(value, intValue); }
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtDoubleToNumber(doubleValue, value); }

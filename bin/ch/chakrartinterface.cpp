@@ -93,6 +93,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetProcAddress(library, "JsGetContextOfObject");
 
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
     m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = (JsAPIHooks::JsrtTTDSetDebuggerCallbackPtr)GetProcAddress(library, "JsTTDSetDebuggerCallback");
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
     m_jsApiHooks.pfJsrtTTDPrintVariable = (JsAPIHooks::JsrtTTDPrintVariablePtr)GetProcAddress(library, "JsTTDPrintVariable");
@@ -113,6 +114,28 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetProcAddress(library, "JsTTDReplayExecution");
 
     m_jsApiHooks.pfJsrtTTDTestingCompareArtifacts = (JsAPIHooks::JsrtTTDTestingCompareArtifactsPtr)GetProcAddress(library, "JsTTDTestingCompareArtifacts");
+#else
+    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = nullptr;
+    m_jsApiHooks.pfJsrtTTDPrintVariable = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo = nullptr;
+    m_jsApiHooks.pfJsrtTTDGetLastExceptionThrowTimeInfo = nullptr;
+    m_jsApiHooks.pfJsrtTTDGetLastFunctionReturnTimeInfo = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = nullptr;
+    m_jsApiHooks.pfJsrtTTDGetCurrentCallbackOperationTimeInfo = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDSetBP = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetStepBP = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetContinueBP = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = nullptr;
+    m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = nullptr;
+    m_jsApiHooks.pfJsrtTTDReplayExecution = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDTestingCompareArtifacts = nullptr;
+#endif
 
     return library;
 }

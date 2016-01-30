@@ -102,6 +102,7 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
     JsTTDSetDebuggerCallback
     JsTTDSetIOCallbacks
     JsTTDPrintVariable
@@ -117,3 +118,4 @@
     JsTTDMoveToTopLevelEvent
     JsTTDReplayExecution
     JsTTDTestingCompareArtifacts
+#endif

@@ -1677,6 +1677,10 @@ namespace TTD
             JsRTActionLogEntry* action = JsRTActionLogEntry::As(this->m_currentEvent);
             this->AdvanceTimeAndPositionForReplay();
 
+            //
+            //TODO: I don't think this is quite right. Instead we probably need to push the into/exit context down into the action code
+            //      In particular for enter/exit calls where we don't want to enter/exit script in between executing their actions
+            //
             Js::ScriptContext* ctx = action->GetScriptContextForAction(this->m_threadContext);
             BEGIN_ENTER_SCRIPT(ctx, true, true, true);
             {

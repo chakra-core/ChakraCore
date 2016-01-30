@@ -829,7 +829,9 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsRunScript(
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
             _In_ INT64 hostCallbackId,
+#endif
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,
@@ -2204,7 +2206,9 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsCallFunction(
+#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
             _In_ INT64 hostCallbackId,
+#endif
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
             _In_ unsigned short argumentCount,
@@ -2561,6 +2565,8 @@
     typedef BOOL(CALLBACK *JsTTDWriteBytesToStreamCallback)(HANDLE strm, BYTE* buff, DWORD size, DWORD* writtenCount);
     typedef void (CALLBACK *JsTTDFlushAndCloseStreamCallback)(HANDLE strm, bool read, bool write);
 
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+
     /// <summary>
     ///     Set the function that is called when the debugger hits a breakpoint.
     /// </summary>
@@ -2689,5 +2695,7 @@
     /// </summary>
     STDAPI_(JsErrorCode)
         JsTTDTestingCompareArtifacts();
+
+#endif //ENABLE_TTD
 
 #endif // _CHAKRACOMMON_H_
