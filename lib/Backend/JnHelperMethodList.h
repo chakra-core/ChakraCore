@@ -463,6 +463,8 @@ HELPERCALL(String_TrimLeft, Js::JavascriptString::EntryTrimLeft, 0)
 HELPERCALL(String_TrimRight, Js::JavascriptString::EntryTrimRight, 0)
 HELPERCALL(String_GetSz, Js::JavascriptString::GetSzHelper, 0)
 HELPERCALL(GlobalObject_ParseInt, Js::GlobalObject::EntryParseInt, 0)
+HELPERCALL(String_PadStart, Js::JavascriptString::EntryPadStart, 0)
+HELPERCALL(String_PadEnd, Js::JavascriptString::EntryPadEnd, 0)
 
 HELPERCALL(RegExp_SplitResultUsed, Js::RegexHelper::RegexSplitResultUsed, 0)
 HELPERCALL(RegExp_SplitResultUsedAndMayBeTemp, Js::RegexHelper::RegexSplitResultUsedAndMayBeTemp, 0)
@@ -476,6 +478,7 @@ HELPERCALL(RegExp_ExecResultUsedAndMayBeTemp, Js::RegexHelper::RegexExecResultUs
 HELPERCALL(RegExp_ExecResultNotUsed, Js::RegexHelper::RegexExecResultNotUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultUsed, Js::RegexHelper::RegexReplaceResultUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultNotUsed, Js::RegexHelper::RegexReplaceResultNotUsed, 0)
+HELPERCALL(RegExp_SymbolSearch, Js::JavascriptRegExp::EntrySymbolSearch, 0)
 
 HELPERCALL(Uint8ClampedArraySetItem, (BOOL (*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem, 0)
 HELPERCALL(EnsureFunctionProxyDeferredPrototypeType, &Js::FunctionProxy::EnsureFunctionProxyDeferredPrototypeType, 0)
@@ -513,6 +516,11 @@ HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::Javascrip
 HELPERCALL(MemCmp, nullptr, 0)
 HELPERCALL(MemCpy, nullptr, 0)
 
+HELPERCALL(DirectMath_FloorDb, nullptr, 0)
+HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
+HELPERCALL(DirectMath_CeilDb, nullptr, 0)
+HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
+
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
 HELPERCALL(DirectMath_Asin, nullptr, 0)
@@ -534,10 +542,6 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
-HELPERCALL(DirectMath_FloorDb, nullptr, 0)
-HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
-HELPERCALL(DirectMath_CeilDb, nullptr, 0)
-HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 #elif defined(_M_ARM32_OR_ARM64)
 // ARM is similar to AMD64 -- regular CRT calls as calling convention is already what we want -- args/result in VFP registers.
 HELPERCALL(DirectMath_Acos, nullptr, 0)

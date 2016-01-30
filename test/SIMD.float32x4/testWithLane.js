@@ -22,10 +22,10 @@ function equalNaN(a) {
 function testReplaceLane1() {
     print("Float32x4 Lane1");
     var a = SIMD.Float32x4(16.0, 9.0, 4.0, 1.0);
-    var c = SIMD.Float32x4.replaceLane(a, 0, 20.0);
-    equal(20.0, SIMD.Float32x4.extractLane(c, 0));
-    equal(9.0, SIMD.Float32x4.extractLane(c, 1));
-    equal(4.0, SIMD.Float32x4.extractLane(c, 2));
+    var c = SIMD.Float32x4.replaceLane(a, false, 20.0);
+    equal(20.0, SIMD.Float32x4.extractLane(c, false));
+    equal(9.0, SIMD.Float32x4.extractLane(c, true));
+    equal(4.0, SIMD.Float32x4.extractLane(c, ["2"]));
     equal(1.0, SIMD.Float32x4.extractLane(c, 3));
 
 }
@@ -33,7 +33,7 @@ function testReplaceLane1() {
 function testReplaceLane2() {
     print("Float32x4 Lane2");
     var a = SIMD.Float32x4(16.0, 9.0, 4.0, 1.0);
-    var c = SIMD.Float32x4.replaceLane(a, 1, 20.0);
+    var c = SIMD.Float32x4.replaceLane(a, true, 20.0);
 
     equal(16.0, SIMD.Float32x4.extractLane(c, 0));
     equal(20.0, SIMD.Float32x4.extractLane(c, 1));
@@ -45,7 +45,7 @@ function testReplaceLane2() {
 function testReplaceLane3() {
     print("Float32x4 Lane3");
     var a = SIMD.Float32x4(16.0, 9.0, 4.0, 1.0);
-    var c = SIMD.Float32x4.replaceLane(a, 2, 20.0);
+    var c = SIMD.Float32x4.replaceLane(a, ["2"], 20.0);
 
     equal(16.0, SIMD.Float32x4.extractLane(c, 0));
     equal(9.0, SIMD.Float32x4.extractLane(c, 1));

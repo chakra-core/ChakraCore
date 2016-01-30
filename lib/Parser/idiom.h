@@ -111,4 +111,4 @@
 #define ARG_POINTER(p) do { if (NULL == (p)) return E_INVALIDARG; } while (0)
 #endif
 
-#endif __IDIOM_H__
+#endif // __IDIOM_H__

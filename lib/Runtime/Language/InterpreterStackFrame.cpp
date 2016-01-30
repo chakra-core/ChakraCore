@@ -2387,15 +2387,6 @@ namespace Js
         {
             localSimdSlots = ((AsmJsSIMDValue*)moduleMemoryPtr) + moduleMemory.mSimdOffset; // simdOffset is in SIMDValues
         }
-#if 0
-        // Align SIMD regs to 128 bits.
-        // We only have space to align if there are any SIMD variables. Otherwise, leave unaligned.
-        if (info->GetSimdRegCount())
-        {
-            AssertMsg((moduleMemory.mMemorySize / SIMD_SLOTS_SPACE) - moduleMemory.mSimdOffset >= 1, "Not enough space in module memory to align SIMD vars");
-            localSimdSlots = (AsmJsSIMDValue*)::Math::Align<int>((int)localSimdSlots, sizeof(AsmJsSIMDValue));
-        }
-#endif
 
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         *stdLibPtr = (m_inSlotsCount > 1) ? m_inParams[1] : nullptr;
@@ -7520,6 +7511,22 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
         SIMDStData(data, value, dataWidth);
 
+    }
+
+    // handler for SIMD.Int32x4.FromFloat32x4
+    template <class T>
+    void InterpreterStackFrame::OP_SimdInt32x4FromFloat32x4(const unaligned T* playout)
+    {
+        bool throws = false;
+        AsmJsSIMDValue input = GetRegRawSimd(playout->F4_1);
+        AsmJsSIMDValue result = SIMDInt32x4Operation::OpFromFloat32x4(input, throws);
+
+        // value is out of bound
+        if (throws)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"SIMD.Int32x4.FromFloat32x4");
+        }
+        SetRegRawSimd(playout->I4_0, result);
     }
 
     Var InterpreterStackFrame::GetNonVarReg(RegSlot localRegisterID) const

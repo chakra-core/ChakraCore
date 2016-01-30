@@ -138,14 +138,14 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         m_workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
 
-    if (m_jnFunction->GetDoBackendArgumentsOptimization() && !m_jnFunction->GetHasTry())
-    {
-        // doBackendArgumentsOptimization bit is set when there is no eval inside a function
-        // as determined by the bytecode generator.
-        SetHasStackArgs(true);
-    }
     if (m_workItem->Type() == JsFunctionType)
     {
+        if (m_jnFunction->GetDoBackendArgumentsOptimization() && !m_jnFunction->GetHasTry())
+        {
+            // doBackendArgumentsOptimization bit is set when there is no eval inside a function
+            // as determined by the bytecode generator.
+            SetHasStackArgs(true);
+        }
         if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0)
         {
             Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));

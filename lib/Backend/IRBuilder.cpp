@@ -1113,7 +1113,7 @@ IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
         }
         instr->SetByteCodeOffset(offset);
     }
-    else if (m_lastInstr)
+    else
     {
         instr->SetByteCodeOffset(m_lastInstr->GetByteCodeOffset());
     }
@@ -3722,7 +3722,9 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             break;
 
         case Js::OpCode::StInnerObjSlot:
+        case Js::OpCode::StInnerObjSlotChkUndecl:
         case Js::OpCode::StInnerSlot:
+        case Js::OpCode::StInnerSlotChkUndecl:
             if ((uint)slotId1 >= m_func->GetJnFunction()->GetInnerScopeCount())
             {
                 Js::Throw::FatalInternalError();
@@ -3733,7 +3735,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             {
                 Js::Throw::FatalInternalError();
             }
-            if (newOpcode == Js::OpCode::StInnerObjSlot)
+            if (newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerObjSlotChkUndecl)
             {
                 IR::RegOpnd * slotOpnd = IR::RegOpnd::New(TyVar, m_func);
                 fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, slotId1, (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
@@ -3752,7 +3754,15 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                     m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
                 }
             }
-            instr = IR::Instr::New(Js::OpCode::StSlot, fieldOpnd, regOpnd, m_func);
+            newOpcode = 
+                newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot ?
+                Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
+            instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
+            if (newOpcode == Js::OpCode::StSlotChkUndecl)
+            {
+                // ChkUndecl includes an implicit read of the destination. Communicate the liveness by using the destination in src2.
+                instr->SetSrc2(fieldOpnd);
+            }
             this->AddInstr(instr, offset);
 
             break;
@@ -3794,7 +3804,8 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             break;
 
         default:
-            Assert(0);
+            AssertMsg(false, "Unsupported opcode in BuildElementSlotI2");
+            break;
     }
 }
 IR::SymOpnd *
@@ -5752,7 +5763,7 @@ IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset)
     BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset);
 }
 
-void
+IR::Instr*
 IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                                Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset)
 {
@@ -5760,7 +5771,7 @@ IRBuilder::BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     {
         BuildLdSpreadIndices(offset, spreadAuxOffset);
     }
-    BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId);
+    return BuildCallI_Helper(newOpcode, offset, returnValue, function, argCount, Js::Constants::NoProfileId);
 }
 
 template <typename SizePolicy>
@@ -5781,7 +5792,27 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildCallIExtendedFlags(Js::OpCode newOpcode, uint32 offset)
 {
-    AssertMsg(false, "NYI");
+    this->m_func->m_isLeaf = false;
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_CallIExtendedFlags<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->Return);
+        this->DoClosureRegCheck(layout->Function);
+    }
+
+    IR::Instr* instr = BuildCallIExtended(newOpcode, offset, layout->Return, layout->Function, layout->ArgCount, layout->Options, layout->SpreadAuxOffset);
+
+    Assert(instr->m_opcode == Js::OpCode::CallIExtendedFlags);
+    if (instr->m_opcode == Js::OpCode::CallIExtendedFlags)
+    {
+        instr->m_opcode =
+            layout->callFlags == Js::CallFlags::CallFlags_ExtraArg ? Js::OpCode::CallIEval :
+            layout->callFlags == Js::CallFlags::CallFlags_New ? Js::OpCode::CallIExtendedNew :
+            layout->callFlags == (Js::CallFlags::CallFlags_New | Js::CallFlags::CallFlags_ExtraArg | Js::CallFlags::CallFlags_NewTarget) ? Js::OpCode::CallIExtendedNewTargetNew :
+            instr->m_opcode;
+    }
 }
 
 template <typename SizePolicy>

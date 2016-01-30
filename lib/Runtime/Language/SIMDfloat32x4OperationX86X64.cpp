@@ -18,15 +18,6 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpFloat32x4(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-        // Sets the 4 single-precision, floating-point values, note in revised order: W, Z, Y, X
-        x86Result.m128_value = _mm_set_ps(v.f32[SIMD_W], v.f32[SIMD_Z], v.f32[SIMD_Y], v.f32[SIMD_X]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     SIMDValue SIMDFloat32x4Operation::OpZero()
     {
         X86SIMDValue x86Result;
@@ -45,15 +36,6 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpSplat(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-        // Sets the four single-precision, floating-point values to v.f32[SIMD_X]
-        x86Result.m128_value = _mm_set1_ps(v.f32[SIMD_X]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     // Conversions
     SIMDValue SIMDFloat32x4Operation::OpFromFloat64x2(const SIMDValue& value)
     {
@@ -63,16 +45,6 @@ namespace Js
         // Converts the two double-precision, floating-point values of v.m128d_value
         // to single-precision, floating-point values.
         x86Result.m128_value = _mm_cvtpd_ps(v.m128d_value);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDFloat32x4Operation::OpFromFloat64x2Bits(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-
-        _mm_store_ps(x86Result.simdValue.f32, v.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -89,20 +61,33 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDFloat32x4Operation::OpFromInt32x4Bits(const SIMDValue& value)
+    SIMDValue SIMDFloat32x4Operation::OpFromUint32x4(const SIMDValue& value)
     {
-        return OpFromFloat64x2Bits(value);
+        X86SIMDValue x86Result, temp1;
+
+        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
+
+        // find unsigned values above 2^31-1. Comparison is signed, so look for values < 0
+        temp1.m128i_value = _mm_cmplt_epi32(v.m128i_value, X86_ALL_ZEROS.m128i_value);
+        // temp1 has f32(2^32) for unsigned values above 2^31, 0 otherwise
+        temp1.m128_value = _mm_and_ps(temp1.m128_value, X86_TWO_32_F4.m128_value);
+        // convert
+        x86Result.m128_value = _mm_cvtepi32_ps(v.m128i_value);
+        // Add f32(2^32) to negative values
+        x86Result.m128_value = _mm_add_ps(x86Result.m128_value, temp1.m128_value);
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
     }
+
+
 
     // Unary Ops
     SIMDValue SIMDFloat32x4Operation::OpAbs(const SIMDValue& value)
     {
-        X86SIMDValue x86Result, SIGNMASK;
+        X86SIMDValue x86Result = { 0 };
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
 
-        SIGNMASK.m128_value = _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF));
-        // bitwise AND of the 4 single - precision, floats of SIGNMASK and v
-        x86Result.m128_value = _mm_and_ps(SIGNMASK.m128_value, v.m128_value);
+        x86Result.m128_value = _mm_and_ps(v.m128_value, X86_ABS_MASK_F4.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -110,13 +95,8 @@ namespace Js
     SIMDValue SIMDFloat32x4Operation::OpNeg(const SIMDValue& value)
     {
         X86SIMDValue x86Result;
-
-        X86SIMDValue SIGNMASK;
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-
-        SIGNMASK.m128_value = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
-        // bitwise EXOR (exclusive-or) of the 4 single-precision, floats of value and signmask
-        x86Result.m128_value = _mm_xor_ps(v.m128_value, SIGNMASK.m128_value);
+        x86Result.m128_value = _mm_xor_ps(v.m128_value, X86_NEG_MASK_F4.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -125,10 +105,8 @@ namespace Js
     {
         X86SIMDValue x86Result;
 
-        X86SIMDValue negativeOnes = { { -1, -1, -1, -1 } };
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-        // bitwise EXOR (exclusive-or) of the 4 single-precision, floats of value and -1
-        x86Result.m128_value = _mm_xor_ps(v.m128_value, negativeOnes.m128_value);
+        x86Result.m128_value = _mm_xor_ps(v.m128_value, X86_ALL_NEG_ONES.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -136,14 +114,11 @@ namespace Js
     SIMDValue SIMDFloat32x4Operation::OpReciprocal(const SIMDValue& value)
     {
         X86SIMDValue x86Result;
-
-        X86SIMDValue floatOnes;
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
 
         // RCPPS is not precise. Using DIVPS
-        floatOnes.m128_value = _mm_set_ps(1.0, 1.0, 1.0, 1.0);
         // Divides the four single-precision, floating-point values of 1.0 and value
-        x86Result.m128_value = _mm_div_ps(floatOnes.m128_value, v.m128_value); // result = 1.0/value
+        x86Result.m128_value = _mm_div_ps(X86_ALL_ONES_F4.m128_value, v.m128_value); // result = 1.0/value
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -151,12 +126,10 @@ namespace Js
     SIMDValue SIMDFloat32x4Operation::OpReciprocalSqrt(const SIMDValue& value)
     {
         X86SIMDValue x86Result;
-
-        X86SIMDValue floatOnes, temp;
+        X86SIMDValue temp;
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
 
-        floatOnes.m128_value = _mm_set_ps(1.0, 1.0, 1.0, 1.0);
-        temp.m128_value = _mm_div_ps(floatOnes.m128_value, v.m128_value); // temp = 1.0/value
+        temp.m128_value = _mm_div_ps(X86_ALL_ONES_F4.m128_value, v.m128_value); // temp = 1.0/value
         x86Result.m128_value = _mm_sqrt_ps(temp.m128_value);              // result = sqrt(1.0/value)
 
         return X86SIMDValue::ToSIMDValue(x86Result);
@@ -251,14 +224,35 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
+    /*
+    Min/Max(a, b) spec semantics:
+    If any value is NaN, return NaN
+    a < b ? a : b; where +0.0 > -0.0 (vice versa for Max)
+
+    MinNum/MaxNum(a, b) spec semantics:
+    If 1st value is NaN, return 2nd
+    If 2nd value is NaN, return 1st
+    return Min/Max(a, b)
+
+    X86 MIN/MAXPS semantics:
+    If any value is NaN, return 2nd operand
+    If both values are +/-0.0, return 2nd operand
+    return a < b ? a : b (vice versa for Max)
+    */
+
     SIMDValue SIMDFloat32x4Operation::OpMin(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        X86SIMDValue tmp1, tmp2;
 
-        // choose the smaller value of the two parameters a and b
-        x86Result.m128_value = _mm_min_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        // if tmp1 and tmp2 are not idential then either
+        // 1) at least one value is NaN, then the OR will set that lane to NaN
+        // 2) one value is 0.0 and the other is -0.0, the OR will set the sign bit to have -0.0
+        tmp1.m128_value = _mm_min_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        tmp2.m128_value = _mm_min_ps(tmpbValue.m128_value, tmpaValue.m128_value);
+        x86Result.m128_value = _mm_or_ps(tmp1.m128_value, tmp2.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -268,9 +262,74 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        X86SIMDValue tmp1, tmp2, NaNs;
 
-        // choose the larger value of the two parameters a and b
+        // if tmp1 and tmp2 are not idential then either
+        // 1) at least one value is NaN, then the OR will set that lane to NaN
+        // 2) one value is 0.0 and the other is -0.0, the OR will set the sign bit to have -0.0
+
+        // 1's where NaNs are
+        NaNs.m128_value = _mm_cmpunord_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        tmp1.m128_value = _mm_max_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        tmp2.m128_value = _mm_max_ps(tmpbValue.m128_value, tmpaValue.m128_value);
+        // Force lanes that had +/-0.0 to be +0.0
+        // Lanes that had NaNs can be garbage after this step.
+        tmp1.m128_value = _mm_and_ps(tmp1.m128_value, tmp2.m128_value);
+        // Fix lanes that had NaNs to all 1's (NaNs).
+        x86Result.m128_value = _mm_or_ps(tmp1.m128_value, NaNs.m128_value);
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+
+    SIMDValue SIMDFloat32x4Operation::OpMinNum(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
+        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        X86SIMDValue mask, mask2, t1, t2;
+
+        // This is the correct result or b if either is NaN or both are +/-0.0
+        x86Result.m128_value = _mm_min_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        // Find NaNs in b
+        mask.m128_value  = _mm_cmpunord_ps(tmpbValue.m128_value, tmpbValue.m128_value);
+        // Find -0.0 in a
+        mask2.m128i_value = _mm_cmpeq_epi32(tmpaValue.m128i_value, X86_TWO_31_I4.m128i_value);
+        // mask2 is -0.0 where a is -0.0
+        mask2.m128_value = _mm_and_ps(mask2.m128_value, X86_TWO_31_I4.m128_value);
+        // For lanes where a is -0.0, the result is either correct (negative), or b which is possibly +0.0
+        // Safe to force sign to negative for those lanes, +0.0 becomes -0.0.
+        x86Result.m128_value = _mm_or_ps(x86Result.m128_value, mask2.m128_value);
+        // For NaNs in b, choose a, else keep result.
+        t1.m128_value = _mm_and_ps(tmpaValue.m128_value, mask.m128_value);
+        t2.m128_value = _mm_andnot_ps(mask.m128_value, x86Result.m128_value);
+        x86Result.m128_value = _mm_or_ps(t1.m128_value, t2.m128_value);
+
+        return X86SIMDValue::ToSIMDValue(x86Result);
+    }
+
+    SIMDValue SIMDFloat32x4Operation::OpMaxNum(const SIMDValue& aValue, const SIMDValue& bValue)
+    {
+        X86SIMDValue x86Result;
+        X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
+        X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
+        X86SIMDValue mask, mask2, t1, t2;
+
+        // This is the correct result or b if either is NaN or both are +/-0.0
         x86Result.m128_value = _mm_max_ps(tmpaValue.m128_value, tmpbValue.m128_value);
+        // Find NaNs in b
+        mask.m128_value = _mm_cmpunord_ps(tmpbValue.m128_value, tmpbValue.m128_value);
+        // Find +0.0 in a
+        mask2.m128i_value = _mm_cmpeq_epi32(tmpaValue.m128i_value, X86_ALL_ZEROS.m128i_value);
+        // mask2 is +0.0 where a is +0.0
+        mask2.m128_value = _mm_and_ps(mask2.m128_value, X86_TWO_31_I4.m128_value);
+        // For lanes where a is +0.0, the result is either correct (positive), or b which is possibly -0.0
+        // Safe to force sign to positive for those lanes, +0.0 becomes -0.0.
+        x86Result.m128_value = _mm_andnot_ps(mask2.m128_value, x86Result.m128_value);
+        // For NaNs in b, choose a, else keep result.
+        t1.m128_value = _mm_and_ps(tmpaValue.m128_value, mask.m128_value);
+        t2.m128_value = _mm_andnot_ps(mask.m128_value, x86Result.m128_value);
+        x86Result.m128_value = _mm_or_ps(t1.m128_value, t2.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }

@@ -652,8 +652,7 @@ namespace Js
         }
 
 #ifdef ENABLE_INTL_OBJECT
-        if(CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
+        if(CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -664,6 +663,14 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
+                // Initialize Number.prototype.toLocaleString
+                scriptContext->GetLibrary()->InitializeIntlForNumberPrototype();
+                func = intlExtenionObject->GetNumberToLocaleString();
+                if (func)
+                {
+                    return func->CallFunction(args);
+                }
+                AssertMsg(false, "Intl code didn't initialized Number.prototype.toLocaleString method.");
             }
         }
 #endif

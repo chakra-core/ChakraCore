@@ -1,31 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
-  <test>
-    <default>
-      <files>AsyncAwait-syntax.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-syntax.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-functionality.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
-      <baseline>AsyncAwait-functionality.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>AsyncAwait-functionality.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
-      <baseline>AsyncAwait-functionality.baseline</baseline>
-    </default>
-  </test>
   <test>
     <default>
       <files>lambda1.js</files>
@@ -233,20 +207,21 @@
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
+      <compile-flags>-ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-force:deferparse</compile-flags>
+      <compile-flags>-force:deferparse -ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>blockscope-functionbinding.js</files>
-      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
+      <compile-flags>-lic:1 -InitializeInterpreterSlotsWithInvalidStackVar -ES7AsyncAwait</compile-flags>
       <baseline>blockscope-functionbinding.baseline</baseline>
       <tags>exclude_fre</tags>
     </default>
@@ -439,7 +414,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -args summary -endargs</compile-flags>
+      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -506,7 +481,7 @@
       <files>unicode_6_identifiers.js</files>
       <baseline>unicode_6_identifiers.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
+      <tags>exclude_win7,exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -904,9 +879,26 @@
   </test>
   <test>
     <default>
+      <files>regex-prototype-properties.js</files>
+      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-symbols.js</files>
+      <compile-flags>-ES6RegExSymbols -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regexflags.js</files>
-      <baseline>regexflags.baseline</baseline>
-      <compile-flags>-version:6 -ES6RegExSticky</compile-flags>
+      <compile-flags>-version:6 -ES6RegExSticky -ES6Unicode -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regexflags-disabled-features.js</files>
+      <compile-flags>-ES6RegExSticky- -ES6Unicode- -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -998,7 +990,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>BugFix</tags>
+      <tags>exclude_win7,BugFix</tags>
     </default>
   </test>
   <test>
@@ -1117,13 +1109,13 @@
         <compile-flags>-args summary -endargs</compile-flags>
     </default>
 </test>
-  <test>
+<test>
     <default>
       <files>object_literal_bug.js</files>
       <compile-flags>-ES6Destructuring -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-  </test>
+</test>
   <test>
     <default>
       <files>OS_5403724.js</files>

@@ -1385,7 +1385,7 @@ stristr
       {
          if (tolower(str[i]) != tolower(sub[i]))
          {
-            if ((str[i] != '/' && str[i] != '-') || (sub[i] != '-' && sub[i] == '/')) {
+            if ((str[i] != '/' && str[i] != '-') || (sub[i] != '-' && sub[i] != '/')) {
                // if the mismatch is not between '/' and '-'
                break;
             }
@@ -2272,18 +2272,6 @@ DumpTestList
 
 #endif
 
-// how we translate testinfo into env.lst specific stuffs
-const char * const TestInfoEnvLstFmt[] =
-{
-   " TESTFILE=\"%s\"",
-   " BASELINE=\"%s\"",
-   " CFLAGS=\"%s\"",
-   " LFLAGS=\"%s\"",
-   NULL,
-   NULL,
-   NULL,
-   NULL
-};
 
 void
 PadSpecialChars
@@ -2368,6 +2356,22 @@ WriteEnvLst
             }
             LstFilesOut->Add("\"");
          }
+
+         // how we translate testinfo into env.lst specific stuffs
+         const char * const TestInfoEnvLstFmt[] =
+         {
+             " TESTFILE=\"%s\"",
+             " BASELINE=\"%s\"",
+             " CFLAGS=\"%s\"",
+             " LFLAGS=\"%s\"",
+             NULL,
+             NULL,
+             NULL,
+             NULL,
+             NULL
+         };
+
+         static_assert((sizeof(TestInfoEnvLstFmt) / sizeof(TestInfoEnvLstFmt[0])) == TestInfoKind::_TIK_COUNT, "Fix the buffer size");
 
          // print the other TIK_*
          for(int i=0;i < _TIK_COUNT; i++) {

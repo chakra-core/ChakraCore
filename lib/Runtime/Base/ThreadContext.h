@@ -434,6 +434,7 @@ public:
     SimdFuncSignature *simdOpcodeToSignatureMap;
 
     void AddSimdFuncToMaps(Js::OpCode op, ...);
+    void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
 #endif

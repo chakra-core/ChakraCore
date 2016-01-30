@@ -1195,9 +1195,9 @@ case_2:
         if (!fAsciiJumpTable)
         {
             wchar_t const * start = inputStr;
-            wchar_t const * current = inputStr + len - 1;
+            wchar_t const * current = inputStr + min(position, len - 1);
             wchar_t const * searchStrEnd = searchStr + searchLen - 1;
-            while (current >= start)
+            while (current >= (start + searchLen - 1))
             {
                 wchar_t const * s1 = current;
                 wchar_t const * s2 = searchStrEnd;
@@ -1266,7 +1266,7 @@ case_2:
         {
             if (!isRegExpAnAllowedArg && JavascriptRegExp::Is(args[1]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedString, apiNameForErrorMsg);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_FirstCannotBeRegExp, apiNameForErrorMsg);
             }
             else if (JavascriptString::Is(args[1]))
             {
@@ -1302,10 +1302,8 @@ case_2:
         GetThisAndSearchStringArguments(args, scriptContext, L"String.prototype.localeCompare", &pThis, &pThat, true);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled())
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled())
         {
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
-
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
@@ -1323,6 +1321,14 @@ case_2:
                     {
                         return func->CallFunction(args);
                     }
+                    // Initialize String.prototype.toLocaleCompare
+                    scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
+                    func = intlExtenionObject->GetStringLocaleCompare();
+                    if (func)
+                    {
+                        return func->CallFunction(args);
+                    }
+                    AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleCompare method.");
                 }
             }
         }
@@ -1634,22 +1640,6 @@ case_2:
         }
     }
 
-    ///----------------------------------------------------------------------------
-    ///
-    /// JavascriptString::EntrySearch
-    ///
-    /// When the search method is called with argument regexp the following steps are taken:
-    ///    1. Call CheckObjectCoercible passing the this value as its argument.
-    ///    2. Let string be the result of calling ToString, giving it the this value as its argument.
-    ///    3. If Type(regexp) is Object and the value of the [[Class]] internal property of regexp is "RegExp", then let rx be regexp;
-    ///    4. Else, let rx be a new RegExp object created as if by the expression new RegExp(regexp) where RegExp is the standard built-in constructor with that name.
-    ///    5. Search the value string from its beginning for an occurrence of the regular expression pattern rx. Let result be a number indicating the offset within string where the pattern matched, or -1 if there was no match. The lastIndex and global properties of regexp are ignored when performing the search. The lastIndex property of regexp is left unchanged.
-    ///    6. Return result.
-    ///    NOTE The search function is intentionally generic; it does not require that its this value be a String object. Therefore, it can be transferred to other kinds of objects for use as a method.
-
-    ///
-    ///----------------------------------------------------------------------------
-
     Var JavascriptString::EntrySearch(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1659,27 +1649,61 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, L"String.prototype.search", &pThis);
+        PCWSTR const varName = L"String.prototype.search";
 
-        JavascriptRegExp * pRegEx = nullptr;
-        if(args.Info.Count > 1)
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
-            if (JavascriptRegExp::Is(args[1]))
+            if (args.Info.Count == 0 || !JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
             {
-                pRegEx = JavascriptRegExp::FromVar(args[1]);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, varName);
             }
-            else
+
+            if (args.Info.Count >= 2 && !JavascriptOperators::IsUndefinedOrNull(args[1]))
             {
-                pRegEx = JavascriptRegExp::CreateRegEx(args[1], nullptr, scriptContext);
+                Var regExp = args[1];
+                Var searcher = GetRegExSymbolSearch(regExp, scriptContext);
+                if (!JavascriptOperators::IsUndefinedOrNull(searcher))
+                {
+                    return CallRegExSymbolSearch(searcher, regExp, args[0], varName, scriptContext);
+                }
             }
+        }
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, varName, &pThis);
+
+        Var regExp = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
+            return RegexHelper::RegexSearch(scriptContext, regExObj, pThis);
         }
         else
         {
-            pRegEx = JavascriptRegExp::CreateRegEx(scriptContext->GetLibrary()->GetUndefined(), nullptr, scriptContext);
+            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
+            Var searcher = GetRegExSymbolSearch(regExObj, scriptContext);
+            return CallRegExSymbolSearch(searcher, regExObj, args[0], varName, scriptContext);
         }
-        return RegexHelper::RegexSearch(scriptContext, pRegEx, pThis);
+    }
 
+    Var JavascriptString::GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext)
+    {
+        return JavascriptOperators::GetProperty(
+            RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
+            PropertyIds::_symbolSearch,
+            scriptContext);
+    }
+
+    Var JavascriptString::CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
+    {
+        if (!JavascriptConversion::IsCallable(search))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
+        }
+
+        RecyclableObject* searchFn = RecyclableObject::FromVar(search);
+        return searchFn->GetEntryPoint()(searchFn, CallInfo(CallFlags_Value, 2), regExp, string);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1900,6 +1924,94 @@ case_2:
     Var JavascriptString::SubstringCore(JavascriptString* pThis, int idxStart, int span, ScriptContext* scriptContext)
     {
         return SubString::New(pThis, idxStart, span);
+    }
+
+    Var JavascriptString::EntryPadStart(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadStartCount);
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, L"String.prototype.padStart", &pThis);
+
+        return PadCore(args, pThis, true /*isPadStart*/, scriptContext);
+    }
+
+    Var JavascriptString::EntryPadEnd(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadEndCount);
+
+        JavascriptString * pThis = nullptr;
+        GetThisStringArgument(args, scriptContext, L"String.prototype.padEnd", &pThis);
+
+        return PadCore(args, pThis, false /*isPadStart*/, scriptContext);
+    }
+
+    JavascriptString* JavascriptString::PadCore(ArgumentReader& args, JavascriptString *mainString, bool isPadStart, ScriptContext* scriptContext)
+    {
+        Assert(mainString != nullptr);
+        Assert(args.Info.Count > 0);
+
+        if (args.Info.Count == 1)
+        {
+            return mainString;
+        }
+
+        int64 maxLength = JavascriptConversion::ToLength(args[1], scriptContext);
+        charcount_t currentLength = mainString->GetLength();
+        if (maxLength <= currentLength)
+        {
+            return mainString;
+        }
+
+        if (maxLength > JavascriptString::MaxCharLength)
+        {
+            Throw::OutOfMemory();
+        }
+
+        JavascriptString * fillerString = nullptr;
+        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+        {
+            JavascriptString *argStr = JavascriptConversion::ToString(args[2], scriptContext);
+            if (argStr->GetLength() > 0)
+            {
+                fillerString = argStr;
+            }
+        }
+
+        if (fillerString == nullptr)
+        {
+            fillerString = NewWithBuffer(L" ", 1, scriptContext);
+        }
+
+        Assert(fillerString->GetLength() > 0);
+
+        charcount_t fillLength = (charcount_t)(maxLength - currentLength);
+        charcount_t count = fillLength / fillerString->GetLength();
+        JavascriptString * finalPad = scriptContext->GetLibrary()->GetEmptyString();
+        if (count > 0)
+        {
+            finalPad = RepeatCore(fillerString, count, scriptContext);
+            fillLength -= (count * fillerString->GetLength());
+        }
+
+        if (fillLength > 0)
+        {
+            finalPad = Concat(finalPad, SubString::New(fillerString, 0, fillLength));
+        }
+
+        return isPadStart ? Concat(finalPad, mainString) : Concat(mainString, finalPad);
     }
 
     Var JavascriptString::EntryToLocaleLowerCase(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2176,9 +2288,6 @@ case_2:
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, L"String.prototype.repeat", &pThis);
 
-        const wchar_t* thisStr = pThis->GetString();
-        int thisStrLen = pThis->GetLength();
-
         charcount_t count = 0;
 
         if (args.Info.Count > 1)
@@ -2195,7 +2304,7 @@ case_2:
             }
         }
 
-        if (count == 0 || thisStrLen == 0)
+        if (count == 0 || pThis->GetLength() == 0)
         {
             return scriptContext->GetLibrary()->GetEmptyString();
         }
@@ -2204,30 +2313,42 @@ case_2:
             return pThis;
         }
 
-        charcount_t charCount = UInt32Math::Add(UInt32Math::Mul(count, thisStrLen), 1);
-        wchar_t* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, charCount);
+        return RepeatCore(pThis, count, scriptContext);
+    }
 
-        if (thisStrLen == 1)
+    JavascriptString* JavascriptString::RepeatCore(JavascriptString* currentString, charcount_t count, ScriptContext* scriptContext)
+    {
+        Assert(currentString != nullptr);
+        Assert(currentString->GetLength() > 0);
+        Assert(count > 0);
+
+        const wchar_t* currentRawString = currentString->GetString();
+        int currentLength = currentString->GetLength();
+
+        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        wchar_t* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, finalBufferCount);
+
+        if (currentLength == 1)
         {
-            wmemset(buffer, thisStr[0], charCount - 1);
-            buffer[charCount - 1] = '\0';
+            wmemset(buffer, currentRawString[0], finalBufferCount - 1);
+            buffer[finalBufferCount - 1] = '\0';
         }
         else
         {
             wchar_t* bufferDst = buffer;
-            size_t bufferDstSize = charCount;
+            size_t bufferDstSize = finalBufferCount;
 
             for (charcount_t i = 0; i < count; i += 1)
             {
-                js_wmemcpy_s(bufferDst, bufferDstSize, thisStr, thisStrLen);
-                bufferDst += thisStrLen;
-                bufferDstSize -= thisStrLen;
+                js_wmemcpy_s(bufferDst, bufferDstSize, currentRawString, currentLength);
+                bufferDst += currentLength;
+                bufferDstSize -= currentLength;
             }
             Assert(bufferDstSize == 1);
             *bufferDst = '\0';
         }
 
-        return JavascriptString::NewWithBuffer(buffer, charCount - 1, scriptContext);
+        return JavascriptString::NewWithBuffer(buffer, finalBufferCount - 1, scriptContext);
     }
 
     ///----------------------------------------------------------------------------

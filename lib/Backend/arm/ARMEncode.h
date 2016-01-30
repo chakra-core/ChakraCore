@@ -1133,7 +1133,7 @@ static const FormTable Forms_VCMPF64 [] =
 };
 
 // This always moves FPSCR to ARM Status register.
-// APSR_nzcv is encoded as Rt = ’1111’, and the instruction transfers the FPSCR N, Z, C, and
+// APSR_nzcv is encoded as Rt = '1111', and the instruction transfers the FPSCR N, Z, C, and
 // V flags to the APSR N, Z, C, and V flags.
 static const FormTable Forms_VMRS [] =
 {

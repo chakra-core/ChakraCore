@@ -257,6 +257,9 @@ namespace Js
             static FunctionInfo StartsWith;
             static FunctionInfo EndsWith;
             static FunctionInfo Includes;
+            static FunctionInfo PadStart;
+            static FunctionInfo PadEnd;
+
 #ifdef TAGENTRY
 #undef TAGENTRY
 #endif
@@ -313,7 +316,11 @@ namespace Js
         static Var EntrySup(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolIterator(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryPadStart(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryPadEnd(RecyclableObject* function, CallInfo callInfo, ...);
 
+        static JavascriptString* RepeatCore(JavascriptString* currentString, charcount_t count, ScriptContext* scriptContext);
+        static JavascriptString* PadCore(ArgumentReader& args, JavascriptString *mainString, bool isPadStart, ScriptContext* scriptContext);
         static Var SubstringCore(JavascriptString* str, int start, int span, ScriptContext* scriptContext);
         static charcount_t GetBufferLength(const wchar_t *content);
         static charcount_t GetBufferLength(const wchar_t *content, int charLengthOrMinusOne);
@@ -344,6 +351,9 @@ namespace Js
 
         template <bool trimLeft, bool trimRight>
         static Var TrimLeftRightHelper(JavascriptString* arg, ScriptContext* scriptContext);
+
+        static Var GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext);
+        static Var CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext);
     };
 
     template<>

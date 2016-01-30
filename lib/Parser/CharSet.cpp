@@ -246,7 +246,7 @@ namespace UnifiedRegex
     CharSetNode* CharSetFull::ClearRange(ArenaAllocator* allocator, uint level, uint l, uint h)
     {
         AssertMsg(h <= lim(level), "The range for clearing provided is invalid for this level.");
-        AssertMsg(l <= h, "Can't clear where lover is bigger than the higher.");
+        AssertMsg(l <= h, "Can't clear where lower is bigger than the higher.");
         if (l == 0 && h == lim(level))
         {
             return nullptr;
@@ -390,7 +390,7 @@ namespace UnifiedRegex
     {
         Assert(level > 0);
         AssertMsg(h <= lim(level), "The range for clearing provided is invalid for this level.");
-        AssertMsg(l <= h, "Can't clear where lover is bigger than the higher.");
+        AssertMsg(l <= h, "Can't clear where lower is bigger than the higher.");
         if (l == 0 && h == lim(level))
         {
             return nullptr;
@@ -751,7 +751,7 @@ namespace UnifiedRegex
     {
         Assert(level == 0);
         AssertMsg(h <= lim(level), "The range for clearing provided is invalid for this level.");
-        AssertMsg(l <= h, "Can't clear where lover is bigger than the higher.");
+        AssertMsg(l <= h, "Can't clear where lower is bigger than the higher.");
         if (l == 0 && h == lim(level))
         {
             return nullptr;

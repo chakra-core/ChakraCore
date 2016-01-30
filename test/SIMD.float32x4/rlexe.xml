@@ -11,14 +11,14 @@
     <default>
       <files>testAbsNeg.js</files>
       <baseline>testAbsNeg.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAbsNeg.js</files>
       <baseline>testAbsNeg.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -34,14 +34,14 @@
     <default>
       <files>testAddSub.js</files>
       <baseline>testAddSub.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testAddSub.js</files>
       <baseline>testAddSub.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -56,14 +56,14 @@
     <default>
       <files>testBitwise.js</files>
       <baseline>testBitwise.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testBitwise.js</files>
       <baseline>testBitwise.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -78,14 +78,14 @@
     <default>
       <files>testClamp.js</files>
       <baseline>testClamp.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testClamp.js</files>
       <baseline>testClamp.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -100,14 +100,14 @@
     <default>
       <files>testComparisons.js</files>
       <baseline>testComparisons.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testComparisons.js</files>
       <baseline>testComparisons.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -122,14 +122,14 @@
     <default>
       <files>testConstructor.js</files>
       <baseline>testConstructor.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testConstructor.js</files>
       <baseline>testConstructor.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -144,36 +144,33 @@
     <default>
       <files>testConversions.js</files>
       <baseline>testConversions.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testConversions.js</files>
       <baseline>testConversions.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
   <test>
     <default>
       <files>testFields.js</files>
-      <baseline>testFields.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testFields.js</files>
-      <baseline>testFields.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testFields.js</files>
-      <baseline>testFields.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -188,14 +185,14 @@
     <default>
       <files>testMinMax.js</files>
       <baseline>testMinMax.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testMinMax.js</files>
       <baseline>testMinMax.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -210,36 +207,33 @@
     <default>
       <files>testMulDiv.js</files>
       <baseline>testMulDiv.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testMulDiv.js</files>
       <baseline>testMulDiv.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
   <test>
     <default>
       <files>testReciprocal.js</files>
-      <baseline>testReciprocal.baseline</baseline>
       <compile-flags>-Simdjs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testReciprocal.js</files>
-      <baseline>testReciprocal.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testReciprocal.js</files>
-      <baseline>testReciprocal.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -254,14 +248,14 @@
     <default>
       <files>testScale.js</files>
       <baseline>testScale.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testScale.js</files>
       <baseline>testScale.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -276,14 +270,14 @@
     <default>
       <files>testSelect.js</files>
       <baseline>testSelect.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testSelect.js</files>
       <baseline>testSelect.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -298,14 +292,14 @@
     <default>
       <files>testShuffle.js</files>
       <baseline>testShuffle.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testShuffle.js</files>
       <baseline>testShuffle.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -320,14 +314,14 @@
     <default>
       <files>testSqrt.js</files>
       <baseline>testSqrt.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testSqrt.js</files>
       <baseline>testSqrt.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
 
@@ -342,14 +336,14 @@
     <default>
       <files>testWithLane.js</files>
       <baseline>testWithLane.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -on:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>testWithLane.js</files>
       <baseline>testWithLane.baseline</baseline>
-      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
+      <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
  </regress-exe>

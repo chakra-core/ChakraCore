@@ -30,6 +30,12 @@ using namespace Windows::Globalization;
 
 #pragma warning(pop)
 
+#define IfCOMFailIgnoreSilentlyAndReturn(op) \
+    if(FAILED(hr=(op))) \
+    { \
+        return; \
+    } \
+
 #define IfFailAssertMsgAndThrowHr(op, msg) \
     if (FAILED(hr=(op))) \
     { \
@@ -205,6 +211,8 @@ namespace Js
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CreateDateTimeFormat(IntlEngineInterfaceExtensionObject::EntryIntl_CreateDateTimeFormat);
 
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime(IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone);
 
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction(IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction);
     NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject(IntlEngineInterfaceExtensionObject::EntryIntl_GetHiddenObject);
@@ -228,7 +236,7 @@ namespace Js
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
-        if (scriptContext->GetConfig()->IsIntlEnabled())
+        if (scriptContext->IsIntlEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
             this->intlNativeInterfaces = DynamicObject::New(library->GetRecycler(),
@@ -275,6 +283,8 @@ namespace Js
 
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::currencyDigits, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::formatDateTime, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime, 1);
+        library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::validateAndCanonicalizeTimeZone, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone, 2);
+        library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getDefaultTimeZone, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone, 1);
 
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::registerBuiltInFunction, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction, 1);
         library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::getHiddenObject, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject, 1);
@@ -360,7 +370,7 @@ namespace Js
         }
     }
 
-    void IntlEngineInterfaceExtensionObject::InjectIntlLibraryCode(_In_ ScriptContext * scriptContext, DynamicObject* intlObject)
+    void IntlEngineInterfaceExtensionObject::InjectIntlLibraryCode(_In_ ScriptContext * scriptContext, DynamicObject* intlObject, IntlInitializationType intlInitializationType)
     {
         JavascriptExceptionObject *pExceptionObject = nullptr;
 
@@ -370,8 +380,37 @@ namespace Js
             Assert(intlByteCode != nullptr);
 
             HRESULT hr;
+
+            DelayLoadWindowsGlobalization *library = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
+            WindowsGlobalizationAdapter* globAdapter = GetWindowsGlobalizationAdapter(scriptContext);
+            JavascriptString* initType = nullptr;
+
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
-            IfFailAssertMsgAndThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->EnsureGlobObjectsInitialized(scriptContext), "Failed to initialize COM interfaces, verify correct version of globalization dll is used.");
+            IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureCommonObjectsInitialized(library));
+            switch (intlInitializationType)
+            {
+                default:
+                    AssertMsg(false, "Not a valid intlInitializationType.");
+                    // fall thru
+                case IntlInitializationType::Intl:
+
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Intl");
+                    break;
+                case IntlInitializationType::StringPrototype:
+                    // No other windows globalization adapter needed. Common adapter should suffice
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"String");
+                    break;
+                case IntlInitializationType::DatePrototype:
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Date");
+                    break;
+                case IntlInitializationType::NumberPrototype:
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Number");
+                    break;
+            }
 
             Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(intlByteCode->GetNestedFunc(0)->EnsureDeserialized());
 
@@ -383,8 +422,7 @@ namespace Js
             // Mark we are profiling library code already, so that any initialization library code called here won't be reported to profiler
             AutoProfilingUserCode autoProfilingUserCode(scriptContext->GetThreadContext(), /*isProfilingUserCode*/false);
 
-
-            Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject() };
+            Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
 
             // Clear disable implict call bit as initialization code doesn't have any side effect
@@ -393,11 +431,13 @@ namespace Js
             JavascriptFunction::CallRootFunctionInScript(function, Js::Arguments(callInfo, args));
             scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
 
-            //Delete prototypes on functions
-            deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::Collator, Js::PropertyIds::compare);
-            deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::NumberFormat, Js::PropertyIds::format);
-            deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
-
+            //Delete prototypes on functions if initialized Intl object
+            if (intlInitializationType == IntlInitializationType::Intl)
+            {
+                deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::Collator, Js::PropertyIds::compare);
+                deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::NumberFormat, Js::PropertyIds::format);
+                deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
+            }
         }
         catch (JavascriptExceptionObject* exceptionObject)
         {
@@ -406,11 +446,18 @@ namespace Js
 
         if (pExceptionObject)
         {
-            cleanUpIntl(scriptContext, intlObject);
+            if (intlInitializationType == IntlInitializationType::Intl)
+            {
+                cleanUpIntl(scriptContext, intlObject);
+            }
+
             if (pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
                 pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
             {
-                scriptContext->GetLibrary()->ResetIntlObject();
+                if (intlInitializationType == IntlInitializationType::Intl)
+                {
+                    scriptContext->GetLibrary()->ResetIntlObject();
+                }
                 pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
                 throw pExceptionObject;
             }
@@ -1153,6 +1200,55 @@ namespace Js
         }
         PCWSTR strBuf = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary()->WindowsGetStringRawBuffer(*result, NULL);
 
+        return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
+    }
+
+    /*
+    *   This function validates the timeZone passed by user has defined in IsValidTimeZoneName() section
+    *   of ECMA-402 dated June 2015.
+    *   Returns true if timeZoneId is a valid zone or link name of the IANA time zone database
+    */
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        // Return false if timeZoneId is not string
+        if (args.Info.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        {
+            AssertMsg(false, "Need valid timeZoneId");
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        JavascriptString *argString = JavascriptString::FromVar(args.Values[1]);
+
+        AutoHSTRING canonicalizedTimeZone;
+        boolean isValidTimeZone = GetWindowsGlobalizationAdapter(scriptContext)->ValidateAndCanonicalizeTimeZone(scriptContext, argString->GetSz(), &canonicalizedTimeZone);
+        if (isValidTimeZone)
+        {
+            DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
+            PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*canonicalizedTimeZone, NULL);
+            return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
+        }
+        else
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+    }
+
+    /*
+    *   This function returns defaultTimeZone for host's current environement has specified in
+    *   DefaultTimeZone () section of ECMA-402 dated June 2015.
+    */
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
+        DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
+        AutoHSTRING str;
+        wga->GetDefaultTimeZoneId(scriptContext, &str);
+
+        PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);
     }
 

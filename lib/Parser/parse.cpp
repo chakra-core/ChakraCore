@@ -240,7 +240,7 @@ CatchPidRefList *Parser::EnsureCatchPidRefList()
     return this->m_catchPidRefList;
 }
 
-HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, CompileScriptException *pse, void (Parser::*validateFunction)())
+HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isGenerator, bool isAsync, CompileScriptException *pse, void (Parser::*validateFunction)())
 {
     AssertPsz(pszSrc);
     AssertMemN(pse);
@@ -274,6 +274,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         // Give the scanner the source and get the first token
         m_pscan->SetText(pszSrc, 0, encodedCharCount, 0, grfscr);
         m_pscan->SetYieldIsKeyword(isGenerator);
+        m_pscan->SetAwaitIsKeyword(isAsync);
         m_pscan->Scan();
 
         uint nestedCount = 0;
@@ -305,6 +306,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
             pnodeFnc->sxFnc.pnodeRest  = nullptr;
             pnodeFnc->sxFnc.deferredStub = nullptr;
             pnodeFnc->sxFnc.SetIsGenerator(isGenerator);
+            pnodeFnc->sxFnc.SetIsAsync(isAsync);
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
             m_currentNodeFunc = pnodeFnc;
             m_currentNodeDeferredFunc = NULL;
@@ -897,6 +899,13 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             }
             break;
         case knopVarDecl:
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
+            {
+                // If this is a parameter list, mark the scope to indicate that it has duplicate definition.
+                // If later this turns out to be a non-simple param list (like function f(a, a, c = 1) {}) then it is a SyntaxError to have duplicate formals.
+                m_currentScope->SetHasDuplicateFormals();
+            }
+
             if (sym->GetDecl() == nullptr)
             {
                 Assert(symbolType == STFunction);
@@ -2109,7 +2118,9 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         m_pscan->Scan();
 
         // We search an Async expression (a function declaration or a async lambda expression)
-        if (pid == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (pid == wellKnownPropertyPids.async &&
+            !m_pscan->FHadNewLine() &&
+            m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             if (m_token.tk == tkFUNCTION)
             {
@@ -3272,7 +3283,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->ScanForcingPid();
-            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly)
+            if (m_token.tk == tkLParen || m_token.tk == tkColon || m_token.tk == tkRCurly || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -3709,19 +3720,25 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     m_scopeCountNoAst = 0;
 
     long* pAstSizeSave = m_pCurrentAstSize;
+    bool noStmtContext = false;
 
     if (buildAST || BindDeferredPidRefs())
     {
         if (fDeclaration && m_scriptContext->GetConfig()->IsBlockScopeEnabled())
         {
-            bool needsBlockNode =
+            noStmtContext =
                 (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
                 (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
 
-            if (needsBlockNode)
+            if (noStmtContext)
             {
                 // We have a function declaration like "if (a) function f() {}". We didn't see
-                // a block scope on the way in, so we need to pretend we did.
+                // a block scope on the way in, so we need to pretend we did. Note that this is a syntax error
+                // in strict mode.
+                if (!this->FncDeclAllowedWithoutContext(flags))
+                {
+                    Error(ERRsyntax);
+                }
                 pnodeFncBlockScope = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
                 if (buildAST)
                 {
@@ -3853,7 +3870,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     }
 
     bool needScanRCurly = true;
-    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, &needScanRCurly);
+    bool result = ParseFncDeclHelper<buildAST>(pnodeFnc, pnodeFncSave, pNameHint, flags, &funcHasName, fUnaryOrParen, noStmtContext, &needScanRCurly);
     if (!result)
     {
         Assert(!pnodeFncBlockScope);
@@ -4037,6 +4054,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     return pnodeFnc;
 }
 
+bool Parser::FncDeclAllowedWithoutContext(ushort flags)
+{
+    // Statement context required for strict mode, async functions, and generators.
+    // Note that generators aren't detected yet when this method is called; they're checked elsewhere.
+    return !IsStrictMode() && !(flags & fFncAsync);
+}
+
 uint Parser::CalculateFunctionColumnNumber()
 {
     uint columnNumber;
@@ -4089,7 +4113,7 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodePtr pnodeFnc)
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool *pNeedScanRCurly)
+bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly)
 {
     bool fDeclaration = (flags & fFncDeclaration) != 0;
     bool fLambda = (flags & fFncLambda) != 0;
@@ -4119,6 +4143,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     }
 
     *pHasName = !fLambda && this->ParseFncNames<buildAST>(pnodeFnc, pnodeFncParent, flags, &lastNodeRef);
+
+    if (noStmtContext && pnodeFnc->sxFnc.IsGenerator())
+    {
+        // Generator decl not allowed outside stmt context. (We have to wait until we've parsed the '*' to
+        // detect generator.)
+        Error(ERRsyntax, pnodeFnc);
+    }
 
     // switch scanner to treat 'yield' as keyword in generator functions
     // or as an identifier in non-generator functions
@@ -5333,18 +5364,16 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         {
                             // When only validating formals, we won't have a function node.
                             pnodeFnc->sxFnc.pnodeRest = pnodeT;
-                        }
-                        if (!isNonSimpleParameterList)
-                        {
-                            // This is the first non-simple parameter we've seen. We need to go back
-                            // and set the Symbols of all previous parameters.
-                            MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            if (!isNonSimpleParameterList)
+                            {
+                                // This is the first non-simple parameter we've seen. We need to go back
+                                // and set the Symbols of all previous parameters.
+                                MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            }
                         }
                     }
-                    else
-                    {
-                        isNonSimpleParameterList = true;
-                    }
+
+                    isNonSimpleParameterList = true;
                 }
                 else
                 {
@@ -5401,28 +5430,42 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
                         if (!isNonSimpleParameterList)
                         {
-                            // This is the first non-simple parameter we've seen. We need to go back
-                            // and set the Symbols of all previous parameters.
-                            MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            if (buildAST)
+                            {
+                                // This is the first non-simple parameter we've seen. We need to go back
+                                // and set the Symbols of all previous parameters.
+                                MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->sxVar.sym->SetIsNonSimpleParameter(true); });
+                            }
 
                             // There may be previous parameters that need to be checked for duplicates.
                             isNonSimpleParameterList = true;
                         }
                     }
 
+                    // In defer parse mode we have to flag the function node to indicate that it has default arguments
+                    // so that it will be considered for any syntax error scenario.
+                    ParseNode* currentFncNode = GetCurrentFunctionNode();
+                    if (!currentFncNode->sxFnc.HasDefaultArguments())
+                    {
+                        currentFncNode->sxFnc.SetHasDefaultArguments();
+                        currentFncNode->sxFnc.firstDefaultArg = argPos;
+                    }
 
                     if (buildAST)
                     {
                         if (!m_currentNodeFunc->sxFnc.HasDefaultArguments())
                         {
-                            m_currentNodeFunc->sxFnc.SetHasDefaultArguments();
-                            m_currentNodeFunc->sxFnc.firstDefaultArg = argPos;
                             CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunctionCount, m_scriptContext);
                         }
                         pnodeT->sxVar.pnodeInit = pnodeInit;
                         pnodeT->ichLim = m_pscan->IchLimTok();
                     }
                 }
+            }
+
+            if (isNonSimpleParameterList && m_currentScope->GetHasDuplicateFormals())
+            {
+                Error(ERRFormalSame);
             }
 
             if (m_token.tk != tkComma)
@@ -6180,7 +6223,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkLParen)
+            if (m_token.tk == tkLParen || m_pscan->FHadNewLine())
             {
                 m_pscan->SeekTo(parsedAsync);
             }
@@ -6366,6 +6409,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         }
     }
 
+    if (buildAST)
+    {
+        pnodeClass->ichLim = m_pscan->IchLimTok();
+    }
+
     if (!hasConstructor)
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Generating constructor (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
@@ -6398,6 +6446,11 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
 
     if (buildAST)
     {
+        pnodeConstructor->sxFnc.cbMin = pnodeClass->ichMin;
+        pnodeConstructor->sxFnc.cbLim = pnodeClass->ichLim;
+        pnodeConstructor->ichMin = pnodeClass->ichMin;
+        pnodeConstructor->ichLim = pnodeClass->ichLim;
+
         PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
 
         pnodeClass->sxClass.pnodeDeclName = pnodeDeclName;
@@ -7159,7 +7212,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             if (!m_pscan->YieldIsKeyword() || oplMin > opl)
             {
                 // The case where 'yield' is scanned as a keyword (tkYIELD) but the scanner
-                // is not treating yield as a keyword (!m_pscan->YieldIsKeyword()) happens
+                // is not treating yield as a keyword (!m_pscan->YieldIsKeyword()) occurs
                 // in strict mode non-generator function contexts.
                 //
                 // That is, 'yield' is a keyword because of strict mode, but YieldExpression
@@ -7177,18 +7230,18 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else if (nop == knopAwait)
         {
-            if (!m_pscan->AwaitIsKeyword() || oplMin > opl)
+            if (!m_pscan->AwaitIsKeyword() ||
+                (GetCurrentFunctionNode()->sxFnc.IsAsync() && m_currentScope->GetScopeType() == ScopeType_Parameter))
             {
-                // As 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT) but the scanner
-                // is not treating await as a keyword (!m_pscan->AwaitIsKeyword()) happens
-                // in strict mode non-generator function contexts.
+                // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
+                // but the scanner is not treating await as a keyword (!m_pscan->AwaitIsKeyword())
+                // occurs in strict mode non-async function contexts.
                 //
                 // That is, 'await' is a keyword because of strict mode, but AwaitExpression
-                // is not a grammar production outside of generator functions.
+                // is not a grammar production outside of async functions.
                 //
-                // Otherwise it is an error for a yield to appear in the context of a higher level
-                // binding operator, be it unary or binary.
-                Error(ERRsyntax);
+                // Further, await expressions are disallowed within parameter scopes.
+                Error(ERRbadAwait);
             }
         }
 
@@ -7497,7 +7550,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 iecpMin = m_pscan->IecpMinTok();
                 m_pscan->Scan();
 
-                if (m_token.tk == tkID || m_token.tk == tkLParen)
+                if ((m_token.tk == tkID || m_token.tk == tkLParen) && !m_pscan->FHadNewLine())
                 {
                     flags |= fFncAsync;
                     isAsyncMethod = true;
@@ -7658,7 +7711,7 @@ void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
         {
             return;
         }
-        Assert(this->GetIchLim() >= ichLim);
+        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
     }
 
     this->isAsg = true;
@@ -7780,7 +7833,8 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     BOOL singleDefOnly/* = FALSE*/,
     BOOL allowInit/* = TRUE*/,
     BOOL isTopVarParse/* = TRUE*/,
-    BOOL isFor/* = FALSE*/)
+    BOOL isFor/* = FALSE*/,
+    BOOL* nativeForOk /*= nullptr*/)
 {
     ParseNodePtr pnodeThis = nullptr;
     ParseNodePtr pnodeInit;
@@ -7795,7 +7849,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
     {
         if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
         {
-            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk);
+            pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk, nativeForOk);
             if (pnodeThis != nullptr)
             {
                 pnodeThis->ichMin = ichMin;
@@ -8410,7 +8464,7 @@ LFunctionStatement:
             iecpMin = m_pscan->IecpMinTok();
 
             m_pscan->Scan();
-            if (m_token.tk == tkFUNCTION)
+            if (m_token.tk == tkFUNCTION && !m_pscan->FHadNewLine())
             {
                 isAsyncMethod = true;
                 goto LFunctionStatement;
@@ -8462,6 +8516,8 @@ LFunctionStatement:
         fForInOrOfOkay = TRUE;
         fCanAssign = TRUE;
         tok = m_token.tk;
+        BOOL nativeForOkay = TRUE;
+
         switch (tok)
         {
         case tkID:
@@ -8485,8 +8541,9 @@ LFunctionStatement:
                                                                 , /*pfForInOk = */&fForInOrOfOkay
                                                                 , /*singleDefOnly*/FALSE
                                                                 , /*allowInit*/TRUE
-                                                                , /*isTopVarParse*/FALSE
-                                                                , /*isFor*/TRUE);
+                                                                , /*isTopVarParse*/TRUE
+                                                                , /*isFor*/TRUE
+                                                                , &nativeForOkay);
                     break;
                 }
                 m_pscan->SeekTo(parsedLet);
@@ -8512,8 +8569,9 @@ LFunctionStatement:
                                                             , /*pfForInOk = */&fForInOrOfOkay
                                                             , /*singleDefOnly*/FALSE
                                                             , /*allowInit*/TRUE
-                                                            , /*isTopVarParse*/FALSE
-                                                            , /*isFor*/TRUE);
+                                                            , /*isTopVarParse*/TRUE
+                                                            , /*isFor*/TRUE
+                                                            , &nativeForOkay);
             }
             break;
         case tkSColon:
@@ -8548,7 +8606,10 @@ LDefaultTokenFor:
                 {
                     pnodeT = ParseExpr<buildAST>(koplNo, &fCanAssign, /*fAllowIn = */FALSE);
                 }
-                if (fLikelyPattern)
+
+                // We would veryfiy the grammar as destructuring grammar only when  for..in/of case. As in the native for loop case the above ParseExpr call
+                // has already converted them appropriately.
+                if (fLikelyPattern && TokIsForInOrForOf())
                 {
                     m_pscan->SeekTo(exprStart);
                     ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
@@ -8619,6 +8680,11 @@ LDefaultTokenFor:
         }
         else
         {
+            if (!nativeForOkay)
+            {
+                Error(ERRDestructInit);
+            }
+
             ChkCurTok(tkSColon, ERRnoSemic);
             ParseNodePtr pnodeCond = nullptr;
             if (m_token.tk != tkSColon)
@@ -9462,6 +9528,12 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
             {
                 if (isUseStrictDirective)
                 {
+                    // Functions with non-simple parameter list cannot be made strict mode
+                    if (!GetCurrentFunctionNode()->sxFnc.IsSimpleParameterList())
+                    {
+                        Error(ERRNonSimpleParamListInStrictMode);
+                    }
+
                     if (seenDirectiveContainingOctal)
                     {
                         // Directives seen before a "use strict" cannot contain an octal.
@@ -11123,7 +11195,8 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
     bool topLevel/* = true*/,
     DestructuringInitializerContext initializerContext/* = DIC_None*/,
     bool allowIn/* = true*/,
-    BOOL *forInOfOkay/* = nullptr*/)
+    BOOL *forInOfOkay/* = nullptr*/,
+    BOOL *nativeForOkay/* = nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     Assert(IsPossiblePatternStart());
@@ -11136,7 +11209,7 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
         pnode = ParseDestructuredArrayLiteral<buildAST>(declarationType, isDecl, topLevel);
     }
 
-    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay);
+    return ParseDestructuredInitializer<buildAST>(pnode, isDecl, topLevel, initializerContext, allowIn, forInOfOkay, nativeForOkay);
 }
 
 template <bool buildAST>
@@ -11145,10 +11218,11 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
     bool topLevel,
     DestructuringInitializerContext initializerContext,
     bool allowIn,
-    BOOL *forInOfOkay)
+    BOOL *forInOfOkay,
+    BOOL *nativeForOkay)
 {
     m_pscan->Scan();
-    if (topLevel)
+    if (topLevel && nativeForOkay == nullptr)
     {
         if (initializerContext != DIC_ForceErrorOnInitializer && m_token.tk != tkAsg)
         {
@@ -11164,6 +11238,12 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
 
     if (m_token.tk != tkAsg || initializerContext == DIC_ShouldNotParseInitializer)
     {
+        if (topLevel && nativeForOkay != nullptr)
+        {
+            // Native loop should have destructuring initializer
+            *nativeForOkay = FALSE;
+        }
+
         return lhsNode;
     }
 

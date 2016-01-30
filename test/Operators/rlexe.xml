@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -199,6 +199,7 @@
     <default>
       <files>prototypeInheritance2.js</files>
       <baseline>prototypeInheritance2.baseline</baseline>
+      <compile-flags>-ES6RegExPrototypeProperties-</compile-flags>
     </default>
   </test>
   <test>

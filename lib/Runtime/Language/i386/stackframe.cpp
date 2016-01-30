@@ -65,9 +65,9 @@ X86StackFrame::SkipToFrame(void * frameAddress)
 }
 
 bool
-X86StackFrame::IsInStackCheckCode(void *entry) const
+X86StackFrame::IsInStackCheckCode(void *entry, void *codeAddr, size_t stackCheckCodeHeight)
 {
-    return ((size_t(codeAddr) - size_t(entry)) <= this->stackCheckCodeHeight);
+    return ((size_t(codeAddr) - size_t(entry)) <= stackCheckCodeHeight);
 }
 
 };

@@ -264,6 +264,14 @@ var assert = function assert() {
             validate(compare(false, actual), "isFalse", message);
         },
 
+        isUndefined: function isUndefined(actual, message) {
+            validate(compare(undefined, actual), "isUndefined", message);
+        },
+
+        isNotUndefined: function isUndefined(actual, message) {
+            validate(compare(undefined, actual) !== true, "isNotUndefined", message);
+        },
+
         throws: function throws(testFunction, expectedException, message, expectedErrorMessage) {
             /// <summary>
             /// Makes sure that the function specified by the 'testFunction' parameter

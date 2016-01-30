@@ -69,7 +69,7 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)ConfigParserExternals.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreDLLFunc.cpp" />
     <ClCompile Include="TestHooks.cpp" />
-    <None Include="CoreCommon.ver" />
+    <None Include="..\CoreCommon.ver" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="$(MsBuildThisFileDirectory)ChakraCore.rc">

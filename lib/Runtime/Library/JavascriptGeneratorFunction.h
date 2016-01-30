@@ -80,7 +80,7 @@ namespace Js
     {
     private:
         friend class JavascriptGeneratorFunction;
-        friend Var Js::JavascriptFunction::NewInstanceHelper(ScriptContext*, RecyclableObject*, CallInfo, ArgumentReader&, bool);
+        friend Var Js::JavascriptFunction::NewInstanceHelper(ScriptContext*, RecyclableObject*, CallInfo, ArgumentReader&, Js::JavascriptFunction::FunctionKind);
 
         JavascriptGeneratorFunction* realFunction;
 

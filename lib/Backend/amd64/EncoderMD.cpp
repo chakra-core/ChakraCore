@@ -590,7 +590,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     const BYTE *form = EncoderMD::GetFormTemplate(instr);
     const BYTE *opcodeTemplate = EncoderMD::GetOpbyte(instr);
     const uint32 leadIn = EncoderMD::GetLeadIn(instr);
-    const uint32 opdope = EncoderMD::GetOpdope(instr);
+    uint32 opdope = EncoderMD::GetOpdope(instr);
 
     //
     // Canonicalize operands.
@@ -1052,6 +1052,60 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
                     *(m_pc)++ = (char)opr1->AsIntConstOpnd()->GetValue();
                 }
                 break;
+
+            case Js::OpCode::MOVQ:
+            {
+                // The usual mechanism for encoding SSE/SSE2 instructions
+                // doesn't work quite right for this one, so we must fixup
+                // the encoding.
+                if (REGNUM_ISXMMXREG(opr1->AsRegOpnd()->GetReg())) {
+                    if (opr2->IsRegOpnd() && this->GetOpndSize(opr2) == 8) { // QWORD_SIZE
+
+                        // Encoded as 66 REX.W 0F 6E ModRM
+                        opdope &= ~(DF2 | DF3);
+                        opdope |= D66;
+                        opcodeByte = 0x6E;
+
+                        goto modrm;
+                    }
+                    else {
+                        // Encoded as F3 0F 7E ModRM
+                        opdope &= ~(D66 | D66EX | DF2);
+                        opdope |= DF3;
+                        opcodeByte = 0x7E;
+
+                        goto modrm;
+                    }
+
+                }
+                //else if (TU_ISXMMXREG(opr2)) {
+                else if (REGNUM_ISXMMXREG(opr2->AsRegOpnd()->GetReg())) {
+                    //if (TU_ISREG(opr1) && (TU_SIZE(opr1) == QWORD_SIZE)) {
+                    if (opr1->IsRegOpnd() && this->GetOpndSize(opr1) == 8) {// QWORD_SIZE
+                        // Encoded as 66 REX.W 0F 7E ModRM
+                        opdope &= ~(DF2 | DF3);
+                        opdope |= D66;
+                        opcodeByte = 0x7E;
+
+                        // Swap operands to get right behavior from modrm encode.
+
+                        IR::Opnd* tmp = opr1;
+                        opr1 = opr2;
+                        opr2 = tmp;
+
+                        goto modrm;
+                    }
+                    else {
+                        // Encoded as 66 0F D6
+                        opdope &= ~(DF2 | DF3);
+                        opdope |= D66;
+                        opcodeByte = 0xD6;
+
+                        goto modrm;
+                    }
+                }
+            }
+                // FALL-THROUGH to MOVD                
 
             case Js::OpCode::MOVD:
                 if (opr2->IsRegOpnd() && REGNUM_ISXMMXREG(opr2->AsRegOpnd()->GetReg()))

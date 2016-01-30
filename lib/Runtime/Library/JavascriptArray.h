@@ -170,9 +170,9 @@ namespace Js
 #endif
         template<typename T> void DirectSetItem_Full(uint32 itemIndex, T newValue);
         template<typename T> SparseArraySegment<T>* PrepareSegmentForMemOp(uint32 startIndex, uint32 length);
-        template<typename T> void DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
-        template<typename T> void DirectSetItemAtRangeFull(uint32 startIndex, uint32 length, T newValue);
-        template<typename T> void DirectSetItemAtRangeFromArray(uint32 startIndex, uint32 length, JavascriptArray *fromArray, uint32 fromStartIndex);
+        template<typename T> bool DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
+        template<typename T> bool DirectSetItemAtRangeFull(uint32 startIndex, uint32 length, T newValue);
+        template<typename T> bool DirectSetItemAtRangeFromArray(uint32 startIndex, uint32 length, JavascriptArray *fromArray, uint32 fromStartIndex);
 #if DBG
         template <typename T> void VerifyNotNeedMarshal(T value) {};
         template <> void VerifyNotNeedMarshal<Var>(Var value) { Assert(value == JavascriptArray::MissingItem || !CrossSite::NeedMarshalVar(value, this->GetScriptContext())); }

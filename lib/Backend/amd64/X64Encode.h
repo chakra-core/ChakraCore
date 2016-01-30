@@ -233,6 +233,8 @@ enum Forms : BYTE
 #define OPBYTE_MOVMSKPD {0x50}                  // modrm
 #define OPBYTE_MOVMSKPS {0x50}                  // modrm
 
+#define OPBYTE_MOVQ     {0x6f}                   // special
+
 #define OPBYTE_MOVSD    {0x10}                   // modrm
 #define OPBYTE_MOVSS    {0x10}                   // special, modrm
 #define OPBYTE_MOVAPD   {0x28}                   // special, modrm

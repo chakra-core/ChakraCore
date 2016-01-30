@@ -43,13 +43,6 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
         return nullptr;
     }
 
-    if (!m_testHooksInitialized)
-    {
-        fwprintf(stderr, L"The binary %ls is not test enabled, please use %ls from debug/test flavor\n", chakraDllName, chakraDllName);
-        UnloadChakraDll(library);
-        return nullptr;
-    }
-
     m_jsApiHooks.pfJsrtCreateRuntime = (JsAPIHooks::JsrtCreateRuntimePtr)GetProcAddress(library, "JsCreateRuntime");
     m_jsApiHooks.pfJsrtCreateContext = (JsAPIHooks::JsrtCreateContextPtr)GetProcAddress(library, "JsCreateContext");
     m_jsApiHooks.pfJsrtSetCurrentContext = (JsAPIHooks::JsrtSetCurrentContextPtr)GetProcAddress(library, "JsSetCurrentContext");

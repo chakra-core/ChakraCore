@@ -30,7 +30,8 @@ namespace Js {
         void SetReturnAddress(void * address) { frame[1] = address; }
         bool SkipToFrame(void * frameAddress);
 
-        bool IsInStackCheckCode(void *entry) const;
+        size_t GetStackCheckCodeHeight() { return this->stackCheckCodeHeight; }
+        static bool IsInStackCheckCode(void *entry, void *codeAddr, size_t stackCheckCodeHeight);
 
     private:
         void ** frame;      // ebp

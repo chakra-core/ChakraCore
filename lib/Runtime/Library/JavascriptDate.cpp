@@ -1360,8 +1360,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -1372,6 +1371,15 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
+
+                // Initialize Date.prototype.toLocaleDateString
+                scriptContext->GetLibrary()->InitializeIntlForDatePrototype();
+                func = extensionObject->GetDateToLocaleDateString();
+                if (func)
+                {
+                    return func->CallFunction(args);
+                }
+                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleDateString method.");
             }
         }
 #endif
@@ -1403,8 +1411,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -1415,6 +1422,14 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
+                // Initialize Date.prototype.toLocaleString
+                scriptContext->GetLibrary()->InitializeIntlForDatePrototype();
+                func = extensionObject->GetDateToLocaleString();
+                if (func)
+                {
+                    return func->CallFunction(args);
+                }
+                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleString method.");
             }
         }
 #endif
@@ -1455,8 +1470,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
-            scriptContext->GetLibrary()->EnsureIntlObjectReady();
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -1467,6 +1481,14 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
+                // Initialize Date.prototype.toLocaleTimeString
+                scriptContext->GetLibrary()->InitializeIntlForDatePrototype();
+                func = extensionObject->GetDateToLocaleTimeString();
+                if (func)
+                {
+                    return func->CallFunction(args);
+                }
+                AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleTimeString method.");
             }
         }
 #endif

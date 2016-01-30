@@ -51,6 +51,11 @@ if not "%1"=="" (
         goto :ContinueArgParse
     )
 
+    if "%1"=="-disablejit" (
+        set _NoJIT=.NoJIT
+        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+    )
+
     :: default
     set _ExtraTestArgs=%_ExtraTestArgs% %1
     shift

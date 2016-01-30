@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -623,6 +623,12 @@
      <default>
         <files>memset.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -mmoc:0</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
+        <files>memset_invariant.js</files>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
      </default>
   </test>
   <test>

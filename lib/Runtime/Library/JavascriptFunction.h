@@ -45,9 +45,11 @@ namespace Js
         static const charcount_t DIAG_MAX_FUNCTION_STRING = 256;
 
     protected:
-        static Var NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, bool isGenerator = false);
+        enum class FunctionKind { Normal, Generator, Async };
+        static Var NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind = FunctionKind::Normal);
 
         JavascriptFunction(DynamicType * type);
+
     public:
         JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo);
         JavascriptFunction(DynamicType * type, FunctionInfo * functionInfo, ConstructorCache* cache);
@@ -62,6 +64,8 @@ namespace Js
             static FunctionInfo Call;
             static FunctionInfo ToString;
             static FunctionInfo SymbolHasInstance;
+
+            static FunctionInfo NewAsyncFunctionInstance;
         };
 
         static const int numberLinesPrependedToAnonymousFunction = 1;
@@ -76,6 +80,8 @@ namespace Js
         static Var EntryCall(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolHasInstance(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static Var NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...);
 
         static bool Is(Var aValue);
         static JavascriptFunction* FromVar(Var aValue);

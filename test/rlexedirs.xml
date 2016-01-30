@@ -252,6 +252,11 @@
 </dir>
 <dir>
   <default>
+    <files>es7</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>switchStatement</files>
   </default>
 </dir>
@@ -318,6 +323,12 @@
 <dir>
   <default>
     <files>SIMD.workloads.asmjs</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.TypeSpec</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>

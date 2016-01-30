@@ -93,7 +93,7 @@ namespace Js
             Assert(currentIndex == -1);
         }
 
-        static bool             FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout = false, int loopNum = -1, bool noAlloc = false);
+        static bool             FromPhysicalFrame(InlinedFrameWalker& self, StackFrame& physicalFrame, Js::ScriptFunction *parent, bool fromBailout = false, int loopNum = -1, const JavascriptStackWalker * const walker = nullptr, bool noAlloc = false);
         void                    Close();
         bool                    Next(CallInfo& callInfo);
         size_t                  GetArgc() const;
@@ -127,17 +127,8 @@ namespace Js
                 return (InlinedFrame*)next;
             }
 
-            static InlinedFrame *FromPhysicalFrame(StackFrame& currentFrame, void *entry, EntryPointInfo* entryPointInfo)
-            {
-                struct InlinedFrame *inlinedFrame = nullptr;
-                if (!currentFrame.IsInStackCheckCode(entry))
-                {
-                    void *frame = currentFrame.GetFrame();
-                    inlinedFrame = (struct InlinedFrame *)(((uint8 *)frame) - entryPointInfo->frameHeight);
-                }
+            static InlinedFrame *FromPhysicalFrame(StackFrame& currentFrame, const JavascriptStackWalker * const stackWalker, void *entry, EntryPointInfo* entryPointInfo);
 
-                return inlinedFrame;
-            }
         };
 
         void Initialize(int32 frameCount, __in_ecount(frameCount) InlinedFrame **frames, Js::ScriptFunction *parent);
@@ -150,6 +141,30 @@ namespace Js
         InlinedFrame          **frames;
         int32                   currentIndex;
         int32                   frameCount;
+    };
+
+    class InternalFrameInfo
+    {
+    public:
+        void *codeAddress;
+        void *framePointer;
+        size_t stackCheckCodeHeight;
+        InternalFrameType frameType;
+        InternalFrameType loopBodyFrameType;
+        bool frameConsumed;
+
+        InternalFrameInfo() :
+            codeAddress(nullptr),
+            framePointer(nullptr),
+            stackCheckCodeHeight((uint)-1),
+            frameType(InternalFrameType_None),
+            loopBodyFrameType(InternalFrameType_None),
+            frameConsumed(false)
+        {
+        }
+
+        void Clear();
+        void Set(void *codeAddress, void *framePointer, size_t stackCheckCodeHeight, InternalFrameType frameType, InternalFrameType loopBodyFrameType);
     };
 #endif
 
@@ -209,10 +224,12 @@ namespace Js
 
         static bool TryIsTopJavaScriptFrameNative(ScriptContext* scriptContext, bool* istopFrameNative, bool ignoreLibraryCode = false);
 
-        void SetCachedInternalFrameAddress(void *address, InternalFrameType type);
-        void ClearCachedInternalFrameAddress();
-        void SetCachedInternalFrameInfoForLoopBody();
-        bool IsCurrentPhysicalFrameForLoopBody() const; 
+#if ENABLE_NATIVE_CODEGEN
+        void ClearCachedInternalFrameInfo();
+        void SetCachedInternalFrameInfo(InternalFrameType frameType, InternalFrameType loopBodyFrameType);
+        InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
+#endif
+        bool IsCurrentPhysicalFrameForLoopBody() const;
 
         // noinline, we want to use own stack frame.
         static __declspec(noinline) BOOL GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext);
@@ -301,7 +318,6 @@ namespace Js
         bool                    isJavascriptFrame           : 1;
         bool                    isNativeLibraryFrame        : 1;
         bool                    isInitialFrame              : 1; // If we need to walk the initial frame
-        bool                    lastInternalFrameConsumed   : 1;
         bool                    shouldDetectPartiallyInitializedInterpreterFrame : 1;
         bool                    previousInterpreterFrameIsFromBailout : 1;
         bool                    ehFramesBeingWalkedFromBailout : 1;
@@ -312,11 +328,9 @@ namespace Js
         void SetCurrentArgumentsObject(Var args);
         Var GetCurrentNativeArgumentsObject() const;
         void SetCurrentNativeArgumentsObject(Var args);
-
-        void *lastInternalFrameAddress;
-        InternalFrameType lastInternalFrameType;
-        InternalFrameType lastInternalLoopBodyFrameType;
-
+#if ENABLE_NATIVE_CODEGEN
+        InternalFrameInfo lastInternalFrameInfo;
+#endif
         mutable StackFrame currentFrame;
 
         Js::JavascriptFunction * UpdateFrame(bool includeInlineFrames);

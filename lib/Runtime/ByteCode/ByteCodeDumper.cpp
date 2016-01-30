@@ -865,7 +865,9 @@ namespace Js
         switch (op)
         {
             case OpCode::StInnerSlot:
+            case OpCode::StInnerSlotChkUndecl:
             case OpCode::StInnerObjSlot:
+            case OpCode::StInnerObjSlotChkUndecl:
             case OpCode::StEnvSlot:
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvSlotChkUndecl:

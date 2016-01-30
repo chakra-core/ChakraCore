@@ -629,7 +629,7 @@ SECOND_PASS:
         uint32 endIndex;
         if(UInt32Math::Add(startIndex, length - 1, &endIndex))
         {
-            JavascriptError::ThrowRangeError(this->GetScriptContext(), JSERR_ArrayLengthAssignIncorrect);
+            return nullptr;
         }
         if (endIndex >= this->length)
         {
@@ -639,7 +639,7 @@ SECOND_PASS:
             }
             else
             {
-                JavascriptError::ThrowRangeError(this->GetScriptContext(), JSERR_ArrayLengthAssignIncorrect);
+                return nullptr;
             }
         }
 
@@ -930,11 +930,11 @@ SECOND_PASS:
     }
 
     template<typename T>
-    void JavascriptArray::DirectSetItemAtRangeFromArray(uint32 toStartIndex, uint32 length, JavascriptArray *fromArray, uint32 fromStartIndex)
+    bool JavascriptArray::DirectSetItemAtRangeFromArray(uint32 toStartIndex, uint32 length, JavascriptArray *fromArray, uint32 fromStartIndex)
     {
         if (length == 0)
         {
-            return;
+            return true;
         }
 
         bool isBtree = false;
@@ -952,14 +952,16 @@ SECOND_PASS:
                     DirectSetItem_Full(toStartIndex + i, val);
                 }
             }
-            return;
+            return true;
         }
 
         SparseArraySegment<T> *toSegment = PrepareSegmentForMemOp<T>(toStartIndex, length);
-
+        if (toSegment == nullptr)
+        {
+            return false;
+        }
         Assert(fromArray->head);
         Assert(fromArray->length >= (fromStartIndex + length));
-
 
         //Find the segment where itemIndex is present or is at the boundary
         SparseArraySegmentBase* current = fromArray->GetBeginLookupSegment(fromStartIndex, false);
@@ -1002,9 +1004,10 @@ SECOND_PASS:
             }
         }
 #endif
+        return true;
     }
     template<typename T>
-    void JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
+    bool JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
     {
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
@@ -1074,14 +1077,15 @@ SECOND_PASS:
         {
             DirectSetItemAtRangeFull<T>(startIndex, length, newValue);
         }
+        return true;
     }
 
     template<typename T>
-    void JavascriptArray::DirectSetItemAtRangeFull(uint32 startIndex, uint32 length, T newValue)
+    bool JavascriptArray::DirectSetItemAtRangeFull(uint32 startIndex, uint32 length, T newValue)
     {
         if (length == 0)
         {
-            return;
+            return true;
         }
 
         bool isBtree = false;
@@ -1095,11 +1099,14 @@ SECOND_PASS:
             {
                 DirectSetItem_Full<T>(i, newValue);
             }
-            return;
+            return true;
         }
 
         SparseArraySegment<T> *current = PrepareSegmentForMemOp<T>(startIndex, length);
-
+        if (current == nullptr)
+        {
+            return false;
+        }
         if (newValue == (T)0 || newValue == (T)(-1))
         {
             memset((((Js::SparseArraySegment<T>*)current)->elements + (startIndex - current->left)), ((int)(intptr_t)newValue), sizeof(T)* length);
@@ -1121,7 +1128,7 @@ SECOND_PASS:
             }
         }
 #endif
-
+        return true;
     }
 
     template<typename T>

@@ -1,3 +1,8 @@
+::-------------------------------------------------------------------------------------------------------
+:: Copyright (C) Microsoft. All rights reserved.
+:: Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+::-------------------------------------------------------------------------------------------------------
+
 cscript.exe //nologo mul.js > mul.baseline
 cscript.exe //nologo mul0.js > mul0.baseline
 cscript.exe //nologo mul1.js > mul1.baseline

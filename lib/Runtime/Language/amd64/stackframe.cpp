@@ -212,11 +212,9 @@ Js::Amd64StackFrame::SkipToFrame(void * returnAddress)
 }
 
 bool
-Js::Amd64StackFrame::IsInStackCheckCode(void *entry)
+Js::Amd64StackFrame::IsInStackCheckCode(void *entry, void *codeAddr, size_t stackCheckCodeHeight)
 {
-    void *const codeAddr = GetInstructionPointer();
-
-    return ((size_t(codeAddr) - size_t(entry)) <= this->stackCheckCodeHeight);
+    return ((size_t(codeAddr) - size_t(entry)) <= stackCheckCodeHeight);
 }
 
 Js::Amd64ContextsManager::Amd64ContextsManager()

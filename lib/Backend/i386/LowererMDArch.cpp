@@ -1156,15 +1156,15 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount, RegNum regNum)
 
             StackSym * newDstStackSym = StackSym::New(dstType, this->m_func);
 
-            Assert(dstType == TyMachDouble);
-            this->m_func->StackAllocate(newDstStackSym, MachDouble);
+            Assert(dstOpnd->IsFloat());
+            this->m_func->StackAllocate(newDstStackSym, TySize[dstType]);
 
             IR::SymOpnd * newDstOpnd = IR::SymOpnd::New(newDstStackSym, dstType, this->m_func);
 
             floatPopInstr->SetDst(newDstOpnd);
             callInstr->InsertAfter(floatPopInstr);
 
-            movInstr = IR::Instr::New(Js::OpCode::MOVSD, oldDst, newDstOpnd, this->m_func);
+            movInstr = IR::Instr::New(assignOp, oldDst, newDstOpnd, this->m_func);
             floatPopInstr->InsertAfter(movInstr);
         }
         else
@@ -1368,6 +1368,26 @@ LowererMDArch::LoadDoubleHelperArgument(IR::Instr * instrInsert, IR::Opnd * opnd
         float64Opnd = opndArg;
     }
     instr = IR::Instr::New(Js::OpCode::MOVSD, opnd, float64Opnd, this->m_func);
+    instrInsert->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+    return instrPrev;
+}
+
+IR::Instr *
+LowererMDArch::LoadFloatHelperArgument(IR::Instr * instrInsert, IR::Opnd * opndArg)
+{
+    IR::Instr * instrPrev;
+    IR::Instr * instr;
+    IR::Opnd * opnd;
+    IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, this->m_func);
+
+    opnd = IR::IndirOpnd::New(espOpnd, -4, TyMachReg, this->m_func);
+    instrPrev = IR::Instr::New(Js::OpCode::LEA, espOpnd, opnd, this->m_func);
+    instrInsert->InsertBefore(instrPrev);
+
+    opnd = IR::IndirOpnd::New(espOpnd, (int32)0, TyFloat32, this->m_func);
+
+    instr = IR::Instr::New(Js::OpCode::MOVSS, opnd, opndArg, this->m_func);
     instrInsert->InsertBefore(instr);
     LowererMD::Legalize(instr);
     return instrPrev;

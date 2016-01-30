@@ -600,18 +600,18 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         void * argRestoreAddr = nullptr;
         for (uint i = 0; i < this->argOutOffsetInfo->startCallCount; i++)
         {
-        uint startCallOutParamCount = this->argOutOffsetInfo->startCallOutParamCounts[i];
+            uint startCallOutParamCount = this->argOutOffsetInfo->startCallOutParamCounts[i];
 #ifdef _M_IX86
-        if (argoutRestoreAddress)
-        {
-            argRestoreAddr = (void*)((char*)argoutRestoreAddress + (this->startCallArgRestoreAdjustCounts[i] * MachPtr));
-        }
+            if (argoutRestoreAddress)
+            {
+                argRestoreAddr = (void*)((char*)argoutRestoreAddress + (this->startCallArgRestoreAdjustCounts[i] * MachPtr));
+            }
 #endif
-        newInstance->OP_StartCall(startCallOutParamCount);
-        this->RestoreValues(bailOutKind, layout, startCallOutParamCount, &this->argOutOffsetInfo->outParamOffsets[outParamSlot],
-            this->argOutOffsetInfo->argOutSymStart + outParamSlot, newInstance->m_outParams,
-            scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject, argRestoreAddr);
-        outParamSlot += startCallOutParamCount;
+            newInstance->OP_StartCall(startCallOutParamCount);
+            this->RestoreValues(bailOutKind, layout, startCallOutParamCount, &this->argOutOffsetInfo->outParamOffsets[outParamSlot],
+                this->argOutOffsetInfo->argOutSymStart + outParamSlot, newInstance->m_outParams,
+                scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject, argRestoreAddr);
+            outParamSlot += startCallOutParamCount;
         }
     }
 

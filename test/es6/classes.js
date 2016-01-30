@@ -568,8 +568,8 @@ var tests = [
       class a { };
       class b extends a { };
 
-      assert.areEqual("constructor() {}", a.prototype.constructor.toString());
-      assert.areEqual("constructor(...args) { super(...args); }", b.prototype.constructor.toString());
+      assert.areEqual("class a { }", a.prototype.constructor.toString());
+      assert.areEqual("class b extends a { }", b.prototype.constructor.toString());
 
       var result = [];
       var test = [];
@@ -1021,7 +1021,26 @@ var tests = [
             for (s of new ClassWithArgumentsAndCallerComputedNameGeneratorMethods().caller()) {}
             assert.areEqual('456', s, "s of new ClassWithArgumentsAndCallerComputedNameGeneratorMethods().caller() === '456'");
         }
-    }
+    },
+    {
+        name: "toString on constructor should return class declaration or expression",
+        body: function () {
+            var B = class { };
+            var A = class A extends B { constructor (...args) { super(...args); }  set x(a) { this._x = a; } set y(a) { this._y = a; } };
+            class C {
+                set x(a) { this._x = a; }
+                set y(a) { this._y = a; }
+            };
+            class D { constructor() {}  get x() { return 0; } };
+            var E = D;
+
+            assert.areEqual("class A extends B { constructor (...args) { super(...args); }  set x(a) { this._x = a; } set y(a) { this._y = a; } }", A.prototype.constructor.toString());
+            assert.areEqual("class { }", B.prototype.constructor.toString());
+            assert.areEqual("class C {\r\n                set x(a) { this._x = a; }\r\n                set y(a) { this._y = a; }\r\n            }", C.prototype.constructor.toString());
+            assert.areEqual("class D { constructor() {}  get x() { return 0; } }", D.prototype.constructor.toString());
+            assert.areEqual("class D { constructor() {}  get x() { return 0; } }", E.prototype.constructor.toString());
+        }
+    },
 ];
 
 testRunner.runTests(tests);

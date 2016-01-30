@@ -94,7 +94,7 @@ ArmStackFrame::GetAddressOfReturnAddress(bool isCurrentContextNative, bool shoul
 }
 
 bool
-ArmStackFrame::IsInStackCheckCode(void *entry) const
+ArmStackFrame::IsInStackCheckCode(void *entry, void *codeAddr, size_t stackCheckCodeHeight)
 {
     return ((size_t(codeAddr) - size_t(entry)) <= stackCheckCodeHeight);
 }
