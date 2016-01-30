@@ -2,7 +2,6 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
 #include "CommonExceptionsPch.h"
 // === C Runtime Header Files ===
@@ -20,37 +19,41 @@
 // Header files required before including ConfigFlagsTable.h
 
 #include "EnumHelp.h"
-#include "Common\MathUtil.h"
-#include "Core\AllocSizeMath.h"
-#include "Core\FaultInjection.h"
+#include "common/MathUtil.h"
+#include "core/AllocSizeMath.h"
+#include "core/FaultInjection.h"
 
-#include "core\BasePtr.h"
-#include "core\AutoFILE.h"
-#include "core\Output.h"
+#include "core/BasePtr.h"
+#include "core/AutoFILE.h"
+#include "core/Output.h"
 
 // Memory Management
-namespace Memory {}
+namespace Memory {
+    class ArenaAllocator;
+}
 using namespace Memory;
-#include "Memory\Allocator.h"
-#include "Memory\HeapAllocator.h"
+#include "Memory/Allocator.h"
+#include "Memory/HeapAllocator.h"
 
 // Data structure
-#include "DataStructures\Comparer.h"
-#include "DataStructures\SizePolicy.h"
-#include "DataStructures\SList.h"
-#include "DataStructures\KeyValuePair.h"
-#include "DataStructures\BaseDictionary.h"
-#include "core\ConfigFlagsTable.h"
+#include "DataStructures/comparer.h"
+#include "DataStructures/SizePolicy.h"
+#include "DataStructures/SList.h"
+#include "DataStructures/KeyValuePair.h"
+#include "DataStructures/DefaultContainerLockPolicy.h"
+#include "DataStructures/BaseDictionary.h"
+#include "core/ConfigFlagsTable.h"
 
-#include "core\StackBackTrace.h"
+#include "core/StackBackTrace.h"
 
 
-
+#ifdef GENERATE_DUMP
 // dbghelp.h is not clean with warning 4091
 #pragma warning(push)
 #pragma warning(disable: 4091) /* warning C4091: 'typedef ': ignored on left of '' when no variable is declared */
 #include <dbghelp.h>
 #pragma warning(pop)
+#endif // GENERATE_DUMP
 
 extern "C"{
     BOOLEAN IsMessageBoxWPresent();
@@ -120,36 +123,6 @@ namespace Js {
         AssertMsg(false, "This functionality is not yet implemented");
 
         throw NotImplementedException();
-    }
-
-    // Returns true when the process is either TE.exe or TE.processhost.exe
-    bool Throw::IsTEProcess()
-    {
-        wchar_t fileName[_MAX_PATH];
-        wchar_t moduleName[_MAX_PATH];
-        GetModuleFileName(0, moduleName, _MAX_PATH);
-        errno_t err = _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-
-        return err == 0 && _wcsnicmp(fileName, L"TE", 2) == 0;
-    }
-
-    void Throw::GenerateDumpAndTerminateProcess(PEXCEPTION_POINTERS exceptInfo)
-    {
-        if (!Throw::IsTEProcess()
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            && !Js::Configuration::Global.flags.IsEnabled(Js::DumpOnCrashFlag)
-#endif
-            )
-        {
-            return;
-        }
-
-#ifdef GENERATE_DUMP
-        Js::Throw::GenerateDump(exceptInfo, Js::Configuration::Global.flags.DumpOnCrash);
-#endif
-
-        // For now let's terminate the process.
-        TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
     }
 
 #ifdef GENERATE_DUMP

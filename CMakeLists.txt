@@ -86,6 +86,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-ignored-pragmas
         -Wno-invalid-token-paste
         -Wno-format
+        -Wno-invalid-noreturn
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 

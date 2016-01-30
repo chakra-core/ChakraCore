@@ -115,7 +115,7 @@
 #define ENABLE_NATIVE_CODEGEN 0
 #define ENABLE_PROFILE_INFO 0
 #define ENABLE_BACKGROUND_PARSING 0                 // Disable background parsing in this mode
-                                                    // We need to decouple the Jobs infrastructure out of 
+                                                    // We need to decouple the Jobs infrastructure out of
                                                     // Backend to make background parsing work with JIT disabled
 #define DYNAMIC_INTERPRETER_THUNK 0
 #define DISABLE_DYNAMIC_PROFILE_DEFER_PARSE
@@ -437,6 +437,10 @@
 #else
 #define PDATA_ENABLED 0
 #endif
+#endif
+
+#ifndef _WIN32
+#define DISABLE_SEH 1
 #endif
 
 //----------------------------------------------------------------------------------------------------
