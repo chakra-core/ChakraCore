@@ -122,7 +122,7 @@ public:
 
     void AddToDebuggerObjectsDictionary(DebuggerObjectBase* debuggerObject);
     void AddToScriptIdDebuggerObjectsDictionary(uint scriptId, DebuggerObjectBase* debuggerObject);
-    void AddToFuncionNumberToDebuggerObjectsDictionary(uint functionNumber, DebuggerObjectBase* debuggerObject);
+    void AddToFunctionNumberDebuggerObjectsDictionary(uint functionNumber, DebuggerObjectBase* debuggerObject);
 
 private:
     uint handleId;

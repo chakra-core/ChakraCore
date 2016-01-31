@@ -9,6 +9,13 @@ BEGIN_ENUM_UINT(JsrtDebugPropertyId)
 #include "JsrtDebugPropertiesEnum.h"
 END_ENUM_UINT()
 
+enum JsrtDebugPropertyAttribute
+{
+    PROPERTY_ATTRIBUTE_NONE = 0x0,
+    PROPERTY_ATTRIBUTE_HAVE_CHILDRENS = 0x1,
+    PROPERTY_ATTRIBUTE_READ_ONLY_VALUE = 0x2
+};
+
 class JsrtDebugUtils
 {
 public:

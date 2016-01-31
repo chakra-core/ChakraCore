@@ -191,7 +191,7 @@ void DebuggerObjectsManager::AddToScriptIdDebuggerObjectsDictionary(uint scriptI
     this->GetScriptIdToObjectDictionary()->Add(scriptId, debuggerObject);
 }
 
-void DebuggerObjectsManager::AddToFuncionNumberToDebuggerObjectsDictionary(uint functionNumber, DebuggerObjectBase * debuggerObject)
+void DebuggerObjectsManager::AddToFunctionNumberDebuggerObjectsDictionary(uint functionNumber, DebuggerObjectBase * debuggerObject)
 {
     this->GetDebuggerObjectsDictionary()->Add(debuggerObject->GetHandle(), debuggerObject);
     this->GetFunctionNumberToObjectDictionary()->Add(functionNumber, debuggerObject);
@@ -276,30 +276,11 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     JsrtDebugUtils::AddLineColumnToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
     JsrtDebugUtils::AddSourceTextToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
 
-    DebuggerObjectBase* debuggerObject = nullptr;
-    uint functionHandle = 0;
-    if (!this->GetDebuggerObjectsManager()->TryGetFunctionObjectFromFunctionNumber(functionBody->GetFunctionNumber(), &debuggerObject))
-    {
-        debuggerObject = DebuggerObjectFunction::Make(this->GetDebuggerObjectsManager(), functionBody);
-    }
-
-    functionHandle = debuggerObject->GetHandle();
-
-    Js::DynamicObject* funcObject = frameScriptContext->GetLibrary()->CreateObject();
-    JsrtDebugUtils::AddPropertyToObject(funcObject, JsrtDebugPropertyId::handle, functionHandle, frameScriptContext);
-    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::func, funcObject, frameScriptContext);
-
-    debuggerObject = nullptr;
-    uint scriptHandle = 0;
-    if (!this->GetDebuggerObjectsManager()->TryGetScriptObjectFromScriptId(utf8SourceInfo->GetSourceInfoId(), &debuggerObject))
-    {
-        debuggerObject = DebuggerObjectScript::Make(this->GetDebuggerObjectsManager(), utf8SourceInfo);
-    }
-    scriptHandle = debuggerObject->GetHandle();
-
-    Js::DynamicObject* scriptObject = frameScriptContext->GetLibrary()->CreateObject();
-    JsrtDebugUtils::AddPropertyToObject(scriptObject, JsrtDebugPropertyId::handle, scriptHandle, frameScriptContext);
-    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::script, scriptObject, frameScriptContext);
+    DebuggerObjectBase* functionObject = DebuggerObjectFunction::Make(this->GetDebuggerObjectsManager(), functionBody);
+    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::functionHandle, functionObject->GetHandle(), frameScriptContext);
+    
+    DebuggerObjectBase* scriptObject = DebuggerObjectScript::Make(this->GetDebuggerObjectsManager(), utf8SourceInfo);
+    JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::scriptHandle, scriptObject->GetHandle(), frameScriptContext);
 
     JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::handle, this->GetHandle(), frameScriptContext);
 
@@ -611,12 +592,7 @@ Js::DynamicObject * DebuggerObjectProperty::GetJSONObject(Js::ScriptContext* scr
 
         JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::name, objectDisplayRef->Name(), scriptContext);
 
-        JsrtDebugUtils::AddPropertyType(this->propertyObject, objectDisplayRef, scriptContext); // Will add type, value, display, className
-
-        if (objectDisplayRef->HasChildren())
-        {
-            JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::haveChildrens, true, scriptContext);
-        }
+        JsrtDebugUtils::AddPropertyType(this->propertyObject, objectDisplayRef, scriptContext); // Will add type, value, display, className, propertyAttributes
 
         JsrtDebugUtils::AddPropertyToObject(this->propertyObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
 
@@ -706,7 +682,7 @@ DebuggerObjectBase * DebuggerObjectFunction::Make(DebuggerObjectsManager * debug
 
     debuggerObject = Anew(debuggerObjectsManager->GetDebugObjectArena(), DebuggerObjectFunction, debuggerObjectsManager, functionBody);
 
-    debuggerObjectsManager->AddToDebuggerObjectsDictionary(debuggerObject);
+    debuggerObjectsManager->AddToFunctionNumberDebuggerObjectsDictionary(functionBody->GetFunctionNumber(), debuggerObject);
     return debuggerObject;
 }
 

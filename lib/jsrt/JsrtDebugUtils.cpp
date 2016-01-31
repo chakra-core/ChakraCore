@@ -259,6 +259,22 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, objectDisplayRef->Value(10), scriptContext);
         }
     }
+
+    DBGPROP_ATTRIB_FLAGS dbPropAttrib = objectDisplayRef->GetTypeAttribute();
+
+    uint propertyAttributes = PROPERTY_ATTRIBUTE_NONE;
+
+    if ((dbPropAttrib & DBGPROP_ATTRIB_VALUE_READONLY) == DBGPROP_ATTRIB_VALUE_READONLY)
+    {
+        propertyAttributes |= PROPERTY_ATTRIBUTE_READ_ONLY_VALUE;
+    }
+
+    if (objectDisplayRef->HasChildren())
+    {
+        propertyAttributes |= PROPERTY_ATTRIBUTE_HAVE_CHILDRENS;
+    }
+
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::propertyAttributes, propertyAttributes, scriptContext);
 }
 
 void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext * scriptContext)
