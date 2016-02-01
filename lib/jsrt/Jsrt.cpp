@@ -2187,6 +2187,10 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
         *result = nullptr;
     }
 
+#if !(ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING)
+    INT64 hostCallbackId = -1;
+#endif
+
     return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_FUNCTION(function, scriptContext);
 
