@@ -1212,7 +1212,9 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
     // AssertMsg(funcInfo->nonLocalSymbols == 0 || regEnv != funcInfoParent->nullConstantRegister,
     // "We need a closure for the nested function");
 
-    if (regEnv == funcInfoParent->frameDisplayRegister || regEnv == funcInfoParent->GetEnvRegister())
+    // If we are in a parameter scope and it is not merged with body scope then we have to create the child function as an inner function
+    if ((this->GetCurrentScope()->GetScopeType() != ScopeType_Parameter || this->GetCurrentScope()->GetCanMergeWithBodyScope())
+            && (regEnv == funcInfoParent->frameDisplayRegister || regEnv == funcInfoParent->GetEnvRegister()))
     {
         m_writer.NewFunction(pnodeFnc->location, pnodeFnc->sxFnc.nestedIndex, pnodeFnc->sxFnc.IsGenerator());
     }
@@ -2742,7 +2744,8 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
             Js::ByteCodeLabel noDefaultLabel = this->m_writer.DefineLabel();
             Js::ByteCodeLabel endLabel = this->m_writer.DefineLabel();
             this->StartStatement(pnodeArg);
-            m_writer.BrReg2(Js::OpCode::BrNeq_A, noDefaultLabel, location, funcInfo->undefinedConstantRegister);
+            // Let us use strict not equal to differentiate between null and undefined
+            m_writer.BrReg2(Js::OpCode::BrSrNeq_A, noDefaultLabel, location, funcInfo->undefinedConstantRegister);
 
             Emit(pnodeArg->sxVar.pnodeInit, this, funcInfo, false);
             pnodeArg->sxVar.sym->SetNeedDeclaration(false); // After emit to prevent foo(a = a)
@@ -2986,7 +2989,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         // For now, emit all constant loads at top of function (should instead put in closest dominator of uses).
         LoadAllConstants(funcInfo);
-        HomeArguments(funcInfo);
+        Scope* paramScope = funcInfo->GetParamScope();
+        if (paramScope == nullptr || paramScope->GetCanMergeWithBodyScope())
+        {
+            HomeArguments(funcInfo);
+        }
 
         if (funcInfo->root->sxFnc.pnodeRest != nullptr)
         {
@@ -3113,6 +3120,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         ::BeginEmitBlock(pnode->sxFnc.pnodeScopes, this, funcInfo);
 
+        if (paramScope != nullptr && !paramScope->GetCanMergeWithBodyScope())
+        {
+            // If the param scope has own scope then we should move the params only after the inner scope slot is created
+            HomeArguments(funcInfo);
+        }
+
         if (pnode->sxFnc.pnodeBodyScope != nullptr)
         {
             ::BeginEmitBlock(pnode->sxFnc.pnodeBodyScope, this, funcInfo);
@@ -3121,7 +3134,31 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         if (!pnode->sxFnc.IsSimpleParameterList())
         {
+            Scope* bodyScope = funcInfo->GetBodyScope();
+
+            if (!paramScope->GetCanMergeWithBodyScope())
+            {
+                // Right now the scope stack is like this: outer scope -> body scope -> param scope (Pushed during BeginEmitBlock)
+                // When param and body scopes are not merged they need to be considered at the same level. So we cannot have body
+                // scope as the enclosing scope of param scope. Both body scope and the param scope should have the outer scope as
+                // the enclosing scope. When emitting the formals the stack should be like this: outer scope -> param scope -> formals.
+                // When emitting the body the stack should be like this: outer scope -> body scope -> body statements.
+                // For that pop the param scope, pop the body scope and then push the param scope again.
+                PopScope();
+                Assert(this->GetCurrentScope()->GetScopeType() == ScopeType_FunctionBody);
+                PopScope();
+                PushScope(paramScope);
+            }
+
             EmitDefaultArgs(funcInfo, pnode);
+
+            if (!paramScope->GetCanMergeWithBodyScope())
+            {
+                // Do the reverse of the above block. The param scope will be removed from the stack at the end during EndEmitBlock.
+                PopScope();
+                PushScope(bodyScope);
+                PushScope(paramScope);
+            }
         }
         else if (funcInfo->GetHasArguments() && !NeedScopeObjectForArguments(funcInfo, pnode))
         {
@@ -3133,6 +3170,22 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         if (pnode->sxFnc.pnodeRest != nullptr)
         {
             pnode->sxFnc.pnodeRest->sxVar.sym->SetNeedDeclaration(false);
+        }
+
+        if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+        {
+            // Emit bytecode to copy the initial values from param names to their corresponding body bindings.
+            // We have to do this after the rest param is marked as false for need declaration.
+            paramScope->ForEachSymbol([this, funcInfo](Symbol* param) {
+                Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
+                if (varSym && param->GetLocation() != Js::Constants::NoRegister && varSym->GetLocation() != Js::Constants::NoRegister)
+                {
+                    Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
+                    this->EmitPropLoad(tempReg, param, param->GetPid(), funcInfo);
+                    this->EmitPropStore(tempReg, varSym, varSym->GetPid(), funcInfo);
+                    funcInfo->ReleaseTmpRegister(tempReg);
+                }
+            });
         }
 
         this->inPrologue = false;
@@ -3496,7 +3549,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         }
     }
 
-    Scope * const bodyScope = funcInfo->bodyScope;
+    Scope * const bodyScope = funcInfo->GetBodyScope();
+    Scope * const paramScope = funcInfo->GetParamScope();
 
     if (pnodeFnc->nop != knopProg)
     {
@@ -3512,6 +3566,11 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         else
         {
             bodyScope->SetLocation(funcInfo->frameSlotsRegister);
+        }
+
+        if (paramScope != nullptr && !paramScope->GetCanMergeWithBodyScope())
+        {
+            paramScope->SetMustInstantiate(true);
         }
 
         bodyScope->SetMustInstantiate(funcInfo->frameObjRegister != Js::Constants::NoRegister || funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
@@ -3737,6 +3796,12 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                     if (sym->GetSymbolType() == STVariable && sym->NeedsSlotAlloc(funcInfo) && !sym->GetIsArguments())
                     {
                         sym->EnsureScopeSlot(funcInfo);
+                    }
+                    if (sym->GetSymbolType() == STFormal && sym->GetHasNonLocalReference() && paramScope && !paramScope->GetCanMergeWithBodyScope())
+                    {
+                        // One of the formals copied from param scope has a non local reference, so allocate a register now.
+                        // Symbol will be allocated scope slot later when the statement is visited.
+                        sym->SetLocation(NextVarRegister());
                     }
                 }
             }
@@ -4016,7 +4081,7 @@ Js::RegSlot ByteCodeGenerator::PrependLocalScopes(Js::RegSlot evalEnv, Js::RegSl
     while (currScope != funcScope)
     {
         Scope *innerScope;
-        for (innerScope = currScope; innerScope->GetEnclosingScope() != funcScope; innerScope = innerScope->GetEnclosingScope())
+        for (innerScope = currScope; (innerScope->GetEnclosingScope() != funcScope) && (innerScope->GetScopeType() != ScopeType_Parameter || innerScope->GetFunc() != funcInfo); innerScope = innerScope->GetEnclosingScope())
             ;
         if (innerScope->GetMustInstantiate())
         {
@@ -4917,6 +4982,8 @@ bool ByteCodeGenerator::NeedCheckBlockVar(Symbol* sym, Scope* scope, FuncInfo* f
 {
     bool tdz = sym->GetIsBlockVar()
         && (scope->GetFunc() != funcInfo || ((sym->GetDecl()->nop == knopLetDecl || sym->GetDecl()->nop == knopConstDecl) && sym->GetDecl()->sxVar.isSwitchStmtDecl))
+        // Skip the check for parameters when not merged with body scope
+        && (sym->GetScope()->GetScopeType() != ScopeType_Parameter || sym->GetScope()->GetCanMergeWithBodyScope())
         && CONFIG_FLAG(TDZ);
 
     return tdz || sym->GetIsNonSimpleParameter();

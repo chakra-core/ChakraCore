@@ -854,9 +854,10 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
 
     if (blockInfo->pnodeBlock->sxBlock.scope != nullptr && blockInfo->pnodeBlock->sxBlock.scope->GetScopeType() == ScopeType_FunctionBody)
     {
-        // Check if there is a parameter scope and try to get it first.
+        // Even though we have separate param and body scope it can get merged into one later.
+        // So when looking up the symbol check if there is a parameter scope and try to get it first.
         BlockInfoStack *outerBlockInfo = blockInfo->pBlockInfoOuter;
-        if (outerBlockInfo != nullptr && outerBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
+        if (outerBlockInfo != nullptr && outerBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter && outerBlockInfo->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope())
         {
             maxScopeId = outerBlockInfo->pnodeBlock->sxBlock.blockId;
         }
@@ -4189,6 +4190,23 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
+    // Function definition is inside the parent function's parameter scope
+    bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
+
+    if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr)
+    {
+        // Or this is a function expression enclosed in a parameter scope
+        isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
+    }
+    // Check whether we are in a parameter scope. If we are then we have to mark the parent scope to indicate the same.
+    // If there is a method def in the default param scope then we can't merge the param and body scope of that function.
+    // Note: Lambdas and async functions will be addressed later.
+    if (isEnclosedInParamScope && pnodeFncParent && !pnodeFncParent->sxFnc.IsSimpleParameterList() && !fLambda && !fAsync)
+    {
+        Assert(pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope != nullptr);
+        pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->SetCannotMergeWithBodyScope();
+    }
+
     RestorePoint beginFormals;
     m_pscan->Capture(&beginFormals);
     BOOL fWasAlreadyStrictMode = IsStrictMode();
@@ -4202,11 +4220,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
     if ((!fDeclaration && m_ppnodeExprScope) ||
         (m_scriptContext->GetConfig()->IsBlockScopeEnabled() && fFunctionInBlock) ||
+        (isEnclosedInParamScope && pnodeFncParent && pnodeFncParent->sxFnc.pnodeScopes && !pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->GetCanMergeWithBodyScope()) ||
         (flags & (fFncNoName | fFncLambda)))
     {
         // NOTE: Don't defer if this is a function expression inside a construct that induces
         // a scope nested within the current function (like a with, or a catch in ES5 mode, or
-        // any function declared inside a nested lexical block in ES6 mode).
+        // any function declared inside a nested lexical block or param scope in ES6 mode).
         // We won't be able to reconstruct the scope chain properly when we come back and
         // try to compile just the function expression.
         // Also shut off deferring on getter/setter or other construct with unusual text bounds
@@ -4429,6 +4448,19 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 // Start the var list.
                 pnodeFnc->sxFnc.pnodeVars = nullptr;
                 m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+                // We can't merge the param scope and body scope any more as the nested methods may be capturing params.
+                Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
+                if (!paramScope->GetCanMergeWithBodyScope())
+                {
+                    Assert(!pnodeFnc->sxFnc.IsSimpleParameterList());
+                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
+                    // Now add a new symbol reference for each formal in the param scope to the body scope.
+                    paramScope->ForEachSymbol([this](Symbol* param) {
+                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
+                        this->CreateVarDeclNode(param->GetPid(), param->GetSymbolType(), false, nullptr, false);
+                    });
+                }
             }
 
             // Keep nested function declarations and expressions in the same list at function scope.
@@ -5312,6 +5344,9 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             {
                 if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
                 {
+                    // Mark that the function has a destructuring pattern before parsing the pattern as it can have function definitions.
+                    this->GetCurrentFunctionNode()->sxFnc.SetHasDestructuringPattern();
+
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
                     ParseNodePtr paramPattern = nullptr;
@@ -5337,7 +5372,6 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         *m_ppnodeVar = paramPattern;
                         paramPattern->sxParamPattern.pnodeNext = nullptr;
                         m_ppnodeVar = &paramPattern->sxParamPattern.pnodeNext;
-                        m_currentNodeFunc->sxFnc.SetHasDestructuringPattern();
                     }
 
                     isBindingPattern = true;
@@ -5423,6 +5457,17 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     {
                         Error(ERRRestWithDefault);
                     }
+
+                    // In defer parse mode we have to flag the function node to indicate that it has default arguments
+                    // so that it will be considered for any syntax error scenario.
+                    // Also mark it before parsing the expression as it may contain functions.
+                    ParseNode* currentFncNode = GetCurrentFunctionNode();
+                    if (!currentFncNode->sxFnc.HasDefaultArguments())
+                    {
+                        currentFncNode->sxFnc.SetHasDefaultArguments();
+                        currentFncNode->sxFnc.firstDefaultArg = argPos;
+                    }
+
                     m_pscan->Scan();
                     ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma);
 
@@ -5442,15 +5487,6 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                             // There may be previous parameters that need to be checked for duplicates.
                             isNonSimpleParameterList = true;
                         }
-                    }
-
-                    // In defer parse mode we have to flag the function node to indicate that it has default arguments
-                    // so that it will be considered for any syntax error scenario.
-                    ParseNode* currentFncNode = GetCurrentFunctionNode();
-                    if (!currentFncNode->sxFnc.HasDefaultArguments())
-                    {
-                        currentFncNode->sxFnc.SetHasDefaultArguments();
-                        currentFncNode->sxFnc.firstDefaultArg = argPos;
                     }
 
                     if (buildAST)
@@ -7763,10 +7799,11 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
     Assert(GetCurrentBlock() != nullptr);
     AssertMsg(pid != nullptr, "PID should be created");
     PidRefStack *ref = pid->GetTopRef();
-    if (!ref || (ref->GetScopeId() < GetCurrentBlock()->sxBlock.blockId
-                // We could have the ref from the parameter scope. In that case we can skip creating a new one.
-                && !(m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
-                    && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockId == ref->GetScopeId())))
+    if (!ref || (ref->GetScopeId() < GetCurrentBlock()->sxBlock.blockId)
+                // We could have the ref from the parameter scope if it is merged with body scope. In that case we can skip creating a new one.
+                && !(m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockId == ref->GetScopeId()
+                    && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
+                    && m_currentBlockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope()))
     {
         ref = Anew(&m_nodeAllocator, PidRefStack);
         if (ref == nullptr)
