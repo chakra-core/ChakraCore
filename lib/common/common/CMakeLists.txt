@@ -11,7 +11,7 @@ set (SOURCES
   # MathUtil.cpp
   # NumberUtilities.cpp
   # NumberUtilities_strtod.cpp
-  # RejitReason.cpp
+  RejitReason.cpp
   # SmartFPUControl.cpp
   Tick.cpp
   unicode.cpp
