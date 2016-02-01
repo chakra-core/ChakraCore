@@ -5,13 +5,6 @@
 #pragma once
 
 
-// ms-specific keywords
-#ifdef _MSC_VER
-#define ABSTRACT abstract
-#else
-#define ABSTRACT
-#endif
-
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
@@ -202,10 +195,23 @@ PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER List
 
 #endif // _WIN32
 
+
+// Use intsafe.h for internal builds (currently missing some files with stdint.h)
+#if defined(_WIN32) && defined(NTBUILD)
+#define ENABLE_INTSAFE_SIGNED_FUNCTIONS 1
+#include<intsafe.h>
+#else
+#include<stdint.h>
+#endif
+
+
 #ifdef _MSC_VER
+// ms-specific keywords
+#define _ABSTRACT abstract
 // MSVC2015 does not support C++11 semantics for `typename QualifiedName` declarations
 // outside of template code.
-#    define TYPENAME
+#define _TYPENAME
 #else
-#    define TYPENAME typename
+#define _ABSTRACT
+#define _TYPENAME typename
 #endif

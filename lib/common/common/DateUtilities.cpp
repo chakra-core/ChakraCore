@@ -12,8 +12,6 @@
 #include "common/DateUtilities.h"
 #include "common/Int64Math.h"
 
-#include <stdint.h>
-
 namespace Js
 {
     const INT64 DateUtilities::ticksPerMillisecond = 10000;

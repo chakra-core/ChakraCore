@@ -1142,7 +1142,7 @@ namespace JsUtil
 
     protected:
         template<class TDictionary, class Leaf>
-        class IteratorBase ABSTRACT
+        class IteratorBase _ABSTRACT
         {
         protected:
             EntryType *const entries;

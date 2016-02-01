@@ -4,13 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 #include "common/Int64Math.h"
-#include <stdint.h>
 
-#if _WIN32
-#include <intrin.h>
-#if _M_X64
+#if defined(_M_X64) && defined(_MSC_VER)
 #pragma intrinsic(_mul128)
-#endif
 #endif
 
 bool
