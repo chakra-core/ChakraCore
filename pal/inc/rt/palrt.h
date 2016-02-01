@@ -117,6 +117,8 @@ Revision History:
 
 #define DBG_PRINTEXCEPTION_C             _HRESULT_TYPEDEF_(0x40010006L)
 
+#define INTSAFE_E_ARITHMETIC_OVERFLOW    _HRESULT_TYPEDEF_(0x80070216L)
+
 /********************** errorrep.h ****************************************/
 
 typedef enum tagEFaultRepRetVal

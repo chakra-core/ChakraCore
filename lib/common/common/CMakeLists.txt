@@ -2,7 +2,7 @@ set (SOURCES
   Api.cpp
   cfglogger.cpp
   CommonCommonPch.cpp
-  # DateUtilities.cpp
+  DateUtilities.cpp
   # DaylightTimeHelper.cpp
   Event.cpp
   Int32Math.cpp
@@ -11,7 +11,7 @@ set (SOURCES
   # MathUtil.cpp
   # NumberUtilities.cpp
   # NumberUtilities_strtod.cpp
-  # RejitReason.cpp
+  RejitReason.cpp
   # SmartFPUControl.cpp
   Tick.cpp
   unicode.cpp
