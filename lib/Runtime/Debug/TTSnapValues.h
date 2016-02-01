@@ -110,11 +110,13 @@ namespace TTD
             LPCWSTR* DebugSlotNameArray;
 #endif
 
-            //The function body for the function that this entry corresponds to 
-            TTD_PTR_ID FunctionBodyId;
+            //The meta-data for the slot array
+            bool isFunctionBodyMetaData;
+
+            TTD_PTR_ID OptFunctionBodyId;
+            //TODO: add debugger scope meta-data info
         };
 
-        void ExtractSlotArray(SlotArrayInfo* slotInfo, Js::Var* scope, SlabAllocator& alloc);
         Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator);
 
         void EmitSlotArrayInfo(const SlotArrayInfo* slotInfo, FileWriter* writer, NSTokens::Separator separator);
@@ -147,7 +149,6 @@ namespace TTD
             ScopeInfoEntry* ScopeArray;
         };
 
-        void ExtractScriptFunctionScopeInfo(ScriptFunctionScopeInfo* funcScopeInfo, Js::FrameDisplay* environment, SlabAllocator& alloc);
         Js::FrameDisplay* InflateScriptFunctionScopeInfo(const ScriptFunctionScopeInfo* funcScopeInfo, InflateMap* inflator);
 
         void EmitScriptFunctionScopeInfo(const ScriptFunctionScopeInfo* funcScopeInfo, FileWriter* writer, NSTokens::Separator separator);

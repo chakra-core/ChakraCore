@@ -52,25 +52,25 @@ namespace TTD
         }
     }
 
-    void SnapshotExtractor::ExtractHandlerIfNeeded(Js::DynamicTypeHandler* handler, ThreadContext* threadContext, SnapShot* snap)
+    void SnapshotExtractor::ExtractHandlerIfNeeded(Js::DynamicTypeHandler* handler, ThreadContext* threadContext)
     {
         if(this->m_marks.IsMarked(handler))
         {
-            NSSnapType::SnapHandler* sHandler = snap->GetNextAvailableHandlerEntry();
-            handler->ExtractSnapHandler(sHandler, threadContext, snap->GetSnapshotSlabAllocator());
+            NSSnapType::SnapHandler* sHandler = this->m_pendingSnap->GetNextAvailableHandlerEntry();
+            handler->ExtractSnapHandler(sHandler, threadContext, this->m_pendingSnap->GetSnapshotSlabAllocator());
 
             this->m_idToHandlerMap.AddItem(sHandler->HandlerId, sHandler);
             this->m_marks.ClearMark(handler);
         }
     }
 
-    void SnapshotExtractor::ExtractTypeIfNeeded(Js::Type* jstype, ThreadContext* threadContext, SnapShot* snap)
+    void SnapshotExtractor::ExtractTypeIfNeeded(Js::Type* jstype, ThreadContext* threadContext)
     {
         if(this->m_marks.IsMarked(jstype))
         {
             if(Js::DynamicType::Is(jstype->GetTypeId()))
             {
-                this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext, snap);
+                this->ExtractHandlerIfNeeded(static_cast<Js::DynamicType*>(jstype)->GetTypeHandler(), threadContext);
             }
 
             NSSnapType::SnapHandler* sHandler = nullptr;
@@ -82,11 +82,118 @@ namespace TTD
                 sHandler = this->m_idToHandlerMap.LookupKnownItem(handlerId);
             }
 
-            NSSnapType::SnapType* sType = snap->GetNextAvailableTypeEntry();
-            jstype->ExtractSnapType(sType, sHandler, snap->GetSnapshotSlabAllocator());
+            NSSnapType::SnapType* sType = this->m_pendingSnap->GetNextAvailableTypeEntry();
+            jstype->ExtractSnapType(sType, sHandler, this->m_pendingSnap->GetSnapshotSlabAllocator());
 
             this->m_idToTypeMap.AddItem(sType->TypePtrId, sType);
             this->m_marks.ClearMark(jstype);
+        }
+    }
+
+    void SnapshotExtractor::ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Js::Var* scope)
+    {
+        if(this->m_marks.IsMarked(scope))
+        {
+            NSSnapValues::SlotArrayInfo* slotInfo = this->m_pendingSnap->GetNextAvailableSlotArrayEntry();
+
+            Js::ScopeSlots slots(scope);
+            slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
+            slotInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+            slotInfo->SlotCount = slots.GetCount();
+            slotInfo->Slots = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
+
+            for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
+            {
+                slotInfo->Slots[j] = slots.Get(j);
+            }
+
+            if(slots.IsFunctionScopeSlotArray())
+            {
+                Js::FunctionBody* fb = slots.GetFunctionBody();
+
+                slotInfo->isFunctionBodyMetaData = true;
+                slotInfo->OptFunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                Js::PropertyId* propertyIds = fb->GetPropertyIdsForScopeSlotArray();
+                slotInfo->DebugSlotNameArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
+
+                for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
+                {
+                    const Js::PropertyRecord* propertyRecord = ctx->GetPropertyName(propertyIds[j]);
+                    slotInfo->DebugSlotNameArray[j] = this->m_pendingSnap->GetSnapshotSlabAllocator().CopyStringInto(propertyRecord->GetBuffer());
+                }
+#endif
+            }
+            else
+            {
+                slotInfo->isFunctionBodyMetaData = false;
+                slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                slotInfo->DebugSlotNameArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
+
+                for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
+                {
+                    slotInfo->DebugSlotNameArray[j] = this->m_pendingSnap->GetSnapshotSlabAllocator().CopyStringInto(L"DebugScopeNameResolveUnsupported");
+                }
+#endif
+            }
+
+            this->m_marks.ClearMark(scope);
+        }
+    }
+
+    void SnapshotExtractor::ExtractScopeIfNeeded(Js::ScriptContext* ctx, Js::FrameDisplay* environment)
+    {
+        if(this->m_marks.IsMarked(environment))
+        {
+            AssertMsg(environment->GetLength() > 0, "This doesn't make sense");
+
+            NSSnapValues::ScriptFunctionScopeInfo* funcScopeInfo = this->m_pendingSnap->GetNextAvailableFunctionScopeEntry();
+            funcScopeInfo->ScopeId = TTD_CONVERT_ENV_TO_PTR_ID(environment);
+            funcScopeInfo->ScriptContextTag = funcScopeInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+            funcScopeInfo->ScopeCount = environment->GetLength();
+            funcScopeInfo->ScopeArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<NSSnapValues::ScopeInfoEntry>(funcScopeInfo->ScopeCount);
+
+            for(uint16 i = 0; i < funcScopeInfo->ScopeCount; ++i)
+            {
+                void* scope = environment->GetItem(i);
+                NSSnapValues::ScopeInfoEntry* entryInfo = (funcScopeInfo->ScopeArray + i);
+
+                entryInfo->Tag = environment->GetScopeType(scope);
+                switch(entryInfo->Tag)
+                {
+                case Js::ScopeType::ScopeType_ActivationObject:
+                case Js::ScopeType::ScopeType_WithScope:
+                    entryInfo->IDValue = TTD_CONVERT_VAR_TO_PTR_ID((Js::Var)scope);
+                    break;
+                case Js::ScopeType::ScopeType_SlotArray:
+                {
+                    this->ExtractSlotArrayIfNeeded(ctx, (Js::Var*)scope);
+
+                    entryInfo->IDValue = TTD_CONVERT_SLOTARRAY_TO_PTR_ID((Js::Var*)scope);
+                    break;
+                }
+                default:
+                    AssertMsg(false, "Unknown scope kind");
+                    entryInfo->IDValue = TTD_INVALID_PTR_ID;
+                    break;
+                }
+            }
+
+            this->m_marks.ClearMark(environment);
+        }
+    }
+
+    void SnapshotExtractor::ExtractScriptFunctionEnvironmentIfNeeded(Js::ScriptFunction* function)
+    {
+        Js::FrameDisplay* environment = function->GetEnvironment();
+        if(environment->GetLength() != 0)
+        {
+            this->ExtractScopeIfNeeded(function->GetScriptContext(), environment);
         }
     }
 
@@ -213,7 +320,10 @@ namespace TTD
                         Js::ScopeSlots slotArray = (Js::Var*)scope;
                         uint slotArrayCount = slotArray.GetCount();
 
-                        this->MarkFunctionBody(slotArray.GetFunctionBody());
+                        if(slotArray.IsFunctionScopeSlotArray())
+                        {
+                            this->MarkFunctionBody(slotArray.GetFunctionBody());
+                        }
 
                         for(ulong j = 0; j < slotArrayCount; j++)
                         {
@@ -363,28 +473,33 @@ namespace TTD
             switch(tag & MarkTableTag::AllKindMask)
             {
             case MarkTableTag::TypeHandlerTag:
-                this->ExtractHandlerIfNeeded(this->m_marks.GetPtrValue<Js::DynamicTypeHandler*>(), threadContext, snap);
+                this->ExtractHandlerIfNeeded(this->m_marks.GetPtrValue<Js::DynamicTypeHandler*>(), threadContext);
                 break;
             case MarkTableTag::TypeTag:
-                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::Type*>(), threadContext, snap);
+                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::Type*>(), threadContext);
                 break;
             case MarkTableTag::PrimitiveObjectTag:
-                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext, snap);
+            {
+                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext);
                 NSSnapValues::ExtractSnapPrimitiveValue(snap->GetNextAvailablePrimitiveObjectEntry(), this->m_marks.GetPtrValue<Js::RecyclableObject*>(), this->m_marks.GetTagValueIsWellKnown(), this->m_marks.GetTagValueIsLogged(), this->m_idToTypeMap, alloc);
                 break;
+            }
             case MarkTableTag::CompoundObjectTag:
-                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext, snap);
+            {
+                this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext);
+                if(Js::ScriptFunction::Is(this->m_marks.GetPtrValue<Js::RecyclableObject*>()))
+                {
+                    this->ExtractScriptFunctionEnvironmentIfNeeded(this->m_marks.GetPtrValue<Js::ScriptFunction*>());
+                }
                 NSSnapObjects::ExtractCompoundObject(snap->GetNextAvailableCompoundObjectEntry(), this->m_marks.GetPtrValue<Js::RecyclableObject*>(), this->m_marks.GetTagValueIsWellKnown(), this->m_marks.GetTagValueIsLogged(), this->m_idToTypeMap, alloc);
                 break;
+            }
             case MarkTableTag::FunctionBodyTag:
                 NSSnapValues::ExtractFunctionBodyInfo(snap->GetNextAvailableFunctionBodyResolveInfoEntry(), this->m_marks.GetPtrValue<Js::FunctionBody*>(), this->m_marks.GetTagValueIsWellKnown(), alloc);
                 break;
             case MarkTableTag::EnvironmentTag:
-                NSSnapValues::ExtractScriptFunctionScopeInfo(snap->GetNextAvailableFunctionScopeEntry(), this->m_marks.GetPtrValue<Js::FrameDisplay*>(), alloc);
-                break;
             case MarkTableTag::SlotArrayTag:
-                NSSnapValues::ExtractSlotArray(snap->GetNextAvailableSlotArrayEntry(), this->m_marks.GetPtrValue<Js::Var*>(), alloc);
-                break;
+                break; //should be handled with the associated script function
             default:
                 AssertMsg(false, "If this isn't true then we have an unknown tag");
                 break;

@@ -552,11 +552,6 @@ namespace Js
                 {
                     rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
                 }
-                else
-                {
-                    DebuggerScope* dbgScope = slotArray.GetDebuggerScope();
-                    AssertMsg(dbgScope != nullptr, "Argh");
-                }
 
                 for(ulong j = 0; j < slotArrayCount; j++)
                 {

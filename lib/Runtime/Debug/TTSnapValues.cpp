@@ -397,36 +397,6 @@ namespace TTD
 
         //////////////////
 
-        void ExtractSlotArray(SlotArrayInfo* slotInfo, Js::Var* scope, SlabAllocator& alloc)
-        {
-            Js::ScopeSlots slots(scope);
-            AssertMsg(slots.GetFunctionBody() != nullptr, "This is a problem.");
-            Js::FunctionBody* fb = slots.GetFunctionBody();
-            Js::ScriptContext* ctx = fb->GetScriptContext();
-
-            slotInfo->SlotId = TTD_CONVERT_VAR_TO_PTR_ID(scope);
-            slotInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-            slotInfo->SlotCount = slots.GetCount();
-            slotInfo->Slots = alloc.SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
-            slotInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            Js::PropertyId* propertyIds = fb->GetPropertyIdsForScopeSlotArray();
-            slotInfo->DebugSlotNameArray = alloc.SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
-#endif
-
-            for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
-            {
-                slotInfo->Slots[j] = slots.Get(j);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                const Js::PropertyRecord* propertyRecord = ctx->GetPropertyName(propertyIds[j]);
-                slotInfo->DebugSlotNameArray[j] = alloc.CopyStringInto(propertyRecord->GetBuffer());
-#endif
-            }
-        }
-
         Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator)
         {
             Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextTag);
@@ -435,8 +405,16 @@ namespace TTD
             Js::ScopeSlots scopeSlots(slotArray);
             scopeSlots.SetCount(slotInfo->SlotCount);
 
-            Js::FunctionBody* fbody = inflator->LookupFunctionBody(slotInfo->FunctionBodyId);
-            scopeSlots.SetScopeMetadata(fbody);
+            if(slotInfo->isFunctionBodyMetaData)
+            {
+                Js::FunctionBody* fbody = inflator->LookupFunctionBody(slotInfo->OptFunctionBodyId);
+                scopeSlots.SetScopeMetadata(fbody);
+            }
+            else
+            {
+                //TODO: when we do better with debuggerscope we should set this to a real value
+                scopeSlots.SetScopeMetadata(nullptr);
+            }
 
             for(uint32 j = 0; j < slotInfo->SlotCount; j++)
             {
@@ -454,7 +432,16 @@ namespace TTD
 
             writer->WriteAddr(NSTokens::Key::slotId, slotInfo->SlotId, NSTokens::Separator::BigSpaceSeparator);
             writer->WriteAddr(NSTokens::Key::ctxTag, slotInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
-            writer->WriteAddr(NSTokens::Key::functionBodyId, slotInfo->FunctionBodyId, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteBool(NSTokens::Key::isFunctionMetaData, slotInfo->isFunctionBodyMetaData, NSTokens::Separator::CommaSeparator);
+            if(slotInfo->isFunctionBodyMetaData)
+            {
+                writer->WriteAddr(NSTokens::Key::functionBodyId, slotInfo->OptFunctionBodyId, NSTokens::Separator::CommaSeparator);
+            }
+            else
+            {
+                //TODO: emit debugger scope metadata
+            }
 
             writer->WriteLengthValue(slotInfo->SlotCount, NSTokens::Separator::CommaAndBigSpaceSeparator);
             writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaAndBigSpaceSeparator);
@@ -490,7 +477,17 @@ namespace TTD
 
             slotInfo->SlotId = reader->ReadAddr(NSTokens::Key::slotId);
             slotInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
-            slotInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+
+            slotInfo->isFunctionBodyMetaData = reader->ReadBool(NSTokens::Key::isFunctionMetaData, true);
+            slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
+            if(slotInfo->isFunctionBodyMetaData)
+            {
+                slotInfo->OptFunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
+            }
+            else
+            {
+                //TODO: emit debugger scope metadata
+            }
 
             slotInfo->SlotCount = reader->ReadLengthValue(true);
             reader->ReadSequenceStart_WDefaultKey(true);
@@ -522,54 +519,6 @@ namespace TTD
             reader->ReadSequenceEnd();
 
             reader->ReadRecordEnd();
-        }
-
-        void ExtractScriptFunctionScopeInfo(ScriptFunctionScopeInfo* funcScopeInfo, Js::FrameDisplay* environment, SlabAllocator& alloc)
-        {
-            AssertMsg(environment->GetLength() > 0, "This doesn't make sense");
-
-            funcScopeInfo->ScopeId = TTD_CONVERT_ENV_TO_PTR_ID(environment);
-            funcScopeInfo->ScriptContextTag = TTD_INVALID_LOG_TAG; //we will set this based on the first scope entry script context
-
-            funcScopeInfo->ScopeCount = environment->GetLength();
-            funcScopeInfo->ScopeArray = alloc.SlabAllocateArray<NSSnapValues::ScopeInfoEntry>(funcScopeInfo->ScopeCount);
-
-            for(uint16 i = 0; i < funcScopeInfo->ScopeCount; ++i)
-            {
-                void* scope = environment->GetItem(i);
-                NSSnapValues::ScopeInfoEntry* entryInfo = (funcScopeInfo->ScopeArray + i);
-
-                entryInfo->Tag = environment->GetScopeType(scope);
-                switch(entryInfo->Tag)
-                {
-                case Js::ScopeType::ScopeType_ActivationObject:
-                case Js::ScopeType::ScopeType_WithScope:
-                {
-                    entryInfo->IDValue = TTD_CONVERT_VAR_TO_PTR_ID((Js::Var)scope);
-
-                    if(funcScopeInfo->ScriptContextTag == TTD_INVALID_LOG_TAG)
-                    {
-                        funcScopeInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(Js::RecyclableObject::FromVar((Js::Var)scope)->GetScriptContext());
-                    }
-                    break;
-                }
-                case Js::ScopeType::ScopeType_SlotArray:
-                {
-                    entryInfo->IDValue = TTD_CONVERT_SLOTARRAY_TO_PTR_ID((Js::Var*)scope);
-
-                    if(funcScopeInfo->ScriptContextTag == TTD_INVALID_LOG_TAG)
-                    {
-                        Js::ScopeSlots slotArray = (Js::Var*)scope;
-                        funcScopeInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(slotArray.GetFunctionBody()->GetScriptContext());
-                    }
-                    break;
-                }
-                default:
-                    AssertMsg(false, "Unknown scope kind");
-                    entryInfo->IDValue = TTD_INVALID_PTR_ID;
-                    break;
-                }
-            }
         }
 
         Js::FrameDisplay* InflateScriptFunctionScopeInfo(const ScriptFunctionScopeInfo* funcScopeInfo, InflateMap* inflator)

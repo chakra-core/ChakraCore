@@ -35,8 +35,13 @@ namespace TTD
         void MarkVisitStandardProperties(Js::RecyclableObject* obj);
 
         //Ensure that a handler/type has been extracted
-        void ExtractHandlerIfNeeded(Js::DynamicTypeHandler* handler, ThreadContext* threadContext, SnapShot* snap);
-        void ExtractTypeIfNeeded(Js::Type* jstype, ThreadContext* threadContext, SnapShot* snap);
+        void ExtractHandlerIfNeeded(Js::DynamicTypeHandler* handler, ThreadContext* threadContext);
+        void ExtractTypeIfNeeded(Js::Type* jstype, ThreadContext* threadContext);
+
+        //Ensure that a slot/scope has been extracted
+        void ExtractSlotArrayIfNeeded(Js::ScriptContext* ctx, Js::Var* scope);
+        void ExtractScopeIfNeeded(Js::ScriptContext* ctx, Js::FrameDisplay* environment);
+        void ExtractScriptFunctionEnvironmentIfNeeded(Js::ScriptFunction* function);
 
         ////
         //Performance info
