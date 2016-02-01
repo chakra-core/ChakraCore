@@ -2,7 +2,7 @@ set (SOURCES
   Api.cpp
   cfglogger.cpp
   CommonCommonPch.cpp
-  # DateUtilities.cpp
+  DateUtilities.cpp
   # DaylightTimeHelper.cpp
   Event.cpp
   Int32Math.cpp
