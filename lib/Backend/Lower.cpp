@@ -3230,7 +3230,7 @@ Lowerer::GenerateFastBrSrEq(IR::Instr * instr, IR::RegOpnd * srcReg1, IR::RegOpn
         this->LowerBrCMem(instr, IR::HelperOp_StrictEqualEmptyString, noMathFastPath, false);
         return true;
     }
-    else if (srcReg1 && (srcReg1->m_sym->m_isStrConst))
+    else if (srcReg1 && (srcReg1->m_sym->m_isStrEmpty))
     {
         instr->SwapOpnds();
         this->LowerBrCMem(instr, IR::HelperOp_StrictEqualEmptyString, noMathFastPath, false);

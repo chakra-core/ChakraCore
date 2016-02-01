@@ -198,6 +198,11 @@
   </test>
   <test>
     <default>
+      <files>tdz2.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>eval1.js</files>
       <baseline>eval1.baseline</baseline>
     </default>

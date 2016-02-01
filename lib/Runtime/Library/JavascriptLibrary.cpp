@@ -1213,6 +1213,15 @@ namespace Js
             symbolUnscopables = nullptr;
         }
 
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
+        }
+        else
+        {
+            symbolSearch = nullptr;
+        }
+
         debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(L"[Uninitialized block variable]");
         defaultAccessorFunction = CreateNonProfiledFunction(&JavascriptOperators::EntryInfo::DefaultAccessor);
 
@@ -1377,7 +1386,6 @@ namespace Js
             simdUint16x8ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint16x8::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdUint8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
-
         debugObject = nullptr;
 
         numberConstructor = CreateBuiltinConstructor(&JavascriptNumber::EntryInfo::NewInstance,
@@ -2178,7 +2186,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 12);
+        typeHandler->Convert(symbolConstructor, mode, 13);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2213,6 +2221,11 @@ namespace Js
             library->AddMember(symbolConstructor, PropertyIds::toStringTag, library->GetSymbolToStringTag(), PropertyNone);
         }
         library->AddMember(symbolConstructor, PropertyIds::unscopables, library->GetSymbolUnscopables(), PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
+        }
 
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::for_, &JavascriptSymbol::EntryInfo::For, 1);
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::keyFor, &JavascriptSymbol::EntryInfo::KeyFor, 1);
@@ -2703,7 +2716,6 @@ namespace Js
         mathObject->SetHasNoEnumerableProperties(true);
     }
 
-#if ENABLE_NATIVE_CODEGEN
     // SIMD_JS
     void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -3174,7 +3186,6 @@ namespace Js
         library->AddFunctionToLibraryObject(Uint8x16Function, PropertyIds::select, &SIMDUint8x16Lib::EntryInfo::Select, 4, PropertyNone);
         /** end Uint8x16 **/
     }
-#endif
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -3563,6 +3574,9 @@ namespace Js
 
         case PropertyIds::search:
             return BuiltinFunction::String_Search;
+
+        case PropertyIds::_symbolSearch:
+            return BuiltinFunction::RegExp_SymbolSearch;
 
         case PropertyIds::split:
             return BuiltinFunction::String_Split;
@@ -3996,6 +4010,16 @@ namespace Js
                 library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
             }
 
+        }
+
+        if (scriptConfig->IsES6RegExSymbolsEnabled())
+        {
+            builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolSearch,
+                PropertyIds::_RuntimeFunctionNameId_search,
+                &JavascriptRegExp::EntryInfo::SymbolSearch,
+                1);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
@@ -7081,7 +7105,6 @@ namespace Js
         return hr;
     }
 
-#if ENABLE_NATIVE_CODEGEN
     HRESULT JavascriptLibrary::ProfilerRegisterSIMD()
     {
         HRESULT hr = S_OK;
@@ -7436,7 +7459,6 @@ namespace Js
 
         return hr;
     }
-#endif
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -23,6 +23,9 @@
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Backend;
+        $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
+        $(ChakraManifestsIncludeDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -118,7 +121,12 @@
       <PreprocessToFile>true</PreprocessToFile>
       <PreprocessSuppressLineNumbers>true</PreprocessSuppressLineNumbers>
       <ObjectFileName>$(IntDir)jserr.rc2</ObjectFileName>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory);$(MSBuildThisFileDirectory)..\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      $(MSBuildThisFileDirectory);
+      $(MSBuildThisFileDirectory)..\Common;
+      $(MSBuildThisFileDirectory)..\runtime;
+      $(MSBuildThisFileDirectory)..\runtime\library;
+      </AdditionalIncludeDirectories>
       <LibCompiled>false</LibCompiled>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>

@@ -6010,7 +6010,6 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         return opnd;
     }
 
-    // SIMD_JS
     // Don't copy-prop operand of SIMD instr with ExtendedArg operands. Each instr should have its exclusive EA sequence.
     if (
             Js::IsSimd128Opcode(instr->m_opcode) && 
@@ -9738,7 +9737,7 @@ GlobOpt::TypeSpecializeIntBinary(IR::Instr **pInstr, Value *src1Val, Value *src2
             }
 
             // Don't specialize if the element is not likelyInt or a IntConst which is a missing item value.
-            if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
+            if(!(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
             {
                 return false;
             }
@@ -12549,7 +12548,7 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
                     isFloatConstMissingItem = Js::SparseArraySegment<double>::IsMissingItem(&floatValue);
                 }
                 // Don't specialize if the element is not likelyNumber - we will surely bailout
-                if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
+                if(!(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
                 {
                     return false;
                 }
@@ -20846,7 +20845,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         IR::RegOpnd *srcIndexOpnd = nullptr;
         IRType srcType;
         GetMemOpSrcInfo(loop, data->ldElemInstr, srcBaseOpnd, srcIndexOpnd, srcType);
-        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(srcIndexOpnd->GetStackSym()));
+        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(indexOpnd->GetStackSym()));
 
         src1 = IR::IndirOpnd::New(srcBaseOpnd, startIndexOpnd, srcType, localFunc);
     }
@@ -21023,9 +21022,9 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
 
 // The caller is responsible to free the memory allocated between inOrderEmitData[iEmitData -> end]
 bool
-GlobOpt::ValidateMemOpCandidates(Loop * loop, MemOpEmitData** inOrderEmitData, int& iEmitData)
+GlobOpt::ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) MemOpEmitData** inOrderEmitData, int& iEmitData)
 {
-    Assert(iEmitData >= (int)loop->memOpInfo->candidates->Count());
+    AnalysisAssert(iEmitData == (int)loop->memOpInfo->candidates->Count());
     // We iterate over the second block of the loop only. MemOp Works only if the loop has exactly 2 blocks
     Assert(loop->blockList.HasTwo());
 
@@ -21104,10 +21103,16 @@ GlobOpt::ValidateMemOpCandidates(Loop * loop, MemOpEmitData** inOrderEmitData, i
         }
         if (candidateFound)
         {
-            Assert(iEmitData > 0);
+            AnalysisAssert(iEmitData > 0);
+            if (iEmitData == 0)
+            {
+                // Explicit for OACR
+                break;
+            }
             inOrderEmitData[--iEmitData] = emitData;
             candidate = nullptr;
             emitData = nullptr;
+
         }
     } NEXT_INSTR_BACKWARD_IN_BLOCK;
 
@@ -21173,3 +21178,4 @@ GlobOpt::ProcessMemOp()
         }
     } NEXT_LOOP_EDITING;
 }
+

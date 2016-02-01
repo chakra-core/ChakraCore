@@ -1915,7 +1915,7 @@ StoreCommon:
             {
                 OpCodeUtil::ConvertNonCallOpToProfiled(op);
             }
-            break;          
+            break;
 
         case OpCode::LdLocalMethodFld:
             if (registerCacheIdForCall)

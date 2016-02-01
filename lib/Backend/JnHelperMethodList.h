@@ -478,6 +478,7 @@ HELPERCALL(RegExp_ExecResultUsedAndMayBeTemp, Js::RegexHelper::RegexExecResultUs
 HELPERCALL(RegExp_ExecResultNotUsed, Js::RegexHelper::RegexExecResultNotUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultUsed, Js::RegexHelper::RegexReplaceResultUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultNotUsed, Js::RegexHelper::RegexReplaceResultNotUsed, 0)
+HELPERCALL(RegExp_SymbolSearch, Js::JavascriptRegExp::EntrySymbolSearch, 0)
 
 HELPERCALL(Uint8ClampedArraySetItem, (BOOL (*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem, 0)
 HELPERCALL(EnsureFunctionProxyDeferredPrototypeType, &Js::FunctionProxy::EnsureFunctionProxyDeferredPrototypeType, 0)

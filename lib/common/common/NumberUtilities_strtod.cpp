@@ -2316,7 +2316,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
             //Either session pointer is null or session is in compat mode switch to compat handling
             if ((wExp10 + nDigits) > 0)
             {
-                Assert(wExp10 + nDigits + 1 <= kcbMaxRgb);
+                AnalysisAssert(wExp10 + nDigits + 1 <= kcbMaxRgb);
                 wExp10 += RoundTo(rgb, pbLim, wExp10 + nDigits, rgbAdj, &pbLimAdj);
             }
             else
@@ -2340,7 +2340,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
     case Js::NumberUtilities::FormatExponential:
         if (nDigits >= 0)
         {
-            Assert(nDigits + 2 <= kcbMaxRgb);
+            AnalysisAssert(nDigits + 2 <= kcbMaxRgb);
             wExp10 += RoundTo(rgb, pbLim, nDigits + 1, rgbAdj, &pbLimAdj);
         }
         else
@@ -2349,7 +2349,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
         break;
 
     case Js::NumberUtilities::FormatPrecision:
-        Assert(nDigits + 1 <= kcbMaxRgb);
+        AnalysisAssert(nDigits + 1 <= kcbMaxRgb);
         wExp10 += RoundTo( rgb, pbLim, nDigits, rgbAdj, &pbLimAdj );
 
         // NOTE: the 'e' in the toPrecision algorithm in the ECMA standard is equal to wExp - 1.

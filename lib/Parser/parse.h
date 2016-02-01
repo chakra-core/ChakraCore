@@ -641,7 +641,8 @@ private:
         BOOL singleDefOnly = FALSE,
         BOOL allowInit = TRUE,
         BOOL isTopVarParse = TRUE,
-        BOOL isFor = FALSE);
+        BOOL isFor = FALSE,
+        BOOL* nativeForOk = nullptr);
     BOOL TokIsForInOrForOf();
 
     template<bool buildAST>
@@ -841,7 +842,8 @@ private:
         bool topLevel = true,
         DestructuringInitializerContext initializerContext = DIC_None,
         bool allowIn = true,
-        BOOL *forInOfOkay = nullptr);
+        BOOL *forInOfOkay = nullptr,
+        BOOL *nativeForOkay = nullptr);
 
     template <bool buildAST>
     ParseNodePtr ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel = true);
@@ -852,7 +854,8 @@ private:
         bool topLevel,
         DestructuringInitializerContext initializerContext,
         bool allowIn,
-        BOOL *forInOfOkay);
+        BOOL *forInOfOkay,
+        BOOL *nativeForOkay);
 
     template<bool CheckForNegativeInfinity> static bool IsNaNOrInfinityLiteral(LPCOLESTR str);
 

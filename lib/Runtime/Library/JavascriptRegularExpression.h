@@ -96,6 +96,7 @@ namespace Js
         static JavascriptRegExp* CreateRegEx(const wchar_t* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext);
+        static JavascriptRegExp* CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext);
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
         static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
 
@@ -108,6 +109,7 @@ namespace Js
             static FunctionInfo Exec;
             static FunctionInfo Test;
             static FunctionInfo ToString;
+            static FunctionInfo SymbolSearch;
             static FunctionInfo GetterSymbolSpecies;
             static FunctionInfo GetterGlobal;
             static FunctionInfo GetterFlags;
@@ -125,6 +127,7 @@ namespace Js
         static Var EntryExec(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
         static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);

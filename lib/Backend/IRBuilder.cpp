@@ -585,7 +585,7 @@ IRBuilder::Build()
             }
             else
             {
-                Js::OpCode op = 
+                Js::OpCode op =
                     m_func->DoStackScopeSlots() ? Js::OpCode::NewStackScopeSlots : Js::OpCode::NewScopeSlots;
 
                 IR::Opnd * srcOpnd = IR::IntConstOpnd::New(
@@ -1113,7 +1113,7 @@ IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
         }
         instr->SetByteCodeOffset(offset);
     }
-    else if (m_lastInstr)
+    else
     {
         instr->SetByteCodeOffset(m_lastInstr->GetByteCodeOffset());
     }
@@ -1483,7 +1483,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             Js::Throw::FatalInternalError();
         }
         srcOpnd = BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
-        isNotInt = true;        
+        isNotInt = true;
         break;
 
     case Js::OpCode::LdLocalObj:
@@ -1696,7 +1696,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
     case Js::OpCode::LdLetHeapArguments:
     {
         IR::Opnd * opndFrameObj;
-        if (m_func->GetJnFunction()->HasScopeObject() && 
+        if (m_func->GetJnFunction()->HasScopeObject() &&
             src1Opnd->m_sym->m_instrDef &&
             src1Opnd->m_sym->m_instrDef->m_opcode == Js::OpCode::LdPropIds)
         {
@@ -1710,7 +1710,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
                 m_func->GetScriptContext()->GetLibrary()->GetNull(), IR::AddrOpndKindDynamicVar, m_func, true);
         }
         IR::RegOpnd * dstOpnd = BuildDstOpnd(R0);
-        IR::Instr * instr = IR::Instr::New(newOpcode, dstOpnd, opndFrameObj, src1Opnd, m_func);  
+        IR::Instr * instr = IR::Instr::New(newOpcode, dstOpnd, opndFrameObj, src1Opnd, m_func);
         this->AddInstr(instr, offset);
         StackSym * dstSym = dstOpnd->m_sym;
         if (dstSym->m_isSingleDef)
@@ -3444,8 +3444,8 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 instr = IR::Instr::New(newOpcode, regOpnd, fieldOpnd, m_func);
             }
             this->AddInstr(instr, offset);
-            break;      
-            
+            break;
+
         case Js::OpCode::StLocalSlot:
         case Js::OpCode::StLocalSlotChkUndecl:
 
@@ -3722,7 +3722,9 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             break;
 
         case Js::OpCode::StInnerObjSlot:
+        case Js::OpCode::StInnerObjSlotChkUndecl:
         case Js::OpCode::StInnerSlot:
+        case Js::OpCode::StInnerSlotChkUndecl:
             if ((uint)slotId1 >= m_func->GetJnFunction()->GetInnerScopeCount())
             {
                 Js::Throw::FatalInternalError();
@@ -3733,7 +3735,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             {
                 Js::Throw::FatalInternalError();
             }
-            if (newOpcode == Js::OpCode::StInnerObjSlot)
+            if (newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerObjSlotChkUndecl)
             {
                 IR::RegOpnd * slotOpnd = IR::RegOpnd::New(TyVar, m_func);
                 fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, slotId1, (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
@@ -3752,7 +3754,15 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                     m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
                 }
             }
-            instr = IR::Instr::New(Js::OpCode::StSlot, fieldOpnd, regOpnd, m_func);
+            newOpcode = 
+                newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot ?
+                Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
+            instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
+            if (newOpcode == Js::OpCode::StSlotChkUndecl)
+            {
+                // ChkUndecl includes an implicit read of the destination. Communicate the liveness by using the destination in src2.
+                instr->SetSrc2(fieldOpnd);
+            }
             this->AddInstr(instr, offset);
 
             break;
@@ -3794,7 +3804,8 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             break;
 
         default:
-            Assert(0);
+            AssertMsg(false, "Unsupported opcode in BuildElementSlotI2");
+            break;
     }
 }
 IR::SymOpnd *
@@ -4558,7 +4569,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
             regOpnd = BuildDstOpnd(instance);
             instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
             break;
-            
+
         default:
         {
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, propertyIdIndex, PropertyKindData);
@@ -4651,7 +4662,7 @@ IRBuilder::BuildAuxNoReg(Js::OpCode newOpcode, uint32 offset)
             Fatal();
             break;
         }
-    }    
+    }
 }
 
 void

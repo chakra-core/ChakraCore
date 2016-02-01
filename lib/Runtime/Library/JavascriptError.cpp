@@ -696,7 +696,7 @@ namespace Js
 
     bool JavascriptError::ThrowCantAssign(PropertyOperationFlags flags, ScriptContext* scriptContext, PropertyId propertyId)
     {
-        if (flags == PropertyOperation_ThrowIfNonWritable)
+        if (flags & PropertyOperation_ThrowIfNonWritable)
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
@@ -709,7 +709,7 @@ namespace Js
 
     bool JavascriptError::ThrowCantAssign(PropertyOperationFlags flags, ScriptContext* scriptContext, uint32 index)
     {
-        if (flags == PropertyOperation_ThrowIfNonWritable)
+        if (flags & PropertyOperation_ThrowIfNonWritable)
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {

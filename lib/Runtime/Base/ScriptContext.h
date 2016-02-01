@@ -565,7 +565,7 @@ public:
         uint byteCodeDataSize;
         uint byteCodeAuxiliaryDataSize;
         uint byteCodeAuxiliaryContextDataSize;
-        uint byteCodeHistogram[OpCode::ByteCodeLast];
+        uint byteCodeHistogram[static_cast<uint>(OpCode::ByteCodeLast)];
         uint32 forinCache;
         uint32 forinNoCache;
 #endif

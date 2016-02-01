@@ -376,6 +376,8 @@ namespace Js
 
 
 
+        JavascriptSymbol* symbolSearch;
+
         UnifiedRegex::RegexPattern * emptyRegexPattern;
 
         mutable CharStringCache charStringCache;
@@ -503,6 +505,7 @@ namespace Js
         JavascriptSymbol* GetSymbolHasInstance() { return symbolHasInstance; }
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
+        JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
@@ -1058,11 +1061,9 @@ namespace Js
         void InitializeComplexThings();
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-#if ENABLE_NATIVE_CODEGEN
         // SIMD_JS
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSIMDOpCodeMaps();
-#endif
 
         static void __cdecl InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1185,9 +1186,7 @@ namespace Js
         HRESULT ProfilerRegisterProxy();
         HRESULT ProfilerRegisterReflect();
         HRESULT ProfilerRegisterGenerator();
-#if ENABLE_NATIVE_CODEGEN
         HRESULT ProfilerRegisterSIMD();
-#endif
 
 #ifdef IR_VIEWER
         HRESULT ProfilerRegisterIRViewer();

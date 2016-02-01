@@ -289,7 +289,7 @@ public:
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }
-    void SetInnerScopeIndex(uint index) { Assert(innerScopeIndex == (uint)-1 || innerScopeIndex == index); innerScopeIndex = index; }
+    void SetInnerScopeIndex(uint index) { innerScopeIndex = index; }
 
     int AddScopeSlot();
 

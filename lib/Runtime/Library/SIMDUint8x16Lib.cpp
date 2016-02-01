@@ -2,7 +2,6 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
 #include "RuntimeLibraryPch.h"
 
 namespace Js
@@ -250,7 +249,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDUint8x16>(args[1], args[2], 16 * TySize[TyUint8], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDUint8x16>(args[1], args[2], 16 * INT8_SIZE, scriptContext);
     }
 
     Var SIMDUint8x16Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -265,7 +264,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDUint8x16::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDUint8x16>(args[1], args[2], args[3], 16 * TySize[TyUint8], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDUint8x16>(args[1], args[2], args[3], 16 * INT8_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Uint8x16.store");

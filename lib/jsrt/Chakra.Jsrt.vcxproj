@@ -23,6 +23,7 @@
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory);
         $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Runtime\Base;
         $(MSBuildThisFileDirectory)..\Runtime\Debug;

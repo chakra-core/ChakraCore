@@ -74,6 +74,7 @@ LIBRARY_FUNCTION(Function,      Apply,              3,    BIF_UseSrc0 | BIF_Igno
 LIBRARY_FUNCTION(Function,      Call,               15,   BIF_UseSrc0 | BIF_IgnoreDst | BIF_VariableArgsNumber  , JavascriptFunction::EntryInfo::Call)
 LIBRARY_FUNCTION(GlobalObject,  ParseInt,           1,    BIF_IgnoreDst                                         , GlobalObject::EntryInfo::ParseInt)
 LIBRARY_FUNCTION(RegExp,        Exec,               2,    BIF_UseSrc0 | BIF_IgnoreDst                           , JavascriptRegExp::EntryInfo::Exec)
+LIBRARY_FUNCTION(RegExp,        SymbolSearch,       2,    BIF_UseSrc0                                           , JavascriptRegExp::EntryInfo::SymbolSearch)
 LIBRARY_FUNCTION(Math,          Fround,             1,    BIF_TypeSpecUnaryToFloat                              , Math::EntryInfo::Fround)
 LIBRARY_FUNCTION(String,        PadStart,           2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadStart)
 LIBRARY_FUNCTION(String,        PadEnd,             2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadEnd)
@@ -81,7 +82,6 @@ LIBRARY_FUNCTION(String,        PadEnd,             2,    BIF_UseSrc0 | BIF_Vari
 // Note: 1st column is currently used only for debug tracing.
 
 // SIMD_JS
-#if ENABLE_NATIVE_CODEGEN
 LIBRARY_FUNCTION(SIMD_Float32x4,    Float32x4,         4, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Float32x4)
 LIBRARY_FUNCTION(SIMD_Float32x4,    Check,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Check)
 LIBRARY_FUNCTION(SIMD_Float32x4,    Splat,             1, BIF_IgnoreDst                                                 , SIMDFloat32x4Lib::EntryInfo::Splat)
@@ -152,4 +152,3 @@ LIBRARY_FUNCTION(SIMD_Int32x4,    Store,             3, BIF_IgnoreDst           
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store1,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store1)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store2,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store2)
 LIBRARY_FUNCTION(SIMD_Int32x4,    Store3,            3, BIF_IgnoreDst                                                 , SIMDInt32x4Lib::EntryInfo::Store3)
-#endif

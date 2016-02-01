@@ -37,7 +37,7 @@ namespace Js
         hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
     {
         Assert(proxy->GetFunctionProxy() == proxy);
-        Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType)
+        Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
         DebugOnly(VerifyEntryPoint());
 
 #if ENABLE_NATIVE_CODEGEN

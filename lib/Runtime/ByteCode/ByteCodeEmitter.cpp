@@ -247,6 +247,9 @@ Js::OpCode ByteCodeGenerator::ToChkUndeclOp(Js::OpCode op) const
     case Js::OpCode::StLocalObjSlot:
         return Js::OpCode::StLocalObjSlotChkUndecl;
 
+    case Js::OpCode::StInnerObjSlot:
+        return Js::OpCode::StInnerObjSlotChkUndecl;
+
     case Js::OpCode::StEnvObjSlot:
         return Js::OpCode::StEnvObjSlotChkUndecl;
 
@@ -2447,7 +2450,7 @@ void ByteCodeGenerator::EmitInternalScopeObjInit(FuncInfo *funcInfo, Scope *scop
     {
         uint cacheId = funcInfo->FindOrAddInlineCacheId(scopeLocation, propertyId, false, true);
         this->m_writer.PatchableProperty(opcode, valueLocation, scopeLocation, cacheId);
-    }   
+    }
 }
 
 void ByteCodeGenerator::GetEnclosingNonLambdaScope(FuncInfo *funcInfo, Scope * &scope, Js::PropertyId &envIndex)
@@ -3861,7 +3864,7 @@ void ByteCodeGenerator::StartEmitCatch(ParseNode *pnodeCatch)
     if (pnodeCatch->sxCatch.pnodeParam->nop == knopParamPattern)
     {
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval());
-        scope->SetMustInstantiate(scope->GetMustInstantiate() || scope->GetCapturesAll() || funcInfo->IsGlobalFunction());
+        scope->SetMustInstantiate(scope->Count() > 0 && (scope->GetMustInstantiate() || scope->GetCapturesAll() || funcInfo->IsGlobalFunction()));
 
         Parser::MapBindIdentifier(pnodeCatch->sxCatch.pnodeParam->sxParamPattern.pnode1, [&](ParseNodePtr item)
         {
@@ -5069,7 +5072,7 @@ void ByteCodeGenerator::EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId proper
         cacheId = funcInfo->FindOrAddInlineCacheId(instance, propertyId, false, false);
         this->Writer()->ElementP(ldFldOp, tmpReg, cacheId);
         break;
-        
+
     default:
         cacheId = funcInfo->FindOrAddInlineCacheId(instance, propertyId, false, false);
         this->Writer()->PatchableProperty(ldFldOp, tmpReg, instance, cacheId);
@@ -10494,7 +10497,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
                 Assert(scope->GetMustInstantiate());
                 if (scope->GetIsObject())
                 {
-                    Js::OpCode op = (sym->GetDecl()->nop == knopLetDecl) ? Js::OpCode::InitUndeclLetFld : 
+                    Js::OpCode op = (sym->GetDecl()->nop == knopLetDecl) ? Js::OpCode::InitUndeclLetFld :
                         byteCodeGenerator->GetInitFldOp(scope, scope->GetLocation(), funcInfo, false);
 
                     Js::PropertyId propertyId = sym->EnsurePosition(byteCodeGenerator);

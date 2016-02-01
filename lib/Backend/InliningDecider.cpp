@@ -457,6 +457,7 @@ bool InliningDecider::GetBuiltInInfo(
     case Js::JavascriptBuiltInFunction::JavascriptString_IndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptString_LastIndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptString_Search:
+    case Js::JavascriptBuiltInFunction::JavascriptRegExp_SymbolSearch:
     case Js::JavascriptBuiltInFunction::GlobalObject_ParseInt:
         *returnType = ValueType::GetNumberAndLikelyInt(true);
         goto CallDirectCommon;
