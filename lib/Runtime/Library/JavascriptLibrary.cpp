@@ -1215,10 +1215,12 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
+            symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
         }
         else
         {
+            symbolMatch = nullptr;
             symbolSearch = nullptr;
         }
 
@@ -2186,7 +2188,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 13);
+        typeHandler->Convert(symbolConstructor, mode, 14);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2224,6 +2226,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
+            library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
         }
 
@@ -4014,6 +4017,12 @@ namespace Js
 
         if (scriptConfig->IsES6RegExSymbolsEnabled())
         {
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolMatch,
+                PropertyIds::_RuntimeFunctionNameId_match,
+                &JavascriptRegExp::EntryInfo::SymbolMatch,
+                1);
             builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
                 regexPrototype,
                 PropertyIds::_symbolSearch,

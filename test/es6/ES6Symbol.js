@@ -172,6 +172,7 @@ var tests = [
             verifySymbol("unscopables");
             verifySymbol("species");
             verifySymbol("search");
+            verifySymbol("match");
         }
     },
     {

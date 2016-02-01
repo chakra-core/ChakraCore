@@ -572,6 +572,25 @@ namespace Js
         return obj->ToString(sourceOnly, useFlagsProperty);
     }
 
+    Var JavascriptRegExp::EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
+
+        JavascriptRegExp* regExObj = GetJavascriptRegExp(args, L"RegExp.prototype[Symbol.match]", scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        return RegexHelper::RegexMatch(
+            scriptContext,
+            regExObj,
+            string,
+            RegexHelper::IsResultNotUsed(callInfo.Flags));
+    }
+
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
