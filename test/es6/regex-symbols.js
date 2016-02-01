@@ -309,11 +309,11 @@ var tests = [
     },
     {
         name: "String.prototype.search should throw when 'this' is 'undefined'",
-        body: verifyStringSearchRequiresObjectCoercibleThis.bind(undefined),
+        body: verifyStringSearchRequiresObjectCoercibleThis.bind(undefined, undefined),
     },
     {
         name: "String.prototype.search should throw when 'this' is 'null'",
-        body: verifyStringSearchRequiresObjectCoercibleThis.bind(null),
+        body: verifyStringSearchRequiresObjectCoercibleThis.bind(undefined, null),
     },
     {
         name: "String.prototype.search should delegate to '@@search' property of the 'regexp' argument",
