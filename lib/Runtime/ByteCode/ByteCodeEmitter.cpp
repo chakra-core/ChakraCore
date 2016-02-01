@@ -3108,6 +3108,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             EnsureNoRedeclarations(pnode->sxFnc.pnodeScopes, funcInfo);
         }
 
+        if (IsModuleCode() && funcInfo->IsGlobalFunction() && pnode->nop == knopProg)
+        {
+            EnsureImportBindingScopeSlots(pnode, funcInfo);
+        }
+
         // Emit all scope-wide function definitions before emitting function bodies
         // so that calls may reference functions they precede lexically.
         // Note, global eval scope is a fake local scope and is handled as if it were
@@ -3848,6 +3853,32 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         Js::ScopeInfo::SaveScopeInfoForDeferParse(this, parentFunc, funcInfo);
         PushFuncInfo(L"StartEmitFunction", funcInfo);
     }
+}
+
+void ByteCodeGenerator::EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo)
+{
+    Assert(IsModuleCode());
+    Assert(pnode && pnode->nop == knopProg);
+
+    if (pnode->sxModule.importEntries == nullptr)
+    {
+        return;
+    }
+
+    pnode->sxModule.importEntries->Map([this, funcInfo](ModuleImportEntry& importEntry) {
+        Symbol * sym = importEntry.varDecl->sxVar.sym;
+        
+        Assert(sym->GetIsModuleExportStorage());
+
+        sym->SetNeedDeclaration(false);
+        
+        // TODO: Find the module named by importEntry.moduleRequest in the ScriptContext::ModuleList. 
+        //       The index of the module in that list is the module index.
+        //       Next, look in that module's export Var slot array and find importEntry.importName.
+        //       The index of the slot is the module export slot.
+        sym->SetModuleIndex(Js::Constants::NoProperty);
+        sym->SetModuleExportSlot(Js::Constants::NoProperty);
+    });
 }
 
 void ByteCodeGenerator::EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo)
@@ -4868,7 +4899,12 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
     }
 
     // Arrived at the scope in which the property was defined.
-    if (sym && sym->GetNeedDeclaration() && scope->GetFunc() == funcInfo)
+    if (sym && sym->GetIsModuleExportStorage())
+    {
+        // TODO: Replace with a new opcode to load from the module export var storage.
+        this->Writer()->Reg1(Js::OpCode::LdUndef, lhsLocation);
+    }
+    else if (sym && sym->GetNeedDeclaration() && scope->GetFunc() == funcInfo)
     {
         // Ensure this symbol has a slot if it needs one.
         if (sym->IsInSlot(funcInfo))

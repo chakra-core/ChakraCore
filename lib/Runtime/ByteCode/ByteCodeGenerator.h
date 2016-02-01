@@ -108,6 +108,11 @@ public:
         return (flags & fscrConsoleScopeEval) == fscrConsoleScopeEval;
     }
 
+    bool IsModuleCode()
+    {
+        return (flags & fscrIsModuleCode) == fscrIsModuleCode;
+    }
+
     bool IsBinding() const {
         return isBinding;
     }
@@ -224,6 +229,7 @@ public:
     void EndEmitWith(ParseNode *pnodeWith);
     void EnsureFncScopeSlots(ParseNode *pnode, FuncInfo *funcInfo);
     void EnsureLetConstScopeSlots(ParseNode *pnodeBlock, FuncInfo *funcInfo);
+    void EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo* funcInfo);
     void PushScope(Scope *innerScope);
     void PopScope();
     void PushBlock(ParseNode *pnode);

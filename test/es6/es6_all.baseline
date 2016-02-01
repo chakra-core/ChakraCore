@@ -31,6 +31,8 @@ FLAG ES6 = 1 - setting child flag ES6IsConcatSpreadable = 1
 FLAG ES6IsConcatSpreadable = 1
 FLAG ES6 = 1 - setting child flag ES6Math = 1
 FLAG ES6Math = 1
+FLAG ES6 = 1 - setting child flag ES6Module = 1
+FLAG ES6Module = 1
 FLAG ES6 = 1 - setting child flag ES6Object = 1
 FLAG ES6Object = 1
 FLAG ES6 = 1 - setting child flag ES6Number = 1

@@ -1589,7 +1589,7 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1667,6 +1667,11 @@ namespace Js
             {
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
+            
+            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
+            {
+                grfscr |= fscrIsModuleCode;
+            }
 
             if (isLibraryCode)
             {
@@ -1715,7 +1720,7 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1762,6 +1767,11 @@ namespace Js
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
+            }
+
+            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
+            {
+                grfscr |= fscrIsModuleCode;
             }
 
 #if DBG_DUMP
