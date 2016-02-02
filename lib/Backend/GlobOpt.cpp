@@ -4248,23 +4248,14 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     SymID baseSymID = GetVarSymID(baseOp->GetStackSym());
 
     IR::Opnd *srcDef = instr->GetSrc1();
-    StackSym *varSym = nullptr;
+    StackSym *srcSym = nullptr;
     if (srcDef->IsRegOpnd())
     {
         IR::RegOpnd* opnd = srcDef->AsRegOpnd();
         if (this->OptIsInvariant(opnd, this->currentBlock, loop, this->FindValue(opnd->m_sym), true, true))
         {
-            StackSym* sym = opnd->GetStackSym();
-            if (sym->GetType() != TyVar)
-            {
-                varSym = sym->GetVarEquivSym(instr->m_func);
-            }
-            else
-            {
-                varSym = sym;
-            }
+            srcSym = opnd->GetStackSym();
         }
-
     }
 
     BailoutConstantValue constant = {TyIllegal, 0};
@@ -4280,7 +4271,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     {
         constant.InitVarConstValue(srcDef->AsAddrOpnd()->m_address);
     }
-    else if(!varSym)
+    else if(!srcSym)
     {
         TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, L"Source is not an invariant");
         return false;
@@ -4297,7 +4288,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     memsetInfo->base = baseSymID;
     memsetInfo->index = inductionSymID;
     memsetInfo->constant = constant;
-    memsetInfo->varSym = varSym;
+    memsetInfo->srcSym = srcSym;
     memsetInfo->count = 1;
     memsetInfo->bIndexAlreadyChanged = isIndexPreIncr;
     loop->memOpInfo->candidates->Prepend(memsetInfo);
@@ -20821,10 +20812,9 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     {
         MemSetEmitData* data = (MemSetEmitData*)emitData;
         const Loop::MemSetCandidate* candidate = data->candidate->AsMemSet();
-        if (candidate->varSym)
+        if (candidate->srcSym)
         {
-            Assert(candidate->varSym->GetType() == TyVar);
-            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->varSym, TyVar, func);
+            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->srcSym, candidate->srcSym->GetType(), func);
             regSrc->SetIsJITOptimizedReg(true);
             src1 = regSrc;
         }
@@ -20877,9 +20867,9 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
             const Loop::MemSetCandidate* candidate = emitData->candidate->AsMemSet();
             const int constBufSize = 32;
             wchar_t constBuf[constBufSize];
-            if (candidate->varSym)
+            if (candidate->srcSym)
             {
-                _snwprintf_s(constBuf, constBufSize, L"s%u", candidate->varSym->m_id);
+                _snwprintf_s(constBuf, constBufSize, L"s%u", candidate->srcSym->m_id);
             }
             else
             {

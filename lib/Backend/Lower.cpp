@@ -1508,7 +1508,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::Memset:
         case Js::OpCode::Memcopy:
         {
-            LowerMemOp(instr);
+            instrPrev = LowerMemOp(instr);
             break;
         }
 
@@ -8379,7 +8379,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     return instrPrev;
 }
 
-void
+IR::Instr *
 Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
 {
     IR::Opnd * dst = instr->UnlinkDst();
@@ -8396,7 +8396,14 @@ Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
     Assert(indexOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperOp_Memset;
-
+    IR::Instr *instrPrev = nullptr;
+    if (src1->IsRegOpnd() && !src1->IsVar())
+    {
+        IR::RegOpnd* varOpnd = IR::RegOpnd::New(TyVar, instr->m_func);
+        instrPrev = IR::Instr::New(Js::OpCode::ToVar, varOpnd, src1, instr->m_func);
+        instr->InsertBefore(instrPrev);
+        src1 = varOpnd;
+    }
     instr->SetDst(helperRet);
     LoadScriptContext(instr);
     m_lowererMD.LoadHelperArgument(instr, sizeOpnd);
@@ -8405,9 +8412,11 @@ Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
     m_lowererMD.LoadHelperArgument(instr, baseOpnd);
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
     dst->Free(m_func);
+    
+    return instrPrev;
 }
 
-void
+IR::Instr *
 Lowerer::LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet)
 {
     IR::Opnd * dst = instr->UnlinkDst();
@@ -8442,6 +8451,8 @@ Lowerer::LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet)
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
     dst->Free(m_func);
     src->Free(m_func);
+
+    return nullptr;
 }
 
 IR::Instr *
@@ -8504,13 +8515,19 @@ Lowerer::LowerMemOp(IR::Instr * instr)
         instr->ClearBailOutInfo();
     }
 
+    IR::Instr* newInstrPrev = nullptr;
     if (instr->m_opcode == Js::OpCode::Memset)
     {
-        LowerMemset(instr, helperRet);
+        newInstrPrev = LowerMemset(instr, helperRet);
     }
     else if (instr->m_opcode == Js::OpCode::Memcopy)
     {
-        LowerMemcopy(instr, helperRet);
+        newInstrPrev = LowerMemcopy(instr, helperRet);
+    }
+
+    if (newInstrPrev != nullptr)
+    {
+        instrPrev = newInstrPrev;
     }
     return instrPrev;
 }

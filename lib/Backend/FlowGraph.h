@@ -619,9 +619,9 @@ public:
     struct MemSetCandidate : public MemOpCandidate
     {
         BailoutConstantValue constant;
-        StackSym* varSym;
+        StackSym* srcSym;
 
-        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET), varSym(nullptr) {}
+        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET), srcSym(nullptr) {}
     };
 
     struct MemCopyCandidate : public MemOpCandidate
