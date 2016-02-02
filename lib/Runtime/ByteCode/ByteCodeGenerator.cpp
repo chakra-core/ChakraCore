@@ -2214,7 +2214,7 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
 {
     Assert(byteCodeGenerator->TopFuncInfo()->varRegsCount == 0);
     Js::ArgSlot pos = 1;
-    bool isSimpleParameterList = pnode->sxFnc.IsSimpleParameterList();
+    bool isNonSimpleParameterList = pnode->sxFnc.HasNonSimpleParameterList();
 
     auto addArgToScope = [&](ParseNode *arg)
     {
@@ -2232,13 +2232,13 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
             }
 #endif
 
-            if (!isSimpleParameterList)
+            if (isNonSimpleParameterList)
             {
                 formal->SetIsNonSimpleParameter(true);
             }
 
             arg->sxVar.sym = formal;
-            MarkFormal(byteCodeGenerator, formal, assignLocation || !isSimpleParameterList, !isSimpleParameterList);
+            MarkFormal(byteCodeGenerator, formal, assignLocation || isNonSimpleParameterList, isNonSimpleParameterList);
         }
         else if (arg->nop == knopParamPattern)
         {
@@ -2751,7 +2751,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
                     Assert(top->GetHasHeapArguments());
                     if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)
-                        && pnode->sxFnc.IsSimpleParameterList())
+                        && !pnode->sxFnc.HasNonSimpleParameterList())
                     {
                         top->byteCodeFunction->SetHasImplicitArgIns(false);
                     }
@@ -3104,7 +3104,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                 MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
 
-                if (!pnodeScope->sxFnc.IsSimpleParameterList())
+                if (pnodeScope->sxFnc.HasNonSimpleParameterList())
                 {
                     byteCodeGenerator->AssignUndefinedConstRegister();
                 }
@@ -5186,7 +5186,7 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
         funcInfo->GetHasHeapArguments()
         // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
         && (funcInfo->GetIsStrictMode()
-            || !pnodeFnc->sxFnc.IsSimpleParameterList())
+            || pnodeFnc->sxFnc.HasNonSimpleParameterList())
         // Neither of the scopes are objects
         && !funcInfo->paramScope->GetIsObject()
         && !funcInfo->bodyScope->GetIsObject();

@@ -4201,7 +4201,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     // Check whether we are in a parameter scope. If we are then we have to mark the parent scope to indicate the same.
     // If there is a method def in the default param scope then we can't merge the param and body scope of that function.
     // Note: Lambdas and async functions will be addressed later.
-    if (isEnclosedInParamScope && pnodeFncParent && !pnodeFncParent->sxFnc.IsSimpleParameterList() && !fLambda && !fAsync)
+    if (isEnclosedInParamScope && pnodeFncParent && pnodeFncParent->sxFnc.HasNonSimpleParameterList() && !fLambda && !fAsync)
     {
         Assert(pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope != nullptr);
         pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->SetCannotMergeWithBodyScope();
@@ -4453,7 +4453,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
                 if (!paramScope->GetCanMergeWithBodyScope())
                 {
-                    Assert(!pnodeFnc->sxFnc.IsSimpleParameterList());
+                    Assert(pnodeFnc->sxFnc.HasNonSimpleParameterList());
                     OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
                     // Now add a new symbol reference for each formal in the param scope to the body scope.
                     paramScope->ForEachSymbol([this](Symbol* param) {
@@ -5344,8 +5344,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             {
                 if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
                 {
-                    // Mark that the function has a destructuring pattern before parsing the pattern as it can have function definitions.
-                    this->GetCurrentFunctionNode()->sxFnc.SetHasDestructuringPattern();
+                    // Mark that the function has a non simple parameter list before parsing the pattern since the pattern can have function definitions.
+                    this->GetCurrentFunctionNode()->sxFnc.SetHasNonSimpleParameterList();
 
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
@@ -5400,6 +5400,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         {
                             // When only validating formals, we won't have a function node.
                             pnodeFnc->sxFnc.pnodeRest = pnodeT;
+                            pnodeFnc->sxFnc.SetHasNonSimpleParameterList();
                             if (!isNonSimpleParameterList)
                             {
                                 // This is the first non-simple parameter we've seen. We need to go back
@@ -5465,6 +5466,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     if (!currentFncNode->sxFnc.HasDefaultArguments())
                     {
                         currentFncNode->sxFnc.SetHasDefaultArguments();
+                        currentFncNode->sxFnc.SetHasNonSimpleParameterList();
                         currentFncNode->sxFnc.firstDefaultArg = argPos;
                     }
 
@@ -6730,6 +6732,8 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     pnodeFncSave = m_currentNodeFunc;
     pnodeDeferredFncSave = m_currentNodeDeferredFunc;
 
+    bool hasNonSimpleParameterList = m_currentNodeFunc->sxFnc.HasNonSimpleParameterList();
+
     pnodeFncGenerator = CreateAsyncSpawnGenerator();
 
     m_currentNodeDeferredFunc = pnodeFncGenerator;
@@ -6770,6 +6774,14 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
         m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->sxFnc.nestedCount - 1))->deferredStubs;
     }
 
+    // It is an error if the async function contains a "use strict" directive and has
+    // a non simple parameter list.  Since we split the body from the parameters by the
+    // synthetic inner generator function, temporarily set the HasNonSimpleParameterList
+    // flag on the inner generator for the duration of parsing the body so that "use strict"
+    // will trigger the corresponding syntax error.  Unset it afterwards since it has
+    // meaning post-parsing that won't match the actual parameter list of the generator.
+    pnodeFncGenerator->sxFnc.SetHasNonSimpleParameterList(hasNonSimpleParameterList);
+
     pnodeFncGenerator->sxFnc.pnodeBody = nullptr;
     if (fLambda)
     {
@@ -6785,6 +6797,8 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     }
     AddToNodeList(&pnodeFncGenerator->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
     lastNodeRef = NULL;
+
+    pnodeFncGenerator->sxFnc.SetHasNonSimpleParameterList(false);
 
     pnodeFncGenerator->ichLim = m_pscan->IchLimTok();
     pnodeFncGenerator->sxFnc.cbLim = m_pscan->IecpLimTok();
@@ -9577,7 +9591,7 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
                 if (isUseStrictDirective)
                 {
                     // Functions with non-simple parameter list cannot be made strict mode
-                    if (!GetCurrentFunctionNode()->sxFnc.IsSimpleParameterList())
+                    if (GetCurrentFunctionNode()->sxFnc.HasNonSimpleParameterList())
                     {
                         Error(ERRNonSimpleParamListInStrictMode);
                     }

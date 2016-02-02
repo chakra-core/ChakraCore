@@ -500,7 +500,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     Js::RegSlot argumentsLoc = argSym->GetLocation();
     Js::RegSlot propIdsLoc = funcInfo->nullConstantRegister;
 
-    Js::OpCode opcode = funcInfo->root->sxFnc.IsSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
+    Js::OpCode opcode = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
     bool hasRest = funcInfo->root->sxFnc.pnodeRest != nullptr;
     uint count = funcInfo->inArgsCount + (hasRest ? 1 : 0) - 1;
     if (count == 0)
@@ -548,7 +548,7 @@ void ByteCodeGenerator::LoadCachedHeapArguments(FuncInfo *funcInfo)
     Assert(argSym && argSym->GetIsArguments());
     Js::RegSlot argumentsLoc = argSym->GetLocation();
 
-    Js::OpCode op = funcInfo->root->sxFnc.IsSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
+    Js::OpCode op = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
 
     this->m_writer.Reg1(op, argumentsLoc);
     EmitLocalPropInit(argumentsLoc, argSym, funcInfo);
@@ -1656,7 +1656,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     slots[2] = firstVarSlot;
     slots[3] = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
-    propIds->hasNonSimpleParams = !funcInfo->root->sxFnc.IsSimpleParameterList();
+    propIds->hasNonSimpleParams = funcInfo->root->sxFnc.HasNonSimpleParameterList();
     funcInfo->localPropIdOffset = m_writer.InsertAuxiliaryData(propIds, sizeof(Js::PropertyIdArray) + extraAlloc);
     Assert(funcInfo->localPropIdOffset == 0);
     funcInfo->GetParsedFunctionBody()->SetHasCachedScopePropIds(true);
@@ -3132,7 +3132,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         }
         DefineLabels(funcInfo);
 
-        if (!pnode->sxFnc.IsSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList())
         {
             Scope* bodyScope = funcInfo->GetBodyScope();
 
