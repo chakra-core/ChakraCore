@@ -228,7 +228,7 @@ namespace TTD
                     snapValue->u_stringValue = alloc.CopyStringInto(Js::JavascriptString::FromVar(jsValue)->GetSz());
                     break;
                 case Js::TypeIds_Symbol:
-                    snapValue->u_propertyIdValue = jslib->ExtractPrimitveSybbolId_TTD(jsValue);
+                    snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
                     break;
                 default:
                     AssertMsg(false, "These are supposed to be primitive values on the heap e.g., no pointers or properties.");
@@ -1010,31 +1010,24 @@ namespace TTD
             fbInfo->FunctionName = alloc.CopyStringInto(fb->GetDisplayName());
             AssertMsg(wcscmp(fbInfo->FunctionName, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
 
-            fbInfo->IsRuntime = !(fb->IsEval() | fb->IsDynamicFunction()) & (fb->GetSourceContextInfo()->url == nullptr);
-
-            if(fbInfo->IsRuntime)
+            if(isWellKnown)
             {
-                AssertMsg(isWellKnown, "Should always be marked as well known?");
+                fbInfo->OptKnownPath = fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb);
 
                 fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;
                 fbInfo->OptColumn = -1;
-
-                fbInfo->OptKnownPath = fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb);
             }
             else
             {
-                AssertMsg(!isWellKnown, "Should never be marked as well known?");
+                fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
 
                 Js::FunctionBody* parentBody = fb->GetScriptContext()->ResolveParentBody(fb);
                 AssertMsg(parentBody != nullptr, "We missed something!!!");
 
                 fbInfo->OptParentBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(parentBody);
-
                 fbInfo->OptLine = fb->GetLineNumber();
                 fbInfo->OptColumn = fb->GetColumnNumber();
-
-                fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
             }
         }
 
@@ -1048,16 +1041,12 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(fbInfo->ScriptContextTag);
 
             Js::FunctionBody* resfb = nullptr;
-            if(fbInfo->IsRuntime)
+            if(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN)
             {
-                AssertMsg(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN, "Should always be marked as well known?");
-
                 resfb = ctx->LookupRuntimeFunctionBodyForKnownToken_TTD(fbInfo->OptKnownPath);
             }
             else
             {
-                AssertMsg(fbInfo->OptKnownPath == TTD_INVALID_WELLKNOWN_TOKEN, "Should never be marked as well known?");
-
                 resfb = inflator->FindReusableFunctionBodyIfExists(fbInfo->FunctionBodyId);
                 if(resfb == nullptr)
                 {
@@ -1121,8 +1110,8 @@ namespace TTD
             writer->WriteAddr(NSTokens::Key::ctxTag, fbInfo->ScriptContextTag, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteBool(NSTokens::Key::isRuntime, fbInfo->IsRuntime, NSTokens::Separator::CommaSeparator);
-            if(fbInfo->IsRuntime)
+            writer->WriteBool(NSTokens::Key::isWellKnownToken, fbInfo->OptKnownPath != nullptr, NSTokens::Separator::CommaSeparator);
+            if(fbInfo->OptKnownPath != TTD_INVALID_WELLKNOWN_TOKEN)
             {
                 writer->WriteWellKnownToken(NSTokens::Key::wellKnownToken, fbInfo->OptKnownPath, NSTokens::Separator::CommaSeparator);
             }
@@ -1144,9 +1133,8 @@ namespace TTD
             fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
             fbInfo->FunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
 
-            fbInfo->IsRuntime = reader->ReadBool(NSTokens::Key::isRuntime, true);
-
-            if(fbInfo->IsRuntime)
+            bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
+            if(isWellKnown)
             {
                 fbInfo->OptKnownPath = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
 

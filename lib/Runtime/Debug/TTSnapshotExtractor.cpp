@@ -340,34 +340,11 @@ namespace TTD
         }
     }
 
-    void SnapshotExtractor::BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, bool firstSnap)
+    void SnapshotExtractor::BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs)
     {
         AssertMsg((this->m_pendingSnap == nullptr) & this->m_worklist.Empty(), "Something went wrong.");
 
         this->m_pendingSnap = HeapNew(SnapShot);
-
-        if(firstSnap)
-        {
-            for(int32 i = 0; i < roots.Count(); ++i)
-            {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(roots.Item(i));
-                Js::ScriptContext* scriptContext = obj->GetScriptContext();
-                ThreadContext* threadContext = scriptContext->GetThreadContext();
-
-                threadContext->TTDInfo->TrackTagObject(Js::DynamicObject::FromVar(obj));
-
-                if(Js::GlobalObject::Is(obj))
-                {
-                   //also always tag undef, null, true, and false so we don't need to worry about them later
-                    threadContext->TTDInfo->TrackTagObject(scriptContext->GetLibrary()->GetUndefined());
-                    threadContext->TTDInfo->TrackTagObject(scriptContext->GetLibrary()->GetNull());
-                    threadContext->TTDInfo->TrackTagObject(scriptContext->GetLibrary()->GetTrue());
-                    threadContext->TTDInfo->TrackTagObject(scriptContext->GetLibrary()->GetFalse());
-
-                    scriptContext->ScriptContextLogTag = threadContext->TTDInfo->LookupTagForObject(obj);
-                }
-            }
-        }
 
         UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_SMALL>& snpCtxs = this->m_pendingSnap->GetContextList();
         for(int32 i = 0; i < ctxs.Count(); ++i)

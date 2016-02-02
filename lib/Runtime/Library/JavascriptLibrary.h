@@ -586,7 +586,7 @@ namespace Js
         DynamicObject* GetMissingPropertyHolder() const { return missingPropertyHolder; }
 
 #if ENABLE_TTD
-        Js::PropertyId ExtractPrimitveSybbolId_TTD(Var value);
+        Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
 
         Js::RecyclableObject* CreateBooleanObject_TTD(Var value);

@@ -197,7 +197,7 @@ namespace TTD
             TTDMode m = this->m_modeStack.Item(i);
             switch(m)
             {
-            case TTDMode::Disabled:
+            case TTDMode::Pending:
             case TTDMode::Detached:
             case TTDMode::RecordEnabled:
             case TTDMode::DebuggingEnabled:
@@ -247,7 +247,7 @@ namespace TTD
         ctxs.Add(this->m_ttdContext);
         this->m_ttdContext->ExtractSnapshotRoots_TTD(roots);
 
-        this->m_snapExtractor.BeginSnapshot(this->m_threadContext, roots, ctxs, firstSnap);
+        this->m_snapExtractor.BeginSnapshot(this->m_threadContext, roots, ctxs);
         this->m_snapExtractor.DoMarkWalk(roots, ctxs, this->m_threadContext, firstSnap);
 
         ///////////////////////////
@@ -275,7 +275,7 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
         m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
 #endif
-        m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Disabled),
+        m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_slabAllocator)
@@ -296,7 +296,7 @@ namespace TTD
         memcpy(pathBuff, logDir, logDirPathLength * sizeof(wchar));
         this->m_logInfoRootDir = pathBuff;
 
-        this->m_modeStack.Add(TTDMode::Disabled);
+        this->m_modeStack.Add(TTDMode::Pending);
 
         this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), ReferencePinSet, threadContext->GetRecycler());
         this->m_threadContext->GetRecycler()->RootAddRef(this->m_propertyRecordPinSet);
@@ -379,7 +379,7 @@ namespace TTD
 
     void EventLog::SetGlobalMode(TTDMode m)
     {
-        AssertMsg(m == TTDMode::Disabled || m == TTDMode::Detached || m == TTDMode::RecordEnabled || m == TTDMode::DebuggingEnabled, "These are the only valid global modes");
+        AssertMsg(m == TTDMode::Pending || m == TTDMode::Detached || m == TTDMode::RecordEnabled || m == TTDMode::DebuggingEnabled, "These are the only valid global modes");
 
         this->m_modeStack.SetItem(0, m);
         this->UpdateComputedMode();
@@ -426,6 +426,25 @@ namespace TTD
         return modeIsDebug & inDebugableCode;
     }
 
+    bool EventLog::ShouldTagForJsRT() const
+    {
+        bool modeIsPending = (this->m_currentMode & TTDMode::Pending) == TTDMode::Pending;
+        bool modeIsRecord = (this->m_currentMode & TTDMode::RecordEnabled) == TTDMode::RecordEnabled;
+        bool inDebugableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
+
+        return ((modeIsPending | modeIsRecord) & inDebugableCode);
+    }
+
+    bool EventLog::ShouldTagForExternalCall() const
+    {
+        bool modeIsPending = (this->m_currentMode & TTDMode::Pending) == TTDMode::Pending;
+        bool modeIsRecord = (this->m_currentMode & TTDMode::RecordEnabled) == TTDMode::RecordEnabled;
+        bool modeIsDebug = (this->m_currentMode & TTDMode::DebuggingEnabled) == TTDMode::DebuggingEnabled;
+        bool inDebugableCode = (this->m_currentMode & TTDMode::ExcludedExecution) == TTDMode::Invalid;
+
+        return ((modeIsPending | modeIsRecord | modeIsDebug) & inDebugableCode);
+    }
+
     bool EventLog::IsTTDActive() const
     {
         return (this->m_currentMode & TTDMode::TTDActive) != TTDMode::Invalid;
@@ -434,11 +453,6 @@ namespace TTD
     bool EventLog::IsTTDDetached() const
     {
         return (this->m_currentMode & TTDMode::Detached) != TTDMode::Invalid;
-    }
-
-    bool EventLog::JsRTShouldTagObject(const EventLog* elog)
-    {
-        return (elog != nullptr) && (elog->ShouldPerformRecordAction() | elog->ShouldPerformDebugAction());
     }
 
     void EventLog::AddPropertyRecord(const Js::PropertyRecord* record)
@@ -1611,20 +1625,21 @@ namespace TTD
         this->InsertEventAtHead(createAction);
     }
 
-    void EventLog::RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode)
+    void EventLog::RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
 
-        LPCWSTR optSrcUri = this->m_slabAllocator.CopyStringInto(fb->GetSourceContextInfo()->url);
+        LPCWSTR optSrcUri = fb->GetSourceContextInfo()->url;
         DWORD_PTR optDocumentID = fb->GetSourceContextId();
 
         LPCWSTR sourceCode = this->m_slabAllocator.CopyStringInto(srcCode);
         LPCWSTR dir = this->m_slabAllocator.CopyStringInto(this->m_logInfoRootDir);
+        LPCWSTR ssUri = this->m_slabAllocator.CopyStringInto(sourceUri);
 
-        JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir);
+        JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir, ssUri);
 
         this->InsertEventAtHead(parseEvent);
     }

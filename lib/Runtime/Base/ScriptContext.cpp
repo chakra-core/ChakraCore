@@ -144,7 +144,7 @@ namespace Js
         , m_ttdTopLevelEval(&HeapAllocator::Instance)
         , m_ttdPinnedRootFunctionSet(nullptr)
         , m_ttdFunctionBodyParentMap(&HeapAllocator::Instance)
-        , m_ttdMode(TTD::TTDMode::Disabled)
+        , m_ttdMode(TTD::TTDMode::Pending)
         , ScriptContextLogTag(TTD_INVALID_LOG_TAG)
         , m_ttdAddtlRuntimeContext(nullptr)
         , TTDRootNestingCount(0)
@@ -2620,6 +2620,14 @@ namespace Js
         //Ensure that we behave somewhat nicely
         this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
 #endif
+
+        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
+        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetUndefined());
+        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetNull());
+        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetTrue());
+        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetFalse());
+
+        this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
     }
 
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()

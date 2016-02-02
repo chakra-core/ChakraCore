@@ -85,7 +85,7 @@ namespace TTD
         //Do the actual snapshot extraction
 
         //Begin the snapshot by initializing the snapshot information
-        void BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, bool firstSnap);
+        void BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs);
 
         //Do the walk of all objects caller need to to call MarkWalk on roots to initialize the worklist
         void DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext, bool firstSnap);

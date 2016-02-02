@@ -284,9 +284,6 @@ namespace TTD
             //The string name of the function
             LPCWSTR FunctionName;
 
-            //True if this body corresponds to code not associated with a url (and not dynamic or eval)
-            bool IsRuntime;
-
             //The known path to a function with the desired body
             TTD_WELLKNOWN_TOKEN OptKnownPath;
 

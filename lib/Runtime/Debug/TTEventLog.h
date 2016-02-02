@@ -211,14 +211,15 @@ namespace TTD
         //Use this to check specifically if we are in debugging mode (which is a superset of replay mode) AND this code is being run on behalf of the user application
         bool ShouldPerformDebugAction() const;
 
+        //Use this to check if we should tag values that are passing to/from the JsRT host
+        bool ShouldTagForJsRT() const;
+        bool ShouldTagForExternalCall() const;
+
         //Use this to check if the TTD has been set into record/replay mode (although we still need to check if we should do any record ro replay)
         bool IsTTDActive() const;
 
         //Use this to check if the TTD has been detached (e.g., has traced a context execution and has now been detached)
         bool IsTTDDetached() const;
-
-        //Return true if we should tag the object for tracking (when passing accross JsRT API boundaries)
-        static bool JsRTShouldTagObject(const EventLog* elog);
 
         //Add a property record to our pin set
         void AddPropertyRecord(const Js::PropertyRecord* record);
@@ -411,7 +412,7 @@ namespace TTD
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);
 
         //Record code parse
-        void RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode);
+        void RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
 
         //Record callback of an existing function
         JsRTCallFunctionBeginAction* RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);

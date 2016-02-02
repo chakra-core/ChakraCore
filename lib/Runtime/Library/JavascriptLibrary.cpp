@@ -4691,7 +4691,7 @@ namespace Js
         {
 #if ENABLE_TTD
             ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
-            if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog))
+            if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
             {
                 threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(taskVar));
             }
@@ -4748,7 +4748,7 @@ namespace Js
                     this->nativeHostPromiseContinuationFunction(taskVar, this->nativeHostPromiseContinuationFunctionState);
                 }
                 catch(...)
-        {
+                {
                     // Hosts are required not to pass exceptions back across the callback boundary. If
                     // this happens, it is a bug in the host, not something that we are expected to
                     // handle gracefully.
@@ -4908,7 +4908,7 @@ namespace Js
     }
 
 #if ENABLE_TTD
-    Js::PropertyId JavascriptLibrary::ExtractPrimitveSybbolId_TTD(Var value)
+    Js::PropertyId JavascriptLibrary::ExtractPrimitveSymbolId_TTD(Var value)
     {
         return Js::JavascriptSymbol::FromVar(value)->GetValue()->GetPropertyId();
     }

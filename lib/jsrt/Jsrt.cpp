@@ -486,6 +486,16 @@ STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ J
 
                 if(optRecordDir != nullptr)
                 {
+#if ENABLE_TTD_FORCE_RECORD_NODE
+                    threadContext->TTDInitializeTTDUriFunction = NodeSupportDefaultImpl::GetTTDDirectory;
+                    threadContext->TTDWriteInitializeFunction = NodeSupportDefaultImpl::TTInitializeForWriteLogStreamCallback;
+                    threadContext->TTDStreamFunctions.pfGetLogStream = NodeSupportDefaultImpl::TTGetLogStreamCallback;
+                    threadContext->TTDStreamFunctions.pfGetSnapshotStream = NodeSupportDefaultImpl::TTGetSnapshotStreamCallback;
+                    threadContext->TTDStreamFunctions.pfGetSrcCodeStream = NodeSupportDefaultImpl::TTGetSrcCodeStreamCallback;
+                    threadContext->TTDStreamFunctions.pfReadBytesFromStream = NodeSupportDefaultImpl::TTReadBytesFromStreamCallback;
+                    threadContext->TTDStreamFunctions.pfWriteBytesToStream = NodeSupportDefaultImpl::TTWriteBytesToStreamCallback;
+                    threadContext->TTDStreamFunctions.pfFlushAndCloseStream = NodeSupportDefaultImpl::TTFlushAndCloseStreamCallback;
+#endif
                     wchar* ttdlogStr = nullptr;
                     threadContext->TTDInitializeTTDUriFunction(optRecordDir, &ttdlogStr);
 
@@ -882,10 +892,7 @@ STDAPI_(JsErrorCode) JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue
         *asValue = Js::JavascriptNumber::ToVarNoCheck(dbl, scriptContext);
 
 #if ENABLE_TTD
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*asValue))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*asValue));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *asValue);
 #endif
         return JsNoError;
     });
@@ -912,10 +919,7 @@ STDAPI_(JsErrorCode) JsIntToNumber(_In_ int intValue, _Out_ JsValueRef *asValue)
         *asValue = Js::JavascriptNumber::ToVar(intValue, scriptContext);
 
 #if ENABLE_TTD
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*asValue))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*asValue));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *asValue);
 #endif
 
         return JsNoError;
@@ -987,10 +991,7 @@ STDAPI_(JsErrorCode) JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValue
         *result = (JsValueRef)Js::JavascriptOperators::ToNumber((Js::Var)value, scriptContext);
 
 #if ENABLE_TTD
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && TTD::JsSupport::IsVarPtrValued(*result))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
 #endif
 
         return JsNoError;
@@ -1033,6 +1034,8 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
         {
             AssertMsg(false, "Need to implement support here!!!");
         }
+
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *string);
 #endif
 
         return JsNoError;
@@ -1082,10 +1085,7 @@ STDAPI_(JsErrorCode) JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValue
         *result = (JsValueRef) Js::JavascriptConversion::ToString((Js::Var)value, scriptContext);
 
 #if ENABLE_TTD
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
 #endif
 
         return JsNoError;
@@ -1116,6 +1116,8 @@ STDAPI_(JsErrorCode) JsCreateObject(_Out_ JsValueRef *object)
         {
             AssertMsg(false, "Need to implement support here!!!");
         }
+
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *object);
 #endif
 
         return JsNoError;
@@ -1135,6 +1137,8 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
         {
             AssertMsg(false, "Need to implement support here!!!");
         }
+
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *object);
 #endif
 
         return JsNoError;
@@ -1147,15 +1151,19 @@ STDAPI_(JsErrorCode) JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValue
         VALIDATE_INCOMING_REFERENCE(value, scriptContext);
         PARAM_NOT_NULL(result);
 
-        *result = (JsValueRef)Js::JavascriptOperators::ToObject((Js::Var)value, scriptContext);
-        Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
-
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
             AssertMsg(false, "Need to implement support here!!!");
         }
+#endif
+
+        *result = (JsValueRef)Js::JavascriptOperators::ToObject((Js::Var)value, scriptContext);
+        Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
 #endif
 
         return JsNoError;
@@ -1168,15 +1176,19 @@ STDAPI_(JsErrorCode) JsGetPrototype(_In_ JsValueRef object, _Out_ JsValueRef *pr
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(prototypeObject);
 
-        *prototypeObject = (JsValueRef)Js::JavascriptOperators::OP_GetPrototype(object, scriptContext);
-        Assert(*prototypeObject == nullptr || !Js::CrossSite::NeedMarshalVar(*prototypeObject, scriptContext));
-
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
             AssertMsg(false, "Need to implement support here!!!");
         }
+#endif
+
+        *prototypeObject = (JsValueRef)Js::JavascriptOperators::OP_GetPrototype(object, scriptContext);
+        Assert(*prototypeObject == nullptr || !Js::CrossSite::NeedMarshalVar(*prototypeObject, scriptContext));
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *prototypeObject);
 #endif
 
         return JsNoError;
@@ -1273,10 +1285,7 @@ STDAPI_(JsErrorCode) JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         Assert(*value == nullptr || !Js::CrossSite::NeedMarshalVar(*value, scriptContext));
 
 #if ENABLE_TTD
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*value));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *value);
 #endif
 
         return JsNoError;
@@ -1291,6 +1300,14 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsP
         PARAM_NOT_NULL(propertyDescriptor);
         *propertyDescriptor = nullptr;
 
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         Js::PropertyDescriptor propertyDescriptorValue;
         if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), scriptContext, &propertyDescriptorValue))
         {
@@ -1303,11 +1320,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsP
         Assert(*propertyDescriptor == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyDescriptor, scriptContext));
 
 #if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *propertyDescriptor);
 #endif
 
         return JsNoError;
@@ -1331,6 +1344,11 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValue
 
         *propertyNames = Js::JavascriptOperators::GetOwnPropertyNames(object, scriptContext);
         Assert(*propertyNames == nullptr || !Js::CrossSite::NeedMarshalVar(*propertyNames, scriptContext));
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *propertyNames);
+#endif
+
         return JsNoError;
     });
 }
@@ -1351,6 +1369,11 @@ STDAPI_(JsErrorCode) JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsVal
 
         *propertySymbols = Js::JavascriptOperators::GetOwnPropertySymbols(object, scriptContext);
         Assert(*propertySymbols == nullptr || !Js::CrossSite::NeedMarshalVar(*propertySymbols, scriptContext));
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *propertySymbols);
+#endif
+
         return JsNoError;
     });
 }
@@ -1461,6 +1484,10 @@ STDAPI_(JsErrorCode) JsCreateArray(_In_ unsigned int length, _Out_ JsValueRef *r
 
         *result = scriptContext->GetLibrary()->CreateArray(length);
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
+
         return JsNoError;
     });
 }
@@ -1480,6 +1507,10 @@ STDAPI_(JsErrorCode) JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsV
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateArrayBuffer(byteLength);
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1512,6 +1543,10 @@ STDAPI_(JsErrorCode) JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_b
             finalizeCallback,
             callbackState,
             library->GetArrayBufferType());
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1600,6 +1635,10 @@ STDAPI_(JsErrorCode) JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ Js
 
         *result = Js::JavascriptFunction::CallAsConstructor(constructorFunc, /* overridingNewTarget = */nullptr, args, scriptContext);
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
+
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
     });
@@ -1626,6 +1665,10 @@ STDAPI_(JsErrorCode) JsCreateDataView(_In_ JsValueRef arrayBuffer, _In_ unsigned
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
         *result = library->CreateDataView(Js::ArrayBuffer::FromVar(arrayBuffer), byteOffset, byteLength);
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -1662,6 +1705,15 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
+#if ENABLE_TTD
+        JsrtContext* currentContext = JsrtContext::GetCurrent();
+        ThreadContext* threadContext = currentContext->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            AssertMsg(false, "Need to implement support here!!!");
+        }
+#endif
+
         if (arrayType != nullptr) {
             *arrayType = GetTypedArrayType(typeId);
         }
@@ -1678,6 +1730,10 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
         if (byteLength != nullptr) {
             *byteLength = typedArrayBase->GetByteLength();
         }
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *arrayBuffer);
+#endif
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -1817,6 +1873,10 @@ STDAPI_(JsErrorCode) JsCreateSymbol(_In_ JsValueRef description, _Out_ JsValueRe
 
         *result = scriptContext->GetLibrary()->CreateSymbol(descriptionString);
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
+
         return JsNoError;
     });
 }
@@ -1852,6 +1912,10 @@ STDAPI_(JsErrorCode) JsGetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
 #endif
 
         *result = (JsValueRef)Js::JavascriptOperators::OP_GetElementI((Js::Var)object, (Js::Var)index, scriptContext);
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
 
         return JsNoError;
     });
@@ -1913,14 +1977,6 @@ template <class T, bool clamped = false>
 Js::ArrayObject* CreateTypedArray(Js::ScriptContext *scriptContext, void* data, unsigned int length)
 {
     Js::JavascriptLibrary* library = scriptContext->GetLibrary();
-
-#if ENABLE_TTD
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-    {
-        AssertMsg(false, "Need to implement support here!!!");
-    }
-#endif
 
     Js::ArrayBuffer* arrayBuffer = RecyclerNew(
         scriptContext->GetRecycler(),
@@ -2239,10 +2295,7 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
             }
         }
 
-        if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && result != nullptr && TTD::JsSupport::IsVarPtrValued(*result))
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
@@ -2299,6 +2352,11 @@ STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(carg
 
         *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+#endif
+
         return JsNoError;
     });
 }
@@ -2320,6 +2378,10 @@ STDAPI_(JsErrorCode) JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_
 
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, 0, callbackState);
         *function = (JsValueRef)externalFunction;
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *function);
+#endif
 
         return JsNoError;
     });
@@ -2351,22 +2413,18 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
 #endif
 
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, Js::JavascriptString::FromVar(name), callbackState);
-
         *function = (JsValueRef)externalFunction;
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *function);
+#endif
+
         return JsNoError;
     });
 }
 
 void SetErrorMessage(Js::ScriptContext *scriptContext, JsValueRef newError, JsValueRef message)
 {
-#if ENABLE_TTD
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-    {
-        AssertMsg(false, "Need to implement support here!!!");
-    }
-#endif
-
     Js::JavascriptOperators::OP_SetProperty(newError, Js::PropertyIds::message, message, scriptContext);
 }
 
@@ -2388,6 +2446,10 @@ STDAPI_(JsErrorCode) JsCreateError(_In_ JsValueRef message, _Out_ JsValueRef *er
         JsValueRef newError = scriptContext->GetLibrary()->CreateError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
 
         return JsNoError;
     });
@@ -2414,6 +2476,10 @@ STDAPI_(JsErrorCode) JsCreateRangeError(_In_ JsValueRef message, _Out_ JsValueRe
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
+
         return JsNoError;
     });
 }
@@ -2438,6 +2504,10 @@ STDAPI_(JsErrorCode) JsCreateReferenceError(_In_ JsValueRef message, _Out_ JsVal
         newError = scriptContext->GetLibrary()->CreateReferenceError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
 
         return JsNoError;
     });
@@ -2464,6 +2534,10 @@ STDAPI_(JsErrorCode) JsCreateSyntaxError(_In_ JsValueRef message, _Out_ JsValueR
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
+
         return JsNoError;
     });
 }
@@ -2489,6 +2563,10 @@ STDAPI_(JsErrorCode) JsCreateTypeError(_In_ JsValueRef message, _Out_ JsValueRef
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
 
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
+
         return JsNoError;
     });
 }
@@ -2513,6 +2591,10 @@ STDAPI_(JsErrorCode) JsCreateURIError(_In_ JsValueRef message, _Out_ JsValueRef 
         newError = scriptContext->GetLibrary()->CreateURIError();
         SetErrorMessage(scriptContext, newError, message);
         *error = newError;
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *error);
+#endif
 
         return JsNoError;
     });
@@ -2612,14 +2694,11 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     }
 
 #if ENABLE_TTD
-    if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && threadContext->TTDLog->ShouldPerformRecordAction())
+    BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
     {
-        BEGIN_JS_RUNTIME_CALL_NOT_SCRIPT(currentContext->GetScriptContext())
-        {
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*exception));
-        }
-        END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *exception);
     }
+    END_JS_RUNTIME_CALL(currentContext->GetScriptContext())
 #endif
 
     return JsNoError;
@@ -2848,6 +2927,10 @@ STDAPI_(JsErrorCode) JsGetSymbolFromPropertyId(_In_ JsPropertyIdRef propertyId, 
 #endif
 
         *symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
+
+#if ENABLE_TTD
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *symbol);
+#endif
         return JsNoError;
     });
 }
@@ -3402,10 +3485,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
 
 #if ENABLE_TTD
-        if(threadContext->TTDLog != nullptr)
-        {
-            threadContext->TTDInfo->TrackTagObject(scriptFunction);
-        }
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, scriptFunction);
 #endif
 
         JsrtContext * context = JsrtContext::GetCurrent();
@@ -3430,7 +3510,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordCodeParse(scriptContext, result != nullptr, scriptFunction, script);
+            threadContext->TTDLog->RecordCodeParse(scriptContext, result != nullptr, scriptFunction, script, sourceUrl);
         }
 #endif
 
@@ -3483,10 +3563,12 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 }
             }
 
-            if(TTD::EventLog::JsRTShouldTagObject(threadContext->TTDLog) && result != nullptr && TTD::JsSupport::IsVarPtrValued(*result))
+#if ENABLE_TTD
+            if(result != nullptr)
             {
-                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(*result));
+                TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
             }
+#endif
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
             //May want to look into more sophisticated means for making this decision later

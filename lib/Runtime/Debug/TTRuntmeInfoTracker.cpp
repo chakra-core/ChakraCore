@@ -115,6 +115,20 @@ namespace TTD
         }
     }
 
+    void RuntimeThreadInfo::JsRTTagObject(ThreadContext* threadContext, Js::Var value)
+    {
+        //TTD is completely disabled so we aren't doing anything
+        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarPtrValued(value))
+        {
+            return;
+        }
+
+        if(threadContext->TTDLog->ShouldTagForJsRT())
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
+        }
+    }
+
 #if ENABLE_TTD_IDENTITY_TRACING
     TTD_IDENTITY_TAG RuntimeThreadInfo::GenNextObjectIdentityTag()
     {

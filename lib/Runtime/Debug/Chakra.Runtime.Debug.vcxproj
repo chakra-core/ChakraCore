@@ -53,6 +53,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TTActionEvents.cpp" />
+    <ClCompile Include="TTDefaultHostFunctions.cpp" />
     <ClCompile Include="TTEventLog.cpp" />
     <ClCompile Include="TTEvents.cpp" />
     <ClCompile Include="TTInflateMap.cpp" />
@@ -80,6 +81,7 @@
     <ClInclude Include="RuntimeDebugPch.h" />
     <ClInclude Include="SourceContextInfo.h" />
     <ClInclude Include="TTActionEvents.h" />
+    <ClInclude Include="TTDefaultHostFunctions.h" />
     <ClInclude Include="TTEventLog.h" />
     <ClInclude Include="TTEvents.h" />
     <ClInclude Include="TTInflateMap.h" />

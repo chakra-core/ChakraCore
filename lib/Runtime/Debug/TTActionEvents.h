@@ -198,14 +198,15 @@ namespace TTD
         LPCWSTR m_sourceCode;
 
         //If this is from a URI
-        DWORD_PTR m_optDocumentID;
-        LPCWSTR m_optSourceUri;
+        LPCWSTR m_sourceUri;
+        DWORD_PTR m_documentID;
 
         //The directory to write the source files out to (if needed)
+        LPCWSTR m_sourceFile;
         LPCWSTR m_srcDir;
 
     public:
-        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR optDocumentId, LPCWSTR optSourceUri, LPCWSTR srcDir);
+        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR documentId, LPCWSTR sourceUri, LPCWSTR srcDir, LPCWSTR sourceFile);
         virtual ~JsRTCodeParseAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;

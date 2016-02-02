@@ -432,8 +432,8 @@ namespace TTD
         return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, createdCallbackId);
     }
 
-    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR optDocumentId, LPCWSTR optSourceUri, LPCWSTR srcDir)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_isExpression(isExpression), m_sourceCode(sourceCode), m_optDocumentID(optDocumentId), m_optSourceUri(optSourceUri), m_srcDir(srcDir)
+    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR documentId, LPCWSTR sourceUri, LPCWSTR srcDir, LPCWSTR sourceFile)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_isExpression(isExpression), m_sourceCode(sourceCode), m_sourceUri(sourceUri), m_documentID(documentId), m_srcDir(srcDir), m_sourceFile(sourceFile)
     {
         ;
     }
@@ -449,11 +449,11 @@ namespace TTD
 
         Js::JavascriptFunction* function = nullptr;
 
-        DWORD_PTR sourceContext = this->m_optDocumentID;
+        DWORD_PTR sourceContext = this->m_documentID;
         SourceContextInfo * sourceContextInfo = execContext->GetSourceContextInfo(sourceContext, nullptr);
         if(sourceContextInfo == nullptr)
         {
-            sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_optSourceUri, wcslen(this->m_optSourceUri), nullptr);
+            sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_sourceUri, wcslen(this->m_sourceUri), nullptr);
         }
 
         SRCINFO si = {
@@ -487,12 +487,18 @@ namespace TTD
         this->JsRTBaseEmit(writer);
 
         writer->WriteBool(NSTokens::Key::isExpression, this->m_isExpression, NSTokens::Separator::CommaSeparator);
-        writer->WriteUInt64(NSTokens::Key::documentId, (uint64)this->m_optDocumentID, NSTokens::Separator::CommaSeparator);
-        writer->WriteString(NSTokens::Key::uri, this->m_optSourceUri, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::documentId, (uint64)this->m_documentID, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::logDir, this->m_srcDir, NSTokens::Separator::CommaSeparator);
+        writer->WriteString(NSTokens::Key::src, this->m_sourceFile, NSTokens::Separator::CommaSeparator);
 
-        LPCWSTR docId = writer->FormatNumber(this->m_optDocumentID);
-        HANDLE srcStream = threadContext->TTDStreamFunctions.pfGetSrcCodeStream(this->m_srcDir, docId, this->m_optSourceUri, false, true);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_sourceUri != nullptr, NSTokens::Separator::CommaSeparator);
+        if(this->m_sourceUri != nullptr)
+        {
+            writer->WriteString(NSTokens::Key::uri, this->m_sourceUri, NSTokens::Separator::CommaSeparator);
+        }
+
+        LPCWSTR docId = writer->FormatNumber(this->m_documentID);
+        HANDLE srcStream = threadContext->TTDStreamFunctions.pfGetSrcCodeStream(this->m_srcDir, docId, this->m_sourceFile, false, true);
 
         JSONWriter srcWriter(srcStream, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
         srcWriter.WriteRawString(this->m_sourceCode);
@@ -506,8 +512,15 @@ namespace TTD
 
         bool isExpression = reader->ReadBool(NSTokens::Key::isExpression, true);
         DWORD_PTR documentId = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
-        LPCWSTR srcUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
         LPCWSTR srcDir = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::logDir, true));
+        LPCWSTR sourceFile = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::src, true));
+
+        LPCWSTR srcUri = nullptr;
+        bool hasUri = reader->ReadBool(NSTokens::Key::boolVal, true);
+        if(hasUri)
+        {
+            srcUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
+        }
 
         LPCWSTR docId = reader->FormatNumber(documentId);
         HANDLE srcStream = threadContext->TTDStreamFunctions.pfGetSrcCodeStream(srcDir, docId, srcUri, true, false);
@@ -515,7 +528,7 @@ namespace TTD
         JSONReader srcReader(srcStream, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
         srcCode = srcReader.ReadRawString(alloc);
 
-        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, srcCode, documentId, srcUri, srcDir);
+        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, srcCode, documentId, srcUri, srcDir, sourceFile);
     }
 
     JsRTCallFunctionBeginAction::JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)

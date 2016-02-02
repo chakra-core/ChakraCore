@@ -272,7 +272,7 @@ namespace Js
         Var result = nullptr;
         ThreadContext* threadContext = scriptContext->GetThreadContext();
 
-        if(threadContext->TTDInfo != nullptr)
+        if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
         {
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
@@ -373,7 +373,7 @@ namespace Js
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
 
-        if(threadContext->TTDInfo != nullptr)
+        if(threadContext->TTDInfo != nullptr && threadContext->TTDLog->ShouldTagForExternalCall())
         {
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
@@ -450,7 +450,6 @@ namespace Js
                 Js::Throw::InternalError();
             }
         }
-
 
         if (scriptContext->HasRecordedException())
         {

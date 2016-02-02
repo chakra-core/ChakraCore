@@ -109,7 +109,7 @@ namespace TTD
     enum class TTDMode
     {
         Invalid = 0x0,
-        Disabled = 0x1,  //The system is being run in normal mode (with no TTD features)
+        Pending = 0x1,  //The TTD system has been setup but not yet put into record or replay mode
         Detached = 0x2,  //The system has completed running (e.g. contexts have been detached) and we are done
         RecordEnabled = 0x4,     //The system is being run in Record mode
         DebuggingEnabled = 0x8,  //The system is being run in Debug Replay mode
@@ -574,6 +574,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #if ENABLE_TTD
 #include "screrror.h"
+
+#if ENABLE_TTD_FORCE_RECORD_NODE
+#include "Debug\TTDefaultHostFunctions.h"
+#endif 
 
 #include "Debug\TTRuntimeInfoTracker.h"
 #include "Debug\TTInflateMap.h"

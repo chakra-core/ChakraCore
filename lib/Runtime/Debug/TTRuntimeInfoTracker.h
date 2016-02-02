@@ -64,6 +64,13 @@ namespace TTD
         //Mark all of the logged objects with their special tag
         void MarkLoggedObjects(MarkTable& marks) const;
 
+        //Do any cross host/engine object tagging -- handles all cases so call this from all the JsRT APIs
+        //Not enabled
+        //Enabled but not running record/debug yet
+        //Enabled and in record/debug 
+        //Detached
+        static void JsRTTagObject(ThreadContext* threadContext, Js::Var value);
+
 #if ENABLE_TTD_IDENTITY_TRACING
         //Generate the next identity tag for an object
         TTD_IDENTITY_TAG GenNextObjectIdentityTag();
