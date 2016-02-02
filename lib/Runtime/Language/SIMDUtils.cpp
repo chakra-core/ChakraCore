@@ -498,7 +498,7 @@ namespace Js
 
 
 #if ENABLE_NATIVE_CODEGEN
-    // Maps Simd opcodes which are non-contigous to a zero-based linear space. Used to index a table using an Simd opcode.
+    // Maps Simd opcodes which are non-contiguous to a zero-based linear space. Used to index a table using a Simd opcode.
     uint32 SimdOpcodeAsIndex(Js::OpCode op)
     {
         if (op <= Js::OpCode::Simd128_End)

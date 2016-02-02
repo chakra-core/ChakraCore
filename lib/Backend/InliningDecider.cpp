@@ -125,7 +125,7 @@ Js::FunctionInfo *InliningDecider::InlineCallSite(Js::FunctionBody *const inline
     return nullptr;
 }
 
-uint InliningDecider::InlinePolymorhicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId,
+uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId,
     Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth)
 {
     Assert(inliner);

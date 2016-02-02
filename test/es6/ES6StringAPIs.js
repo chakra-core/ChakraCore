@@ -23,9 +23,9 @@ var tests = [
             assert.isTrue(Array.prototype.findIndex.length === 1, "findIndex method takes two arguments but the second is optional and the spec says the length must be 1");
 
             assert.isTrue(String.prototype.repeat.length === 1, "repeat method takes zero arguments");
-            assert.isTrue(String.prototype.startsWith.length === 1, "startsWith method takes two arguments but the second is optional and the spec says the lenght must be 1");
-            assert.isTrue(String.prototype.endsWith.length === 1, "endsWith method takes two arguments but the second is optional and the spec says the lenght must be 1");
-            assert.isTrue(String.prototype.includes.length === 1, "includes method takes two arguments but the second is optional and the spec says the lenght must be 1");
+            assert.isTrue(String.prototype.startsWith.length === 1, "startsWith method takes two arguments but the second is optional and the spec says the length must be 1");
+            assert.isTrue(String.prototype.endsWith.length === 1, "endsWith method takes two arguments but the second is optional and the spec says the length must be 1");
+            assert.isTrue(String.prototype.includes.length === 1, "includes method takes two arguments but the second is optional and the spec says the length must be 1");
         }
     },
     {
@@ -233,7 +233,7 @@ var tests = [
             assert.areEqual("", s.repeat(0), "multi-character string repeated zero times is the empty string");
             assert.areEqual("", s.repeat(NaN), "multi-character string: NaN converts to zero so produces the empty string");
             assert.areEqual("abc", s.repeat(1), "multi-character string repeated once is itself");
-            assert.areEqual("abcabc", s.repeat(2), "3 character string repeated twice is is a six character string");
+            assert.areEqual("abcabc", s.repeat(2), "3 character string repeated twice is a six character string");
             assert.areEqual("abcabcabcabcabcabcabcabcabcabc", s.repeat(10), "3 character string repeated ten times is a 30 character string");
 
             assert.throws(function () { s.repeat(-1); }, RangeError, "negative repeat counts are out of range", "String.prototype.repeat: argument out of range");

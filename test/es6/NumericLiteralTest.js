@@ -208,7 +208,7 @@ var tests = [
             assert.areEqual(9007199254740992,b4,"should not have to round up or down");
             assert.areEqual(9007199254740992,b5,"should round down from 9007199254740993 by 1");
             assert.areEqual(9007199254740996,b6,"should round up from 9007199254740995 by 1 to");
-            assert.areEqual(18014398509481982,b7,"1 bit out of precison range Test");
+            assert.areEqual(18014398509481982,b7,"1 bit out of precision range Test");
 
 
 

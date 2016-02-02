@@ -235,33 +235,33 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
         AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid BitVector index calculation?");
         AssertMsg(dwSize % AutoSystemInfo::PageSize == 0, "COMMIT is managed at AutoSystemInfo::PageSize granularity");
 
-        char * commitedAddress = nullptr;
+        char * committedAddress = nullptr;
 #if defined(_CONTROL_FLOW_GUARD)
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
             DWORD oldProtect;
-            commitedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
-            AssertMsg(commitedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
-            VirtualProtect(commitedAddress, dwSize, protectFlags, &oldProtect);
+            committedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
+            AssertMsg(committedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
+            VirtualProtect(committedAddress, dwSize, protectFlags, &oldProtect);
             AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
         }
         else
 #endif
         {
-            commitedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, protectFlags);
+            committedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, protectFlags);
         }
 
 
         //Keep track of the committed pages within the preReserved Memory Region
-        if (lpAddress == nullptr && commitedAddress != nullptr)
+        if (lpAddress == nullptr && committedAddress != nullptr)
         {
-            Assert(commitedAddress == addressToCommit);
+            Assert(committedAddress == addressToCommit);
             Assert(requestedNumOfSegments != 0);
             freeSegments.ClearRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
         }
 
-        PreReservedHeapTrace(L"MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n", commitedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-        return commitedAddress;
+        PreReservedHeapTrace(L"MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n", committedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+        return committedAddress;
     }
 }
 

@@ -33,7 +33,7 @@ for(var i=0; i < values.length; ++i)
     // single value
     check(values[i], Math.max(values[i]), "max(" + values[i] + ")");
 
-    // Infinitys
+    // Infinity
     check(Infinity, Math.max(values[i],  Infinity), "max(" + values[i] + ",  Infinity)");
     check(values[i], Math.max(values[i], -Infinity), "max(" + values[i] + ", -Infinity)");
 }

@@ -60,7 +60,7 @@
     <default>
       <files>toPrimitiveJitBug654983.js</files>
       <compile-flags>-es6toprimitive -trace:bailout</compile-flags>
-      <!-- This test sometimes fails with bailout trace ouput.  Pending investigation in bug OS 5244610. -->
+      <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
       <tags>fail</tags>
     </default>
   </test>

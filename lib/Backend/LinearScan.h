@@ -129,7 +129,7 @@ private:
     void                ProcessEHRegionBoundary(IR::Instr * instr);
     void                AllocateStackSpace(Lifetime *spilledRange);
     RegNum              FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force = false);
-    BVIndex             GetPreferrencedRegIndex(Lifetime *lifetime, BitVector freeRegs);
+    BVIndex             GetPreferencedRegIndex(Lifetime *lifetime, BitVector freeRegs);
     void                AddToActive(Lifetime *liveRange);
     void                InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionInstr);
     void                InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg);

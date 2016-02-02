@@ -2305,7 +2305,7 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
 
         // Win8 bug: 757126. If we are trying to type specialize the arguments object,
         // let's make sure stack args optimization is not enabled. This is a problem, particularly,
-        // if the instruction comes from a unreachable block. In other cases, the pass on the
+        // if the instruction comes from an unreachable block. In other cases, the pass on the
         // instruction itself should disable arguments object optimization.
         if(block->globOptData.argObjSyms && IsArgumentsSymID(id, block->globOptData))
         {
@@ -2433,7 +2433,7 @@ GlobOpt::CleanUpValueMaps()
                         deadSymsBv.Set(bucket.value->m_id);
 
                         // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                        // created in backward pass and so their symIds > maxIntitialSymID.
+                        // created in backward pass and so their symIds > maxInitialSymID.
                         if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                         {
                             deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
@@ -2444,7 +2444,7 @@ GlobOpt::CleanUpValueMaps()
                 else
                 {
                     // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                    // created in backward pass and so their symIds > maxIntitialSymID. Perhaps we could remove
+                    // created in backward pass and so their symIds > maxInitialSymID. Perhaps we could remove
                     // it explicitly here, but would it work alright with the iterator?
                     if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                     {
@@ -4156,7 +4156,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     const InductionVariable* iv = GetInductionVariable(indexSymID, loop);
     if (!iv)
     {
-        // If the index is not a induction variable return
+        // If the index is not an induction variable return
         TRACE_MEMOP_VERBOSE(loop, instr, L"Index (s%d) is not an induction variable", indexSymID);
         return false;
     }
@@ -7010,7 +7010,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             "Creator of this instruction should have set the type");
         // fall-through
     case Js::OpCode::Coerse_StrOrRegex:
-        // We don't set the ValyueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
+        // We don't set the ValueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
         if (this->IsLoopPrePass() || src1ValueInfo == nullptr || !src1ValueInfo->IsString())
         {
             break;
@@ -7138,7 +7138,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if(!this->IsLoopPrePass())
         {
             // We cannot transfer value if the field hasn't been copy prop'd because we don't generate
-            // an implicit call bailout between those values if we don't have "live fields" unnless, we are hoisting the field.
+            // an implicit call bailout between those values if we don't have "live fields" unless, we are hoisting the field.
             PropertySym *propertySym = instr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
             StackSym * fieldHoistSym;
             Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
@@ -9612,7 +9612,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 }
                 // Type specialize to int
                 bool retVal = this->TypeSpecializeIntBinary(pInstr, src1Val, src2Val, pDstVal, newMin, newMax, false /* skipDst */);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any both of the srces are int, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any one of the sources is an int, but something failed during the process.");
             }
 
             // Couldn't type specialize to int, type specialize to float
@@ -9622,7 +9622,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 src1Val = src1OriginalVal;
                 src2Val = src2OriginalVal;
                 bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the src is a float, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the sources is a float, but something failed during the process.");
             }
             break;
         }
@@ -9727,7 +9727,7 @@ GlobOpt::TypeSpecializeIntBinary(IR::Instr **pInstr, Value *src1Val, Value *src2
                 isIntConstMissingItem = Js::SparseArraySegment<int>::IsMissingItem(&intConstantValue);
             }
 
-            // Don't specialize if the element is not likelyInt or a IntConst which is a missing item value.
+            // Don't specialize if the element is not likelyInt or an IntConst which is a missing item value.
             if(!(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
             {
                 return false;
@@ -10073,7 +10073,7 @@ GlobOpt::TypeSpecializeIntUnary(
             StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
             if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
             {
-                // Type specializing an BrTrue_A/BrFalse_A isn't worth it, unless the src
+                // Type specializing a BrTrue_A/BrFalse_A isn't worth it, unless the src
                 // is already type specialized
                 specialize = false;
             }
@@ -11845,7 +11845,7 @@ GlobOpt::IsWorthSpecializingToInt32Branch(IR::Instr * instr, Value * src1Val, Va
                 StackSym *sym = instr->GetSrc2()->AsRegOpnd()->m_sym;
                 if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
                 {
-                    // Type specializing an Br itself isn't worth it, unless one src
+                    // Type specializing a Br itself isn't worth it, unless one src
                     // is already type specialized
                     return false;
                 }
@@ -17015,7 +17015,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
         // benefit much from the no-missing-values information, it may be beneficial to avoid checking for no missing
         // values, especially in the case for a single array access, where the cost of the check could be relatively
         // significant. An StElem has to do additional checks in the common path if the array may have missing values, and
-        // an StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
+        // a StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
         // on the array more precise, so it still benefits a little from the no-missing-values info.
         CaptureNoImplicitCallUses(baseOpnd, isLoad || isStore);
     }
@@ -20459,7 +20459,7 @@ GlobOpt::KillStateForGeneratorYield()
     GlobOptBlockData* globOptData = &this->currentBlock->globOptData;
 
     /*
-    TODO[generators][ianhall]: Do a ToVar on any typespec'ed syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'ed values
+    TODO[generators][ianhall]: Do a ToVar on any typespec'd syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'd values
     FOREACH_BITSET_IN_SPARSEBV(symId, globOptData->liveInt32Syms)
     {
         this->ToVar(instr, , this->currentBlock, , );

@@ -61,7 +61,7 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR(RootObjectBase, DynamicObject);
 
-        // We shouldn't create a instance of this object, only derive from it, hide the constructor
+        // We shouldn't create an instance of this object, only derive from it, hide the constructor
         RootObjectBase(DynamicType * type);
         RootObjectBase(DynamicType * type, ScriptContext* scriptContext);
 

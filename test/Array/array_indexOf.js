@@ -74,9 +74,9 @@ var f = arr.indexOf(30);
 WScript.Echo(a);
 
 //Float array with gaps
-var floatarr = new Array(5.5, 5.6);
-floatarr[6] =  5.6;
-WScript.Echo(floatarr.indexOf(5.7));
+var floatArray = new Array(5.5, 5.6);
+floatArray[6] =  5.6;
+WScript.Echo(floatArray.indexOf(5.7));
 
 // Cases where we do/don't have to resume after failing to find the value in the head segment.
 // Run with -forcearraybtree to really stress these.

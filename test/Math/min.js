@@ -33,7 +33,7 @@ for(var i=0; i < values.length; ++i)
     // single value
     check(values[i], Math.min(values[i]), "min(" + values[i] + ")");
 
-    // Infinitys
+    // Infinity
     check(-Infinity, Math.min(values[i],  -Infinity), "min(" + values[i] + ", -Infinity)");
     check(values[i], Math.min(values[i], +Infinity), "min(" + values[i] + ", +Infinity)");
 }

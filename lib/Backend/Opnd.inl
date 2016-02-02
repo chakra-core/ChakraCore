@@ -165,7 +165,7 @@ Opnd::IsIntConstOpnd() const
 ///
 /// Opnd::AsIntConstOpnd
 ///
-///     Use this opnd as a IntConstOpnd.
+///     Use this opnd as an IntConstOpnd.
 ///
 ///----------------------------------------------------------------------------
 
@@ -263,7 +263,7 @@ Opnd::IsAddrOpnd() const
 ///
 /// Opnd::AsAddrOpnd
 ///
-///     Use this opnd as a AddrOpnd.
+///     Use this opnd as an AddrOpnd.
 ///
 ///----------------------------------------------------------------------------
 
@@ -291,7 +291,7 @@ Opnd::IsIndirOpnd() const
 ///
 /// Opnd::AsIndirOpnd
 ///
-///     Use this opnd as a IndirOpnd.
+///     Use this opnd as an IndirOpnd.
 ///
 ///----------------------------------------------------------------------------
 

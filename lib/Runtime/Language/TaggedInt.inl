@@ -47,21 +47,21 @@ namespace Js
 
     __inline int32 TaggedInt::ToInt32(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<int32>(aValue);
     }
 
     __inline uint32 TaggedInt::ToUInt32(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<uint32>(aValue);
     }
 
     __inline int64 TaggedInt::ToInt64(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         int64 nValue = (int64)(::Math::PointerCastToIntegralTruncate<int32>(aValue));
         AssertMsg(nValue == (int64) ToInt32(aValue),
@@ -72,7 +72,7 @@ namespace Js
 
     __inline uint16 TaggedInt::ToUInt16(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ::Math::PointerCastToIntegralTruncate<uint16>(aValue);
     }
@@ -85,7 +85,7 @@ namespace Js
     __inline Var TaggedInt::ToVarUnchecked(int nValue)
     {
         //
-        // To convert to an var we first cast to uint32 to lose the signedness and then
+        // To convert to a var we first cast to uint32 to lose the signedness and then
         // extend it to a 64-bit uintptr_t before OR'ing the 64-bit atom tag.
         //
 
@@ -105,7 +105,7 @@ namespace Js
         //
         // Check if both Atoms are tagged as "SmInts":
         // - Because we're checking tag bits, we don't need to check against 'null', since it won't
-        //   be tagged as an TaggedInt.
+        //   be tagged as a TaggedInt.
         // - This degenerates into bitwise arithmetic that avoids the overhead of branching and
         //   short-circuit evaluation.
         //
@@ -116,11 +116,11 @@ namespace Js
     __inline int32 TaggedInt::ToInt32(Var aValue)
     {
         //
-        // To convert from an var, must first convert to an 'int32' to properly sign-extend
+        // To convert from a var, must first convert to an 'int32' to properly sign-extend
         // negative values.  Then, use shift operation to remove the tag bits.
         //
 
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return ((int) aValue) >> VarTag_Shift;
     }
@@ -128,7 +128,7 @@ namespace Js
     __inline uint32 TaggedInt::ToUInt32(Var aValue)
     {
         //
-        // To convert from an var, must use ToInt32() to properly sign-extend negative values, then
+        // To convert from a var, must use ToInt32() to properly sign-extend negative values, then
         // convert to an (unsigned) uint32.
         //
 
@@ -138,11 +138,11 @@ namespace Js
     __inline int64 TaggedInt::ToInt64(Var aValue)
     {
        //
-        // To convert from an var, must first convert to an 'int64' to properly sign-extend
+        // To convert from a var, must first convert to an 'int64' to properly sign-extend
         // negative values.  Then, use shift operation to remove the tag bits.
         //
 
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         int64 nValue = ((int32) aValue) >> VarTag_Shift;
         AssertMsg(nValue == (int64) ToInt32(aValue),
@@ -153,7 +153,7 @@ namespace Js
 
     __inline uint16 TaggedInt::ToUInt16(Var aValue)
     {
-        AssertMsg(Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg(Is(aValue), "Ensure var is actually a 'TaggedInt'");
 
         return (uint16)(((int) aValue) >> VarTag_Shift);
     }
@@ -166,7 +166,7 @@ namespace Js
     __inline Var TaggedInt::ToVarUnchecked(int nValue)
     {
         //
-        // To convert to an var, must first multiply (which will be converted into a shift
+        // To convert to a var, must first multiply (which will be converted into a shift
         // operation) to create space for the tag while properly preserving negative values.  Then,
         // add the tag.
         //

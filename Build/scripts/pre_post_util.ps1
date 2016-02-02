@@ -33,7 +33,7 @@ function GetGitPath()
     return $gitExe;
 }
 
-$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OutterScriptRoot\..\..");
+$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OuterScriptRoot\..\..");
 $binpath = UseValueOrDefault $binpath "$env:TF_BUILD_BINARIESDIRECTORY" "$srcpath\Build\VcBuild\bin\$arch_$flavor";
 $objpath = UseValueOrDefault $objpath "$env:TF_BUILD_BUILDDIRECTORY" "$srcpath\Build\VcBuild\obj\$arch_$flavor";
 

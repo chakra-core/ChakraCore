@@ -9461,7 +9461,7 @@ Lowerer::LowerStElemC(IR::Instr * stElem)
             }
             else
             {
-                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be a int array at the first place
+                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be an int array at the first place
                 //if this code was ever hit. Just bailout, this code path would be updated with the profile information next time around.
                 InsertBranch(Js::OpCode::Br, labelBailOut, stElem);
 #if DBG
@@ -14906,7 +14906,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     // Load the string buffer and make sure it is not null
     //  MOV bufferOpnd, [baseOpnd + offset(m_pszValue)]
     //  TEST bufferOpnd, bufferOpnd
-    //  JEQ $lableHelper
+    //  JEQ $labelHelper
     indirOpnd = IR::IndirOpnd::New(baseOpnd, offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, this->m_func);
 
     InsertMove(bufferOpnd, indirOpnd, ldElem);
@@ -21218,7 +21218,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     }
     else
     {
-        // Just generate all the assignment in loop of loopUnroolCount and the rest as straight line code
+        // Just generate all the assignment in loop of loopUnrollCount and the rest as straight line code
         //
         //      lea currOpnd, [dst + sizeof(Var) * (loopAssignCount + Js::ScopeSlots::FirstSlotIndex - loopUnrollCount)];
         //      mov [currOpnd + loopUnrollCount + leftOverAssignCount - 1] , undefinedOpnd

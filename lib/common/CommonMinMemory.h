@@ -47,5 +47,5 @@ namespace Js
 #include "Memory\RecyclerSweep.h"
 #include "Memory\RecyclerHeuristic.h"
 #include "Memory\MarkContext.h"
-#include "Memory\RecyclerWatsonTelemtry.h"
+#include "Memory\RecyclerWatsonTelemetry.h"
 #include "Memory\Recycler.h"

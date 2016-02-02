@@ -67,7 +67,7 @@ public:
     void AssertWriteToAddress(_In_ void* address)
     {
         Assert(_cardTable);
-        Assert(commitedSections.Test(GetSectionIndex(address)));
+        Assert(committedSections.Test(GetSectionIndex(address)));
     }
 #endif
 
@@ -79,7 +79,7 @@ private:
     // of memory in the card table will track the state of 16MB of memory, which is what
     // we term as a section. A bit set in this bit vector tracks whether a page corresponding
     // to said 16MB is committed in the card table.
-    typedef BVSparse<HeapAllocator> CommitedSectionBitVector;
+    typedef BVSparse<HeapAllocator> CommittedSectionBitVector;
     BYTE* _cardTable;
     size_t _cardTableNumEntries;
     CriticalSection _cardTableInitCriticalSection;
@@ -112,7 +112,7 @@ private:
 #define SetCommitState(state)
 #endif
 
-    static CommitedSectionBitVector commitedSections;
+    static CommittedSectionBitVector committedSections;
 };
 #else
 #error Not implemented

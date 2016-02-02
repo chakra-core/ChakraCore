@@ -50,7 +50,7 @@ namespace Js
         bool IsFromProxy() const { return fromProxy; }
         void SetFromProxy(bool value) { fromProxy = value; }
 
-        void SetOriginal(Var orginal) { originalVar = orginal; }
+        void SetOriginal(Var original) { originalVar = original; }
         Var GetOriginal() const { return originalVar; }
 
         bool ValueSpecified() const { return valueSpecified; }

@@ -38,7 +38,7 @@ WScript.Echo("k.z().test() = " + JSON.stringify(k.z().test()));
 WScript.Echo("k.z().test()+1 = " + JSON.stringify(k.z().test()+1));
 
 WScript.Echo();
-WScript.Echo("sibbling with block");
+WScript.Echo("sibling with block");
 WScript.Echo("k.z2 = " + k.z2);
 WScript.Echo("k.z2() = " + k.z2());
 WScript.Echo("k.z2().test() = " + JSON.stringify(k.z2().test()));

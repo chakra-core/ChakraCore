@@ -28,7 +28,7 @@ Instr::IsEntryInstr() const
 ///
 /// Instr::AsEntryInstr
 ///
-///     Return this as a EntryInstr *
+///     Return this as an EntryInstr *
 ///
 ///----------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ Instr::IsExitInstr() const
 ///
 /// Instr::AsExitInstr
 ///
-///     Return this as a ExitInstr *
+///     Return this as an ExitInstr *
 ///
 ///----------------------------------------------------------------------------
 
@@ -196,7 +196,7 @@ Instr::IsProfiledLabelInstr() const
 inline ProfiledLabelInstr *
 Instr::AsProfiledLabelInstr()
 {
-    AssertMsg(this->IsProfiledLabelInstr(), "Bad call to AsProfiledlLabelInstr()");
+    AssertMsg(this->IsProfiledLabelInstr(), "Bad call to AsProfiledLabelInstr()");
 
     return reinterpret_cast<ProfiledLabelInstr *>(this);
 }

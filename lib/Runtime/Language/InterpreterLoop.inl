@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-// Shared intepreter loop
+// Shared interpreter loop
 //
 // This holds the single definition of the interpreter loop.
 // It allows for configurable copies of the loop that do extra work without
