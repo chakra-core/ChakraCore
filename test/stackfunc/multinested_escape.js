@@ -8,7 +8,7 @@ var escape;
 
 function test(param)
 {
-    function outter()
+    function outer()
     {
         function inner()
         {
@@ -23,7 +23,7 @@ function test(param)
         return param;
     }
 
-    outter();
+    outer();
 }
 
 

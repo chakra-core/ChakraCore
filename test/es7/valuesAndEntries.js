@@ -93,8 +93,8 @@ var tests = [
             Object.defineProperty(obj2, "prop2", { value: 20, enumerable: true });
             Object.defineProperty(obj2, "prop3", { get: function () { return 30; }, enumerable: true });
             var proxy2 = new Proxy(obj2, {
-                getOwnPropertyDescriptor: function (target, propert) {
-                    return Reflect.getOwnPropertyDescriptor(target, propert);
+                getOwnPropertyDescriptor: function (target, property) {
+                    return Reflect.getOwnPropertyDescriptor(target, property);
                 }
             });
             

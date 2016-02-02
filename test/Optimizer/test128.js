@@ -8,10 +8,10 @@ function test0() {
     var litObj0 = { prop1: 3.14159265358979 };
     var IntArr0 = new Array(-2664941844011450000, 7899446760907481000);
     var b = 1;
-    var aliasOflitObj0 = litObj0;
+    var aliasOfLitObj0 = litObj0;
     ;
     e = 1 > 1;
-    IntArr0[('prop0' in aliasOflitObj0 >= 0 ? 'prop0' in aliasOflitObj0 : 0) & 15] = --e;
+    IntArr0[('prop0' in aliasOfLitObj0 >= 0 ? 'prop0' in aliasOfLitObj0 : 0) & 15] = --e;
     v7082 = {};
     for(v7083 = 0; v7083 < 10; v7083++) {
         b += v7083;

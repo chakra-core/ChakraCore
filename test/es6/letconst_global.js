@@ -10,7 +10,7 @@ function filter(name) {
 }
 
 print('\n==== Basic let and const variables at global scope ====\n');
-// Since the let/const globals are implmemented as special properties
+// Since the let/const globals are implemented as special properties
 // in the [Simple]DictionaryTypeHandler, try out the other types of
 // global properties to sanity check that they are still property-
 // like (on global object, enumerable)

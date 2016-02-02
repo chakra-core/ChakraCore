@@ -318,7 +318,7 @@ namespace Js
         {
             return entryPoint;
         }
-        // Based on the comment below, this shouldn't be a a defer deserialization function as it would have a deferred thunk
+        // Based on the comment below, this shouldn't be a defer deserialization function as it would have a deferred thunk
         FunctionBody * functionBody = this->GetFunctionBody();
         // The original entry point should be an interpreter thunk or the native entry point;
         Assert(functionBody->IsInterpreterThunk() || functionBody->IsNativeOriginalEntryPoint());

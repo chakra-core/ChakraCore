@@ -92,7 +92,7 @@ public:
     uint        innerScopeCount;
     uint        currentInnerScopeIndex;
 #if DBG
-    uint32 outArgsDepth; // number of calls nested in a expression
+    uint32 outArgsDepth; // number of calls nested in an expression
 #endif
     const wchar_t *name; // name of the function
     Js::RegSlot nullConstantRegister; // location, if any, of enregistered null constant

@@ -91,7 +91,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     // Initialize physical processor to number of logical processors.
     // If anything below fails, we still need an approximate value
 
-    this->dwNumberOfPhyscialProcessors = this->dwNumberOfProcessors;
+    this->dwNumberOfPhysicalProcessors = this->dwNumberOfProcessors;
 
     bResult = GetLogicalProcessorInformation(NULL, &size);
 
@@ -131,7 +131,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
 
     NoCheckHeapDeleteArray(count, pBufferStart);
 
-    this->dwNumberOfPhyscialProcessors = countPhysicalProcessor;
+    this->dwNumberOfPhysicalProcessors = countPhysicalProcessor;
     return true;
 }
 

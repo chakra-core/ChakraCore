@@ -76,8 +76,8 @@ namespace Js
 
         if (firstPrototype != nullptr)
         {
-            Recycler *recyler = scriptContext->GetRecycler();
-            propertyIds = RecyclerNew(recyler, BVSparse<Recycler>, recyler);
+            Recycler *recycler = scriptContext->GetRecycler();
+            propertyIds = RecyclerNew(recycler, BVSparse<Recycler>, recycler);
         }
     }
 

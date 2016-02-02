@@ -379,7 +379,7 @@ write("Passed");
 write("Test case 35")
 function test35()
 {
-   if(typeof EvalError == "test") //use random comparsion
+   if(typeof EvalError == "test") //use random comparison
    {
      return true;
    }

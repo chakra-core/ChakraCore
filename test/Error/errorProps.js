@@ -18,7 +18,7 @@ function test(y)
     WScript.Echo("  Properties = ");
     showProperty("name", y);
     showProperty("message", y);
-    showProperty("stack", y); // Explictly adding the known non-enumerable members
+    showProperty("stack", y); // Explicitly adding the known non-enumerable members
     showProperty("number", y);
     showProperty("description", y);
     for (x in y)

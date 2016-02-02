@@ -561,15 +561,15 @@ namespace Js
 
     BOOL JavascriptOperators::Greater_Full(Var aLeft,Var aRight,ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aRight, aLeft, scriptContext, false, false);
+        return RelationalComparisonHelper(aRight, aLeft, scriptContext, false, false);
     }
 
     BOOL JavascriptOperators::Less_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aLeft, aRight, scriptContext, true, false);
+        return RelationalComparisonHelper(aLeft, aRight, scriptContext, true, false);
     }
 
-    BOOL JavascriptOperators::RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
+    BOOL JavascriptOperators::RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aLeft);
 
@@ -9714,7 +9714,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aLeft, aRight, scriptContext, true, true);
+        return !RelationalComparisonHelper(aLeft, aRight, scriptContext, true, true);
     }
 
     BOOL JavascriptOperators::LessEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -9747,7 +9747,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aRight, aLeft, scriptContext, false, true);
+        return !RelationalComparisonHelper(aRight, aLeft, scriptContext, false, true);
     }
 
     BOOL JavascriptOperators::NotEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)

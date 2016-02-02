@@ -657,15 +657,15 @@ namespace Js
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtenionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
-                JavascriptFunction* func = intlExtenionObject->GetNumberToLocaleString();
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                JavascriptFunction* func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
                     return func->CallFunction(args);
                 }
                 // Initialize Number.prototype.toLocaleString
                 scriptContext->GetLibrary()->InitializeIntlForNumberPrototype();
-                func = intlExtenionObject->GetNumberToLocaleString();
+                func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
                     return func->CallFunction(args);

@@ -28,7 +28,7 @@ function DumpObject(o)
     {
         a[a.length] = i;
     }
-    a[a.length] = "description"; // Explictly adding the known non-enumerable members
+    a[a.length] = "description"; // Explicitly adding the known non-enumerable members
     a[a.length] = "number";
     a[a.length] = "stack";
     a.sort();

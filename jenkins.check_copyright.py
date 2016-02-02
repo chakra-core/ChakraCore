@@ -26,7 +26,7 @@ if len(sys.argv) < 2:
 
 file_name = sys.argv[1]
 if not os.path.isfile(file_name):
-    print "File does not exist:", file_name, "(not neccesarily an error)"
+    print "File does not exist:", file_name, "(not necessarily an error)"
     exit(0)
 
 with open(file_name, 'r') as sourcefile:

@@ -218,7 +218,7 @@ namespace Js
             }
         }
 
-        // We have a object marshaled, we need to keep track of the related script context
+        // We have an object marshaled, we need to keep track of the related script context
         // so optimization overrides can be updated as a group
         scriptContext->optimizationOverrides.Merge(&object->GetScriptContext()->optimizationOverrides);
 

@@ -1961,7 +1961,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         inlineBuiltInEndInstr = InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
 
         // InlineArrayPop - TrackCalls Need to be done at InlineArrayPop and not at the InlineBuiltInEnd
-        // Hence we use a new opcode, to detect that it is a InlineArrayPop and we don't track the call during End of inlineBuiltInCall sequence
+        // Hence we use a new opcode, to detect that it is an InlineArrayPop and we don't track the call during End of inlineBuiltInCall sequence
         if(inlineCallOpCode == Js::OpCode::InlineArrayPop)
         {
             inlineBuiltInEndInstr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
@@ -1980,10 +1980,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         )
     {
         // Emit byteCodeUses for function object
-        IR::Instr * inlineBuilitInStartInstr = inlineBuiltInEndInstr;
-        while(inlineBuilitInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
+        IR::Instr * inlineBuiltInStartInstr = inlineBuiltInEndInstr;
+        while(inlineBuiltInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
         {
-            inlineBuilitInStartInstr = inlineBuilitInStartInstr->m_prev;
+            inlineBuiltInStartInstr = inlineBuiltInStartInstr->m_prev;
         }
 
         IR::Opnd * tmpDst = nullptr;
@@ -2033,7 +2033,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(callInstr->m_func);
         byteCodeUsesInstr->SetByteCodeOffset(callInstr);
         byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(callInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, callInstr->m_func->m_alloc);
-        IR::Instr *argInsertInstr = inlineBuilitInStartInstr;
+        IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
 // SIMD_JS
         IR::Instr *eaInsertInstr = callInstr;
@@ -2270,7 +2270,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
         }
         else
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlineable as apply target \tCaller: %s (%s)\n",
+            INLINE_TESTTRACE(L"INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlinable as apply target \tCaller: %s (%s)\n",
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer));
             return callInstr;
         }

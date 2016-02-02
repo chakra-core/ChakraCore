@@ -4586,7 +4586,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
 ///
 /// IRBuilder::BuildAuxiliary
 ///
-///     Build IR instr for a Auxiliary instruction.
+///     Build IR instr for an Auxiliary instruction.
 ///
 ///----------------------------------------------------------------------------
 
@@ -6663,7 +6663,7 @@ IRBuilder::EnsureConsumeBranchIsland()
             ConsumeBranchIsland();
 
             // Mark the virtual branch around as a redirect long branch as well
-            // so that if it is the target of a another branch, it will just keep pass
+            // so that if it is the target of another branch, it will just keep pass
             // the branch island
             Assert(longBranchMap);
             Assert(offset < m_offsetToInstructionCount);

@@ -34,7 +34,7 @@ try {
 WScript.Echo("Infinity Date toJSON : " + d.toJSON());
 
 //
-// Test Date.prototype.toJSON transfered to an object but toISOString is not callable
+// Test Date.prototype.toJSON transferred to an object but toISOString is not callable
 //
 d = {
     toISOString: 1,
@@ -47,7 +47,7 @@ try {
 }
 
 //
-// Test Date.prototype.toJSON transfered to an object
+// Test Date.prototype.toJSON transferred to an object
 //
 d = {
     toISOString: function() {
@@ -58,7 +58,7 @@ d = {
 WScript.Echo("Object toJSON : " + d.toJSON());
 
 //
-// Test Date.prototype.toJSON transfered to String
+// Test Date.prototype.toJSON transferred to String
 //
 String.prototype.toISOString = function() {
     return "Fake JSON : " + this;

@@ -3640,7 +3640,7 @@ LowererMDArch::FinalLower()
             if (instr->GetSrc2())
             {
                 // CMOV inserted before regalloc have a dummy src1 to simulate the fact that
-                // CMOV is not an definite def of the dst.
+                // CMOV is not a definite def of the dst.
                 instr->SwapOpnds();
                 instr->FreeSrc2();
             }

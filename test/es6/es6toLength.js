@@ -133,8 +133,8 @@ var tests = [
             assert.areEqual(undefined, a[0]);
             assert.areEqual(undefined, a[4294967294], "confirm 4294967294 is now empty after shift");
             assert.areEqual(2, a[4294967293], "confirm 4294967293 now has contents of index 4294967294 after shift");
-            assert.areEqual(3, a[4294967295], "confirm index 4294967295 does not shift b\c it past array length max");
-            assert.areEqual(4, a[4294967296], "confirm index 4294967296 does not shift b\c it past array length max");
+            assert.areEqual(3, a[4294967295], "confirm index 4294967295 does not shift because it is past array length max");
+            assert.areEqual(4, a[4294967296], "confirm index 4294967296 does not shift because it is past array length max");
 
             Array.prototype.shift.call(o32);
             assert.areEqual(0, o32[0], "confirm length does not get converted to 4294967295");
@@ -163,7 +163,7 @@ var tests = [
             assert.areEqual(-1, o32[0], "confirm length does not get converted to 4294967295");
             assert.areEqual(undefined, o32[1], "since length was negative, we can not account for any indicies we over write and so 0 does not shift down");
             assert.areEqual(1, o32["length"], "confirm length does not get converted to 4294967295 and instead is updated after an unshift");
-            assert.areEqual(1, o32[4294967294],"length will not account this b\c we added it when length was invalid");
+            assert.areEqual(1, o32[4294967294],"length will not account this because we added it when length was invalid");
 
             // Note it is not practical to unshift an object length 4294967295 or larger since we will hit an
             // Out of memory exception before computation ever completes. As a result we will have a test coverage hole,
@@ -218,9 +218,9 @@ var tests = [
 
             var o32 = { length : -1, 4294967294 : 1, 0: 0 };
             var popped = Array.prototype.pop.call(o32);
-            assert.areEqual(undefined,popped, "confirm we were unable to pop anything b\c -1 length no longer converts to uint max and instead is coerced to 0");
-            assert.areEqual(0, o32[0], "nothing was popped b\c of invalid length");
-            assert.areEqual(1, o32[4294967294], "nothing was popped b\c of invalid length");
+            assert.areEqual(undefined,popped, "confirm we were unable to pop anything because -1 length no longer converts to uint max and instead is coerced to 0");
+            assert.areEqual(0, o32[0], "nothing was popped because of invalid length");
+            assert.areEqual(1, o32[4294967294], "nothing was popped because of invalid length");
             assert.areEqual(0, o32.length, "length should get set to 0");
 
             var a = [0]
@@ -323,7 +323,7 @@ var tests = [
                 return element %2 == 0;
             }
             //a.some(isEven); // same issue as Map, ForEach, Filter, & Every
-                               // not as bad as Array.prototype.every b\c we can quit as soon as we find a true case
+                               // not as bad as Array.prototype.every because we can quit as soon as we find a true case
             var oNeg = { length : -1, [-5] : 2, [-2]: 3 };
             assert.areEqual(false, Array.prototype.some.call(oNeg, isEven), "oNeg has length coerced 0, so we never find an index that proves our comparison true");
 
@@ -340,15 +340,15 @@ var tests = [
             a[4294967294] = 3;
             a[4294967295] = 4;
             var sum = 0;
-            function sumation(element, index, array) {
+            function summation(element, index, array) {
                 sum += element;
             }
 
-            //a.forEach(sumation); // same issue as Map, Filter, Some, & Every
+            //a.forEach(summation); // same issue as Map, Filter, Some, & Every
             //assert.areEqual(6,sum);
             sum = 0;
             var oNeg = { length : -1, [-5] : 2, [-2]: 3 };
-            Array.prototype.forEach.call(oNeg, sumation);
+            Array.prototype.forEach.call(oNeg, summation);
             assert.areEqual(0,sum,"oNeg has length coerced 0, so we never perform a summation");
 
             // Given that is not practical to write tests for arrays with boundary numbers I'm not going to bother with typed Arrays and other objects

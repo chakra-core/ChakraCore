@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-// Minimum amout of memory on the stack required by a vistor call.
+// Minimum amount of memory on the stack required by a visitor call.
 // Use this value to control when to stop the visitor recursion before a SOE occurs.
 #define PNODEVISIRORSIZE 256
 

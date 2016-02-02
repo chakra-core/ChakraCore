@@ -31,7 +31,7 @@ void ArenaMemoryTracking::ReportAllocation(Allocator *arena, void *address, size
 
 void ArenaMemoryTracking::ReportReallocation(Allocator *arena, void *address, size_t existingSize, size_t newSize)
 {
-    // Called when a reallocation where newSize < exsitingSize.
+    // Called when a reallocation where newSize < existingSize.
 
     // This will only be called if newSize < existingSize.
 

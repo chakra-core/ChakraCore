@@ -2326,7 +2326,7 @@ namespace Js
                     // If the object contains array indices.
                     if (typeId == TypeIds_Arguments)
                     {
-                        // Create ArgumentsArray walker for a arguments object
+                        // Create ArgumentsArray walker for an arguments object
 
                         Js::ArgumentsObject * argObj = static_cast<Js::ArgumentsObject*>(instance);
                         Assert(argObj);

@@ -444,7 +444,7 @@ if (helpers.isVersion10OrLater) { // TODO: Change to _11_OrLater
                 var m = o.x;
                 if (a > 0)
                 {
-                    o.__proto__ = {}; // ObjTypeSpec won't generate 2nd type check for the next "o.x" load. But implict call bailout should bailout right here.
+                    o.__proto__ = {}; // ObjTypeSpec won't generate 2nd type check for the next "o.x" load. But implicit call bailout should bailout right here.
                 }
                 var n = o.x;
 
