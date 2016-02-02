@@ -203,7 +203,7 @@ PageSegmentBase<T>::Prime()
 #ifndef PAGEALLOCATOR_PROTECT_FREEPAGE
     for (uint i = 0; i < this->GetAvailablePageCount(); i++)
     {
-        this->address[i * AutoSystemInfo::PageSize] = NULL;
+        this->address[i * AutoSystemInfo::PageSize] = 0;
     }
 #endif
 }

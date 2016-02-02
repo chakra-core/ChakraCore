@@ -87,6 +87,8 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-invalid-token-paste
         -Wno-format
         -Wno-invalid-noreturn
+        -Wno-null-arithmetic
+        -Wno-tautological-undefined-compare
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
@@ -96,6 +98,10 @@ if(IS_64BIT_BUILD)
         -DSTACK_ALIGN=16
     )
 endif(IS_64BIT_BUILD)
+
+if(CLR_CMAKE_PLATFORM_UNIX)
+   add_definitions(-DFEATURE_PAL)
+endif(CLR_CMAKE_PLATFORM_UNIX)
 
 
 include_directories("pal")

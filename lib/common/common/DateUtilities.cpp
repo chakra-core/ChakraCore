@@ -3,10 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#if _WIN32
 #define ENABLE_INTSAFE_SIGNED_FUNCTIONS 1
 #include <intsafe.h>
-#endif
 
 #include "common/DaylightTimeHelper.h"
 #include "common/DateUtilities.h"

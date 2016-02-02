@@ -199,9 +199,9 @@ PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER List
 // Use intsafe.h for internal builds (currently missing some files with stdint.h)
 #if defined(_WIN32) && defined(NTBUILD)
 #define ENABLE_INTSAFE_SIGNED_FUNCTIONS 1
-#include<intsafe.h>
+#include <intsafe.h>
 #else
-#include<stdint.h>
+#include <stdint.h>
 #endif
 
 
@@ -214,4 +214,11 @@ PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER List
 #else
 #define _ABSTRACT
 #define _TYPENAME typename
+#endif
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+// "noexcept" not supported before VS 2015
+#define _NOEXCEPT
+#else
+#define _NOEXCEPT noexcept
 #endif

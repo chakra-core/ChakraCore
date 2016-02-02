@@ -331,12 +331,6 @@ typedef NoThrowHeapAllocator NoThrowNoMemProtectHeapAllocator;
 #if !defined(USED_IN_STATIC_LIB)
 _Ret_maybenull_ void * __cdecl operator new(size_t byteSize);
 _Ret_maybenull_ void * __cdecl operator new[](size_t byteSize);
-
-// xplat-todo: Likely need to re-enable this at some point
-#ifdef _MSC_VER
-void __cdecl operator delete(void * obj);
-void __cdecl operator delete[](void * obj);
-#endif
 #endif
 
 //----------------------------------------
