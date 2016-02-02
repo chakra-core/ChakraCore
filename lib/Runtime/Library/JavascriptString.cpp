@@ -1362,6 +1362,9 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         PCWSTR const varName = L"String.prototype.match";
+
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
+
         auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
         {
             return RegexHelper::RegexMatch(
