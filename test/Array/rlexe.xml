@@ -61,6 +61,13 @@
   </test>
   <test>
     <default>
+      <files>bug6268659.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <compile-flags>-ForceArrayBTree</compile-flags>
       <files>ArrayBtreeBadCodeGen.js</files>
       <baseline>ArrayBtreeBadCodeGen.baseline</baseline>
