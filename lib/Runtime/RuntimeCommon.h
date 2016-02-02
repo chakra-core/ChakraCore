@@ -128,26 +128,26 @@ namespace Js
     typedef Var(*ExternalMethod)(RecyclableObject*, CallInfo, Var*);
 
 
-    const uintptr AtomTag_Object    = 0x0;
+    const uintptr_t AtomTag_Object    = 0x0;
 
 #if INT32VAR
     // The 49th bit is set in this representation
-    const int32 VarTag_Shift        = 48;
-    const uintptr AtomTag_IntPtr    = (((uintptr)0x1i64) << VarTag_Shift);
-    const int32 AtomTag_Int32       = 0x0;     // lower 32-bits of a tagged integer
-    const uintptr AtomTag           = 0x1;
-    const int32 AtomTag_Multiply    = 1;
-    const int32 AtomTag_Pair        = 0x00010001;  // Pair of tags
+    const int32 VarTag_Shift          = 48;
+    const uintptr_t AtomTag_IntPtr    = (((uintptr_t)0x1i64) << VarTag_Shift);
+    const int32 AtomTag_Int32         = 0x0;     // lower 32-bits of a tagged integer
+    const uintptr_t AtomTag           = 0x1;
+    const int32 AtomTag_Multiply      = 1;
+    const int32 AtomTag_Pair          = 0x00010001;  // Pair of tags
 #else
-    const uintptr AtomTag_IntPtr     = 0x1;
-    const int32 AtomTag_Int32        = 0x1;    // lower 32-bits of a tagged integer
-    const uintptr AtomTag            = 0x1;
-    const int32 VarTag_Shift         = 1;
-    const int32 AtomTag_Multiply     = 1 << VarTag_Shift;
+    const uintptr_t AtomTag_IntPtr    = 0x1;
+    const int32 AtomTag_Int32         = 0x1;    // lower 32-bits of a tagged integer
+    const uintptr_t AtomTag           = 0x1;
+    const int32 VarTag_Shift          = 1;
+    const int32 AtomTag_Multiply      = 1 << VarTag_Shift;
 #endif
 
 #if FLOATVAR
-    const uint64 FloatTag_Value      = 0xFFFCull << 48;
+    const uint64 FloatTag_Value       = 0xFFFCull << 48;
 #endif
     template <bool IsPrototypeTemplate> class NullTypeHandler;
 

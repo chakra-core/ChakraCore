@@ -1780,11 +1780,6 @@ namespace Js
 #if ENABLE_PROFILE_INFO
             Assert(!funcBody->HasExecutionDynamicProfileInfo());
 #endif
-
-            // In debug mode, the eval code will be asked to recompile again.
-            AssertMsg(isDebugReparse || !(funcBody->GetGrfscr() & (fscrImplicitThis | fscrImplicitParents)),
-                        "Deferred parsing of event handler body?");
-
             // In debug or asm.js mode, the scriptlet will be asked to recompile again.
             AssertMsg(isReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
 
@@ -3562,7 +3557,7 @@ namespace Js
         newFunctionBody->m_isFromNativeCodeModule = this->m_isFromNativeCodeModule;
     }
 
-    FunctionBody *
+    ParseableFunctionInfo *
     FunctionBody::Clone(ScriptContext * scriptContext, uint sourceIndex)
     {
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)

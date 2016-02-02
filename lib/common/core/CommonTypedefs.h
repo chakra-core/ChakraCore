@@ -19,14 +19,6 @@ typedef unsigned __int16 uint16;
 typedef unsigned __int32 uint32;
 typedef unsigned __int64 uint64;
 
-#if defined (_WIN64)
-typedef __int64 intptr;
-typedef unsigned __int64 uintptr;
-#else
-typedef __int32 intptr;
-typedef unsigned __int32 uintptr;
-#endif
-
 // charcount_t represents a count of characters in a JavascriptString
 // It is unsigned and the maximum value is (INT_MAX-1)
 typedef uint32 charcount_t;

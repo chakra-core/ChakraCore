@@ -980,7 +980,7 @@ namespace Js
         CharStringCache& GetCharStringCache() { return charStringCache;  }
         static JavascriptLibrary * FromCharStringCache(CharStringCache * cache)
         {
-            return (JavascriptLibrary *)((uintptr)cache - offsetof(JavascriptLibrary, charStringCache));
+            return (JavascriptLibrary *)((uintptr_t)cache - offsetof(JavascriptLibrary, charStringCache));
         }
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }

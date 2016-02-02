@@ -2004,7 +2004,7 @@ LABEL1:
         {
             // some extra checks for asm.js because we have slightly more information that we can validate
             Js::EntryPointInfo* entryPointInfo = (Js::EntryPointInfo*)funcBody->GetDefaultEntryPointInfo();
-            uintptr moduleMemory = entryPointInfo->GetModuleAddress();
+            uintptr_t moduleMemory = entryPointInfo->GetModuleAddress();
             if (!moduleMemory)
             {
                 return EXCEPTION_CONTINUE_SEARCH;
