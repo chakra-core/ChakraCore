@@ -4918,6 +4918,11 @@ namespace Js
         return this->CreateSymbol(this->scriptContext->GetPropertyName(pid));
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::JavascriptString* str)
+    {
+        return this->CreateSymbol(str);
+    }
+
     Js::RecyclableObject* JavascriptLibrary::CreateBooleanObject_TTD(Var value)
     {
         if(value == nullptr)

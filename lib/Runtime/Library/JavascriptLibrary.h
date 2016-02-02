@@ -588,6 +588,7 @@ namespace Js
 #if ENABLE_TTD
         Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
+        Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::JavascriptString* str);
 
         Js::RecyclableObject* CreateBooleanObject_TTD(Var value);
         Js::RecyclableObject* CreateNumberObject_TTD(Var value);

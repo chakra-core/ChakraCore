@@ -1283,7 +1283,7 @@ STDAPI_(JsErrorCode) JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordGetProperty(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object);
+            threadContext->TTDLog->RecordJsRTGetProperty(scriptContext, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), object);
         }
 #endif
 
@@ -1344,7 +1344,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertyNames(_In_ JsValueRef object, _Out_ JsValue
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTOwnPropertiesInfo(scriptContext, true, object);
         }
 #endif
 
@@ -1369,7 +1369,7 @@ STDAPI_(JsErrorCode) JsGetOwnPropertySymbols(_In_ JsValueRef object, _Out_ JsVal
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTOwnPropertiesInfo(scriptContext, false, object);
         }
 #endif
 
@@ -1395,7 +1395,7 @@ STDAPI_(JsErrorCode) JsSetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef 
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTSetProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), value, useStrictRules);
         }
 #endif
 
@@ -1462,7 +1462,7 @@ STDAPI_(JsErrorCode) JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTDefineProperty(scriptContext, object, ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptor);
         }
 #endif
 
@@ -1863,7 +1863,7 @@ STDAPI_(JsErrorCode) JsCreateSymbol(_In_ JsValueRef description, _Out_ JsValueRe
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateSymbol(scriptContext, description);
         }
 #endif
 
@@ -1938,7 +1938,7 @@ STDAPI_(JsErrorCode) JsSetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordSetIndex(scriptContext, object, index, value);
+            threadContext->TTDLog->RecordJsRTSetIndex(scriptContext, object, index, value);
         }
 #endif
 
@@ -2378,7 +2378,7 @@ STDAPI_(JsErrorCode) JsCreateFunction(_In_ JsNativeFunction nativeFunction, _In_
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateFunction(scriptContext, false, nullptr);
         }
 #endif
 
@@ -2401,6 +2401,15 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
         PARAM_NOT_NULL(function);
         *function = nullptr;
 
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            threadContext->TTDLog->RecordJsRTAllocateFunction(scriptContext, true, name);
+        }
+#endif
+
         if (name != JS_INVALID_REFERENCE)
         {
             name = Js::JavascriptConversion::ToString(name, scriptContext);
@@ -2409,14 +2418,6 @@ STDAPI_(JsErrorCode) JsCreateNamedFunction(_In_ JsValueRef name, _In_ JsNativeFu
         {
             name = scriptContext->GetLibrary()->GetEmptyString();
         }
-
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            AssertMsg(false, "Need to implement support here!!!");
-        }
-#endif
 
         Js::JavascriptExternalFunction *externalFunction = scriptContext->GetLibrary()->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)nativeFunction, Js::JavascriptString::FromVar(name), callbackState);
         *function = (JsValueRef)externalFunction;
@@ -2676,7 +2677,7 @@ STDAPI_(JsErrorCode) JsGetAndClearException(_Out_ JsValueRef *exception)
     ThreadContext* threadContext = scriptContext->GetThreadContext();
     if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
     {
-        threadContext->TTDLog->RecordGetAndClearException(scriptContext);
+        threadContext->TTDLog->RecordJsRTGetAndClearException(scriptContext);
     }
 #endif
 
@@ -3516,7 +3517,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordCodeParse(scriptContext, result != nullptr, scriptFunction, script, sourceUrl);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, result != nullptr, scriptFunction, script, sourceUrl);
         }
 #endif
 

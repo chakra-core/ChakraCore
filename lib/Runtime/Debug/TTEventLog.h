@@ -399,6 +399,7 @@ namespace TTD
         void RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival);
         void RecordJsRTAllocateDouble(Js::ScriptContext* ctx, double dval);
         void RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, size_t stringLength);
+        void RecordJsRTAllocateSymbol(Js::ScriptContext* ctx, Js::Var symbolDescription);
 
         //Record conversions
         void RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString);
@@ -406,21 +407,25 @@ namespace TTD
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);
         void RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length);
+        void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName);
 
         //Record GetAndClearException
-        void RecordGetAndClearException(Js::ScriptContext* ctx);
+        void RecordJsRTGetAndClearException(Js::ScriptContext* ctx);
 
         //Record Object Getters
-        void RecordGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var);
+        void RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var);
+        void RecordJsRTOwnPropertiesInfo(Js::ScriptContext* ctx, bool isGetNames, Js::Var var);
 
         //Record Object Setters
-        void RecordSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
+        void RecordJsRTDefineProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var propertyDescriptor);
+        void RecordJsRTSetProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules);
+        void RecordJsRTSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
 
         //Record callback registration/cancelation
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);
 
         //Record code parse
-        void RecordCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
+        void RecordJsRTCodeParse(Js::ScriptContext* ctx, bool isExpression, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
 
         //Record callback of an existing function
         JsRTCallFunctionBeginAction* RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);

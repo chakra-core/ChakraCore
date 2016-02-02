@@ -16,11 +16,16 @@ namespace TTD
         Invalid = 0x0,
         AllocateNumber,
         AllocateString,
+        AllocateSymbol,
         VarConvert,
         AllocateObject,
         AllocateArray,
+        AllocateFunction,
         GetAndClearException,
         GetProperty,
+        GetOwnPropertiesInfo,
+        DefineProperty,
+        SetProperty,
         SetIndex,
         CallbackOp,
         CodeParse,
@@ -105,6 +110,22 @@ namespace TTD
         static JsRTStringAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
+    //A class for creating symbols
+    class JsRTSymbolAllocateAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_symbolDescription;
+
+    public:
+        JsRTSymbolAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* symbolDescription);
+        virtual ~JsRTSymbolAllocateAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTSymbolAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
     //A class for converting variables
     class JsRTVarConvertAction : public JsRTActionLogEntry
     {
@@ -162,6 +183,23 @@ namespace TTD
         static JsRTArrayAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
+    //A class for creating function objects
+    class JsRTFunctionAllocateAction : public JsRTActionLogEntry
+    {
+    private:
+        bool m_isNamed;
+        NSLogValue::ArgRetValue* m_name;
+
+    public:
+        JsRTFunctionAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isNamed, NSLogValue::ArgRetValue* name);
+        virtual ~JsRTFunctionAllocateAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTFunctionAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
     //A class for getting and clearing the current script exception
     class JsRTGetAndClearExceptionAction : public JsRTActionLogEntry
     {
@@ -190,6 +228,60 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTGetPropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for getting own property names or symbols from an object
+    class JsRTGetOwnPropertiesInfoAction : public JsRTActionLogEntry
+    {
+    private:
+        bool m_isGetNames;
+        NSLogValue::ArgRetValue* m_var;
+
+    public:
+        JsRTGetOwnPropertiesInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isGetNames, NSLogValue::ArgRetValue* var);
+        virtual ~JsRTGetOwnPropertiesInfoAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTGetOwnPropertiesInfoAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for defining a property descriptor on an object
+    class JsRTDefinePropertyAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_var;
+        Js::PropertyId m_propertyId;
+        NSLogValue::ArgRetValue* m_propertyDescriptor;
+
+    public:
+        JsRTDefinePropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, Js::PropertyId pid, NSLogValue::ArgRetValue* propertyDescriptor);
+        virtual ~JsRTDefinePropertyAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTDefinePropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for setting a property on an object
+    class JsRTSetPropertyAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_var;
+        Js::PropertyId m_propertyId;
+        NSLogValue::ArgRetValue* m_value;
+        bool m_useStrictRules;
+
+    public:
+        JsRTSetPropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, Js::PropertyId pid, NSLogValue::ArgRetValue* value, bool useStrictRules);
+        virtual ~JsRTSetPropertyAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTSetPropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for setting a indexed property from an object/array
