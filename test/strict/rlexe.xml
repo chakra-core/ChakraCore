@@ -708,4 +708,11 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>nonSimpleParameterList.js</files>
+      <baseline>nonSimpleParameterList.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>

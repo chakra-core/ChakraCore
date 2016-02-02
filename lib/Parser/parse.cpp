@@ -10198,14 +10198,6 @@ bool Parser::CheckForDirective(bool* pIsUseStrict, bool *pIsUseAsm, bool* pIsOct
 
 bool Parser::CheckStrictModeStrPid(IdentPtr pid)
 {
-    // If we're already in strict mode, no need to check if the string would put us in strict mode. So, this function would only
-    // return true if it detects a transition from non-strict to strict, which is what matters for callers.
-    // This is a minor optimization to avoid redundant string comparisons of nested "use strict" directives.
-    if (IsStrictMode())
-    {
-        return false;
-    }
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.NoStrictMode)
         return false;
