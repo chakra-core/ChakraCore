@@ -955,7 +955,7 @@ void * InlineCacheFreeListPolicy::Allocate(void * policy, size_t size)
 
     if (NULL != freeObject)
     {
-        freeObjectLists[index] = reinterpret_cast<FreeObject *>(reinterpret_cast<intptr>(freeObject->next) & ~InlineCacheFreeListTag);
+        freeObjectLists[index] = reinterpret_cast<FreeObject *>(reinterpret_cast<intptr_t>(freeObject->next) & ~InlineCacheFreeListTag);
 
 #ifdef ARENA_MEMORY_VERIFY
         // Make sure the next pointer bytes are also DbgFreeMemFill-ed, before we give them out.
@@ -974,7 +974,7 @@ void * InlineCacheFreeListPolicy::Free(void * policy, void * object, size_t size
     FreeObject * freeObject = reinterpret_cast<FreeObject *>(object);
     size_t index = (size >> InlineCacheAllocatorInfo::ObjectAlignmentBitShift) - 1;
 
-    freeObject->next = reinterpret_cast<FreeObject *>(reinterpret_cast<intptr>(freeObjectLists[index]) | InlineCacheFreeListTag);
+    freeObject->next = reinterpret_cast<FreeObject *>(reinterpret_cast<intptr_t>(freeObjectLists[index]) | InlineCacheFreeListTag);
     freeObjectLists[index] = freeObject;
     return policy;
 }
@@ -1193,16 +1193,16 @@ bool InlineCacheAllocator::IsDeadWeakRef(Recycler* recycler, void* ptr)
 
 bool InlineCacheAllocator::CacheHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache)
 {
-    for (intptr* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
+    for (intptr_t* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
     {
-        intptr curWeakRef = *curWeakRefPtr;
+        intptr_t curWeakRef = *curWeakRefPtr;
 
         if (curWeakRef == 0)
         {
             continue;
         }
 
-        curWeakRef &= ~(intptr)InlineCacheAuxSlotTypeTag;
+        curWeakRef &= ~(intptr_t)InlineCacheAuxSlotTypeTag;
 
         if ((curWeakRef & (HeapConstants::ObjectGranularity - 1)) != 0)
         {
@@ -1273,16 +1273,16 @@ bool InlineCacheAllocator::HasNoDeadWeakRefs(Recycler* recycler)
 
 void InlineCacheAllocator::ClearCacheIfHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache)
 {
-    for (intptr* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
+    for (intptr_t* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
     {
-        intptr curWeakRef = *curWeakRefPtr;
+        intptr_t curWeakRef = *curWeakRefPtr;
 
         if (curWeakRef == 0)
         {
             continue;
         }
 
-        curWeakRef &= ~(intptr)InlineCacheAuxSlotTypeTag;
+        curWeakRef &= ~(intptr_t)InlineCacheAuxSlotTypeTag;
 
         if ((curWeakRef & (HeapConstants::ObjectGranularity - 1)) != 0)
         {

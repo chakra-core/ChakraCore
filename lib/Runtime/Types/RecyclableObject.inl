@@ -12,14 +12,14 @@ namespace Js
     {
         AssertMsg(aValue != nullptr, "RecyclableObject::Is aValue is null");
 
-        return (((uintptr)aValue) >> VarTag_Shift) == 0;
+        return (((uintptr_t)aValue) >> VarTag_Shift) == 0;
     }
 #else
     inline bool RecyclableObject::Is(Var aValue)
     {
         AssertMsg(aValue != nullptr, "RecyclableObject::Is aValue is null");
 
-        return (((uintptr)aValue) & AtomTag) == AtomTag_Object;
+        return (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
     }
 #endif
 

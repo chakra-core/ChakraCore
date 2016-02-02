@@ -18,7 +18,7 @@ public:
     template <typename T>
     static T PointerCastToIntegralTruncate(void * pointer)
     {
-        return (T)(uintptr)pointer;
+        return (T)(uintptr_t)pointer;
     }
 
     // Explicit cast to integral. Assert that it doesn't truncate.  Avoids warning C4302 'type cast': truncation
@@ -26,7 +26,7 @@ public:
     static T PointerCastToIntegral(void * pointer)
     {
         T value = PointerCastToIntegralTruncate<T>(pointer);
-        Assert((uintptr)value == (uintptr)pointer);
+        Assert((uintptr_t)value == (uintptr_t)pointer);
         return value;
     }
 

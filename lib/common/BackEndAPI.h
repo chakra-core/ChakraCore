@@ -32,9 +32,9 @@ class StackSym;
 class Func;
 struct InlinedFrameLayout;
 
-typedef intptr IntConstType;
-typedef uintptr  UIntConstType;
-typedef IntMath<intptr>::Type IntConstMath;
+typedef intptr_t IntConstType;
+typedef uintptr_t  UIntConstType;
+typedef IntMath<intptr_t>::Type IntConstMath;
 typedef double  FloatConstType;
 
 #include "EmitBuffer.h"

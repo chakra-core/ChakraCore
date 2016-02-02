@@ -103,7 +103,7 @@ void
 LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
 {
     Assert(opnd->IsAddrOpnd() || opnd->IsIntConstOpnd());
-    intptr value = opnd->IsAddrOpnd() ? (intptr)opnd->AsAddrOpnd()->m_address : opnd->AsIntConstOpnd()->GetValue();
+    intptr_t value = opnd->IsAddrOpnd() ? (intptr_t)opnd->AsAddrOpnd()->m_address : opnd->AsIntConstOpnd()->GetValue();
     if (value == 0
         && instr->m_opcode == Js::OpCode::MOV
         && !instr->GetDst()->IsRegOpnd()

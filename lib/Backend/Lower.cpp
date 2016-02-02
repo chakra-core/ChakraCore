@@ -18248,7 +18248,7 @@ Lowerer::GenerateFunctionTypeFromFixedFunctionObject(IR::Instr *insertInstrPt, I
         IR::AddrOpnd* functionObjAddrOpnd = functionObjOpnd->AsAddrOpnd();
         // functionTypeRegOpnd = MOV [fixed function address + type offset]
         functionObjAddrOpnd->m_address;
-        functionTypeOpnd = IR::MemRefOpnd::New((void *)((intptr)functionObjAddrOpnd->m_address + Js::RecyclableObject::GetOffsetOfType()), TyMachPtr, this->m_func,
+        functionTypeOpnd = IR::MemRefOpnd::New((void *)((intptr_t)functionObjAddrOpnd->m_address + Js::RecyclableObject::GetOffsetOfType()), TyMachPtr, this->m_func,
             IR::AddrOpndKindDynamicObjectTypeRef);
     }
     else
@@ -22026,7 +22026,7 @@ Lowerer::LowerLdEnv(IR::Instr * instr)
     {
         Assert(functionObjOpnd->IsAddrOpnd());
         IR::AddrOpnd* functionObjAddrOpnd = functionObjOpnd->AsAddrOpnd();
-        IR::MemRefOpnd* functionEnvMemRefOpnd = IR::MemRefOpnd::New((void *)((intptr)functionObjAddrOpnd->m_address + Js::ScriptFunction::GetOffsetOfEnvironment()),
+        IR::MemRefOpnd* functionEnvMemRefOpnd = IR::MemRefOpnd::New((void *)((intptr_t)functionObjAddrOpnd->m_address + Js::ScriptFunction::GetOffsetOfEnvironment()),
             TyMachPtr, this->m_func, IR::AddrOpndKindDynamicFunctionEnvironmentRef);
         instr->SetSrc1(functionEnvMemRefOpnd);
     }
