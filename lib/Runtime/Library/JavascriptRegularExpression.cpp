@@ -584,11 +584,152 @@ namespace Js
 
         JavascriptRegExp* regExObj = GetJavascriptRegExp(args, L"RegExp.prototype[Symbol.match]", scriptContext);
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
-        return RegexHelper::RegexMatch(
-            scriptContext,
+
+        bool isObservable =
+            HasObservableExec(regExObj, scriptContext)
+            || HasObservableGlobalFlag(regExObj, scriptContext)
+            || HasObservableStickyFlag(regExObj, scriptContext)
+            || HasObservableUnicodeFlag(regExObj, scriptContext)
+            || HasObservableLastIndex(regExObj, scriptContext);
+        if (!isObservable)
+        {
+            return RegexHelper::RegexMatch(
+                scriptContext,
+                regExObj,
+                string,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
+        }
+        else
+        {
+            // TODO: Implement ES6 logic calling user-defined functions.
+            return RegexHelper::RegexMatch(
+                scriptContext,
+                regExObj,
+                string,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
+        }
+    }
+
+    bool JavascriptRegExp::HasObservableExec(JavascriptRegExp* regExObj, ScriptContext* scriptContext)
+    {
+        PropertyDescriptor descriptor;
+        if (GetNonProxyDescriptor(regExObj, PropertyIds::exec, scriptContext, &descriptor))
+        {
+            JavascriptFunction *builtinExec = scriptContext->GetLibrary()->GetRegexExecFunction();
+            Assert(builtinExec != nullptr);
+            return (descriptor.GetValue() != builtinExec);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    bool JavascriptRegExp::HasObservableGlobalFlag(JavascriptRegExp* regExObj, ScriptContext* scriptContext)
+    {
+        return HasObservableFlag(
             regExObj,
-            string,
-            RegexHelper::IsResultNotUsed(callInfo.Flags));
+            PropertyIds::global,
+            scriptContext->GetLibrary()->GetRegexGlobalGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableStickyFlag(JavascriptRegExp* regExObj, ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6RegExStickyEnabled())
+        {
+            return false;
+        }
+
+        return HasObservableFlag(
+            regExObj,
+            PropertyIds::sticky,
+            scriptContext->GetLibrary()->GetRegexStickyGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableUnicodeFlag(JavascriptRegExp* regExObj, ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
+        {
+            return false;
+        }
+
+        return HasObservableFlag(
+            regExObj,
+            PropertyIds::unicode,
+            scriptContext->GetLibrary()->GetRegexUnicodeGetterFunction(),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::HasObservableFlag(JavascriptRegExp* regExObj, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext)
+    {
+        Assert(!scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+               || builtinGetter != nullptr);
+
+        PropertyDescriptor descriptor;
+        RecyclableObject* descriptorInstance;
+        if (GetNonProxyDescriptor(regExObj, propertyId, scriptContext, &descriptor, &descriptorInstance))
+        {
+            if (scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
+            {
+                return (descriptor.GetGetter() != builtinGetter);
+            }
+            else
+            {
+                Assert(descriptor.IsDataDescriptor());
+                return descriptorInstance != regExObj;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool JavascriptRegExp::HasObservableLastIndex(JavascriptRegExp* regExObj, ScriptContext* scriptContext)
+    {
+        PropertyDescriptor descriptor;
+        RecyclableObject* descriptorInstance;
+        if (GetNonProxyDescriptor(regExObj, PropertyIds::lastIndex, scriptContext, &descriptor, &descriptorInstance))
+        {
+            return !descriptor.IsWritable() || descriptorInstance != regExObj;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor)
+    {
+        RecyclableObject* descriptorInstance;
+        return GetNonProxyDescriptor(instance, propertyId, scriptContext, descriptor, &descriptorInstance);
+    }
+
+    BOOL JavascriptRegExp::GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance)
+    {
+        BOOL foundDescriptor = FALSE;
+
+        *descriptorInstance = instance;
+        while (!foundDescriptor && JavascriptOperators::GetTypeId(*descriptorInstance) != TypeIds_Null)
+        {
+            // We can't guarantee that the proxy won't return a different value
+            // each time we "get" a property, so assume it does.
+            if (JavascriptProxy::Is(*descriptorInstance))
+            {
+                break;
+            }
+
+            foundDescriptor = JavascriptOperators::GetOwnPropertyDescriptor(*descriptorInstance, propertyId, scriptContext, descriptor);
+
+            if (!foundDescriptor)
+            {
+                *descriptorInstance = JavascriptOperators::GetPrototype(*descriptorInstance);
+            }
+        }
+
+        return foundDescriptor;
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
