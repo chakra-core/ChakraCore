@@ -12992,7 +12992,7 @@ GlobOpt::ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val)
                 Assert(indexValue->GetValueInfo()->IsLikelyInt());
 
                 ToInt32(instr, indexOpnd, currentBlock, indexValue, opnd->AsIndirOpnd(), false);
-                Assert(indexValue->GetValueInfo()->IsInt());
+                Assert(indexValue->GetValueInfo()->IsLikelyInt());
 
                 if(!IsLoopPrePass())
                 {
@@ -13372,16 +13372,6 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         block->globOptData.liveLossyInt32Syms->Clear(varSym->m_id);
                     }
                 }
-                if(!lossy)
-                {
-                    Assert(bailOutKind == IR::BailOutIntOnly || bailOutKind == IR::BailOutExpectingInteger);
-                    valueInfo = valueInfo->SpecializeToInt32(alloc);
-                    ChangeValueInfo(nullptr, val, valueInfo);
-                    if(needReplaceSrc)
-                    {
-                        opnd->SetValueType(valueInfo->Type());
-                    }
-                }
                 return instr;
             }
 
@@ -13541,25 +13531,6 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                         this->prePassLoop->forceFloat64SymsOnEntry->Set(symStore->m_id);
                     }
                 }
-
-                if(bailOutKind == IR::BailOutNumberOnly)
-                {
-                    if(valueInfo)
-                    {
-                        valueInfo = valueInfo->SpecializeToFloat64(alloc);
-                        ChangeValueInfo(block, val, valueInfo);
-                    }
-                    else
-                    {
-                        val = NewGenericValue(ValueType::Float);
-                        valueInfo = val->GetValueInfo();
-                        SetValue(&block->globOptData, val, varSym);
-                    }
-                    if(needReplaceSrc)
-                    {
-                        opnd->SetValueType(valueInfo->Type());
-                    }
-                }
                 return instr;
             }
 
@@ -13648,23 +13619,6 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 }
 
                 Assert(bailOutKind == IR::BailOutSimd128F4Only || bailOutKind == IR::BailOutSimd128I4Only);
-
-                // We are in loop prepass, we haven't propagated the value info to the src. Do it now.
-                if (valueInfo)
-                {
-                    valueInfo = valueInfo->SpecializeToSimd128(toType, alloc);
-                    ChangeValueInfo(block, val, valueInfo);
-                }
-                else
-                {
-                    val = NewGenericValue(GetValueTypeFromIRType(toType));
-                    valueInfo = val->GetValueInfo();
-                    SetValue(&block->globOptData, val, varSym);
-                }
-                if (needReplaceSrc)
-                {
-                    opnd->SetValueType(valueInfo->Type());
-                }
                 return instr;
             }
             GOPT_TRACE_OPND(regSrc, _u("Converting to Simd128\n"));
