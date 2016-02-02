@@ -6,7 +6,7 @@
 var a = [0];
 a[1] = 1
 a[2] = 2;
-Array.prototype[3] = 3; // Should BailOut on poping this element.
+Array.prototype[3] = 3; // Should BailOut on popping this element.
 
 a[6] = 4;
 

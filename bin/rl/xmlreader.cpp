@@ -366,7 +366,7 @@ CreateStreamOnHandle
    // an IStream object that reads a file lazily. Rather than writing our own
    // IStream implementation that does this, we just read the whole file here
    // given that XML files don't get quite large and it should be okay to keep
-   // everyting in memory.
+   // everything in memory.
 
    DWORD fileSize, fileSizeHigh, bytesRead;
    HGLOBAL buffer;

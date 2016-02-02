@@ -74,7 +74,7 @@ private:
     bool                            m_isAsmJs;
     bool                            m_switchOptBuildBail; //bool refers to whether the bail out has to be generated or not
     bool                            m_switchIntDynProfile; // bool refers to whether dynamic profile info says that the switch expression is an integer or not
-    bool                            m_switchStrDynProfile; // bool refers to whether dynamic profile info says that the switch expression is an string or not
+    bool                            m_switchStrDynProfile; // bool refers to whether dynamic profile info says that the switch expression is a string or not
     BVSparse<JitArenaAllocator> *   m_intConstSwitchCases;
     StrSwitchCaseList *             m_strConstSwitchCases;
 

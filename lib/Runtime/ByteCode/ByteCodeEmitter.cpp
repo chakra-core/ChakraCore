@@ -6006,7 +6006,7 @@ void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode,
         byteCodeGenerator->Writer()->Br(end);
         byteCodeGenerator->Writer()->MarkLabel(useDefault);
 
-        Emit(initializer, byteCodeGenerator, funcInfo, false/*isContructorCall*/);
+        Emit(initializer, byteCodeGenerator, funcInfo, false/*isConstructorCall*/);
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, rhsLocationTmp, initializer->location);
         funcInfo->ReleaseLoc(initializer);
 

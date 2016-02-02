@@ -1613,7 +1613,7 @@ if (s5a != s5) {
 write(s5a);
 
 
-//uncomment this for perf timming
+//uncomment this for perf timing
 
 //var start = new Date();
 //for (var i = 0; i < 100; i++) {

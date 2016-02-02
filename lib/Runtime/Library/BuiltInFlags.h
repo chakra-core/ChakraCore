@@ -14,7 +14,7 @@ namespace Js
     // The reason to introduce a new enum is that the types can be mixed, e.g. a built-in dst can be type spec'd to either int or float, based on src.
     // These values must be powers of 2, as some built-ins support 'mixed' specializations -- float/int.
     // Currently only used by inline.cpp.
-    enum BuiltInArgSpecizationType
+    enum BuiltInArgSpecializationType
     {
         BIAST_None = 0,
         BIAST_Float = 1,
@@ -22,7 +22,7 @@ namespace Js
         BIAST_All = (1 << BIAS_ArgSize) - 1,
     };
 
-    // Specifies shift value (number of bits) for BuiltInArgSpecizationType to get dst/src1/src2/etc type spec flag.
+    // Specifies shift value (number of bits) for BuiltInArgSpecializationType to get dst/src1/src2/etc type spec flag.
     enum BuiltInArgShift
     {
         BIAS_Dst = 0,

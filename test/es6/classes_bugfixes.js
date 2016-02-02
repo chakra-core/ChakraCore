@@ -184,7 +184,7 @@ var tests = [
         assert.areEqual(false, A.prototype.hasOwnProperty('i'), "Property 'i' should not exist in base object(A.prototype)");
         assert.areEqual(undefined, b.getA(), "Property 'i' should be undefined in base object(A.prototype)");
 
-        // other cases similiar to getter tests above
+        // other cases similar to getter tests above
 
         class Base {
             setName(v) { this._name = v; }

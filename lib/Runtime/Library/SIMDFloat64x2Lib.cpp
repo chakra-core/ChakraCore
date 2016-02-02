@@ -14,7 +14,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));    // comment out to satisfy languager service -ls -stress run
+        Assert(!(callInfo.Flags & CallFlags_New));    // comment out to satisfy language service -ls -stress run
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
 
@@ -33,7 +33,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));    // comment out to satisfy languager service -ls -stress run
+        Assert(!(callInfo.Flags & CallFlags_New));    // comment out to satisfy language service -ls -stress run
 
         if (args.Info.Count >= 2 && JavascriptSIMDFloat64x2::Is(args[1]))
         {

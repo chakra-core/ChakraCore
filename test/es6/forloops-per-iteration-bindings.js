@@ -316,7 +316,7 @@ var tests = [
         }
     },
     {
-        name: "Destructuring adds the possiblity of more than one loop variable -- quick smoke test",
+        name: "Destructuring adds the possibility of more than one loop variable -- quick smoke test",
         body: function () {
             var a = [];
             var i = 0;

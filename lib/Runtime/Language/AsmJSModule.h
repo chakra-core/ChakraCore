@@ -10,7 +10,7 @@
 #define ASMSIMD_BUILTIN_SIZE (128)
 namespace Js {
     // ModuleCompiler encapsulates the compilation of an entire asm.js module. Over
-    // the course of an ModuleCompiler object's lifetime, many FunctionCompiler
+    // the course of a ModuleCompiler object's lifetime, many FunctionCompiler
     // objects will be created and destroyed in sequence, one for each function in
     // the module.
     //

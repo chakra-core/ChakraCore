@@ -242,7 +242,7 @@ public:
             }
 
             if (ref->id == maxScopeId
-                // If we match the different maxScopeId, then this match is sufficent if it is a decl.
+                // If we match the different maxScopeId, then this match is sufficient if it is a decl.
                 // This is because the parameter scope decl would have been created before this point.
                 && ref->sym != nullptr)
             {

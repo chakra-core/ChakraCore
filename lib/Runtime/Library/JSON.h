@@ -79,7 +79,7 @@ namespace JSON
             Js::JavascriptString* &indentString, Js::JavascriptString* &memberSeparator, bool &isFirstMember, bool &isEmpty );
 
         uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator);
-        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* isPresise);
+        uint32 GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* isPrecise);
 
         JSONStack *objectStack;
 

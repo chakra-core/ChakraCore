@@ -1181,7 +1181,7 @@ namespace Js
         Assert(scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
 #ifdef PERF_COUNTERS
-        PERF_COUNTER_INC(Code, DeferedFunction);
+        PERF_COUNTER_INC(Code, DeferredFunction);
 #endif
         uint newFunctionNumber = scriptContext->GetThreadContext()->NewFunctionNumber();
         if (!sourceInfo->GetSourceContextInfo()->IsDynamic())
@@ -1696,7 +1696,7 @@ namespace Js
                 );
 
             this->Copy(funcBody);
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
 
             if (!this->GetSourceContextInfo()->IsDynamic())
             {
@@ -1961,7 +1961,7 @@ namespace Js
             );
 
         this->Copy(funcBody);
-        PERF_COUNTER_DEC(Code, DeferedFunction);
+        PERF_COUNTER_DEC(Code, DeferredFunction);
 
         if (!this->GetSourceContextInfo()->IsDynamic())
         {
@@ -2041,7 +2041,7 @@ namespace Js
             {
                 this->m_utf8SourceInfo->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             }
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
         }
     }
 
@@ -2271,7 +2271,7 @@ namespace Js
             this->m_isEval = isEval;
             this->m_isDynamicFunction = isDynamicFunction;
 
-            // It would have been better if we detect and reject large source buffer eariler before parsing
+            // It would have been better if we detect and reject large source buffer earlier before parsing
             size_t cbMin = node->sxFnc.cbMin;
             size_t lengthInBytes = node->sxFnc.LengthInBytes();
             if (cbMin > UINT_MAX || lengthInBytes > UINT_MAX)
@@ -2460,7 +2460,7 @@ namespace Js
         }
         if(!!pnode->sxFnc.HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
         {
-            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"Referencable Built in args is different on debug reparse: %s(%s)\n", this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
+            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"Referenceable Built in args is different on debug reparse: %s(%s)\n", this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
 
         pnode->sxFnc.SetChildCallsEval(this->GetChildCallsEval());
@@ -2777,7 +2777,7 @@ namespace Js
                 regex::Interval* pSourceSpan = &(statementMaps->Item(i)->sourceSpan);
                 if (FunctionBody::IsDummyGlobalRetStatement(pSourceSpan))
                 {
-                    // Workaround for handling global return, which is a empty range.
+                    // Workaround for handling global return, which is an empty range.
                     continue;
                 }
 
@@ -7591,7 +7591,7 @@ namespace Js
     {
         // DisableJIT-TODO: Move this to be under if DYNAMIC_PROFILE
 #if ENABLE_NATIVE_CODEGEN
-        // (See also the FunctionBody member written in CaptureDymamicProfileState.)
+        // (See also the FunctionBody member written in CaptureDynamicProfileState.)
         this->savedPolymorphicCacheState = entryPointInfo->GetPendingPolymorphicCacheState();
         this->savedInlinerVersion = entryPointInfo->GetPendingInlinerVersion();
         this->savedImplicitCallsFlags = entryPointInfo->GetPendingImplicitCallFlags();

@@ -650,7 +650,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n Before cannonicalizeLoops \n");
+    this->Dump(true, L"\n Before canonicalizeLoops \n");
 #endif
 
     bool breakBlockRelocated = false;
@@ -669,7 +669,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n After cannonicalizeLoops \n");
+    this->Dump(true, L"\n After canonicalizeLoops \n");
 #endif
 
     return breakBlockRelocated;

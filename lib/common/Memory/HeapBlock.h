@@ -666,7 +666,7 @@ protected:
     SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
 
     ushort GetAddressIndex(void * objectAddress);
-    ushort GetInteriorAddressIndex(void * interorAddress);
+    ushort GetInteriorAddressIndex(void * interiorAddress);
     ushort GetObjectIndexFromBitIndex(ushort bitIndex);
 
     template <SweepMode mode>

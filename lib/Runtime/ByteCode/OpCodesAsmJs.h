@@ -90,7 +90,7 @@ MACRO_WMS   ( LdSlotArr                 , ElementSlot  , None            ) // Lo
 MACRO_WMS   ( LdSlot                    , ElementSlot  , None            ) // Loads a Var from an array of Var
 MACRO_WMS   ( LdSlot_Db                 , ElementSlot  , None            ) // Loads a double from the Module
 MACRO_WMS   ( LdSlot_Int                , ElementSlot  , None            ) // Loads an Int from the Module
-MACRO_WMS   ( LdSlot_Flt                , ElementSlot  , None            ) // Loads an Float from the Module
+MACRO_WMS   ( LdSlot_Flt                , ElementSlot  , None            ) // Loads a Float from the Module
 MACRO_WMS   ( StSlot_Db                 , ElementSlot  , None            ) // Sets a double in the Module
 MACRO_WMS   ( StSlot_Int                , ElementSlot  , None            ) // Sets an Int in the Module
 MACRO_WMS   ( StSlot_Flt                , ElementSlot  , None            ) // Sets an Int in the Module

@@ -947,7 +947,7 @@ namespace Js
             {
                 //
                 // First element is not int/double
-                // create a array of length 1.
+                // create an array of length 1.
                 // Set first element as the passed Var
                 //
 
@@ -2966,7 +2966,7 @@ namespace Js
                     {
                         // This is a special case for spreadable objects. We do not pre-calculate the length
                         // in EntryConcat like we do with Arrays because a getProperty on an object Length
-                        // is observable. The result is we have to check for overflows seperately for
+                        // is observable. The result is we have to check for overflows separately for
                         // spreadable objects and promote to a bigger index type when we find them.
                         ConcatArgs<BigIndex>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, /*firstPromotedItemIsSpreadable*/true, length);
                         return;
@@ -3515,7 +3515,7 @@ namespace Js
         return fromIndex;
     }
 
-    // includesAlgorithm specifies to follow ES7 Array.prototoype.includes semantics instead of Array.prototype.indexOf
+    // includesAlgorithm specifies to follow ES7 Array.prototype.includes semantics instead of Array.prototype.indexOf
     // Differences
     //    1. Returns boolean true or false value instead of the search hit index
     //    2. Follows SameValueZero algorithm instead of StrictEquals
@@ -3583,12 +3583,12 @@ namespace Js
             {
                 if (includesAlgorithm)
                 {
-                    //Array.prorotype.includes
+                    //Array.prototype.includes
                     return (index == -1)? falseValue : trueValue;
                 }
                 else
                 {
-                    //Array.prorotype.indexOf
+                    //Array.prototype.indexOf
                     return JavascriptNumber::ToVar(index, scriptContext);
                 }
             }
@@ -3876,7 +3876,7 @@ namespace Js
 
         bool isSearchTaggedInt = TaggedInt::Is(search);
         // We need to cast head segment to SparseArraySegment<Var> to have access to GetElement (onSparseArraySegment<T>). Because there are separate overloads of this
-        // virtual method on JavascriptNativeIntArray and JavascripNativeFloatArray, we know this version of this method will only be called for true JavascriptArray, and not for
+        // virtual method on JavascriptNativeIntArray and JavascriptNativeFloatArray, we know this version of this method will only be called for true JavascriptArray, and not for
         // either of the derived native arrays, so the elements of each segment used here must be Vars. Hence, the cast is safe.
         SparseArraySegment<Var>* head = static_cast<SparseArraySegment<Var>*>(GetHead());
         uint32 toIndexTrimmed = toIndex <= head->length ? toIndex : head->length;
@@ -3892,12 +3892,12 @@ namespace Js
             }
             else if (includesAlgorithm && JavascriptConversion::SameValueZero(element, search))
             {
-                //Array.prototoype.includes
+                //Array.prototype.includes
                 return i;
             }
             else if (JavascriptOperators::StrictEqual(element, search, scriptContext))
             {
-                //Array.prototoype.indexOf
+                //Array.prototype.indexOf
                 return i;
             }
         }
@@ -3944,7 +3944,7 @@ namespace Js
         }
 
         // We need to cast head segment to SparseArraySegment<int32> to have access to GetElement (onSparseArraySegment<T>). Because there are separate overloads of this
-        // virtual method on JavascriptNativeIntArray and JavascripNativeFloatArray, we know this version of this method will only be called for  JavascriptNativeIntArray, and not for
+        // virtual method on JavascriptNativeIntArray and JavascriptNativeFloatArray, we know this version of this method will only be called for true JavascriptNativeIntArray, and not for
         // the other two, so the elements of each segment used here must be int32's. Hence, the cast is safe.
 
         SparseArraySegment<int32> * head = static_cast<SparseArraySegment<int32>*>(GetHead());
@@ -4502,7 +4502,7 @@ Case0:
     *   -   Returns int32 value from the array.
     *   -   Returns missing item when the element is not available in the array object.
     *   -   It doesn't walk up the prototype chain.
-    *   -   Length is decremented only if it pops a int32 element, in all other cases - we bail out from the jitted code.
+    *   -   Length is decremented only if it pops an int32 element, in all other cases - we bail out from the jitted code.
     *   -   This api cannot cause any implicit call and hence do not need implicit call bailout test around this api
     */
     int32 JavascriptNativeIntArray::Pop(ScriptContext * scriptContext, Var object)
@@ -9973,7 +9973,7 @@ Case0:
         if (Configuration::Global.flags.ForceES5Array)
         {
             // There's a bad interaction with the jitted code for native array creation here.
-            // forcees5array doesn't interact well with native arrays
+            // ForceES5Array doesn't interact well with native arrays
             if (PHASE_OFF1(NativeArrayPhase))
             {
                 GetTypeHandler()->ConvertToTypeWithItemAttributes(this);

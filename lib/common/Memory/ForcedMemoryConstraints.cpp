@@ -21,12 +21,12 @@ void ForcedMemoryConstraint::FragmentAddressSpace(size_t usableSize)
 {
     // AMD64 address space is too big
 #if !defined(_M_X64_OR_ARM64)
-    uint const allocationGranuality = 64 * 1024;     // 64 KB
-    Assert(allocationGranuality == AutoSystemInfo::Data.dwAllocationGranularity);
+    uint const allocationGranularity = 64 * 1024;     // 64 KB
+    Assert(allocationGranularity == AutoSystemInfo::Data.dwAllocationGranularity);
     uint64 const addressEnd = ((uint64)4) * 1024 * 1024 * 1024;
 
-    uint const freeSpaceSize = Math::Align<size_t>(usableSize, allocationGranuality);
-    void * address[addressEnd / allocationGranuality];
+    uint const freeSpaceSize = Math::Align<size_t>(usableSize, allocationGranularity);
+    void * address[addressEnd / allocationGranularity];
 
     // Reserve a contiguous usable space
     void * freeAddress = ::VirtualAlloc(NULL, freeSpaceSize, MEM_RESERVE, PAGE_NOACCESS);
@@ -34,7 +34,7 @@ void ForcedMemoryConstraint::FragmentAddressSpace(size_t usableSize)
     // Reserve the reset the address space
     for (uint i = 1; i < _countof(address); i++)
     {
-        address[i] = ::VirtualAlloc((LPVOID)(i * allocationGranuality), allocationGranuality, MEM_RESERVE, PAGE_NOACCESS);
+        address[i] = ::VirtualAlloc((LPVOID)(i * allocationGranularity), allocationGranularity, MEM_RESERVE, PAGE_NOACCESS);
     }
 
     // fragment

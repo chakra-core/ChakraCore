@@ -581,7 +581,7 @@ namespace Js
         static void AdjustSlots_Jit(DynamicObject *const object, const PropertyIndex newInlineSlotCapacity, const int newAuxSlotCapacity);
         static void AdjustSlots(DynamicObject *const object, const PropertyIndex newInlineSlotCapacity, const int newAuxSlotCapacity);
 
-        BigPropertyIndex GetPropertyIndexFromInlineSlotIndex(uint inlininlineSlotIndexeSlot);
+        BigPropertyIndex GetPropertyIndexFromInlineSlotIndex(uint inlineSlotIndexSlot);
         BigPropertyIndex GetPropertyIndexFromAuxSlotIndex(uint auxIndex);
 
     protected:

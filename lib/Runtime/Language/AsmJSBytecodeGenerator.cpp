@@ -118,7 +118,7 @@ namespace Js
         FunctionBody *funcBody = mFunction->GetFuncBody();
         funcBody->CreateConstantTable();
         Var* table = (Var*)funcBody->GetConstTable();
-        table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is erobased calculation
+        table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is zero-based calculation
 
         int* intTable = (int*)table;
         // int Return Register
@@ -256,7 +256,7 @@ namespace Js
             DefineLabels( );
             EmitAsmJsFunctionBody();
 
-            // Set that the function is asmjsFuntion in functionBody here so that Initialize ExecutionMode call later will check for that and not profile in asmjsMode
+            // Set that the function is asmjsFunction in functionBody here so that Initialize ExecutionMode call later will check for that and not profile in asmjsMode
             functionBody->SetIsAsmJsFunction(true);
             functionBody->SetIsAsmjsMode(true);
 
@@ -621,7 +621,7 @@ namespace Js
             throw AsmJsCompilationException( L"Variable declaration must happen at the top of the function" );
             break;
         case knopDot:
-            // To handle expr.signMask for now, until Bools are suppored.
+            // To handle expr.signMask for now, until Bools are supported.
             return EmitDotExpr(pnode);
         default:
             throw AsmJsCompilationException( L"Unhandled parse opcode for asm.js" );

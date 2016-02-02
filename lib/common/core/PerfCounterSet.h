@@ -120,7 +120,7 @@ namespace PerfCounter
         static Counter& GetFunctionNativeCodeSizeCounter() { return instance.GetCounter(13); }
         static Counter& GetDeferDeserializeFunctionProxyCounter() { return instance.GetCounter(14); }
         static Counter& GetDeserializedFunctionBodyCounter() { return instance.GetCounter(15); }
-        static Counter& GetDeferedFunctionCounter() { return instance.GetCounter(16); }
+        static Counter& GetDeferredFunctionCounter() { return instance.GetCounter(16); }
 
     private:
         static DefaultCounterSetInstance<CodeCounterSetDefinition> instance;

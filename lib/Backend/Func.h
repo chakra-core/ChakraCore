@@ -195,7 +195,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #elif defined(_M_X64) || defined(_M_ARM64)
     static const unsigned __int64 c_debugFillPattern = c_debugFillPattern8;
 #else
-#error unsuported platform
+#error unsupported platform
 #endif
 
 #endif

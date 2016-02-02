@@ -160,7 +160,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanObject(SmallFinalizableHeapB
     }
 
     // Since we mark through unallocated objects, we might have marked an object before it
-    // is allocated as an tracked object.   The object will not be queue up in the
+    // is allocated as a tracked object.   The object will not be queue up in the
     // tracked object list, and NewTrackBit will still be on.   Queue it up now.
 
     // NewTrackBit will also be on for tracked object that we weren't able to queue

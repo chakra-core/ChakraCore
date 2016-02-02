@@ -165,7 +165,7 @@ struct DefaultComparer<ByteBuffer*>
 
 struct IndexEntry
 {
-    BufferBuilderByte* isProprertyRecord;
+    BufferBuilderByte* isPropertyRecord;
     int id;
 };
 
@@ -174,7 +174,7 @@ struct IndexEntry
 struct StringIndexRecord
 {
     int offset;
-    bool isProprertyRecord;
+    bool isPropertyRecord;
 };
 #pragma pack(pop)
 
@@ -567,7 +567,7 @@ public:
             }
 
             // Get a pointer to the previous entry of isPropertyRecord
-            indexEntry.isProprertyRecord = static_cast<BufferBuilderByte*>(string16IndexTable.list->First());
+            indexEntry.isPropertyRecord = static_cast<BufferBuilderByte*>(string16IndexTable.list->First());
 
             // Subsequent strings indexes point one past the end. This way, the size is always computable by subtracting indexes.
             auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, L"String16 Index", stringEntry, sizeInBytes);
@@ -584,7 +584,7 @@ public:
         // we set only if the transition is from false => true. Once it is a property record, it cannot go back.
         if(isPropertyRecord)
         {
-            indexEntry.isProprertyRecord->value = isPropertyRecord;
+            indexEntry.isPropertyRecord->value = isPropertyRecord;
         }
         return indexEntry.id;
     }
@@ -2570,7 +2570,7 @@ public:
         const unaligned StringIndexRecord* record = string16IndexTable + (id - this->expectedBuildInPropertyCount);
         if(isPropertyRecord)
         {
-            *isPropertyRecord = record->isProprertyRecord;
+            *isPropertyRecord = record->isPropertyRecord;
         }
         auto offset = record->offset;
         auto addressOfString = raw + offset;

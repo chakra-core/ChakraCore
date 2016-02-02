@@ -271,13 +271,13 @@ var tests = [
 
       f(...a);
 
-      assert.isTrue(overrideCalled, "Spread of a in call to f should have invoked the overrided %ArrayIteratorPrototype%.next method");
+      assert.isTrue(overrideCalled, "Spread of a in call to f should have invoked the overridden %ArrayIteratorPrototype%.next method");
 
       overrideCalled = false;
 
       var b = [...a];
 
-      assert.isTrue(overrideCalled, "Spread of a in array initializer should have invoked the overrided %ArrayIteratorPrototype%.next method");
+      assert.isTrue(overrideCalled, "Spread of a in array initializer should have invoked the overridden %ArrayIteratorPrototype%.next method");
 
       // restore after test so we don't muck this up for others
       aip.next = aipNext;

@@ -13,7 +13,7 @@ FAULT_TYPE(MarkNoThrow)
 FAULT_TYPE(StackProbe)
 FAULT_TYPE(ScriptTermination)
 FAULT_TYPE(ScriptTerminationOnDispose)
-FAULT_TYPE(FaultInjectioSelfTest)
+FAULT_TYPE(FaultInjectionSelfTest)
 
 // custom fault types
 // e.g. FaultInterpretThunk,

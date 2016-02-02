@@ -35,7 +35,7 @@ namespace Js
         HostTypeDefault = 0,        // Used to detect engines with uninitialized host type.
         HostTypeBrowser = 1,        // Currently this implies enabled legacy language features, use it for IE.
         HostTypeApplication = 2,    // Currently this implies legacy-free language features, use it for WWA.
-        HostTypeWebview = 3,        // Webview in an WWA/XAML app with WinRT access.
+        HostTypeWebview = 3,        // Webview in a WWA/XAML app with WinRT access.
         HostTypeMin = HostTypeBrowser,
         HostTypeMax = HostTypeWebview
     };
@@ -728,7 +728,7 @@ namespace Js
 #define PHASE_ON1(phase)            (false)
 #define CUSTOM_PHASE_ON1(flags, phase) (false)
 #define PHASE_ON(phase, func)       (false)
-#define PHASE_ON_RAW(phase, sourceId, funcionId) (false)
+#define PHASE_ON_RAW(phase, sourceId, functionId) (false)
 
 #define PHASE_FORCE1(phase)         (false)
 #define CUSTOM_PHASE_FORCE1(flags, phase)         (false)

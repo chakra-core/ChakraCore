@@ -111,7 +111,7 @@ LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
     {
         Assert(this->linearScan->instrUseRegs.IsEmpty());
 
-        // MOV doesn't have a imm8 encoding for 32-bit/64-bit assignment, so if we have a register available,
+        // MOV doesn't have an imm8 encoding for 32-bit/64-bit assignment, so if we have a register available,
         // we should hoist it and generate xor reg, reg and MOV dst, reg
         BitVector regsBv;
         regsBv.Copy(this->linearScan->activeRegs);

@@ -735,7 +735,7 @@ SwitchIRBuilder::BuildBailOnNotInteger()
 ////////////////////////////////////////////////////////////////////////////////////////////
 ///
 ///SwitchIRBuilder::BuildBailOnNotString
-///     Creates the necessary bailout for a switch case that expected an string expression
+///     Creates the necessary bailout for a switch case that expected a string expression
 ///     but was not.
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////

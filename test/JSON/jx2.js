@@ -218,7 +218,7 @@ var replacerArray = [
 ]
 
 
-var spaceArrary = [
+var spaceArray = [
 { obj: null, desc: "null" },
 { obj: 4, desc: "number 4" },
 { obj: 24, desc: "number 24" },
@@ -258,15 +258,15 @@ for (var i = 0; i < objectArray.length; i++) {
 }
 
 for (var k = 0; k < replacerArray.length; k++) {
-    for (var j = 0; j < spaceArrary.length; j++) {
+    for (var j = 0; j < spaceArray.length; j++) {
         write("");
         write("");
-        write("\n*************************** JSON test stringify:  replacer: " + replacerArray[k].desc + " space: " + spaceArrary[j].desc + " *********************** ");
+        write("\n*************************** JSON test stringify:  replacer: " + replacerArray[k].desc + " space: " + spaceArray[j].desc + " *********************** ");
         for (var i = 0; i < objectArray.length; i++) {
             try {
                 write("");
                 write("------ JSON test stringify: " + objectArray[i].desc + "  ------");
-                stringifiedObj = JSON.stringify(objectArray[i].obj, replacerArray[k].obj, spaceArrary[j].obj);
+                stringifiedObj = JSON.stringify(objectArray[i].obj, replacerArray[k].obj, spaceArray[j].obj);
                 write(stringifiedObj);
                 parsedObj = JSON.parse(stringifiedObj);
                 reStringified = JSON.stringify(parsedObj);

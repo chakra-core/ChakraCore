@@ -51,8 +51,8 @@
   </test>
   <test>
     <default>
-      <files>propertyIsEnumarable.js</files>
-      <baseline>propertyIsEnumarable_2.baseline</baseline>
+      <files>propertyIsEnumerable.js</files>
+      <baseline>propertyIsEnumerable_2.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>

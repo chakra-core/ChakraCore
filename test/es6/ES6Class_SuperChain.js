@@ -503,7 +503,7 @@ var tests = [
         }
     },
     {
-        name: "Derived class constructor leaks lambda which performs super (lamdba comes from middle derived class)",
+        name: "Derived class constructor leaks lambda which performs super (lambda comes from middle derived class)",
         body: function() {
             class A {
                 constructor() {
@@ -577,7 +577,7 @@ var tests = [
         }
     },
     {
-        name: "Derived class constructor leaks lambda which references 'this' in TDZ (lamdba comes from middle derived class)",
+        name: "Derived class constructor leaks lambda which references 'this' in TDZ (lambda comes from middle derived class)",
         body: function() {
             class A {
                 constructor() {
