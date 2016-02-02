@@ -1558,7 +1558,7 @@ namespace TTD
         this->AbortReplayReturnToHost();
     }
 
-    void EventLog::RecordJsRTAllocateInt(Js::ScriptContext* ctx, uint32 ival)
+    void EventLog::RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
@@ -1578,6 +1578,17 @@ namespace TTD
         this->InsertEventAtHead(allocEvent);
     }
 
+    void EventLog::RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, size_t stringLength)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        LPCWSTR str = this->m_slabAllocator.CopyStringIntoWLength(stringValue, stringLength);
+        JsRTStringAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTStringAllocateAction>(etime, ctxTag, str);
+
+        this->InsertEventAtHead(allocEvent);
+    }
+
     void EventLog::RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
@@ -1589,6 +1600,26 @@ namespace TTD
         JsRTVarConvertAction* convertEvent = this->m_slabAllocator.SlabNew<JsRTVarConvertAction>(etime, ctxTag, toBool, toNumber, toString, vval);
 
         this->InsertEventAtHead(convertEvent);
+    }
+
+    void EventLog::RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        JsRTObjectAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTObjectAllocateAction>(etime, ctxTag, isRegularObject);
+
+        this->InsertEventAtHead(allocEvent);
+    }
+
+    void EventLog::RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        JsRTArrayAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTArrayAllocateAction>(etime, ctxTag, arrayType, length);
+
+        this->InsertEventAtHead(allocEvent);
     }
 
     void EventLog::RecordGetAndClearException(Js::ScriptContext* ctx)
@@ -1610,6 +1641,24 @@ namespace TTD
         NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_slabAllocator);
 
         JsRTGetPropertyAction* exceptionEvent = this->m_slabAllocator.SlabNew<JsRTGetPropertyAction>(etime, ctxTag, pid, val);
+
+        this->InsertEventAtHead(exceptionEvent);
+    }
+
+    void EventLog::RecordSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val)
+    {
+        uint64 etime = this->GetCurrentEventTimeAndAdvance();
+        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
+
+        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* aindex = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* aval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
+        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_slabAllocator);
+        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_slabAllocator);
+
+        JsRTSetIndexAction* exceptionEvent = this->m_slabAllocator.SlabNew<JsRTSetIndexAction>(etime, ctxTag, avar, aindex, aval);
 
         this->InsertEventAtHead(exceptionEvent);
     }

@@ -1026,15 +1026,17 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
             Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
         }
 
-        *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
-
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateString(scriptContext, stringValue, stringLength);
         }
+#endif
 
+        *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+
+#if ENABLE_TTD
         TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *string);
 #endif
 
@@ -1108,15 +1110,17 @@ STDAPI_(JsErrorCode) JsCreateObject(_Out_ JsValueRef *object)
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-        *object = scriptContext->GetLibrary()->CreateObject();
-
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, true);
         }
+#endif
 
+        *object = scriptContext->GetLibrary()->CreateObject();
+
+#if ENABLE_TTD
         TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *object);
 #endif
 
@@ -1129,15 +1133,17 @@ STDAPI_(JsErrorCode) JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFina
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(object);
 
-        *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
-
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateBasicObject(scriptContext, false);
         }
+#endif
 
+        *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
+
+#if ENABLE_TTD
         TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *object);
 #endif
 
@@ -1446,6 +1452,12 @@ STDAPI_(JsErrorCode) JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
         PARAM_NOT_NULL(result);
         *result = nullptr;
 
+        Js::PropertyDescriptor propertyDescriptorValue;
+        if (!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, scriptContext))
+        {
+            return JsErrorInvalidArgument;
+        }
+
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
@@ -1453,12 +1465,6 @@ STDAPI_(JsErrorCode) JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdR
             AssertMsg(false, "Need to implement support here!!!");
         }
 #endif
-
-        Js::PropertyDescriptor propertyDescriptorValue;
-        if (!Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, scriptContext))
-        {
-            return JsErrorInvalidArgument;
-        }
 
         *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
             Js::RecyclableObject::FromVar(object), ((Js::PropertyRecord *)propertyId)->GetPropertyId(), propertyDescriptorValue,
@@ -1478,7 +1484,7 @@ STDAPI_(JsErrorCode) JsCreateArray(_In_ unsigned int length, _Out_ JsValueRef *r
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateBasicClearArray(scriptContext, Js::TypeIds_Array, length);
         }
 #endif
 
@@ -1932,7 +1938,7 @@ STDAPI_(JsErrorCode) JsSetIndexedProperty(_In_ JsValueRef object, _In_ JsValueRe
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordSetIndex(scriptContext, object, index, value);
         }
 #endif
 

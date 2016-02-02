@@ -395,18 +395,26 @@ namespace TTD
         ////////////////////////////////
         //Host API record & replay support
 
-        //Record allocate operations
-        void RecordJsRTAllocateInt(Js::ScriptContext* ctx, uint32 ival);
+        //Record primitive allocate operations
+        void RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival);
         void RecordJsRTAllocateDouble(Js::ScriptContext* ctx, double dval);
+        void RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, size_t stringLength);
 
         //Record conversions
         void RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString);
 
+        //Record object allocate operations
+        void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);
+        void RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length);
+
         //Record GetAndClearException
         void RecordGetAndClearException(Js::ScriptContext* ctx);
 
-        //Record GetProperty
+        //Record Object Getters
         void RecordGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var);
+
+        //Record Object Setters
+        void RecordSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
 
         //Record callback registration/cancelation
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);

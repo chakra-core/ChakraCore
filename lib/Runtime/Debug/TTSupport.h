@@ -387,6 +387,18 @@ namespace TTD
             return copystr;
         }
 
+        //clone a string into the allocator of a known length
+        LPCWSTR CopyStringIntoWLength(LPCWSTR str, size_t length)
+        {
+            size_t byteLen = (length + 1) * sizeof(wchar_t);
+            wchar_t* copystr = (wchar_t*)this->SlabAllocateArray<byte>(byteLen);
+
+            memcpy(copystr, str, byteLen);
+            copystr[length] = L'\0';
+
+            return copystr;
+        }
+
         //Return the memory that contains useful data in this slab & the same as the reserved space
         void ComputeMemoryUsed(uint64* usedSpace, uint64* reservedSpace) const
         {

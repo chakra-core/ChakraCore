@@ -272,17 +272,17 @@
 #define ENABLE_TTD_IDENTITY_TRACING 1
 
 //A temp way to disable the causality tracking feature of the JsRT API (e.g., the API doesn't get changed)
-#define ENABLE_TTD_CAUSALITY_TRACKING 1
+#define ENABLE_TTD_CAUSALITY_TRACKING 0
 
 //A temp workaround with default recording actions for Node
-#define ENABLE_TTD_FORCE_RECORD_NODE 0
+#define ENABLE_TTD_FORCE_RECORD_NODE 1
 
 //A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
-#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
+#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 0
 
 //Flags to control special features turned on for debugging
-#define ENABLE_TTD_DEBUGGING 1
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 1
+#define ENABLE_TTD_DEBUGGING 0
+#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 0
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1

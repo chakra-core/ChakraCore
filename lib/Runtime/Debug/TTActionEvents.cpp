@@ -70,14 +70,26 @@ namespace TTD
         case JsRTActionType::AllocateNumber:
             res = JsRTNumberAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
+        case JsRTActionType::AllocateString:
+            res = JsRTStringAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
         case JsRTActionType::VarConvert:
             res = JsRTVarConvertAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::AllocateObject:
+            res = JsRTObjectAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::AllocateArray:
+            res = JsRTArrayAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::GetAndClearException:
             res = JsRTGetAndClearExceptionAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::GetProperty:
             res = JsRTGetPropertyAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::SetIndex:
+            res = JsRTSetIndexAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::CallbackOp:
             res = JsRTCallbackAction::CompleteParse(reader, alloc, eTime, ctxTag);
@@ -160,6 +172,44 @@ namespace TTD
         }
     }
 
+    JsRTStringAllocateAction::JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, LPCWSTR stringValue)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateString), m_stringValue(stringValue)
+    {
+        ;
+    }
+
+    JsRTStringAllocateAction::~JsRTStringAllocateAction()
+    {
+        ;
+    }
+
+    void JsRTStringAllocateAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::JavascriptString* str = Js::JavascriptString::NewCopyBuffer(this->m_stringValue, (charcount_t)wcslen(this->m_stringValue), execContext);
+
+        //since we tag in JsRT we need to tag here too
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(str));
+    }
+
+    void JsRTStringAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteString(NSTokens::Key::stringVal, this->m_stringValue, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTStringAllocateAction* JsRTStringAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        LPCWSTR str = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+
+        return alloc.SlabNew<JsRTStringAllocateAction>(eTime, ctxTag, str);
+    }
+
     JsRTVarConvertAction::JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, NSLogValue::ArgRetValue* var)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvert), m_toBool(toBool), m_toNumber(toNumber), m_toString(toString), m_var(var)
     {
@@ -224,6 +274,104 @@ namespace TTD
         NSLogValue::ParseArgRetValue(var, true, reader, alloc);
 
         return alloc.SlabNew<JsRTVarConvertAction>(eTime, ctxTag, toBool, toNumber, toString, var);
+    }
+
+    JsRTObjectAllocateAction::JsRTObjectAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isRegularObject)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateObject), m_isRegularObject(isRegularObject)
+    {
+        ;
+    }
+
+    JsRTObjectAllocateAction::~JsRTObjectAllocateAction()
+    {
+        ;
+    }
+
+    void JsRTObjectAllocateAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::RecyclableObject* res = nullptr;
+        if(this->m_isRegularObject)
+        {
+            res = execContext->GetLibrary()->CreateObject();
+        }
+        else
+        {
+            //
+            //In replay we put regular dynamic objects in place of external objects -- doesn't matter since we fake all external interaction
+            //
+            res = execContext->GetLibrary()->CreateObject();
+        }
+
+        //since we tag in JsRT we need to tag here too
+        threadContext->TTDInfo->TrackTagObject(res);
+    }
+
+    void JsRTObjectAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_isRegularObject, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTObjectAllocateAction* JsRTObjectAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        bool isRegularObject = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+        return alloc.SlabNew<JsRTObjectAllocateAction>(eTime, ctxTag, isRegularObject);
+    }
+
+    JsRTArrayAllocateAction::JsRTArrayAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::TypeId arrayType, uint32 length)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateArray), m_arrayType(arrayType), m_length(length)
+    {
+        ;
+    }
+
+    JsRTArrayAllocateAction::~JsRTArrayAllocateAction()
+    {
+        ;
+    }
+
+    void JsRTArrayAllocateAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::Var res = nullptr;
+        switch(this->m_arrayType)
+        {
+        case Js::TypeIds_Array:
+            res = execContext->GetLibrary()->CreateArray(this->m_length);
+            break;
+        default:
+            AssertMsg(false, "Unknown Array Kind for JsRT allocate array action!");
+        }
+        AssertMsg(res != nullptr, "Something went very wrong");
+
+        //since we tag in JsRT we need to tag here too
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+    }
+
+    void JsRTArrayAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteTag<Js::TypeId>(NSTokens::Key::jsTypeId, this->m_arrayType, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt32(NSTokens::Key::u32Val, this->m_length, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTArrayAllocateAction* JsRTArrayAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        Js::TypeId arrayType = reader->ReadTag<Js::TypeId>(NSTokens::Key::jsTypeId, true);
+        uint32 length = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+
+        return alloc.SlabNew<JsRTArrayAllocateAction>(eTime, ctxTag, arrayType, length);
     }
 
     JsRTGetAndClearExceptionAction::JsRTGetAndClearExceptionAction(int64 eTime, TTD_LOG_TAG ctxTag)
@@ -328,6 +476,62 @@ namespace TTD
         NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetPropertyAction>(eTime, ctxTag, pid, var);
+    }
+
+    JsRTSetIndexAction::JsRTSetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, NSLogValue::ArgRetValue* index, NSLogValue::ArgRetValue* val)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::SetIndex), m_var(var), m_index(index), m_value(val)
+    {
+        ;
+    }
+
+    JsRTSetIndexAction::~JsRTSetIndexAction()
+    {
+        ;
+    }
+
+    void JsRTSetIndexAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var var = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+        Js::Var index = NSLogValue::InflateArgRetValueIntoVar(this->m_index, execContext);
+        Js::Var value = NSLogValue::InflateArgRetValueIntoVar(this->m_value, execContext);
+
+        Js::JavascriptOperators::OP_SetElementI(var, index, value, execContext);
+    }
+
+    void JsRTSetIndexAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteKey(NSTokens::Key::index, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_index, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_value, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTSetIndexAction* JsRTSetIndexAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* index = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* value = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        reader->ReadKey(NSTokens::Key::index, true);
+        NSLogValue::ParseArgRetValue(index, false, reader, alloc);
+
+        reader->ReadKey(NSTokens::Key::argRetVal, true);
+        NSLogValue::ParseArgRetValue(value, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTSetIndexAction>(eTime, ctxTag, var, index, value);
     }
 
     JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId)
