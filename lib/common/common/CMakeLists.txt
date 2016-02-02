@@ -9,7 +9,7 @@ set (SOURCES
   Int64Math.cpp
   # Jobs.cpp
   # MathUtil.cpp
-  # NumberUtilities.cpp
+  NumberUtilities.cpp
   # NumberUtilities_strtod.cpp
   RejitReason.cpp
   # SmartFPUControl.cpp

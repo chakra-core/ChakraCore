@@ -3,8 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\UInt32Math.h"
-#include "common\NumberUtilities.inl"
+#include "common/UInt32Math.h"
+#include "common/NumberUtilities.inl"
+#include <intsafe.h>
 
 namespace Js
 {
@@ -59,8 +60,6 @@ namespace Js
 #pragma warning(disable:4035)   // Turn off warning that there is no return value
     ulong NumberUtilities::MulLu(ulong lu1, ulong lu2, ulong *pluHi)
     {
-#if _WIN32 || _WIN64
-
 #if I386_ASM
         __asm
         {
@@ -75,10 +74,6 @@ namespace Js
         *pluHi = (ulong)(llu >> 32);
         return (ulong)llu;
 #endif //!I386_ASM
-
-#else
-#error Neither _WIN32, nor _WIN64 is defined
-#endif
     }
 #pragma warning(pop)
 
