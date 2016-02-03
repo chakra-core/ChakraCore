@@ -443,6 +443,7 @@ namespace Js
         static SimpleTypeHandler<1> SharedFunctionWithPrototypeTypeHandlerV11;
         static SimpleTypeHandler<2> SharedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithLengthTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
         static SimpleTypeHandler<1> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
@@ -450,6 +451,7 @@ namespace Js
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptorsV11[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
 
     public:
 
@@ -819,8 +821,10 @@ namespace Js
         DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
         DynamicType * CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype = nullptr);
         DynamicType * CreateFunctionWithLengthType(FunctionInfo * functionInfo);
+        DynamicType * CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthType(DynamicObject * prototype, FunctionInfo * functionInfo);
+        DynamicType * CreateFunctionWithLengthAndNameType(DynamicObject * prototype, FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo);
         ScriptFunction * CreateScriptFunction(FunctionProxy* proxy);
         AsmJsScriptFunction * CreateAsmJsScriptFunction(FunctionProxy* proxy);
