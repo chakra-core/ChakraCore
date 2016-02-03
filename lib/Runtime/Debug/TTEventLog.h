@@ -414,12 +414,19 @@ namespace TTD
 
         //Record Object Getters
         void RecordJsRTGetProperty(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var);
-        void RecordJsRTOwnPropertiesInfo(Js::ScriptContext* ctx, bool isGetNames, Js::Var var);
+        void RecordJsRTGetIndex(Js::ScriptContext* ctx, Js::Var index, Js::Var var);
+        void RecordJsRTGetOwnPropertyInfo(Js::ScriptContext* ctx, Js::PropertyId pid, Js::Var var);
+        void RecordJsRTGetOwnPropertiesInfo(Js::ScriptContext* ctx, bool isGetNames, Js::Var var);
 
         //Record Object Setters
         void RecordJsRTDefineProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var propertyDescriptor);
+        void RecordJsRTDeleteProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, bool useStrictRules);
+        void RecordJsRTSetPrototype(Js::ScriptContext* ctx, Js::Var var, Js::Var proto);
         void RecordJsRTSetProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules);
         void RecordJsRTSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
+
+        //Record a constructor call from JsRT
+        void RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);
 
         //Record callback registration/cancelation
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);

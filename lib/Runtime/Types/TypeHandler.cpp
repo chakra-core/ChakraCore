@@ -718,7 +718,15 @@ namespace Js
             handler->MaxPropertyIndex = this->ExtractSlotInfo_TTD(handler->PropertyInfoArray, threadContext, alloc);
             AssertMsg(handler->MaxPropertyIndex <= handler->TotalSlotCapacity, "Huh we have more property entries than slots to put them in.");
 
-            alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex);
+            if(handler->MaxPropertyIndex != 0)
+            {
+                alloc.SlabCommitArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>(handler->MaxPropertyIndex);
+            }
+            else
+            {
+                alloc.SlabAbortArraySpace<TTD::NSSnapType::SnapHandlerPropertyEntry>();
+                handler->PropertyInfoArray = nullptr;
+            }
         }
 
         //The kind of type this snaptype record is associated with and the extensible flag

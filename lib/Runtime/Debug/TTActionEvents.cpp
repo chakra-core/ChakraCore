@@ -94,17 +94,32 @@ namespace TTD
         case JsRTActionType::GetProperty:
             res = JsRTGetPropertyAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
+        case JsRTActionType::GetIndex:
+            res = JsRTGetIndexAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::GetOwnPropertyInfo:
+            res = JsRTGetOwnPropertyInfoAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
         case JsRTActionType::GetOwnPropertiesInfo:
             res = JsRTGetOwnPropertiesInfoAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::DefineProperty:
             res = JsRTDefinePropertyAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
+        case JsRTActionType::DeleteProperty:
+            res = JsRTDeletePropertyAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::SetPrototype:
+            res = JsRTSetPrototypeAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
         case JsRTActionType::SetProperty:
             res = JsRTSetPropertyAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::SetIndex:
             res = JsRTSetIndexAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::ConstructCall:
+            res = JsRTConstructCallAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::CallbackOp:
             res = JsRTCallbackAction::CompleteParse(reader, alloc, eTime, ctxTag);
@@ -585,7 +600,6 @@ namespace TTD
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
         Js::Var cvar = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
 
-        //if this throws then that is fine (it is what happens in JsRT)
         Js::Var value = Js::JavascriptOperators::OP_GetProperty(cvar, this->m_propertyId, execContext);
 
         //otherwise tag the return value in case we see it later
@@ -619,6 +633,115 @@ namespace TTD
         return alloc.SlabNew<JsRTGetPropertyAction>(eTime, ctxTag, pid, var);
     }
 
+    JsRTGetIndexAction::JsRTGetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* index, NSLogValue::ArgRetValue* var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetIndex), m_index(index), m_var(var)
+    {
+        ;
+    }
+
+    JsRTGetIndexAction::~JsRTGetIndexAction()
+    {
+        ;
+    }
+
+    void JsRTGetIndexAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::Var index = NSLogValue::InflateArgRetValueIntoVar(this->m_index, execContext);
+        Js::Var cvar = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+
+        Js::Var value = Js::JavascriptOperators::OP_GetElementI(cvar, index, execContext);
+
+        //otherwise tag the return value in case we see it later
+        if(TTD::JsSupport::IsVarPtrValued(value))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
+        }
+    }
+
+    void JsRTGetIndexAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::index, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTGetIndexAction* JsRTGetIndexAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue* index = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+
+        reader->ReadKey(NSTokens::Key::index, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTGetIndexAction>(eTime, ctxTag, index, var);
+    }
+
+    JsRTGetOwnPropertyInfoAction::JsRTGetOwnPropertyInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::PropertyId pid, NSLogValue::ArgRetValue* var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetOwnPropertyInfo), m_propertyId(pid), m_var(var)
+    {
+        ;
+    }
+
+    JsRTGetOwnPropertyInfoAction::~JsRTGetOwnPropertyInfoAction()
+    {
+        ;
+    }
+
+    void JsRTGetOwnPropertyInfoAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var cvar = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+
+        Js::Var res = nullptr;
+        Js::PropertyDescriptor propertyDescriptorValue;
+        if(Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(cvar), this->m_propertyId, execContext, &propertyDescriptorValue))
+        {
+            res = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, execContext);
+        }
+        else
+        {
+            res = execContext->GetLibrary()->GetUndefined();
+        }
+
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+    }
+
+    void JsRTGetOwnPropertyInfoAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteUInt32(NSTokens::Key::propertyId, this->m_propertyId, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTGetOwnPropertyInfoAction* JsRTGetOwnPropertyInfoAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTGetOwnPropertyInfoAction>(eTime, ctxTag, pid, var);
+    }
+
     JsRTGetOwnPropertiesInfoAction::JsRTGetOwnPropertiesInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isGetNames, NSLogValue::ArgRetValue* var)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetOwnPropertiesInfo), m_isGetNames(isGetNames), m_var(var)
     {
@@ -644,6 +767,8 @@ namespace TTD
         {
             res = Js::JavascriptOperators::GetOwnPropertySymbols(cvar, execContext);
         }
+
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
     }
 
     void JsRTGetOwnPropertiesInfoAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
@@ -723,6 +848,106 @@ namespace TTD
         NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         return alloc.SlabNew<JsRTDefinePropertyAction>(eTime, ctxTag, var, pid, value);
+    }
+
+    JsRTDeletePropertyAction::JsRTDeletePropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, Js::PropertyId pid, bool useStrictRules)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::DeleteProperty), m_propertyId(pid), m_var(var), m_useStrictRules(useStrictRules)
+    {
+        ;
+    }
+
+    JsRTDeletePropertyAction::~JsRTDeletePropertyAction()
+    {
+        ;
+    }
+
+    void JsRTDeletePropertyAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var var = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+
+        Js::Var value = Js::JavascriptOperators::OP_DeleteProperty(var, this->m_propertyId, execContext, this->m_useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
+
+        //otherwise tag the return value in case we see it later
+        if(TTD::JsSupport::IsVarPtrValued(value))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
+        }
+    }
+
+    void JsRTDeletePropertyAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteUInt32(NSTokens::Key::propertyId, this->m_propertyId, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_useStrictRules, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTDeletePropertyAction* JsRTDeletePropertyAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
+
+        bool useStrictRules = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+        return alloc.SlabNew<JsRTDeletePropertyAction>(eTime, ctxTag, var, pid, useStrictRules);
+    }
+
+    JsRTSetPrototypeAction::JsRTSetPrototypeAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, NSLogValue::ArgRetValue* proto)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::SetPrototype), m_var(var), m_proto(proto)
+    {
+        ;
+    }
+
+    JsRTSetPrototypeAction::~JsRTSetPrototypeAction()
+    {
+        ;
+    }
+
+    void JsRTSetPrototypeAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var var = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+        Js::Var proto = NSLogValue::InflateArgRetValueIntoVar(this->m_proto, execContext);
+
+        Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(var), Js::RecyclableObject::FromVar(proto), true, execContext);
+    }
+
+    void JsRTSetPrototypeAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_proto, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTSetPrototypeAction* JsRTSetPrototypeAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue* proto = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        reader->ReadKey(NSTokens::Key::argRetVal, true);
+        NSLogValue::ParseArgRetValue(proto, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTSetPrototypeAction>(eTime, ctxTag, var, proto);
     }
 
     JsRTSetPropertyAction::JsRTSetPropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, Js::PropertyId pid, NSLogValue::ArgRetValue* value, bool useStrictRules)
@@ -835,6 +1060,83 @@ namespace TTD
         NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         return alloc.SlabNew<JsRTSetIndexAction>(eTime, ctxTag, var, index, value);
+    }
+
+    JsRTConstructCallAction::JsRTConstructCallAction(int64 eTime, TTD_LOG_TAG ctxTag, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::ConstructCall), m_functionTagId(functionTagId), m_argCount(argCount), m_argArray(argArray), m_execArgs(execArgs)
+    {
+        ;
+    }
+
+    JsRTConstructCallAction::~JsRTConstructCallAction()
+    {
+        ;
+    }
+
+    void JsRTConstructCallAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::RecyclableObject* fobj = execContext->GetThreadContext()->TTDInfo->LookupObjectForTag(this->m_functionTagId);
+        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(fobj);
+
+        Js::CallInfo callInfo((ushort)this->m_argCount);
+        for(uint32 i = 0; i < this->m_argCount; ++i)
+        {
+            const NSLogValue::ArgRetValue* aval = (this->m_argArray + i);
+            Js::Var avar = NSLogValue::InflateArgRetValueIntoVar(aval, execContext);
+
+            this->m_execArgs[i] = avar;
+        }
+        Js::Arguments jsArgs(callInfo, this->m_execArgs);
+
+        AssertMsg(!Js::ScriptFunction::Is(jsFunction), "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
+
+        Js::Var value = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, execContext);
+
+        //otherwise tag the return value in case we see it later
+        if(value != nullptr && TTD::JsSupport::IsVarPtrValued(value))
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
+        }
+    }
+
+    void JsRTConstructCallAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteLogTag(NSTokens::Key::logTag, this->m_functionTagId, NSTokens::Separator::CommaSeparator);
+        writer->WriteLengthValue(this->m_argCount, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        for(uint32 i = 0; i < this->m_argCount; ++i)
+        {
+            NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
+            NSLogValue::EmitArgRetValue(this->m_argArray + i, writer, sep);
+        }
+        writer->WriteSequenceEnd();
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTConstructCallAction* JsRTConstructCallAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        TTD_LOG_TAG ftag = reader->ReadLogTag(NSTokens::Key::logTag, true);
+
+        uint32 argc = reader->ReadLengthValue(true);
+        NSLogValue::ArgRetValue* args = (argc != 0) ? alloc.SlabAllocateArray<NSLogValue::ArgRetValue>(argc) : nullptr;
+
+        reader->ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < argc; ++i)
+        {
+            NSLogValue::ParseArgRetValue(args + i, i != 0, reader, alloc);
+        }
+        reader->ReadSequenceEnd();
+
+        Js::Var* execArgs = (argc != 0) ? alloc.SlabAllocateArray<Js::Var>(argc) : nullptr;
+
+        return alloc.SlabNew<JsRTConstructCallAction>(eTime, ctxTag, ftag, argc, args, execArgs);
     }
 
     JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId)

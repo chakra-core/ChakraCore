@@ -23,10 +23,15 @@ namespace TTD
         AllocateFunction,
         GetAndClearException,
         GetProperty,
+        GetIndex,
+        GetOwnPropertyInfo,
         GetOwnPropertiesInfo,
         DefineProperty,
+        DeleteProperty,
+        SetPrototype,
         SetProperty,
         SetIndex,
+        ConstructCall,
         CallbackOp,
         CodeParse,
         CallExistingFunctionBegin,
@@ -230,6 +235,40 @@ namespace TTD
         static JsRTGetPropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
+    //A class for getting an index from an object
+    class JsRTGetIndexAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_index;
+        NSLogValue::ArgRetValue* m_var;
+
+    public:
+        JsRTGetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* index, NSLogValue::ArgRetValue* var);
+        virtual ~JsRTGetIndexAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTGetIndexAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for getting a property descriptor info from an object
+    class JsRTGetOwnPropertyInfoAction : public JsRTActionLogEntry
+    {
+    private:
+        Js::PropertyId m_propertyId;
+        NSLogValue::ArgRetValue* m_var;
+
+    public:
+        JsRTGetOwnPropertyInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::PropertyId pid, NSLogValue::ArgRetValue* var);
+        virtual ~JsRTGetOwnPropertyInfoAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTGetOwnPropertyInfoAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
     //A class for getting own property names or symbols from an object
     class JsRTGetOwnPropertiesInfoAction : public JsRTActionLogEntry
     {
@@ -263,6 +302,41 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTDefinePropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for deleting a property on an object
+    class JsRTDeletePropertyAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_var;
+        Js::PropertyId m_propertyId;
+        bool m_useStrictRules;
+
+    public:
+        JsRTDeletePropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, Js::PropertyId pid, bool useStrictRules);
+        virtual ~JsRTDeletePropertyAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTDeletePropertyAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for setting the prototype on an object
+    class JsRTSetPrototypeAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_var;
+        NSLogValue::ArgRetValue* m_proto;
+
+    public:
+        JsRTSetPrototypeAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* var, NSLogValue::ArgRetValue* proto);
+        virtual ~JsRTSetPrototypeAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTSetPrototypeAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for setting a property on an object
@@ -300,6 +374,30 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTSetIndexAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for constructor calls
+    class JsRTConstructCallAction : public JsRTActionLogEntry
+    {
+    private:
+        //the function tag for the constructor
+        const TTD_LOG_TAG m_functionTagId;
+
+        //the number of arguments and the argument array
+        const uint32 m_argCount;
+        const NSLogValue::ArgRetValue* m_argArray;
+
+        //A buffer we can use for the actual invocation
+        Js::Var* m_execArgs;
+
+    public:
+        JsRTConstructCallAction(int64 eTime, TTD_LOG_TAG ctxTag, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs);
+        virtual ~JsRTConstructCallAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTConstructCallAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for correlating host callback ids that are registed/created/canceled by this call

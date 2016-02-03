@@ -104,7 +104,6 @@ namespace NodeSupportDefaultImpl
                 break;
             }
         }
-        AssertMsg(fpos != 0, "Need fully resolved paths!!!");
 
         res.append(uri + fpos);
     }
