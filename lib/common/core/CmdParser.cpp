@@ -584,16 +584,18 @@ int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
         switch(CurChar())
         {
         case '-' :
+            if ('-' == PeekChar())
+            {
+                //support --
+                NextChar();
+            }
+            //fallthrough
         case '/':
             NextChar();
             if('?' == CurChar())
             {
                 PrintUsage();
                 return -1;
-            }
-            else if ('-' == CurChar())
-            {
-                NextChar();
             }
             ParseFlag();
             break;
