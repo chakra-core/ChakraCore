@@ -85,6 +85,9 @@ namespace TTD
         case JsRTActionType::AllocateArray:
             res = JsRTArrayAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
+        case JsRTActionType::AllocateArrayBuffer:
+            res = JsRTArrayBufferAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
         case JsRTActionType::AllocateFunction:
             res = JsRTFunctionAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
@@ -117,6 +120,9 @@ namespace TTD
             break;
         case JsRTActionType::SetIndex:
             res = JsRTSetIndexAction::CompleteParse(reader, alloc, eTime, ctxTag);
+            break;
+        case JsRTActionType::GetTypedArrayInfo:
+            res = JsRTGetTypedArrayInfoAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::ConstructCall:
             res = JsRTConstructCallAction::CompleteParse(reader, alloc, eTime, ctxTag);
@@ -291,8 +297,8 @@ namespace TTD
         return alloc.SlabNew<JsRTSymbolAllocateAction>(eTime, ctxTag, symDescription);
     }
 
-    JsRTVarConvertAction::JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, NSLogValue::ArgRetValue* var)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvert), m_toBool(toBool), m_toNumber(toNumber), m_toString(toString), m_var(var)
+    JsRTVarConvertAction::JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, bool toObject, NSLogValue::ArgRetValue* var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvert), m_toBool(toBool), m_toNumber(toNumber), m_toString(toString), m_toObject(toObject), m_var(var)
     {
         ;
     }
@@ -317,13 +323,22 @@ namespace TTD
             if(TTD::JsSupport::IsVarPtrValued(numVal))
             {
                 threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(numVal));
-
             }
         }
         else if(this->m_toString)
         {
             Js::JavascriptString* strVal = Js::JavascriptConversion::ToString(value, execContext);
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(strVal));
+        }
+        else if(this->m_toObject)
+        {
+            Js::Var objVal = Js::JavascriptOperators::ToObject((Js::Var)value, execContext);
+
+            if(TTD::JsSupport::IsVarPtrValued(objVal))
+            {
+                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(objVal));
+
+            }
         }
         else
         {
@@ -339,6 +354,7 @@ namespace TTD
         writer->WriteBool(NSTokens::Key::boolVal, this->m_toBool, NSTokens::Separator::CommaSeparator);
         writer->WriteBool(NSTokens::Key::boolVal, this->m_toNumber, NSTokens::Separator::CommaSeparator);
         writer->WriteBool(NSTokens::Key::boolVal, this->m_toString, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_toObject, NSTokens::Separator::CommaSeparator);
 
         writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
         NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
@@ -351,12 +367,13 @@ namespace TTD
         bool toBool = reader->ReadBool(NSTokens::Key::boolVal, true);
         bool toNumber = reader->ReadBool(NSTokens::Key::boolVal, true);
         bool toString = reader->ReadBool(NSTokens::Key::boolVal, true);
+        bool toObject = reader->ReadBool(NSTokens::Key::boolVal, true);
 
         NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
         reader->ReadKey(NSTokens::Key::entry, true);
         NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
-        return alloc.SlabNew<JsRTVarConvertAction>(eTime, ctxTag, toBool, toNumber, toString, var);
+        return alloc.SlabNew<JsRTVarConvertAction>(eTime, ctxTag, toBool, toNumber, toString, toObject, var);
     }
 
     JsRTObjectAllocateAction::JsRTObjectAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isRegularObject)
@@ -455,6 +472,47 @@ namespace TTD
         uint32 length = reader->ReadUInt32(NSTokens::Key::u32Val, true);
 
         return alloc.SlabNew<JsRTArrayAllocateAction>(eTime, ctxTag, arrayType, length);
+    }
+
+    JsRTArrayBufferAllocateAction::JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* bufferData)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateArrayBuffer), m_bufferData(bufferData)
+    {
+        ;
+    }
+
+    JsRTArrayBufferAllocateAction::~JsRTArrayBufferAllocateAction()
+    {
+        ;
+    }
+
+    void JsRTArrayBufferAllocateAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+
+        Js::Var res = execContext->GetLibrary()->CreateArrayBuffer(reinterpret_cast<byte*>(this->m_bufferData->ExtraData), (uint32)this->m_bufferData->u_uint64Val);
+
+        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+    }
+
+    void JsRTArrayBufferAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_bufferData, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTArrayBufferAllocateAction* JsRTArrayBufferAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        NSLogValue::ArgRetValue* bufferData = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(bufferData, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTArrayBufferAllocateAction>(eTime, ctxTag, bufferData);
     }
 
     JsRTFunctionAllocateAction::JsRTFunctionAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isNamed, NSLogValue::ArgRetValue* name)
@@ -1060,6 +1118,53 @@ namespace TTD
         NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         return alloc.SlabNew<JsRTSetIndexAction>(eTime, ctxTag, var, index, value);
+    }
+
+    JsRTGetTypedArrayInfoAction::JsRTGetTypedArrayInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool returnsArrayBuff, NSLogValue::ArgRetValue* var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetTypedArrayInfo), m_returnsArrayBuff(returnsArrayBuff), m_var(var)
+    {
+        ;
+    }
+
+    JsRTGetTypedArrayInfoAction::~JsRTGetTypedArrayInfoAction()
+    {
+        ;
+    }
+
+    void JsRTGetTypedArrayInfoAction::ExecuteAction(ThreadContext* threadContext) const
+    {
+        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
+        Js::Var var = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
+
+        if(this->m_returnsArrayBuff)
+        {
+            Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(var);
+            threadContext->TTDInfo->TrackTagObject(typedArrayBase->GetArrayBuffer());
+        }
+    }
+
+    void JsRTGetTypedArrayInfoAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+        this->JsRTBaseEmit(writer);
+
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_returnsArrayBuff, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    JsRTGetTypedArrayInfoAction* JsRTGetTypedArrayInfoAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    {
+        bool returnsArrayBuff = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+        NSLogValue::ArgRetValue* var = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        reader->ReadKey(NSTokens::Key::entry, true);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
+
+        return alloc.SlabNew<JsRTGetTypedArrayInfoAction>(eTime, ctxTag, returnsArrayBuff, var);
     }
 
     JsRTConstructCallAction::JsRTConstructCallAction(int64 eTime, TTD_LOG_TAG ctxTag, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)

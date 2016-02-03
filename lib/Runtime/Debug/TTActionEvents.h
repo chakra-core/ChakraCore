@@ -20,6 +20,7 @@ namespace TTD
         VarConvert,
         AllocateObject,
         AllocateArray,
+        AllocateArrayBuffer,
         AllocateFunction,
         GetAndClearException,
         GetProperty,
@@ -31,6 +32,7 @@ namespace TTD
         SetPrototype,
         SetProperty,
         SetIndex,
+        GetTypedArrayInfo,
         ConstructCall,
         CallbackOp,
         CodeParse,
@@ -138,11 +140,12 @@ namespace TTD
         bool m_toBool;
         bool m_toNumber;
         bool m_toString;
+        bool m_toObject;
 
         NSLogValue::ArgRetValue* m_var;
 
     public:
-        JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, NSLogValue::ArgRetValue* var);
+        JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, bool toObject, NSLogValue::ArgRetValue* var);
         virtual ~JsRTVarConvertAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
@@ -174,10 +177,6 @@ namespace TTD
         Js::TypeId m_arrayType;
         uint32 m_length;
 
-        //
-        //TODO: add support for typed arrays and creation with explicit data buffers here.
-        //
-
     public:
         JsRTArrayAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::TypeId arrayType, uint32 length);
         virtual ~JsRTArrayAllocateAction() override;
@@ -186,6 +185,22 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTArrayAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for creating arraybuffer objects
+    class JsRTArrayBufferAllocateAction : public JsRTActionLogEntry
+    {
+    private:
+        NSLogValue::ArgRetValue* m_bufferData;
+
+    public:
+        JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* bufferData);
+        virtual ~JsRTArrayBufferAllocateAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTArrayBufferAllocateAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for creating function objects
@@ -374,6 +389,23 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static JsRTSetIndexAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+    };
+
+    //A class for getting info from a typed array
+    class JsRTGetTypedArrayInfoAction : public JsRTActionLogEntry
+    {
+    private:
+        bool m_returnsArrayBuff;
+        NSLogValue::ArgRetValue* m_var;
+
+    public:
+        JsRTGetTypedArrayInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool returnsArrayBuff, NSLogValue::ArgRetValue* var);
+        virtual ~JsRTGetTypedArrayInfoAction() override;
+
+        virtual void ExecuteAction(ThreadContext* threadContext) const override;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static JsRTGetTypedArrayInfoAction* CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for constructor calls

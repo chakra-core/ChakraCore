@@ -402,11 +402,12 @@ namespace TTD
         void RecordJsRTAllocateSymbol(Js::ScriptContext* ctx, Js::Var symbolDescription);
 
         //Record conversions
-        void RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString);
+        void RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString, bool toObject);
 
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);
         void RecordJsRTAllocateBasicClearArray(Js::ScriptContext* ctx, Js::TypeId arrayType, uint32 length);
+        void RecordJsRTAllocateArrayBuffer(Js::ScriptContext* ctx, byte* buff, uint32 size);
         void RecordJsRTAllocateFunction(Js::ScriptContext* ctx, bool isNamed, Js::Var optName);
 
         //Record GetAndClearException
@@ -424,6 +425,9 @@ namespace TTD
         void RecordJsRTSetPrototype(Js::ScriptContext* ctx, Js::Var var, Js::Var proto);
         void RecordJsRTSetProperty(Js::ScriptContext* ctx, Js::Var var, Js::PropertyId pid, Js::Var val, bool useStrictRules);
         void RecordJsRTSetIndex(Js::ScriptContext* ctx, Js::Var var, Js::Var index, Js::Var val);
+
+        //Record a get info from a typed array
+        void RecordJsRTGetTypedArrayInfo(Js::ScriptContext* ctx, bool returnsArrayBuff, Js::Var var);
 
         //Record a constructor call from JsRT
         void RecordJsRTConstructCall(Js::ScriptContext* ctx, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);

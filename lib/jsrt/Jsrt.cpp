@@ -770,7 +770,7 @@ STDAPI_(JsErrorCode) JsConvertValueToBoolean(_In_ JsValueRef value, _Out_ JsValu
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, true, false, false);
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, true, false, false, false);
         }
 #endif
 
@@ -966,7 +966,7 @@ STDAPI_(JsErrorCode) JsConvertValueToNumber(_In_ JsValueRef value, _Out_ JsValue
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, true, false);
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, true, false, false);
         }
 #endif
 
@@ -1062,7 +1062,7 @@ STDAPI_(JsErrorCode) JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValue
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, false, true);
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, false, true, false);
         }
 #endif
 
@@ -1143,7 +1143,7 @@ STDAPI_(JsErrorCode) JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValue
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTVarConversion(scriptContext, (Js::Var)value, false, false, false, true);
         }
 #endif
 
@@ -1525,7 +1525,7 @@ STDAPI_(JsErrorCode) JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_b
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTAllocateArrayBuffer(scriptContext, reinterpret_cast<BYTE*>(data), byteLength);
         }
 #endif
 
@@ -1703,7 +1703,7 @@ STDAPI_(JsErrorCode) JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ J
         ThreadContext* threadContext = currentContext->GetScriptContext()->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            AssertMsg(false, "Need to implement support here!!!");
+            threadContext->TTDLog->RecordJsRTGetTypedArrayInfo(currentContext->GetScriptContext(), arrayBuffer != nullptr, typedArray);
         }
 #endif
 
