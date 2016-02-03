@@ -20,6 +20,9 @@
 #define RT_ERROR_MSG_UNUSED_ENTRY
 #endif
 
+// These VBS macros were taken from VBScript and the names and definitions are
+// written in stone. Other projects depend on these definitions as well.
+// Keep the commented lines as documentation of values that should not be reused.
 
 RT_ERROR_MSG(VBSERR_None, 0,    "", "", kjstError, 0)
 //RT_ERROR_MSG(VBSERR_ReturnWOGoSub, 3,    "",   "Return without GoSub")
