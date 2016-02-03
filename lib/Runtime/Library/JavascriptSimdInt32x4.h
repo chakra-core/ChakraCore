@@ -50,6 +50,11 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         // End Entry Points
 
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        {
+            swprintf_s(stringBuffer, countBuffer, L"SIMD.Int32x4(%d, %d, %d, %d)", value.i32[SIMD_X], value.i32[SIMD_Y], value.i32[SIMD_Z], value.i32[SIMD_W]);
+        }
+
         Var  Copy(ScriptContext* requestContext);
         Var  CopyAndSetLaneFlag(uint index, BOOL value, ScriptContext* requestContext);
 

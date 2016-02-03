@@ -96,15 +96,10 @@ namespace Js
         JavascriptSIMDBool8x16 *instance = JavascriptSIMDBool8x16::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[1024];
+        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
-        swprintf_s(stringBuffer, 1024, L"SIMD.Bool8x16(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", \
-            value.i8[0] ? L"true" : L"false", value.i8[1] ? L"true" : L"false", value.i8[2] ? L"true" : L"false", value.i8[3] ? L"true" : L"false",\
-            value.i8[4] ? L"true" : L"false", value.i8[5] ? L"true" : L"false", value.i8[6] ? L"true" : L"false", value.i8[7] ? L"true" : L"false",\
-            value.i8[8] ? L"true" : L"false", value.i8[9] ? L"true" : L"false", value.i8[10] ? L"true" : L"false", value.i8[11] ? L"true" : L"false",\
-            value.i8[12] ? L"true" : L"false", value.i8[13] ? L"true" : L"false", value.i8[14] ? L"true" : L"false", value.i8[15] ? L"true" : L"false"
-            );
+        JavascriptSIMDBool8x16::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 
@@ -112,7 +107,6 @@ namespace Js
     }
 
     // End Entry Points
-
 
     Var JavascriptSIMDBool8x16::Copy(ScriptContext* requestContext)
     {
