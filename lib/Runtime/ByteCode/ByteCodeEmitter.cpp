@@ -507,7 +507,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     {
         // If no formals to function (only "this"), then no need to create the scope object.
         // Leave both the arguments location and the propertyIds location as null.
-        Assert(funcInfo->root->sxFnc.pnodeArgs == nullptr && !hasRest);
+        Assert(funcInfo->root->sxFnc.pnodeParams == nullptr && !hasRest);
     }
     else if (!NeedScopeObjectForArguments(funcInfo, funcInfo->root))
     {
@@ -3427,7 +3427,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
             if (pnode->sxFnc.GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());
-                if (Js::AsmJSCompiler::Compile(&context, pnode, pnode->sxFnc.pnodeArgs))
+                if (Js::AsmJSCompiler::Compile(&context, pnode, pnode->sxFnc.pnodeParams))
                 {
                     pnode = pnode->sxFnc.pnodeNext;
                     break;

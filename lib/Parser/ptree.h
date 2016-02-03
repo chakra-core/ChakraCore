@@ -218,7 +218,7 @@ struct PnFnc
     bool  isNameIdentifierRef;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
-    ParseNodePtr pnodeArgs;
+    ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeRest;
@@ -342,9 +342,7 @@ public:
     void SetFuncSymbol(Symbol *sym);
 
     ParseNodePtr GetParamScope() const;
-    ParseNodePtr *GetParamScopeRef() const;
     ParseNodePtr GetBodyScope() const;
-    ParseNodePtr *GetBodyScopeRef() const;
     ParseNodePtr GetTopLevelScope() const
     {
         // Top level scope will be the same for knopProg and knopFncDecl.

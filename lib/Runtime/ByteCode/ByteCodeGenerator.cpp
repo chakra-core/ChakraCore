@@ -2680,7 +2680,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             if (top->GetCallsEval() ||
                 top->GetChildCallsEval() ||
-                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeArgs != nullptr) ||
+                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeParams != nullptr) ||
                 top->GetHasLocalInClosure() ||
                 top->funcExprScope && top->funcExprScope->GetMustInstantiate())
             {
@@ -2703,7 +2703,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (top->GetCallsEval() ||
                     pnode->sxFnc.nestedCount != 0
                     || (top->GetHasArguments()
-                        && (pnode->sxFnc.pnodeArgs != nullptr)
+                        && (pnode->sxFnc.pnodeParams != nullptr)
                         && byteCodeGenerator->IsInDebugMode()))
                 {
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
@@ -5124,7 +5124,7 @@ bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
     }
 
     if (!fncDecl->HasVarArguments()
-        && fncDecl->sxFnc.pnodeArgs == nullptr
+        && fncDecl->sxFnc.pnodeParams == nullptr
         && fncDecl->sxFnc.pnodeRest == nullptr
         && fncDecl->sxFnc.nestedCount == 0)
     {
@@ -5193,7 +5193,7 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
 
     return funcInfo->GetHasHeapArguments()
         // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
-        && (pnodeFnc->sxFnc.pnodeArgs != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
+        && (pnodeFnc->sxFnc.pnodeParams != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
         && !dontNeedScopeObject;
 }
 

@@ -298,12 +298,12 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
             ParseNode *pnodeFnc = CreateNode(knopFncDecl);
             pnodeFnc->sxFnc.ClearFlags();
             pnodeFnc->sxFnc.SetDeclaration(false);
-            pnodeFnc->sxFnc.astSize    = 0;
-            pnodeFnc->sxFnc.pnodeVars  = nullptr;
-            pnodeFnc->sxFnc.pnodeArgs  = nullptr;
-            pnodeFnc->sxFnc.pnodeBody  = nullptr;
-            pnodeFnc->sxFnc.pnodeName = nullptr;
-            pnodeFnc->sxFnc.pnodeRest  = nullptr;
+            pnodeFnc->sxFnc.astSize      = 0;
+            pnodeFnc->sxFnc.pnodeVars    = nullptr;
+            pnodeFnc->sxFnc.pnodeParams  = nullptr;
+            pnodeFnc->sxFnc.pnodeBody    = nullptr;
+            pnodeFnc->sxFnc.pnodeName    = nullptr;
+            pnodeFnc->sxFnc.pnodeRest    = nullptr;
             pnodeFnc->sxFnc.deferredStub = nullptr;
             pnodeFnc->sxFnc.SetIsGenerator(isGenerator);
             pnodeFnc->sxFnc.SetIsAsync(isAsync);
@@ -3767,7 +3767,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         pnodeFnc->sxFnc.hintLength          = 0;
         pnodeFnc->sxFnc.isNameIdentifierRef = true;
         pnodeFnc->sxFnc.pnodeNext           = nullptr;
-        pnodeFnc->sxFnc.pnodeArgs           = nullptr;
+        pnodeFnc->sxFnc.pnodeParams         = nullptr;
         pnodeFnc->sxFnc.pnodeVars           = nullptr;
         pnodeFnc->sxFnc.funcInfo            = nullptr;
         pnodeFnc->sxFnc.deferredStub        = nullptr;
@@ -4320,7 +4320,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             AnalysisAssert(pnodeFnc);
             pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
             pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
-            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeArgs;
+            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeParams;
         }
 
         ParseNodePtr *ppnodeScopeSave = nullptr;
@@ -5026,7 +5026,7 @@ ParseNodePtr Parser::CreateDummyFuncNode(bool fDeclaration)
     pnodeFnc->sxFnc.hintLength          = 0;
     pnodeFnc->sxFnc.isNameIdentifierRef = true;
     pnodeFnc->sxFnc.pnodeNext           = nullptr;
-    pnodeFnc->sxFnc.pnodeArgs           = nullptr;
+    pnodeFnc->sxFnc.pnodeParams         = nullptr;
     pnodeFnc->sxFnc.pnodeVars           = nullptr;
     pnodeFnc->sxFnc.funcInfo            = nullptr;
     pnodeFnc->sxFnc.deferredStub        = nullptr;
@@ -5569,7 +5569,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         pnodeFnc->sxFnc.isNameIdentifierRef = true;
         pnodeFnc->sxFnc.pnodeName           = nullptr;
         pnodeFnc->sxFnc.pnodeScopes         = nullptr;
-        pnodeFnc->sxFnc.pnodeArgs           = nullptr;
+        pnodeFnc->sxFnc.pnodeParams         = nullptr;
         pnodeFnc->sxFnc.pnodeVars           = nullptr;
         pnodeFnc->sxFnc.pnodeBody           = nullptr;
         pnodeFnc->sxFnc.nestedCount         = 0;
@@ -6746,7 +6746,7 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
 
     pnodeBlock = StartParseBlock<true>(PnodeBlockType::Parameter, ScopeType_Parameter);
     pnodeFncGenerator->sxFnc.pnodeScopes = pnodeBlock;
-    m_ppnodeVar = &pnodeFncGenerator->sxFnc.pnodeArgs;
+    m_ppnodeVar = &pnodeFncGenerator->sxFnc.pnodeParams;
 
     ppnodeScopeSave = m_ppnodeScope;
 
@@ -10073,7 +10073,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     m_pnestedCount = &pnodeProg->sxFnc.nestedCount;
     m_inDeferredNestedFunc = false;
 
-    pnodeProg->sxFnc.pnodeArgs = nullptr;
+    pnodeProg->sxFnc.pnodeParams = nullptr;
     pnodeProg->sxFnc.pnodeVars = nullptr;
     pnodeProg->sxFnc.pnodeRest = nullptr;
     m_ppnodeVar = &pnodeProg->sxFnc.pnodeVars;
@@ -10400,7 +10400,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
     SetCurrentStatement(nullptr);
 
     pnodeFnc->sxFnc.pnodeVars = nullptr;
-    pnodeFnc->sxFnc.pnodeArgs = nullptr;
+    pnodeFnc->sxFnc.pnodeParams = nullptr;
     pnodeFnc->sxFnc.pnodeBody = nullptr;
     pnodeFnc->sxFnc.nestedCount = 0;
 
@@ -10422,7 +10422,7 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
     {
         m_pscan->Scan();
 
-        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeArgs;
+        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeParams;
         this->ParseFncFormals<true>(pnodeFnc, fFncNoFlgs);
 
         if (m_token.tk == tkRParen)
@@ -10544,17 +10544,6 @@ ParseNodePtr PnFnc::GetParamScope() const
     return this->pnodeScopes->sxBlock.pnodeScopes;
 }
 
-ParseNodePtr * PnFnc::GetParamScopeRef() const
-{
-    if (this->pnodeScopes == nullptr)
-    {
-        return nullptr;
-    }
-    Assert(this->pnodeScopes->nop == knopBlock &&
-           this->pnodeScopes->sxBlock.pnodeNext == nullptr);
-    return &this->pnodeScopes->sxBlock.pnodeScopes;
-}
-
 ParseNodePtr PnFnc::GetBodyScope() const
 {
     if (this->pnodeBodyScope == nullptr)
@@ -10564,17 +10553,6 @@ ParseNodePtr PnFnc::GetBodyScope() const
     Assert(this->pnodeBodyScope->nop == knopBlock &&
            this->pnodeBodyScope->sxBlock.pnodeNext == nullptr);
     return this->pnodeBodyScope->sxBlock.pnodeScopes;
-}
-
-ParseNodePtr * PnFnc::GetBodyScopeRef() const
-{
-    if (this->pnodeBodyScope == nullptr)
-    {
-        return nullptr;
-    }
-    Assert(this->pnodeBodyScope->nop == knopBlock &&
-           this->pnodeBodyScope->sxBlock.pnodeNext == nullptr);
-    return &this->pnodeBodyScope->sxBlock.pnodeScopes;
 }
 
 // Create node versions with explicit token limits
@@ -12195,7 +12173,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
           Output::Print(L"fn decl %d nested %d anonymous (%d-%d)\n",pnode->sxFnc.IsDeclaration(),pnode->sxFnc.IsNested(),pnode->ichMin,pnode->ichLim);
       }
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
-      PrintFormalsWIndent(pnode->sxFnc.pnodeArgs, indentAmt + INDENT_SIZE);
+      PrintFormalsWIndent(pnode->sxFnc.pnodeParams, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeRest, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFnc.pnodeBody, indentAmt + INDENT_SIZE);
       break;

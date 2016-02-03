@@ -68,7 +68,7 @@ namespace Js
     {
         Assert( node->nop == knopFncDecl );
         PnFnc func = node->sxFnc;
-        ParseNode* first = func.pnodeArgs;
+        ParseNode* first = func.pnodeParams;
         // throws OOM on uint16 overflow
         for( ParseNode* pnode = first; pnode; pnode = pnode->sxVar.pnodeNext, UInt16Math::Inc(numformals));
         return first;
