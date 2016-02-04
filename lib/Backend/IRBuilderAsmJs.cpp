@@ -331,7 +331,7 @@ IRBuilderAsmJs::BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type)
 IR::RegOpnd *
 IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
-    Js::Var * constTable = static_cast<Js::Var *>(m_func->GetJnFunction()->GetConstTable());
+    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
     int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
     uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
 
@@ -695,7 +695,7 @@ IRBuilderAsmJs::BuildConstantLoads()
     uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
     uint32 floatConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetFloatConstCount();
     uint32 doubleConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetDoubleConstCount();
-    Js::Var * constTable = static_cast<Js::Var *>(m_func->GetJnFunction()->GetConstTable());
+    Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
 
     // Load FrameDisplay
     IR::RegOpnd * dstOpnd = BuildDstOpnd(AsmJsRegSlots::ModuleMemReg, TyVar);
