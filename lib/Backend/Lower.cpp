@@ -14897,7 +14897,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     {
         // Just use the offset to indirect into the string buffer
         charIndirOpnd = IR::IndirOpnd::New(bufferOpnd, indirOpnd->GetOffset() * sizeof(wchar_t), TyUint16, this->m_func);
-        index32CmpOpnd = IR::IntConstOpnd::New(indirOpnd->GetOffset(), TyUint32, this->m_func);
+        index32CmpOpnd = IR::IntConstOpnd::New((uint32)indirOpnd->GetOffset(), TyUint32, this->m_func);
     }
 
     // Check if the index is in range of the string length
