@@ -1762,7 +1762,6 @@ namespace Js
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
-                (*ppSourceInfo)->SetIsLibraryCode();
             }
 
 #if DBG_DUMP
@@ -1787,6 +1786,12 @@ namespace Js
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             *ppSourceInfo = Utf8SourceInfo::New(this, script, parser.GetSourceIchLim(), cb, pSrcInfo);
             (*ppSourceInfo)->SetParseFlags(grfscr);
+
+            if (isLibraryCode)
+            {
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser.GetSourceIchLim(), /* isCesu8*/ false);
 
             JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);

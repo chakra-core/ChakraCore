@@ -379,6 +379,20 @@
     } JsMemoryEventType;
 
     /// <summary>
+    ///     Attribute mask for JsParseScriptWithFlags
+    /// </summary>
+    typedef enum _JsParseScriptAttributes {
+        /// <summary>
+        ///     Default attribute
+        /// </summary>
+        JsParseScriptAttributeNone = 0x0,
+        /// <summary>
+        ///     Specified script is internal and non-user code. Hidden from debugger
+        /// </summary>
+        JsParseScriptAttributeLibraryCode = 0x1
+    } JsParseScriptAttributes;
+
+    /// <summary>
     ///     User implemented callback routine for memory allocation events
     /// </summary>
     /// <remarks>
@@ -811,20 +825,6 @@
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,
             _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Attribute mask for JsParseScriptWithFlags
-    /// </summary>
-    typedef enum _JsParseScriptAttributes {
-        /// <summary>
-        ///     Default attribute
-        /// </summary>
-        JsParseScriptAttributeNone = 0x0,
-        /// <summary>
-        ///     Specified script is internal and non-user code. Hidden from debugger
-        /// </summary>
-        JsParseScriptAttributeLibraryCode = 0x1
-    } JsParseScriptAttributes;
 
     /// <summary>
     ///     Parses a script and returns a function representing the script.
