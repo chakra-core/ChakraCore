@@ -174,8 +174,8 @@ namespace Js
         , codeSize(0)
         , bailOutRecordBytes(0)
         , bailOutOffsetBytes(0)
-        , debugContext(nullptr)
 #endif
+        , debugContext(nullptr)
     {
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
        // are field init and those dtor will be called if exception occurs
@@ -1589,7 +1589,7 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1668,7 +1668,12 @@ namespace Js
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
 
-            // ToDo (SaAgarwa): HACK - Needs to be removed
+            if (isLibraryCode)
+            {
+                grfscr |= fscrIsLibraryCode;
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             if (sourceContextInfo->url != nullptr && _wcsicmp(sourceContextInfo->url, L"chakra_debug.js") == 0)
             {
                 grfscr |= fscrIsLibraryCode;
@@ -1695,7 +1700,7 @@ namespace Js
                 Assert(!disableAsmJs);
 
                 pse->Clear();
-                return LoadScript(script, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, true);
+                return LoadScript(script, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
             }
 
             if (pFunction != nullptr && this->IsProfiling())
@@ -1716,7 +1721,7 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1760,6 +1765,11 @@ namespace Js
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
 
+            if (isLibraryCode)
+            {
+                grfscr |= fscrIsLibraryCode;
+            }
+
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
             {
@@ -1782,6 +1792,12 @@ namespace Js
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             *ppSourceInfo = Utf8SourceInfo::New(this, script, parser.GetSourceIchLim(), cb, pSrcInfo);
             (*ppSourceInfo)->SetParseFlags(grfscr);
+
+            if (isLibraryCode)
+            {
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser.GetSourceIchLim(), /* isCesu8*/ false);
 
             JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
@@ -1791,7 +1807,7 @@ namespace Js
                 Assert(!disableAsmJs);
 
                 pse->Clear();
-                return LoadScript(script, cb, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, true);
+                return LoadScript(script, cb, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
             }
 
             if (pFunction != nullptr && this->IsProfiling())
