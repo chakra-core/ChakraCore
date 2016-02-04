@@ -386,7 +386,7 @@ var tests = [
     },
     {
         name: "RegExp.prototype[@@match] exists",
-        body: verifySymbolMethodExistence.bind(undefined, Symbol.search)
+        body: verifySymbolMethodExistence.bind(undefined, Symbol.match)
     },
     {
         name: "RegExp.prototype[@@match] has the correct name",
