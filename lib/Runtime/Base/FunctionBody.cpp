@@ -29,6 +29,7 @@
 #include "Language\InterpreterStackFrame.h"
 #include "Library\ModuleRoot.h"
 #include "Types\PathTypeHandler.h"
+#include "Common\MathUtil.h"
 
 namespace Js
 {
@@ -55,6 +56,213 @@ namespace Js
     }
 #endif
 
+
+    template<typename FIELDS, uint8 size, uint8 _MaxCount>
+    AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix()
+    {
+        this->count = AuxPtrsFix<FIELDS, 16>::MaxCount;
+        for (uint8 i = 0; i < count; i++)
+        {
+            this->type[i] = FIELDS::e_invalid;
+        }
+    }
+
+    template<typename FIELDS, uint8 size, uint8 _MaxCount>
+    AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16)
+    {
+        this->count = AuxPtrsFix<FIELDS, 32>::MaxCount;
+        for (uint8 i = 0; i < AuxPtrsFix<FIELDS, 16>::MaxCount; i++)
+        {
+            this->type[i] = ptr16->type[i];
+            this->ptr[i] = ptr16->ptr[i];
+        }
+        for (uint8 i = AuxPtrsFix<FIELDS, 16>::MaxCount; i < count; i++)
+        {
+            this->type[i] = FIELDS::e_invalid;
+        }
+    }
+    template<typename FIELDS, uint8 size, uint8 _MaxCount>
+    inline void* AuxPtrsFix<FIELDS, size, _MaxCount>::get(FIELDS e)
+    {
+        if (_MaxCount == 1)
+        {
+            // specialize for x64 one pointer case
+            return e == type[0] ? ptr[0] : nullptr;
+        }
+
+        for (uint8 i = 0; i < count; i++)
+        {
+            if (type[i] == e)
+            {
+                return ptr[i];
+            }
+        }
+        return nullptr;
+    }
+    template<typename FIELDS, uint8 size, uint8 _MaxCount>
+    inline bool AuxPtrsFix<FIELDS, size, _MaxCount>::set(FIELDS e, void* p)
+    {
+        for (uint8 i = 0; i < count; i++)
+        {
+            if (type[i] == e || type[i] == FIELDS::e_invalid)
+            {
+                ptr[i] = p;
+                type[i] = e;
+                return true;
+            }
+        }
+        return false;
+    }
+    template<class T, typename FIELDS>
+    AuxPtrs<T, FIELDS>::AuxPtrs(uint8 capacity, AuxPtrs32* ptr32)
+    {
+        Assert(ptr32->count >= AuxPtrs32::MaxCount);
+        this->count = ptr32->count;
+        this->capacity = capacity;
+        memset(offsets, FIELDS::e_invalid, FIELDS::e_max);
+        for (uint8 i = 0; i < ptr32->count; i++)
+        {
+            offsets[ptr32->type[i]] = (FIELDS)i;
+            ptrs[i] = ptr32->ptr[i];
+        }
+    }
+    template<class T, typename FIELDS>
+    AuxPtrs<T, FIELDS>::AuxPtrs(uint8 capacity, AuxPtrs* ptr)
+    {
+        memcpy(this, ptr, sizeof(AuxPtrs) + (ptr->count - 1)*sizeof(void*));
+        this->capacity = capacity;
+    }
+    template<class T, typename FIELDS>
+    inline void* AuxPtrs<T, FIELDS>::get(FIELDS e)
+    {
+        return offsets[e] == FIELDS::e_invalid ? nullptr : ptrs[offsets[e]];
+    }
+    template<class T, typename FIELDS>
+    inline bool AuxPtrs<T, FIELDS>::set(FIELDS e, void* p)
+    {
+        if (offsets[e] != FIELDS::e_invalid)
+        {
+            ptrs[offsets[e]] = p;
+            return true;
+        }
+        else
+        {
+            if (count == capacity)
+            {
+                // need to expand
+                return false;
+            }
+            else
+            {
+                offsets[e] = (FIELDS)count++;
+                ptrs[offsets[e]] = p;
+                return true;
+            }
+        }
+    }
+
+    template<class T, typename FIELDS>
+    void AuxPtrs<T, FIELDS>::allocAuxPtrFix(T* _this, uint8 size, Recycler* recycler)
+    {
+        if (size == 16)
+        {
+            _this->auxPtrs = (AuxPtrs<T, FIELDS>*)RecyclerNewWithBarrierStructZ(recycler, AuxPtrs16);
+        }
+        else if (size == 32)
+        {
+            _this->auxPtrs = (AuxPtrs<T, FIELDS>*)RecyclerNewWithBarrierPlusZ(recycler, 0, AuxPtrs32, (AuxPtrs16*)(void*)_this->auxPtrs);
+        }
+        else
+        {
+            Assert(false);
+        }
+    }
+
+    template<class T, typename FIELDS>
+    void AuxPtrs<T, FIELDS>::allocAuxPtr(T* _this, uint8 count, Recycler* recycler)
+    {
+        Assert(count >= AuxPtrs32::MaxCount);
+        auto requestSize = sizeof(AuxPtrs<T, FIELDS>) + (count - 1)*sizeof(void*);
+        auto allocSize = ::Math::Align<uint8>((uint8)requestSize, 16);
+        auto capacity = (uint8)((allocSize - offsetof(AuxPtrsT, ptrs)) / sizeof(void*));
+
+        if (_this->auxPtrs->count != AuxPtrs32::MaxCount) // expanding
+        {
+            _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, _this->auxPtrs);
+        }
+        else // promoting
+        {
+            _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, (AuxPtrs32*)(void*)_this->auxPtrs);
+        }
+    }
+
+    //static void* get_AuxPtr(T* _this, FIELDS e, Recycler* recycler) const;
+    //static void set_AuxPtr(T* _this, FIELDS e, void* ptr, Recycler* recycler);
+    template<class T, typename FIELDS>
+    inline void* AuxPtrs<T, FIELDS>::get_AuxPtr(const T* _this, FIELDS e)
+    {
+        if (_this->auxPtrs == nullptr)
+        {
+            return nullptr;
+        }
+        if (_this->auxPtrs->count == AuxPtrs16::MaxCount)
+        {
+            return ((AuxPtrs16*)(void*)_this->auxPtrs)->get(e);
+        }
+        if (_this->auxPtrs->count == AuxPtrs32::MaxCount)
+        {
+            return ((AuxPtrs32*)(void*)_this->auxPtrs)->get(e);
+        }
+        return _this->auxPtrs->get(e);
+    }
+    template<class T, typename FIELDS>
+    void AuxPtrs<T, FIELDS>::set_AuxPtr(T* _this, FIELDS e, void* ptr, Recycler* recycler)
+    {
+        if (ptr == nullptr && get_AuxPtr(_this, e) == nullptr)
+        {
+            return;
+        }
+        if (_this->auxPtrs == nullptr)
+        {
+            AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtrFix(_this, 16, recycler);
+            bool ret = ((AuxPtrs16*)(void*)_this->auxPtrs)->set(e, ptr);
+            Assert(ret);
+            return;
+        }
+        if (_this->auxPtrs->count == AuxPtrs16::MaxCount)
+        {
+            bool ret = ((AuxPtrs16*)(void*)_this->auxPtrs)->set(e, ptr);
+            if (ret)
+            {
+                return;
+            }
+            else
+            {
+                AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtrFix(_this, 32, recycler);
+            }
+        }
+        if (_this->auxPtrs->count == AuxPtrs32::MaxCount)
+        {
+            bool ret = ((AuxPtrs32*)(void*)_this->auxPtrs)->set(e, ptr);
+            if (ret)
+            {
+                return;
+            }
+            else
+            {
+                AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtr(_this, AuxPtrs32::MaxCount + 1, recycler);
+            }
+        }
+
+        bool ret = _this->auxPtrs->set(e, ptr);
+        if (!ret)
+        {
+            AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtr(_this, _this->auxPtrs->count + 1, recycler);
+            ret = _this->auxPtrs->set(e, ptr);
+            Assert(ret);
+        }
+    }
+
     // FunctionProxy methods
     FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, int nestedCount, int derivedSize, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
         FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
@@ -66,15 +274,23 @@ namespace Js
         m_utf8SourceInfo(utf8SourceInfo),
         m_referenceInParentFunction(nullptr),
         m_functionNumber(functionNumber),
-        m_defaultEntryPointInfo(nullptr),
-        m_functionObjectTypeList(nullptr)
+        m_defaultEntryPointInfo(nullptr)
     {
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
+    inline void* FunctionProxy::get_AuxPtr(AUXPTRS e) const
+    {
+        return auxPtrs->get_AuxPtr(this, e);
+    }
+    inline void FunctionProxy::set_AuxPtr(FunctionProxy::AUXPTRS e, void* ptr)
+    {
+        return auxPtrs->set_AuxPtr(this, e, ptr, m_scriptContext->GetRecycler());
+    }
+
     uint FunctionProxy::GetSourceContextId() const
     {
-        return m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId;
+        return this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId;
     }
 
     wchar_t* FunctionProxy::GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const
@@ -101,13 +317,13 @@ namespace Js
     LPCUTF8
     ParseableFunctionInfo::GetSource(const wchar_t* reason) const
     {
-        return this->m_utf8SourceInfo->GetSource(reason == nullptr ? L"ParseableFunctionInfo::GetSource" : reason) + this->StartOffset();
+        return this->GetUtf8SourceInfo()->GetSource(reason == nullptr ? L"ParseableFunctionInfo::GetSource" : reason) + this->StartOffset();
     }
 
     LPCUTF8
     ParseableFunctionInfo::GetStartOfDocument(const wchar_t* reason) const
     {
-        return this->m_utf8SourceInfo->GetSource(reason == nullptr ? L"ParseableFunctionInfo::GetStartOfDocument" : reason);
+        return this->GetUtf8SourceInfo()->GetSource(reason == nullptr ? L"ParseableFunctionInfo::GetStartOfDocument" : reason);
     }
 
     bool
@@ -157,7 +373,7 @@ namespace Js
         if (!statementMaps)
         {
             statementMaps = RecyclerNew(recycler, StatementMapList, recycler);
-            this->pStatementMaps = statementMaps;
+            this->SetStatementMaps(statementMaps);
         }
 
         statementMaps->Add(pStatementMap);
@@ -297,7 +513,7 @@ namespace Js
     // in utf8SourceInfo map whose source range is unknown and can't be reparsed.)
     void FunctionBody::FinishSourceInfo()
     {
-        m_utf8SourceInfo->SetFunctionBody(this);
+        this->GetUtf8SourceInfo()->SetFunctionBody(this);
     }
 
     RegSlot FunctionBody::GetFrameDisplayRegister() const
@@ -416,14 +632,12 @@ namespace Js
         m_hasFinally(false),
 #if ENABLE_PROFILE_INFO
         dynamicProfileInfo(nullptr),
-        polymorphicCallSiteInfoHead(nullptr),
 #endif
         savedInlinerVersion(0),
 #if ENABLE_NATIVE_CODEGEN
         savedImplicitCallsFlags(ImplicitCall_HasNoInfo),
 #endif
         savedPolymorphicCacheState(0),
-        functionBailOutRecord(nullptr),
         hasExecutionDynamicProfileInfo(false),
         m_hasAllNonLocalReferenced(false),
         m_hasSetIsObject(false),
@@ -436,7 +650,6 @@ namespace Js
         m_hasDoneAllNonLocalReferenced(false),
         m_hasFunctionCompiledSent(false),
         byteCodeCache(nullptr),
-        stackNestedFuncParent(nullptr),
         localClosureRegister(Constants::NoRegister),
         localFrameDisplayRegister(Constants::NoRegister),
         envRegister(Constants::NoRegister),
@@ -448,24 +661,11 @@ namespace Js
         debuggerScopeIndex(0),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
-        auxBlock(nullptr),
-        auxContextBlock(nullptr),
         byteCodeBlock(nullptr),
         entryPoints(nullptr),
-        loopHeaderArray(nullptr),
         m_constTable(nullptr),
-        literalRegexes(nullptr),
-        asmJsFunctionInfo(nullptr),
-        asmJsModuleInfo(nullptr),
-        m_codeGenRuntimeData(nullptr),
-        m_codeGenGetSetRuntimeData(nullptr),
-        pStatementMaps(nullptr),
         inlineCaches(nullptr),
-        polymorphicInlineCachesHead(nullptr),
         cacheIdToPropertyIdMap(nullptr),
-        referencedPropertyIdMap(nullptr),
-        propertyIdsForScopeSlotArray(nullptr),
-        propertyIdOnRegSlotsContainer(nullptr),
         executionMode(ExecutionMode::Interpreter),
         interpreterLimit(0),
         autoProfilingInterpreter0Limit(0),
@@ -476,7 +676,6 @@ namespace Js
         fullJitThreshold(0),
         fullJitRequeueThreshold(0),
         committedProfiledIterations(0),
-        simpleJitEntryPointInfo(nullptr),
         wasCalledFromLoop(false),
         hasScopeObject(false),
         hasNestedLoop(false),
@@ -550,18 +749,6 @@ namespace Js
     }
 
     ByteBlock*
-    FunctionBody::GetAuxiliaryData()
-    {
-        return this->auxBlock;
-    }
-
-    ByteBlock*
-    FunctionBody::GetAuxiliaryContextData()
-    {
-        return this->auxContextBlock;
-    }
-
-    ByteBlock*
     FunctionBody::GetByteCode()
     {
         return this->byteCodeBlock;
@@ -579,12 +766,6 @@ namespace Js
         {
             return this->GetByteCode();
         }
-    }
-
-    const ByteCodeCache *
-    FunctionBody::GetByteCodeCache() const
-    {
-        return byteCodeCache;
     }
 
     const int
@@ -755,7 +936,7 @@ namespace Js
     void
     FunctionBody::CheckEmpty()
     {
-        AssertMsg((this->byteCodeBlock == nullptr) && (this->auxBlock == nullptr) && (this->auxContextBlock == nullptr), "Function body may only be set once");
+        AssertMsg((this->byteCodeBlock == nullptr) && (this->GetAuxiliaryData() == nullptr) && (this->GetAuxiliaryContextData() == nullptr), "Function body may only be set once");
     }
 
 
@@ -910,9 +1091,9 @@ namespace Js
     bool
     ParseableFunctionInfo::IsTrackedPropertyId(PropertyId pid)
     {
-        Assert(this->m_boundPropertyRecords != nullptr);
+        Assert(this->GetBoundPropertyRecords() != nullptr);
 
-        PropertyRecordList* trackedProperties = this->m_boundPropertyRecords;
+        PropertyRecordList* trackedProperties = this->GetBoundPropertyRecords();
         const PropertyRecord* prop = nullptr;
         if (trackedProperties->TryGetValue(pid, &prop))
         {
@@ -927,14 +1108,14 @@ namespace Js
     PropertyId
     ParseableFunctionInfo::GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName)
     {
-        Assert(this->m_boundPropertyRecords != nullptr);
+        Assert(this->GetBoundPropertyRecords() != nullptr);
 
         const Js::PropertyRecord* propRecord = nullptr;
 
         this->m_scriptContext->GetOrAddPropertyRecord(propName, &propRecord);
 
         PropertyId pid = propRecord->GetPropertyId();
-        this->m_boundPropertyRecords->Item(pid, propRecord);
+        this->GetBoundPropertyRecords()->Item(pid, propRecord);
 
         return pid;
     }
@@ -1020,15 +1201,15 @@ namespace Js
         CopyDeferParseField(m_dontInline);
         CopyDeferParseField(m_inParamCount);
         CopyDeferParseField(m_grfscr);
-        CopyDeferParseField(m_scopeInfo);
+        other->SetScopeInfo(this->GetScopeInfo());
         CopyDeferParseField(m_utf8SourceHasBeenSet);
 #if DBG
         CopyDeferParseField(deferredParseNextFunctionId);
         CopyDeferParseField(scopeObjectSize);
 #endif
         CopyDeferParseField(scopeSlotArraySize);
-        CopyDeferParseField(cachedSourceString);
-        CopyDeferParseField(deferredStubs);
+        other->SetCachedSourceString(this->GetCachedSourceString());
+        other->SetDeferredStubs(this->GetDeferredStubs());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
 #undef CopyDeferParseField
@@ -1139,14 +1320,10 @@ namespace Js
       m_columnNumber(0),
       m_isEval(false),
       m_isDynamicFunction(false),
-      m_scopeInfo(nullptr),
       m_displayName(nullptr),
       m_displayNameLength(0),
       m_displayShortNameOffset(0),
-      deferredStubs(nullptr),
       scopeSlotArraySize(0),
-      cachedSourceString(nullptr),
-      m_boundPropertyRecords(propertyRecords),
       m_reparsed(false),
       m_isAsmJsFunction(false),
 #if DBG
@@ -1155,6 +1332,7 @@ namespace Js
 #endif
       isByteCodeDebugMode(false)
     {
+        SetBoundPropertyRecords(propertyRecords);
         if ((attributes & Js::FunctionInfo::DeferredParse) == 0)
         {
             void* validationCookie = nullptr;
@@ -1213,7 +1391,7 @@ namespace Js
 
     DWORD_PTR FunctionProxy::GetSecondaryHostSourceContext() const
     {
-        return this->m_utf8SourceInfo->GetSecondaryHostSourceContext();
+        return this->GetUtf8SourceInfo()->GetSecondaryHostSourceContext();
     }
 
     DWORD_PTR FunctionProxy::GetHostSourceContext() const
@@ -1228,7 +1406,7 @@ namespace Js
 
     SRCINFO const * FunctionProxy::GetHostSrcInfo() const
     {
-        return m_utf8SourceInfo->GetSrcInfo();
+        return this->GetUtf8SourceInfo()->GetSrcInfo();
     }
 
     //
@@ -1378,7 +1556,7 @@ namespace Js
         Assert(pnodeFnc->nop == knopFncDecl);
 
         Recycler *recycler = GetScriptContext()->GetRecycler();
-        this->deferredStubs = BuildDeferredStubTree(pnodeFnc, recycler);
+        this->SetDeferredStubs(BuildDeferredStubTree(pnodeFnc, recycler));
     }
 
     FunctionProxyArray ParseableFunctionInfo::GetNestedFuncArray()
@@ -1402,7 +1580,7 @@ namespace Js
 
             if (!this->GetSourceContextInfo()->IsDynamic() && nestedFunc->IsDeferredParseFunction() && nestedFunc->GetParseableFunctionInfo()->GetIsDeclaration() && this->GetIsTopLevel() && !(flags & fscrEvalCode))
             {
-                this->m_utf8SourceInfo->TrackDeferredFunction(nestedFunc->GetLocalFunctionId(), nestedFunc->GetParseableFunctionInfo());
+                this->GetUtf8SourceInfo()->TrackDeferredFunction(nestedFunc->GetLocalFunctionId(), nestedFunc->GetParseableFunctionInfo());
             }
         }
 
@@ -1514,9 +1692,10 @@ namespace Js
     template <typename Fn>
     void FunctionProxy::MapFunctionObjectTypes(Fn func)
     {
-        if (m_functionObjectTypeList)
+        FunctionTypeWeakRefList* functionObjectTypeList = (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
+        if (this->get_AuxPtr(e_functionObjectTypeList) != nullptr)
         {
-            m_functionObjectTypeList->Map([&] (int, FunctionTypeWeakRef* typeWeakRef)
+            functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
             {
                 if (typeWeakRef)
                 {
@@ -1537,13 +1716,14 @@ namespace Js
 
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
     {
-        if (m_functionObjectTypeList == nullptr)
+        FunctionTypeWeakRefList* functionObjectTypeList = (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
+        if (functionObjectTypeList == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
-            m_functionObjectTypeList = RecyclerNew(recycler, FunctionTypeWeakRefList, recycler);
+            this->set_AuxPtr(e_functionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
         }
 
-        return m_functionObjectTypeList;
+        return (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
     }
 
     void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
@@ -1665,7 +1845,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
-        bool isDebugReparse = m_scriptContext->IsInDebugOrSourceRundownMode() && !this->m_utf8SourceInfo->GetIsLibraryCode();
+        bool isDebugReparse = m_scriptContext->IsInDebugOrSourceRundownMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
         bool isAsmJsReparse = false;
         bool isReparse = isDebugReparse;
 
@@ -1684,9 +1864,9 @@ namespace Js
                 this->m_displayNameLength,
                 this->m_displayShortNameOffset,
                 this->m_nestedCount,
-                this->m_utf8SourceInfo,
+                this->GetUtf8SourceInfo(),
                 this->m_functionNumber,
-                m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
+                this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
                 this->functionId, /* function id */
                 propertyRecordList,
                 (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
@@ -1711,7 +1891,7 @@ namespace Js
                 !this->GetSourceContextInfo()->IsDynamic() &&
                 this->m_scriptContext->DoUndeferGlobalFunctions())
             {
-                this->m_utf8SourceInfo->UndeferGlobalFunctions([this](JsUtil::SimpleDictionaryEntry<Js::LocalFunctionId, Js::ParseableFunctionInfo*> func)
+                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](JsUtil::SimpleDictionaryEntry<Js::LocalFunctionId, Js::ParseableFunctionInfo*> func)
                 {
                     Js::ParseableFunctionInfo *nextFunc = func.Value();
                     JavascriptExceptionObject* pExceptionObject = nullptr;
@@ -1944,9 +2124,9 @@ namespace Js
             this->m_displayNameLength,
             this->m_displayShortNameOffset,
             this->m_nestedCount,
-            this->m_utf8SourceInfo,
+            this->GetUtf8SourceInfo(),
             this->m_functionNumber,
-            m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
+            this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
             this->functionId, /* function id */
             propertyRecordList,
             (Attributes)(this->GetAttributes() & ~(Attributes::DeferredDeserialize | Attributes::DeferredParse))
@@ -2034,7 +2214,7 @@ namespace Js
         {
             if (!this->GetSourceContextInfo()->IsDynamic()  && !this->GetIsTopLevel())
             {
-                this->m_utf8SourceInfo->StopTrackingDeferredFunction(this->GetLocalFunctionId());
+                this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             }
             PERF_COUNTER_DEC(Code, DeferredFunction);
         }
@@ -2182,10 +2362,6 @@ namespace Js
     }
 
     // SourceInfo methods
-    FunctionBody::StatementMapList * FunctionBody::GetStatementMaps() const
-    {
-        return this->pStatementMaps;
-    }
 
     /* static */ FunctionBody::StatementMap * FunctionBody::GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex)
     {
@@ -2207,7 +2383,7 @@ namespace Js
     {
         AssertMsg(statementMapList != nullptr, "Must have valid statementMapList to execute");
 
-        FunctionBody::StatementMap *map = statementMapList->Item(startingAtIndex);
+        StatementMap *map = statementMapList->Item(startingAtIndex);
         while (startingAtIndex && map->isSubexpression)
         {
             map = statementMapList->Item(--startingAtIndex);
@@ -2222,7 +2398,7 @@ namespace Js
     {
         if (!m_utf8SourceHasBeenSet)
         {
-            this->m_utf8SourceInfo = scriptContext->GetSource(sourceIndex);
+            this->SetUtf8SourceInfo(scriptContext->GetSource(sourceIndex));
             this->m_sourceIndex = sourceIndex;
             this->m_cchStartOffset = other.m_cchStartOffset;
             this->m_cchLength = other.m_cchLength;
@@ -2544,7 +2720,7 @@ namespace Js
             bool doSlowLookup = !canAllocateLineCache;
             if (canAllocateLineCache)
             {
-                HRESULT hr = m_utf8SourceInfo->EnsureLineOffsetCacheNoThrow();
+                HRESULT hr = this->GetUtf8SourceInfo()->EnsureLineOffsetCacheNoThrow();
                 if (FAILED(hr))
                 {
                     if (hr != E_OUTOFMEMORY)
@@ -2554,7 +2730,7 @@ namespace Js
                     }
 
                     // Clear the cache so it is not used.
-                    this->m_utf8SourceInfo->DeleteLineOffsetCache();
+                    this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
 
                     // We can try and do the slow lookup below
                     doSlowLookup = true;
@@ -2562,7 +2738,7 @@ namespace Js
             }
 
             charcount_t cacheLine = 0;
-            this->m_utf8SourceInfo->GetLineInfoForCharPosition(startCharOfStatement, &cacheLine, &column, &lineByteOffset, doSlowLookup);
+            this->GetUtf8SourceInfo()->GetLineInfoForCharPosition(startCharOfStatement, &cacheLine, &column, &lineByteOffset, doSlowLookup);
 
             // Update the tracking variables to jump to the line position (only need to jump if not on the first line).
             if (cacheLine > 0)
@@ -2614,7 +2790,7 @@ namespace Js
         }
 
         Assert(m_utf8SourceInfo);
-        const SRCINFO * srcInfo = m_utf8SourceInfo->GetSrcInfo();
+        const SRCINFO * srcInfo = GetUtf8SourceInfo()->GetSrcInfo();
 
         // Offset from the beginning of the document minus any host-supplied source characters.
         // Host supplied characters are inserted (for example) around onload:
@@ -2641,8 +2817,8 @@ namespace Js
     Js::RootObjectBase * FunctionBody::GetRootObject() const
     {
         // Safe to be used by the JIT thread
-        Assert(this->m_constTable != nullptr);
-        return (Js::RootObjectBase *)this->m_constTable[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot];
+        Assert(this->GetConstTable() != nullptr);
+        return (Js::RootObjectBase *)this->GetConstTable()[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot];
     }
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
@@ -3283,8 +3459,8 @@ namespace Js
 
         InitializeExecutionModeAndLimits();
 
-        this->auxBlock = auxBlock;
-        this->auxContextBlock = auxContextBlock;
+        this->SetAuxiliaryData(auxBlock);
+        this->SetAuxiliaryContextData(auxContextBlock);
 
         // Memory barrier needed here to make sure the background codegen thread's inliner
         // gets all the assignment before it sees that the function has been parse
@@ -3297,15 +3473,15 @@ namespace Js
         // on the function bodies list so we should register it now
         if (!this->m_isFuncRegistered)
         {
-            this->m_utf8SourceInfo->SetFunctionBody(this);
+            this->GetUtf8SourceInfo()->SetFunctionBody(this);
         }
     }
 
     uint
     FunctionBody::GetLoopNumber(LoopHeader const * loopHeader) const
     {
-        Assert(loopHeader >=  this->loopHeaderArray);
-        uint loopNum = (uint)(loopHeader - this->loopHeaderArray);
+        Assert(loopHeader >=  this->GetLoopHeaderArray());
+        uint loopNum = (uint)(loopHeader - this->GetLoopHeaderArray());
         Assert(loopNum < GetLoopCount());
         return loopNum;
     }
@@ -3423,16 +3599,16 @@ namespace Js
         newFunctionBody->m_pendingLoopHeaderRelease = this->m_pendingLoopHeaderRelease;
         newFunctionBody->m_envDepth = this->m_envDepth;
 
-        if (this->m_constTable != nullptr)
+        if (this->GetConstTable() != nullptr)
         {
             this->CloneConstantTable(newFunctionBody);
         }
 
         newFunctionBody->cacheIdToPropertyIdMap = this->cacheIdToPropertyIdMap;
-        newFunctionBody->referencedPropertyIdMap = this->referencedPropertyIdMap;
-        newFunctionBody->propertyIdsForScopeSlotArray = this->propertyIdsForScopeSlotArray;
-        newFunctionBody->propertyIdOnRegSlotsContainer = this->propertyIdOnRegSlotsContainer;
-        newFunctionBody->scopeSlotArraySize = this->scopeSlotArraySize;
+        newFunctionBody->SetReferencedPropertyIdMap(this->GetReferencedPropertyIdMap());
+        newFunctionBody->SetPropertyIdsForScopeSlotArray(this->GetPropertyIdsForScopeSlotArray(), this->scopeSlotArraySize);
+        newFunctionBody->SetPropertyIdOnRegSlotsContainer(this->GetPropertyIdOnRegSlotsContainer());
+        
 
         if (this->byteCodeBlock == nullptr)
         {
@@ -3450,20 +3626,20 @@ namespace Js
 #ifdef PERF_COUNTERS
             DWORD byteCodeSize = this->byteCodeBlock->GetLength();
 #endif
-            if (this->auxBlock)
+            if (this->GetAuxiliaryData())
             {
-                newFunctionBody->auxBlock = this->auxBlock->Clone(this->m_scriptContext->GetRecycler());
+                newFunctionBody->SetAuxiliaryData( this->GetAuxiliaryData()->Clone(this->m_scriptContext->GetRecycler()));
 
 #ifdef PERF_COUNTERS
-                byteCodeSize += this->auxBlock->GetLength();
+                byteCodeSize += this->GetAuxiliaryData()->GetLength();
 #endif
             }
 
-            if (this->auxContextBlock)
+            if (this->GetAuxiliaryContextData())
             {
-                newFunctionBody->auxContextBlock = this->auxContextBlock->Clone(scriptContext->GetRecycler(), scriptContext);
+                newFunctionBody->SetAuxiliaryContextData(this->GetAuxiliaryContextData()->Clone(scriptContext->GetRecycler(), scriptContext));
 #ifdef PERF_COUNTERS
-                byteCodeSize += this->auxContextBlock->GetLength();
+                byteCodeSize += this->GetAuxiliaryContextData()->GetLength();
 #endif
             }
 
@@ -3485,7 +3661,7 @@ namespace Js
             {
                 Recycler* recycler = newFunctionBody->GetScriptContext()->GetRecycler();
                 StatementMapList * newStatementMaps = RecyclerNew(recycler, StatementMapList, recycler);
-                newFunctionBody->pStatementMaps = newStatementMaps;
+                newFunctionBody->SetStatementMaps(newStatementMaps);
                 pStatementMaps->Map([recycler, newStatementMaps](int index, FunctionBody::StatementMap* oldStatementMap)
                 {
                     FunctionBody::StatementMap* newStatementMap = StatementMap::New(recycler);
@@ -3515,7 +3691,7 @@ namespace Js
         newFunctionBody->objLiteralCount = this->objLiteralCount;
         newFunctionBody->AllocateObjectLiteralTypeArray();
 
-        newFunctionBody->simpleJitEntryPointInfo = nullptr;
+        newFunctionBody->SetSimpleJitEntryPointInfo(nullptr);
         newFunctionBody->loopInterpreterLimit = loopInterpreterLimit;
         newFunctionBody->ReinitializeExecutionModeAndLimits();
 
@@ -3524,7 +3700,7 @@ namespace Js
         newFunctionBody->AllocateLiteralRegexArray();
         for(uint i = 0; i < this->literalRegexCount; ++i)
         {
-            const auto literalRegex = this->literalRegexes[i];
+            const auto literalRegex = this->GetLiteralRegexs()[i];
             if(!literalRegex)
             {
                 Assert(!newFunctionBody->GetLiteralRegex(i));
@@ -3582,16 +3758,16 @@ namespace Js
 
         FunctionBody * newFunctionBody = FunctionBody::NewFromRecycler(scriptContext, this->GetDisplayName(), this->GetDisplayNameLength(),
                 this->GetShortDisplayNameOffset(), this->m_nestedCount, sourceInfo, this->m_functionNumber, this->m_uScriptId,
-                this->GetLocalFunctionId(), this->m_boundPropertyRecords,
+                this->GetLocalFunctionId(), this->GetBoundPropertyRecords(),
                 this->GetAttributes()
 #ifdef PERF_COUNTERS
                 , false
 #endif
                 );
 
-        if (this->m_scopeInfo != nullptr)
+        if (this->GetScopeInfo() != nullptr)
         {
-            newFunctionBody->SetScopeInfo(m_scopeInfo->CloneFor(newFunctionBody));
+            newFunctionBody->SetScopeInfo(this->GetScopeInfo()->CloneFor(newFunctionBody));
         }
 
         newFunctionBody->CloneSourceInfo(scriptContext, (*this), this->m_scriptContext, sourceIndex);
@@ -3609,7 +3785,7 @@ namespace Js
         }
 #endif
 
-        newFunctionBody->byteCodeCache = this->byteCodeCache;
+        newFunctionBody->SetByteCodeCache(this->GetByteCodeCache());
 
 #if ENABLE_NATIVE_CODEGEN
         if (newFunctionBody->GetByteCode() && (IsIntermediateCodeGenThunk(this->GetOriginalEntryPoint())
@@ -3635,21 +3811,22 @@ namespace Js
 
     void FunctionBody::SetStackNestedFuncParent(FunctionBody * parentFunctionBody)
     {
-        Assert(this->stackNestedFuncParent == nullptr);
+        Assert(this->get_AuxPtr(e_stackNestedFuncParent) == nullptr);
         Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
-        this->stackNestedFuncParent = this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody);
+        
+        this->set_AuxPtr(e_stackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
     FunctionBody * FunctionBody::GetStackNestedFuncParent()
     {
-        Assert(this->stackNestedFuncParent);
-        return this->stackNestedFuncParent->Get();
+        Assert(this->get_AuxPtr(e_stackNestedFuncParent) != nullptr);
+        return ((RecyclerWeakReference<FunctionBody>*)this->get_AuxPtr(e_stackNestedFuncParent))->Get();
     }
 
     FunctionBody * FunctionBody::GetAndClearStackNestedFuncParent()
     {
-        if (this->stackNestedFuncParent)
+        if (this->get_AuxPtr(e_stackNestedFuncParent))
         {
             FunctionBody * parentFunctionBody = GetStackNestedFuncParent();
             ClearStackNestedFuncParent();
@@ -3660,7 +3837,7 @@ namespace Js
 
     void FunctionBody::ClearStackNestedFuncParent()
     {
-        this->stackNestedFuncParent = nullptr;
+        this->set_AuxPtr(e_stackNestedFuncParent, nullptr);
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::CopyFunctionInfoInto(ScriptContext *scriptContext, Js::ParseableFunctionInfo* newFunctionInfo, uint sourceIndex)
@@ -3729,11 +3906,11 @@ namespace Js
         }
 
         ParseableFunctionInfo* newFunctionInfo = ParseableFunctionInfo::New(scriptContext, this->m_nestedCount, this->GetLocalFunctionId(), sourceInfo, this->GetDisplayName(), this->GetDisplayNameLength(),
-            this->GetShortDisplayNameOffset(), this->m_boundPropertyRecords, this->GetAttributes());
+            this->GetShortDisplayNameOffset(), this->GetBoundPropertyRecords(), this->GetAttributes());
 
-        if (this->m_scopeInfo != nullptr)
+        if (this->GetScopeInfo() != nullptr)
         {
-            newFunctionInfo->SetScopeInfo(m_scopeInfo->CloneFor(newFunctionInfo));
+            newFunctionInfo->SetScopeInfo(GetScopeInfo()->CloneFor(newFunctionInfo));
         }
 
         newFunctionInfo->CloneSourceInfo(scriptContext, (*this), this->m_scriptContext, sourceIndex);
@@ -3812,16 +3989,15 @@ namespace Js
 
     void FunctionBody::CreateReferencedPropertyIdMap()
     {
-        Assert(this->referencedPropertyIdMap == nullptr);
+        Assert(this->GetReferencedPropertyIdMap() == nullptr);
         uint count = this->GetReferencedPropertyIdCount();
         if (count!= 0)
         {
-            this->referencedPropertyIdMap =
-                RecyclerNewArrayLeaf(this->m_scriptContext->GetRecycler(), PropertyId, count);
+            this->SetReferencedPropertyIdMap(RecyclerNewArrayLeaf(this->m_scriptContext->GetRecycler(), PropertyId, count));
 #if DBG
             for (uint i = 0; i < count; i++)
             {
-                this->referencedPropertyIdMap[i] = Js::Constants::NoProperty;
+                this->GetReferencedPropertyIdMap()[i] = Js::Constants::NoProperty;
             }
 #endif
         }
@@ -3833,7 +4009,7 @@ namespace Js
         uint count = this->GetReferencedPropertyIdCount();
         for (uint i = 0; i < count; i++)
         {
-            Assert(this->referencedPropertyIdMap[i] != Js::Constants::NoProperty);
+            Assert(this->GetReferencedPropertyIdMap()[i] != Js::Constants::NoProperty);
         }
     }
 #endif
@@ -3850,26 +4026,26 @@ namespace Js
 
     PropertyId FunctionBody::GetReferencedPropertyIdWithMapIndex(uint mapIndex)
     {
-        Assert(this->referencedPropertyIdMap);
+        Assert(this->GetReferencedPropertyIdMap());
         Assert(mapIndex < this->GetReferencedPropertyIdCount());
-        return this->referencedPropertyIdMap[mapIndex];
+        return this->GetReferencedPropertyIdMap()[mapIndex];
     }
 
     void FunctionBody::SetReferencedPropertyIdWithMapIndex(uint mapIndex, PropertyId propertyId)
     {
         Assert(propertyId >= TotalNumberOfBuiltInProperties);
         Assert(mapIndex < this->GetReferencedPropertyIdCount());
-        Assert(this->referencedPropertyIdMap != nullptr);
-        Assert(this->referencedPropertyIdMap[mapIndex] == Js::Constants::NoProperty);
-        this->referencedPropertyIdMap[mapIndex] = propertyId;
+        Assert(this->GetReferencedPropertyIdMap() != nullptr);
+        Assert(this->GetReferencedPropertyIdMap()[mapIndex] == Js::Constants::NoProperty);
+        this->GetReferencedPropertyIdMap()[mapIndex] = propertyId;
     }
 
     void FunctionBody::CreateConstantTable()
     {
-        Assert(this->m_constTable == nullptr);
+        Assert(this->GetConstTable() == nullptr);
         Assert(m_constCount > FirstRegSlot);
 
-        this->m_constTable = RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), Var, m_constCount);
+        this->SetConstTable(RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), Var, m_constCount));
 
         // Initialize with the root object, which will always be recorded here.
         Js::RootObjectBase * rootObject = this->LoadRootObject();
@@ -3888,10 +4064,10 @@ namespace Js
     void FunctionBody::RecordConstant(RegSlot location, Var var)
     {
         Assert(location < m_constCount);
-        Assert(this->m_constTable);
+        Assert(this->GetConstTable());
         Assert(var != nullptr);
-        Assert(this->m_constTable[location - FunctionBody::FirstRegSlot] == nullptr);
-        this->m_constTable[location - FunctionBody::FirstRegSlot] = var;
+        Assert(this->GetConstTable()[location - FunctionBody::FirstRegSlot] == nullptr);
+        this->GetConstTable()[location - FunctionBody::FirstRegSlot] = var;
     }
 
     void FunctionBody::RecordNullObject(RegSlot location)
@@ -3971,17 +4147,17 @@ namespace Js
         // Initialize the given slots from the constant table.
         Assert(m_constCount > FunctionBody::FirstRegSlot);
 
-        js_memcpy_s(dstSlots, (m_constCount - FunctionBody::FirstRegSlot) * sizeof(Var), this->m_constTable, (m_constCount - FunctionBody::FirstRegSlot) * sizeof(Var));
+        js_memcpy_s(dstSlots, (m_constCount - FunctionBody::FirstRegSlot) * sizeof(Var), this->GetConstTable(), (m_constCount - FunctionBody::FirstRegSlot) * sizeof(Var));
     }
 
 
     Var FunctionBody::GetConstantVar(RegSlot location)
     {
-        Assert(this->m_constTable);
+        Assert(this->GetConstTable());
         Assert(location < m_constCount);
         Assert(location != 0);
 
-        return this->m_constTable[location - FunctionBody::FirstRegSlot];
+        return this->GetConstTable()[location - FunctionBody::FirstRegSlot];
     }
 
 
@@ -4470,29 +4646,29 @@ namespace Js
     {
         if (totalRegsCount > 0)
         {
-            if (this->propertyIdOnRegSlotsContainer == nullptr)
+            if (this->GetPropertyIdOnRegSlotsContainer() == nullptr)
             {
-                this->propertyIdOnRegSlotsContainer = PropertyIdOnRegSlotsContainer::New(m_scriptContext->GetRecycler());
+                this->SetPropertyIdOnRegSlotsContainer(PropertyIdOnRegSlotsContainer::New(m_scriptContext->GetRecycler()));
             }
 
-            if (this->propertyIdOnRegSlotsContainer->propertyIdsForRegSlots == nullptr)
+            if (this->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots == nullptr)
             {
-                this->propertyIdOnRegSlotsContainer->CreateRegSlotsArray(m_scriptContext->GetRecycler(), totalRegsCount);
+                this->GetPropertyIdOnRegSlotsContainer()->CreateRegSlotsArray(m_scriptContext->GetRecycler(), totalRegsCount);
             }
 
-            Assert(this->propertyIdOnRegSlotsContainer != nullptr);
-            this->propertyIdOnRegSlotsContainer->Insert(reg, propertyId);
+            Assert(this->GetPropertyIdOnRegSlotsContainer() != nullptr);
+            this->GetPropertyIdOnRegSlotsContainer()->Insert(reg, propertyId);
         }
     }
 
     void FunctionBody::SetPropertyIdsOfFormals(PropertyIdArray * formalArgs)
     {
         Assert(formalArgs);
-        if (this->propertyIdOnRegSlotsContainer == nullptr)
+        if (this->GetPropertyIdOnRegSlotsContainer() == nullptr)
         {
-            this->propertyIdOnRegSlotsContainer = PropertyIdOnRegSlotsContainer::New(m_scriptContext->GetRecycler());
+            this->SetPropertyIdOnRegSlotsContainer(PropertyIdOnRegSlotsContainer::New(m_scriptContext->GetRecycler()));
         }
-        this->propertyIdOnRegSlotsContainer->SetFormalArgs(formalArgs);
+        this->GetPropertyIdOnRegSlotsContainer()->SetFormalArgs(formalArgs);
     }
 
     HRESULT FunctionBody::RegisterFunction(BOOL fChangeMode, BOOL fOnlyCurrent)
@@ -4634,7 +4810,7 @@ namespace Js
         Assert(m_scriptContext->IsInDebugMode());
         Assert(IsByteCodeDebugMode());
         Assert(m_sourceInfo.pSpanSequence == nullptr);
-        Assert(pStatementMaps != nullptr);
+        Assert(this->GetStatementMaps() != nullptr);
     }
 #endif
 
@@ -4672,21 +4848,20 @@ namespace Js
             this->GetDefaultFunctionEntryPointInfo()->entryPointIndex = 0;
         }
 
-        this->auxBlock = nullptr;
-        this->auxContextBlock = nullptr;
+        this->SetAuxiliaryData(nullptr);
+        this->SetAuxiliaryContextData(nullptr);
         this->byteCodeBlock = nullptr;
-        this->loopHeaderArray = nullptr;
-        this->m_constTable = nullptr;
-        this->m_scopeInfo = nullptr;
-        this->m_codeGenRuntimeData = nullptr;
-        this->m_codeGenGetSetRuntimeData = nullptr;
+        this->SetLoopHeaderArray(nullptr);
+        this->SetConstTable(nullptr);
+        this->SetScopeInfo(nullptr);
+        this->SetCodeGenRuntimeData(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
-        this->referencedPropertyIdMap = nullptr;
-        this->literalRegexes = nullptr;
-        this->propertyIdsForScopeSlotArray = nullptr;
-        this->propertyIdOnRegSlotsContainer = nullptr;
-        this->pStatementMaps = nullptr;
-
+        this->SetReferencedPropertyIdMap(nullptr);
+        this->SetLiteralRegexs(nullptr);
+        this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
+        this->SetStatementMaps(nullptr);
+        this->SetCodeGenGetSetRuntimeData(nullptr);
+        this->SetPropertyIdOnRegSlotsContainer(nullptr);
         this->profiledLdElemCount = 0;
         this->profiledStElemCount = 0;
         this->profiledCallSiteCount = 0;
@@ -4702,8 +4877,6 @@ namespace Js
         this->m_byteCodeCount = 0;
         this->m_byteCodeWithoutLDACount = 0;
         this->m_byteCodeInLoopCount = 0;
-
-        this->functionBailOutRecord = nullptr;
 
 #if ENABLE_PROFILE_INFO
         this->dynamicProfileInfo = nullptr;
@@ -4732,7 +4905,7 @@ namespace Js
         this->m_inlineCachesOnFunctionObject = false;
         this->referencedPropertyIdCount = 0;
 #if ENABLE_PROFILE_INFO
-        this->polymorphicCallSiteInfoHead = nullptr;
+        this->SetPolymorphicCallSiteInfoHead(nullptr);
 #endif
 
         this->interpretedCount = 0;
@@ -4740,7 +4913,7 @@ namespace Js
         this->m_hasDoneAllNonLocalReferenced = false;
 
         this->debuggerScopeIndex = 0;
-        this->m_utf8SourceInfo->DeleteLineOffsetCache();
+        this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
 
         // Reset to default.
         this->flags = Flags_HasNoExplicitReturnValue;
@@ -4803,7 +4976,7 @@ namespace Js
 
         // Set other state back to before parse as well
         this->SetStackNestedFunc(false);
-        this->stackNestedFuncParent = nullptr;
+        this->set_AuxPtr(e_stackNestedFuncParent, nullptr);
         this->SetReparsed(true);
 #if DBG
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -5867,31 +6040,31 @@ namespace Js
 
     uint FunctionBody::NewObjectLiteral()
     {
-        Assert(objLiteralTypes == nullptr);
+        Assert(this->GetObjectLiteralTypes() == nullptr);
         return objLiteralCount++;
     }
 
     DynamicType ** FunctionBody::GetObjectLiteralTypeRef(uint index)
     {
         Assert(index < objLiteralCount);
-        Assert(objLiteralTypes != nullptr);
-        return objLiteralTypes + index;
+        Assert(this->GetObjectLiteralTypes() != nullptr);
+        return this->GetObjectLiteralTypes() + index;
     }
 
     void FunctionBody::AllocateObjectLiteralTypeArray()
     {
-        Assert(objLiteralTypes == nullptr);
+        Assert(this->GetObjectLiteralTypes() == nullptr);
         if (objLiteralCount == 0)
         {
             return;
         }
 
-        objLiteralTypes = RecyclerNewArrayZ(this->GetScriptContext()->GetRecycler(), DynamicType *, objLiteralCount);
+        this->SetObjectLiteralTypes( RecyclerNewArrayZ(this->GetScriptContext()->GetRecycler(), DynamicType *, objLiteralCount));
     }
 
     uint FunctionBody::NewLiteralRegex()
     {
-        Assert(!this->literalRegexes);
+        Assert(!this->GetLiteralRegexs());
         return literalRegexCount++;
     }
 
@@ -5902,73 +6075,73 @@ namespace Js
 
     void FunctionBody::AllocateLiteralRegexArray()
     {
-        Assert(!this->literalRegexes);
+        Assert(!this->GetLiteralRegexs());
 
         if (literalRegexCount == 0)
         {
             return;
         }
 
-        this->literalRegexes =
-            RecyclerNewArrayZ(m_scriptContext->GetRecycler(), UnifiedRegex::RegexPattern *, literalRegexCount);
+        this->SetLiteralRegexs(RecyclerNewArrayZ(m_scriptContext->GetRecycler(), UnifiedRegex::RegexPattern *, literalRegexCount));
     }
 
 #ifndef TEMP_DISABLE_ASMJS
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
-        Assert( !this->asmJsFunctionInfo );
-        this->asmJsFunctionInfo = RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo );
-        return this->asmJsFunctionInfo;
+        Assert( !this->GetAsmJsFunctionInfo() );
+        this->set_AuxPtr(e_asmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
+        return this->GetAsmJsFunctionInfo();
     }
 
     AsmJsModuleInfo* FunctionBody::AllocateAsmJsModuleInfo()
     {
-        Assert( !this->asmJsModuleInfo );
+        Assert( !this->GetAsmJsModuleInfo() );
         Recycler* rec = m_scriptContext->GetRecycler();
-        this->asmJsModuleInfo = RecyclerNew( rec, AsmJsModuleInfo, rec );
-        return this->asmJsModuleInfo;
+        this->set_AuxPtr(e_asmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
+        return this->GetAsmJsModuleInfo();
     }
 #endif
 
     UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegex(const uint index)
     {
         Assert(index < literalRegexCount);
-        Assert(this->literalRegexes);
+        Assert(this->GetLiteralRegexs());
 
-        return this->literalRegexes[index];
+        return this->GetLiteralRegexs()[index];
     }
 
     void FunctionBody::SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern)
     {
         Assert(index < literalRegexCount);
-        Assert(this->literalRegexes);
+        Assert(this->GetLiteralRegexs());
 
-        if (this->literalRegexes[index] && this->literalRegexes[index] == pattern)
+        auto literalRegexes = this->GetLiteralRegexs();
+        if (literalRegexes[index] && literalRegexes[index] == pattern)
         {
             return;
         }
-        Assert(!this->literalRegexes[index]);
+        Assert(!literalRegexes[index]);
 
-        this->literalRegexes[index] = pattern;
+        literalRegexes[index] = pattern;
     }
 
     void FunctionBody::ResetObjectLiteralTypes()
     {
-        this->objLiteralTypes = nullptr;
+        this->SetObjectLiteralTypes(nullptr);
         this->objLiteralCount = 0;
     }
 
     void FunctionBody::ResetLiteralRegexes()
     {
         literalRegexCount = 0;
-        this->literalRegexes = nullptr;
+        this->SetLiteralRegexs(nullptr);
     }
 
     void FunctionBody::ResetProfileIds()
     {
 #if ENABLE_PROFILE_INFO
         Assert(!HasDynamicProfileInfo()); // profile data relies on the profile ID counts; it should not have been created yet
-        Assert(!this->m_codeGenRuntimeData); // relies on 'profiledCallSiteCount'
+        Assert(!this->GetCodeGenRuntimeData()); // relies on 'profiledCallSiteCount'
 
         profiledCallSiteCount = 0;
         profiledArrayCallSiteCount = 0;
@@ -6000,7 +6173,7 @@ namespace Js
         innerScopeCount = 0;
         hasCachedScopePropIds = false;
         m_constCount = 0;
-        this->m_constTable = nullptr;
+        this->SetConstTable(nullptr);
         this->byteCodeBlock = nullptr;
 
         // There is other state that is set by the byte code generator but the state should be the same each time byte code
@@ -6020,18 +6193,20 @@ namespace Js
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
 
-        return this->m_codeGenRuntimeData ? this->m_codeGenRuntimeData[profiledCallSiteId] : nullptr;
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        return codeGenRuntimeData ? codeGenRuntimeData[profiledCallSiteId] : nullptr;
     }
 
     const FunctionCodeGenRuntimeData *FunctionBody::GetInlineeCodeGenRuntimeDataForTargetInlinee(const ProfileId profiledCallSiteId, Js::FunctionBody *inlineeFuncBody) const
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
 
-        if (!this->m_codeGenRuntimeData)
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        if (!codeGenRuntimeData)
         {
             return nullptr;
         }
-        const FunctionCodeGenRuntimeData *runtimeData = this->m_codeGenRuntimeData[profiledCallSiteId];
+        const FunctionCodeGenRuntimeData *runtimeData = codeGenRuntimeData[profiledCallSiteId];
         while (runtimeData && runtimeData->GetFunctionBody() != inlineeFuncBody)
         {
             runtimeData = runtimeData->GetNext();
@@ -6048,17 +6223,18 @@ namespace Js
         Assert(profiledCallSiteId < profiledCallSiteCount);
         Assert(inlinee);
 
-        if(!this->m_codeGenRuntimeData)
+        if(!this->GetCodeGenRuntimeData())
         {
             const auto codeGenRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, profiledCallSiteCount);
-            this->m_codeGenRuntimeData = codeGenRuntimeData;
+            this->SetCodeGenRuntimeData(codeGenRuntimeData);
         }
 
-        const auto inlineeData = this->m_codeGenRuntimeData[profiledCallSiteId];
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        const auto inlineeData = codeGenRuntimeData[profiledCallSiteId];
 
         if(!inlineeData)
         {
-            return this->m_codeGenRuntimeData[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            return codeGenRuntimeData[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
         }
 
         // Find the right code gen runtime data
@@ -6076,14 +6252,15 @@ namespace Js
 
         FunctionCodeGenRuntimeData *runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
         runtimeData->SetupRuntimeDataChain(inlineeData);
-        return this->m_codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+        return codeGenRuntimeData[profiledCallSiteId] = runtimeData;
     }
 
     const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const uint inlineCacheIndex) const
     {
         Assert(inlineCacheIndex < inlineCacheCount);
 
-        return this->m_codeGenGetSetRuntimeData ? this->m_codeGenGetSetRuntimeData[inlineCacheIndex] : nullptr;
+        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeData();
+        return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
     }
 
     FunctionCodeGenRuntimeData *FunctionBody::EnsureLdFldInlineeCodeGenRuntimeData(
@@ -6095,32 +6272,34 @@ namespace Js
         Assert(inlineCacheIndex < this->GetInlineCacheCount());
         Assert(inlinee);
 
-        if(!this->m_codeGenGetSetRuntimeData)
+        if(this->GetCodeGenGetSetRuntimeData()==nullptr)
         {
             const auto codeGenRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, this->GetInlineCacheCount());
-            this->m_codeGenGetSetRuntimeData = codeGenRuntimeData;
+            this->SetCodeGenGetSetRuntimeData(codeGenRuntimeData);
         }
 
-        const auto inlineeData = this->m_codeGenGetSetRuntimeData[inlineCacheIndex];
+        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        const auto inlineeData = codeGenGetSetRuntimeData[inlineCacheIndex];
         if(inlineeData)
         {
             return inlineeData;
         }
 
-        return this->m_codeGenGetSetRuntimeData[inlineCacheIndex] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+        return codeGenGetSetRuntimeData[inlineCacheIndex] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
     }
 #endif
 
     void FunctionBody::AllocateLoopHeaders()
     {
-        Assert(this->loopHeaderArray == nullptr);
+        Assert(this->GetLoopHeaderArray() == nullptr);
 
         if (loopCount != 0)
         {
-            this->loopHeaderArray = RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), LoopHeader, loopCount);
+            this->SetLoopHeaderArray( RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), LoopHeader, loopCount));
+            auto loopHeaderArray = this->GetLoopHeaderArray();
             for (uint i = 0; i < loopCount; i++)
             {
-                this->loopHeaderArray[i].Init(this);
+                loopHeaderArray[i].Init(this);
             }
         }
     }
@@ -6138,7 +6317,7 @@ namespace Js
     void FunctionBody::ResetLoops()
     {
         loopCount = 0;
-        this->loopHeaderArray = nullptr;
+        this->SetLoopHeaderArray(nullptr);
     }
 
     void FunctionBody::RestoreOldDefaultEntryPoint(FunctionEntryPointInfo* oldEntryPointInfo,
@@ -6209,19 +6388,19 @@ namespace Js
 
     LoopHeader *FunctionBody::GetLoopHeader(uint index) const
     {
-        Assert(this->loopHeaderArray != nullptr);
+        Assert(this->GetLoopHeaderArray() != nullptr);
         Assert(index < loopCount);
-        return &this->loopHeaderArray[index];
+        return &this->GetLoopHeaderArray()[index];
     }
 
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
-        return simpleJitEntryPointInfo;
+        return (FunctionEntryPointInfo *)this->get_AuxPtr(e_simpleJitEntryPointInfo);
     }
 
     void FunctionBody::SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo)
     {
-        simpleJitEntryPointInfo = entryPointInfo;
+        this->set_AuxPtr(e_simpleJitEntryPointInfo, entryPointInfo);
     }
 
     void FunctionBody::VerifyExecutionMode(const ExecutionMode executionMode) const
@@ -7237,7 +7416,7 @@ namespace Js
                 // be a Utf8SourceInfo pinned by it.
                 Assert(this->m_utf8SourceInfo);
 
-                this->m_utf8SourceInfo->RemoveFunctionBody(this);
+                this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
             }
 
             if (this->m_sourceInfo.pSpanSequence != nullptr)
@@ -7371,11 +7550,12 @@ namespace Js
 
         }
 
-        if (nullptr != this->m_codeGenRuntimeData)
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        if (nullptr != codeGenRuntimeData)
         {
             for (ProfileId i = 0; i < this->profiledCallSiteCount; i++)
             {
-                const FunctionCodeGenRuntimeData* runtimeData = this->m_codeGenRuntimeData[i];
+                const FunctionCodeGenRuntimeData* runtimeData = codeGenRuntimeData[i];
                 if (nullptr != runtimeData)
                 {
                     runtimeData->MapInlineCaches([&](InlineCache* inlineCache)
@@ -7400,11 +7580,12 @@ namespace Js
             }
         }
 
-        if (nullptr != this->m_codeGenGetSetRuntimeData)
+        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        if (codeGenGetSetRuntimeData != nullptr)
         {
             for (uint i = 0; i < this->GetInlineCacheCount(); i++)
             {
-                const FunctionCodeGenRuntimeData* runtimeData = this->m_codeGenGetSetRuntimeData[i];
+                const FunctionCodeGenRuntimeData* runtimeData = codeGenGetSetRuntimeData[i];
                 if (nullptr != runtimeData)
                 {
                     runtimeData->MapInlineCaches([&](InlineCache* inlineCache)
@@ -7438,9 +7619,9 @@ namespace Js
             }
         }
 
-        while (polymorphicInlineCachesHead)
+        while (this->GetPolymorphicInlineCachesHead())
         {
-            polymorphicInlineCachesHead->Finalize(IsScriptContextShutdown);
+            this->GetPolymorphicInlineCachesHead()->Finalize(IsScriptContextShutdown);
         }
         polymorphicInlineCaches.Reset();
     }
@@ -7521,22 +7702,23 @@ namespace Js
 
         // Manually clear these values to break any circular references
         // that might prevent the script context from being disposed
-        this->auxBlock = nullptr;
-        this->auxContextBlock = nullptr;
+        this->SetAuxiliaryData(nullptr);
+        this->SetAuxiliaryContextData(nullptr);
         this->byteCodeBlock = nullptr;
         this->entryPoints = nullptr;
-        this->loopHeaderArray = nullptr;
-        this->m_constTable = nullptr;
-        this->m_codeGenRuntimeData = nullptr;
-        this->m_codeGenGetSetRuntimeData = nullptr;
+        this->SetLoopHeaderArray(nullptr);
+        this->SetConstTable(nullptr);
+        this->SetCodeGenRuntimeData(nullptr);
+        this->SetCodeGenGetSetRuntimeData(nullptr);
+        this->SetPropertyIdOnRegSlotsContainer(nullptr);
         this->inlineCaches = nullptr;
         this->polymorphicInlineCaches.Reset();
-        this->polymorphicInlineCachesHead = nullptr;
+        this->SetPolymorphicInlineCachesHead(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
-        this->referencedPropertyIdMap = nullptr;
-        this->literalRegexes = nullptr;
-        this->propertyIdsForScopeSlotArray = nullptr;
-        this->propertyIdOnRegSlotsContainer = nullptr;
+        this->SetReferencedPropertyIdMap(nullptr);
+        this->SetLiteralRegexs(nullptr);
+        this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
+        
 
 #if DYNAMIC_INTERPRETER_THUNK
         if (this->HasInterpreterThunkGenerated())
@@ -7558,7 +7740,7 @@ namespace Js
 #endif
 
 #if ENABLE_PROFILE_INFO
-        this->polymorphicCallSiteInfoHead = nullptr;
+        this->SetPolymorphicCallSiteInfoHead(nullptr);
 #endif
         this->cleanedUp = true;
     }
@@ -7569,8 +7751,8 @@ namespace Js
     {
         // We might not have the byte code block yet if we defer parsed.
         DWORD byteCodeSize = (this->byteCodeBlock? this->byteCodeBlock->GetLength() : 0)
-            + (this->auxBlock? this->auxBlock->GetLength() : 0)
-            + (this->auxContextBlock? this->auxContextBlock->GetLength() : 0);
+            + (this->GetAuxiliaryData() ? this->GetAuxiliaryData()->GetLength() : 0)
+            + (this->GetAuxiliaryContextData ()? this->GetAuxiliaryContextData()->GetLength() : 0);
         PERF_COUNTER_SUB(Code, DynamicByteCodeSize, byteCodeSize);
 
         if (this->m_isDeserializedFunction)
