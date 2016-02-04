@@ -767,7 +767,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 {
     IR::RegOpnd * retReg;
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
         Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
         IRType regType = TyInt32;
@@ -6017,7 +6017,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         insertInstr->Remove();
         return;
     }
-    Assert(!m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(!m_func->GetJITFunctionBody()->IsAsmJsMode());
 
     IR::LabelInstr *labelNoBailOut = nullptr;
     IR::SymOpnd *tempSymOpnd = nullptr;

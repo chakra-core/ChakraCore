@@ -1206,7 +1206,7 @@ struct FuncBailOutData
 void
 FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
     this->func = func;
     this->localOffsets = AnewArrayZ(tempAllocator, int, localsCount);
     this->losslessInt32Syms = BVFixed::New(localsCount, tempAllocator);
@@ -1219,7 +1219,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
 void
 FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOutRecordDataTable *globalBailOutRecordDataTable, uint **lastUpdatedRowIndices)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
 
     Assert(globalBailOutRecordDataTable != nullptr);
     Assert(lastUpdatedRowIndices != nullptr);
@@ -1253,7 +1253,7 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
 void
 FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
     JitAdeleteArray(tempAllocator, localsCount, localOffsets);
     losslessInt32Syms->Delete(tempAllocator);
     float64Syms->Delete(tempAllocator);
@@ -1376,7 +1376,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
         __analysis_assume(index < funcCount);
@@ -1418,7 +1418,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
         __analysis_assume(index < funcCount);
@@ -1460,7 +1460,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
          __analysis_assume(index < funcCount);
@@ -1500,7 +1500,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             uint index = stackSymFunc->inlineDepth;
 
             Assert(i != Js::Constants::NoRegister);
-            Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+            Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
             Assert(index < funcCount);
             __analysis_assume(index < funcCount);
@@ -1668,7 +1668,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
             {
-                Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetJnFunction()->GetDisplayName(),
+                Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetWorkItem()->GetDisplayName(),
                     currentStartCallFunc->GetJnFunction()->GetFunctionNumber());
             }
 #endif
@@ -1931,7 +1931,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetJnFunction()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
+            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetWorkItem()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif
@@ -1963,7 +1963,7 @@ LinearScan::ForEachStackLiteralBailOutInfo(IR::Instr * instr, BailOutInfo * bail
         uint index = stackSymFunc->inlineDepth;
 
         Assert(regSlot != Js::Constants::NoRegister);
-        Assert(regSlot < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(regSlot < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
         Assert(index < funcCount);
         Assert(funcBailOutData[index].func == stackSymFunc);
         Assert(funcBailOutData[index].localOffsets[regSlot] != 0);

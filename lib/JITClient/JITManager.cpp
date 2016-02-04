@@ -193,14 +193,54 @@ JITManager::DisconnectRpcServer()
 }
 
 HRESULT
+JITManager::InitializeThreadContext(
+    __in ThreadContextData * data,
+    __out intptr_t * threadContextInfoAddress)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientInitializeThreadContext(m_rpcBindingHandle, data, threadContextInfoAddress);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+
+}
+
+HRESULT
+JITManager::CleanupThreadContext(
+    __in intptr_t threadContextInfoAddress)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientCleanupThreadContext(m_rpcBindingHandle, threadContextInfoAddress);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+
+}
+
+HRESULT
 JITManager::RemoteCodeGenCall(
     __in CodeGenWorkItemJITData *workItemData,
+    __in intptr_t threadContextInfoAddress,
     __out JITOutputData *jitData)
 {
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientRemoteCodeGen(m_rpcBindingHandle, (uintptr_t)GetCurrentProcess(), workItemData, jitData);
+        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, workItemData, jitData);
     }
         RpcExcept(1)
     {

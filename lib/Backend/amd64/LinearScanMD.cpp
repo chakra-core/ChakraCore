@@ -417,7 +417,7 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
         NEXT_BITSET_IN_SPARSEBV;
     }
 
-    Js::RegSlot localsCount = this->func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = this->func->GetJITFunctionBody()->GetLocalsCount();
     bailOutInfo->IterateArgOutSyms([localsCount, &restoreSymFn](uint, uint argOutSlotOffset, StackSym* sym) {
         restoreSymFn(localsCount + argOutSlotOffset, sym);
     });

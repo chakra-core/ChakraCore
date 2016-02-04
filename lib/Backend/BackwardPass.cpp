@@ -364,7 +364,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * slotDeadStoreCandidates = nullptr;
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
 #if DBG
-    uint byteCodeLocalsCount = func->GetJnFunction()->GetLocalsCount();
+    uint byteCodeLocalsCount = func->GetJITFunctionBody()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
 #endif
 
@@ -1200,7 +1200,7 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
         JitAdelete(this->tempAlloc, block->byteCodeUpwardExposedUsed);
         block->byteCodeUpwardExposedUsed = nullptr;
 #if DBG
-        JitAdeleteArray(this->tempAlloc, func->GetJnFunction()->GetLocalsCount(), block->byteCodeRestoreSyms);
+        JitAdeleteArray(this->tempAlloc, func->GetJITFunctionBody()->GetLocalsCount(), block->byteCodeRestoreSyms);
         block->byteCodeRestoreSyms = nullptr;
 #endif
     }
@@ -1524,7 +1524,7 @@ void
 BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* bailoutReferencedArgSymsBv)
 {
     Assert(this->tag != Js::BackwardPhase);
-    Assert(!this->func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(!this->func->GetJITFunctionBody()->IsAsmJsMode());
 
     // Remove copy prop that we were already going to restore
     SListBase<CopyPropSyms> * usedCopyPropSyms = &bailOutInfo->usedCapturedValues.copyPropSyms;
@@ -5745,7 +5745,7 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
                 L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
-                func->GetJnFunction()->GetDisplayName(),
+                func->GetWorkItem()->GetDisplayName(),
                 func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
@@ -5983,7 +5983,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             {
                 isUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
                 // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJnFunction()->GetIsAsmJsFunction() && this->func->IsLoopBody() && !isUsed));
+                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isUsed));
                 Assert(isUsed || !block->upwardExposedUses->Test(propertySym->m_id));
             }
         }

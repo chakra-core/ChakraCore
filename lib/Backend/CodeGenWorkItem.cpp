@@ -26,14 +26,36 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
-    // TODO: (michhol) put bodyData directly on function body rather than doing this copying?
+    // TODO: (michhol) put bodyData directly on function body rather than doing this copying
     // bytecode
     this->jitData.bodyData.byteCodeLength = functionBody->GetByteCode()->GetLength();
     this->jitData.bodyData.byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
 
     // const table
     this->jitData.bodyData.constCount = functionBody->GetConstantCount();
-    this->jitData.bodyData.constTable = (intptr_t *)functionBody->GetConstTable();
+    if (functionBody->GetConstantCount() > 0)
+    {
+        // TODO (michhol): OOP JIT, will be different for asm.js
+        this->jitData.bodyData.constTable = (intptr_t *)functionBody->GetConstTable();
+
+        this->jitData.bodyData.constTypeTable = HeapNewArray(int32, functionBody->GetConstantCount());
+        for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < functionBody->GetConstantCount(); ++reg)
+        {
+            Js::Var varConst = functionBody->GetConstantVar(reg);
+            Assert(varConst != nullptr);
+            if (Js::TaggedInt::Is(varConst) ||
+                varConst == (Js::Var)&Js::NullFrameDisplay ||
+                varConst == (Js::Var)&Js::StrictNullFrameDisplay)
+            {
+                // don't need TypeId for these
+                jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::TypeId::TypeIds_Limit;
+            }
+            else
+            {
+                jitData.bodyData.constTypeTable[reg - Js::FunctionBody::FirstRegSlot] = Js::JavascriptOperators::GetTypeId(varConst);
+            }
+        }
+    }
 
     // statement map
     Js::SmallSpanSequence * statementMap = functionBody->GetStatementMapSpanSequence();
@@ -83,17 +105,26 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.envReg = functionBody->GetEnvReg();
     this->jitData.bodyData.firstTmpReg = functionBody->GetFirstTmpReg();
     this->jitData.bodyData.varCount = functionBody->GetVarCount();
-
+    this->jitData.bodyData.innerScopeCount = functionBody->GetInnerScopeCount();
+    if (functionBody->GetInnerScopeCount() > 0)
+    {
+        this->jitData.bodyData.firstInnerScopeReg = functionBody->FirstInnerScopeReg();
+    }
     this->jitData.bodyData.envDepth = functionBody->GetEnvDepth();
     this->jitData.bodyData.profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     this->jitData.bodyData.inParamCount = functionBody->GetInParamsCount();
+    this->jitData.bodyData.thisRegisterForEventHandler = functionBody->GetThisRegForEventHandler();
+    this->jitData.bodyData.funcExprScopeRegister = functionBody->GetFuncExprScopeReg();
 
     this->jitData.bodyData.flags = functionBody->GetFlags();
 
     this->jitData.bodyData.doBackendArgumentsOptimization = functionBody->GetDoBackendArgumentsOptimization();
     this->jitData.bodyData.isLibraryCode = functionBody->GetUtf8SourceInfo()->GetIsLibraryCode();
     this->jitData.bodyData.isAsmJsMode = functionBody->GetIsAsmjsMode();
+    this->jitData.bodyData.isStrictMode = functionBody->GetIsStrictMode();
+    this->jitData.bodyData.hasScopeObject = functionBody->HasScopeObject();
     this->jitData.bodyData.hasImplicitArgIns = functionBody->GetHasImplicitArgIns();
+    this->jitData.bodyData.hasCachedScopePropIds = functionBody->HasCachedScopePropIds();
 
     // work item data
     this->jitData.type = type;

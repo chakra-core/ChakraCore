@@ -1799,6 +1799,49 @@ DiagHelperCallOpnd::IsEqualInternalSub(Opnd *opnd)
 ///     Creates a new AddrOpnd.
 ///
 ///----------------------------------------------------------------------------
+AddrOpnd *
+AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */)
+{
+    AddrOpnd * addrOpnd;
+
+    addrOpnd = JitAnew(func->m_alloc, IR::AddrOpnd);
+
+    // TODO (michhol): OOP JIT, use intptr_t instead of Js::Var by default so people don't try to dereference
+    addrOpnd->m_address = (Js::Var)address;
+    addrOpnd->addrOpndKind = addrOpndKind;
+    addrOpnd->m_type = addrOpnd->IsVar() ? TyVar : TyMachPtr;
+    addrOpnd->m_dontEncode = dontEncode;
+    addrOpnd->m_isFunction = false;
+
+    if (address && addrOpnd->IsVar())
+    {
+        if (Js::TaggedInt::Is(address))
+        {
+            addrOpnd->m_valueType = ValueType::GetTaggedInt();
+            addrOpnd->SetValueTypeFixed();
+        }
+#if FLOATVAR
+        // REVIEW (michhol): OOP JIT, should we do something when we don't have tagged floats
+        else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(addrOpnd->m_address))
+        {
+            addrOpnd->m_valueType =
+                Js::JavascriptNumber::IsInt32_NoChecks(addrOpnd->m_address)
+                ? ValueType::GetInt(false)
+                : ValueType::Float;
+            addrOpnd->SetValueTypeFixed();
+        }
+#endif
+    }
+
+#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
+    addrOpnd->decodedValue = 0;
+    addrOpnd->wasVar = addrOpnd->IsVar();
+#endif
+
+    addrOpnd->m_kind = OpndKindAddr;
+
+    return addrOpnd;
+}
 
 AddrOpnd *
 AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */)

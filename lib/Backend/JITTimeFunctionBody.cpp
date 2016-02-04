@@ -65,6 +65,12 @@ JITTimeFunctionBody::GetByteCodeLength() const
     return m_bodyData->byteCodeLength;
 }
 
+uint
+JITTimeFunctionBody::GetInnerScopeCount() const
+{
+    return m_bodyData->innerScopeCount;
+}
+
 Js::RegSlot
 JITTimeFunctionBody::GetLocalFrameDisplayReg() const
 {
@@ -90,6 +96,12 @@ JITTimeFunctionBody::GetFirstTmpReg() const
 }
 
 Js::RegSlot
+JITTimeFunctionBody::GetFirstInnerScopeReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->firstInnerScopeReg);
+}
+
+Js::RegSlot
 JITTimeFunctionBody::GetVarCount() const
 {
     return static_cast<Js::RegSlot>(m_bodyData->varCount);
@@ -111,6 +123,18 @@ Js::RegSlot
 JITTimeFunctionBody::GetTempCount() const
 {
     return GetLocalsCount() - GetFirstTmpReg();
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetThisRegForEventHandler() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->thisRegisterForEventHandler);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetFuncExprScopeReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->funcExprScopeRegister);
 }
 
 uint16
@@ -177,6 +201,18 @@ JITTimeFunctionBody::IsAsmJsMode() const
 }
 
 bool
+JITTimeFunctionBody::IsStrictMode() const
+{
+    return m_bodyData->isStrictMode != FALSE;
+}
+
+bool
+JITTimeFunctionBody::HasScopeObject() const
+{
+    return m_bodyData->hasScopeObject != FALSE;
+}
+
+bool
 JITTimeFunctionBody::IsGenerator() const
 {
     return Js::FunctionInfo::IsGenerator(GetAttributes());
@@ -186,6 +222,12 @@ bool
 JITTimeFunctionBody::HasImplicitArgIns() const
 {
     return m_bodyData->hasImplicitArgIns != FALSE;
+}
+
+bool
+JITTimeFunctionBody::HasCachedScopePropIds() const
+{
+    return m_bodyData->hasCachedScopePropIds != FALSE;
 }
 
 bool
@@ -206,14 +248,24 @@ JITTimeFunctionBody::GetStatementMapSpanSequence()
     return &m_statementMap;
 }
 
-Js::Var
+intptr_t
 JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
 {
     Assert(m_bodyData->constTable != nullptr);
     Assert(location < GetConstCount());
     Assert(location != 0);
 
-    return reinterpret_cast<Js::Var*>(m_bodyData->constTable)[location - Js::FunctionBody::FirstRegSlot];
+    return static_cast<intptr_t>(m_bodyData->constTable[location - Js::FunctionBody::FirstRegSlot]);
+}
+
+Js::TypeId
+JITTimeFunctionBody::GetConstantType(Js::RegSlot location) const
+{
+    Assert(m_bodyData->constTable != nullptr);
+    Assert(location < GetConstCount());
+    Assert(location != 0);
+
+    return static_cast<Js::TypeId>(m_bodyData->constTypeTable[location - Js::FunctionBody::FirstRegSlot]);
 }
 
 Js::FunctionBody::FunctionBodyFlags

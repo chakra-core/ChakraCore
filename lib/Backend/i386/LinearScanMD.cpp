@@ -304,7 +304,7 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
     bailOutRecord->MapArgOutOffsets([this, &eaxRegOpnd, &ecxRegOpnd, &instrInsertStackSym](Js::RegSlot regSlot, int32 stackOffset) {
         // mov ecx, [eax + bytecode reg offset]
         // mov [ebp + native stack offset], ecx
-        int32 regSlotOffset = Js::InterpreterStackFrame::GetOffsetOfLocals() + (this->func->GetJnFunction()->GetLocalsCount() + regSlot) * sizeof(Js::Var);
+        int32 regSlotOffset = Js::InterpreterStackFrame::GetOffsetOfLocals() + (this->func->GetJITFunctionBody()->GetLocalsCount() + regSlot) * sizeof(Js::Var);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(eaxRegOpnd, regSlotOffset, TyVar, this->func);
         IR::Instr * instr = IR::Instr::New(Js::OpCode::MOV, ecxRegOpnd, indirOpnd, this->func);
         instrInsertStackSym->InsertBefore(instr);

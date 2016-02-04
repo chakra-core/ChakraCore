@@ -194,6 +194,7 @@
     <ClCompile Include="JITOutput.cpp" />
     <ClCompile Include="JITTimeFunctionBody.cpp" />
     <ClCompile Include="JITTimeScriptContext.cpp" />
+    <ClCompile Include="ThreadContextInfo.cpp" />
     <ClCompile Include="JITTimeWorkItem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -366,6 +367,7 @@
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITTimeScriptContext.h" />
+    <ClInclude Include="ThreadContextInfo.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />
     <ClInclude Include="JnHelperMethodList.h" />

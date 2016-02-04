@@ -835,7 +835,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
 
     // formal params are offset from EBP by the EBP chain, return address, and function object
     int32 offset = 3 * MachPtr;
-    for (Js::ArgSlot i = 1; i < m_func->GetJnFunction()->GetInParamsCount(); ++i)
+    for (Js::ArgSlot i = 1; i < m_func->GetJITFunctionBody()->GetInParamsCount(); ++i)
     {
         StackSym * symSrc = nullptr;
         IR::Opnd * srcOpnd = nullptr;

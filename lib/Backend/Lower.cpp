@@ -598,7 +598,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::InlineMathFloor:
 #if _M_X64
-            if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
+            if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_FloorFlt, IR::HelperDirectMath_FloorDb);
                 break;
@@ -609,7 +609,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::InlineMathCeil:
 #if _M_X64
-            if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJnFunction()->GetIsAsmjsMode())
+            if (!AutoSystemInfo::Data.SSE4_1Available() && instr->m_func->GetJITFunctionBody()->IsAsmJsMode())
             {
                 m_lowererMD.HelperCallForAsmMathBuiltin(instr, IR::HelperDirectMath_CeilFlt, IR::HelperDirectMath_CeilDb);
                 break;
@@ -1725,7 +1725,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else if (instr->GetDst()->IsFloat())
             {
-                if (m_func->GetJnFunction()->GetIsAsmJsFunction())
+                if (m_func->GetJITFunctionBody()->IsAsmJsMode())
                 {
                     m_lowererMD.EmitLoadFloat(instr->GetDst(), instr->GetSrc1(), instr);
                     instr->Remove();
@@ -1751,7 +1751,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::ArgOut_A:
             // I don't know if this can happen in asm.js mode, but if it can, we might want to handle differently
-            Assert(!m_func->GetJnFunction()->GetIsAsmjsMode());
+            Assert(!m_func->GetJITFunctionBody()->IsAsmJsMode());
             // fall-through
 
         case Js::OpCode::ArgOut_A_Inline:
@@ -1845,7 +1845,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::ArgIn_Rest:
         case Js::OpCode::ArgIn_A:
-            if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
+            if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
             {
                 instrPrev = LowerArgInAsmJs(instr);
             }
@@ -5054,7 +5054,7 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
 void
 Lowerer::LowerPrologEpilog()
 {
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJITFunctionBody()->IsGenerator())
     {
         LowerGeneratorResumeJumpTable();
     }
@@ -5091,7 +5091,7 @@ Lowerer::LowerPrologEpilogAsmJs()
 void
 Lowerer::LowerGeneratorResumeJumpTable()
 {
-    Assert(m_func->GetJnFunction()->IsGenerator());
+    Assert(m_func->GetJITFunctionBody()->IsGenerator());
 
     IR::Instr * jumpTableInstr = m_func->m_headInstr;
     AssertMsg(jumpTableInstr->IsEntryInstr(), "First instr isn't an EntryInstr...");
@@ -5538,7 +5538,7 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(
             propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
-        this->m_func->GetJnFunction()->GetDisplayName(),
+        this->m_func->GetWorkItem()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex,
         propertySymOpnd->GetCacheLayoutString(),
         propertySymOpnd->IsTypeChecked() ? L"true" : L"false");
@@ -5845,7 +5845,7 @@ Lowerer::GenerateCheckObjType(IR::Instr * instrChkObjType)
         L"Object type check: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n",
         Js::OpCodeUtil::GetOpCodeName(instrChkObjType->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
-        this->m_func->GetJnFunction()->GetDisplayName(),
+        this->m_func->GetWorkItem()->GetDisplayName(),
         inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), L"false");
 
     IR::LabelInstr* labelBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
@@ -6608,7 +6608,7 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
         L"Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n",
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
-        this->m_func->GetJnFunction()->GetDisplayName(),
+        this->m_func->GetWorkItem()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(),
         propertySymOpnd->IsTypeChecked() ? L"true" : L"false");
 
@@ -6869,7 +6869,7 @@ Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::Propert
     {
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(L"PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n",
-            this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId,
             typeRef == type ? L"strong" : L"weak", typeRef, type);
         Output::Flush();
@@ -7002,7 +7002,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     guard, guard->GetValue(), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7138,7 +7138,7 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n",
-                    this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     ctorCache->runtimeCache, ctorCache->type, GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
             }
@@ -7195,7 +7195,7 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
                     {
                         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Output::Print(L"ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n",
-                            this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                             GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                         Output::Flush();
                     }
@@ -7537,7 +7537,7 @@ Lowerer::LoadArgumentCount(IR::Instr *const instr)
         instr->SetSrc1(IR::IntConstOpnd::New(instr->m_func->actualCount, TyUint32, instr->m_func, true));
         LowererMD::ChangeToAssign(instr);
     }
-    else if (instr->m_func->GetJnFunction()->IsGenerator())
+    else if (instr->m_func->GetJITFunctionBody()->IsGenerator())
     {
         IR::SymOpnd* symOpnd = LoadCallInfo(instr);
         instr->SetSrc1(symOpnd);
@@ -8324,7 +8324,7 @@ void Lowerer::LowerLdLen(IR::Instr *const instr, const bool isHelper)
 IR::Instr *
 Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 {
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::LdInt8ArrViewElem ||
         instr->m_opcode == Js::OpCode::LdUInt8ArrViewElem   ||
@@ -8516,7 +8516,7 @@ Lowerer::LowerMemOp(IR::Instr * instr)
 IR::Instr *
 Lowerer::LowerStArrViewElem(IR::Instr * instr)
 {
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::StInt8ArrViewElem    ||
            instr->m_opcode == Js::OpCode::StUInt8ArrViewElem   ||
@@ -8578,7 +8578,7 @@ Lowerer::LowerArrayDetachedCheck(IR::Instr * instr)
     // CALL Js::Throw::OutOfMemory
     // Done:
 
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
     IR::Instr * instrPrev = instr->m_prev;
 
     IR::Opnd * isDetachedOpnd = instr->UnlinkSrc1();
@@ -9197,7 +9197,7 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
     }
 
     int32 offset = dstSym->m_propertyId;
-    if (!m_func->GetJnFunction()->GetIsAsmJsFunction())
+    if (!m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         offset = offset * TySize[opnd->GetType()];
     }
@@ -9533,7 +9533,7 @@ IR::Instr *Lowerer::LowerRestParameter(IR::Opnd *formalsOpnd, IR::Opnd *dstOpnd,
 
     LoadScriptContext(helperCallInstr);
 
-    BOOL isGenerator = this->m_func->GetJnFunction()->IsGenerator();
+    BOOL isGenerator = this->m_func->GetJITFunctionBody()->IsGenerator();
 
     // Elements pointer = ebp + (formals count + formals offset + 1)*sizeof(Var)
     IR::RegOpnd *srcOpnd = isGenerator ? generatorArgsPtrOpnd : IR::Opnd::CreateFramePointerOpnd(this->m_func);
@@ -9639,7 +9639,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
             // $createRestArray
             instrArgIn->InsertBefore(createRestArrayLabel);
 
-            if (m_func->GetJnFunction()->IsGenerator())
+            if (m_func->GetJITFunctionBody()->IsGenerator())
             {
                 generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             }
@@ -9659,7 +9659,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     if (argIndex == 1)
     {
         // The "this" argument is not source-dependent and doesn't need to be checked.
-        if (m_func->GetJnFunction()->IsGenerator())
+        if (m_func->GetJITFunctionBody()->IsGenerator())
         {
             generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             ConvertArgOpndIfGeneratorFunction(instrArgIn, generatorArgsPtrOpnd);
@@ -9708,7 +9708,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
     // Now insert all the checks and undef-assigns.
 
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJITFunctionBody()->IsGenerator())
     {
         generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrInsert);
     }
@@ -9851,7 +9851,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 void
 Lowerer::ConvertArgOpndIfGeneratorFunction(IR::Instr *instrArgIn, IR::RegOpnd *generatorArgsPtrOpnd)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         // Replace stack param operand with offset into arguments array held by
         // the generator object.
@@ -9891,7 +9891,7 @@ Lowerer::LoadGeneratorObject(IR::Instr * instrInsert)
 IR::Instr *
 Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
     Js::ArgSlot argCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount();
     IR::Instr * instr = instrArgIn;
@@ -10484,7 +10484,7 @@ Lowerer::LoadCallInfo(IR::Instr * instrInsert)
     IR::SymOpnd * srcOpnd;
     Func * func = instrInsert->m_func;
 
-    if (func->GetJnFunction()->IsGenerator())
+    if (func->GetJITFunctionBody()->IsGenerator())
     {
         // Generator function arguments and ArgumentsInfo are not on the stack.  Instead they
         // are accessed off the generator object (which is prm1).
@@ -12471,8 +12471,9 @@ Lowerer::LowerInlineeEnd(IR::Instr *instr)
     // No need to emit code if the function wasn't marked as having implicit calls or bailout.  Dead-Store should have removed inline overhead.
     if (instr->m_func->GetHasImplicitCalls() || PHASE_OFF(Js::DeadStorePhase, this->m_func))
     {
+        // REVIEW (michhol): OOP JIT. why are we creating an addropnd with 0?
         LowererMD::CreateAssign(instr->m_func->GetInlineeArgCountSlotOpnd(),
-                                IR::AddrOpnd::New(0, IR::AddrOpndKindConstantVar, instr->m_func),
+                                IR::AddrOpnd::New((intptr_t)0, IR::AddrOpndKindConstantVar, instr->m_func),
                                 instr);
     }
 
@@ -14907,7 +14908,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                 {
                     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
-                        this->m_func->GetJnFunction()->GetDisplayName(),
+                        this->m_func->GetWorkItem()->GetDisplayName(),
                         this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                         Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode));
                     Output::Flush();
@@ -15087,7 +15088,7 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
                 baseValueType.ToString(baseValueTypeStr);
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
-                    this->m_func->GetJnFunction()->GetDisplayName(),
+                    this->m_func->GetWorkItem()->GetDisplayName(),
                     this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode),
                     baseValueTypeStr,
@@ -15370,7 +15371,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
-                    this->m_func->GetJnFunction()->GetDisplayName(),
+                    this->m_func->GetWorkItem()->GetDisplayName(),
                     this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode));
                 Output::Flush();
@@ -15406,7 +15407,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
             baseValueType.ToString(baseValueTypeStr);
             wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
-                this->m_func->GetJnFunction()->GetDisplayName(),
+                this->m_func->GetWorkItem()->GetDisplayName(),
                 this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode),
                 baseValueTypeStr,
@@ -17842,7 +17843,7 @@ IR::IndirOpnd*
 Lowerer::GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd)
 {
     // Load argument set dst = [ebp + index] (or grab from the generator object if m_func is a generator function).
-    IR::RegOpnd *baseOpnd = m_func->GetJnFunction()->IsGenerator() ? LoadGeneratorArgsPtr(ldElem) : IR::Opnd::CreateFramePointerOpnd(m_func);
+    IR::RegOpnd *baseOpnd = m_func->GetJITFunctionBody()->IsGenerator() ? LoadGeneratorArgsPtr(ldElem) : IR::Opnd::CreateFramePointerOpnd(m_func);
     IR::IndirOpnd* argIndirOpnd = nullptr;
     // The stack looks like this:
     //       ...
@@ -17856,8 +17857,8 @@ Lowerer::GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd)
 
     //actual arguments offset is LowererMD::GetFormalParamOffset() + 1 (this)
 
-    uint16 actualOffset = m_func->GetJnFunction()->IsGenerator() ? 1 : GetFormalParamOffset() + 1; //5
-    Assert(actualOffset == 5 || m_func->GetJnFunction()->IsGenerator());
+    uint16 actualOffset = m_func->GetJITFunctionBody()->IsGenerator() ? 1 : GetFormalParamOffset() + 1; //5
+    Assert(actualOffset == 5 || m_func->GetJITFunctionBody()->IsGenerator());
     if (valueOpnd->IsIntConstOpnd())
     {
         IntConstType offset = (valueOpnd->AsIntConstOpnd()->GetValue() + actualOffset) * MachPtr;
@@ -18263,7 +18264,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
         L"Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n",
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
-        this->m_func->GetJnFunction()->GetDisplayName(),
+        this->m_func->GetWorkItem()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex);
 
     Assert(pIsHelper != nullptr);
@@ -18519,7 +18520,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
         L"Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n",
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
-        this->m_func->GetJnFunction()->GetDisplayName(),
+        this->m_func->GetWorkItem()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex);
 
     Assert(pIsHelper != nullptr);
@@ -18563,7 +18564,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
                 #endif
                 PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
                     L"AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n",
-                    this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                    this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId);
             }
 
@@ -18604,7 +18605,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
 #endif
         PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
             L"AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n",
-            this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+            this->m_func->GetWorkItem()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId,
             usePolymorphicInlineCache ? L"poly" : L"mono", doStore ? L"store and add" : L"add only");
     }
@@ -18861,7 +18862,7 @@ bool Lowerer::GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedH
     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
     bool isStrictBr = false;
-    bool isStrictMode = this->m_func->GetJnFunction()->GetIsStrictMode();
+    bool isStrictMode = this->m_func->GetJITFunctionBody()->IsStrictMode();
     *pNeedHelper = true;
 
     switch (instrBranch->m_opcode)
@@ -19881,7 +19882,7 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
 
     Assert(!func->IsInlinee());
 
-    if (func->GetJnFunction()->IsGenerator())
+    if (func->GetJITFunctionBody()->IsGenerator())
     {
         instrInsert->SetSrc1(opndUndefAddress);
         LowererMD::ChangeToAssign(instrInsert);
@@ -20631,7 +20632,7 @@ void Lowerer::GenerateNullOutGeneratorFrame(IR::Instr* insertInstr)
 
 void Lowerer::LowerFunctionExit(IR::Instr* funcExit)
 {
-    if (m_func->GetJnFunction()->IsGenerator())
+    if (m_func->GetJITFunctionBody()->IsGenerator())
     {
         GenerateNullOutGeneratorFrame(funcExit->m_prev);
     }
@@ -20654,7 +20655,7 @@ void Lowerer::LowerFunctionEntry(IR::Instr* funcEntry)
     Assert(funcEntry->m_opcode == Js::OpCode::FunctionEntry);
 
     //Don't do a body call increment for loops or asm.js
-    if (m_func->IsLoopBody() || m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->IsLoopBody() || m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         return;
     }
@@ -20818,7 +20819,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
 {
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_I4 || instr->m_opcode == Js::OpCode::Div_I4);
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
     // MIN_INT/-1 path is only needed for signed operations
 
@@ -20893,7 +20894,7 @@ Lowerer::LowerRemI4(IR::Instr * instr)
 {
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_I4);
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         LowerDivI4Common(instr);
     }
@@ -20909,7 +20910,7 @@ Lowerer::LowerDivI4(IR::Instr * instr)
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Div_I4);
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         LowerDivI4Common(instr);
         return;
@@ -21000,7 +21001,7 @@ Lowerer::LowerRemR8(IR::Instr * instr)
 {
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::Rem_A);
-    Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
 
     m_lowererMD.LoadDoubleHelperArgument(instr, instr->UnlinkSrc2());
     m_lowererMD.LoadDoubleHelperArgument(instr, instr->UnlinkSrc1());
@@ -21137,7 +21138,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
 
 void Lowerer::LowerLdInnerFrameDisplay(IR::Instr *instr)
 {
-    bool isStrict = instr->m_func->GetJnFunction()->GetIsStrictMode();
+    bool isStrict = instr->m_func->GetJITFunctionBody()->IsStrictMode();
     if (isStrict)
     {
         if (instr->GetSrc2())
@@ -21170,8 +21171,8 @@ void Lowerer::LowerLdInnerFrameDisplay(IR::Instr *instr)
 
 void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
 {
-    bool isStrict = instr->m_func->GetJnFunction()->GetIsStrictMode();
-    uint16 envDepth = instr->m_func->GetJnFunction()->GetEnvDepth();
+    bool isStrict = instr->m_func->GetJITFunctionBody()->IsStrictMode();
+    uint16 envDepth = instr->m_func->GetJITFunctionBody()->GetEnvDepth();
     Func *func = this->m_func;
 
     // envDepth of -1 indicates unknown depth (eval expression or HTML event handler).
@@ -21242,7 +21243,7 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
         InsertLea(dstOpnd, IR::SymOpnd::New(stackSym, TyMachPtr, func), insertInstr);
 
         uint scopeSlotAllocSize =
-            (m_func->GetJnFunction()->scopeSlotArraySize + Js::ScopeSlots::FirstSlotIndex) * sizeof(Js::Var);
+            (m_func->GetJITFunctionBody()->GetScopeSlotArraySize() + Js::ScopeSlots::FirstSlotIndex) * sizeof(Js::Var);
 
         stackSym = StackSym::New(TyMisc, instr->m_func);
         m_func->StackAllocate(stackSym, scopeSlotAllocSize);
@@ -21851,7 +21852,7 @@ Lowerer::LoadSlotArrayWithCachedProtoType(IR::Instr * instrInsert, IR::PropertyS
 IR::Instr *
 Lowerer::LowerLdAsmJsEnv(IR::Instr * instr)
 {
-    Assert(m_func->GetJnFunction()->GetIsAsmJsFunction());
+    Assert(m_func->GetJITFunctionBody()->IsAsmJsMode());
     IR::Opnd * functionObjOpnd;
     IR::Instr * instrPrev = this->m_lowererMD.LoadFunctionObjectOpnd(instr, functionObjOpnd);
     Assert(!instr->GetSrc1());

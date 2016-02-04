@@ -19,14 +19,18 @@ public:
     uint GetByteCodeInLoopCount() const;
     uint GetLoopCount() const;
     uint GetByteCodeLength() const;
+    uint GetInnerScopeCount() const;
     Js::RegSlot GetLocalFrameDisplayReg() const;
     Js::RegSlot GetLocalClosureReg() const;
     Js::RegSlot GetEnvReg() const;
     Js::RegSlot GetFirstTmpReg() const;
+    Js::RegSlot GetFirstInnerScopeReg() const;
     Js::RegSlot GetVarCount() const;
     Js::RegSlot GetConstCount() const;
     Js::RegSlot GetLocalsCount() const;
     Js::RegSlot GetTempCount() const;
+    Js::RegSlot GetFuncExprScopeReg() const;
+    Js::RegSlot GetThisRegForEventHandler() const;
 
     uint16 GetEnvDepth() const;
     Js::ProfileId GetProfiledCallSiteCount() const;
@@ -40,14 +44,17 @@ public:
     bool HasOrParentHasArguments() const;
     bool IsGenerator() const;
     bool IsAsmJsMode() const;
+    bool IsStrictMode() const;
     bool HasImplicitArgIns() const;
     bool HasRestParameter() const;
+    bool HasScopeObject() const;
+    bool HasCachedScopePropIds() const;
 
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
 
-    // TODO: (michhol OOP JIT) make intptr_t (reduce chance of deref)
-    Js::Var GetConstantVar(Js::RegSlot location)  const;
+    intptr_t GetConstantVar(Js::RegSlot location) const;
+    Js::TypeId GetConstantType(Js::RegSlot location) const;
 
 private:
     Js::FunctionInfo::Attributes GetAttributes() const;

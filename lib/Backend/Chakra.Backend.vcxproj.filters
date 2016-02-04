@@ -111,6 +111,7 @@
     <ClCompile Include="JITTimeFunctionBody.cpp" />
     <ClCompile Include="JITOutput.cpp" />
     <ClCompile Include="JITTimeScriptContext.cpp" />
+    <ClCompile Include="ThreadContextInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -307,6 +308,7 @@
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITTimeScriptContext.h" />
+    <ClInclude Include="ThreadContextInfo.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\LinearScanMdA.asm">

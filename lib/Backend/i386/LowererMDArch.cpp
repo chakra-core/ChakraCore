@@ -128,7 +128,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -321,7 +321,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd *srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJnFunction()->IsGenerator())
+            if (this->m_func->GetJITFunctionBody()->IsGenerator())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -390,7 +390,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
         this->LoadHelperArgument(instrArgs, instr->GetDst());
 
         // s3 = formal argument count (without counting "this")
-        uint32 formalsCount = func->GetJnFunction()->GetInParamsCount() - 1;
+        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyMachReg, func));
 
         // s2 = actual argument count (without counting "this").
@@ -474,7 +474,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
     }
 
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before
@@ -1069,7 +1069,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     }
 
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall || startCallInstr->m_opcode == Js::OpCode::LoweredStartCall, "Problem with arg chain.");
-    AssertMsg(m_func->GetJnFunction()->GetIsAsmjsMode() || startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
+    AssertMsg(m_func->GetJITFunctionBody()->IsAsmJsMode() || startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
 
     //
     // Machine dependent lowering

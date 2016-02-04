@@ -158,6 +158,7 @@ public:
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);
     static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Func *func);
+    static Instr*   NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, Js::TypeId type, Func *func);
 
 public:
     bool            IsPlainInstr() const;

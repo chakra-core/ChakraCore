@@ -138,7 +138,7 @@ FlowGraph::Build(void)
                         argInstr->m_opcode != Js::OpCode::ArgOut_A_SpreadArg)
                     {
                         // don't have bailout in asm.js so we don't need BytecodeArgOutCapture
-                        if (!argInstr->m_func->GetJnFunction()->GetIsAsmjsMode())
+                        if (!argInstr->m_func->GetJITFunctionBody()->IsAsmJsMode())
                         {
                             // Need to always generate byte code arg out capture,
                             // because bailout can't restore from the arg out as it is
@@ -801,7 +801,7 @@ bool Loop::EnsureMemOpVariablesInitialized()
             {
                 wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(L"MemOp skipped: minimum loop count not reached: Function: %s %s,  Loop: %d\n",
-                              func->GetJnFunction()->GetDisplayName(),
+                              func->GetWorkItem()->GetDisplayName(),
                               func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                               this->GetLoopNumber()
                               );
@@ -1114,7 +1114,7 @@ FlowGraph::Destroy(void)
                 // Skipping Try blocks as we have dependency on blocks to get the last instr(see below in this function)
                 if (!fHasTry)
                 {
-                    if (this->func->GetJnFunction()->IsGenerator())
+                    if (this->func->GetJITFunctionBody()->IsGenerator())
                     {
                         // the label could be a yield resume label, in which case we also need to remove it from the YieldOffsetResumeLabels list
                         this->func->MapUntilYieldOffsetResumeLabels([this, &labelInstr](int i, const YieldOffsetResumeLabel& yorl)

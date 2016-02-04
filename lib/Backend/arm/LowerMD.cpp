@@ -1983,7 +1983,7 @@ LowererMD::Init(Lowerer *lowerer)
 IR::Instr *
 LowererMD::LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -2077,7 +2077,7 @@ LowererMD::LoadStackArgPtr(IR::Instr * instr)
         instr->SetSrc1(tmpOpnd);
         instr->SetSrc2(IR::IntConstOpnd::New(sizeof(Js::Var), TyMachReg, this->m_func));
     }
-    else if (this->m_func->GetJnFunction()->IsGenerator())
+    else if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         IR::Instr *instr2 = LoadInputParamPtr(instr, instr->UnlinkDst()->AsRegOpnd());
         instr->Remove();
@@ -2261,7 +2261,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
 IR::Instr *
 LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
 {
-    Assert(!this->m_func->GetJnFunction()->IsGenerator());
+    Assert(!this->m_func->GetJITFunctionBody()->IsGenerator());
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
 
@@ -2298,7 +2298,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
         this->LoadHelperArgument(instrArgs, instr->GetDst());
 
         // s3 = formal argument count (without counting "this").
-        uint32 formalsCount = func->GetJnFunction()->GetInParamsCount() - 1;
+        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyUint32, func));
 
         // s2 = actual argument count (without counting "this").

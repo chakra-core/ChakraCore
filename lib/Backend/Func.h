@@ -68,6 +68,7 @@ class Func
 {
 public:
     Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+        ThreadContextInfo * threadContextInfo,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
@@ -158,6 +159,11 @@ public:
     JITTimeWorkItem * GetWorkItem() const
     {
         return m_workItem;
+    }
+
+    ThreadContextInfo * GetThreadContextInfo() const
+    {
+        return m_threadContextInfo;
     }
 
     const JITTimeFunctionBody * const GetJITFunctionBody() const
@@ -432,6 +438,7 @@ public:
     JitArenaAllocator *    m_alloc;
     const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;
     const Js::FunctionCodeGenRuntimeData *const m_runtimeData;
+    ThreadContextInfo * m_threadContextInfo;
     JITTimeWorkItem * m_workItem;
     Js::PolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
 

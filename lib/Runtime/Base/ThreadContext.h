@@ -493,14 +493,26 @@ private:
     DWORD m_jitProcessId;
     UUID m_jitConnectionId;
 
+    intptr_t m_remoteThreadContextInfo;
+
 public:
     JITManager m_codeGenManager;
     void SetJITConnectionInfo(DWORD processId, UUID connectionId)
     {
         m_jitProcessId = processId;
         m_jitConnectionId = connectionId;
-
+        // TODO: OOP JIT, check hresults
         m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
+        // TODO: OOP JIT, do we need to do this initialization in a different place?
+        ThreadContextData contextData;
+        contextData.nullFrameDisplayAddress = reinterpret_cast<intptr_t>(&Js::NullFrameDisplay);
+        contextData.strictNullFrameDisplayAddress = reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay);
+        m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
+    }
+
+    intptr_t GetRemoteThreadContextInfo() const
+    {
+        return m_remoteThreadContextInfo;
     }
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
@@ -967,6 +979,7 @@ public:
 
     void ShutdownThreads()
     {
+        m_codeGenManager.CleanupThreadContext(m_remoteThreadContextInfo);
         m_codeGenManager.DisconnectRpcServer();
 #ifdef ENABLE_NATIVE_CODEGEN
         if (jobProcessor)

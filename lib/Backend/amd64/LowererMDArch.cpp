@@ -131,7 +131,7 @@ LowererMDArch::Init(LowererMD *lowererMD)
 IR::Instr *
 LowererMDArch::LoadInputParamPtr(IR::Instr *instrInsert, IR::RegOpnd *optionalDstOpnd /* = nullptr */)
 {
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         IR::RegOpnd * argPtrRegOpnd = Lowerer::LoadGeneratorArgsPtr(instrInsert);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(argPtrRegOpnd, 1 * MachPtr, TyMachPtr, this->m_func);
@@ -203,7 +203,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
         this->LoadHelperArgument(instrArgs, instr->GetDst());
 
         // s3 = formal argument count (without counting "this").
-        uint32 formalsCount = func->GetJnFunction()->GetInParamsCount() - 1;
+        uint32 formalsCount = func->GetJITFunctionBody()->GetInParamsCount() - 1;
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(formalsCount, TyUint32, func));
 
         // s2 = actual argument count (without counting "this").
@@ -355,7 +355,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force /* = false */,
             this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
             IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
 
-            if (this->m_func->GetJnFunction()->IsGenerator())
+            if (this->m_func->GetJITFunctionBody()->IsGenerator())
             {
                 // the function object for generator calls is a GeneratorVirtualScriptFunction object
                 // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
@@ -405,7 +405,7 @@ LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
         paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
     }
 
-    if (this->m_func->GetJnFunction()->IsGenerator())
+    if (this->m_func->GetJITFunctionBody()->IsGenerator())
     {
         // the function object for generator calls is a GeneratorVirtualScriptFunction object
         // and we need to return the real JavascriptGeneratorFunction object so grab it before
@@ -518,7 +518,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
               startCallInstr->m_opcode == Js::OpCode::StartCallAsmJsI,
               "Problem with arg chain.");
     AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount ||
-              m_func->GetJnFunction()->GetIsAsmjsMode(),
+              m_func->GetJITFunctionBody()->IsAsmJsMode(),
         "ArgCount doesn't match StartCall count");
     //
     // Machine dependent lowering
@@ -540,7 +540,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     const uint32 argSlots = argCount + 1 + extraParams; // + 1 for call flags
     this->m_func->m_argSlotsForFunctionsCalled = max(this->m_func->m_argSlotsForFunctionsCalled, argSlots);
 
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
         GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
@@ -885,7 +885,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym)
     // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
     // With SIMD, args are of variable length and we need to the argument position in the args list.
     if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled() &&
-        m_func->GetJnFunction()->GetIsAsmJsFunction() &&
+        m_func->GetJITFunctionBody()->IsAsmJsMode() &&
         argSym != nullptr &&
         argSym->m_argPosition != 0)
     {
@@ -1485,7 +1485,7 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // Now store all the arguments in the register in the stack slots
     //
     this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
         uint16 offset = 2;
         for (uint16 i = 0; i < m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount() && i < 3; i++)
@@ -1766,7 +1766,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     // Insert RET
     IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(0, TyInt32, this->m_func);
     IR::RegOpnd *retReg = nullptr;
-    if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode() && !m_func->IsLoopBody())
     {
         switch (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType().which())
         {

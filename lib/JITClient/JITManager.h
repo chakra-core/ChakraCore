@@ -10,8 +10,14 @@ class JITManager
 public:
     HRESULT ConnectRpcServer(__in DWORD processId, __in UUID connectionUuid);
     void DisconnectRpcServer();
+    HRESULT InitializeThreadContext(
+        __in ThreadContextData * data,
+        __out intptr_t *threadContextInfoAddress);
+    HRESULT CleanupThreadContext(
+        __in intptr_t threadContextInfoAddress);
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemJITData *workItemData,
+        __in intptr_t threadContextInfoAddress,
         __out JITOutputData *jitData);
 
 private:

@@ -7,6 +7,7 @@
 #include "Base\ScriptContextProfiler.h"
 
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+    ThreadContextInfo * threadContextInfo,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -17,6 +18,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_alloc(alloc),
     m_workItem(workItem),
     m_jitTimeData(jitTimeData),
+    m_threadContextInfo(threadContextInfo),
     m_runtimeData(runtimeData),
     m_polymorphicInlineCacheInfo(polymorphicInlineCacheInfo),
     m_codeGenAllocators(codeGenAllocators),
@@ -236,88 +238,6 @@ Func::Codegen()
 {
     Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
 
-#if DBG_DUMP
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
-    {
-        if (this->IsLoopBody())
-        {
-            Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", m_workItem->GetDisplayName(), m_workItem->GetLoopNumber());
-        }
-        else
-        {
-            Output::Print(L"---BeginBackEnd: function: %s---\r\n", m_workItem->GetDisplayName());
-        }
-        Output::Flush();
-    }
-#endif
-
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    LARGE_INTEGER start_time = { 0 };
-
-    if(PHASE_TRACE(Js::BackEndPhase, GetJITFunctionBody()))
-    {
-        QueryPerformanceCounter(&start_time);
-        if (this->IsLoopBody())
-        {
-            Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S",
-                m_workItem->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                m_workItem->GetLoopNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()));
-            if (GetJITFunctionBody()->IsAsmJsMode())
-            {
-                Output::Print(L" (Asmjs)\n");
-            }
-            else
-            {
-                Output::Print(L"\n");
-            }
-        }
-        else
-        {
-            Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), mode: %S",
-                m_workItem->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()));
-
-            if (GetJITFunctionBody()->IsAsmJsMode())
-            {
-                Output::Print(L" (Asmjs)\n");
-            }
-            else
-            {
-                Output::Print(L"\n");
-            }
-        }
-        Output::Flush();
-    }
-#ifdef FIELD_ACCESS_STATS
-    if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->GetJITFunctionBody()) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->GetJITFunctionBody()))
-    {
-        if (this->m_jitTimeData->inlineCacheStats)
-        {
-            auto stats = this->m_jitTimeData->inlineCacheStats;
-            Output::Print(L"ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n", this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
-            Output::Print(L"    overall: total %u, no profile info %u\n", stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
-            Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
-                stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
-            Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
-                stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
-                stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
-                stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
-        }
-        else
-        {
-            Output::Print(L"EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n", this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
-        }
-        Output::Flush();
-    }
-#endif
-
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
         // IRBuilder
@@ -480,69 +400,6 @@ Func::Codegen()
 
     }
     END_CODEGEN_PHASE(this, Js::BackEndPhase);
-
-#if DBG_DUMP
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
-    {
-        Output::Print(L"---EndBackEnd---\r\n");
-        Output::Flush();
-    }
-#endif
-
-#ifdef PROFILE_BAILOUT_RECORD_MEMORY
-    if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
-    {
-        GetScriptContext()->codeSize += this->m_codeSize;
-    }
-#endif
-
-    if (PHASE_TRACE(Js::BackEndPhase, GetJnFunction()))
-    {
-        LARGE_INTEGER freq;
-        LARGE_INTEGER end_time;
-        QueryPerformanceCounter(&end_time);
-        QueryPerformanceFrequency(&freq);
-        if (this->IsLoopBody())
-        {
-            Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec",
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                m_workItem->GetLoopNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()),
-                (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
-
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(L" (Asmjs)\n");
-            }
-            else
-            {
-                Output::Print(L"\n");
-            }
-        }
-        else
-        {
-            Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec",
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()),
-                (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
-
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(L" (Asmjs)\n");
-            }
-            else
-            {
-                Output::Print(L"\n");
-            }
-        }
-        Output::Flush();
-    }
 
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.IsEnabled(Js::AsmDumpModeFlag))

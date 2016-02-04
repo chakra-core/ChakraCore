@@ -879,6 +879,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 Func,
                 (&funcAlloc),
                 jitWorkItem,
+                nullptr,
                 workItem->RecyclableData()->JitTimeData(),
                 nullptr,
                 workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo()->GetSelfInfo(),
@@ -892,7 +893,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 #endif
         func->m_symTable->SetStartingID(static_cast<SymID>(nRegs + 1));
         JITOutputData jitWriteData;
-        HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(workItem->GetJITData(), &jitWriteData);
+        HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
+            workItem->GetJITData(),
+            scriptContext->GetThreadContext()->GetRemoteThreadContextInfo(),
+            &jitWriteData);
         if (hr != S_OK)
         {
             __fastfail((uint)-1);
@@ -933,6 +937,89 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 }
             }
 
+#if DBG_DUMP
+            if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
+            {
+                if (workItem->GetEntryPoint()->IsLoopBody())
+                {
+                    Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", body->GetDisplayName(), ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber());
+                }
+                else
+                {
+                    Output::Print(L"---BeginBackEnd: function: %s---\r\n", body->GetDisplayName());
+                }
+                Output::Flush();
+            }
+#endif
+
+            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            LARGE_INTEGER start_time = { 0 };
+
+            if (PHASE_TRACE(Js::BackEndPhase, body))
+            {
+                QueryPerformanceCounter(&start_time);
+                if (workItem->GetEntryPoint()->IsLoopBody())
+                {
+                    Output::Print(
+                        L"BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S",
+                        body->GetDisplayName(),
+                        body->GetDebugNumberSet(debugStringBuffer),
+                        body->GetLineNumber(),
+                        ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber(),
+                        ExecutionModeName(workItem->GetJitMode()));
+                    if (body->GetIsAsmjsMode())
+                    {
+                        Output::Print(L" (Asmjs)\n");
+                    }
+                    else
+                    {
+                        Output::Print(L"\n");
+                    }
+                }
+                else
+                {
+                    Output::Print(
+                        L"BeginBackEnd - function: %s (%s, line %u), mode: %S",
+                        body->GetDisplayName(),
+                        body->GetDebugNumberSet(debugStringBuffer),
+                        body->GetLineNumber(),
+                        ExecutionModeName(workItem->GetJitMode()));
+
+                    if (body->GetIsAsmjsMode())
+                    {
+                        Output::Print(L" (Asmjs)\n");
+                    }
+                    else
+                    {
+                        Output::Print(L"\n");
+                    }
+                }
+                Output::Flush();
+            }
+
+#ifdef FIELD_ACCESS_STATS
+            if (PHASE_TRACE(Js::ObjTypeSpecPhase, body) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, body))
+            {
+                if (workItem->RecyclableData()->JitTimeData()->inlineCacheStats)
+                {
+                    auto stats = workItem->RecyclableData()->JitTimeData()->inlineCacheStats;
+                    Output::Print(L"ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n", body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
+                    Output::Print(L"    overall: total %u, no profile info %u\n", stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
+                    Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+                        stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
+                    Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+                        stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
+                        stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
+                        stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
+                }
+                else
+                {
+                    Output::Print(L"EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n", body->GetDisplayName(), body->GetDebugNumberSet(debugStringBuffer));
+                }
+                Output::Flush();
+            }
+#endif
+
             // TODO: (michhol OOP JIT) I think this should be requisite to calling?
 
             if (body->GetScriptContext()->IsClosed())
@@ -972,6 +1059,70 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                         delete[] displayName;
                     }
                 }
+            }
+            // TODO (michhol): OOP JIT: move to separate method
+#if DBG_DUMP
+            if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
+            {
+                Output::Print(L"---EndBackEnd---\r\n");
+                Output::Flush();
+            }
+#endif
+
+#ifdef PROFILE_BAILOUT_RECORD_MEMORY
+            if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
+            {
+                // TODO (michhol): OOP JIT, we need to first update this
+                scriptContext->codeSize += workItem->GetEntryPoint()->GetCodeSize();
+            }
+#endif
+
+            if (PHASE_TRACE(Js::BackEndPhase, body))
+            {
+                LARGE_INTEGER freq;
+                LARGE_INTEGER end_time;
+                QueryPerformanceCounter(&end_time);
+                QueryPerformanceFrequency(&freq);
+                if (jitWorkItem->IsLoopBody())
+                {
+                    Output::Print(
+                        L"EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec",
+                        body->GetDisplayName(),
+                        body->GetDebugNumberSet(debugStringBuffer),
+                        body->GetLineNumber(),
+                        ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber(),
+                        ExecutionModeName(workItem->GetJitMode()),
+                        (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
+
+                    if (body->GetIsAsmjsMode())
+                    {
+                        Output::Print(L" (Asmjs)\n");
+                    }
+                    else
+                    {
+                        Output::Print(L"\n");
+                    }
+                }
+                else
+                {
+                    Output::Print(
+                        L"EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec",
+                        body->GetDisplayName(),
+                        body->GetDebugNumberSet(debugStringBuffer),
+                        body->GetLineNumber(),
+                        ExecutionModeName(workItem->GetJitMode()),
+                        (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
+
+                    if (body->GetIsAsmjsMode())
+                    {
+                        Output::Print(L" (Asmjs)\n");
+                    }
+                    else
+                    {
+                        Output::Print(L"\n");
+                    }
+                }
+                Output::Flush();
             }
 
             rejit = false;

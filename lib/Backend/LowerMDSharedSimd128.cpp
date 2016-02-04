@@ -19,7 +19,7 @@ IR::Instr* LowererMD::Simd128Instruction(IR::Instr *instr)
     if (!instr->GetDst())
     {
         // SIMD ops always have DST in asmjs
-        Assert(!instr->m_func->GetJnFunction()->GetIsAsmjsMode());
+        Assert(!instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
         // unused result. Do nothing.
         IR::Instr * pInstr = instr->m_prev;
         instr->Remove();
