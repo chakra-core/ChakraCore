@@ -174,8 +174,8 @@ namespace Js
         , codeSize(0)
         , bailOutRecordBytes(0)
         , bailOutOffsetBytes(0)
-        , debugContext(nullptr)
 #endif
+        , debugContext(nullptr)
     {
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
        // are field init and those dtor will be called if exception occurs
