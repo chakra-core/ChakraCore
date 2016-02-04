@@ -8805,8 +8805,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 if (instr->GetDst()->IsInt32())
                 {
                     // if we are specializing dst to int, we will bailout on overflow so don't need upperbound check
-                    // JP $skipRoundSd
-                    this->m_lowerer->InsertBranch(Js::OpCode::JP, skipRoundSd, instr);
+                    // Also, we will bailout on NaN, so it doesn't need special handling either
                     // J $addHalfToRoundSrcLabel
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, addHalfToRoundSrcLabel, instr);
                 }
@@ -8876,6 +8875,16 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
                     // J $skipRoundSd
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
+                }
+
+                if (src->IsFloat64())
+                {
+                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                }
+                else
+                {
+                    Assert(src->IsFloat32());
+                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // $addHalfToRoundSrcLabel
