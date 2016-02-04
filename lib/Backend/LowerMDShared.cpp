@@ -6920,32 +6920,33 @@ LowererMD::LowerInt4RemWithBailOut(
 IR::Instr *
 LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
 {
-    return IR::Instr::New(Js::OpCode::MOVSD_ZERO, opndDst, instrInsert->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOVSD_ZERO, opndDst, instrInsert->m_func);
+    instrInsert->InsertBefore(instr);
+    return instr;
 }
 
 IR::Instr *
 LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert)
 {
-    // Floating point zero is a common value to load.  Let's use a single memory location instead of allocating new memory for each.
-    const bool isFloatZero = value == 0.0 && !Js::JavascriptNumber::IsNegZero(value); // (-0.0 == 0.0) yields true
-    IR::Instr * instr;
-    if (isFloatZero)
+    if (value == 0.0 && !Js::JavascriptNumber::IsNegZero(value))
     {
-        instr = LoadFloatZero(opndDst, instrInsert);
+        // zero can be loaded with "XORPS xmm, xmm" rather than needing memory load
+        return LoadFloatZero(opndDst, instrInsert);
     }
-    else if (opndDst->IsFloat64())
+
+    IR::Opnd * opnd;
+    if (opndDst->IsFloat64())
     {
         double *pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), double, value);
-        IR::Opnd * opnd = IR::MemRefOpnd::New((void*)pValue, TyMachDouble, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
-        instr = IR::Instr::New(LowererMDArch::GetAssignOp(TyMachDouble), opndDst, opnd, instrInsert->m_func);
+        opnd = IR::MemRefOpnd::New((void*)pValue, TyMachDouble, instrInsert->m_func, IR::AddrOpndKindDynamicDoubleRef);
     }
     else
     {
         Assert(opndDst->IsFloat32());
         float * pValue = NativeCodeDataNew(instrInsert->m_func->GetNativeCodeDataAllocator(), float, (float)value);
-        IR::Opnd * opnd = IR::MemRefOpnd::New((void *)pValue, TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicFloatRef);
-        instr = IR::Instr::New(LowererMDArch::GetAssignOp(TyFloat32), opndDst, opnd, instrInsert->m_func);
+        opnd = IR::MemRefOpnd::New((void *)pValue, TyFloat32, instrInsert->m_func, IR::AddrOpndKindDynamicFloatRef);
     }
+    IR::Instr * instr = IR::Instr::New(LowererMDArch::GetAssignOp(opndDst->GetType()), opndDst, opnd, instrInsert->m_func);
     instrInsert->InsertBefore(instr);
     Legalize(instr);
     return instr;
@@ -8803,6 +8804,9 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (instr->GetDst()->IsInt32())
                 {
+                    // if we are specializing dst to int, we will bailout on overflow so don't need upperbound check
+                    // JP $skipRoundSd
+                    this->m_lowerer->InsertBranch(Js::OpCode::JP, skipRoundSd, instr);
                     // J $addHalfToRoundSrcLabel
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, addHalfToRoundSrcLabel, instr);
                 }
@@ -8855,7 +8859,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(ltNegHalf);
                 if (!instr->GetDst()->IsInt32())
                 {
-                    // if we are specializing dst to int, we will bailout on overflow here so don't need upperbound check
+                    // if we are specializing dst to int, we will bailout on overflow so don't need lowerbound check
                     IR::Opnd * negTwoToFraction;
                     if (src->IsFloat64())
                     {
@@ -8872,16 +8876,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
                     // J $skipRoundSd
                     this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
-                }
-
-                if (src->IsFloat64())
-                {
-                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-                }
-                else
-                {
-                    Assert(src->IsFloat32());
-                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // $addHalfToRoundSrcLabel
