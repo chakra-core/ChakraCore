@@ -12,7 +12,7 @@ set (SOURCES
   NumberUtilities.cpp
   # NumberUtilities_strtod.cpp
   RejitReason.cpp
-  # SmartFPUControl.cpp
+  SmartFPUControl.cpp
   Tick.cpp
   unicode.cpp
   vtinfo.cpp
