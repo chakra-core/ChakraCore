@@ -8669,6 +8669,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //
             // if(round)
             // {
+            //     
+            {}
+            //      
+            //      
             // /* N.B.: the following CMPs are lowered to COMISDs, whose results can only be >, <, or =.
             //    In fact, only ">" can be used if NaN has not been handled.
             // */
@@ -8683,24 +8687,21 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             //     if (shouldCheckNegZero) {
             //         CMP roundedFloat, 0
             //         JA $setZero
-            //         JE $negZeroTest
-            //         J $bailout
+            //         JP $skipRoundSd (NaN)
+            //       $negZeroTest [Helper]:
+            //         JNE $bailoutLabel
+            //         isNegZero(src)
+            //         JE $bailoutLabel
+            //         J $skipRoundSd
             //     } else {
             //         CMP roundedFloat, 0
-            //         JL $bailout
-            //         J $setZero
-            //     }
+            //         JNE $setZero
+            //         J $skipRoundSd (0 or NaN)
+            //      }
             // $ltNegHalf:
             //     CMP roundedFloat, NegTwoToFraction
             //     JA $addHalfToRoundSrc
             //     J $skipRoundSd
-            //     if (shouldCheckNegZero) {
-            // $negZeroTest:
-            //         if isNegZero(roundedFloat):
-            //             J $bailout
-            //         else
-            //             J $skipRoundSd
-            //     }
             // $setZero:
             //     MOV roundedFloat, 0
             //     J $skipRoundSd
@@ -8789,7 +8790,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 IR::LabelInstr * ltHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
                 IR::LabelInstr * setZero = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
                 IR::LabelInstr * ltNegHalf = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-                IR::LabelInstr * negZeroTest = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, /*helperLabel*/ true);
 
                 IR::Opnd * pointFive;
                 IR::Opnd * twoToFraction;
@@ -8830,18 +8830,26 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     // CMP roundedFloat, 0
                     // JA $setZero
                     this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrGt_A, setZero, instr);
-                    // JEQ $negZeroTest
-                    this->m_lowerer->InsertBranch(Js::OpCode::BrEq_A, negZeroTest, instr);
-                    // J $bailoutLabel
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, bailoutLabel, instr);
+                    // JP $skipRoundSd (NaN)
+                    this->m_lowerer->InsertBranch(Js::OpCode::JP, skipRoundSd, instr);
+                    // remaining branches lead to helper call or bailout, so move them to helper path as well
+                    m_lowerer->InsertLabel(true, instr);
+                    // JNE $bailoutLabel
+                    this->m_lowerer->InsertBranch(Js::OpCode::BrNeq_A, bailoutLabel, instr);
+                    IR::Opnd* isNegZero = IsOpndNegZero(src, instr);
+                    // if isNegZero(src) J $bailoutLabel
+                    this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
+                    // else J $skipRoundSd
+                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
+                    negZeroCheckDone = true;
                 }
                 else
                 {
                     // CMP roundedFloat, 0
-                    // JL $bailoutLabel
-                    this->m_lowerer->InsertCompareBranch(zero, roundedFloat, Js::OpCode::BrLt_A, bailoutLabel, instr);
-                    // J $setZero
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, setZero, instr);
+                    // JNE $setZero // REVIEW: is it legal to set 0, or should we still ROUNDSD?
+                    this->m_lowerer->InsertCompareBranch(roundedFloat, zero, Js::OpCode::BrNeq_A, setZero, instr, true);
+                    // J $skipRoundSd (0 or NaN)
+                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
                 }
                 // $ltNegHalf:
                 instr->InsertBefore(ltNegHalf);
@@ -8850,18 +8858,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 this->m_lowerer->InsertCompareBranch(roundedFloat, negTwoToFraction, Js::OpCode::BrGt_A, addHalfToRoundSrcLabel, instr);
                 // J $skipRoundSd
                 this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
-
-                if (instr->ShouldCheckForNegativeZero())
-                {
-                    // $negZeroTest:
-                    instr->InsertBefore(negZeroTest);
-                    IR::Opnd* isNegZero = IsOpndNegZero(src, instr);
-                    // if isNegZero(src) J $bailoutLabel
-                    this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
-                    // else J $skipRoundSd
-                    this->m_lowerer->InsertBranch(Js::OpCode::Br, skipRoundSd, instr);
-                    negZeroCheckDone = true;
-                }
 
                 // $setZero:
                 instr->InsertBefore(setZero);
