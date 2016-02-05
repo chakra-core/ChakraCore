@@ -1467,7 +1467,7 @@ namespace Js
         ArgSlot GetReportedInParamsCount() const;
         void SetReportedInParamsCount(ArgSlot newReportedInParamCount);
         void ResetInParams();
-        ScopeInfo* GetScopeInfo() const { return (ScopeInfo*)this->get_AuxPtr(e_scopeInfo); }
+        ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->get_AuxPtr(e_scopeInfo)); }
         void SetScopeInfo(ScopeInfo* scopeInfo) {  this->set_AuxPtr(e_scopeInfo, scopeInfo); }
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         bool IsTrackedPropertyId(PropertyId pid);
@@ -1570,7 +1570,7 @@ namespace Js
         Var GetCachedSourceString() { return this->get_AuxPtr(e_cachedSourceString); }
         void SetCachedSourceString(Var sourceString)
         {
-            Assert(this->get_AuxPtr(e_cachedSourceString) == nullptr);
+            Assert(this->GetCachedSourceString() == nullptr);
             this->set_AuxPtr(e_cachedSourceString, sourceString);
         }
 
@@ -1585,7 +1585,7 @@ namespace Js
         bool GetCapturesThis() { return (attributes & Attributes::CapturesThis) != 0; }
 
         void BuildDeferredStubs(ParseNode *pnodeFnc);
-        DeferredFunctionStub *GetDeferredStubs() const { return (DeferredFunctionStub *)this->get_AuxPtr(e_deferredStubs); }
+        DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->get_AuxPtr(e_deferredStubs)); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->set_AuxPtr(e_deferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, wchar_t const * pszTitle);
     protected:
@@ -2031,9 +2031,9 @@ namespace Js
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
-        ByteBlock* GetAuxiliaryData() const { return (ByteBlock*)this->get_AuxPtr(e_auxBlock); }
+        ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->get_AuxPtr(e_auxBlock)); }
         void SetAuxiliaryData(ByteBlock* auxBlock) { this->set_AuxPtr(e_auxBlock, auxBlock); }
-        ByteBlock* GetAuxiliaryContextData()const { return (ByteBlock*)this->get_AuxPtr(e_auxContextBlock); }
+        ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->get_AuxPtr(e_auxContextBlock)); }
         void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->set_AuxPtr(e_auxContextBlock, auxContextBlock); }
         ByteBlock* GetByteCode();
         ByteBlock* GetOriginalByteCode(); // Returns original bytecode without probes (such as BPs).
@@ -2288,13 +2288,13 @@ namespace Js
         DebuggerScope* AddScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation);
         bool TryGetDebuggerScopeAt(int index, DebuggerScope*& debuggerScope);
 
-        StatementMapList * GetStatementMaps() const { return (StatementMapList *)this->get_AuxPtr(e_pStatementMaps); }
+        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->get_AuxPtr(e_pStatementMaps)); }
         void SetStatementMaps(StatementMapList *pStatementMaps) { this->set_AuxPtr(e_pStatementMaps, pStatementMaps); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return (FunctionCodeGenRuntimeData**)this->get_AuxPtr(e_codeGenGetSetRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->get_AuxPtr(e_codeGenGetSetRuntimeData)); }
         void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->set_AuxPtr(e_codeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return (FunctionCodeGenRuntimeData**)this->get_AuxPtr(e_codeGenRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->get_AuxPtr(e_codeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->set_AuxPtr(e_codeGenRuntimeData, codeGenRuntimeData); }
 
         static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -2366,7 +2366,7 @@ namespace Js
 
         uint GetLoopNumber(LoopHeader const * loopHeader) const;
         bool GetHasAllocatedLoopHeaders() { return this->GetLoopHeaderArray() != nullptr; }
-        Js::LoopHeader* GetLoopHeaderArray() const { return (Js::LoopHeader*)this->get_AuxPtr(e_loopHeaderArray); }
+        Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->get_AuxPtr(e_loopHeaderArray)); }
         void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->set_AuxPtr(e_loopHeaderArray, loopHeaderArray); }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -2481,10 +2481,10 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->set_AuxPtr(e_polymorphicCallSiteInfoHead, polyCallSiteInfo); }
-        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return (PolymorphicCallSiteInfo *)this->get_AuxPtr(e_polymorphicCallSiteInfoHead); }
+        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->get_AuxPtr(e_polymorphicCallSiteInfoHead)); }
 #endif
 
-        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return (PolymorphicInlineCache *)this->get_AuxPtr(e_polymorphicInlineCachesHead); }
+        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->get_AuxPtr(e_polymorphicInlineCachesHead)); }
         void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->set_AuxPtr(e_polymorphicInlineCachesHead, cache); }
 
         bool PolyInliningUsingFixedMethodsAllowedByConfigFlags(FunctionBody* topFunctionBody)
@@ -2495,7 +2495,7 @@ namespace Js
                 !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, this) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, topFunctionBody);
         }
 
-        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return (Js::PropertyId *)this->get_AuxPtr(e_propertyIdsForScopeSlotArray); }
+        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->get_AuxPtr(e_propertyIdsForScopeSlotArray)); }
         void SetPropertyIdsForScopeSlotArray(Js::PropertyId * propertyIdsForScopeSlotArray, uint scopeSlotCount)
         {
             this->scopeSlotArraySize = scopeSlotCount;
@@ -2504,7 +2504,7 @@ namespace Js
 
         Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainer() const
         {
-            return (Js::PropertyIdOnRegSlotsContainer *)this->get_AuxPtr(e_propertyIdOnRegSlotsContainer);
+            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->get_AuxPtr(e_propertyIdOnRegSlotsContainer));
         }
         void SetPropertyIdOnRegSlotsContainer(Js::PropertyIdOnRegSlotsContainer *propertyIdOnRegSlotsContainer)
         {
@@ -2714,7 +2714,7 @@ namespace Js
 #if DBG
         void VerifyCacheIdToPropertyIdMap();
 #endif
-        PropertyId* GetReferencedPropertyIdMap() const { return (PropertyId*)this->get_AuxPtr(e_referencedPropertyIdMap); }
+        PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->get_AuxPtr(e_referencedPropertyIdMap)); }
         void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->set_AuxPtr(e_referencedPropertyIdMap, propIdMap); }
         void CreateReferencedPropertyIdMap(uint referencedPropertyIdCount);
         void CreateReferencedPropertyIdMap();
@@ -2737,13 +2737,13 @@ namespace Js
         uint NewLiteralRegex();
         uint GetLiteralRegexCount() const;
         void AllocateLiteralRegexArray();
-        UnifiedRegex::RegexPattern **GetLiteralRegexs() const { return (UnifiedRegex::RegexPattern **)this->get_AuxPtr(e_literalRegexes); }
+        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->get_AuxPtr(e_literalRegexes)); }
         void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->set_AuxPtr(e_literalRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
 #ifndef TEMP_DISABLE_ASMJS
-        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return (AsmJsFunctionInfo*)this->get_AuxPtr(e_asmJsFunctionInfo); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->get_AuxPtr(e_asmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
-        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return (AsmJsModuleInfo*)this->get_AuxPtr(e_asmJsModuleInfo); }
+        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->get_AuxPtr(e_asmJsModuleInfo)); }
         void ResetAsmJsInfo()
         {
             set_AuxPtr(e_asmJsFunctionInfo, nullptr);
@@ -2756,7 +2756,7 @@ namespace Js
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypes() const { return (DynamicType**)this->get_AuxPtr(e_objLiteralTypes); }
+        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->get_AuxPtr(e_objLiteralTypes)); }
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->set_AuxPtr(e_objLiteralTypes, objLiteralTypes); };
     public:
 
