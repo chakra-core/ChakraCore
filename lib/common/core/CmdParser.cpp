@@ -584,6 +584,12 @@ int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
         switch(CurChar())
         {
         case '-' :
+            if ('-' == PeekChar())
+            {
+                //support --
+                NextChar();
+            }
+            //fallthrough
         case '/':
             NextChar();
             if('?' == CurChar())
@@ -591,10 +597,7 @@ int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
                 PrintUsage();
                 return -1;
             }
-            else
-            {
-                ParseFlag();
-            }
+            ParseFlag();
             break;
         default:
             if(NULL != this->flagTable.Filename)

@@ -80,6 +80,11 @@ private:
                 return this->pszCurrentArg[0];
             }
 
+            wchar_t PeekChar()
+            {
+                return this->pszCurrentArg[1];
+            }
+
             void NextChar()
             {
                 this->pszCurrentArg++;

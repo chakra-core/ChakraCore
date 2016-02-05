@@ -2194,7 +2194,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
 }
 
 bool
-LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     // if(doShiftFirst)
     // {
@@ -2370,7 +2370,14 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
             return true;
         }
 
-        this->lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        if (conversionFromObjectAllowed)
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
     else
     {
