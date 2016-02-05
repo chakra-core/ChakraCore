@@ -85,7 +85,6 @@ private:
                 return this->pszCurrentArg[1];
             }
 
-
             void NextChar()
             {
                 this->pszCurrentArg++;
