@@ -628,6 +628,7 @@
   <test>
      <default>
         <files>memset_invariant.js</files>
+        <tags>Slow</tags>
         <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
      </default>
   </test>
