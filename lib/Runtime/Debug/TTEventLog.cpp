@@ -1947,6 +1947,13 @@ namespace TTD
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
 
+        uint64 usedSpace = 0;
+        uint64 reservedSpace = 0;
+        this->m_slabAllocator.ComputeMemoryUsed(&usedSpace, &reservedSpace);
+
+        writer.WriteUInt64(NSTokens::Key::snapUsedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
+        writer.WriteUInt64(NSTokens::Key::snapReservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
+
         EventLogEntry::EmitEventList(this->m_events, this->m_logInfoRootDir, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
 
         //if we haven't moved the properties to their serialized form them take care of it 
@@ -1995,6 +2002,9 @@ namespace TTD
         JSONReader reader(logHandle, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
+
+        reader.ReadUInt64(NSTokens::Key::snapUsedMemory, true);
+        reader.ReadUInt64(NSTokens::Key::snapReservedMemory, true);
 
         this->m_events = EventLogEntry::ParseEventList(false, this->m_threadContext, &reader, this->m_slabAllocator);
 

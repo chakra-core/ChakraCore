@@ -440,35 +440,35 @@ namespace TTD
             //JSON escape sequence in a string \", \/, \\, \b, \f, \n, \r, \t, unicode seq
             switch(*c)
             {
-            case '\"':
+            case L'\"':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'\"');
                 break;
-            case '/':
+            case L'/':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'/');
                 break;
-            case '\\':
+            case L'\\':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'\\');
                 break;
-            case '\b':
+            case L'\b':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'b');
                 break;
-            case '\f':
+            case L'\f':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'f');
                 break;
-            case '\n':
+            case L'\n':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'n');
                 break;
-            case '\r':
+            case L'\r':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L'r');
                 break;
-            case '\t':
+            case L'\t':
                 this->WriteWCHAR(L'\\');
                 this->WriteWCHAR(L't');
                 break;

@@ -2259,6 +2259,26 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
         Js::CallInfo callInfo(cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
+        //This is a work-around until we add explicit start/stop calls from the host
+        //Use this location for our Node host and the callback to "listOnTimeout" (at least initially)
+#if ENABLE_TTD & ENABLE_TTD_FORCE_RECORD_NODE
+        if(Js::Configuration::Global.flags.TTRecord != nullptr)
+        {
+            ThreadContext * threadContext = scriptContext->GetThreadContext();
+            if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
+            {
+                if(wcscmp(jsFunction->GetDisplayName()->GetSz(), L"listOnTimeout") == 0)
+                {
+                    threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
+
+                    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+                    threadContext->TTDLog->DoSnapshotExtract(true);
+                    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+                }
+            }
+        }
+#endif
+
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
@@ -2295,7 +2315,7 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
         {
             if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
             {
@@ -3439,11 +3459,12 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         PARAM_NOT_NULL(script);
         PARAM_NOT_NULL(sourceUrl);
 
-#if ENABLE_TTD
-        ThreadContext * threadContext = scriptContext->GetThreadContext();
-
+        //This is a work-around until we add explicit start/stop calls from the host
+        //Use this location for our CH host and the callback to "listOnTimeout" for node (at least initially)
+#if ENABLE_TTD & !ENABLE_TTD_FORCE_RECORD_NODE
         if(Js::Configuration::Global.flags.TTRecord != nullptr)
         {
+            ThreadContext * threadContext = scriptContext->GetThreadContext();
             if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
             {
                 threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
@@ -3482,7 +3503,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
 
 #if ENABLE_TTD
-        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, scriptFunction);
+        TTD::RuntimeThreadInfo::JsRTTagObject(scriptContext->GetThreadContext(), scriptFunction);
 #endif
 
         JsrtContext * context = JsrtContext::GetCurrent();
@@ -3569,9 +3590,9 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
             //Put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
             //May want to look into more sophisticated means for making this decision later
-            if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+            if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
             {
-                if(scriptContext->TTDRootNestingCount == 0 && Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+                if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                     threadContext->TTDLog->DoSnapshotExtract(false);

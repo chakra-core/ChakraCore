@@ -724,7 +724,7 @@ namespace TTD
         this->JsRTBaseEmit(writer);
 
         writer->WriteKey(NSTokens::Key::index, NSTokens::Separator::CommaSeparator);
-        NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
+        NSLogValue::EmitArgRetValue(this->m_index, writer, NSTokens::Separator::NoSeparator);
 
         writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
         NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);

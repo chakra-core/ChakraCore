@@ -1266,12 +1266,9 @@ namespace Js
     void JavascriptRegExp::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
         TTD::NSSnapObjects::SnapRegexInfo* sri = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapRegexInfo>();
-        sri->RegexStr = alloc.CopyStringInto(this->pattern->GetSource().GetBuffer());
 
-        //
-        //TODO: Need to look into split pattern
-        //
-        AssertMsg(this->splitPattern == nullptr, "Not supported yet!!!");
+        sri->RegexStr = alloc.CopyStringInto(this->pattern->GetSource().GetBuffer());
+        //split regex should be automatically generated from regex string and flags so no need to exttract it as well
 
         sri->Flags = this->GetFlags();
         sri->LastIndexOrFlag = this->GetLastIndex();

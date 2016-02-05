@@ -692,7 +692,6 @@ namespace TTD
             switch(val->Tag)
             {
             case ArgRetValueTag::RawNull:
-                writer->WriteNull(NSTokens::Key::nullVal, NSTokens::Separator::CommaSeparator);
                 break;
             case ArgRetValueTag::ChakraTaggedInteger:
                 writer->WriteInt32(NSTokens::Key::i32Val, (int32)val->u_int64Val, NSTokens::Separator::CommaSeparator);

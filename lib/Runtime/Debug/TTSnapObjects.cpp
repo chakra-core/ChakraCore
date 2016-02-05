@@ -1079,7 +1079,7 @@ namespace TTD
 
         Js::RecyclableObject* DoObjectInflation_SnapRegexInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
-            //Dates are not too common and have some mutable state so it seems easiest to always re-create them.
+            //Regexes are not too common and have some mutable state so it seems easiest to always re-create them.
             //We can re-evaluate this choice later if needed.
 
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);

@@ -392,9 +392,6 @@ namespace TTD
             //The underlying regex string value
             LPCWSTR RegexStr;
 
-            //The underlying splitregex string value
-            LPCWSTR SplitRegexStr;
-
             //Regex flags value
             UnifiedRegex::RegexFlags Flags;
 

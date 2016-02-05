@@ -115,24 +115,24 @@ namespace NodeSupportDefaultImpl
 
         GetModuleFileName(NULL, path, MAX_PATH);
 
-        wchar_t* spos = wcsstr(path, L"\\Build\\VcBuild\\");
+        wchar_t* spos = path + wcslen(path);
+        while(spos != path && *spos != L'\\')
+        {
+            spos--;
+        }
         AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
         int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
         res.append(path, 0, ccount);
-        res.append(L"\\test\\_ttdlog\\");
 
-        if(wcslen(optExtraDir) == 0)
+        if(res.back() != '\\')
         {
-            res.append(L"_defaultLog");
-        }
-        else
-        {
-            res.append(optExtraDir);
+            res.append(L"\\");
         }
 
-        wchar_t lastChar = res.back();
-        if(lastChar != '\\')
+        res.append(optExtraDir);
+
+        if(res.back() != '\\')
         {
             res.append(L"\\");
         }
@@ -144,14 +144,7 @@ namespace NodeSupportDefaultImpl
     {
         std::wstring logDir;
 
-        if(uri[0] != L'!')
-        {
-            logDir.append(uri);
-        }
-        else
-        {
-            GetDefaultTTDDirectory(logDir, uri + 1);
-        }
+        GetDefaultTTDDirectory(logDir, uri);
 
         if(logDir.back() != L'\\')
         {
