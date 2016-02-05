@@ -1457,18 +1457,20 @@ private:
 
 private:
     void                    ChangeValueType(BasicBlock *const block, Value *const value, const ValueType newValueType, const bool preserveSubclassInfo, const bool allowIncompatibleType = false) const;
-    void                    ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType = false) const;
+    void                    ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType = false, const bool compensated = false) const;
     bool                    AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *const v1) const;
 
 private:
+#if DBG
     void                    VerifyArrayValueInfoForTracking(const ValueInfo *const valueInfo, const bool isJsArray, const BasicBlock *const block, const bool ignoreKnownImplicitCalls = false) const;
+#endif
     void                    TrackNewValueForKills(Value *const value);
     void                    DoTrackNewValueForKills(Value *const value);
     void                    TrackCopiedValueForKills(Value *const value);
     void                    DoTrackCopiedValueForKills(Value *const value);
     void                    TrackMergedValueForKills(Value *const value, GlobOptBlockData *const blockData, BVSparse<JitArenaAllocator> *const mergedValueTypesTrackedForKills) const;
     void                    DoTrackMergedValueForKills(Value *const value, GlobOptBlockData *const blockData, BVSparse<JitArenaAllocator> *const mergedValueTypesTrackedForKills) const;
-    void                    TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo) const;
+    void                    TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool compensated) const;
     void                    ProcessValueKills(IR::Instr *const instr);
     void                    ProcessValueKills(BasicBlock *const block, GlobOptBlockData *const blockData);
     void                    ProcessValueKillsForLoopHeaderAfterBackEdgeMerge(BasicBlock *const block, GlobOptBlockData *const blockData);

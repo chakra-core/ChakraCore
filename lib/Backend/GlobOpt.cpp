@@ -3711,7 +3711,9 @@ void GlobOpt::InsertValueCompensation(
                     mergedHeadSegmentSym ? mergedHeadSegmentSym : predecessorHeadSegmentSym,
                     mergedHeadSegmentLengthSym ? mergedHeadSegmentLengthSym : predecessorHeadSegmentLengthSym,
                     mergedLengthSym ? mergedLengthSym : predecessorLengthSym,
-                    predecessorValueInfo->GetSymStore()));
+                    predecessorValueInfo->GetSymStore()),
+                false /*allowIncompatibleType*/,
+                compensated);
         }
     }
 
@@ -14621,7 +14623,7 @@ GlobOpt::ChangeValueType(
 }
 
 void
-GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType) const
+GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType, const bool compensated) const
 {
     Assert(value);
     Assert(newValueInfo);
@@ -14644,7 +14646,7 @@ GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo 
 
     if(block)
     {
-        TrackValueInfoChangeForKills(block, value, newValueInfo);
+        TrackValueInfoChangeForKills(block, value, newValueInfo, compensated);
     }
     value->SetValueInfo(newValueInfo);
 }
@@ -14754,6 +14756,7 @@ GlobOpt::AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *con
         (!likelyIntValueinfo->IsLikelyTaggedInt() || !Js::TaggedInt::IsOverflow(int32Value));
 }
 
+#if DBG
 void
 GlobOpt::VerifyArrayValueInfoForTracking(
     const ValueInfo *const valueInfo,
@@ -14819,6 +14822,7 @@ GlobOpt::VerifyArrayValueInfoForTracking(
             !DoArrayLengthHoist()
         ));
 }
+#endif
 
 void
 GlobOpt::TrackNewValueForKills(Value *const value)
@@ -14877,7 +14881,9 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
         }
     }
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
+#endif
 
     if(!isJsArray)
     {
@@ -14915,7 +14921,9 @@ GlobOpt::DoTrackCopiedValueForKills(Value *const value)
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
+#endif
 
     if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
@@ -14960,7 +14968,9 @@ GlobOpt::DoTrackMergedValueForKills(
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock, true);
+#endif
 
     if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
@@ -14978,17 +14988,21 @@ GlobOpt::DoTrackMergedValueForKills(
 }
 
 void
-GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo) const
+GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool compensated) const
 {
     Assert(block);
     Assert(value);
     Assert(newValueInfo);
 
     ValueInfo *const oldValueInfo = value->GetValueInfo();
+
+#if DBG
     if(oldValueInfo->IsAnyOptimizedArray())
     {
-        VerifyArrayValueInfoForTracking(oldValueInfo, oldValueInfo->IsArrayOrObjectWithArray(), block);
+        VerifyArrayValueInfoForTracking(oldValueInfo, oldValueInfo->IsArrayOrObjectWithArray(), block, compensated);
     }
+#endif
+
     const bool trackOldValueInfo =
         oldValueInfo->IsArrayOrObjectWithArray() ||
         (
@@ -14998,10 +15012,13 @@ GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const valu
         );
     Assert(trackOldValueInfo == block->globOptData.valuesToKillOnCalls->ContainsKey(value));
 
+#if DBG
     if(newValueInfo->IsAnyOptimizedArray())
     {
-        VerifyArrayValueInfoForTracking(newValueInfo, newValueInfo->IsArrayOrObjectWithArray(), block);
+        VerifyArrayValueInfoForTracking(newValueInfo, newValueInfo->IsArrayOrObjectWithArray(), block, compensated);
     }
+#endif
+
     const bool trackNewValueInfo =
         newValueInfo->IsArrayOrObjectWithArray() ||
         (
