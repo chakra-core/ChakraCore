@@ -404,18 +404,25 @@ namespace Js
         TraceFixedFieldsBeforeTypeHandlerChange(L"SimpleDictionaryTypeHandler", L"[Simple]DictionaryTypeHandler", instance, this, oldType, oldSingletonInstance);
 #endif
 
-        // We assume the new type handler is not shared.  Hence it's ok to set this instance as the handler's singleton instance.
-        Assert(HasSingletonInstanceOnlyIfNeeded());
-        if (AreSingletonInstancesNeeded())
+        bool const canBeSingletonInstance = DynamicTypeHandler::CanBeSingletonInstance(instance);
+        // If this type had been installed on a stack instance it shouldn't have a singleton Instance
+        Assert(canBeSingletonInstance || !this->HasSingletonInstance());
+
+        if (canBeSingletonInstance)
         {
-            RecyclerWeakReference<DynamicObject>* curSingletonInstance = this->singletonInstance;
-            if (curSingletonInstance != nullptr && curSingletonInstance->Get() == instance)
+            // We assume the new type handler is not shared.  Hence it's ok to set this instance as the handler's singleton instance.
+            Assert(HasSingletonInstanceOnlyIfNeeded());
+            if (AreSingletonInstancesNeeded())
             {
-                newTypeHandler->SetSingletonInstance(curSingletonInstance);
-            }
-            else
-            {
-                newTypeHandler->SetSingletonInstance(instance->CreateWeakReferenceToSelf());
+                RecyclerWeakReference<DynamicObject>* curSingletonInstance = this->singletonInstance;
+                if (curSingletonInstance != nullptr && curSingletonInstance->Get() == instance)
+                {
+                    newTypeHandler->SetSingletonInstance(curSingletonInstance);
+                }
+                else
+                {
+                    newTypeHandler->SetSingletonInstance(instance->CreateWeakReferenceToSelf());
+                }
             }
         }
 
