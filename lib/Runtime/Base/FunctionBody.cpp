@@ -1692,8 +1692,8 @@ namespace Js
     template <typename Fn>
     void FunctionProxy::MapFunctionObjectTypes(Fn func)
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
-        if (this->get_AuxPtr(e_functionObjectTypeList) != nullptr)
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
+        if (functionObjectTypeList != nullptr)
         {
             functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
             {
@@ -1716,14 +1716,14 @@ namespace Js
 
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
         if (functionObjectTypeList == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
             this->set_AuxPtr(e_functionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
         }
 
-        return (FunctionTypeWeakRefList*)this->get_AuxPtr(e_functionObjectTypeList);
+        return static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
     }
 
     void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
@@ -3700,7 +3700,7 @@ namespace Js
         newFunctionBody->AllocateLiteralRegexArray();
         for(uint i = 0; i < this->literalRegexCount; ++i)
         {
-            const auto literalRegex = this->GetLiteralRegexs()[i];
+            const auto literalRegex = this->GetLiteralRegexes()[i];
             if(!literalRegex)
             {
                 Assert(!newFunctionBody->GetLiteralRegex(i));
@@ -3821,7 +3821,7 @@ namespace Js
     FunctionBody * FunctionBody::GetStackNestedFuncParent()
     {
         Assert(this->get_AuxPtr(e_stackNestedFuncParent) != nullptr);
-        return ((RecyclerWeakReference<FunctionBody>*)this->get_AuxPtr(e_stackNestedFuncParent))->Get();
+        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->get_AuxPtr(e_stackNestedFuncParent)))->Get();
     }
 
     FunctionBody * FunctionBody::GetAndClearStackNestedFuncParent()
@@ -6059,12 +6059,12 @@ namespace Js
             return;
         }
 
-        this->SetObjectLiteralTypes( RecyclerNewArrayZ(this->GetScriptContext()->GetRecycler(), DynamicType *, objLiteralCount));
+        this->SetObjectLiteralTypes(RecyclerNewArrayZ(this->GetScriptContext()->GetRecycler(), DynamicType *, objLiteralCount));
     }
 
     uint FunctionBody::NewLiteralRegex()
     {
-        Assert(!this->GetLiteralRegexs());
+        Assert(!this->GetLiteralRegexes());
         return literalRegexCount++;
     }
 
@@ -6075,7 +6075,7 @@ namespace Js
 
     void FunctionBody::AllocateLiteralRegexArray()
     {
-        Assert(!this->GetLiteralRegexs());
+        Assert(!this->GetLiteralRegexes());
 
         if (literalRegexCount == 0)
         {
@@ -6105,17 +6105,17 @@ namespace Js
     UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegex(const uint index)
     {
         Assert(index < literalRegexCount);
-        Assert(this->GetLiteralRegexs());
+        Assert(this->GetLiteralRegexes());
 
-        return this->GetLiteralRegexs()[index];
+        return this->GetLiteralRegexes()[index];
     }
 
     void FunctionBody::SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern)
     {
         Assert(index < literalRegexCount);
-        Assert(this->GetLiteralRegexs());
+        Assert(this->GetLiteralRegexes());
 
-        auto literalRegexes = this->GetLiteralRegexs();
+        auto literalRegexes = this->GetLiteralRegexes();
         if (literalRegexes[index] && literalRegexes[index] == pattern)
         {
             return;
@@ -6272,7 +6272,7 @@ namespace Js
         Assert(inlineCacheIndex < this->GetInlineCacheCount());
         Assert(inlinee);
 
-        if(this->GetCodeGenGetSetRuntimeData()==nullptr)
+        if (this->GetCodeGenGetSetRuntimeData() == nullptr)
         {
             const auto codeGenRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, this->GetInlineCacheCount());
             this->SetCodeGenGetSetRuntimeData(codeGenRuntimeData);
@@ -6280,7 +6280,7 @@ namespace Js
 
         FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
         const auto inlineeData = codeGenGetSetRuntimeData[inlineCacheIndex];
-        if(inlineeData)
+        if (inlineeData)
         {
             return inlineeData;
         }
@@ -6395,7 +6395,7 @@ namespace Js
 
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
-        return (FunctionEntryPointInfo *)this->get_AuxPtr(e_simpleJitEntryPointInfo);
+        return static_cast<FunctionEntryPointInfo *>(this->get_AuxPtr(e_simpleJitEntryPointInfo));
     }
 
     void FunctionBody::SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo)
