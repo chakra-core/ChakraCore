@@ -1151,31 +1151,34 @@ namespace Js
     typedef FunctionProxy** FunctionProxyPtrPtr;
 #endif
 
+    // Use fixed size structure to save pointers 
     template<typename FIELDS, uint8 size, uint8 _MaxCount = (size - 8) / sizeof(void*)>
     struct AuxPtrsFix
     {
         static const uint8 MaxCount = _MaxCount;
-        uint8 count;
-        FIELDS type[MaxCount];
-        WriteBarrierPtr<void> ptr[MaxCount];
+        uint8 count;                            // always saving maxCount
+        FIELDS type[MaxCount];                  // save instantiated pointer enum
+        WriteBarrierPtr<void> ptr[MaxCount];    // save instantiated pointer address
         AuxPtrsFix();
-        AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16);
+        AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32
         void* get(FIELDS e);
         bool set(FIELDS e, void* p);
     };
 
+    // Use flexible size structure to save pointers. when pointer count exceeds AuxPtrsFix<FIELDS, 32>::MaxCount, 
+    // it will promote to this structure to save the pointers
     template<class T, typename FIELDS>
     struct AuxPtrs
     {
         typedef AuxPtrsFix<FIELDS, 16> AuxPtrs16;
         typedef AuxPtrsFix<FIELDS, 32> AuxPtrs32;
         typedef AuxPtrs<T, FIELDS> AuxPtrsT;
-        uint8 count;
-        uint8 capacity;
-        FIELDS offsets[FIELDS::e_max];
-        WriteBarrierPtr<void> ptrs[1];
-        AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);
-        AuxPtrs(uint8 capacity, AuxPtrs* ptr);
+        uint8 count;                            // save instantiated pointers count
+        uint8 capacity;                         // save number of pointers can be hold in current instance of AuxPtrs
+        FIELDS offsets[FIELDS::e_max];          // save position of each instantiated pointers, if not instantiate, it's e_invalid
+        WriteBarrierPtr<void> ptrs[1];          // instantiated pointer addresses
+        AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);  // called when promoting from AuxPtrs32 to AuxPtrs
+        AuxPtrs(uint8 capacity, AuxPtrs* ptr);      // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
         void* get(FIELDS e);
         bool set(FIELDS e, void* p);
         static void allocAuxPtrFix(T* _this, uint8 size, Recycler* recycler);

@@ -60,6 +60,7 @@ namespace Js
     template<typename FIELDS, uint8 size, uint8 _MaxCount>
     AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix()
     {
+        static_assert(_MaxCount == AuxPtrsFix<FIELDS, 16>::MaxCount, "Should only be called on AuxPtrsFix<FIELDS, 16>");
         this->count = AuxPtrsFix<FIELDS, 16>::MaxCount;
         for (uint8 i = 0; i < count; i++)
         {
@@ -70,6 +71,7 @@ namespace Js
     template<typename FIELDS, uint8 size, uint8 _MaxCount>
     AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16)
     {
+        static_assert(_MaxCount == AuxPtrsFix<FIELDS, 32>::MaxCount, "Should only be called on AuxPtrsFix<FIELDS, 32>");
         this->count = AuxPtrsFix<FIELDS, 32>::MaxCount;
         for (uint8 i = 0; i < AuxPtrsFix<FIELDS, 16>::MaxCount; i++)
         {
@@ -84,13 +86,8 @@ namespace Js
     template<typename FIELDS, uint8 size, uint8 _MaxCount>
     inline void* AuxPtrsFix<FIELDS, size, _MaxCount>::get(FIELDS e)
     {
-        if (_MaxCount == 1)
-        {
-            // specialize for x64 one pointer case
-            return e == type[0] ? ptr[0] : nullptr;
-        }
-
-        for (uint8 i = 0; i < count; i++)
+        Assert(count == _MaxCount);
+        for (uint8 i = 0; i < _MaxCount; i++) // using _MaxCount instead of count so compiler can optimize in case _MaxCount is 1.
         {
             if (type[i] == e)
             {
@@ -102,7 +99,8 @@ namespace Js
     template<typename FIELDS, uint8 size, uint8 _MaxCount>
     inline bool AuxPtrsFix<FIELDS, size, _MaxCount>::set(FIELDS e, void* p)
     {
-        for (uint8 i = 0; i < count; i++)
+        Assert(count == _MaxCount);
+        for (uint8 i = 0; i < _MaxCount; i++)
         {
             if (type[i] == e || type[i] == FIELDS::e_invalid)
             {
@@ -190,7 +188,7 @@ namespace Js
         {
             _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, _this->auxPtrs);
         }
-        else // promoting
+        else // promoting from AuxPtrs32
         {
             _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, (AuxPtrs32*)(void*)_this->auxPtrs);
         }
