@@ -207,6 +207,9 @@ BOOL WINAPI GetModuleHandleEx(
   _Out_    HMODULE *phModule
 );
 
+// xplat-todo: cryptographically secure PRNG?
+errno_t rand_s(unsigned int* randomValue);
+
 #endif // _WIN32
 
 

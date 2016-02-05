@@ -8,7 +8,7 @@ set (SOURCES
   Int32Math.cpp
   Int64Math.cpp
   Jobs.cpp
-  # MathUtil.cpp
+  MathUtil.cpp
   NumberUtilities.cpp
   # NumberUtilities_strtod.cpp
   RejitReason.cpp
