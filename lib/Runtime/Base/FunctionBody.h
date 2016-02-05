@@ -1686,10 +1686,9 @@ namespace Js
 
         friend class ByteCodeBufferBuilder;
         friend class ByteCodeBufferReader;
-
-    public:
-        // same as MachDouble, used in the Func.h
-        static const uint DIAGLOCALSLOTSIZE = 8;
+        public:
+            // same as MachDouble, used in the Func.h
+            static const uint DIAGLOCALSLOTSIZE = 8;
 
             struct StatementMap
             {
@@ -1711,47 +1710,47 @@ namespace Js
             {
                 SAT_None = 0,
 
-            // Specifies an adjustment for next statement when going from current to next.
-            // Used for transitioning from current stmt to next during normal control-flow,
-            // such as offset of Br after if-block when there is else block present,
-            // when throw happens inside if and we ignore exceptions (next statement in the list
-            // would be 'else' but we need to pass flow control to Br target rather than entering 'else').
-            SAT_FromCurrentToNext = 0x01,
+                // Specifies an adjustment for next statement when going from current to next.
+                // Used for transitioning from current stmt to next during normal control-flow,
+                // such as offset of Br after if-block when there is else block present,
+                // when throw happens inside if and we ignore exceptions (next statement in the list
+                // would be 'else' but we need to pass flow control to Br target rather than entering 'else').
+                SAT_FromCurrentToNext = 0x01,
 
-            // Specifies an adjustment for beginning of next statement.
-            // If there is adjustment record, the statement following it starts at specified offset and not at offset specified in statementMap.
-            // Used for set next statement from arbitrary location.
-            SAT_NextStatementStart = 0x02,
+                // Specifies an adjustment for beginning of next statement.
+                // If there is adjustment record, the statement following it starts at specified offset and not at offset specified in statementMap.
+                // Used for set next statement from arbitrary location.
+                SAT_NextStatementStart = 0x02,
 
-            SAT_All = SAT_FromCurrentToNext | SAT_NextStatementStart
-        };
+                SAT_All = SAT_FromCurrentToNext | SAT_NextStatementStart
+            };
 
-        class StatementAdjustmentRecord
-        {
-            uint m_byteCodeOffset;
-            StatementAdjustmentType m_adjustmentType;
-        public:
-            StatementAdjustmentRecord();
-            StatementAdjustmentRecord(StatementAdjustmentType type, int byteCodeOffset);
-            StatementAdjustmentRecord(const StatementAdjustmentRecord& other);
-            uint GetByteCodeOffset();
-            StatementAdjustmentType GetAdjustmentType();
-        };
+            class StatementAdjustmentRecord
+            {
+                uint m_byteCodeOffset;
+                StatementAdjustmentType m_adjustmentType;
+            public:
+                StatementAdjustmentRecord();
+                StatementAdjustmentRecord(StatementAdjustmentType type, int byteCodeOffset);
+                StatementAdjustmentRecord(const StatementAdjustmentRecord& other);
+                uint GetByteCodeOffset();
+                StatementAdjustmentType GetAdjustmentType();
+            };
 
-        // Offset and entry/exit of a block that must be processed in new interpreter frame rather than current.
-        // Used for try and catch blocks.
-        class CrossFrameEntryExitRecord
-        {
-            uint m_byteCodeOffset;
-            // true means enter, false means exit.
-            bool m_isEnterBlock;
-        public:
-            CrossFrameEntryExitRecord();
-            CrossFrameEntryExitRecord(uint byteCodeOffset, bool isEnterBlock);
-            CrossFrameEntryExitRecord(const CrossFrameEntryExitRecord& other);
-            uint GetByteCodeOffset() const;
-            bool GetIsEnterBlock();
-        };
+            // Offset and entry/exit of a block that must be processed in new interpreter frame rather than current.
+            // Used for try and catch blocks.
+            class CrossFrameEntryExitRecord
+            {
+                uint m_byteCodeOffset;
+                // true means enter, false means exit.
+                bool m_isEnterBlock;
+            public:
+                CrossFrameEntryExitRecord();
+                CrossFrameEntryExitRecord(uint byteCodeOffset, bool isEnterBlock);
+                CrossFrameEntryExitRecord(const CrossFrameEntryExitRecord& other);
+                uint GetByteCodeOffset() const;
+                bool GetIsEnterBlock();
+            };
 
             typedef JsUtil::List<Js::FunctionBody::StatementMap*> StatementMapList;
 
@@ -1759,49 +1758,49 @@ namespace Js
             typedef JsUtil::List<StatementAdjustmentRecord, Recycler, /* isLeaf = */ true> StatementAdjustmentRecordList;
             typedef JsUtil::List<CrossFrameEntryExitRecord, Recycler, /* isLeaf = */ true> CrossFrameEntryExitRecordList;
 
-        // Contains recorded at bytecode generation time information about statements and try-catch blocks.
-        // Used by debugger.
-        struct AuxStatementData
-        {
-            // Contains statement adjustment data:
-            // For given bytecode, following statement needs an adjustment, see StatementAdjustmentType for details.
-            StatementAdjustmentRecordList* m_statementAdjustmentRecords;
-
-            // Contain data about entry/exit of blocks that cause processing in different interpreter stack frame, such as try or catch.
-            CrossFrameEntryExitRecordList* m_crossFrameBlockEntryExisRecords;
-
-            AuxStatementData();
-        };
-
-        class SourceInfo
-        {
-            friend class RemoteFunctionBody;
-            friend class ByteCodeBufferReader;
-            friend class ByteCodeBufferBuilder;
-
-        public:
-            SmallSpanSequence * pSpanSequence;
-
-            RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-            RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-            WriteBarrierPtr<ScopeObjectChain> pScopeObjectChain;
-            WriteBarrierPtr<ByteBlock> m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
-            int32 m_probeCount;             // The number of installed probes (such as breakpoints).
-
-            // List of bytecode offset for the Branch bytecode.
-            WriteBarrierPtr<AuxStatementData> m_auxStatementData;
-
-            SourceInfo() :
-                frameDisplayRegister(0),
-                objectRegister(0),
-                pScopeObjectChain(nullptr),
-                m_probeBackingBlock(nullptr),
-                m_probeCount(0),
-                m_auxStatementData(nullptr),
-                pSpanSequence(nullptr)
+            // Contains recorded at bytecode generation time information about statements and try-catch blocks.
+            // Used by debugger.
+            struct AuxStatementData
             {
-            }
-        };
+                // Contains statement adjustment data:
+                // For given bytecode, following statement needs an adjustment, see StatementAdjustmentType for details.
+                StatementAdjustmentRecordList* m_statementAdjustmentRecords;
+
+                // Contain data about entry/exit of blocks that cause processing in different interpreter stack frame, such as try or catch.
+                CrossFrameEntryExitRecordList* m_crossFrameBlockEntryExisRecords;
+
+                AuxStatementData();
+            };
+
+            class SourceInfo
+            {
+                friend class RemoteFunctionBody;
+                friend class ByteCodeBufferReader;
+                friend class ByteCodeBufferBuilder;
+
+            public:
+                SmallSpanSequence * pSpanSequence;
+
+                RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                WriteBarrierPtr<ScopeObjectChain> pScopeObjectChain;
+                WriteBarrierPtr<ByteBlock> m_probeBackingBlock; // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
+                int32 m_probeCount;             // The number of installed probes (such as breakpoints).
+
+                // List of bytecode offset for the Branch bytecode.
+                WriteBarrierPtr<AuxStatementData> m_auxStatementData;
+
+                SourceInfo():
+                    frameDisplayRegister(0),
+                    objectRegister(0),
+                    pScopeObjectChain(nullptr),
+                    m_probeBackingBlock(nullptr),
+                    m_probeCount(0),
+                    m_auxStatementData(nullptr),
+                    pSpanSequence(nullptr)
+                {
+                }
+            };
 
     private:
         WriteBarrierPtr<ByteBlock> byteCodeBlock;               // Function byte-code for script functions
@@ -1815,7 +1814,7 @@ namespace Js
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-        WriteBarrierPtr<byte> m_inlineCacheTypes;
+            WriteBarrierPtr<byte> m_inlineCacheTypes;
 #endif
     public:
         static DWORD GetAsmJsTotalLoopCountOffset() { return offsetof(FunctionBody, m_asmJsTotalLoopCount); }
@@ -1854,15 +1853,15 @@ namespace Js
 
         enum FunctionBodyFlags : byte
         {
-            Flags_None = 0x00,
-            Flags_StackNestedFunc = 0x01,
-            Flags_HasOrParentHasArguments = 0x02,
-            Flags_HasTry = 0x04,
-            Flags_HasThis = 0x08,
-            Flags_NonUserCode = 0x10,
-            Flags_HasOnlyThisStatements = 0x20,
+            Flags_None                     = 0x00,
+            Flags_StackNestedFunc          = 0x01,
+            Flags_HasOrParentHasArguments  = 0x02,
+            Flags_HasTry                   = 0x04,
+            Flags_HasThis                  = 0x08,
+            Flags_NonUserCode              = 0x10,
+            Flags_HasOnlyThisStatements    = 0x20,
             Flags_HasNoExplicitReturnValue = 0x40,   // Returns undefined, i.e. has no return statements or return with no expression
-            Flags_HasRestParameter = 0x80
+            Flags_HasRestParameter         = 0x80
         };
 
 #define DEFINE_FUNCTION_BODY_FIELDS 1
@@ -1880,17 +1879,17 @@ namespace Js
         bool m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
         bool hasExecutionDynamicProfileInfo : 1;
 
-        bool cleanedUp : 1;
-        bool sourceInfoCleanedUp : 1;
+        bool cleanedUp: 1;
+        bool sourceInfoCleanedUp: 1;
         bool dontRethunkAfterBailout : 1;
         bool disableInlineApply : 1;
         bool disableInlineSpread : 1;
-        bool hasHotLoop : 1;
+        bool hasHotLoop: 1;
         bool wasCalledFromLoop : 1;
         bool hasNestedLoop : 1;
         bool recentlyBailedOutOfJittedLoopBody : 1;
-        bool m_firstFunctionObject : 1;
-        bool m_inlineCachesOnFunctionObject : 1;
+        bool m_firstFunctionObject: 1;
+        bool m_inlineCachesOnFunctionObject: 1;
         // Used for the debug re-parse. Saves state of function on the first parse, and restores it on a reparse. The state below is either dependent on
         // the state of the script context, or on other factors like whether it was defer parsed or not.
         bool m_hasSetIsObject : 1;
@@ -1965,7 +1964,6 @@ namespace Js
         WriteBarrierPtr<DynamicProfileInfo> dynamicProfileInfo;
 #endif
 
-        //FunctionBailOutRecord * functionBailOutRecord;
 
         // select dynamic profile info saved off when we codegen and later
         // used for rejit decisions (see bailout.cpp)
@@ -2005,8 +2003,8 @@ namespace Js
 
 
     public:
-        FunctionBody(ByteCodeCache* cache, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext) :
-            ParseableFunctionInfo((JavascriptMethod) nullptr, 0, 0, (LocalFunctionId)0, sourceInfo, scriptContext, 0, nullptr, 0, 0, None, nullptr)
+        FunctionBody(ByteCodeCache* cache, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext):
+            ParseableFunctionInfo((JavascriptMethod) nullptr, 0, 0, (LocalFunctionId) 0, sourceInfo, scriptContext, 0, nullptr, 0, 0, None, nullptr)
         {
             // Dummy constructor- does nothing
             // Must be stack allocated
@@ -2082,8 +2080,8 @@ namespace Js
             return this->GetLoopHeaderArray();
         }
 #ifndef TEMP_DISABLE_ASMJS
-        void SetIsAsmJsFullJitScheduled(bool val) { m_isAsmJsScheduledForFullJIT = val; }
-        bool GetIsAsmJsFullJitScheduled() { return m_isAsmJsScheduledForFullJIT; }
+        void SetIsAsmJsFullJitScheduled(bool val){ m_isAsmJsScheduledForFullJIT = val; }
+        bool GetIsAsmJsFullJitScheduled(){ return m_isAsmJsScheduledForFullJIT; }
         uint32 GetAsmJSTotalLoopCount() const
         {
             return m_asmJsTotalLoopCount;
@@ -2126,7 +2124,7 @@ namespace Js
 
         uint8 *GetCallsCountAddress(EntryPointInfo* info) const
         {
-            FunctionEntryPointInfo* entryPoint = (FunctionEntryPointInfo*)info;
+            FunctionEntryPointInfo* entryPoint = (FunctionEntryPointInfo*) info;
             return &entryPoint->callsCount;
         }
 
@@ -2245,7 +2243,7 @@ namespace Js
 
         bool HasRejit() const
         {
-            if (this->entryPoints)
+            if(this->entryPoints)
             {
                 return this->entryPoints->Count() > 1;
             }
@@ -2327,7 +2325,7 @@ namespace Js
                 retValue = 1;
             }
             else if ((documentStart[0] == 0xFF && documentStart[1] == 0xFE) ||
-                (documentStart[0] == 0xFE && documentStart[1] == 0xFF))
+                    (documentStart[0] == 0xFE && documentStart[1] == 0xFF))
             {
                 // UTF-16 LE - FF FE
                 // UTF-16 BE - FE FF
@@ -2409,8 +2407,8 @@ namespace Js
         void InitDisableInlineApply();
         void SetDisableInlineApply(bool set);
 
-        bool IsInlineSpreadDisabled()  const { return disableInlineSpread; }
-        void InitDisableInlineSpread() { disableInlineSpread = this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this); }
+        bool IsInlineSpreadDisabled()  const  { return disableInlineSpread; }
+        void InitDisableInlineSpread()        { disableInlineSpread = this->functionId != Js::Constants::NoFunctionId && PHASE_OFF(Js::InlinePhase, this); }
         void SetDisableInlineSpread(bool set) { disableInlineSpread = set; }
 
         bool CheckCalleeContextForInlining(FunctionProxy* calleeFunctionProxy);
@@ -2424,7 +2422,7 @@ namespace Js
         void SetCheckCodeGenEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
 
 #if ENABLE_NATIVE_CODEGEN
-        typedef void(*SetNativeEntryPointFuncType)(FunctionEntryPointInfo* entryPointInfo, Js::FunctionBody * functionBody, Js::JavascriptMethod entryPoint);
+        typedef void (*SetNativeEntryPointFuncType)(FunctionEntryPointInfo* entryPointInfo, Js::FunctionBody * functionBody, Js::JavascriptMethod entryPoint);
         static void DefaultSetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, FunctionBody * functionBody, JavascriptMethod entryPoint);
         static void ProfileSetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, FunctionBody * functionBody, JavascriptMethod entryPoint);
 
@@ -2447,7 +2445,7 @@ namespace Js
 
         bool AllocProfiledCallSiteId(ProfileId* profileId) { if (this->profiledCallSiteCount != Constants::NoProfileId) { *profileId = this->profiledCallSiteCount++; return true; } return false; }
         ProfileId GetProfiledCallSiteCount() const { return this->profiledCallSiteCount; }
-        void SetProfiledCallSiteCount(ProfileId callSiteId) { this->profiledCallSiteCount = callSiteId; }
+        void SetProfiledCallSiteCount(ProfileId callSiteId)  { this->profiledCallSiteCount = callSiteId; }
 
         bool AllocProfiledArrayCallSiteId(ProfileId* profileId) { if (this->profiledArrayCallSiteCount != Constants::NoProfileId) { *profileId = this->profiledArrayCallSiteCount++; return true; } return false; }
         ProfileId GetProfiledArrayCallSiteCount() const { return this->profiledArrayCallSiteCount; }
@@ -2466,7 +2464,7 @@ namespace Js
 
         uint GetProfiledFldCount() const { return this->GetInlineCacheCount(); }
 
-        ArgSlot GetProfiledInParamsCount() const { return this->GetInParamsCount() > 1 ? this->GetInParamsCount() - 1 : 0; }
+        ArgSlot GetProfiledInParamsCount() const { return this->GetInParamsCount() > 1? this->GetInParamsCount() - 1 : 0; }
 
         bool IsPartialDeserializedFunction() { return this->m_isPartialDeserializedFunction; }
 #ifdef PERF_COUNTERS
@@ -2532,7 +2530,7 @@ namespace Js
         void SetHasTry(bool has) { SetFlags(has, Flags_HasTry); }
 
         bool GetHasFinally() const { return m_hasFinally; }
-        void SetHasFinally(bool has) { m_hasFinally = has; }
+        void SetHasFinally(bool has){ m_hasFinally = has; }
 
         bool GetFuncEscapes() const { return funcEscapes; }
         void SetFuncEscapes(bool does) { funcEscapes = does; }
@@ -2790,10 +2788,6 @@ namespace Js
         ImplicitCallFlags GetSavedImplicitCallsFlags() const;
         bool HasNonBuiltInCallee();
 
-        //bool HasFunctionBailOutRecord() const { return functionBailOutRecord != nullptr; }
-        //FunctionBailOutRecord * GetFunctionBailOutRecord() const { Assert(HasFunctionBailOutRecord()); return functionBailOutRecord; }
-        //void SetFunctionBailOutRecord(FunctionBailOutRecord * record) { Assert(!HasFunctionBailOutRecord()); functionBailOutRecord = record; }
-
         void RecordNativeThrowMap(SmallSpanSequenceIter& iter, uint32 offset, uint32 statementIndex, EntryPointInfo* entryPoint, uint loopNum);
         void RecordNativeBaseAddress(BYTE* baseAddress, ptrdiff_t codeSizeS,  NativeCodeData * data, NativeCodeData * transferData, CodeGenNumberChunk * numberChunks,
             EntryPointInfo* info, uint loopNum);
@@ -2938,7 +2932,6 @@ namespace Js
         inline  void            CheckEmpty();
         inline  void            CheckNotExecuting();
 
-        SmallSpanSequence *GetThrowSpanSequence(DWORD_PTR codeAddress, uint loopNum);
         BOOL               GetMatchingStatementMap(StatementData &data, int statementIndex, FunctionBody *inlinee);
 
 #if ENABLE_NATIVE_CODEGEN

@@ -6255,7 +6255,7 @@ namespace Js
         return codeGenRuntimeData[profiledCallSiteId] = runtimeData;
     }
 
-    const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const uint inlineCacheIndex) const
+    const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
     {
         Assert(inlineCacheIndex < inlineCacheCount);
 
@@ -6265,7 +6265,7 @@ namespace Js
 
     FunctionCodeGenRuntimeData *FunctionBody::EnsureLdFldInlineeCodeGenRuntimeData(
         Recycler *const recycler,
-        __in_range(0, this->inlineCacheCount - 1) const uint inlineCacheIndex,
+        __in_range(0, this->inlineCacheCount - 1) const InlineCacheIndex inlineCacheIndex,
         FunctionBody *const inlinee)
     {
         Assert(recycler);
@@ -7752,7 +7752,7 @@ namespace Js
         // We might not have the byte code block yet if we defer parsed.
         DWORD byteCodeSize = (this->byteCodeBlock? this->byteCodeBlock->GetLength() : 0)
             + (this->GetAuxiliaryData() ? this->GetAuxiliaryData()->GetLength() : 0)
-            + (this->GetAuxiliaryContextData ()? this->GetAuxiliaryContextData()->GetLength() : 0);
+            + (this->GetAuxiliaryContextData()? this->GetAuxiliaryContextData()->GetLength() : 0);
         PERF_COUNTER_SUB(Code, DynamicByteCodeSize, byteCodeSize);
 
         if (this->m_isDeserializedFunction)
