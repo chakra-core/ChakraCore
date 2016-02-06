@@ -1607,6 +1607,7 @@ GlobOpt::CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::O
         // We don't clear the value when we kill the field.
         // Clear it to make sure we don't use the old value.
         this->blockData.symToValueMap->Clear(sym->m_id);
+        this->blockData.symToValueMap->Clear(originalSym->m_id);
     }
 
     Assert((*ppOpnd)->AsSymOpnd()->m_sym == sym || this->IsLoopPrePass());
