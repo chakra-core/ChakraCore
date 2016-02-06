@@ -124,6 +124,22 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedRegExp, propertyName);
     }
 
+    JavascriptString* JavascriptRegExp::GetFirstStringArg(Arguments& args, ScriptContext* scriptContext)
+    {
+        if (args.Info.Count == 1)
+        {
+            return scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
+        else if (JavascriptString::Is(args[1]))
+        {
+            return JavascriptString::FromVar(args[1]);
+        }
+        else
+        {
+            return JavascriptConversion::ToString(args[1], scriptContext);
+        }
+    }
+
     Var JavascriptRegExp::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -521,21 +537,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         JavascriptRegExp * pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.exec", scriptContext);
-
-        JavascriptString * pStr;
-        if(args.Info.Count == 1)
-        {
-            pStr = scriptContext->GetLibrary()->GetUndefinedDisplayString();
-        }
-        else if (JavascriptString::Is(args[1]))
-        {
-            pStr = JavascriptString::FromVar(args[1]);
-        }
-        else
-        {
-            pStr = JavascriptConversion::ToString(args[1], scriptContext);
-        }
-
+        JavascriptString * pStr = GetFirstStringArg(args, scriptContext);
         return RegexHelper::RegexExec(scriptContext, pRegEx, pStr, RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
@@ -548,23 +550,8 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, L"RegExp.prototype.test", scriptContext);
-        JavascriptString * pStr;
-
-        if(args.Info.Count == 1)
-        {
-            pStr = scriptContext->GetLibrary()->GetUndefinedDisplayString();
-        }
-        else if (JavascriptString::Is(args[1]))
-        {
-            pStr = JavascriptString::FromVar(args[1]);
-        }
-        else
-        {
-            pStr = JavascriptConversion::ToString(args[1], scriptContext);
-        }
-
+        JavascriptString * pStr = GetFirstStringArg(args, scriptContext);
         BOOL result = RegexHelper::RegexTest(scriptContext, pRegEx, pStr);
-
         return JavascriptBoolean::ToVar(result, scriptContext);
     }
 
@@ -583,6 +570,25 @@ namespace Js
         bool sourceOnly = false;
         bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
         return obj->ToString(sourceOnly, useFlagsProperty);
+    }
+
+    Var JavascriptRegExp::EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
+
+        JavascriptRegExp* regExObj = GetJavascriptRegExp(args, L"RegExp.prototype[Symbol.match]", scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        return RegexHelper::RegexMatch(
+            scriptContext,
+            regExObj,
+            string,
+            RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
@@ -604,9 +610,7 @@ namespace Js
         Var regEx = args[0];
         RecyclableObject *thisObj = RecyclableObject::FromVar(regEx);
 
-        JavascriptString* string = (args.Info.Count >= 2)
-            ? JavascriptConversion::ToString(args[1], scriptContext)
-            : scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
 
         PropertyOperationFlags lastIndexOperationFlags =
             static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable);

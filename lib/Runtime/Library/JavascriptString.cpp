@@ -1361,31 +1361,19 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        //
-        // TODO: Move argument processing into DirectCall with proper handling.
-        //
+        PCWSTR const varName = L"String.prototype.match";
 
-        JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, L"String.prototype.match", &pThis);
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
-        JavascriptRegExp * pRegEx;
-        if (args.Info.Count == 1)
+        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
         {
-            //Use an empty regex to match against, if no argument was supplied into "match"
-            pRegEx = scriptContext->GetLibrary()->CreateEmptyRegExp();
-        }
-        else if (JavascriptRegExp::Is(args[1]))
-        {
-            pRegEx = JavascriptRegExp::FromVar(args[1]);
-        }
-        else
-        {
-            Var aCompiledRegex = NULL;
-            Var thisRegex = JavascriptRegExp::OP_NewRegEx(aCompiledRegex, scriptContext);
-            pRegEx = JavascriptRegExp::FromVar(JavascriptRegExp::NewInstance(function, 2, thisRegex, args[1]));
-        }
-
-        return RegexHelper::RegexMatch(scriptContext, pRegEx, pThis, RegexHelper::IsResultNotUsed(callInfo.Flags));
+            return RegexHelper::RegexMatch(
+                scriptContext,
+                regExObj,
+                stringObj,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
+        };
+        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolMatch, fallback, varName, scriptContext);
     }
 
     Var JavascriptString::EntryNormalize(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1650,7 +1638,16 @@ case_2:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         PCWSTR const varName = L"String.prototype.search";
+        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
+        {
+            return RegexHelper::RegexSearch(scriptContext, regExObj, stringObj);
+        };
+        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolSearch, fallback, varName, scriptContext);
+    }
 
+    template<typename FallbackFn>
+    Var JavascriptString::DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext)
+    {
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             if (args.Info.Count == 0 || !JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
@@ -1661,10 +1658,10 @@ case_2:
             if (args.Info.Count >= 2 && !JavascriptOperators::IsUndefinedOrNull(args[1]))
             {
                 Var regExp = args[1];
-                Var searcher = GetRegExSymbolSearch(regExp, scriptContext);
-                if (!JavascriptOperators::IsUndefinedOrNull(searcher))
+                Var symbolFn = GetRegExSymbolFunction(regExp, symbolPropertyId, scriptContext);
+                if (!JavascriptOperators::IsUndefinedOrNull(symbolFn))
                 {
-                    return CallRegExSymbolSearch(searcher, regExp, args[0], varName, scriptContext);
+                    return CallRegExSymbolFunction(symbolFn, regExp, args[0], varName, scriptContext);
                 }
             }
         }
@@ -1677,33 +1674,33 @@ case_2:
         if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
-            return RegexHelper::RegexSearch(scriptContext, regExObj, pThis);
+            return fallback(regExObj, pThis);
         }
         else
         {
             JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
-            Var searcher = GetRegExSymbolSearch(regExObj, scriptContext);
-            return CallRegExSymbolSearch(searcher, regExObj, args[0], varName, scriptContext);
+            Var symbolFn = GetRegExSymbolFunction(regExObj, symbolPropertyId, scriptContext);
+            return CallRegExSymbolFunction(symbolFn, regExObj, args[0], varName, scriptContext);
         }
     }
 
-    Var JavascriptString::GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext)
+    Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
         return JavascriptOperators::GetProperty(
             RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
-            PropertyIds::_symbolSearch,
+            propertyId,
             scriptContext);
     }
 
-    Var JavascriptString::CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
+    Var JavascriptString::CallRegExSymbolFunction(Var fn, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
     {
-        if (!JavascriptConversion::IsCallable(search))
+        if (!JavascriptConversion::IsCallable(fn))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
         }
 
-        RecyclableObject* searchFn = RecyclableObject::FromVar(search);
-        return searchFn->GetEntryPoint()(searchFn, CallInfo(CallFlags_Value, 2), regExp, string);
+        RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
+        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 2), regExp, string);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)

@@ -352,8 +352,10 @@ namespace Js
         template <bool trimLeft, bool trimRight>
         static Var TrimLeftRightHelper(JavascriptString* arg, ScriptContext* scriptContext);
 
-        static Var GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext);
-        static Var CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext);
+        template<typename FallbackFn>
+        static Var DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext);
+        static Var GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext);
+        static Var CallRegExSymbolFunction(Var fn, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext);
     };
 
     template<>

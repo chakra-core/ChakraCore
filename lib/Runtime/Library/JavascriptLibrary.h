@@ -376,6 +376,7 @@ namespace Js
 
 
 
+        JavascriptSymbol* symbolMatch;
         JavascriptSymbol* symbolSearch;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
@@ -507,6 +508,7 @@ namespace Js
         JavascriptSymbol* GetSymbolHasInstance() { return symbolHasInstance; }
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
+        JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
