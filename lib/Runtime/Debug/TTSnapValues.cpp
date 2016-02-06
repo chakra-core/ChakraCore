@@ -103,14 +103,7 @@ namespace TTD
         {
             if(string.Contents != nullptr)
             {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 HeapDeleteArray(string.Length + 1, string.Contents);
-#else
-                if(string.Length != 0)
-                {
-                    HeapDeleteArray(string.Length, string.Contents);
-                }
-#endif
             }
         }
 
@@ -763,7 +756,12 @@ namespace TTD
 
             fbInfoDest->ModuleId = fbInfoSrc->ModuleId;
             fbInfoDest->DocumentID = fbInfoSrc->DocumentID;
-            alloc.CopyStringIntoWLength(fbInfoSrc->SourceUri.Contents, fbInfoSrc->SourceUri.Length, fbInfoDest->SourceUri);
+
+            InitializeAsNullPtrTTString(fbInfoDest->SourceUri);
+            if(!IsNullPtrTTString(fbInfoSrc->SourceUri))
+            {
+                alloc.CopyStringIntoWLength(fbInfoSrc->SourceUri.Contents, fbInfoSrc->SourceUri.Length, fbInfoDest->SourceUri);
+            }
 
             alloc.CopyStringIntoWLength(fbInfoSrc->SourceCode.Contents, fbInfoSrc->SourceCode.Length, fbInfoDest->SourceCode);
         }

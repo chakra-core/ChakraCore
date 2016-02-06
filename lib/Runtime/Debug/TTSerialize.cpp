@@ -447,11 +447,11 @@ namespace TTD
         }
         else if(Js::JavascriptNumber::IsPosInf(val))
         {
-            this->WriteString_InternalNoEscape(L"#+inf", 4);
+            this->WriteString_InternalNoEscape(L"#+inf", 5);
         }
         else if(Js::JavascriptNumber::IsNegInf(val))
         {
-            this->WriteString_InternalNoEscape(L"#-inf", 4);
+            this->WriteString_InternalNoEscape(L"#-inf", 5);
         }
         else if(Js::JavascriptNumber::MAX_VALUE == val)
         {

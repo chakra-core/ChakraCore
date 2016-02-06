@@ -385,23 +385,23 @@ namespace TTD
                     reader->ReadSequenceStart_WDefaultKey(true);
                     for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
                     {
-                        bool readSeparator = i != 0;
+                        bool readVarSeparator = i != 0;
 
                         if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Clear)
                         {
-                            reader->ReadNakedNull(readSeparator);
+                            reader->ReadNakedNull(readVarSeparator);
                         }
                         else
                         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                            reader->ReadRecordStart(readSeperator);
+                            reader->ReadRecordStart(readVarSeparator);
                             reader->ReadUInt32(NSTokens::Key::pid);
                             reader->ReadKey(NSTokens::Key::entry, true);
 
-                            readSeparator = false;
+                            readVarSeparator = false;
 #endif
 
-                            snpObject->VarArray[i] = NSSnapValues::ParseTTDVar(readSeparator, reader);
+                            snpObject->VarArray[i] = NSSnapValues::ParseTTDVar(readVarSeparator, reader);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                             reader->ReadRecordEnd();

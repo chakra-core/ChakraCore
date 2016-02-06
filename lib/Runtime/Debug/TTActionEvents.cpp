@@ -1419,7 +1419,7 @@ namespace TTD
         writer->WriteLengthValue(this->m_sourceCode.Length, NSTokens::Separator::CommaSeparator);
 
         LPCWSTR docId = writer->FormatNumber(this->m_documentID);
-        JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId, this->m_sourceUri.Contents, this->m_sourceFile.Contents, this->m_sourceFile.Length);
+        JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId, this->m_sourceUri.Contents, this->m_sourceCode.Contents, this->m_sourceCode.Length);
 
         writer->WriteRecordEnd();
     }
