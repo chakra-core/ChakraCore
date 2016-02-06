@@ -951,11 +951,11 @@ namespace JSON
     // Parameters:
     // - object: the object to get the number of properties for.
     // - enumerator: the enumerator to enumerate the object.
-    // - [out] pIsPrecise: receives a boolean indicting whether the value returned is precise or just guessed.
-    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* pIsPresise)
+    // - [out] pIsPrecise: receives a boolean indicating whether the value returned is precise or just guessed.
+    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* pIsPrecise)
     {
-        Assert(pIsPresise);
-        *pIsPresise = false;
+        Assert(pIsPrecise);
+        *pIsPrecise = false;
 
         uint32 count = object->GetPropertyCount();
         if (Js::DynamicObject::Is(object) && Js::DynamicObject::FromVar(object)->HasObjectArray())
@@ -964,9 +964,9 @@ namespace JSON
             // Do one walk through the elements.
             // This would account for prototype property as well.
             count = this->GetPropertyCount(object, enumerator);
-            *pIsPresise = true;
+            *pIsPrecise = true;
         }
-        if (!*pIsPresise && count > sizeof(Js::JavascriptString*) * 8)
+        if (!*pIsPrecise && count > sizeof(Js::JavascriptString*) * 8)
         {
             // For large # of elements just one more for potential prototype wouldn't matter.
             ++count;

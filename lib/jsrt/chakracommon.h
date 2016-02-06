@@ -1822,7 +1822,7 @@
     /// </remarks>
     /// <param name="object">The object to operate on.</param>
     /// <param name="index">The index to test.</param>
-    /// <param name="result">Whether the object has an value at the specified index.</param>
+    /// <param name="result">Whether the object has a value at the specified index.</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>

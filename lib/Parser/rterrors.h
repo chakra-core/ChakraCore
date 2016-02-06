@@ -141,8 +141,8 @@ RT_ERROR_MSG(JSERR_NeedArrayOrArg, 5028, "%s is not an Array or arguments object
 RT_ERROR_MSG(JSERR_ArrayLengthConstructIncorrect, 5029, "", "Array length must be a finite positive integer", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ArrayLengthAssignIncorrect, 5030, "", "Array length must be assigned a finite positive integer", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_NeedArrayObject, 5031, "%s is not an Array object", "Array object expected", kjstTypeError, 0)
-// RETIRED ECMACP removd ;; RT_ERROR_MSG(JSERR_NoCPEval,     5032, "", "'eval' is not available in the ECMA 327 Compact Profile",               kjstEvalError, 0)
-// RETIRED ECMACP removd ;; RT_ERROR_MSG(JSERR_NoCPFunction, 5033, "", "Function constructor is not available in the ECMA 327 Compact Profile", kjstEvalError, 0)
+// RETIRED ECMACP removed ;; RT_ERROR_MSG(JSERR_NoCPEval,     5032, "", "'eval' is not available in the ECMA 327 Compact Profile",               kjstEvalError, 0)
+// RETIRED ECMACP removed ;; RT_ERROR_MSG(JSERR_NoCPFunction, 5033, "", "Function constructor is not available in the ECMA 327 Compact Profile", kjstEvalError, 0)
 RT_ERROR_MSG(JSERR_JSONSerializeCircular, 5034, "", "Circular reference in value argument not supported", kjstError, 0)
 RT_ERROR_MSG(JSERR_JSONInvalidReplacer, 5035, "", "Invalid replacer argument", kjstError, 0)
 RT_ERROR_MSG(JSERR_InvalidAttributeTrue,5036,"'%s' attribute on the property descriptor cannot be set to 'true' on this object","",kjstTypeError, 0)
@@ -206,13 +206,13 @@ RT_ERROR_MSG(JSERR_TypedArray_NeedSource, 5086, "", "Invalid source in typed arr
 RT_ERROR_MSG(JSERR_This_NeedDataView, 5087, "", "'this' is not a DataView object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_NeedArgument, 5088, "Required argument %s in DataView method is not specified", "Invalid arguments in DataView", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_InvalidOffset, 5089, "", "DataView operation access beyond specified buffer length",  kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_DataView_InvalidArugment, 5090, "DataView constructor argument %s is invalid", "Invalid arguments in DataView", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_DataView_InvalidArgument, 5090, "DataView constructor argument %s is invalid", "Invalid arguments in DataView", kjstRangeError, 0)
 
 RT_ERROR_MSG(JSERR_InvalidFunctionSignature, 5091, "The function '%s' has an invalid signature and cannot be called", "invalid function signature", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_InvalidPropertySiganture, 5092, "The property '%s' has an invalid signature and cannot be accessed", "invalid property signature", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidPropertySignature, 5092, "The property '%s' has an invalid signature and cannot be accessed", "invalid property signature", kjstTypeError, 0)
 
-RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as input parameter type", "invalid input parameter type", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as out parameter", "invalid ouput parameter", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as an input parameter type", "invalid input parameter type", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as an output parameter", "invalid output parameter", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_AccessArgumentsRestricted, 5095, "", "Accessing the 'arguments' property is restricted in this context", kjstTypeError, 0)
 
@@ -262,9 +262,9 @@ RT_ERROR_MSG(JSERR_IntlNotAvailable, 5125, "", "Intl is not available.", kjstTyp
 RT_ERROR_MSG(JSERR_ArgumentOutOfRange, 5130, "%s: argument out of range", "argument out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ErrorOnNew, 5131, "", "Function is not a constructor", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_This_NeedArrayIterator, 5132, "%s: 'this' is not an Array Iterator object", "Array Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedMapIterator, 5133, "%s: 'this' is not an Map Iterator object", "Map Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedSetIterator, 5134, "%s: 'this' is not an Set Iterator object", "Set Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not an String Iterator object", "String Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedMapIterator, 5133, "%s: 'this' is not a Map Iterator object", "Map Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedSetIterator, 5134, "%s: 'this' is not a Set Iterator object", "Set Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String Iterator object", "String Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
 
 RT_ERROR_MSG(JSERR_InvalidSpreadArgument, 5140, "%s: argument cannot be spread; expected Array or Object with a 'length' property", "Argument cannot be spread; expected Array or Object with a 'length' property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidSpreadLength, 5141, "%s: argument cannot be spread; the 'length' property must be a number or convert to a number", "Argument cannot be spread; the 'length' property must be a number or convert to a number", kjstTypeError, 0)

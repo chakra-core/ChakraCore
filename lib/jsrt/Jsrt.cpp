@@ -2583,7 +2583,7 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         const Js::Utf8SourceInfo *sourceInfo = functionBody->GetUtf8SourceInfo();
         size_t cSourceCodeLength = sourceInfo->GetCbLength(L"JsSerializeScript");
 
-        // trucation of code length can lead to accessing random memory. Reject the call.
+        // truncation of code length can lead to accessing random memory. Reject the call.
         if (cSourceCodeLength > DWORD_MAX)
         {
             return JsErrorOutOfMemory;

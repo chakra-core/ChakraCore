@@ -3244,7 +3244,7 @@ namespace Js
         return GetLibrary()->GetUndefined();
     }
 
-    Var CharArray::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascirptLibrary)
+    Var CharArray::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
     {
         CharArray* arr;
         uint32 totalLength, mappedByteLength;
@@ -3254,7 +3254,7 @@ namespace Js
         {
             JavascriptError::ThrowRangeError(arrayBuffer->GetScriptContext(), JSERR_InvalidTypedArrayLength);
         }
-        arr = RecyclerNew(javascirptLibrary->GetRecycler(), CharArray, arrayBuffer, byteOffSet, mappedLength, javascirptLibrary->GetCharArrayType());
+        arr = RecyclerNew(javascriptLibrary->GetRecycler(), CharArray, arrayBuffer, byteOffSet, mappedLength, javascriptLibrary->GetCharArrayType());
         return arr;
     }
 

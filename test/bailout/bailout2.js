@@ -8,7 +8,7 @@ a[1] = 100;
 
 function func2()
 {
-    // Injected bailout point: test constant as an array index, which doesn't get copy prop'ed
+    // Injected bailout point: test constant as an array index, which doesn't get copy prop'd
     return a[1];
 }
 

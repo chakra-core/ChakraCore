@@ -112,8 +112,8 @@ namespace Js
             _Outptr_opt_ IMetaDataImport2 **metaDataImport,
             _Out_opt_ mdTypeDef *typeDefToken);
 
-        typedef FNCWRoGetMetaDataFile* PFNCWRoGetMettadataFile;
-        PFNCWRoGetMettadataFile m_pfnRoGetMetadataFile;
+        typedef FNCWRoGetMetaDataFile* PFNCWRoGetMetadataFile;
+        PFNCWRoGetMetadataFile m_pfnRoGetMetadataFile;
 
 
     public:
@@ -269,8 +269,8 @@ namespace Js
             _In_ HANDLE hProcess,
             _In_ PVOID VirtualAddress,
             _In_ SIZE_T RegionSize,
-            _In_ ULONG NumberOfOffets,
-            _In_reads_(NumberOfOffets) PCFG_CALL_TARGET_INFO OffsetInformation
+            _In_ ULONG NumberOfOffsets,
+            _In_reads_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation
             );
     };
 #endif

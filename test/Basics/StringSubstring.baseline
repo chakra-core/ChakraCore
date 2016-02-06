@@ -1,8 +1,8 @@
-"bcdefghji", length: 9
+"bcdefghij", length: 9
 "abcde", length: 5
 "pqrstuvwxy", length: 10
 Left-only
-"bcdefghji", length: 9
+"bcdefghij", length: 9
 "abcde", length: 5
 "pqrstuvwxy", length: 10
 
@@ -12,9 +12,9 @@ Right-only
 
 Split
 "yz123", length: 5
-"abcdefghjiklmnopqrstuvwxyz1234567890", length: 36
+"abcdefghijklmnopqrstuvwxyz1234567890", length: 36
 
 Split
-"defghjiklmnopqrstuvwxyz", length: 23
+"defghijklmnopqrstuvwxyz", length: 23
 "", length: 0
 "a", length: 1

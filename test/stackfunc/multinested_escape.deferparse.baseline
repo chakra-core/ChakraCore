@@ -1,20 +1,20 @@
 HasFuncDecl: test
-HasFuncDecl: outter
+HasFuncDecl: outer
 HasFuncDecl: inner
 HasFuncDecl: nested
 HasFuncDecl: test
-HasFuncDecl: outter
+HasFuncDecl: outer
 HasFuncDecl: inner
 HasFuncDecl: nested
 DoStackNestedFunc: test (function  (#1.1), #2)
-HasFuncDecl: outter
-RestoreHasFuncAssignment: outter
+HasFuncDecl: outer
+RestoreHasFuncAssignment: outer
 HasFuncDecl: nested
 RestoreHasFuncAssignment: nested
 HasFuncDecl: inner
-DoStackNestedFunc: outter (function  (#1.2), #4)
-HasFuncDecl: outter
-RestoreHasFuncAssignment: outter
+DoStackNestedFunc: outer (function  (#1.2), #4)
+HasFuncDecl: outer
+RestoreHasFuncAssignment: outer
 HasFuncDecl: nested
 RestoreHasFuncAssignment: nested
 HasFuncDecl: inner
@@ -22,11 +22,11 @@ RestoreHasFuncAssignment: inner
 HasMaybeEscapedUse: nested
 HasMaybeEscapedNestedFunc (MaybeEscapedUseFuncDecl): test (function  (#1.1), #2)
 DeferParse: box and disable stack function: test (function  (#1.1), #2)
-Boxing StackScriptFunction Object: outter (function Id:  (#1.2), #4)
+Boxing StackScriptFunction Object: outer (function Id:  (#1.2), #4)
 Boxing StackScriptFunction Object: nested (function Id:  (#1.4), #5)
 Boxing Frame [Interpreted]: test  (#1.1), #2
-HasFuncDecl: outter
-RestoreHasFuncAssignment: outter
+HasFuncDecl: outer
+RestoreHasFuncAssignment: outer
 HasFuncDecl: nested
 RestoreHasFuncAssignment: nested
 test1

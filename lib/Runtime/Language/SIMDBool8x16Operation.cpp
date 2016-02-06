@@ -20,7 +20,7 @@ namespace Js
 
     SIMDValue SIMDBool8x16Operation::OpBool8x16(const SIMDValue& v)
     {
-        // overload function with input paramter as SIMDValue for completeness
+        // overload function with input parameter as SIMDValue for completeness
         SIMDValue result;
         result = v;
         return result;

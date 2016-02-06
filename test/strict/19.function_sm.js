@@ -107,7 +107,7 @@ function exceptToString(ee) {
 })();
 
 (function Test6() {
-    var str = "funciton.caller's value is a strict mode function";
+    var str = "function.caller's value is a strict mode function";
 
     function foo() {
         "use strict";

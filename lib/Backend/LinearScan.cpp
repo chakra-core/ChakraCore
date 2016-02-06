@@ -793,7 +793,7 @@ LinearScan::SetDstReg(IR::Instr *instr)
 
     StackSym * stackSym = regOpnd->m_sym;
 
-    // Arg slot sym can be in an RegOpnd for param passed via registers
+    // Arg slot sym can be in a RegOpnd for param passed via registers
     // Just use the assigned register
     if (stackSym == nullptr || stackSym->IsArgSlotSym())
     {
@@ -2528,7 +2528,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 BitVector regsBvTemp = regsBv;
                 regsBvTemp.And(this->calleeSavedRegs);
 
-                regIndex = GetPreferrencedRegIndex(newLifetime, regsBvTemp);
+                regIndex = GetPreferencedRegIndex(newLifetime, regsBvTemp);
 
                 if (regIndex == BVInvalidIndex)
                 {
@@ -2537,7 +2537,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                         // No callee saved regs is found and the lifetime only across helper
                         // calls, we can also use a caller saved regs to make use of the
                         // save and restore around helper blocks
-                        regIndex = GetPreferrencedRegIndex(newLifetime, regsBv);
+                        regIndex = GetPreferencedRegIndex(newLifetime, regsBv);
                     }
                     else
                     {
@@ -2550,7 +2550,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
             }
             else
             {
-                regIndex = GetPreferrencedRegIndex(newLifetime, regsBv);
+                regIndex = GetPreferencedRegIndex(newLifetime, regsBv);
             }
         }
         else
@@ -2603,7 +2603,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
         if (tryCallerSavedRegs)
         {
             Assert(newLifetime);
-            regIndex = GetPreferrencedRegIndex(newLifetime, callerSavedAvailableBv);
+            regIndex = GetPreferencedRegIndex(newLifetime, callerSavedAvailableBv);
             if (BVInvalidIndex == regIndex)
             {
                 tryCallerSavedRegs = false;
@@ -2640,7 +2640,7 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
 }
 
 BVIndex
-LinearScan::GetPreferrencedRegIndex(Lifetime *lifetime, BitVector freeRegs)
+LinearScan::GetPreferencedRegIndex(Lifetime *lifetime, BitVector freeRegs)
 {
     BitVector freePreferencedRegs = freeRegs;
 

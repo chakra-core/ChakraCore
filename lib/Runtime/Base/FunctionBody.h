@@ -864,7 +864,7 @@ namespace Js
         void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees() { return this->frameHeight > 0; }
-        void DoLazyBailout(BYTE** addressOfeturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
+        void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
 #endif
 #if DBG_DUMP
      public:
@@ -2618,7 +2618,7 @@ namespace Js
 
         bool InstallProbe(int offset);
         bool UninstallProbe(int offset);
-        bool ProbeAtOffset(int offsest, OpCode* pOriginalOpcode);
+        bool ProbeAtOffset(int offset, OpCode* pOriginalOpcode);
 
         ParseableFunctionInfo * Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex) override;
 

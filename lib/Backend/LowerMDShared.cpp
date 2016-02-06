@@ -2926,7 +2926,7 @@ IR::Instr * LowererMD::GenerateConvBool(IR::Instr *instr)
 /// LowererMD::GenerateFastAdd
 ///
 /// NOTE: We assume that only the sum of two Int31's will have 0x2 set. This
-/// is only true until we have an var type with tag == 0x2.
+/// is only true until we have a var type with tag == 0x2.
 ///
 ///----------------------------------------------------------------------------
 bool
@@ -5791,7 +5791,7 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
     // PUSH allocator
     this->LoadHelperArgument(instrInsert, m_lowerer->LoadScriptContextValueOpnd(instrInsert,  ScriptContextValue::ScriptContextNumberAllocator));
 
-    // dst = Call AllocUninitalizedNumber
+    // dst = Call AllocUninitializedNumber
     IR::Instr * instrCall = IR::Instr::New(Js::OpCode::CALL, opndDst,
         IR::HelperCallOpnd::New(IR::HelperAllocUninitializedNumber, this->m_func), this->m_func);
     instrInsert->InsertBefore(instrCall);
@@ -8067,7 +8067,7 @@ bool
 LowererMD::GenerateLdThisCheck(IR::Instr * instr)
 {
     //
-    // If not an recyclable object, jump to $helper
+    // If not a recyclable object, jump to $helper
     // MOV dst, src1                                      -- return the object itself
     // JMP $fallthrough
     // $helper:

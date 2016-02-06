@@ -35,7 +35,7 @@ enum CharTypeFlags : uint
 
 enum CharTypes
 {
-    _C_UNK,    // Unkown grouping
+    _C_UNK,    // Unknown grouping
     _C_ERR,    // illegal character
     _C_NUL,    // NUL character
     _C_LET,    // letter (A-Z,a-z)

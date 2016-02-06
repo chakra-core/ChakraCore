@@ -1584,7 +1584,7 @@ SmallHeapBlockT<TBlockAttributes>::TransferProcessedObjects(FreeObject * list, F
     Assert(tail != nullptr);
     Assert(list);
 #if DBG || defined(RECYCLER_STATS)
-    // make sure that object we are transfered to the free list are not freed yet
+    // make sure that object we are transferred to the free list are not freed yet
     tail->SetNext(nullptr);
     FreeObject * freeObject = list;
     while (freeObject != nullptr)

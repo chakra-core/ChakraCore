@@ -608,7 +608,7 @@ MACRO_BACKEND_ONLY(     Coerse_Regex, Empty, OpCallsValueOf|OpHasImplicitCall|Op
 // Operation CreateRegex(regex) or CoerseStr(arg)
 MACRO_BACKEND_ONLY(     Coerse_StrOrRegex, Empty, OpCallsValueOf|OpHasImplicitCall|OpTempNumberSources|OpTempNumberTransfer|OpPostOpDbgBailOut)
 
-// Operation ToString(ToPrimtive(src1))
+// Operation ToString(ToPrimitive(src1))
 MACRO_BACKEND_ONLY(     Conv_PrimStr,       Empty,          OpCallsValueOf|OpHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
 
 // The following are for lowering; currently the specified layout is not used

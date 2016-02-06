@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// ES6 Genertors functionality tests -- verifies behavior of generator functions
+// ES6 Generators functionality tests -- verifies behavior of generator functions
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
@@ -248,7 +248,7 @@ var tests = [
         }
     },
     {
-        name: "Geneartor functions with this reference",
+        name: "Generator functions with this reference",
         body: function () {
             function* gf(a) {
                 yield 1 + a + this.a;
@@ -735,25 +735,25 @@ var tests = [
             var gf = function* () { yield 1; yield 2; yield 3; return 5; }
             var g = gf();
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1");
-            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the excpetion out as the funtion is not handling it");
+            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the exception out as the function is not handling it");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Second next call should return undefined as the throw caused a completion of the generator");
 
             gf = function* () { yield 1; }
             g = gf();
-            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the excpetion out as the funtion is not handling it");
+            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the exception out as the function is not handling it");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Next call after throw should return undefined as the throw caused a completion of the generator");
 
             gf = function* () { yield 1; }
             g = gf();
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1");
-            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the excpetion out as the funtion is not handling it");
+            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the exception out as the function is not handling it");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Next call after throw should return undefined as the throw caused a completion of the generator");
 
             gf = function* () { yield 1; yield 2; }
             g = gf();
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1");
-            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the excpetion out as the funtion is not handling it");
-            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Second Throw call is also expected to throw the excpetion out as the funtion is not handling it");
+            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Throw call is expected to throw the exception out as the function is not handling it");
+            assert.throws(function() { g.throw(new ExpectedException()); }, ExpectedException, "Second Throw call is also expected to throw the exception out as the function is not handling it");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Next call after throw should return undefined as the throw caused a completion of the generator");
 
             gf = function* () { yield 1; }
@@ -770,14 +770,14 @@ var tests = [
             var g = gf();
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1 from try block");
             assert.areEqual({value: 2, done: false }, g.throw(2), "After throwing the yield should happen from the catch block");
-            assert.areEqual({ value: undefined, done: true }, g.next(), "Generator is in comleted state");
+            assert.areEqual({ value: undefined, done: true }, g.next(), "Generator is in completed state");
 
             gf = function* () { try { yield 1; throw 2; } catch (ex) { yield ex; yield 100; } assert.fail("Control should never reach here"); }
             g = gf();
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1 from try block");
             assert.areEqual({value: 2, done: false }, g.next(), "Second next call should return 2 from the catch block");
             assert.throws(function() { g.throw(new ExpectedException()) }, ExpectedException, "The throw happens before the try block");
-            assert.areEqual({ value: undefined, done: true }, g.next(), "Generator is in comleted state");
+            assert.areEqual({ value: undefined, done: true }, g.next(), "Generator is in completed state");
         }
     },
     {
@@ -827,7 +827,7 @@ var tests = [
             assert.areEqual({ value: 1, done: false }, g.next(), "First next call should return 1 from the inner try block");
             assert.areEqual({ value: 2, done: false }, g.throw(3), "Throw causes the inner finally block to be executed");
             assert.areEqual({ value: 3, done: false }, g.next(), "Second next call should return 3 from the catch block");
-            assert.throws(function() { g.throw(new ExpectedException()) }, ExpectedException, "Second throw causses an exception fromt he catch block");
+            assert.throws(function() { g.throw(new ExpectedException()) }, ExpectedException, "Second throw causes an exception from the catch block");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Method execution has finished");
 
             gf = function* () { try { try { yield 1; throw 100; } finally { yield 2; yield 100; } } finally { yield 3; } }
@@ -1035,7 +1035,7 @@ var tests = [
         }
     },
     {
-        name: "Return and throw apis arguments are propogated on yield*",
+        name: "Return and throw apis arguments are propagated on yield*",
         body: function () {
             x = 0;
             var simpleIterator = CreateIterable(simpleNextFunc, simpleReturnFunc, null);
@@ -1063,7 +1063,7 @@ var tests = [
             var g2 = gf2();
             assert.areEqual({value: 1, done: false}, g2.next(), "Get the first yield value from the inner generator");
             assert.areEqual({value: 3, done: true}, g2.return(3), "Returns the passed in value");
-            assert.areEqual({value: undefined, done: true}, g1.next(), "Inner geneartor is in complete state");
+            assert.areEqual({value: undefined, done: true}, g1.next(), "Inner generator is in complete state");
             assert.areEqual({value: undefined, done: true}, g2.next(), "Outer generator is in complete state");
 
             g1 = gf1();
@@ -1072,8 +1072,8 @@ var tests = [
             var g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Get the first yield value from the inner generator");
             assert.areEqual({value: 3, done: true}, g3.return(3), "Returns the passed in value");
-            assert.areEqual({value: undefined, done: true}, g1.next(), "Return gets propogated to the lowest level");
-            assert.areEqual({value: undefined, done: true}, g2.next(), "Return gets propogated to the second level also");
+            assert.areEqual({value: undefined, done: true}, g1.next(), "Return gets propagated to the lowest level");
+            assert.areEqual({value: undefined, done: true}, g2.next(), "Return gets propagated to the second level also");
             assert.areEqual({value: undefined, done: true}, g3.next(), "Return completes the first level of generator also");
         }
     },
@@ -1086,8 +1086,8 @@ var tests = [
             var g2 = gf2();
             assert.areEqual({value: 1, done: false}, g2.next(), "Get the first yield value from the inner generator");
             assert.throws(function () { g2.throw(new ExpectedException()); }, ExpectedException, "Throw comes out of the generator loop as nobody handles it");
-            assert.areEqual({value: undefined, done: true}, g1.next(), "Throw gets propogated to the lowest level");
-            assert.areEqual({value: undefined, done: true}, g2.next(), "Throw gets propogated to the top level also");
+            assert.areEqual({value: undefined, done: true}, g1.next(), "Throw gets propagated to the lowest level");
+            assert.areEqual({value: undefined, done: true}, g2.next(), "Throw gets propagated to the top level also");
 
             g1 = gf1();
             g2 = gf2();
@@ -1095,8 +1095,8 @@ var tests = [
             var g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Get the first yield value from the inner generator");
             assert.throws(function () { g3.throw(new ExpectedException()); }, ExpectedException, "Throw comes out of the generator loop as nobody handles it");
-            assert.areEqual({value: undefined, done: true}, g1.next(), "Throw gets propogated to the lowest level");
-            assert.areEqual({value: undefined, done: true}, g2.next(), "Throw gets propogated to the second level also");
+            assert.areEqual({value: undefined, done: true}, g1.next(), "Throw gets propagated to the lowest level");
+            assert.areEqual({value: undefined, done: true}, g2.next(), "Throw gets propagated to the second level also");
             assert.areEqual({value: undefined, done: true}, g3.next(), "Throw completes the first level of generator also");
         }
     },
@@ -1119,7 +1119,7 @@ var tests = [
             var gf3 = function* () { yield* g2; }
             var g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Yield 1 from the inner generator");
-            assert.throws(function () { g3.throw(2); }, 2, "Even thogh the inner generator handles the throw the result from it is ignored");
+            assert.throws(function () { g3.throw(2); }, 2, "Even though the inner generator handles the throw the result from it is ignored");
             assert.areEqual({value: 3, done: false}, g1.next(), "First generator handled the exception so it is not in complete state yet");
             assert.areEqual({value: undefined, done: true}, g2.next(), "Second generator does not handle the exception so it is in complete state");
             assert.areEqual({value: undefined, done: true}, g3.next(), "Third generator also does not handle the exception so it is in complete state");
@@ -1273,7 +1273,7 @@ var tests = [
         }
     },
     {
-        name: "Exceptions from inner iterator are popogated",
+        name: "Exceptions from inner iterator are propagated",
         body: function () {
             var gf1 = function* () {
                 try {
@@ -1470,7 +1470,7 @@ var tests = [
                 try {
                     global.g.throw(100);
                 } catch (e) {
-                    assert.areEqual(200, e.value, "Throw call on the generator object created on a different context should should propogate the inner throw result");
+                    assert.areEqual(200, e.value, "Throw call on the generator object created on a different context should should propagate the inner throw result");
                 }
             }
         }
@@ -1503,7 +1503,7 @@ var tests = [
             g1.return = function() { closed = true; return {done: true}; }
             g2 = gf2();
             g2.next();
-            assert.throws(function() { g2['throw'](new ExpectedException()) }, ExpectedException, "Throw is propogated back to the caller");
+            assert.throws(function() { g2['throw'](new ExpectedException()) }, ExpectedException, "Throw is propagated back to the caller");
             assert.isTrue(closed, "When throw method is not defined on the iterator IteratorClose is called");
 
             g1 = gf1();
@@ -1511,14 +1511,14 @@ var tests = [
             g1.return = function() {  throw new ExpectedException(); }
             g2 = gf2();
             g2.next();
-            assert.throws(function () { g2['throw']({value : 1}); }, ExpectedException, "Inner exceptions from IteratorClose are propogated");
+            assert.throws(function () { g2['throw']({value : 1}); }, ExpectedException, "Inner exceptions from IteratorClose are propagated");
 
             g1 = gf1();
             g1.throw = undefined,
             g1.return = function() { return 10; }
             g2 = gf2();
             g2.next();
-            assert.throws(function () { g2['throw']({value : 1}); }, TypeError, "A TypeError is thrown if the inner result of iteractor close is not an object", "Object expected");
+            assert.throws(function () { g2['throw']({value : 1}); }, TypeError, "A TypeError is thrown if the inner result of iterator close is not an object", "Object expected");
         }
     },
     {

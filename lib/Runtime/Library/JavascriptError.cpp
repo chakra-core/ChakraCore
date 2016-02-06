@@ -420,7 +420,7 @@ namespace Js
         else
         {
             messageString = scriptContext->GetLibrary()->GetEmptyString();
-            // Set an empty string so we will return it as an runtime message with the error code to IE
+            // Set an empty string so we will return it as a runtime message with the error code to IE
             pError->originalRuntimeErrorMessage = L"";
         }
 

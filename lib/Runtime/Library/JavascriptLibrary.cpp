@@ -1106,7 +1106,7 @@ namespace Js
         {
             // Clear the weak reference dictionary so we don't need to clean them
             // during PostCollectCallBack before Dispose deleting the script context.
-            scriptContext->ResetWeakReferenceDicitionaryList();
+            scriptContext->ResetWeakReferenceDictionaryList();
         }
     }
 
@@ -3658,15 +3658,15 @@ namespace Js
     // Returns true if the function's return type is always float.
     BOOL JavascriptLibrary::IsFltFunc(BuiltinFunction index)
     {
-        // Note: MathFuncion is one of built-ins.
+        // Note: MathFunction is one of built-ins.
         if (!JavascriptLibrary::CanFloatPreferenceFunc(index))
         {
             return FALSE;
         }
 
         Js::BuiltInFlags builtInFlags = JavascriptLibrary::GetFlagsForBuiltIn(index);
-        Js::BuiltInArgSpecizationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
-        bool isFloatFunc = dstType == Js::BuiltInArgSpecizationType::BIAST_Float;
+        Js::BuiltInArgSpecializationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
+        bool isFloatFunc = dstType == Js::BuiltInArgSpecializationType::BIAST_Float;
         return isFloatFunc;
     }
 
@@ -4780,7 +4780,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
         };
-        IntlObject->GetLibrary()->InitializeIntlForProtototypes(intlInitializer);
+        IntlObject->GetLibrary()->InitializeIntlForPrototypes(intlInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForStringPrototype()
@@ -4789,7 +4789,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
         };
-        InitializeIntlForProtototypes(stringPrototypeInitializer);
+        InitializeIntlForPrototypes(stringPrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForDatePrototype()
@@ -4798,7 +4798,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
         };
-        InitializeIntlForProtototypes(datePrototypeInitializer);
+        InitializeIntlForPrototypes(datePrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForNumberPrototype()
@@ -4807,11 +4807,11 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
         };
-        InitializeIntlForProtototypes(numberPrototypeInitializer);
+        InitializeIntlForPrototypes(numberPrototypeInitializer);
     }
 
     template <class Fn>
-    void JavascriptLibrary::InitializeIntlForProtototypes(Fn fn)
+    void JavascriptLibrary::InitializeIntlForPrototypes(Fn fn)
     {
         ScriptContext* scriptContext = this->IntlObject->GetScriptContext();
         if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
@@ -6313,11 +6313,11 @@ namespace Js
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
-    BuiltInArgSpecizationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
+    BuiltInArgSpecializationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
     {
         Assert(argKind == BuiltInArgShift::BIAS_Dst || BuiltInArgShift::BIAS_Src1 || BuiltInArgShift::BIAS_Src2);
 
-        BuiltInArgSpecizationType type = static_cast<BuiltInArgSpecizationType>(
+        BuiltInArgSpecializationType type = static_cast<BuiltInArgSpecializationType>(
             (flags >> argKind) &              // Shift-out everything to the right of start of interesting area.
             ((1 << Js::BIAS_ArgSize) - 1));   // Mask-out everything to the left of interesting area.
 

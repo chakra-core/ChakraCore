@@ -250,7 +250,7 @@ namespace Js
             Js::Throw::OutOfMemory();
         }
 #else
-        // There shouldn't be enought mamory to have UINT_MAX character.
+        // There shouldn't be enough memory to have UINT_MAX character.
         // INT_MAX is the upper bound for 32-bit;
         Assert(IsValidCharCount(cchActual));
 #endif
@@ -1307,23 +1307,23 @@ case_2:
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtenionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
                     auto undefined = scriptContext->GetLibrary()->GetUndefined();
                     CallInfo toPass(callInfo.Flags, 7);
-                    return intlExtenionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
                 }
                 else
                 {
-                    JavascriptFunction* func = intlExtenionObject->GetStringLocaleCompare();
+                    JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
                     }
                     // Initialize String.prototype.toLocaleCompare
                     scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
-                    func = intlExtenionObject->GetStringLocaleCompare();
+                    func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
@@ -2752,7 +2752,7 @@ case_2:
             }
             if (!bi.FMulAdd(radix, ch))
             {
-                //Mimic IE8 which threw a OutOfMemory exception in this case.
+                //Mimic IE8 which threw an OutOfMemory exception in this case.
                 JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
             }
             // If we ever have more than 32 ulongs, the result must be infinite.
@@ -3303,7 +3303,7 @@ case_2:
         const wchar_t * p2 = searchStr + searchLen - 1;
         const wchar_t * const begin = searchStr;
 
-        // Determine if we can do an partial ASCII Boyer-Moore
+        // Determine if we can do a partial ASCII Boyer-Moore
         while (p2 >= begin)
         {
             WCHAR c = *p2;
@@ -3332,7 +3332,7 @@ case_2:
         const wchar_t * p2 = searchStr;
         const wchar_t * const end = searchStr + searchLen;
 
-        // Determine if we can do an partial ASCII Boyer-Moore
+        // Determine if we can do a partial ASCII Boyer-Moore
         while (p2 < end)
         {
             WCHAR c = *p2;
