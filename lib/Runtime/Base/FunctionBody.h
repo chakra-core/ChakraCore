@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#include "AuxPtrs.h"
+
 struct CodeGenWorkItem;
 class SourceContextInfo;
 class FunctionBailOutRecord;
@@ -1151,42 +1153,6 @@ namespace Js
     typedef FunctionProxy** FunctionProxyPtrPtr;
 #endif
 
-    // Use fixed size structure to save pointers 
-    template<typename FIELDS, uint8 size, uint8 _MaxCount = (size - 8) / sizeof(void*)>
-    struct AuxPtrsFix
-    {
-        static const uint8 MaxCount = _MaxCount;
-        uint8 count;                            // always saving maxCount
-        FIELDS type[MaxCount];                  // save instantiated pointer enum
-        WriteBarrierPtr<void> ptr[MaxCount];    // save instantiated pointer address
-        AuxPtrsFix();
-        AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32
-        void* get(FIELDS e);
-        bool set(FIELDS e, void* p);
-    };
-
-    // Use flexible size structure to save pointers. when pointer count exceeds AuxPtrsFix<FIELDS, 32>::MaxCount, 
-    // it will promote to this structure to save the pointers
-    template<class T, typename FIELDS>
-    struct AuxPtrs
-    {
-        typedef AuxPtrsFix<FIELDS, 16> AuxPtrs16;
-        typedef AuxPtrsFix<FIELDS, 32> AuxPtrs32;
-        typedef AuxPtrs<T, FIELDS> AuxPtrsT;
-        uint8 count;                            // save instantiated pointers count
-        uint8 capacity;                         // save number of pointers can be hold in current instance of AuxPtrs
-        FIELDS offsets[FIELDS::e_max];          // save position of each instantiated pointers, if not instantiate, it's e_invalid
-        WriteBarrierPtr<void> ptrs[1];          // instantiated pointer addresses
-        AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);  // called when promoting from AuxPtrs32 to AuxPtrs
-        AuxPtrs(uint8 capacity, AuxPtrs* ptr);      // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
-        void* get(FIELDS e);
-        bool set(FIELDS e, void* p);
-        static void allocAuxPtrFix(T* _this, uint8 size, Recycler* recycler);
-        static void allocAuxPtr(T* _this, uint8 count, Recycler* recycler);
-        static void* get_AuxPtr(const T* _this, FIELDS e);
-        static void set_AuxPtr(T* _this, FIELDS e, void* ptr, Recycler* recycler);
-    };
-
     //
     // FunctionProxy represents a user defined function
     // This could be either from a source file or the byte code cache
@@ -1204,39 +1170,38 @@ namespace Js
             LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber);
         DEFINE_VTABLE_CTOR_NO_REGISTER(FunctionProxy, FunctionInfo);
 
-        enum AUXPTRS : uint8 {
-            e_deferredStubs = 0,
-            e_cachedSourceString = 1,
-            e_asmJsFunctionInfo = 2,
-            e_asmJsModuleInfo = 3,
-            e_pStatementMaps = 4,
-            e_stackNestedFuncParent = 5,
-            e_simpleJitEntryPointInfo = 6,
-            e_functionObjectTypeList = 7,           // Script function types not including the deferred prototype type
-            e_codeGenGetSetRuntimeData = 8,
-            e_propertyIdOnRegSlotsContainer = 9,    // This is used for showing locals for the current frame.
-            e_loopHeaderArray = 10,
-            e_codeGenRuntimeData = 11,
-            e_polymorphicInlineCachesHead = 12,     // DList of all polymorphic inline caches that aren't finalized yet
-            e_propertyIdsForScopeSlotArray = 13,    // For SourceInfo
-            e_polymorphicCallSiteInfoHead  = 14,
-            e_auxBlock = 15,                        // Optional auxiliary information
-            e_auxContextBlock = 16,                 // Optional auxiliary context specific information
-            e_referencedPropertyIdMap = 17,
-            e_literalRegexes = 18,
-            e_objLiteralTypes = 19,
-            e_scopeInfo = 20,
+        enum class AuxPointerType : uint8 {
+            deferredStubs = 0,
+            cachedSourceString = 1,
+            asmJsFunctionInfo = 2,
+            asmJsModuleInfo = 3,
+            pStatementMaps = 4,
+            stackNestedFuncParent = 5,
+            simpleJitEntryPointInfo = 6,
+            functionObjectTypeList = 7,           // Script function types not including the deferred prototype type
+            codeGenGetSetRuntimeData = 8,
+            propertyIdOnRegSlotsContainer = 9,    // This is used for showing locals for the current frame.
+            loopHeaderArray = 10,
+            codeGenRuntimeData = 11,
+            polymorphicInlineCachesHead = 12,     // DList of all polymorphic inline caches that aren't finalized yet
+            propertyIdsForScopeSlotArray = 13,    // For SourceInfo
+            polymorphicCallSiteInfoHead  = 14,
+            auxBlock = 15,                        // Optional auxiliary information
+            auxContextBlock = 16,                 // Optional auxiliary context specific information
+            referencedPropertyIdMap = 17,
+            literalRegexes = 18,
+            objLiteralTypes = 19,
+            scopeInfo = 20,
 
-            e_max,
-            e_invalid = 0xff
+            max,
+            invalid = 0xff
         };
 
-        typedef AuxPtrs<FunctionProxy, AUXPTRS> AuxPtrsT;
-
+        typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
         friend AuxPtrsT;
         WriteBarrierPtr<AuxPtrsT> auxPtrs;
-        void* get_AuxPtr(AUXPTRS e) const;
-        void set_AuxPtr(AUXPTRS e, void* ptr);
+        void* GetAuxPtr(AuxPointerType e) const;
+        void SetAuxPtr(AuxPointerType e, void* ptr);
 
     public:
         enum SetDisplayNameFlags
@@ -1470,8 +1435,8 @@ namespace Js
         ArgSlot GetReportedInParamsCount() const;
         void SetReportedInParamsCount(ArgSlot newReportedInParamCount);
         void ResetInParams();
-        ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->get_AuxPtr(e_scopeInfo)); }
-        void SetScopeInfo(ScopeInfo* scopeInfo) {  this->set_AuxPtr(e_scopeInfo, scopeInfo); }
+        ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->GetAuxPtr(AuxPointerType::scopeInfo)); }
+        void SetScopeInfo(ScopeInfo* scopeInfo) {  this->SetAuxPtr(AuxPointerType::scopeInfo, scopeInfo); }
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         bool IsTrackedPropertyId(PropertyId pid);
         Js::PropertyRecordList* GetBoundPropertyRecords() { return this->m_boundPropertyRecords; }
@@ -1570,11 +1535,11 @@ namespace Js
 
         virtual void Finalize(bool isShutdown) override;
 
-        Var GetCachedSourceString() { return this->get_AuxPtr(e_cachedSourceString); }
+        Var GetCachedSourceString() { return this->GetAuxPtr(AuxPointerType::cachedSourceString); }
         void SetCachedSourceString(Var sourceString)
         {
             Assert(this->GetCachedSourceString() == nullptr);
-            this->set_AuxPtr(e_cachedSourceString, sourceString);
+            this->SetAuxPtr(AuxPointerType::cachedSourceString, sourceString);
         }
 
         FunctionProxyArray GetNestedFuncArray();
@@ -1588,8 +1553,8 @@ namespace Js
         bool GetCapturesThis() { return (attributes & Attributes::CapturesThis) != 0; }
 
         void BuildDeferredStubs(ParseNode *pnodeFnc);
-        DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->get_AuxPtr(e_deferredStubs)); }
-        void SetDeferredStubs(DeferredFunctionStub *stub) { this->set_AuxPtr(e_deferredStubs, stub); }
+        DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::deferredStubs)); }
+        void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::deferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, wchar_t const * pszTitle);
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
@@ -2032,10 +1997,10 @@ namespace Js
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
-        ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->get_AuxPtr(e_auxBlock)); }
-        void SetAuxiliaryData(ByteBlock* auxBlock) { this->set_AuxPtr(e_auxBlock, auxBlock); }
-        ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->get_AuxPtr(e_auxContextBlock)); }
-        void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->set_AuxPtr(e_auxContextBlock, auxContextBlock); }
+        ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::auxBlock)); }
+        void SetAuxiliaryData(ByteBlock* auxBlock) { this->SetAuxPtr(AuxPointerType::auxBlock, auxBlock); }
+        ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::auxContextBlock)); }
+        void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->SetAuxPtr(AuxPointerType::auxContextBlock, auxContextBlock); }
         ByteBlock* GetByteCode();
         ByteBlock* GetOriginalByteCode(); // Returns original bytecode without probes (such as BPs).
         Js::ByteCodeCache * GetByteCodeCache() const { return this->byteCodeCache; }
@@ -2289,14 +2254,14 @@ namespace Js
         DebuggerScope* AddScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation);
         bool TryGetDebuggerScopeAt(int index, DebuggerScope*& debuggerScope);
 
-        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->get_AuxPtr(e_pStatementMaps)); }
-        void SetStatementMaps(StatementMapList *pStatementMaps) { this->set_AuxPtr(e_pStatementMaps, pStatementMaps); }
+        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtr(AuxPointerType::pStatementMaps)); }
+        void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::pStatementMaps, pStatementMaps); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->get_AuxPtr(e_codeGenGetSetRuntimeData)); }
-        void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->set_AuxPtr(e_codeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::codeGenGetSetRuntimeData)); }
+        void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::codeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->get_AuxPtr(e_codeGenRuntimeData)); }
-        void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->set_AuxPtr(e_codeGenRuntimeData, codeGenRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::codeGenRuntimeData)); }
+        void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::codeGenRuntimeData, codeGenRuntimeData); }
 
         static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -2367,8 +2332,8 @@ namespace Js
 
         uint GetLoopNumber(LoopHeader const * loopHeader) const;
         bool GetHasAllocatedLoopHeaders() { return this->GetLoopHeaderArray() != nullptr; }
-        Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->get_AuxPtr(e_loopHeaderArray)); }
-        void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->set_AuxPtr(e_loopHeaderArray, loopHeaderArray); }
+        Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->GetAuxPtr(AuxPointerType::loopHeaderArray)); }
+        void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->SetAuxPtr(AuxPointerType::loopHeaderArray, loopHeaderArray); }
 
 #if ENABLE_NATIVE_CODEGEN
         Js::JavascriptMethod GetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, int entryPointIndex);
@@ -2481,12 +2446,12 @@ namespace Js
 #endif /* IR_VIEWER */
 
 #if ENABLE_NATIVE_CODEGEN
-        void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->set_AuxPtr(e_polymorphicCallSiteInfoHead, polyCallSiteInfo); }
-        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->get_AuxPtr(e_polymorphicCallSiteInfoHead)); }
+        void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr(AuxPointerType::polymorphicCallSiteInfoHead, polyCallSiteInfo); }
+        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::polymorphicCallSiteInfoHead)); }
 #endif
 
-        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->get_AuxPtr(e_polymorphicInlineCachesHead)); }
-        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->set_AuxPtr(e_polymorphicInlineCachesHead, cache); }
+        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::polymorphicInlineCachesHead)); }
+        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::polymorphicInlineCachesHead, cache); }
 
         bool PolyInliningUsingFixedMethodsAllowedByConfigFlags(FunctionBody* topFunctionBody)
         {
@@ -2496,20 +2461,20 @@ namespace Js
                 !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, this) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, topFunctionBody);
         }
 
-        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->get_AuxPtr(e_propertyIdsForScopeSlotArray)); }
+        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->GetAuxPtr(AuxPointerType::propertyIdsForScopeSlotArray)); }
         void SetPropertyIdsForScopeSlotArray(Js::PropertyId * propertyIdsForScopeSlotArray, uint scopeSlotCount)
         {
             this->scopeSlotArraySize = scopeSlotCount;
-            this->set_AuxPtr(e_propertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
+            this->SetAuxPtr(AuxPointerType::propertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
         }
 
         Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainer() const
         {
-            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->get_AuxPtr(e_propertyIdOnRegSlotsContainer));
+            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->GetAuxPtr(AuxPointerType::propertyIdOnRegSlotsContainer));
         }
         void SetPropertyIdOnRegSlotsContainer(Js::PropertyIdOnRegSlotsContainer *propertyIdOnRegSlotsContainer)
         {
-            this->set_AuxPtr(e_propertyIdOnRegSlotsContainer, propertyIdOnRegSlotsContainer);
+            this->SetAuxPtr(AuxPointerType::propertyIdOnRegSlotsContainer, propertyIdOnRegSlotsContainer);
         }
     private:
         void ResetProfileIds();
@@ -2715,8 +2680,8 @@ namespace Js
 #if DBG
         void VerifyCacheIdToPropertyIdMap();
 #endif
-        PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->get_AuxPtr(e_referencedPropertyIdMap)); }
-        void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->set_AuxPtr(e_referencedPropertyIdMap, propIdMap); }
+        PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->GetAuxPtr(AuxPointerType::referencedPropertyIdMap)); }
+        void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->SetAuxPtr(AuxPointerType::referencedPropertyIdMap, propIdMap); }
         void CreateReferencedPropertyIdMap(uint referencedPropertyIdCount);
         void CreateReferencedPropertyIdMap();
         PropertyId GetReferencedPropertyIdWithMapIndex(uint mapIndex);
@@ -2738,17 +2703,17 @@ namespace Js
         uint NewLiteralRegex();
         uint GetLiteralRegexCount() const;
         void AllocateLiteralRegexArray();
-        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->get_AuxPtr(e_literalRegexes)); }
-        void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->set_AuxPtr(e_literalRegexes, literalRegexes); }
+        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::literalRegexes)); }
+        void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::literalRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
 #ifndef TEMP_DISABLE_ASMJS
-        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->get_AuxPtr(e_asmJsFunctionInfo)); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::asmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
-        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->get_AuxPtr(e_asmJsModuleInfo)); }
+        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::asmJsModuleInfo)); }
         void ResetAsmJsInfo()
         {
-            set_AuxPtr(e_asmJsFunctionInfo, nullptr);
-            set_AuxPtr(e_asmJsModuleInfo, nullptr);
+            SetAuxPtr(AuxPointerType::asmJsFunctionInfo, nullptr);
+            SetAuxPtr(AuxPointerType::asmJsModuleInfo, nullptr);
         }
         bool IsAsmJSModule()const{ return this->GetAsmJsFunctionInfo() != nullptr; }
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
@@ -2757,8 +2722,8 @@ namespace Js
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->get_AuxPtr(e_objLiteralTypes)); }
-        void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->set_AuxPtr(e_objLiteralTypes, objLiteralTypes); };
+        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::objLiteralTypes)); }
+        void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::objLiteralTypes, objLiteralTypes); };
     public:
 
         void ResetByteCodeGenState();
@@ -2912,7 +2877,7 @@ namespace Js
 
         bool DoJITLoopBody() const
         {
-            return IsJitLoopBodyPhaseEnabled() && this->get_AuxPtr(e_loopHeaderArray) != nullptr;
+            return IsJitLoopBodyPhaseEnabled() && this->GetAuxPtr(AuxPointerType::loopHeaderArray) != nullptr;
         }
 
         bool ForceJITLoopBody() const
