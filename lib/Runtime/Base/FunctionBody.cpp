@@ -3611,16 +3611,22 @@ namespace Js
         this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
-    FunctionBody * FunctionBody::GetStackNestedFuncParent()
+    FunctionBody * FunctionBody::GetStackNestedFuncParentStrongRef() 
     {
-        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->GetAuxPtr(AuxPointerType::StackNestedFuncParent)))->Get();
+        Assert(this->GetStackNestedFuncParent() != nullptr);
+        return this->GetStackNestedFuncParent()->Get();
+    }
+
+    RecyclerWeakReference<FunctionBody> * FunctionBody::GetStackNestedFuncParent()
+    {
+        return static_cast<RecyclerWeakReference<FunctionBody>*>(this->GetAuxPtr(AuxPointerType::StackNestedFuncParent));
     }
 
     FunctionBody * FunctionBody::GetAndClearStackNestedFuncParent()
     {
         if (this->GetAuxPtr(AuxPointerType::StackNestedFuncParent))
         {
-            FunctionBody * parentFunctionBody = GetStackNestedFuncParent();
+            FunctionBody * parentFunctionBody = GetStackNestedFuncParentStrongRef();
             ClearStackNestedFuncParent();
             return parentFunctionBody;
         }

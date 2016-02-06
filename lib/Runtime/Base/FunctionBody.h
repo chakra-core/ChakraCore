@@ -2512,7 +2512,8 @@ namespace Js
         bool CanDoStackNestedFunc() const { return m_canDoStackNestedFunc; }
         void SetCanDoStackNestedFunc() { m_canDoStackNestedFunc = true; }
 #endif
-        FunctionBody * GetStackNestedFuncParent();
+        RecyclerWeakReference<FunctionBody> * GetStackNestedFuncParent();
+        FunctionBody * GetStackNestedFuncParentStrongRef();
         FunctionBody * GetAndClearStackNestedFuncParent();
         void ClearStackNestedFuncParent();
         void SetStackNestedFuncParent(FunctionBody * parentFunctionBody);
