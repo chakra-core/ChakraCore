@@ -36,7 +36,7 @@ namespace Js
         typedef AuxPtrs<T, FieldsEnum> AuxPtrsT;
         uint8 count;                            // save instantiated pointers count
         uint8 capacity;                         // save number of pointers can be hold in current instance of AuxPtrs
-        FieldsEnum offsets[FieldsEnum::max];       // save position of each instantiated pointers, if not instantiate, it's invalid
+        FieldsEnum offsets[FieldsEnum::Max];       // save position of each instantiated pointers, if not instantiate, it's invalid
         WriteBarrierPtr<void> ptrs[1];          // instantiated pointer addresses
         AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);  // called when promoting from AuxPtrs32 to AuxPtrs
         AuxPtrs(uint8 capacity, AuxPtrs* ptr);      // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
@@ -56,7 +56,7 @@ namespace Js
         this->count = AuxPtrsFix<FieldsEnum, 16>::MaxCount;
         for (uint8 i = 0; i < count; i++)
         {
-            this->type[i] = FieldsEnum::invalid;
+            this->type[i] = FieldsEnum::Invalid;
         }
     }
 
@@ -72,7 +72,7 @@ namespace Js
         }
         for (uint8 i = AuxPtrsFix<FieldsEnum, 16>::MaxCount; i < count; i++)
         {
-            this->type[i] = FieldsEnum::invalid;
+            this->type[i] = FieldsEnum::Invalid;
         }
     }
     template<typename FieldsEnum, uint8 size, uint8 _MaxCount>
@@ -94,7 +94,7 @@ namespace Js
         Assert(count == _MaxCount);
         for (uint8 i = 0; i < _MaxCount; i++)
         {
-            if (type[i] == e || type[i] == FieldsEnum::invalid)
+            if (type[i] == e || type[i] == FieldsEnum::Invalid)
             {
                 ptr[i] = p;
                 type[i] = e;
@@ -109,7 +109,7 @@ namespace Js
         Assert(ptr32->count >= AuxPtrs32::MaxCount);
         this->count = ptr32->count;
         this->capacity = capacity;
-        memset(offsets, (uint8)FieldsEnum::invalid, (uint8)FieldsEnum::max);
+        memset(offsets, (uint8)FieldsEnum::Invalid, (uint8)FieldsEnum::Max);
         for (uint8 i = 0; i < ptr32->count; i++)
         {
             offsets[(uint8)ptr32->type[i]] = (FieldsEnum)i;
@@ -126,13 +126,13 @@ namespace Js
     inline void* AuxPtrs<T, FieldsEnum>::Get(FieldsEnum e)
     {
         uint8 u = (uint8)e;
-        return offsets[u] == FieldsEnum::invalid ? nullptr : ptrs[(uint8)offsets[u]];
+        return offsets[u] == FieldsEnum::Invalid ? nullptr : ptrs[(uint8)offsets[u]];
     }
     template<class T, typename FieldsEnum>
     inline bool AuxPtrs<T, FieldsEnum>::Set(FieldsEnum e, void* p)
     {
         uint8 u = (uint8)e;
-        if (offsets[u] != FieldsEnum::invalid)
+        if (offsets[u] != FieldsEnum::Invalid)
         {
             ptrs[(uint8)offsets[u]] = p;
             return true;

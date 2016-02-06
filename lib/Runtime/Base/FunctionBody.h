@@ -1171,30 +1171,30 @@ namespace Js
         DEFINE_VTABLE_CTOR_NO_REGISTER(FunctionProxy, FunctionInfo);
 
         enum class AuxPointerType : uint8 {
-            deferredStubs = 0,
-            cachedSourceString = 1,
-            asmJsFunctionInfo = 2,
-            asmJsModuleInfo = 3,
-            pStatementMaps = 4,
-            stackNestedFuncParent = 5,
-            simpleJitEntryPointInfo = 6,
-            functionObjectTypeList = 7,           // Script function types not including the deferred prototype type
-            codeGenGetSetRuntimeData = 8,
-            propertyIdOnRegSlotsContainer = 9,    // This is used for showing locals for the current frame.
-            loopHeaderArray = 10,
-            codeGenRuntimeData = 11,
-            polymorphicInlineCachesHead = 12,     // DList of all polymorphic inline caches that aren't finalized yet
-            propertyIdsForScopeSlotArray = 13,    // For SourceInfo
-            polymorphicCallSiteInfoHead  = 14,
-            auxBlock = 15,                        // Optional auxiliary information
-            auxContextBlock = 16,                 // Optional auxiliary context specific information
-            referencedPropertyIdMap = 17,
-            literalRegexes = 18,
-            objLiteralTypes = 19,
-            scopeInfo = 20,
+            DeferredStubs = 0,
+            CachedSourceString = 1,
+            AsmJsFunctionInfo = 2,
+            AsmJsModuleInfo = 3,
+            StatementMaps = 4,
+            StackNestedFuncParent = 5,
+            SimpleJitEntryPointInfo = 6,
+            FunctionObjectTypeList = 7,           // Script function types not including the deferred prototype type
+            CodeGenGetSetRuntimeData = 8,
+            PropertyIdOnRegSlotsContainer = 9,    // This is used for showing locals for the current frame.
+            LoopHeaderArray = 10,
+            CodeGenRuntimeData = 11,
+            PolymorphicInlineCachesHead = 12,     // DList of all polymorphic inline caches that aren't finalized yet
+            PropertyIdsForScopeSlotArray = 13,    // For SourceInfo
+            PolymorphicCallSiteInfoHead  = 14,
+            AuxBlock = 15,                        // Optional auxiliary information
+            AuxContextBlock = 16,                 // Optional auxiliary context specific information
+            ReferencedPropertyIdMap = 17,
+            LiteralRegexes = 18,
+            ObjLiteralTypes = 19,
+            ScopeInfo = 20,
 
-            max,
-            invalid = 0xff
+            Max,
+            Invalid = 0xff
         };
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
@@ -1435,8 +1435,8 @@ namespace Js
         ArgSlot GetReportedInParamsCount() const;
         void SetReportedInParamsCount(ArgSlot newReportedInParamCount);
         void ResetInParams();
-        ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->GetAuxPtr(AuxPointerType::scopeInfo)); }
-        void SetScopeInfo(ScopeInfo* scopeInfo) {  this->SetAuxPtr(AuxPointerType::scopeInfo, scopeInfo); }
+        ScopeInfo* GetScopeInfo() const { return static_cast<ScopeInfo*>(this->GetAuxPtr(AuxPointerType::ScopeInfo)); }
+        void SetScopeInfo(ScopeInfo* scopeInfo) {  this->SetAuxPtr(AuxPointerType::ScopeInfo, scopeInfo); }
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         bool IsTrackedPropertyId(PropertyId pid);
         Js::PropertyRecordList* GetBoundPropertyRecords() { return this->m_boundPropertyRecords; }
@@ -1535,11 +1535,11 @@ namespace Js
 
         virtual void Finalize(bool isShutdown) override;
 
-        Var GetCachedSourceString() { return this->GetAuxPtr(AuxPointerType::cachedSourceString); }
+        Var GetCachedSourceString() { return this->GetAuxPtr(AuxPointerType::CachedSourceString); }
         void SetCachedSourceString(Var sourceString)
         {
             Assert(this->GetCachedSourceString() == nullptr);
-            this->SetAuxPtr(AuxPointerType::cachedSourceString, sourceString);
+            this->SetAuxPtr(AuxPointerType::CachedSourceString, sourceString);
         }
 
         FunctionProxyArray GetNestedFuncArray();
@@ -1553,8 +1553,8 @@ namespace Js
         bool GetCapturesThis() { return (attributes & Attributes::CapturesThis) != 0; }
 
         void BuildDeferredStubs(ParseNode *pnodeFnc);
-        DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::deferredStubs)); }
-        void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::deferredStubs, stub); }
+        DeferredFunctionStub *GetDeferredStubs() const { return static_cast<DeferredFunctionStub *>(this->GetAuxPtr(AuxPointerType::DeferredStubs)); }
+        void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr(AuxPointerType::DeferredStubs, stub); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, wchar_t const * pszTitle);
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
@@ -1997,10 +1997,10 @@ namespace Js
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
-        ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::auxBlock)); }
-        void SetAuxiliaryData(ByteBlock* auxBlock) { this->SetAuxPtr(AuxPointerType::auxBlock, auxBlock); }
-        ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::auxContextBlock)); }
-        void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->SetAuxPtr(AuxPointerType::auxContextBlock, auxContextBlock); }
+        ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::AuxBlock)); }
+        void SetAuxiliaryData(ByteBlock* auxBlock) { this->SetAuxPtr(AuxPointerType::AuxBlock, auxBlock); }
+        ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::AuxContextBlock)); }
+        void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->SetAuxPtr(AuxPointerType::AuxContextBlock, auxContextBlock); }
         ByteBlock* GetByteCode();
         ByteBlock* GetOriginalByteCode(); // Returns original bytecode without probes (such as BPs).
         Js::ByteCodeCache * GetByteCodeCache() const { return this->byteCodeCache; }
@@ -2254,14 +2254,14 @@ namespace Js
         DebuggerScope* AddScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation);
         bool TryGetDebuggerScopeAt(int index, DebuggerScope*& debuggerScope);
 
-        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtr(AuxPointerType::pStatementMaps)); }
-        void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::pStatementMaps, pStatementMaps); }
+        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtr(AuxPointerType::StatementMaps)); }
+        void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::StatementMaps, pStatementMaps); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::codeGenGetSetRuntimeData)); }
-        void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::codeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::codeGenRuntimeData)); }
-        void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::codeGenRuntimeData, codeGenRuntimeData); }
+        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
+        void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
         static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -2332,8 +2332,8 @@ namespace Js
 
         uint GetLoopNumber(LoopHeader const * loopHeader) const;
         bool GetHasAllocatedLoopHeaders() { return this->GetLoopHeaderArray() != nullptr; }
-        Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->GetAuxPtr(AuxPointerType::loopHeaderArray)); }
-        void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->SetAuxPtr(AuxPointerType::loopHeaderArray, loopHeaderArray); }
+        Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->GetAuxPtr(AuxPointerType::LoopHeaderArray)); }
+        void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->SetAuxPtr(AuxPointerType::LoopHeaderArray, loopHeaderArray); }
 
 #if ENABLE_NATIVE_CODEGEN
         Js::JavascriptMethod GetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, int entryPointIndex);
@@ -2446,12 +2446,12 @@ namespace Js
 #endif /* IR_VIEWER */
 
 #if ENABLE_NATIVE_CODEGEN
-        void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr(AuxPointerType::polymorphicCallSiteInfoHead, polyCallSiteInfo); }
-        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::polymorphicCallSiteInfoHead)); }
+        void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead, polyCallSiteInfo); }
+        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead)); }
 #endif
 
-        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::polymorphicInlineCachesHead)); }
-        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::polymorphicInlineCachesHead, cache); }
+        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
+        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead, cache); }
 
         bool PolyInliningUsingFixedMethodsAllowedByConfigFlags(FunctionBody* topFunctionBody)
         {
@@ -2461,20 +2461,20 @@ namespace Js
                 !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, this) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, topFunctionBody);
         }
 
-        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->GetAuxPtr(AuxPointerType::propertyIdsForScopeSlotArray)); }
+        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->GetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray)); }
         void SetPropertyIdsForScopeSlotArray(Js::PropertyId * propertyIdsForScopeSlotArray, uint scopeSlotCount)
         {
             this->scopeSlotArraySize = scopeSlotCount;
-            this->SetAuxPtr(AuxPointerType::propertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
+            this->SetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
         }
 
         Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainer() const
         {
-            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->GetAuxPtr(AuxPointerType::propertyIdOnRegSlotsContainer));
+            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->GetAuxPtr(AuxPointerType::PropertyIdOnRegSlotsContainer));
         }
         void SetPropertyIdOnRegSlotsContainer(Js::PropertyIdOnRegSlotsContainer *propertyIdOnRegSlotsContainer)
         {
-            this->SetAuxPtr(AuxPointerType::propertyIdOnRegSlotsContainer, propertyIdOnRegSlotsContainer);
+            this->SetAuxPtr(AuxPointerType::PropertyIdOnRegSlotsContainer, propertyIdOnRegSlotsContainer);
         }
     private:
         void ResetProfileIds();
@@ -2680,8 +2680,8 @@ namespace Js
 #if DBG
         void VerifyCacheIdToPropertyIdMap();
 #endif
-        PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->GetAuxPtr(AuxPointerType::referencedPropertyIdMap)); }
-        void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->SetAuxPtr(AuxPointerType::referencedPropertyIdMap, propIdMap); }
+        PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->GetAuxPtr(AuxPointerType::ReferencedPropertyIdMap)); }
+        void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->SetAuxPtr(AuxPointerType::ReferencedPropertyIdMap, propIdMap); }
         void CreateReferencedPropertyIdMap(uint referencedPropertyIdCount);
         void CreateReferencedPropertyIdMap();
         PropertyId GetReferencedPropertyIdWithMapIndex(uint mapIndex);
@@ -2703,17 +2703,17 @@ namespace Js
         uint NewLiteralRegex();
         uint GetLiteralRegexCount() const;
         void AllocateLiteralRegexArray();
-        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::literalRegexes)); }
-        void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::literalRegexes, literalRegexes); }
+        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
+        void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::LiteralRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
 #ifndef TEMP_DISABLE_ASMJS
-        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::asmJsFunctionInfo)); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
-        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::asmJsModuleInfo)); }
+        AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsModuleInfo)); }
         void ResetAsmJsInfo()
         {
-            SetAuxPtr(AuxPointerType::asmJsFunctionInfo, nullptr);
-            SetAuxPtr(AuxPointerType::asmJsModuleInfo, nullptr);
+            SetAuxPtr(AuxPointerType::AsmJsFunctionInfo, nullptr);
+            SetAuxPtr(AuxPointerType::AsmJsModuleInfo, nullptr);
         }
         bool IsAsmJSModule()const{ return this->GetAsmJsFunctionInfo() != nullptr; }
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
@@ -2722,8 +2722,8 @@ namespace Js
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::objLiteralTypes)); }
-        void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::objLiteralTypes, objLiteralTypes); };
+        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
+        void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
     public:
 
         void ResetByteCodeGenState();
@@ -2877,7 +2877,7 @@ namespace Js
 
         bool DoJITLoopBody() const
         {
-            return IsJitLoopBodyPhaseEnabled() && this->GetAuxPtr(AuxPointerType::loopHeaderArray) != nullptr;
+            return IsJitLoopBodyPhaseEnabled() && this->GetAuxPtr(AuxPointerType::LoopHeaderArray) != nullptr;
         }
 
         bool ForceJITLoopBody() const

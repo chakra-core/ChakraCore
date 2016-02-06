@@ -1485,7 +1485,7 @@ namespace Js
     template <typename Fn>
     void FunctionProxy::MapFunctionObjectTypes(Fn func)
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::FunctionObjectTypeList));
         if (functionObjectTypeList != nullptr)
         {
             functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
@@ -1509,14 +1509,14 @@ namespace Js
 
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::FunctionObjectTypeList));
         if (functionObjectTypeList == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
-            this->SetAuxPtr(AuxPointerType::functionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
+            this->SetAuxPtr(AuxPointerType::FunctionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
         }
 
-        return static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
+        return static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::FunctionObjectTypeList));
     }
 
     void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
@@ -3604,22 +3604,21 @@ namespace Js
 
     void FunctionBody::SetStackNestedFuncParent(FunctionBody * parentFunctionBody)
     {
-        Assert(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent) == nullptr);
+        Assert(this->GetStackNestedFuncParent() == nullptr);
         Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
         
-        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
+        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
     FunctionBody * FunctionBody::GetStackNestedFuncParent()
     {
-        Assert(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent) != nullptr);
-        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent)))->Get();
+        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->GetAuxPtr(AuxPointerType::StackNestedFuncParent)))->Get();
     }
 
     FunctionBody * FunctionBody::GetAndClearStackNestedFuncParent()
     {
-        if (this->GetAuxPtr(AuxPointerType::stackNestedFuncParent))
+        if (this->GetAuxPtr(AuxPointerType::StackNestedFuncParent))
         {
             FunctionBody * parentFunctionBody = GetStackNestedFuncParent();
             ClearStackNestedFuncParent();
@@ -3630,7 +3629,7 @@ namespace Js
 
     void FunctionBody::ClearStackNestedFuncParent()
     {
-        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, nullptr);
+        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, nullptr);
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::CopyFunctionInfoInto(ScriptContext *scriptContext, Js::ParseableFunctionInfo* newFunctionInfo, uint sourceIndex)
@@ -4769,7 +4768,7 @@ namespace Js
 
         // Set other state back to before parse as well
         this->SetStackNestedFunc(false);
-        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, nullptr);
+        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, nullptr);
         this->SetReparsed(true);
 #if DBG
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -5882,7 +5881,7 @@ namespace Js
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
         Assert( !this->GetAsmJsFunctionInfo() );
-        this->SetAuxPtr(AuxPointerType::asmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
+        this->SetAuxPtr(AuxPointerType::AsmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
         return this->GetAsmJsFunctionInfo();
     }
 
@@ -5890,7 +5889,7 @@ namespace Js
     {
         Assert( !this->GetAsmJsModuleInfo() );
         Recycler* rec = m_scriptContext->GetRecycler();
-        this->SetAuxPtr(AuxPointerType::asmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
+        this->SetAuxPtr(AuxPointerType::AsmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
         return this->GetAsmJsModuleInfo();
     }
 #endif
@@ -6088,7 +6087,7 @@ namespace Js
 
         if (loopCount != 0)
         {
-            this->SetLoopHeaderArray( RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), LoopHeader, loopCount));
+            this->SetLoopHeaderArray(RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), LoopHeader, loopCount));
             auto loopHeaderArray = this->GetLoopHeaderArray();
             for (uint i = 0; i < loopCount; i++)
             {
@@ -6188,12 +6187,12 @@ namespace Js
 
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
-        return static_cast<FunctionEntryPointInfo *>(this->GetAuxPtr(AuxPointerType::simpleJitEntryPointInfo));
+        return static_cast<FunctionEntryPointInfo *>(this->GetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo));
     }
 
     void FunctionBody::SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo)
     {
-        this->SetAuxPtr(AuxPointerType::simpleJitEntryPointInfo, entryPointInfo);
+        this->SetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo, entryPointInfo);
     }
 
     void FunctionBody::VerifyExecutionMode(const ExecutionMode executionMode) const
@@ -7511,7 +7510,6 @@ namespace Js
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
         this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
-        
 
 #if DYNAMIC_INTERPRETER_THUNK
         if (this->HasInterpreterThunkGenerated())
@@ -7545,7 +7543,7 @@ namespace Js
         // We might not have the byte code block yet if we defer parsed.
         DWORD byteCodeSize = (this->byteCodeBlock? this->byteCodeBlock->GetLength() : 0)
             + (this->GetAuxiliaryData() ? this->GetAuxiliaryData()->GetLength() : 0)
-            + (this->GetAuxiliaryContextData()? this->GetAuxiliaryContextData()->GetLength() : 0);
+            + (this->GetAuxiliaryContextData() ? this->GetAuxiliaryContextData()->GetLength() : 0);
         PERF_COUNTER_SUB(Code, DynamicByteCodeSize, byteCodeSize);
 
         if (this->m_isDeserializedFunction)
