@@ -71,6 +71,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     tryCatchNestingLevel(0),
     m_localStackHeight(0),
     tempSymDouble(nullptr),
+    tempSymBool(nullptr),
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),

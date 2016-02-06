@@ -195,7 +195,7 @@ public:
      static void            EmitPtrInstr(IR::Instr *instr);
             void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false);
             void            EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *instrLoad, bool isFromUint32, bool isHelper);
-            bool            EmitLoadInt32(IR::Instr *instr);
+            bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed);
             void            EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);

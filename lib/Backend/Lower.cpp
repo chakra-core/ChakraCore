@@ -1715,7 +1715,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             Assert(instr->GetSrc1()->GetType() == TyVar);
             if (instr->GetDst()->GetType() == TyInt32)
             {
-                if(m_lowererMD.EmitLoadInt32(instr))
+                if(m_lowererMD.EmitLoadInt32(instr, !(instr->HasBailOutInfo() && (instr->GetBailOutKind() == IR::BailOutOnNotPrimitive))))
                 {
                     // Bail out instead of calling a helper
                     Assert(instr->GetBailOutKind() == IR::BailOutIntOnly || instr->GetBailOutKind() == IR::BailOutExpectingInteger);
@@ -7594,27 +7594,27 @@ Lowerer::LoadArgumentsFromFrame(IR::Instr *const instr)
 }
 
 IR::Instr *
-Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     IR::Opnd *src1 = instr->UnlinkSrc1();
     instrPrev = m_lowererMD.LoadHelperArgument(instr, src1);
 
-    m_lowererMD.ChangeToHelperCall(instr, helperMethod);
+    m_lowererMD.ChangeToHelperCall(instr, helperMethod, nullptr, opndBailoutArg);
 
     return instrPrev;
 }
 
 // helper takes memory context as second argument
 IR::Instr *
-Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     instrPrev = LoadScriptContext(instr);
 
-    return this->LowerUnaryHelper(instr, helperMethod);
+    return this->LowerUnaryHelper(instr, helperMethod, opndBailoutArg);
 }
 
 IR::Instr *
@@ -7668,6 +7668,23 @@ Lowerer::LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helpe
     }
 
     return this->LowerUnaryHelperMem(instr, helperMethod);
+}
+
+IR::Instr *
+Lowerer::LowerUnaryHelperMemWithBoolReference(IR::Instr *instr, IR::JnHelperMethod helperMethod, bool useBoolForBailout)
+{
+    if (!this->m_func->tempSymBool)
+    {
+        this->m_func->tempSymBool = StackSym::New(TyUint8, this->m_func);
+        this->m_func->StackAllocate(this->m_func->tempSymBool, TySize[TyUint8]);
+    }
+    IR::SymOpnd * boolOpnd = IR::SymOpnd::New(this->m_func->tempSymBool, TyUint8, this->m_func);
+    IR::RegOpnd * boolRefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+    InsertLea(boolRefOpnd, boolOpnd, instr);
+
+    m_lowererMD.LoadHelperArgument(instr, boolRefOpnd);
+
+    return this->LowerUnaryHelperMem(instr, helperMethod, useBoolForBailout ? boolOpnd : nullptr);
 }
 
 ///----------------------------------------------------------------------------
@@ -10883,6 +10900,21 @@ Lowerer::LowerBailOnNotObject(IR::Instr       *instr,
 }
 
 IR::Instr *
+Lowerer::LowerBailOnTrue(IR::Instr* instr, IR::LabelInstr* labelBailOut /*nullptr*/)
+{
+    IR::Instr* instrPrev = instr->m_prev;
+
+    IR::LabelInstr* continueLabel = instr->GetOrCreateContinueLabel();
+    IR::RegOpnd * regSrc1 = IR::RegOpnd::New(instr->GetSrc1()->GetType(), this->m_func);
+    InsertMove(regSrc1, instr->UnlinkSrc1(), instr);
+    InsertTestBranch(regSrc1, regSrc1, Js::OpCode::BrEq_A, continueLabel, instr);
+
+    GenerateBailOut(instr, nullptr, labelBailOut);
+
+    return instrPrev;
+}
+
+IR::Instr *
 Lowerer::LowerBailOnNotBuiltIn(IR::Instr       *instr,
                                IR::BranchInstr *branchInstr  /* = nullptr */,
                                IR::LabelInstr  *labelBailOut /* = nullptr */)
@@ -11841,7 +11873,6 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     const auto bailOutKind = instr->GetBailOutKind();
     Assert(
         BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind) ||
-        bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
         bailOutKind == IR::BailOutExpectingObject);
 
     IR::Opnd * implicitCallFlags = this->GetImplicitCallFlagsOpnd();
@@ -11853,8 +11884,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     LowererMD::CreateAssign(implicitCallFlags, noImplicitCall, instr);
 
     IR::Instr *disableImplicitCallsInstr = nullptr, *enableImplicitCallsInstr = nullptr;
-    if(bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
-       bailOutKind == IR::BailOutOnImplicitCallsPreOp)
+    if(bailOutKind == IR::BailOutOnImplicitCallsPreOp)
     {
         const auto disableImplicitCallAddress =
             m_lowererMD.GenerateMemRef(
@@ -11867,10 +11897,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 disableImplicitCallAddress,
-                IR::IntConstOpnd::New(
-                    // LossyToInt32 is a special case where we need to disable exceptions because the helper can throw where the interpreter wouldn't
-                    bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ? DisableImplicitCallAndExceptionFlag : DisableImplicitCallFlag,
-                    TyInt8, instr->m_func, true),
+                IR::IntConstOpnd::New(DisableImplicitCallFlag, TyInt8, instr->m_func, true),
                 instr->m_func);
         instr->InsertBefore(disableImplicitCallsInstr);
 
@@ -15915,7 +15942,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                     // Convert reg to int32
                     // Note: ToUint32 is implemented as (uint32)ToInt32()
-                    m_lowererMD.EmitLoadInt32(instr);
+                    m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/);
 
                     // MOV indirOpnd, reg
                     InsertMove(indirOpnd, reg, stElem);

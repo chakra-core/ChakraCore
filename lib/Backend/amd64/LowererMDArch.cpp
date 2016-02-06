@@ -2274,7 +2274,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
 }
 
 bool
-LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     //
     //    r1 = MOV src1
@@ -2415,7 +2415,15 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
             // Need to bail out instead of calling a helper
             return true;
         }
-        lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        
+        if (conversionFromObjectAllowed)
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
     else
     {
