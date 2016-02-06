@@ -56,211 +56,6 @@ namespace Js
     }
 #endif
 
-
-    template<typename FIELDS, uint8 size, uint8 _MaxCount>
-    AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix()
-    {
-        static_assert(_MaxCount == AuxPtrsFix<FIELDS, 16>::MaxCount, "Should only be called on AuxPtrsFix<FIELDS, 16>");
-        this->count = AuxPtrsFix<FIELDS, 16>::MaxCount;
-        for (uint8 i = 0; i < count; i++)
-        {
-            this->type[i] = FIELDS::e_invalid;
-        }
-    }
-
-    template<typename FIELDS, uint8 size, uint8 _MaxCount>
-    AuxPtrsFix<FIELDS, size, _MaxCount>::AuxPtrsFix(AuxPtrsFix<FIELDS, 16>* ptr16)
-    {
-        static_assert(_MaxCount == AuxPtrsFix<FIELDS, 32>::MaxCount, "Should only be called on AuxPtrsFix<FIELDS, 32>");
-        this->count = AuxPtrsFix<FIELDS, 32>::MaxCount;
-        for (uint8 i = 0; i < AuxPtrsFix<FIELDS, 16>::MaxCount; i++)
-        {
-            this->type[i] = ptr16->type[i];
-            this->ptr[i] = ptr16->ptr[i];
-        }
-        for (uint8 i = AuxPtrsFix<FIELDS, 16>::MaxCount; i < count; i++)
-        {
-            this->type[i] = FIELDS::e_invalid;
-        }
-    }
-    template<typename FIELDS, uint8 size, uint8 _MaxCount>
-    inline void* AuxPtrsFix<FIELDS, size, _MaxCount>::get(FIELDS e)
-    {
-        Assert(count == _MaxCount);
-        for (uint8 i = 0; i < _MaxCount; i++) // using _MaxCount instead of count so compiler can optimize in case _MaxCount is 1.
-        {
-            if (type[i] == e)
-            {
-                return ptr[i];
-            }
-        }
-        return nullptr;
-    }
-    template<typename FIELDS, uint8 size, uint8 _MaxCount>
-    inline bool AuxPtrsFix<FIELDS, size, _MaxCount>::set(FIELDS e, void* p)
-    {
-        Assert(count == _MaxCount);
-        for (uint8 i = 0; i < _MaxCount; i++)
-        {
-            if (type[i] == e || type[i] == FIELDS::e_invalid)
-            {
-                ptr[i] = p;
-                type[i] = e;
-                return true;
-            }
-        }
-        return false;
-    }
-    template<class T, typename FIELDS>
-    AuxPtrs<T, FIELDS>::AuxPtrs(uint8 capacity, AuxPtrs32* ptr32)
-    {
-        Assert(ptr32->count >= AuxPtrs32::MaxCount);
-        this->count = ptr32->count;
-        this->capacity = capacity;
-        memset(offsets, FIELDS::e_invalid, FIELDS::e_max);
-        for (uint8 i = 0; i < ptr32->count; i++)
-        {
-            offsets[ptr32->type[i]] = (FIELDS)i;
-            ptrs[i] = ptr32->ptr[i];
-        }
-    }
-    template<class T, typename FIELDS>
-    AuxPtrs<T, FIELDS>::AuxPtrs(uint8 capacity, AuxPtrs* ptr)
-    {
-        memcpy(this, ptr, sizeof(AuxPtrs) + (ptr->count - 1)*sizeof(void*));
-        this->capacity = capacity;
-    }
-    template<class T, typename FIELDS>
-    inline void* AuxPtrs<T, FIELDS>::get(FIELDS e)
-    {
-        return offsets[e] == FIELDS::e_invalid ? nullptr : ptrs[offsets[e]];
-    }
-    template<class T, typename FIELDS>
-    inline bool AuxPtrs<T, FIELDS>::set(FIELDS e, void* p)
-    {
-        if (offsets[e] != FIELDS::e_invalid)
-        {
-            ptrs[offsets[e]] = p;
-            return true;
-        }
-        else
-        {
-            if (count == capacity)
-            {
-                // need to expand
-                return false;
-            }
-            else
-            {
-                offsets[e] = (FIELDS)count++;
-                ptrs[offsets[e]] = p;
-                return true;
-            }
-        }
-    }
-
-    template<class T, typename FIELDS>
-    void AuxPtrs<T, FIELDS>::allocAuxPtrFix(T* _this, uint8 size, Recycler* recycler)
-    {
-        if (size == 16)
-        {
-            _this->auxPtrs = (AuxPtrs<T, FIELDS>*)RecyclerNewWithBarrierStructZ(recycler, AuxPtrs16);
-        }
-        else if (size == 32)
-        {
-            _this->auxPtrs = (AuxPtrs<T, FIELDS>*)RecyclerNewWithBarrierPlusZ(recycler, 0, AuxPtrs32, (AuxPtrs16*)(void*)_this->auxPtrs);
-        }
-        else
-        {
-            Assert(false);
-        }
-    }
-
-    template<class T, typename FIELDS>
-    void AuxPtrs<T, FIELDS>::allocAuxPtr(T* _this, uint8 count, Recycler* recycler)
-    {
-        Assert(count >= AuxPtrs32::MaxCount);
-        auto requestSize = sizeof(AuxPtrs<T, FIELDS>) + (count - 1)*sizeof(void*);
-        auto allocSize = ::Math::Align<uint8>((uint8)requestSize, 16);
-        auto capacity = (uint8)((allocSize - offsetof(AuxPtrsT, ptrs)) / sizeof(void*));
-
-        if (_this->auxPtrs->count != AuxPtrs32::MaxCount) // expanding
-        {
-            _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, _this->auxPtrs);
-        }
-        else // promoting from AuxPtrs32
-        {
-            _this->auxPtrs = RecyclerNewWithBarrierPlusZ(recycler, allocSize - sizeof(AuxPtrsT), AuxPtrsT, capacity, (AuxPtrs32*)(void*)_this->auxPtrs);
-        }
-    }
-
-    //static void* get_AuxPtr(T* _this, FIELDS e, Recycler* recycler) const;
-    //static void set_AuxPtr(T* _this, FIELDS e, void* ptr, Recycler* recycler);
-    template<class T, typename FIELDS>
-    inline void* AuxPtrs<T, FIELDS>::get_AuxPtr(const T* _this, FIELDS e)
-    {
-        if (_this->auxPtrs == nullptr)
-        {
-            return nullptr;
-        }
-        if (_this->auxPtrs->count == AuxPtrs16::MaxCount)
-        {
-            return ((AuxPtrs16*)(void*)_this->auxPtrs)->get(e);
-        }
-        if (_this->auxPtrs->count == AuxPtrs32::MaxCount)
-        {
-            return ((AuxPtrs32*)(void*)_this->auxPtrs)->get(e);
-        }
-        return _this->auxPtrs->get(e);
-    }
-    template<class T, typename FIELDS>
-    void AuxPtrs<T, FIELDS>::set_AuxPtr(T* _this, FIELDS e, void* ptr, Recycler* recycler)
-    {
-        if (ptr == nullptr && get_AuxPtr(_this, e) == nullptr)
-        {
-            return;
-        }
-        if (_this->auxPtrs == nullptr)
-        {
-            AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtrFix(_this, 16, recycler);
-            bool ret = ((AuxPtrs16*)(void*)_this->auxPtrs)->set(e, ptr);
-            Assert(ret);
-            return;
-        }
-        if (_this->auxPtrs->count == AuxPtrs16::MaxCount)
-        {
-            bool ret = ((AuxPtrs16*)(void*)_this->auxPtrs)->set(e, ptr);
-            if (ret)
-            {
-                return;
-            }
-            else
-            {
-                AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtrFix(_this, 32, recycler);
-            }
-        }
-        if (_this->auxPtrs->count == AuxPtrs32::MaxCount)
-        {
-            bool ret = ((AuxPtrs32*)(void*)_this->auxPtrs)->set(e, ptr);
-            if (ret)
-            {
-                return;
-            }
-            else
-            {
-                AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtr(_this, AuxPtrs32::MaxCount + 1, recycler);
-            }
-        }
-
-        bool ret = _this->auxPtrs->set(e, ptr);
-        if (!ret)
-        {
-            AuxPtrs<FunctionProxy, FIELDS>::allocAuxPtr(_this, _this->auxPtrs->count + 1, recycler);
-            ret = _this->auxPtrs->set(e, ptr);
-            Assert(ret);
-        }
-    }
-
     // FunctionProxy methods
     FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, int nestedCount, int derivedSize, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
         FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
@@ -277,13 +72,13 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
-    inline void* FunctionProxy::get_AuxPtr(AUXPTRS e) const
+    inline void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
     {
-        return auxPtrs->get_AuxPtr(this, e);
+        return auxPtrs->GetAuxPtr(this, e);
     }
-    inline void FunctionProxy::set_AuxPtr(FunctionProxy::AUXPTRS e, void* ptr)
+    inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
-        return auxPtrs->set_AuxPtr(this, e, ptr, m_scriptContext->GetRecycler());
+        return auxPtrs->SetAuxPtr(this, e, ptr, m_scriptContext->GetRecycler());
     }
 
     uint FunctionProxy::GetSourceContextId() const
@@ -1690,7 +1485,7 @@ namespace Js
     template <typename Fn>
     void FunctionProxy::MapFunctionObjectTypes(Fn func)
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
         if (functionObjectTypeList != nullptr)
         {
             functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
@@ -1714,14 +1509,14 @@ namespace Js
 
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
     {
-        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
+        FunctionTypeWeakRefList* functionObjectTypeList = static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
         if (functionObjectTypeList == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
-            this->set_AuxPtr(e_functionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
+            this->SetAuxPtr(AuxPointerType::functionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
         }
 
-        return static_cast<FunctionTypeWeakRefList*>(this->get_AuxPtr(e_functionObjectTypeList));
+        return static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::functionObjectTypeList));
     }
 
     void FunctionProxy::RegisterFunctionObjectType(DynamicType* functionType)
@@ -3809,22 +3604,22 @@ namespace Js
 
     void FunctionBody::SetStackNestedFuncParent(FunctionBody * parentFunctionBody)
     {
-        Assert(this->get_AuxPtr(e_stackNestedFuncParent) == nullptr);
+        Assert(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent) == nullptr);
         Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
         
-        this->set_AuxPtr(e_stackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
+        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionBody));
     }
 
     FunctionBody * FunctionBody::GetStackNestedFuncParent()
     {
-        Assert(this->get_AuxPtr(e_stackNestedFuncParent) != nullptr);
-        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->get_AuxPtr(e_stackNestedFuncParent)))->Get();
+        Assert(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent) != nullptr);
+        return (static_cast<RecyclerWeakReference<FunctionBody>*>(this->GetAuxPtr(AuxPointerType::stackNestedFuncParent)))->Get();
     }
 
     FunctionBody * FunctionBody::GetAndClearStackNestedFuncParent()
     {
-        if (this->get_AuxPtr(e_stackNestedFuncParent))
+        if (this->GetAuxPtr(AuxPointerType::stackNestedFuncParent))
         {
             FunctionBody * parentFunctionBody = GetStackNestedFuncParent();
             ClearStackNestedFuncParent();
@@ -3835,7 +3630,7 @@ namespace Js
 
     void FunctionBody::ClearStackNestedFuncParent()
     {
-        this->set_AuxPtr(e_stackNestedFuncParent, nullptr);
+        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, nullptr);
     }
 
     ParseableFunctionInfo* ParseableFunctionInfo::CopyFunctionInfoInto(ScriptContext *scriptContext, Js::ParseableFunctionInfo* newFunctionInfo, uint sourceIndex)
@@ -4974,7 +4769,7 @@ namespace Js
 
         // Set other state back to before parse as well
         this->SetStackNestedFunc(false);
-        this->set_AuxPtr(e_stackNestedFuncParent, nullptr);
+        this->SetAuxPtr(AuxPointerType::stackNestedFuncParent, nullptr);
         this->SetReparsed(true);
 #if DBG
         wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -6087,7 +5882,7 @@ namespace Js
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
         Assert( !this->GetAsmJsFunctionInfo() );
-        this->set_AuxPtr(e_asmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
+        this->SetAuxPtr(AuxPointerType::asmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
         return this->GetAsmJsFunctionInfo();
     }
 
@@ -6095,7 +5890,7 @@ namespace Js
     {
         Assert( !this->GetAsmJsModuleInfo() );
         Recycler* rec = m_scriptContext->GetRecycler();
-        this->set_AuxPtr(e_asmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
+        this->SetAuxPtr(AuxPointerType::asmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
         return this->GetAsmJsModuleInfo();
     }
 #endif
@@ -6393,12 +6188,12 @@ namespace Js
 
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
-        return static_cast<FunctionEntryPointInfo *>(this->get_AuxPtr(e_simpleJitEntryPointInfo));
+        return static_cast<FunctionEntryPointInfo *>(this->GetAuxPtr(AuxPointerType::simpleJitEntryPointInfo));
     }
 
     void FunctionBody::SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo)
     {
-        this->set_AuxPtr(e_simpleJitEntryPointInfo, entryPointInfo);
+        this->SetAuxPtr(AuxPointerType::simpleJitEntryPointInfo, entryPointInfo);
     }
 
     void FunctionBody::VerifyExecutionMode(const ExecutionMode executionMode) const
