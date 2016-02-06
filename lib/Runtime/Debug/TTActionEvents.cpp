@@ -208,7 +208,7 @@ namespace TTD
         }
     }
 
-    JsRTStringAllocateAction::JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, LPCWSTR stringValue)
+    JsRTStringAllocateAction::JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& stringValue)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateString), m_stringValue(stringValue)
     {
         ;
@@ -223,7 +223,7 @@ namespace TTD
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
 
-        Js::JavascriptString* str = Js::JavascriptString::NewCopyBuffer(this->m_stringValue, (charcount_t)wcslen(this->m_stringValue), execContext);
+        Js::JavascriptString* str = Js::JavascriptString::NewCopyBuffer(this->m_stringValue.Contents, this->m_stringValue.Length, execContext);
 
         //since we tag in JsRT we need to tag here too
         threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(str));
@@ -241,7 +241,8 @@ namespace TTD
 
     JsRTStringAllocateAction* JsRTStringAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
-        LPCWSTR str = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+        TTString str;
+        reader->ReadString(NSTokens::Key::stringVal, alloc, str, true);
 
         return alloc.SlabNew<JsRTStringAllocateAction>(eTime, ctxTag, str);
     }
@@ -474,8 +475,8 @@ namespace TTD
         return alloc.SlabNew<JsRTArrayAllocateAction>(eTime, ctxTag, arrayType, length);
     }
 
-    JsRTArrayBufferAllocateAction::JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* bufferData)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateArrayBuffer), m_bufferData(bufferData)
+    JsRTArrayBufferAllocateAction::JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, uint32 bufferSize, byte* bufferData)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateArrayBuffer), m_bufferSize(bufferSize), m_bufferData(bufferData)
     {
         ;
     }
@@ -489,7 +490,7 @@ namespace TTD
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
 
-        Js::Var res = execContext->GetLibrary()->CreateArrayBuffer(reinterpret_cast<byte*>(this->m_bufferData->ExtraData), (uint32)this->m_bufferData->u_uint64Val);
+        Js::Var res = execContext->GetLibrary()->CreateArrayBuffer(this->m_bufferData, this->m_bufferSize);
 
         threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
     }
@@ -499,20 +500,29 @@ namespace TTD
         this->BaseStdEmit(writer, separator);
         this->JsRTBaseEmit(writer);
 
-        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
-        NSLogValue::EmitArgRetValue(this->m_bufferData, writer, NSTokens::Separator::NoSeparator);
+        writer->WriteLengthValue(this->m_bufferSize, NSTokens::Separator::CommaSeparator);
+        writer->WriteRecordStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        for(uint32 i = 0; i < this->m_bufferSize; ++i)
+        {
+            writer->WriteNakedByte(this->m_bufferData[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
+        }
+        writer->WriteSequenceEnd();
 
         writer->WriteRecordEnd();
     }
 
     JsRTArrayBufferAllocateAction* JsRTArrayBufferAllocateAction::CompleteParse(FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
-        NSLogValue::ArgRetValue* bufferData = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        uint32 bufferSize = reader->ReadLengthValue(true);
+        byte* bufferData = alloc.SlabAllocateArray<byte>(bufferSize);
+        reader->ReadRecordStart_WDefaultKey(true);
+        for(uint32 i = 0; i < bufferSize; ++i)
+        {
+            bufferData[i] = reader->ReadNakedByte(i != 0);
+        }
+        reader->ReadSequenceEnd();
 
-        reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(bufferData, false, reader, alloc);
-
-        return alloc.SlabNew<JsRTArrayBufferAllocateAction>(eTime, ctxTag, bufferData);
+        return alloc.SlabNew<JsRTArrayBufferAllocateAction>(eTime, ctxTag, bufferSize, bufferData);
     }
 
     JsRTFunctionAllocateAction::JsRTFunctionAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isNamed, NSLogValue::ArgRetValue* name)
@@ -1346,7 +1356,7 @@ namespace TTD
         return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, createdCallbackId);
     }
 
-    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR documentId, LPCWSTR sourceUri, LPCWSTR srcDir, LPCWSTR sourceFile)
+    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_isExpression(isExpression), m_sourceCode(sourceCode), m_sourceUri(sourceUri), m_documentID(documentId), m_srcDir(srcDir), m_sourceFile(sourceFile)
     {
         ;
@@ -1367,7 +1377,7 @@ namespace TTD
         SourceContextInfo * sourceContextInfo = execContext->GetSourceContextInfo(sourceContext, nullptr);
         if(sourceContextInfo == nullptr)
         {
-            sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_sourceUri, wcslen(this->m_sourceUri), nullptr);
+            sourceContextInfo = execContext->CreateSourceContextInfo(sourceContext, this->m_sourceUri.Contents, this->m_sourceUri.Length, nullptr);
         }
 
         SRCINFO si = {
@@ -1376,7 +1386,7 @@ namespace TTD
             /* ulColumnHost        */ 0,
             /* lnMinHost           */ 0,
             /* ichMinHost          */ 0,
-            /* ichLimHost          */ static_cast<ULONG>(wcslen(this->m_sourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+            /* ichLimHost          */ static_cast<ULONG>(this->m_sourceCode.Length), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
             /* ulCharOffset        */ 0,
             /* mod                 */ kmodGlobal,
             /* grfsi               */ 0
@@ -1386,7 +1396,7 @@ namespace TTD
         CompileScriptException se;
         BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(execContext)
         {
-            function = execContext->LoadScript(this->m_sourceCode, &si, &se, this->m_isExpression /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+            function = execContext->LoadScript(this->m_sourceCode.Contents, &si, &se, this->m_isExpression /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(execContext);
         AssertMsg(function != nullptr, "Something went wrong");
@@ -1404,45 +1414,38 @@ namespace TTD
         writer->WriteUInt64(NSTokens::Key::documentId, (uint64)this->m_documentID, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::logDir, this->m_srcDir, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::src, this->m_sourceFile, NSTokens::Separator::CommaSeparator);
+        writer->WriteString(NSTokens::Key::uri, this->m_sourceUri, NSTokens::Separator::CommaSeparator);
 
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_sourceUri != nullptr, NSTokens::Separator::CommaSeparator);
-        if(this->m_sourceUri != nullptr)
-        {
-            writer->WriteString(NSTokens::Key::uri, this->m_sourceUri, NSTokens::Separator::CommaSeparator);
-        }
+        writer->WriteLengthValue(this->m_sourceCode.Length, NSTokens::Separator::CommaSeparator);
 
         LPCWSTR docId = writer->FormatNumber(this->m_documentID);
-        HANDLE srcStream = threadContext->TTDStreamFunctions.pfGetSrcCodeStream(this->m_srcDir, docId, this->m_sourceFile, false, true);
-
-        JSONWriter srcWriter(srcStream, threadContext->TTDStreamFunctions.pfWriteBytesToStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
-        srcWriter.WriteRawString(this->m_sourceCode);
+        JsSupport::WriteCodeToFile(threadContext->TTDStreamFunctions, this->m_srcDir.Contents, docId, this->m_sourceUri.Contents, this->m_sourceFile.Contents, this->m_sourceFile.Length);
 
         writer->WriteRecordEnd();
     }
 
     JsRTCodeParseAction* JsRTCodeParseAction::CompleteParse(ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
-        LPCWSTR srcCode = nullptr;
-
         bool isExpression = reader->ReadBool(NSTokens::Key::isExpression, true);
         DWORD_PTR documentId = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
-        LPCWSTR srcDir = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::logDir, true));
-        LPCWSTR sourceFile = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::src, true));
 
-        LPCWSTR srcUri = nullptr;
-        bool hasUri = reader->ReadBool(NSTokens::Key::boolVal, true);
-        if(hasUri)
-        {
-            srcUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
-        }
+        TTString srcDir;
+        reader->ReadString(NSTokens::Key::logDir, alloc, srcDir, true);
+
+        TTString sourceFile;
+        reader->ReadString(NSTokens::Key::src, alloc, sourceFile, true);
+
+        TTString srcUri;
+        reader->ReadString(NSTokens::Key::uri, alloc, srcUri, true);
+
+        TTString sourceCode;
+        sourceCode.Length = reader->ReadLengthValue(true);
+        sourceCode.Contents = alloc.SlabAllocateArray<wchar>(sourceCode.Length + 1);
 
         LPCWSTR docId = reader->FormatNumber(documentId);
-        HANDLE srcStream = threadContext->TTDStreamFunctions.pfGetSrcCodeStream(srcDir, docId, srcUri, true, false);
+        JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, srcDir.Contents, docId, srcUri.Contents, sourceCode.Contents, sourceCode.Length);
 
-        JSONReader srcReader(srcStream, threadContext->TTDStreamFunctions.pfReadBytesFromStream, threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
-        srcCode = srcReader.ReadRawString(alloc);
-
-        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, srcCode, documentId, srcUri, srcDir, sourceFile);
+        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, sourceCode, documentId, srcUri, srcDir, sourceFile);
     }
 
     JsRTCallFunctionBeginAction::JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)
@@ -1484,7 +1487,7 @@ namespace TTD
     }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-    void JsRTCallFunctionBeginAction::SetFunctionName(LPCWSTR fname)
+    void JsRTCallFunctionBeginAction::SetFunctionName(const TTString& fname)
     {
         this->m_functionName = fname;
     }
@@ -1637,7 +1640,8 @@ namespace TTD
         double beginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR fname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+        TTString fname;
+        reader->ReadString(NSTokens::Key::name, alloc, fname, true);
 #endif
 
         uint32 argc = reader->ReadLengthValue(true);

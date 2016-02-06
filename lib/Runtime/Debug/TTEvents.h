@@ -182,15 +182,15 @@ namespace TTD
     {
     private:
         //The value associated with the event
-        LPCWSTR m_stringValue;
+        TTString m_stringValue;
 
     public:
-        StringValueEventLogEntry(int64 eventTimestamp, LPCWSTR val);
+        StringValueEventLogEntry(int64 eventTimestamp, const TTString& val);
         virtual ~StringValueEventLogEntry() override;
 
         static StringValueEventLogEntry* As(EventLogEntry* e);
 
-        LPCWSTR GetStringValue() const;
+        const TTString& GetStringValue() const;
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static StringValueEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime);
@@ -230,10 +230,10 @@ namespace TTD
 
         //Optional property name string (may need to actually use later if pid can be Constants::NoProperty)
         //Always set if if doing extra diagnostics otherwise only as needed
-        LPCWSTR m_propertyString;
+        TTString m_propertyString;
 
     public:
-        PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, LPCWSTR propertyName);
+        PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, const TTString& propertyName);
         virtual ~PropertyEnumStepEventLogEntry() override;
 
         static PropertyEnumStepEventLogEntry* As(EventLogEntry* e);
@@ -280,11 +280,7 @@ namespace TTD
 #if FLOATVAR
             ChakraTaggedDouble,
 #endif
-            ChakraLoggedObject,
-            ChakraPropertyId,
-            RawUIntValue, //also used for bools
-            RawEnumValue,
-            RawBytePtr
+            ChakraLoggedObject
         };
 
         //A struct that represents a cross Host/Chakra call argument/return value 
@@ -295,26 +291,16 @@ namespace TTD
             union
             {
                 int64 u_int64Val;
-                int64 u_uint64Val;
                 double u_doubleVal;
-                Js::PropertyId u_propertyId;
                 TTD_LOG_TAG u_objectTag;
             };
-
-            void* ExtraData;
         };
 
         //Extract a ArgRetValue 
         void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue* val, SlabAllocator& alloc);
-        void ExtractArgRetValueFromPropertyId(Js::PropertyId pid, ArgRetValue* val);
-        void ExtractArgRetValueFromUInt(unsigned int uval, ArgRetValue* val);
-        void ExtractArgRetValueFromBytePtr(byte* buff, unsigned int size, ArgRetValue* val, SlabAllocator& alloc);
 
         //Convert the ArgRetValue into the appropriate value
         Js::Var InflateArgRetValueIntoVar(const ArgRetValue* val, Js::ScriptContext* ctx);
-        Js::PropertyId InflateArgRetValueIntoPropertyId(const ArgRetValue* val);
-        unsigned int InflateArgRetValueIntoUInt(const ArgRetValue* val);
-        void InflateArgRetValueIntoBytePtr(byte* buff, unsigned int* size, const ArgRetValue* val);
 
         //serialize the SnapPrimitiveValue
         void EmitArgRetValue(const ArgRetValue* val, FileWriter* writer, NSTokens::Separator separator);
@@ -331,7 +317,7 @@ namespace TTD
     private:
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         //the function name for the function that is invoked
-        LPCWSTR m_functionName;
+        TTString m_functionName;
 #endif
 
         //The root nesting depth
@@ -345,7 +331,7 @@ namespace TTD
         virtual ~ExternalCallEventBeginLogEntry() override;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void SetFunctionName(LPCWSTR fname);
+        void SetFunctionName(const TTString& fname);
 #endif
 
         //Get the event as a external call event (and do tag checking for consistency)

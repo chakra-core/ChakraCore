@@ -194,10 +194,8 @@ namespace TTD
         //A struct that represents a script function object
         struct SnapScriptFunctionInfo
         {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            //The display name of the function (for debug support)
-            LPCWSTR DebugFunctionName;
-#endif
+            //The display name of the function
+            TTString DebugFunctionName;
 
             //The function body reference id (if not library)
             TTD_PTR_ID BodyRefId;
@@ -390,7 +388,7 @@ namespace TTD
         struct SnapRegexInfo
         {
             //The underlying regex string value
-            LPCWSTR RegexStr;
+            TTString RegexStr;
 
             //Regex flags value
             UnifiedRegex::RegexFlags Flags;

@@ -164,12 +164,6 @@ namespace TTD
         this->WriteNakedDouble(val);
     }
 
-    void FileWriter::WriteString(NSTokens::Key key, LPCWSTR val, NSTokens::Separator separator)
-    {
-        this->WriteKey(key, separator);
-        this->WriteNakedString(val);
-    }
-
     void FileWriter::WriteAddr(NSTokens::Key key, TTD_PTR_ID val, NSTokens::Separator separator)
     {
         this->WriteKey(key, separator);
@@ -186,6 +180,15 @@ namespace TTD
     {
         this->WriteKey(key, separator);
         this->WriteNakedIdentityTag(val);
+    }
+
+
+    ////
+
+    void FileWriter::WriteString(NSTokens::Key key, const TTString& val, NSTokens::Separator separator)
+    {
+        this->WriteKey(key, separator);
+        this->WriteNakedString(val);
     }
 
     void FileWriter::WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
@@ -213,13 +216,63 @@ namespace TTD
         }
     }
 
-    void JSONWriter::WriteLPCWSTR(LPCWSTR str)
+    void JSONWriter::WriteString_InternalNoEscape(LPCWSTR str, size_t length)
     {
-        uint32 i = 0;
-        while(str[i] != L'\0')
+        for(size_t i = 0; i < length; ++i)
         {
             this->WriteWCHAR(str[i]);
-            i++;
+        }
+    }
+
+    void JSONWriter::WriteString_Internal(LPCWSTR str, size_t length)
+    {
+        for(size_t i = 0; i < length; ++i)
+        {
+            wchar c = str[i];
+
+            //JSON escape sequence in a string \0 \", \/, \\, \b, \f, \n, \r, \t, unicode seq
+            switch(c)
+            {
+            case L'\0':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'\0');
+                break;
+            case L'\"':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'\"');
+                break;
+            case L'/':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'/');
+                break;
+            case L'\\':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'\\');
+                break;
+            case L'\b':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'b');
+                break;
+            case L'\f':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'f');
+                break;
+            case L'\n':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'n');
+                break;
+            case L'\r':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L'r');
+                break;
+            case L'\t':
+                this->WriteWCHAR(L'\\');
+                this->WriteWCHAR(L't');
+                break;
+            default:
+                this->WriteWCHAR(c);
+                break;
+            }
         }
     }
 
@@ -279,7 +332,7 @@ namespace TTD
         AssertMsg(kname != nullptr, "Key not registered!");
 
         this->WriteWCHAR(L'\"');
-        this->WriteCPPLiteral(kname);
+        this->WriteString_InternalNoEscape(kname, wcslen(kname));
         this->WriteWCHAR(L'\"');
 
         this->WriteWCHAR(L':');
@@ -328,7 +381,7 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        this->WriteLPCWSTR(L"null");
+        this->WriteString_InternalNoEscape(L"null", 4);
     }
 
     void JSONWriter::WriteNakedByte(byte val, NSTokens::Separator separator)
@@ -336,7 +389,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"%I32u", (uint32)val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteBool(NSTokens::Key key, bool val, NSTokens::Separator separator)
@@ -344,11 +397,11 @@ namespace TTD
         this->WriteKey(key, separator);
         if(val)
         {
-            this->WriteCPPLiteral(L"true");
+            this->WriteString_InternalNoEscape(L"true", 4);
         }
         else
         {
-            this->WriteCPPLiteral(L"false");
+            this->WriteString_InternalNoEscape(L"false", 5);
         }
     }
 
@@ -357,7 +410,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"%I32i", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedUInt32(uint32 val, NSTokens::Separator separator)
@@ -365,7 +418,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"%I32u", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedInt64(int64 val, NSTokens::Separator separator)
@@ -373,7 +426,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"%I64i", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedUInt64(uint64 val, NSTokens::Separator separator)
@@ -381,7 +434,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"%I64u", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedDouble(double val, NSTokens::Separator separator)
@@ -390,23 +443,23 @@ namespace TTD
 
         if(Js::JavascriptNumber::IsNan(val))
         {
-            this->WriteLPCWSTR(L"#nan");
+            this->WriteString_InternalNoEscape(L"#nan", 4);
         }
         else if(Js::JavascriptNumber::IsPosInf(val))
         {
-            this->WriteLPCWSTR(L"#+inf");
+            this->WriteString_InternalNoEscape(L"#+inf", 4);
         }
         else if(Js::JavascriptNumber::IsNegInf(val))
         {
-            this->WriteLPCWSTR(L"#-inf");
+            this->WriteString_InternalNoEscape(L"#-inf", 4);
         }
         else if(Js::JavascriptNumber::MAX_VALUE == val)
         {
-            this->WriteLPCWSTR(L"#ub");
+            this->WriteString_InternalNoEscape(L"#ub", 3);
         }
         else if(Js::JavascriptNumber::MIN_VALUE == val)
         {
-            this->WriteLPCWSTR(L"#lb");
+            this->WriteString_InternalNoEscape(L"#lb", 3);
         }
         else
         {
@@ -424,63 +477,8 @@ namespace TTD
                 swprintf_s(this->m_numberFormatBuff, L"%.22f", val);
             }
 
-            this->WriteLPCWSTR(this->m_numberFormatBuff);
+            this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
         }
-    }
-
-    void JSONWriter::WriteNakedString(LPCWSTR val, NSTokens::Separator separator)
-    {
-        this->WriteSeperator(separator);
-
-        this->WriteWCHAR('\"');
-
-        const wchar* c = val;
-        while(*c != L'\0')
-        {
-            //JSON escape sequence in a string \", \/, \\, \b, \f, \n, \r, \t, unicode seq
-            switch(*c)
-            {
-            case L'\"':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'\"');
-                break;
-            case L'/':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'/');
-                break;
-            case L'\\':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'\\');
-                break;
-            case L'\b':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'b');
-                break;
-            case L'\f':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'f');
-                break;
-            case L'\n':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'n');
-                break;
-            case L'\r':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'r');
-                break;
-            case L'\t':
-                this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L't');
-                break;
-            default:
-                this->WriteWCHAR(*c);
-                break;
-            }
-
-            c++;
-        }
-
-        this->WriteWCHAR('\"');
     }
 
     void JSONWriter::WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator)
@@ -488,7 +486,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"\"*0x%I64x\"", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator)
@@ -496,7 +494,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"\"!%I64i\"", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedIdentityTag(TTD_IDENTITY_TAG val, NSTokens::Separator separator)
@@ -504,14 +502,7 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"\"@%I64i\"", val);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
-    }
-
-    void JSONWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
-    {
-        this->WriteSeperator(separator);
-
-        this->WriteNakedString(val);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
     void JSONWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
@@ -519,12 +510,34 @@ namespace TTD
         this->WriteSeperator(separator);
 
         swprintf_s(this->m_numberFormatBuff, L"\"$%I32i\"", tagvalue);
-        this->WriteLPCWSTR(this->m_numberFormatBuff);
+        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
-    void JSONWriter::WriteRawString(LPCWSTR str)
+    ////
+
+    void JSONWriter::WriteNakedString(const TTString& val, NSTokens::Separator separator)
     {
-        this->WriteLPCWSTR(str);
+        this->WriteSeperator(separator);
+
+        if(IsNullPtrTTString(val))
+        {
+            this->WriteNakedNull();
+        }
+        else
+        {
+            this->WriteWCHAR('\"');
+            this->WriteString_Internal(val.Contents, val.Length);
+            this->WriteWCHAR('\"');
+        }
+    }
+
+    void JSONWriter::WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        this->WriteWCHAR('\"');
+        this->WriteString_InternalNoEscape(val, wcslen(val));
+        this->WriteWCHAR('\"');
     }
 
     //////////////////
@@ -677,12 +690,6 @@ namespace TTD
         return this->ReadNakedDouble();
     }
 
-    LPCWSTR FileReader::ReadString(NSTokens::Key keyCheck, bool readSeparator)
-    {
-        this->ReadKey(keyCheck, readSeparator);
-        return this->ReadNakedString();
-    }
-
     TTD_PTR_ID FileReader::ReadAddr(NSTokens::Key keyCheck, bool readSeparator)
     {
         this->ReadKey(keyCheck, readSeparator);
@@ -699,12 +706,6 @@ namespace TTD
     {
         this->ReadKey(keyCheck, readSeparator);
         return this->ReadNakedLogTag();
-    }
-
-    TTD_WELLKNOWN_TOKEN FileReader::ReadWellKnownToken(SlabAllocator& alloc, NSTokens::Key keyCheck, bool readSeparator)
-    {
-        this->ReadKey(keyCheck, readSeparator);
-        return this->ReadNakedWellKnownToken(alloc);
     }
 
     //////////////////
@@ -806,6 +807,7 @@ namespace TTD
                 {
                 case 0:
                     return NSTokens::ParseTokenKind::Error; //we shouldn't hit EOF explicitly here
+                case '0':
                 case '"':
                 case '/':
                 case '\\':
@@ -864,7 +866,7 @@ namespace TTD
                 }
                 break;
                 default:
-                    // Any other '\o' is an error in JSON
+                    // Any other '\o' is an error
                     return NSTokens::ParseTokenKind::Error;
                 }
             }
@@ -1349,17 +1351,6 @@ namespace TTD
         return res;
     }
 
-    LPCWSTR JSONReader::ReadNakedString(bool readSeparator)
-    {
-        this->ReadSeperator(readSeparator);
-
-        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
-
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0');
-        return (this->m_charListOpt.GetBuffer() + 1);
-    }
-
     TTD_PTR_ID JSONReader::ReadNakedAddr(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
@@ -1393,13 +1384,6 @@ namespace TTD
         return (TTD_IDENTITY_TAG)this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the first "@
     }
 
-    TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
-    {
-        this->ReadSeperator(readSeparator);
-
-        return alloc.CopyStringInto(this->ReadNakedString());
-    }
-
     uint32 JSONReader::ReadNakedTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
@@ -1414,18 +1398,70 @@ namespace TTD
         return (uint32)tval;
     }
 
-    LPCWSTR JSONReader::ReadRawString(SlabAllocator& alloc)
+    ////
+
+    void JSONReader::ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator)
     {
-        JsUtil::List<wchar, HeapAllocator> sb(&HeapAllocator::Instance);
+        this->ReadSeperator(readSeparator);
 
-        byte b;
-        while(this->ReadByte(&b))
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null);
+
+        if(tok == NSTokens::ParseTokenKind::Null)
         {
-            sb.Add((char)b);
+            alloc.CopyNullTermStringInto(nullptr, into);
         }
-        sb.Add(L'\0');
+        else
+        {
+            const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
+            alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, into); //don't include the "..." marks
+        }
+    }
 
-        return alloc.CopyStringInto(sb.GetBuffer());
+    void JSONReader::ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null);
+
+        if(tok == NSTokens::ParseTokenKind::Null)
+        {
+            alloc.CopyNullTermStringInto(nullptr, into);
+        }
+        else
+        {
+            const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
+            alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, into); //don't include the "..." marks
+        }
+    }
+
+    TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+
+        TTString res;
+        const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
+        alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, res); //don't include the "..." marks
+
+        return res.Contents;
+    }
+
+    TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+
+        TTString res;
+        const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
+        alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, res); //don't include the "..." marks
+
+        return res.Contents;
     }
 }
 

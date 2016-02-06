@@ -586,9 +586,7 @@ namespace Js
         TTD::NSSnapObjects::SnapScriptFunctionInfo* ssfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapScriptFunctionInfo>();
         Js::FunctionBody* fb = TTD::JsSupport::ForceAndGetFunctionBody(this->GetParseableFunctionInfo());
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        ssfi->DebugFunctionName = fb->GetDisplayName();
-#endif
+        alloc.CopyNullTermStringInto(fb->GetDisplayName(), ssfi->DebugFunctionName);
 
         ssfi->BodyRefId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
 

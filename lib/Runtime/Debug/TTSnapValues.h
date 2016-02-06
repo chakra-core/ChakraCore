@@ -23,16 +23,16 @@ namespace TTD
         //return true if the Var is a richer value (enumerator, dynamicObject, array, etc.)
         bool IsVarComplexKind(Js::Var v);
 
-        //Load/Store the named property from the object (assert or return nullptr based on flag)
-        Js::Var LoadPropertyHelper(LPCWSTR pname, Js::Var instance, bool mustExist = true);
-        void StorePropertyHelper(LPCWSTR pname, Js::Var instance, Js::Var value);
-
         //Ensure a function is fully parsed/deserialized 
         Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi);
 
         //Copy a string into the heap allocator
-        LPCWSTR CopyStringToHeapAllocator(LPCWSTR string);
-        void DeleteStringFromHeapAllocator(LPCWSTR string);
+        void CopyStringToHeapAllocator(LPCWSTR string, TTString& into);
+        void CopyStringToHeapAllocatorWLength(LPCWSTR string, uint32 length, TTString& into);
+        void DeleteStringFromHeapAllocator(TTString& string);
+
+        void WriteCodeToFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, const wchar* sourceBuffer, uint32 length);
+        void ReadCodeFromFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, wchar* sourceBuffer, uint32 length);
     }
 
     namespace NSSnapValues
@@ -78,7 +78,7 @@ namespace TTD
                 int64 u_int64Value;
                 uint64 u_uint64Value;
                 double u_doubleValue;
-                LPCWSTR u_stringValue;
+                TTString u_stringValue;
                 Js::PropertyId u_propertyIdValue; //for a symbol
             };
         };
@@ -107,7 +107,7 @@ namespace TTD
             TTDVar* Slots;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            LPCWSTR* DebugSlotNameArray;
+            Js::PropertyId* DebugPIDArray;
 #endif
 
             //The meta-data for the slot array
@@ -198,20 +198,22 @@ namespace TTD
             //The context this body is associated with
             TTD_LOG_TAG ScriptContextTag;
 
-            //The string name of the function
-            LPCWSTR FunctionName;
+            //The string name of the function (allocated into the heap allocator NOT slab)
+            TTString FunctionName;
 
-            //The module, document id, src uri (may be null)
+            //The module and document id
             Js::ModuleID ModuleId;
             DWORD_PTR DocumentID;
-            LPCWSTR SourceUri;
 
-            //The source buffer
-            LPCWSTR SourceCode;
+            //Src URI may be null (allocated into the heap allocator NOT slab)
+            TTString SourceUri;
+
+            //The source buffer (allocated into the heap allocator NOT slab)
+            TTString SourceCode;
         };
 
         //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots
-        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source);
+        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen);
         void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelCommonBodyResolveInfo_InShapshot(TopLevelCommonBodyResolveInfo* fbInfoDest, const TopLevelCommonBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
@@ -225,7 +227,7 @@ namespace TTD
             TopLevelCommonBodyResolveInfo TopLevelBase;
         };
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source);
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen);
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
@@ -241,7 +243,7 @@ namespace TTD
             TopLevelCommonBodyResolveInfo TopLevelBase;
         };
 
-        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source);
+        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen);
         void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelNewFunctionBodyInfo_InShapshot(TopLevelNewFunctionBodyResolveInfo* fbInfoDest, const TopLevelNewFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
@@ -263,7 +265,7 @@ namespace TTD
             bool IsStrictMode;
         };
 
-        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode);
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode);
         void UnloadTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelEvalFunctionBodyInfo_InShapshot(TopLevelEvalFunctionBodyResolveInfo* fbInfoDest, const TopLevelEvalFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
@@ -272,7 +274,7 @@ namespace TTD
         void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc);
 
-        //A struct that we can use to resolve a function body in a shaddow context during inflation
+        //A struct that we can use to resolve a function body during inflation
         struct FunctionBodyResolveInfo
         {
             //The id this body is associated with
@@ -282,7 +284,7 @@ namespace TTD
             TTD_LOG_TAG ScriptContextTag;
 
             //The string name of the function
-            LPCWSTR FunctionName;
+            TTString FunctionName;
 
             //The known path to a function with the desired body
             TTD_WELLKNOWN_TOKEN OptKnownPath;
@@ -316,7 +318,7 @@ namespace TTD
             uint64 m_randomSeed1;
 
             //The main URI of the context
-            LPCWSTR m_contextSRC;
+            TTString m_contextSRC;
 
             //A list of all *root* scripts that have been loaded into this context
             uint32 m_loadedScriptCount;

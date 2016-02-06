@@ -1267,7 +1267,8 @@ namespace Js
     {
         TTD::NSSnapObjects::SnapRegexInfo* sri = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapRegexInfo>();
 
-        sri->RegexStr = alloc.CopyStringInto(this->pattern->GetSource().GetBuffer());
+        UnifiedRegex::RegexPattern* pattern = this->pattern;
+        alloc.CopyStringIntoWLength(pattern->GetSource().GetBuffer(), pattern->GetSource().GetLength(), sri->RegexStr);
         //split regex should be automatically generated from regex string and flags so no need to exttract it as well
 
         sri->Flags = this->GetFlags();

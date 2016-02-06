@@ -22,7 +22,7 @@ namespace TTD
             bool IsSymbol;
 
             //the name of the property
-            LPCWSTR PropertyName;
+            TTString PropertyName;
         };
 
         //Inflate the given property record

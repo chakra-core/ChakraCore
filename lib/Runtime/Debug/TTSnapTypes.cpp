@@ -33,8 +33,8 @@ namespace TTD
 
         const Js::PropertyRecord* InflatePropertyRecord_CreateNew(const SnapPropertyRecord* pRecord, ThreadContext* threadContext)
         {
-            LPCWSTR pname = pRecord->PropertyName;
-            int32 plen = (int32)wcslen(pname);
+            LPCWSTR pname = pRecord->PropertyName.Contents;
+            int32 plen = pRecord->PropertyName.Length;
 
             const Js::PropertyRecord* newPropertyRecord = nullptr;
             if(pRecord->IsSymbol)
@@ -57,7 +57,7 @@ namespace TTD
                 {
                     AssertMsg(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order to ensure property ids all match!!!");
 
-                    newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, (int32)wcslen(pRecord->PropertyName), /*bind*/pRecord->IsBound, /*isSymbol*/false);
+                    newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, plen, /*bind*/pRecord->IsBound, /*isSymbol*/false);
                 }
             }
 
@@ -89,7 +89,7 @@ namespace TTD
             sRecord->IsBound = reader->ReadBool(NSTokens::Key::isBound, true);
             sRecord->IsSymbol = reader->ReadBool(NSTokens::Key::isSymbol, true);
 
-            sRecord->PropertyName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+            reader->ReadString(NSTokens::Key::name, alloc, sRecord->PropertyName, true);
 
             reader->ReadRecordEnd();
         }

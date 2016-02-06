@@ -408,7 +408,7 @@ namespace TTD
         return alloc.SlabNew<DoubleEventLogEntry>(eTime, val);
     }
 
-    StringValueEventLogEntry::StringValueEventLogEntry(int64 eventTimestamp, LPCWSTR val)
+    StringValueEventLogEntry::StringValueEventLogEntry(int64 eventTimestamp, const TTString& val)
         : EventLogEntry(EventLogEntry::EventKind::StringTag, eventTimestamp), m_stringValue(val)
     {
         ;
@@ -426,7 +426,7 @@ namespace TTD
         return static_cast<StringValueEventLogEntry*>(e);
     }
 
-    LPCWSTR StringValueEventLogEntry::GetStringValue() const
+    const TTString& StringValueEventLogEntry::GetStringValue() const
     {
         return this->m_stringValue;
     }
@@ -440,14 +440,15 @@ namespace TTD
 
     StringValueEventLogEntry* StringValueEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
     {
-        LPCWSTR val = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+        TTString val;
+        reader->ReadString(NSTokens::Key::stringVal, alloc, val, true);
 
         return alloc.SlabNew<StringValueEventLogEntry>(eTime, val);
     }
 
     //////////////////
 
-    PropertyEnumStepEventLogEntry::PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, LPCWSTR propertyName)
+    PropertyEnumStepEventLogEntry::PropertyEnumStepEventLogEntry(int64 eventTimestamp, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, const TTString& propertyName)
         : EventLogEntry(EventLogEntry::EventKind::PropertyEnumTag, eventTimestamp), m_returnCode(returnCode), m_pid(pid), m_attributes(attributes), m_propertyString(propertyName)
     {
         ;
@@ -506,16 +507,18 @@ namespace TTD
         BOOL retCode = reader->ReadBool(NSTokens::Key::boolVal, true);
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
         Js::PropertyAttributes attr = (Js::PropertyAttributes)reader->ReadUInt32(NSTokens::Key::attributeFlags, true);
-        LPCWSTR pname = nullptr;
+
+        TTString pname;
+        InitializeAsNullPtrTTString(pname);
 
         if(retCode)
         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+            reader->ReadString(NSTokens::Key::stringVal, alloc, pname, true);
 #else
             if(pid == Js::Constants::NoProperty)
             {
-                pname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+                reader->ReadString(NSTokens::Key::stringVal, alloc, pname, true);
             }
 #endif
         }
@@ -572,7 +575,6 @@ namespace TTD
             if(var == nullptr)
             {
                 val->Tag = ArgRetValueTag::RawNull;
-                val->ExtraData = nullptr;
             }
             else
             {
@@ -608,35 +610,6 @@ namespace TTD
             }
         }
 
-        void ExtractArgRetValueFromPropertyId(Js::PropertyId pid, ArgRetValue* val)
-        {
-            val->Tag = ArgRetValueTag::ChakraPropertyId;
-            val->u_propertyId = pid;
-
-            val->ExtraData = nullptr;
-        }
-
-        void ExtractArgRetValueFromUInt(unsigned int uval, ArgRetValue* val)
-        {
-            val->Tag = ArgRetValueTag::RawUIntValue;
-            val->u_uint64Val = uval;
-
-            val->ExtraData = nullptr;
-        }
-
-        void ExtractArgRetValueFromBytePtr(byte* buff, unsigned int size, ArgRetValue* val, SlabAllocator& alloc)
-        {
-            val->Tag = ArgRetValueTag::RawUIntValue;
-            val->u_uint64Val = size;
-
-            val->ExtraData = (size != 0) ? alloc.SlabAllocateArray<byte>(size) : nullptr;
-
-            if(size != 0)
-            {
-                memcpy(val->ExtraData, buff, size);
-            }
-        }
-
         Js::Var InflateArgRetValueIntoVar(const ArgRetValue* val, Js::ScriptContext* ctx)
         {
             Js::Var res = nullptr;
@@ -663,27 +636,6 @@ namespace TTD
             return res;
         }
 
-        Js::PropertyId InflateArgRetValueIntoPropertyId(const ArgRetValue* val)
-        {
-            return val->u_propertyId;
-        }
-
-        unsigned int InflateArgRetValueIntoUInt(const ArgRetValue* val)
-        {
-            return (unsigned int)val->u_uint64Val;
-        }
-
-        void InflateArgRetValueIntoBytePtr(byte* buff, unsigned int* size, const ArgRetValue* val)
-        {
-            AssertMsg(buff != nullptr, "We want to copy data into this!!!");
-
-            *size = (unsigned int)val->u_uint64Val;
-            if(*size != 0)
-            {
-                memcpy(buff, (byte*)val->ExtraData, *size);
-            }
-        }
-
         void EmitArgRetValue(const ArgRetValue* val, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
@@ -704,22 +656,6 @@ namespace TTD
             case ArgRetValueTag::ChakraLoggedObject:
                 writer->WriteLogTag(NSTokens::Key::tagVal, val->u_objectTag, NSTokens::Separator::CommaSeparator);
                 break;
-            case ArgRetValueTag::ChakraPropertyId:
-            case ArgRetValueTag::RawUIntValue:
-            case ArgRetValueTag::RawEnumValue:
-                writer->WriteUInt32(NSTokens::Key::u32Val, (uint32)val->u_uint64Val, NSTokens::Separator::CommaSeparator);
-                break;
-            case ArgRetValueTag::RawBytePtr:
-            {
-                writer->WriteLengthValue((uint32)val->u_uint64Val, NSTokens::Separator::CommaSeparator);
-                writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-                for(uint32 i = 0; i < (uint32)val->u_uint64Val; ++i)
-                {
-                    writer->WriteNakedByte(((byte*)val->ExtraData)[i], i != 0 ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator);
-                }
-                writer->WriteSequenceEnd();
-                break;
-            }
             default:
                 AssertMsg(false, "Missing case??");
                 break;
@@ -733,7 +669,6 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             val->Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
-            val->ExtraData = nullptr;
 
             switch(val->Tag)
             {
@@ -750,24 +685,6 @@ namespace TTD
             case ArgRetValueTag::ChakraLoggedObject:
                 val->u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
                 break;
-            case ArgRetValueTag::ChakraPropertyId:
-            case ArgRetValueTag::RawUIntValue:
-            case ArgRetValueTag::RawEnumValue:
-                val->u_uint64Val = reader->ReadUInt32(NSTokens::Key::u32Val, true);
-                break;
-            case ArgRetValueTag::RawBytePtr:
-            {
-                val->u_uint64Val = reader->ReadLengthValue(true);
-                val->ExtraData = (val->u_uint64Val != 0) ? alloc.SlabAllocateArray<byte>((size_t)val->u_uint64Val) : nullptr;
-
-                reader->ReadSequenceStart_WDefaultKey(true);
-                for(uint32 i = 0; i < (uint32)val->u_uint64Val; ++i)
-                {
-                    ((byte*)val->ExtraData)[i] = reader->ReadNakedByte(i != 0);
-                }
-                reader->ReadSequenceEnd();
-                break;
-            }
             default:
                 AssertMsg(false, "Missing case??");
                 break;
@@ -791,7 +708,7 @@ namespace TTD
     }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-    void ExternalCallEventBeginLogEntry::SetFunctionName(LPCWSTR fname)
+    void ExternalCallEventBeginLogEntry::SetFunctionName(const TTString& fname)
     {
         this->m_functionName = fname;
     }
@@ -825,7 +742,8 @@ namespace TTD
     ExternalCallEventBeginLogEntry* ExternalCallEventBeginLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
     {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR fname = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+        TTString fname;
+        reader->ReadString(NSTokens::Key::name, alloc, fname, true);
 #endif
 
         int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);

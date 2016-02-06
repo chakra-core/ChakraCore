@@ -485,10 +485,12 @@ namespace Js
 
     void JavascriptExternalFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        LPCWSTR fname = Js::JavascriptString::FromVar(this->EnsureSourceString())->GetSz();
-        LPCWSTR snapName = alloc.CopyStringInto(fname);
+        Js::JavascriptString* nameString = this->GetDisplayName();
 
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<LPCWSTR, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+        TTD::TTString* snapName = alloc.SlabAllocateStruct<TTD::TTString>();
+        alloc.CopyStringIntoWLength(nameString->GetSz(), nameString->GetLength(), *snapName);
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTString*, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
     }
 #endif
 }

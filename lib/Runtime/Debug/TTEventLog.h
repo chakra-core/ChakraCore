@@ -98,7 +98,7 @@ namespace TTD
         SlabAllocator m_slabAllocator;
 
         //The root directory that the log info gets stored into
-        LPCWSTR m_logInfoRootDir;
+        TTString m_logInfoRootDir;
 
         //The global event time variable
         int64 m_eventTimeCtr;
@@ -398,7 +398,7 @@ namespace TTD
         //Record primitive allocate operations
         void RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival);
         void RecordJsRTAllocateDouble(Js::ScriptContext* ctx, double dval);
-        void RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, size_t stringLength);
+        void RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, uint32 stringLength);
         void RecordJsRTAllocateSymbol(Js::ScriptContext* ctx, Js::Var symbolDescription);
 
         //Record conversions

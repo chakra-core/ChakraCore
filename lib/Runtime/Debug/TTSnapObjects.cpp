@@ -302,10 +302,8 @@ namespace TTD
                         else
                         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                            Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
-
                             writer->WriteRecordStart(varSep);
-                            writer->WriteString(NSTokens::Key::name, threadContext->GetPropertyName(pid)->GetBuffer(), NSTokens::Separator::NoSeparator);
+                            writer->WriteUInt32(NSTokens::Key::pid, (uint32)handler->PropertyInfoArray[i].PropertyRecordId, NSTokens::Separator::NoSeparator);
                             writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
 
                             varSep = NSTokens::Separator::NoSeparator;
@@ -344,7 +342,7 @@ namespace TTD
             snpObject->OptWellKnownToken = TTD_INVALID_WELLKNOWN_TOKEN;
             if(hasWellKnownToken)
             {
-                snpObject->OptWellKnownToken = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
+                snpObject->OptWellKnownToken = reader->ReadWellKnownToken(NSTokens::Key::wellKnownToken, alloc, true);
             }
 
             snpObject->SnapType = ptrIdToTypeMap.LookupKnownItem(reader->ReadAddr(NSTokens::Key::typeId, true));
@@ -387,17 +385,17 @@ namespace TTD
                     reader->ReadSequenceStart_WDefaultKey(true);
                     for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
                     {
+                        bool readSeparator = i != 0;
+
                         if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Clear)
                         {
-                            reader->ReadNakedNull(i != 0);
+                            reader->ReadNakedNull(readSeparator);
                         }
                         else
                         {
-                            bool readSeparator = (i != 0);
-
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                            reader->ReadRecordStart(readSeparator);
-                            reader->ReadString(NSTokens::Key::name);
+                            reader->ReadRecordStart(readSeperator);
+                            reader->ReadUInt32(NSTokens::Key::pid);
                             reader->ReadKey(NSTokens::Key::entry, true);
 
                             readSeparator = false;
@@ -523,10 +521,7 @@ namespace TTD
 
             writer->WriteAddr(NSTokens::Key::functionBodyId, snapFuncInfo->BodyRefId, NSTokens::Separator::CommaAndBigSpaceSeparator);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            writer->WriteString(NSTokens::Key::name, snapFuncInfo->DebugFunctionName, NSTokens::Separator::CommaSeparator); //diagnostic only
-#endif
-
+            writer->WriteString(NSTokens::Key::name, snapFuncInfo->DebugFunctionName, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::scopeId, snapFuncInfo->ScopeId, NSTokens::Separator::CommaSeparator);
             writer->WriteAddr(NSTokens::Key::ptrIdVal, snapFuncInfo->HomeObjId, NSTokens::Separator::CommaSeparator);
 
@@ -544,10 +539,7 @@ namespace TTD
 
             snapFuncInfo->BodyRefId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            snapFuncInfo->DebugFunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
-#endif
-
+            reader->ReadString(NSTokens::Key::name, alloc, snapFuncInfo->DebugFunctionName, true);
             snapFuncInfo->ScopeId = reader->ReadAddr(NSTokens::Key::scopeId, true);
             snapFuncInfo->HomeObjId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
 
@@ -572,16 +564,17 @@ namespace TTD
 
         void EmitAddtlInfo_SnapExternalFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
         {
-            LPCWSTR snapName = SnapObjectGetAddtlInfoAs<LPCWSTR, SnapObjectType::SnapExternalFunctionObject>(snpObject);
+            TTString* snapName = SnapObjectGetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(snpObject);
 
-            writer->WriteString(NSTokens::Key::name, snapName, NSTokens::Separator::CommaSeparator);
+            writer->WriteString(NSTokens::Key::name, *snapName, NSTokens::Separator::CommaSeparator);
         }
 
         void ParseAddtlInfo_SnapExternalFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
         {
-            LPCWSTR snapName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+            TTString* snapName = alloc.SlabAllocateStruct<TTD::TTString>();
+            reader->ReadString(NSTokens::Key::name, alloc, *snapName, true);
 
-            SnapObjectSetAddtlInfoAs<LPCWSTR, SnapObjectType::SnapExternalFunctionObject>(snpObject, snapName);
+            SnapObjectSetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(snpObject, snapName);
         }
 
         Js::RecyclableObject* DoObjectInflation_SnapRevokerFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -1085,7 +1078,7 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
             SnapRegexInfo* regexInfo = SnapObjectGetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(snpObject);
 
-            return ctx->GetLibrary()->CreateRegex_TTD(regexInfo->RegexStr, regexInfo->Flags, regexInfo->LastIndexOrFlag);
+            return ctx->GetLibrary()->CreateRegex_TTD(regexInfo->RegexStr.Contents, regexInfo->RegexStr.Length, regexInfo->Flags, regexInfo->LastIndexOrFlag);
         }
 
         void EmitAddtlInfo_SnapRegexInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -1102,7 +1095,7 @@ namespace TTD
         {
             SnapRegexInfo* regexInfo = alloc.SlabAllocateStruct<SnapRegexInfo>();
 
-            regexInfo->RegexStr = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+             reader->ReadString(NSTokens::Key::stringVal, alloc, regexInfo->RegexStr, true);
 
             regexInfo->Flags = reader->ReadTag<UnifiedRegex::RegexFlags>(NSTokens::Key::attributeFlags, true);
             regexInfo->LastIndexOrFlag = reader->ReadUInt32(NSTokens::Key::u32Val, true);

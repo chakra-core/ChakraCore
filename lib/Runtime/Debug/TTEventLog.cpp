@@ -269,7 +269,7 @@ namespace TTD
 
     EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
         : m_threadContext(threadContext), m_slabAllocator(),
-        m_logInfoRootDir(nullptr), m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
+        m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_events(nullptr), m_currentEvent(nullptr),
         m_callStack(&HeapAllocator::Instance), 
 #if ENABLE_TTD_DEBUGGING
@@ -291,10 +291,7 @@ namespace TTD
         , BPBreakAtNextStmtDepth(-1)
 #endif
     {
-        size_t logDirPathLength = wcslen(logDir) + 1;
-        wchar* pathBuff = HeapNewArrayZ(wchar, logDirPathLength);
-        memcpy(pathBuff, logDir, logDirPathLength * sizeof(wchar));
-        this->m_logInfoRootDir = pathBuff;
+        JsSupport::CopyStringToHeapAllocator(logDir, this->m_logInfoRootDir);
 
         this->m_modeStack.Add(TTDMode::Pending);
 
@@ -316,13 +313,13 @@ namespace TTD
 
         this->UnloadRetainedData();
 
-        HeapDeleteArray(wcslen(this->m_logInfoRootDir) + 1, this->m_logInfoRootDir);
+        JsSupport::DeleteStringFromHeapAllocator(this->m_logInfoRootDir);
     }
 
     void EventLog::InitForTTDRecord()
     {
         //Prepr the logging stream so it is ready for us to write into
-        this->m_threadContext->TTDWriteInitializeFunction(this->m_logInfoRootDir);
+        this->m_threadContext->TTDWriteInitializeFunction(this->m_logInfoRootDir.Contents);
 
         //pin all the current properties so they don't move/disappear on us
         for(Js::PropertyId pid = TotalNumberOfBuiltInProperties + 1; pid < this->m_threadContext->GetMaxPropertyId(); ++pid)
@@ -472,7 +469,8 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
 
-        LPCWSTR copyStr = this->m_slabAllocator.CopyStringInto(stringValue->GetSz());
+        TTString copyStr;
+        this->m_slabAllocator.CopyStringIntoWLength(stringValue->GetSz(), stringValue->GetLength(), copyStr);
 
         StringValueEventLogEntry* sevent = this->m_slabAllocator.SlabNew<StringValueEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), copyStr);
         this->InsertEventAtHead(sevent);
@@ -507,8 +505,8 @@ namespace TTD
         AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
         StringValueEventLogEntry* sevent = StringValueEventLogEntry::As(this->m_currentEvent);
-        LPCWSTR str = sevent->GetStringValue();
-        *result = Js::JavascriptString::NewCopyBuffer(str, (charcount_t)wcslen(str), ctx);
+        const TTString& str = sevent->GetStringValue();
+        *result = Js::JavascriptString::NewCopyBuffer(str.Contents, str.Length, ctx);
 
         this->AdvanceTimeAndPositionForReplay();
     }
@@ -543,13 +541,18 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
+        TTString optName;
+        InitializeAsNullPtrTTString(optName);
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR optName = returnCode ? this->m_slabAllocator.CopyStringInto(propertyName->GetSz()) : nullptr;
+        if(returnCode)
+        {
+            this->m_slabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
+        }
 #else
-        LPCWSTR optName = nullptr;
         if(pid == Js::Constants::NoProperty)
         {
-            optName = this->m_slabAllocator.CopyStringInto(propertyName->GetSz());
+            this->m_slabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #endif
 
@@ -624,7 +627,11 @@ namespace TTD
         ExternalCallEventBeginLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        eevent->SetFunctionName(func->GetDisplayName()->GetSz());
+        TTString fname;
+        Js::JavascriptString* displayName = func->GetDisplayName();
+        this->m_slabAllocator.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), fname);
+
+        eevent->SetFunctionName(fname);
 #endif
 
         this->InsertEventAtHead(eevent);
@@ -651,7 +658,10 @@ namespace TTD
         ExternalCallEventBeginLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        eevent->SetFunctionName(L"Register Promise Function");
+        TTString pname;
+        this->m_slabAllocator.CopyNullTermStringInto(L"Register Promise Function", pname);
+
+        eevent->SetFunctionName(pname);
 #endif
 
         this->InsertEventAtHead(eevent);
@@ -1182,7 +1192,9 @@ namespace TTD
 
     void EventLog::BPPrintVariable(Js::ScriptContext* ctx, LPCWSTR name)
     {
-        Js::Var var = JsSupport::LoadPropertyHelper(name, ctx->GetGlobalObject(), false);
+        Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(name, (charcount_t)wcslen(name)));
+        Js::Var var = Js::JavascriptOperators::GetProperty(ctx->GetGlobalObject(), propertyId, ctx, nullptr);
+
         if(var == nullptr)
         {
             wprintf(L"Name was not found in the global scope.\n");
@@ -1430,7 +1442,7 @@ namespace TTD
                 if(curr->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
                 {
                     SnapshotEventLogEntry* snpEntry = SnapshotEventLogEntry::As(curr);
-                    snpEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir, this->m_threadContext);
+                    snpEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
 
                     restoreEventTime = snpEntry->GetRestoreEventTime();
                     restoreLogTagCtr = snpEntry->GetRestoreLogTag();
@@ -1578,12 +1590,13 @@ namespace TTD
         this->InsertEventAtHead(allocEvent);
     }
 
-    void EventLog::RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, size_t stringLength)
+    void EventLog::RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, uint32 stringLength)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        LPCWSTR str = this->m_slabAllocator.CopyStringIntoWLength(stringValue, stringLength);
+        TTString str;
+        this->m_slabAllocator.CopyStringIntoWLength(stringValue, stringLength, str);
         JsRTStringAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTStringAllocateAction>(etime, ctxTag, str);
 
         this->InsertEventAtHead(allocEvent);
@@ -1640,10 +1653,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* buffData = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromBytePtr(buff, size, buffData, this->m_slabAllocator);
+        byte* abuff = this->m_slabAllocator.SlabAllocateArray<byte>(size);
+        js_memcpy_s(abuff, size, buff, size);
 
-        JsRTArrayBufferAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTArrayBufferAllocateAction>(etime, ctxTag, buffData);
+        JsRTArrayBufferAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTArrayBufferAllocateAction>(etime, ctxTag, size, buff);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1859,12 +1872,19 @@ namespace TTD
 
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
 
-        LPCWSTR optSrcUri = fb->GetSourceContextInfo()->url;
+        TTString optSrcUri;
+        this->m_slabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
+
         DWORD_PTR optDocumentID = fb->GetSourceContextId();
 
-        LPCWSTR sourceCode = this->m_slabAllocator.CopyStringInto(srcCode);
-        LPCWSTR dir = this->m_slabAllocator.CopyStringInto(this->m_logInfoRootDir);
-        LPCWSTR ssUri = this->m_slabAllocator.CopyStringInto(sourceUri);
+        TTString sourceCode;
+        this->m_slabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
+
+        TTString dir;
+        this->m_slabAllocator.CopyStringIntoWLength(this->m_logInfoRootDir.Contents, this->m_logInfoRootDir.Length, dir);
+
+        TTString ssUri;
+        this->m_slabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
 
         JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir, ssUri);
 
@@ -1888,7 +1908,10 @@ namespace TTD
         JsRTCallFunctionBeginAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionBeginAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        callEvent->SetFunctionName(this->m_slabAllocator.CopyStringInto(func->GetDisplayName()->GetSz()));
+        TTString fname;
+        Js::JavascriptString* dname = func->GetDisplayName();
+        this->m_slabAllocator.CopyStringIntoWLength(dname->GetSz(), dname->GetLength(), fname);
+        callEvent->SetFunctionName(fname);
 #endif
 
         this->InsertEventAtHead(callEvent);
@@ -1941,7 +1964,7 @@ namespace TTD
     {
 #if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
 
-        HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir, false, true);
+        HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, false, true);
         JSONWriter writer(logHandle, this->m_threadContext->TTDStreamFunctions.pfWriteBytesToStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
@@ -1954,7 +1977,7 @@ namespace TTD
         writer.WriteUInt64(NSTokens::Key::snapUsedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
         writer.WriteUInt64(NSTokens::Key::snapReservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
 
-        EventLogEntry::EmitEventList(this->m_events, this->m_logInfoRootDir, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
+        EventLogEntry::EmitEventList(this->m_events, this->m_logInfoRootDir.Contents, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
 
         //if we haven't moved the properties to their serialized form them take care of it 
         if(this->m_propertyRecordList.Count() == 0)
@@ -1969,7 +1992,7 @@ namespace TTD
                 sRecord->IsBound = pRecord->IsBound();
                 sRecord->IsSymbol = pRecord->IsSymbol();
 
-                sRecord->PropertyName = pRecord->GetBuffer();
+                this->m_slabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
             }
         }
 
@@ -1998,7 +2021,7 @@ namespace TTD
 
     void EventLog::ParseLogInto()
     {
-        HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir, true, false);
+        HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, true, false);
         JSONReader reader(logHandle, this->m_threadContext->TTDStreamFunctions.pfReadBytesFromStream, this->m_threadContext->TTDStreamFunctions.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();

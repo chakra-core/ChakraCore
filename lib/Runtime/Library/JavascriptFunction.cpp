@@ -254,7 +254,7 @@ namespace Js
             if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
                 TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
-                TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString);
+                TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, sourceLen);
                 scriptContext->m_ttdTopLevelNewFunction.Add(tbfi);
 
                 //walk global body to (1) add functions to pin set (2) build parent map

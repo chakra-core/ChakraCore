@@ -1012,7 +1012,7 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordJsRTAllocateString(scriptContext, stringValue, stringLength);
+            threadContext->TTDLog->RecordJsRTAllocateString(scriptContext, stringValue, (uint32)stringLength);
         }
 #endif
 

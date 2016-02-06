@@ -117,12 +117,11 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 Js::PropertyId* propertyIds = fb->GetPropertyIdsForScopeSlotArray();
-                slotInfo->DebugSlotNameArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
+                slotInfo->DebugPIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 
                 for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
                 {
-                    const Js::PropertyRecord* propertyRecord = ctx->GetPropertyName(propertyIds[j]);
-                    slotInfo->DebugSlotNameArray[j] = this->m_pendingSnap->GetSnapshotSlabAllocator().CopyStringInto(propertyRecord->GetBuffer());
+                    slotInfo->DebugPIDArray[j] = propertyIds[j];
                 }
 #endif
             }
@@ -132,11 +131,11 @@ namespace TTD
                 slotInfo->OptFunctionBodyId = TTD_INVALID_PTR_ID;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                slotInfo->DebugSlotNameArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
+                slotInfo->DebugPIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 
                 for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
                 {
-                    slotInfo->DebugSlotNameArray[j] = this->m_pendingSnap->GetSnapshotSlabAllocator().CopyStringInto(L"DebugScopeNameResolveUnsupported");
+                    slotInfo->DebugPIDArray[j] = (Js::PropertyId)0;
                 }
 #endif
             }

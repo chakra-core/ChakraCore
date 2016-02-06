@@ -1759,7 +1759,7 @@ namespace Js
                 FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pFunction->GetParseableFunctionInfo());
 
                 TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
-                TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, pSrcInfo->moduleID, sourceIndex, script);
+                TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, pSrcInfo->moduleID, sourceIndex, script, (uint32)length);
                 this->m_ttdTopLevelScriptLoad.Add(tbfi);
 
                 //walk global body to (1) add functions to pin set (2) build parent map

@@ -642,7 +642,7 @@ namespace Js
             if(!scriptContext->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
                 TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
-                TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, additionalGrfscr, registerDocument, isIndirect, strictMode);
+                TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, globalBody, moduleID, sourceString, sourceLen, additionalGrfscr, registerDocument, isIndirect, strictMode);
                 scriptContext->m_ttdTopLevelEval.Add(tbfi);
 
                 //walk global body to (1) add functions to pin set (2) build parent map
@@ -1646,10 +1646,12 @@ LHexError:
             Js::JavascriptString* actualString = JavascriptConversion::ToPrimitiveString(actual, ctx);
             Js::JavascriptString* expectedString = JavascriptConversion::ToPrimitiveString(expected, ctx);
 
-            LPCWSTR cascadeWarning = (TTD::JsSupport::LoadPropertyHelper(L"ttdTestsFailed", ctx->GetGlobalObject(), false) != nullptr) ? L" (previous failures may cascade)" : L"";
+            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(L"ttdTestsFailed", (charcount_t)wcslen(L"ttdTestsFailed")));
+            LPCWSTR cascadeWarning = Js::JavascriptOperators::HasOwnProperty(ctx->GetGlobalObject(), propertyId, ctx) ? L" (previous failures may cascade)" : L"";
+
             wprintf(L"Test Failed%ls: %ls\nactual:   %ls\nexpected: %ls\n\n", cascadeWarning, testName, actualString->GetSz(), expectedString->GetSz());
 
-            TTD::JsSupport::StorePropertyHelper(L"ttdTestsFailed", ctx->GetGlobalObject(), ctx->GetLibrary()->GetTrue());
+            Js::JavascriptOperators::SetProperty(ctx->GetGlobalObject(), ctx->GetGlobalObject(), propertyId, ctx->GetLibrary()->GetTrue(), ctx, Js::PropertyOperationFlags::PropertyOperation_Force);
         }
 
         return ctx->GetLibrary()->GetUndefined();

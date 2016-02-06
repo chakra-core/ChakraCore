@@ -110,6 +110,20 @@ namespace TTD
 
     //////////////////
 
+    //String representation to use when copying things into/between slab allocators
+    struct TTString
+    {
+        //Length of the string in terms of wchar -- excluding any '\0' termination
+        uint32 Length;
+
+        //The char contents of the string (null terminated -- may be null if empty)
+        wchar* Contents;
+    };
+
+    //initialize and return true if the given string should map to a nullptr wchar* representaiton
+    void InitializeAsNullPtrTTString(TTString& str);
+    bool IsNullPtrTTString(const TTString& str);
+
     //A class that implements a simple slab memory allocator
     template <int32 canUnlink>
     class SlabAllocatorBase
@@ -377,26 +391,29 @@ namespace TTD
         SlabAllocatorBase(const SlabAllocatorBase&) = delete;
         SlabAllocatorBase& operator=(SlabAllocatorBase const&) = delete;
 
-        //clone a string into the allocator
-        LPCWSTR CopyStringInto(LPCWSTR str)
+        //clone a string into the allocator of a known length
+        void CopyStringIntoWLength(LPCWSTR str, uint32 length, TTString& into)
         {
-            size_t byteLen = (wcslen(str) + 1) * sizeof(wchar_t);
-            wchar_t* copystr = (wchar_t*)this->SlabAllocateArray<byte>(byteLen);
-            memcpy(copystr, str, byteLen);
+            AssertMsg(str != nullptr, "Not allowed for string + length");
 
-            return copystr;
+            into.Length = length;
+            into.Contents = this->SlabAllocateArray<wchar>(into.Length + 1);
+            js_memcpy_s(into.Contents, into.Length * sizeof(wchar), str, length * sizeof(wchar));
+            into.Contents[into.Length] = '\0';
         }
 
-        //clone a string into the allocator of a known length
-        LPCWSTR CopyStringIntoWLength(LPCWSTR str, size_t length)
+        //clone a string into the allocator
+        void CopyNullTermStringInto(LPCWSTR str, TTString& into)
         {
-            size_t byteLen = (length + 1) * sizeof(wchar_t);
-            wchar_t* copystr = (wchar_t*)this->SlabAllocateArray<byte>(byteLen);
-
-            memcpy(copystr, str, byteLen);
-            copystr[length] = L'\0';
-
-            return copystr;
+            if(str == nullptr)
+            {
+                into.Length = 0;
+                into.Contents = nullptr;
+            }
+            else
+            {
+                this->CopyStringIntoWLength(str, (uint32)wcslen(str), into);
+            }
         }
 
         //Return the memory that contains useful data in this slab & the same as the reserved space

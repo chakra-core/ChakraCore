@@ -105,10 +105,10 @@ namespace TTD
     class JsRTStringAllocateAction : public JsRTActionLogEntry
     {
     private:
-        LPCWSTR m_stringValue;
+        TTString m_stringValue;
 
     public:
-        JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, LPCWSTR stringValue);
+        JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& stringValue);
         virtual ~JsRTStringAllocateAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
@@ -191,10 +191,11 @@ namespace TTD
     class JsRTArrayBufferAllocateAction : public JsRTActionLogEntry
     {
     private:
-        NSLogValue::ArgRetValue* m_bufferData;
+        uint32 m_bufferSize;
+        byte* m_bufferData;
 
     public:
-        JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, NSLogValue::ArgRetValue* bufferData);
+        JsRTArrayBufferAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, uint32 bufferSize, byte* bufferData);
         virtual ~JsRTArrayBufferAllocateAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
@@ -492,18 +493,18 @@ namespace TTD
         bool m_isExpression;
 
         //The actual source code
-        LPCWSTR m_sourceCode;
+        TTString m_sourceCode;
 
         //If this is from a URI
-        LPCWSTR m_sourceUri;
+        TTString m_sourceUri;
         DWORD_PTR m_documentID;
 
         //The directory to write the source files out to (if needed)
-        LPCWSTR m_sourceFile;
-        LPCWSTR m_srcDir;
+        TTString m_sourceFile;
+        TTString m_srcDir;
 
     public:
-        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, LPCWSTR sourceCode, DWORD_PTR documentId, LPCWSTR sourceUri, LPCWSTR srcDir, LPCWSTR sourceFile);
+        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile);
         virtual ~JsRTCodeParseAction() override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
@@ -520,7 +521,7 @@ namespace TTD
         const TTD_LOG_TAG m_functionTagId;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR m_functionName;
+        TTString m_functionName;
 #endif
 
         //The re-entry depth we are at when this happens
@@ -552,7 +553,7 @@ namespace TTD
         virtual void UnloadSnapshot() const override;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void SetFunctionName(LPCWSTR fname);
+        void SetFunctionName(const TTString& fname);
 #endif
 
         static JsRTCallFunctionBeginAction* As(JsRTActionLogEntry* action);

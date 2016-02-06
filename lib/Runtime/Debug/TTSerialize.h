@@ -52,7 +52,7 @@ namespace TTD
         LPCWSTR* InitKeyNamesArray();
     }
 
-    //////////////////
+    ////
 
     //A virtual class that handles the actual write (and format) of a value to a stream
     class FileWriter
@@ -92,7 +92,7 @@ namespace TTD
         //Format a value (at U64) into a temp buffer for you to use (do not free this buffer)
         LPCWSTR FormatNumber(DWORD_PTR value);
 
-        //////////////////
+        ////
 
         virtual void WriteSeperator(NSTokens::Separator separator) = 0;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
@@ -110,7 +110,7 @@ namespace TTD
         virtual void AdjustIndent(int32 delta) = 0;
         virtual void SetIndent(uint32 depth) = 0;
 
-        //////////////////
+        ////
 
         virtual void WriteNakedNull(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteNull(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
@@ -133,9 +133,6 @@ namespace TTD
         virtual void WriteNakedDouble(double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteDouble(NSTokens::Key key, double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
-        virtual void WriteNakedString(LPCWSTR val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
-        void WriteString(NSTokens::Key key, LPCWSTR val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
-
         virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteAddr(NSTokens::Key key, TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
@@ -144,9 +141,6 @@ namespace TTD
 
         virtual void WriteNakedIdentityTag(TTD_IDENTITY_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteIdentityTag(NSTokens::Key key, TTD_IDENTITY_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
-
-        virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
-        void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
 
         virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
 
@@ -157,9 +151,13 @@ namespace TTD
             this->WriteNakedTag((uint32)tag);
         }
 
-        //////////////////
+        ////
 
-        virtual void WriteRawString(LPCWSTR str) = 0;
+        virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        void WriteString(NSTokens::Key key, const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
+
+        virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
+        void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
     };
 
     //A implements the writer for JSON formatted output to a file
@@ -173,19 +171,14 @@ namespace TTD
         uint32 m_indentSize;
 
         void WriteWCHAR(wchar c);
-        void WriteLPCWSTR(LPCWSTR str);
-
-        void WriteCPPLiteral(LPCWSTR str, NSTokens::Separator separator = NSTokens::Separator::NoSeparator)
-        {
-            this->WriteSeperator(separator);
-            this->WriteLPCWSTR(str);
-        }
+        void WriteString_InternalNoEscape(LPCWSTR str, size_t length);
+        void WriteString_Internal(LPCWSTR str, size_t length);
 
     public:
         JSONWriter(HANDLE handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose);
         virtual ~JSONWriter();
 
-        //////////////////
+        ////
 
         virtual void WriteSeperator(NSTokens::Separator separator) override;
         virtual void WriteKey(NSTokens::Key key, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
@@ -198,7 +191,7 @@ namespace TTD
         virtual void AdjustIndent(int32 delta) override;
         virtual void SetIndent(uint32 depth) override;
 
-        //////////////////
+        ////
 
         virtual void WriteNakedNull(NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
@@ -210,17 +203,17 @@ namespace TTD
         virtual void WriteNakedInt64(int64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedUInt64(uint64 val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedDouble(double val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
-        virtual void WriteNakedString(LPCWSTR val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedAddr(TTD_PTR_ID val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedLogTag(TTD_LOG_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
         virtual void WriteNakedIdentityTag(TTD_IDENTITY_TAG val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
-        virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
-        //////////////////
+        ////
 
-        virtual void WriteRawString(LPCWSTR str) override;
+        virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -273,7 +266,7 @@ namespace TTD
         virtual void ReadRecordStart(bool readSeparator = false) = 0;
         virtual void ReadRecordEnd() = 0;
 
-        //////////////////
+        ////
 
         virtual void ReadNakedNull(bool readSeparator = false) = 0;
         void ReadNull(NSTokens::Key keyCheck, bool readSeparator = false);
@@ -296,9 +289,6 @@ namespace TTD
         virtual double ReadNakedDouble(bool readSeparator = false) = 0;
         double ReadDouble(NSTokens::Key keyCheck, bool readSeparator = false);
 
-        virtual LPCWSTR ReadNakedString(bool readSeparator = false) = 0;
-        LPCWSTR ReadString(NSTokens::Key keyCheck, bool readSeparator = false);
-
         virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) = 0;
         TTD_PTR_ID ReadAddr(NSTokens::Key keyCheck, bool readSeparator = false);
 
@@ -307,9 +297,6 @@ namespace TTD
 
         virtual TTD_IDENTITY_TAG ReadNakedIdentityTag(bool readSeparator = false) = 0;
         TTD_IDENTITY_TAG ReadIdentityTag(NSTokens::Key keyCheck, bool readSeparator = false);
-
-        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) = 0;
-        TTD_WELLKNOWN_TOKEN ReadWellKnownToken(SlabAllocator& alloc, NSTokens::Key keyCheck, bool readSeparator = false);
 
         virtual uint32 ReadNakedTag(bool readSeparator = false) = 0;
 
@@ -322,9 +309,27 @@ namespace TTD
             return (T)tval;
         }
 
-        //////////////////
+        ////
 
-        virtual LPCWSTR ReadRawString(SlabAllocator& alloc) = 0;
+        virtual void ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator = false) = 0;
+        virtual void ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator = false) = 0;
+
+        template <typename Allocator>
+        void ReadString(NSTokens::Key keyCheck, Allocator& alloc, TTString& into, bool readSeparator = false)
+        {
+            this->ReadKey(keyCheck, readSeparator);
+            return this->ReadNakedString(alloc, into);
+        }
+
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) = 0;
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) = 0;
+
+        template <typename Allocator>
+        TTD_WELLKNOWN_TOKEN ReadWellKnownToken(NSTokens::Key keyCheck, Allocator& alloc, bool readSeparator = false)
+        {
+            this->ReadKey(keyCheck, readSeparator);
+            return this->ReadNakedWellKnownToken(alloc);
+        }
     };
 
     //////////////////
@@ -363,7 +368,7 @@ namespace TTD
         virtual void ReadRecordStart(bool readSeparator = false) override;
         virtual void ReadRecordEnd() override;
 
-        //////////////////
+        ////
 
         virtual void ReadNakedNull(bool readSeparator = false) override;
         virtual byte ReadNakedByte(bool readSeparator = false) override;
@@ -374,17 +379,19 @@ namespace TTD
         virtual int64 ReadNakedInt64(bool readSeparator = false) override;
         virtual uint64 ReadNakedUInt64(bool readSeparator = false) override;
         virtual double ReadNakedDouble(bool readSeparator = false) override;
-        virtual LPCWSTR ReadNakedString(bool readSeparator = false) override;
         virtual TTD_PTR_ID ReadNakedAddr(bool readSeparator = false) override;
         virtual TTD_LOG_TAG ReadNakedLogTag(bool readSeparator = false) override;
         virtual TTD_IDENTITY_TAG ReadNakedIdentityTag(bool readSeparator = false) override;
-        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
 
         virtual uint32 ReadNakedTag(bool readSeparator = false) override;
 
-        //////////////////
+        ////
 
-        virtual LPCWSTR ReadRawString(SlabAllocator& alloc) override;
+        virtual void ReadNakedString(SlabAllocator& alloc, TTString& into, bool readSeparator = false) override;
+        virtual void ReadNakedString(UnlinkableSlabAllocator& alloc, TTString& into, bool readSeparator = false) override;
+
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
+        virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
     };
 }
 

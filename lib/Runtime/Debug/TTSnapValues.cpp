@@ -42,37 +42,6 @@ namespace TTD
             return tid > Js::TypeIds_LastToPrimitiveType;
         }
 
-        Js::Var LoadPropertyHelper(LPCWSTR pname, Js::Var instance, bool mustExist /*true*/)
-        {
-            AssertMsg(Js::RecyclableObject::Is(instance), "instance is not an object");
-
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
-            Js::ScriptContext* ctx = obj->GetScriptContext();
-            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, (charcount_t)wcslen(pname)));
-
-            if(!Js::JavascriptOperators::HasProperty(obj, propertyId))
-            {
-                AssertMsg(!mustExist, "If the property is missing then assert on nullptr based on mustExist flag.");
-                return nullptr;
-            }
-            else
-            {
-                return Js::JavascriptOperators::GetProperty(obj, propertyId, ctx, nullptr);
-            }
-        }
-
-        void StorePropertyHelper(LPCWSTR pname, Js::Var instance, Js::Var value)
-        {
-            AssertMsg(Js::RecyclableObject::Is(instance), "instance is not an object");
-
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
-            Js::ScriptContext* ctx = obj->GetScriptContext();
-            Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(pname, (charcount_t)wcslen(pname)));
-
-            BOOL ok = Js::JavascriptOperators::SetProperty(instance, obj, propertyId, value, ctx, Js::PropertyOperationFlags::PropertyOperation_Force);
-            AssertMsg(ok, "Store that we expected to always succeed failed?");
-        }
-
         Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi)
         {
             Js::FunctionBody* fb = nullptr;
@@ -99,19 +68,87 @@ namespace TTD
             return fb;
         }
 
-        LPCWSTR CopyStringToHeapAllocator(LPCWSTR string)
+        void CopyStringToHeapAllocator(LPCWSTR string, TTString& into)
         {
-            size_t strWCharCount = wcslen(string) + 1;
-
-            wchar* buff = HeapNewArray(wchar, strWCharCount);
-            memcpy(buff, string, sizeof(wchar) * strWCharCount);
-
-            return buff;
+            if(string == nullptr)
+            {
+                into.Length = 0;
+                into.Contents = nullptr;
+            }
+            else
+            {
+                CopyStringToHeapAllocatorWLength(string, (uint32)wcslen(string), into);
+            }
         }
 
-        void DeleteStringFromHeapAllocator(LPCWSTR string)
+        void CopyStringToHeapAllocatorWLength(LPCWSTR string, uint32 length, TTString& into)
         {
-            HeapDeleteArray(wcslen(string) + 1, string);
+            AssertMsg(string != nullptr, "Not allowed with string + length");
+
+            into.Length = length;
+
+            if(length == 0)
+            {
+                into.Contents = nullptr;
+            }
+            else
+            {
+                into.Contents = HeapNewArray(wchar, into.Length + 1);
+                js_memcpy_s(into.Contents, into.Length * sizeof(wchar), string, length * sizeof(wchar));
+                into.Contents[into.Length] = '\0';
+            }
+        }
+
+        void DeleteStringFromHeapAllocator(TTString& string)
+        {
+            if(string.Contents != nullptr)
+            {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+                HeapDeleteArray(string.Length + 1, string.Contents);
+#else
+                if(string.Length != 0)
+                {
+                    HeapDeleteArray(string.Length, string.Contents);
+                }
+#endif
+            }
+        }
+
+        void WriteCodeToFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, const wchar* sourceBuffer, uint32 length)
+        {
+            HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, false, true);
+            byte* srcBuff = (byte*)HeapNewArray(byte, length);
+
+            for(uint32 i = 0; i < length; ++i)
+            {
+                srcBuff[i] = (byte)sourceBuffer[i];
+            }
+
+            DWORD writtenCount = 0;
+            BOOL ok = streamFunctions.pfWriteBytesToStream(srcStream, srcBuff, length, &writtenCount);
+            AssertMsg(ok && writtenCount == length, "Write Failed!!!");
+
+            HeapDeleteArray(length, srcBuff);
+            streamFunctions.pfFlushAndCloseStream(srcStream, false, true);
+        }
+
+        void ReadCodeFromFile(IOStreamFunctions& streamFunctions, LPCWSTR srcDir, LPCWSTR docId, LPCWSTR sourceUri, wchar* sourceBuffer, uint32 length)
+        {
+            HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(srcDir, docId, sourceUri, true, false);
+            byte* srcBuff = (byte*)HeapNewArray(byte, length);
+
+            DWORD readCount = 0;
+            BOOL ok = streamFunctions.pfReadBytesFromStream(srcStream, srcBuff, length, &readCount);
+            AssertMsg(ok && readCount == length, "Read Failed!!!");
+
+            for(uint32 i = 0; i < length; ++i)
+            {
+                sourceBuffer[i] = (wchar)srcBuff[i];
+            }
+            sourceBuffer[length] = L'\0';
+
+            HeapDeleteArray(length, srcBuff);
+            streamFunctions.pfFlushAndCloseStream(srcStream, true, false);
         }
     }
 
@@ -225,7 +262,7 @@ namespace TTD
                     snapValue->u_uint64Value = Js::JavascriptUInt64Number::FromVar(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_String:
-                    snapValue->u_stringValue = alloc.CopyStringInto(Js::JavascriptString::FromVar(jsValue)->GetSz());
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), snapValue->u_stringValue);
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
@@ -277,7 +314,7 @@ namespace TTD
                         res = Js::JavascriptUInt64Number::ToVar(snapValue->u_uint64Value, ctx);
                         break;
                     case Js::TypeIds_String:
-                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue, (charcount_t)wcslen(snapValue->u_stringValue), ctx);
+                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue.Contents, snapValue->u_stringValue.Length, ctx);
                         break;
                     case Js::TypeIds_Symbol:
                         res = jslib->CreatePrimitveSymbol_TTD(snapValue->u_propertyIdValue);
@@ -354,7 +391,7 @@ namespace TTD
             bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
             if(isWellKnown)
             {
-                snapValue->OptWellKnownToken = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
+                snapValue->OptWellKnownToken = reader->ReadWellKnownToken(NSTokens::Key::wellKnownToken, alloc, true);
 
                 //just clear it to help avoid any confusion later
                 snapValue->u_uint64Value = 0;
@@ -381,7 +418,7 @@ namespace TTD
                     snapValue->u_uint64Value = reader->ReadUInt64(NSTokens::Key::u64Val, true);
                     break;
                 case Js::TypeIds_String:
-                    snapValue->u_stringValue = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::stringVal, true));
+                    reader->ReadString(NSTokens::Key::stringVal, alloc, snapValue->u_stringValue, true);
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = reader->ReadInt32(NSTokens::Key::propertyId, true);
@@ -452,7 +489,7 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 writer->WriteRecordStart(sep);
-                writer->WriteString(NSTokens::Key::name, slotInfo->DebugSlotNameArray[i], NSTokens::Separator::NoSeparator);
+                writer->WriteUInt32(NSTokens::Key::pid, slotInfo->DebugPIDArray[i], NSTokens::Separator::NoSeparator);
                 writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
 
                 sep = NSTokens::Separator::NoSeparator;
@@ -495,7 +532,7 @@ namespace TTD
             slotInfo->Slots = alloc.SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            slotInfo->DebugSlotNameArray = alloc.SlabAllocateArray<LPCWSTR>(slotInfo->SlotCount);
+            slotInfo->DebugPIDArray = alloc.SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 #endif
 
             for(uint32 i = 0; i < slotInfo->SlotCount; ++i)
@@ -504,7 +541,7 @@ namespace TTD
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 reader->ReadRecordStart(readSeparator);
-                reader->ReadString(NSTokens::Key::name);
+                slotInfo->DebugPIDArray[i] = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::pid);
                 reader->ReadKey(NSTokens::Key::entry, true);
 
                 readSeparator = false;
@@ -695,29 +732,25 @@ namespace TTD
 
         //////////////////
 
-        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source)
+        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen)
         {
             fbInfo->FunctionBodyId = TTD_CONVERT_VAR_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
 
-            fbInfo->FunctionName = JsSupport::CopyStringToHeapAllocator(fb->GetDisplayName());
+            JsSupport::CopyStringToHeapAllocator(fb->GetDisplayName(), fbInfo->FunctionName);
 
             fbInfo->ModuleId = moduleId;
             fbInfo->DocumentID = documentID;
-            fbInfo->SourceUri = (fb->GetSourceContextInfo()->url != nullptr) ? JsSupport::CopyStringToHeapAllocator(fb->GetSourceContextInfo()->url) : nullptr;
+            JsSupport::CopyStringToHeapAllocator(fb->GetSourceContextInfo()->url, fbInfo->SourceUri);
 
-            fbInfo->SourceCode = JsSupport::CopyStringToHeapAllocator(source);
+            JsSupport::CopyStringToHeapAllocatorWLength(source, sourceLen, fbInfo->SourceCode);
         }
 
         void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo)
         {
             JsSupport::DeleteStringFromHeapAllocator(fbInfo->FunctionName);
 
-            if(fbInfo->SourceUri != nullptr)
-            {
-                JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceUri);
-            }
-
+            JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceUri);
             JsSupport::DeleteStringFromHeapAllocator(fbInfo->SourceCode);
         }
 
@@ -726,13 +759,13 @@ namespace TTD
             fbInfoDest->FunctionBodyId = fbInfoSrc->FunctionBodyId;
             fbInfoDest->ScriptContextTag = fbInfoSrc->ScriptContextTag;
 
-            fbInfoDest->FunctionName = alloc.CopyStringInto(fbInfoSrc->FunctionName);
+            alloc.CopyStringIntoWLength(fbInfoSrc->FunctionName.Contents, fbInfoSrc->FunctionName.Length, fbInfoDest->FunctionName);
 
             fbInfoDest->ModuleId = fbInfoSrc->ModuleId;
             fbInfoDest->DocumentID = fbInfoSrc->DocumentID;
-            fbInfoDest->SourceUri = (fbInfoSrc->SourceUri != nullptr) ? alloc.CopyStringInto(fbInfoSrc->SourceUri) : nullptr;
+            alloc.CopyStringIntoWLength(fbInfoSrc->SourceUri.Contents, fbInfoSrc->SourceUri.Length, fbInfoDest->SourceUri);
 
-            fbInfoDest->SourceCode = alloc.CopyStringInto(fbInfoSrc->SourceCode);
+            alloc.CopyStringIntoWLength(fbInfoSrc->SourceCode.Contents, fbInfoSrc->SourceCode.Length, fbInfoDest->SourceCode);
         }
 
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
@@ -745,23 +778,18 @@ namespace TTD
 
             writer->WriteUInt64(NSTokens::Key::moduleId, fbInfo->ModuleId, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt64(NSTokens::Key::documentId, fbInfo->DocumentID, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, fbInfo->SourceUri != nullptr, NSTokens::Separator::CommaSeparator);
-            if(fbInfo->SourceUri != nullptr)
-            {
-                writer->WriteString(NSTokens::Key::uri, fbInfo->SourceUri, NSTokens::Separator::CommaSeparator);
-            }
+            writer->WriteString(NSTokens::Key::uri, fbInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
-            if(emitInline || fbInfo->SourceUri == nullptr)
+            if(emitInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
                 writer->WriteString(NSTokens::Key::src, fbInfo->SourceCode, NSTokens::Separator::CommaSeparator);
             }
             else
             {
-                LPCWSTR docId = writer->FormatNumber(fbInfo->DocumentID);
-                HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->SourceUri, false, true);
+                writer->WriteLengthValue(fbInfo->SourceCode.Length, NSTokens::Separator::CommaSeparator);
 
-                JSONWriter srcWriter(srcStream, streamFunctions.pfWriteBytesToStream, streamFunctions.pfFlushAndCloseStream);
-                srcWriter.WriteRawString(fbInfo->SourceCode);
+                LPCWSTR docId = writer->FormatNumber(fbInfo->DocumentID);
+                JsSupport::WriteCodeToFile(streamFunctions, sourceDir, docId, fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
         }
 
@@ -771,37 +799,32 @@ namespace TTD
             fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
 
-            fbInfo->FunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+            reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
 
             fbInfo->ModuleId = (Js::ModuleID)reader->ReadUInt64(NSTokens::Key::moduleId, true);
             fbInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
-            fbInfo->SourceUri = nullptr;
-            bool hasUri = reader->ReadBool(NSTokens::Key::boolVal, true);
-            if(hasUri)
-            {
-                fbInfo->SourceUri = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::uri, true));
-            }
+            reader->ReadString(NSTokens::Key::uri, alloc, fbInfo->SourceUri, true);
 
-            if(parseInline || fbInfo->SourceUri == nullptr)
+            if(parseInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
-                fbInfo->SourceCode = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::src, true));
+                reader->ReadString(NSTokens::Key::src, alloc, fbInfo->SourceCode, true);
             }
             else
             {
-                LPCWSTR docId = reader->FormatNumber(fbInfo->DocumentID);
-                HANDLE srcStream = streamFunctions.pfGetSrcCodeStream(sourceDir, docId, fbInfo->SourceUri, true, false);
+                fbInfo->SourceCode.Length = reader->ReadLengthValue(true);
+                fbInfo->SourceCode.Contents = alloc.SlabAllocateArray<wchar>(fbInfo->SourceCode.Length + 1);
 
-                JSONReader srcReader(srcStream, streamFunctions.pfReadBytesFromStream, streamFunctions.pfFlushAndCloseStream);
-                fbInfo->SourceCode = srcReader.ReadRawString(alloc);
+                LPCWSTR docId = reader->FormatNumber(fbInfo->DocumentID);
+                JsSupport::ReadCodeFromFile(streamFunctions, sourceDir, docId, fbInfo->SourceUri.Contents, fbInfo->SourceCode.Contents, fbInfo->SourceCode.Length);
             }
         }
 
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source)
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source, sourceLen);
         }
 
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo)
@@ -819,7 +842,7 @@ namespace TTD
             DWORD_PTR sourceContext = fbInfo->TopLevelBase.DocumentID;
             AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
 
-            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri, wcslen(fbInfo->TopLevelBase.SourceUri), nullptr);
+            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri.Contents, fbInfo->TopLevelBase.SourceUri.Length, nullptr);
 
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
@@ -827,7 +850,7 @@ namespace TTD
                 /* ulColumnHost        */ 0,
                 /* lnMinHost           */ 0,
                 /* ichMinHost          */ 0,
-                /* ichLimHost          */ static_cast<ULONG>(wcslen(fbInfo->TopLevelBase.SourceCode)), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+                /* ichLimHost          */ static_cast<ULONG>(fbInfo->TopLevelBase.SourceCode.Length), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
                 /* ulCharOffset        */ 0,
                 /* mod                 */ fbInfo->TopLevelBase.ModuleId,
                 /* grfsi               */ 0
@@ -838,7 +861,7 @@ namespace TTD
             Js::JavascriptFunction* scriptFunction = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode.Contents, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(scriptFunction != nullptr, "Something went wrong");
@@ -863,9 +886,9 @@ namespace TTD
         ////
         //'new Function(...)' functions
 
-        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source)
+        void ExtractTopLevelNewFunctionBodyInfo_InScriptContext(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source, sourceLen);
         }
 
         void UnloadTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo)
@@ -884,7 +907,7 @@ namespace TTD
             Js::ModuleID moduleID = kmodGlobal;
             BOOL strictMode = FALSE;
 
-            Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, fbInfo->TopLevelBase.SourceCode, (int32)wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
+            Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, fbInfo->TopLevelBase.SourceCode.Contents, (int32)fbInfo->TopLevelBase.SourceCode.Length, moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
             AssertMsg(pfuncScript != nullptr, "Something went wrong!!!");
 
             // Indicate that this is a top-level function. We don't pass the fscrGlobalCode flag to the eval helper,
@@ -893,7 +916,7 @@ namespace TTD
             Js::ParseableFunctionInfo* functionInfo = pfuncScript->GetParseableFunctionInfo();
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            Js::EvalMapString key(fbInfo->TopLevelBase.SourceCode, (int32)wcslen(fbInfo->TopLevelBase.SourceCode), moduleID, strictMode, /* isLibraryCode = */ false);
+            Js::EvalMapString key(fbInfo->TopLevelBase.SourceCode.Contents, (int32)fbInfo->TopLevelBase.SourceCode.Length, moduleID, strictMode, /* isLibraryCode = */ false);
             ctx->AddToNewFunctionMap(key, functionInfo);
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
@@ -901,7 +924,7 @@ namespace TTD
             ////
             //We don't do this automatically ing the eval helper so do it here
             TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, fb, moduleID, fbInfo->TopLevelBase.SourceCode);
+            TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, fb, moduleID, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length);
             ctx->m_ttdTopLevelNewFunction.Add(tbfi);
 
             //walk global body to (1) add functions to pin set (2) build parent map
@@ -928,9 +951,9 @@ namespace TTD
         ////
         //'eval(...)' functions
 
-        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
+        void ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, LPCWSTR source, uint32 sourceLen, ulong grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, 0, source, sourceLen);
 
             fbInfo->EvalFlags = grfscr;
             fbInfo->RegisterDocument = registerDocument;
@@ -957,8 +980,8 @@ namespace TTD
         {
             ulong grfscr = ((ulong)fbInfo->EvalFlags) | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
-            LPCWSTR source = fbInfo->TopLevelBase.SourceCode;
-            int32 sourceLen = (int32)wcslen(source);
+            LPCWSTR source = fbInfo->TopLevelBase.SourceCode.Contents;
+            int32 sourceLen = (int32)fbInfo->TopLevelBase.SourceCode.Length;
             Js::ScriptFunction* pfuncScript = ctx->GetLibrary()->GetGlobalObject()->EvalHelper(ctx, source, sourceLen, fbInfo->TopLevelBase.ModuleId, grfscr, Js::Constants::EvalCode, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
             Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
@@ -970,7 +993,7 @@ namespace TTD
             ////
             //We don't do this automatically ing the eval helper so do it here
             TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, fb, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.SourceCode, (ulong)fbInfo->EvalFlags, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
+            TTD::NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo_InScriptContext(tbfi, fb, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length, (ulong)fbInfo->EvalFlags, fbInfo->RegisterDocument, fbInfo->IsIndirect, fbInfo->IsStrictMode);
             ctx->m_ttdTopLevelEval.Add(tbfi);
 
             //walk global body to (1) add functions to pin set (2) build parent map
@@ -1007,8 +1030,8 @@ namespace TTD
             fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
 
-            fbInfo->FunctionName = alloc.CopyStringInto(fb->GetDisplayName());
-            AssertMsg(wcscmp(fbInfo->FunctionName, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
+            alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
+            AssertMsg(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
 
             if(isWellKnown)
             {
@@ -1096,7 +1119,7 @@ namespace TTD
                         }
                     }
                     AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
-                    AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName, resfb->GetDisplayName()) == 0 || wcscmp(L"get", resfb->GetDisplayName()) == 0 || wcscmp(L"set", resfb->GetDisplayName()) == 0), "We are missing something");
+                    AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(L"get", resfb->GetDisplayName()) == 0 || wcscmp(L"set", resfb->GetDisplayName()) == 0), "We are missing something");
                 }
             }
 
@@ -1131,12 +1154,12 @@ namespace TTD
 
             fbInfo->FunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextTag = reader->ReadAddr(NSTokens::Key::ctxTag, true);
-            fbInfo->FunctionName = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::name, true));
+            reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
 
             bool isWellKnown = reader->ReadBool(NSTokens::Key::isWellKnownToken, true);
             if(isWellKnown)
             {
-                fbInfo->OptKnownPath = reader->ReadWellKnownToken(alloc, NSTokens::Key::wellKnownToken, true);
+                fbInfo->OptKnownPath = reader->ReadWellKnownToken(NSTokens::Key::wellKnownToken, alloc, true);
 
                 fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;
@@ -1162,7 +1185,7 @@ namespace TTD
 
             snapCtx->m_randomSeed0 = ctx->GetLibrary()->GetRandSeed0();
             snapCtx->m_randomSeed1 = ctx->GetLibrary()->GetRandSeed1();
-            snapCtx->m_contextSRC = alloc.CopyStringInto((ctx->GetUrl() != nullptr) ? ctx->GetUrl() : L"Default");
+            alloc.CopyNullTermStringInto(ctx->GetUrl(), snapCtx->m_contextSRC);
 
             JsUtil::List<NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance); 
             JsUtil::List<NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance); 
@@ -1206,7 +1229,7 @@ namespace TTD
 
         void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator)
         {
-            AssertMsg(wcscmp(snpCtx->m_contextSRC, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
+            AssertMsg(wcscmp(snpCtx->m_contextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
             intoCtx->GetLibrary()->SetRandSeed0(snpCtx->m_randomSeed0);
             intoCtx->GetLibrary()->SetRandSeed1(snpCtx->m_randomSeed1);
@@ -1314,7 +1337,7 @@ namespace TTD
             intoCtx->m_scriptContextTagId = reader->ReadLogTag(NSTokens::Key::ctxTag);
             intoCtx->m_randomSeed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
             intoCtx->m_randomSeed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
-            intoCtx->m_contextSRC = alloc.CopyStringInto(reader->ReadString(NSTokens::Key::ctxUri, true));
+            reader->ReadString(NSTokens::Key::ctxUri, alloc, intoCtx->m_contextSRC, true);
 
             intoCtx->m_loadedScriptCount = reader->ReadLengthValue(true);
             intoCtx->m_loadedScriptArray = (intoCtx->m_loadedScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelScriptLoadFunctionBodyResolveInfo>(intoCtx->m_loadedScriptCount) : nullptr;
