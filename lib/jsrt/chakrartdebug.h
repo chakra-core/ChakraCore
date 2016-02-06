@@ -57,6 +57,7 @@
     /// <param name="callbackState">The state passed to <c>JsDiagStartDebugging</c>.</param>
     typedef void (CALLBACK * JsDiagDebugEventCallback)(_In_ JsDiagDebugEvent debugEvent, _In_ JsValueRef eventData, _In_opt_ void* callbackState);
 
+
     /// <summary>
     ///     Starts debugging in the current runtime
     /// </summary>
@@ -89,6 +90,16 @@
     ///     List all active breakpoint in the runtime
     /// </summary>
     /// <param name="breakPoints">Array of breakpoints</param>
+    /// <remarks>
+    ///     <para>
+    ///     [{
+    ///         "breakpointId" : 1,
+    ///         "scriptId" : 1,
+    ///         "line" : 0,
+    ///         "column" : 62
+    ///     }]
+    ///     </para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
@@ -210,9 +221,8 @@
     /// <remarks>
     ///     <para>
     ///     [{
-    ///         "id" : 23,
-    ///         "sourceContext" : 19,
-    ///         "name" : "c:\\Test\\Test.js",
+    ///         "scriptId" : 1,
+    ///         "fileName" : "c:\\Test\\Test.js",
     ///         "lineCount" : 12,
     ///         "sourceLength" : 195,
     ///         "handle" : 3
@@ -235,12 +245,11 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "id" : 13,
-    ///         "sourceContext" : 9,
-    ///         "source" : "",
-    ///         "length" : 15154,
-    ///         "fromLine" : 0,
-    ///         "toLine" : 540
+    ///         "scriptId" : 1,
+    ///         "fileName" : "c:\\Test\\Test.js",
+    ///         "lineCount" : 12,
+    ///         "sourceLength" : 15154,
+    ///         "source" : "var x = 1;"
     ///     }
     ///     </para>
     /// </remarks>
@@ -261,9 +270,8 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "id" : 23,
-    ///         "sourceContext" : 19,
-    ///         "name" : "c:\\Test\\Test.js",
+    ///         "scriptId" : 1,
+    ///         "fileName" : "c:\\Test\\Test.js",
     ///         "line" : 1,
     ///         "column" : 2,
     ///         "stmtStartLine" : 0,
@@ -287,23 +295,17 @@
     /// <remarks>
     ///     <para>
     ///     [{
-    ///         "func" : {
-    ///             "handle" : 2
-    ///         },
-    ///         "script" : {
-    ///             "handle" : 3
-    ///         },
-    ///         "index" : 0,
-    ///         "id" : 23,
-    ///         "sourceContext" : 19,
-    ///         "name" : "c:\\Test\\Test.js",
-    ///         "funcName" : "Anonymous function",
-    ///         "line" : 0,
-    ///         "column" : 62,
-    ///         "sourceText" : "var globalVar = 1",
-    ///         "handle" : 1
-    ///     }]
-    ///     </para>
+    ///        "index" : 0,
+    ///        "scriptId" : 1,
+    ///        "fileName" : "c:\\Test\\Test.js",
+    ///        "line" : 0,
+    ///        "column" : 62,
+    ///        "sourceText" : "var x = 1",
+    ///        "functionHandle" : 2,
+    ///        "scriptHandle" : 3,
+    ///        "handle" : 1
+    ///    }]
+    ///    </para>
     /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -323,36 +325,42 @@
     ///     {
     ///         "exception" : {
     ///             "name" : "{exception}",
-    ///             "type" : "Error",
-    ///             "haveChildrens" : true,
-    ///             "handle" : 20
-    ///         },
+    ///             "type" : "object",
+    ///             "display" : "'a' is undefined",
+    ///             "className" : "Error",
+    ///             "propertyAttributes" : 1,
+    ///             "handle" : 307
+    ///         }
     ///         "arguments" : {
     ///             "name" : "arguments",
-    ///             "type" : "Object",
-    ///             "haveChildrens" : true,
-    ///             "handle" : 21
+    ///             "type" : "object",
+    ///             "display" : "{...}",
+    ///             "className" : "Object",
+    ///             "propertyAttributes" : 1,
+    ///             "handle" : 190
     ///         },
     ///         "returnValue" : {
-    ///             "name" : "arguments",
-    ///             "type" : "Object",
-    ///             "haveChildrens" : true,
-    ///             "handle" : 22
+    ///             "name" : "[Return value]",
+    ///             "type" : "undefined",
+    ///             "propertyAttributes" : 0,
+    ///             "handle" : 192
     ///         },
-    ///         "locals" : [{
-    ///                 "name" : "exports",
-    ///                 "type" : "Object",
-    ///                 "haveChildrens" : true,
-    ///                 "handle" : 23
+    ///         "functionCallsReturn" : [{
+    ///                 "name" : "[foo1 returned]",
+    ///                 "type" : "number",
+    ///                 "value" : 1,
+    ///                 "propertyAttributes" : 2,
+    ///                 "handle" : 191
     ///             }
     ///         ],
+    ///         "locals" : [],
     ///         "scopes" : [{
     ///                 "index" : 0,
-    ///                 "handle" : 24
+    ///                 "handle" : 193
     ///             }
     ///         ],
     ///         "globals" : {
-    ///             "handle" : 25
+    ///             "handle" : 194
     ///         }
     ///     }
     ///     </para>
@@ -374,19 +382,22 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "24" : {
+    ///         "112" : {
     ///             "properties" : [{
     ///                     "name" : "__proto__",
-    ///                     "type" : "Object",
-    ///                     "haveChildrens" : true,
-    ///                     "handle" : 68
+    ///                     "type" : "object",
+    ///                     "display" : "{...}",
+    ///                     "className" : "Object",
+    ///                     "propertyAttributes" : 1,
+    ///                     "handle" : 156
     ///                 }
     ///             ],
     ///             "debuggerOnlyProperties" : [{
     ///                     "name" : "[Map]",
-    ///                     "type" : "Object",
-    ///                     "haveChildrens" : true,
-    ///                     "handle" : 69
+    ///                     "type" : "string",
+    ///                     "value" : "size = 0",
+    ///                     "propertyAttributes" : 2,
+    ///                     "handle" : 157
     ///                 }
     ///             ]
     ///         }
@@ -410,26 +421,32 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "2" : {
-    ///             "id" : 23,
-    ///             "sourceContext" : 19,
-    ///             "line" : 1,
-    ///             "column" : 2,
-    ///             "name" : "Anonymous function",
-    ///             "inferredName" : "Anonymous function",
-    ///             "type" : "function",
-    ///             "handle" : 2
-    ///         },
-    ///         "3" : {
-    ///             "id" : 23,
-    ///             "sourceContext" : 19,
-    ///             "name" : "c:\\Test\\Test.js",
-    ///             "lineCount" : 12,
-    ///             "sourceLength" : 195,
-    ///             "handle" : 3
-    ///         }
-    ///     }
-    ///     </para>
+    ///        "2" : {
+    ///            "scriptId" : 24,
+    ///            "line" : 1,
+    ///            "column" : 63,
+    ///            "name" : "foo",
+    ///            "inferredName" : "foo",
+    ///            "type" : "function",
+    ///            "handle" : 2
+    ///        },
+    ///        "3" : {
+    ///            "scriptId" : 24,
+    ///            "fileName" : "c:\\nodejs\\Test\\Test.js",
+    ///            "lineCount" : 8,
+    ///            "sourceLength" : 137,
+    ///            "handle" : 3
+    ///        },
+    ///        "20" : {
+    ///            "name" : "this",
+    ///            "type" : "object",
+    ///            "display" : "{...}",
+    ///            "className" : "Object",
+    ///            "propertyAttributes" : 1,
+    ///            "handle" : 20
+    ///        }
+    ///    }
+    ///    </para>
     /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -446,8 +463,16 @@
     /// <param name="stackFrameIndex">Index of stack frame on which to evaluate the script</param>
     /// <param name="evalResult">Result of script</param>
     /// <remarks>
-    ///     <para>
-    ///     </para>
+    ///    <para>
+    ///    {
+    ///        "name" : "this",
+    ///        "type" : "object",
+    ///        "display" : "{...}",
+    ///        "className" : "Object",
+    ///        "propertyAttributes" : 1,
+    ///        "handle" : 18
+    ///    }
+    ///    </para>
     /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -455,7 +480,6 @@
     STDAPI_(JsErrorCode)
         JsDiagEvaluate(
             _In_ const wchar_t *script,
-            /* ToDo (SaAgarwa): Do we need JsSourceContext, library code flags and no beakpoint? */
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
 
