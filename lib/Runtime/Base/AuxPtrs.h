@@ -7,8 +7,13 @@
 
 namespace Js
 {
+    // given bucket size, calculate how many pointers can be hold in AuxPtrFix structure
+    constexpr uint8 CalcMaxCount(const uint8 size)
+    {
+        return (size - 1) / (1 + sizeof(void*));
+    }
     // Use fixed size structure to save pointers 
-    template<typename FieldsEnum, uint8 size, uint8 _MaxCount = (size - 8) / sizeof(void*)>
+    template<typename FieldsEnum, uint8 size, uint8 _MaxCount = CalcMaxCount(size)>
     struct AuxPtrsFix
     {
         static const uint8 MaxCount = _MaxCount;
