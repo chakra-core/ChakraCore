@@ -268,7 +268,7 @@ namespace TTD
     }
 
     EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
-        : m_threadContext(threadContext), m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID),
+        : m_threadContext(threadContext), m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_propertyRecordSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_events(nullptr), m_currentEvent(nullptr),
         m_callStack(&HeapAllocator::Instance), 
@@ -278,7 +278,7 @@ namespace TTD
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
-        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_slabAllocator)
+        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_propertyRecordSlabAllocator)
 #if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
         , BPIsSet(false)
         , BPRootEventTime(-1)

@@ -1179,7 +1179,7 @@ namespace TTD
             Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(buffInfo->Length);
             AssertMsg(abuff->GetByteLength() == buffInfo->Length, "Something is wrong with our sizes.");
 
-            memcpy(abuff->GetBuffer(), buffInfo->Buff, buffInfo->Length);
+            js_memcpy_s(abuff->GetBuffer(), abuff->GetByteLength(), buffInfo->Buff, buffInfo->Length);
 
             return abuff;
         }

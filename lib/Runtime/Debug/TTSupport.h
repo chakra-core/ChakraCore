@@ -455,17 +455,6 @@ namespace TTD
             return new (this->SlabAllocateTypeRawSize<sizeof(T)>()) T(args...);
         }
 
-        template <typename T>
-        void SlabDelete(T* obj)
-        {
-            obj->~T();
-
-            if(canUnlink != 0)
-            {
-                this->UnlinkAllocation(obj);
-            }
-        }
-
         //Allocate a T* of the size needed for the template type
         template <typename T>
         T* SlabAllocateStruct()
@@ -561,7 +550,7 @@ namespace TTD
         }
 
         //If allowed unlink the memory allocation specified and free the block if it is no longer used by anyone
-        void UnlinkAllocation(void* allocation)
+        void UnlinkAllocation(const void* allocation)
         {
             AssertMsg(canUnlink, "Unlink not allowed with this slab allocator.");
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -619,6 +608,15 @@ namespace TTD
                         HeapDeleteArray(this->m_slabBlockSize, (byte*)block);
                     }
                 }
+            }
+        }
+
+        //Unlink the memory used by a string
+        void UnlinkString(const TTString& str)
+        {
+            if(str.Contents != nullptr)
+            {
+                this->UnlinkAllocation(str.Contents);
             }
         }
     };

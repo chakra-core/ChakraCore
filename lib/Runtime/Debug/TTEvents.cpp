@@ -62,12 +62,12 @@ namespace TTD
     //////////////////
 
     EventLogEntry::EventLogEntry(EventKind tag, int64 eventTimestamp)
-        : m_eventKind(tag), m_eventTimestamp(eventTimestamp), m_prev(nullptr), m_next(nullptr)
+        : m_eventKind(tag), m_eventTimestamp(eventTimestamp)
     {
         ;
     }
 
-    EventLogEntry::~EventLogEntry()
+    void EventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
         ;
     }
@@ -95,37 +95,7 @@ namespace TTD
         ;
     }
 
-    const EventLogEntry* EventLogEntry::GetPreviousEvent() const
-    {
-        return this->m_prev;
-    }
-
-    EventLogEntry* EventLogEntry::GetPreviousEvent()
-    {
-        return this->m_prev;
-    }
-
-    const EventLogEntry* EventLogEntry::GetNextEvent() const
-    {
-        return this->m_next;
-    }
-
-    EventLogEntry* EventLogEntry::GetNextEvent()
-    {
-        return this->m_next;
-    }
-
-    void EventLogEntry::SetPreviousEvent(EventLogEntry* previous)
-    {
-        this->m_prev = previous;
-    }
-
-    void EventLogEntry::SetNextEvent(EventLogEntry* next)
-    {
-        this->m_next = next;
-    }
-
-    EventLogEntry* EventLogEntry::Parse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
+    EventLogEntry* EventLogEntry::Parse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
     {
         reader->ReadRecordStart(readSeperator);
 
@@ -171,74 +141,6 @@ namespace TTD
         return res;
     }
 
-    void EventLogEntry::EmitEventList(const EventLogEntry* eventList, LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator)
-    {
-        AssertMsg(eventList == nullptr || eventList->m_next == nullptr, "Not the last event in the list!!!");
-
-        uint32 ecount = 0;
-        const EventLogEntry* headEvent = nullptr;
-        const EventLogEntry* currec = eventList;
-        while(currec != nullptr)
-        {
-            ecount++;
-            headEvent = currec;
-            currec = currec->m_prev;
-        }
-        writer->WriteLengthValue(ecount, separator);
-
-        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
-
-        bool first = true;
-        writer->AdjustIndent(1);
-        for(const EventLogEntry* curr = headEvent; curr != nullptr; curr = curr->m_next)
-        {
-            bool isJsRTEndCall = (curr->GetEventKind() == EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->GetActionTypeTag() == JsRTActionType::CallExistingFunctionEnd);
-            bool isExternalEndCall = (curr->GetEventKind() == EventKind::ExternalCallEndTag);
-            if(isJsRTEndCall | isExternalEndCall)
-            {
-                writer->AdjustIndent(-1);
-            }
-
-            curr->EmitEvent(logContainerUri, writer, threadContext, !first ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
-            first = false;
-
-            bool isJsRTBeginCall = (curr->GetEventKind() == EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->GetActionTypeTag() == JsRTActionType::CallExistingFunctionBegin);
-            bool isExternalBeginCall = (curr->GetEventKind() == EventKind::ExternalCallBeginTag);
-            if(isJsRTBeginCall | isExternalBeginCall)
-            {
-                writer->AdjustIndent(1);
-            }
-        }
-        writer->AdjustIndent(-1);
-        writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
-    }
-
-    EventLogEntry* EventLogEntry::ParseEventList(bool readSeperator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
-    {
-        EventLogEntry* prev = nullptr;
-
-        uint32 ecount = reader->ReadLengthValue(readSeperator);
-        reader->ReadSequenceStart_WDefaultKey(true);
-
-        for(uint32 i = 0; i < ecount; ++i)
-        {
-            EventLogEntry* curr = EventLogEntry::Parse(i != 0, threadContext, reader, alloc);
-
-            curr->SetPreviousEvent(prev);
-            if(prev != nullptr)
-            {
-                prev->SetNextEvent(curr);
-            }
-
-            prev = curr;
-        }
-        reader->ReadSequenceEnd();
-
-        AssertMsg(prev == nullptr || prev->GetNextEvent() == nullptr, "This should be the last event in the list.");
-
-        return prev;
-    }
-
     //////////////////
 
     SnapshotEventLogEntry::SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag, TTD_IDENTITY_TAG restoreIdentityTag)
@@ -247,13 +149,9 @@ namespace TTD
         ;
     }
 
-    SnapshotEventLogEntry::~SnapshotEventLogEntry()
+    void SnapshotEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
-        if(this->m_snap != nullptr)
-        {
-            HeapDelete(this->m_snap);
-            this->m_snap = nullptr;
-        }
+        this->UnloadSnapshot();
     }
 
     void SnapshotEventLogEntry::UnloadSnapshot() const
@@ -316,7 +214,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    SnapshotEventLogEntry* SnapshotEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    SnapshotEventLogEntry* SnapshotEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         int64 restoreTime = reader->ReadInt64(NSTokens::Key::restoreTime, true);
         TTD_LOG_TAG restoreLogTag = reader->ReadLogTag(NSTokens::Key::restoreLogTag, true);
@@ -329,11 +227,6 @@ namespace TTD
 
     RandomSeedEventLogEntry::RandomSeedEventLogEntry(int64 eventTimestamp, uint64 seed0, uint64 seed1)
         : EventLogEntry(EventLogEntry::EventKind::RandomSeedTag, eventTimestamp), m_seed0(seed0), m_seed1(seed1)
-    {
-        ;
-    }
-
-    RandomSeedEventLogEntry::~RandomSeedEventLogEntry()
     {
         ;
     }
@@ -363,7 +256,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    RandomSeedEventLogEntry* RandomSeedEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    RandomSeedEventLogEntry* RandomSeedEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         uint64 seed0 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
         uint64 seed1 = reader->ReadUInt64(NSTokens::Key::u64Val, true);
@@ -373,11 +266,6 @@ namespace TTD
 
     DoubleEventLogEntry::DoubleEventLogEntry(int64 eventTimestamp, double val)
         : EventLogEntry(EventLogEntry::EventKind::DoubleTag, eventTimestamp), m_doubleValue(val)
-    {
-        ;
-    }
-
-    DoubleEventLogEntry::~DoubleEventLogEntry()
     {
         ;
     }
@@ -401,7 +289,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    DoubleEventLogEntry* DoubleEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    DoubleEventLogEntry* DoubleEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         double val = reader->ReadDouble(NSTokens::Key::doubleVal, true);
 
@@ -414,9 +302,9 @@ namespace TTD
         ;
     }
 
-    StringValueEventLogEntry::~StringValueEventLogEntry()
+    void StringValueEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
-        ;
+        alloc.UnlinkString(this->m_stringValue);
     }
 
     StringValueEventLogEntry* StringValueEventLogEntry::As(EventLogEntry* e)
@@ -438,7 +326,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    StringValueEventLogEntry* StringValueEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    StringValueEventLogEntry* StringValueEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         TTString val;
         reader->ReadString(NSTokens::Key::stringVal, alloc, val, true);
@@ -454,9 +342,12 @@ namespace TTD
         ;
     }
 
-    PropertyEnumStepEventLogEntry::~PropertyEnumStepEventLogEntry()
+    void PropertyEnumStepEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
-        ;
+        if(!IsNullPtrTTString(this->m_propertyString))
+        {
+            alloc.UnlinkString(this->m_propertyString);
+        }
     }
 
     PropertyEnumStepEventLogEntry* PropertyEnumStepEventLogEntry::As(EventLogEntry* e)
@@ -502,7 +393,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    PropertyEnumStepEventLogEntry* PropertyEnumStepEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    PropertyEnumStepEventLogEntry* PropertyEnumStepEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         BOOL retCode = reader->ReadBool(NSTokens::Key::boolVal, true);
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
@@ -534,11 +425,6 @@ namespace TTD
         ;
     }
 
-    SymbolCreationEventLogEntry::~SymbolCreationEventLogEntry()
-    {
-        ;
-    }
-
     SymbolCreationEventLogEntry* SymbolCreationEventLogEntry::As(EventLogEntry* e)
     {
         AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::SymbolCreationTag, "Not a property enum event!");
@@ -559,7 +445,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    SymbolCreationEventLogEntry* SymbolCreationEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    SymbolCreationEventLogEntry* SymbolCreationEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
 
@@ -570,11 +456,11 @@ namespace TTD
 
     namespace NSLogValue
     {
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue* val, SlabAllocator& alloc)
+        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val)
         {
             if(var == nullptr)
             {
-                val->Tag = ArgRetValueTag::RawNull;
+                val.Tag = ArgRetValueTag::RawNull;
             }
             else
             {
@@ -584,77 +470,77 @@ namespace TTD
                     if(Js::TaggedInt::Is(var))
                     {
 #endif
-                        val->Tag = ArgRetValueTag::ChakraTaggedInteger;
-                        val->u_int64Val = Js::TaggedInt::ToInt32(var);
+                        val.Tag = ArgRetValueTag::ChakraTaggedInteger;
+                        val.u_int64Val = Js::TaggedInt::ToInt32(var);
 #if FLOATVAR
                     }
                     else
                     {
                         AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
 
-                        val->Tag = ArgRetValueTag::ChakraTaggedDouble;
-                        val->u_doubleVal = Js::JavascriptNumber::GetValue(var);
+                        val.Tag = ArgRetValueTag::ChakraTaggedDouble;
+                        val.u_doubleVal = Js::JavascriptNumber::GetValue(var);
                     }
 #endif
                 }
                 else
                 {
-                    val->Tag = ArgRetValueTag::ChakraLoggedObject;
+                    val.Tag = ArgRetValueTag::ChakraLoggedObject;
 
                     Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(var);
                     TTD_LOG_TAG logTag = obj->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(obj);
                     AssertMsg(logTag != TTD_INVALID_LOG_TAG, "Object was not logged previously!!!");
 
-                    val->u_objectTag = logTag;
+                    val.u_objectTag = logTag;
                 }
             }
         }
 
-        Js::Var InflateArgRetValueIntoVar(const ArgRetValue* val, Js::ScriptContext* ctx)
+        Js::Var InflateArgRetValueIntoVar(const ArgRetValue& val, Js::ScriptContext* ctx)
         {
             Js::Var res = nullptr;
 
-            if(val->Tag == ArgRetValueTag::RawNull)
+            if(val.Tag == ArgRetValueTag::RawNull)
             {
                 res = nullptr;
             }
-            else if(val->Tag == ArgRetValueTag::ChakraTaggedInteger)
+            else if(val.Tag == ArgRetValueTag::ChakraTaggedInteger)
             {
-                res = Js::TaggedInt::ToVarUnchecked((int32)val->u_int64Val);
+                res = Js::TaggedInt::ToVarUnchecked((int32)val.u_int64Val);
             }
 #if FLOATVAR
-            else if(val->Tag == ArgRetValueTag::ChakraTaggedDouble)
+            else if(val.Tag == ArgRetValueTag::ChakraTaggedDouble)
             {
-                res = Js::JavascriptNumber::NewInlined(val->u_doubleVal, nullptr);
+                res = Js::JavascriptNumber::NewInlined(val.u_doubleVal, nullptr);
             }
 #endif
             else
             {
-                res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val->u_objectTag);
+                res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val.u_objectTag);
             }
 
             return res;
         }
 
-        void EmitArgRetValue(const ArgRetValue* val, FileWriter* writer, NSTokens::Separator separator)
+        void EmitArgRetValue(const ArgRetValue& val, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
 
-            writer->WriteTag<ArgRetValueTag>(NSTokens::Key::argRetValueType, val->Tag);
-            switch(val->Tag)
+            writer->WriteTag<ArgRetValueTag>(NSTokens::Key::argRetValueType, val.Tag);
+            switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
                 break;
             case ArgRetValueTag::ChakraTaggedInteger:
-                writer->WriteInt32(NSTokens::Key::i32Val, (int32)val->u_int64Val, NSTokens::Separator::CommaSeparator);
+                writer->WriteInt32(NSTokens::Key::i32Val, (int32)val.u_int64Val, NSTokens::Separator::CommaSeparator);
                 break;
 #if FLOATVAR
             case ArgRetValueTag::ChakraTaggedDouble:
-                writer->WriteDouble(NSTokens::Key::doubleVal, val->u_doubleVal, NSTokens::Separator::CommaSeparator);
+                writer->WriteDouble(NSTokens::Key::doubleVal, val.u_doubleVal, NSTokens::Separator::CommaSeparator);
                 break;
 #endif
             case ArgRetValueTag::ChakraLoggedObject:
-                writer->WriteLogTag(NSTokens::Key::tagVal, val->u_objectTag, NSTokens::Separator::CommaSeparator);
+                writer->WriteLogTag(NSTokens::Key::tagVal, val.u_objectTag, NSTokens::Separator::CommaSeparator);
                 break;
             default:
                 AssertMsg(false, "Missing case??");
@@ -664,26 +550,26 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseArgRetValue(ArgRetValue* val, bool readSeperator, FileReader* reader, SlabAllocator& alloc)
+        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader)
         {
             reader->ReadRecordStart(readSeperator);
 
-            val->Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
+            val.Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
 
-            switch(val->Tag)
+            switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
                 break;
             case ArgRetValueTag::ChakraTaggedInteger:
-                val->u_int64Val = reader->ReadInt32(NSTokens::Key::i32Val, true);
+                val.u_int64Val = reader->ReadInt32(NSTokens::Key::i32Val, true);
                 break;
 #if FLOATVAR
             case ArgRetValueTag::ChakraTaggedDouble:
-                val->u_doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
+                val.u_doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
                 break;
 #endif
             case ArgRetValueTag::ChakraLoggedObject:
-                val->u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
+                val.u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
                 break;
             default:
                 AssertMsg(false, "Missing case??");
@@ -702,9 +588,11 @@ namespace TTD
         ;
     }
 
-    ExternalCallEventBeginLogEntry::~ExternalCallEventBeginLogEntry()
+    void ExternalCallEventBeginLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
-        ;
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        alloc.UnlinkString(this->m_functionName);
+#endif
     }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -739,7 +627,7 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    ExternalCallEventBeginLogEntry* ExternalCallEventBeginLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    ExternalCallEventBeginLogEntry* ExternalCallEventBeginLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TTString fname;
@@ -758,13 +646,8 @@ namespace TTD
         return res;
     }
 
-    ExternalCallEventEndLogEntry::ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, NSLogValue::ArgRetValue* returnVal)
+    ExternalCallEventEndLogEntry::ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, const NSLogValue::ArgRetValue& returnVal)
         : EventLogEntry(EventLogEntry::EventKind::ExternalCallEndTag, eTime), m_matchingBeginTime(matchingBeginTime), m_rootNestingDepth(rootNestingDepth), m_hasTerminiatingException(false), m_hasScriptException(false), m_callEndTime(endTime), m_returnVal(returnVal)
-    {
-        ;
-    }
-
-    ExternalCallEventEndLogEntry::~ExternalCallEventEndLogEntry()
     {
         ;
     }
@@ -796,7 +679,7 @@ namespace TTD
         return this->m_rootNestingDepth;
     }
 
-    const NSLogValue::ArgRetValue* ExternalCallEventEndLogEntry::GetReturnValue() const
+    const NSLogValue::ArgRetValue& ExternalCallEventEndLogEntry::GetReturnValue() const
     {
         return this->m_returnVal;
     }
@@ -818,16 +701,16 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::CompleteParse(bool readSeperator, FileReader* reader, SlabAllocator& alloc, int64 eTime)
+    ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
     {
         int64 matchingBegin = reader->ReadInt64(NSTokens::Key::matchingCallBegin, true);
         int32 nestingDepth = reader->ReadInt32(NSTokens::Key::rootNestingDepth, true);
         bool hasScriptException = reader->ReadBool(NSTokens::Key::boolVal, true);
         bool hasTerminatingException = reader->ReadBool(NSTokens::Key::boolVal, true);
 
-        NSLogValue::ArgRetValue* retVal = alloc.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue retVal;
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(retVal, false, reader, alloc);
+        NSLogValue::ParseArgRetValue(retVal, false, reader);
 
         double endTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 

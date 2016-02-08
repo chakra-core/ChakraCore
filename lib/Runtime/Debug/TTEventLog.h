@@ -99,6 +99,9 @@ namespace TTD
         //Allocator we use for all the events we see
         SlabAllocator m_slabAllocator;
 
+        //Allocator we use for all the property records
+        SlabAllocator m_propertyRecordSlabAllocator;
+
         //The root directory that the log info gets stored into
         TTString m_logInfoRootDir;
 
