@@ -230,4 +230,11 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>unicode_toUpperCase_toLowerCase.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>exclude_win7</tags>
+    </default>
+  </test>
 </regress-exe>

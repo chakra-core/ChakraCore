@@ -2051,7 +2051,13 @@ case_2:
         if (pThis->GetLength() == 1)
         {
             wchar_t inChar = pThis->GetString()[0];
-            wchar_t outChar = CharToLowerCase(inChar);
+            wchar_t outChar = inChar;
+#if DBG
+            DWORD converted =
+#endif
+                CharLowerBuffW(&outChar, 1);
+
+            Assert(converted == 1);
 
             return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
         }
@@ -2108,7 +2114,13 @@ case_2:
         if (pThis->GetLength() == 1)
         {
             wchar_t inChar = pThis->GetString()[0];
-            wchar_t outChar = CharToUpperCase(inChar);
+            wchar_t outChar = inChar;
+#if DBG
+            DWORD converted =
+#endif
+                CharUpperBuffW(&outChar, 1);
+
+            Assert(converted == 1);
 
             return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
         }
@@ -2125,23 +2137,31 @@ case_2:
         wchar_t *outStr = builder.DangerousGetWritableBuffer();
 
         wchar_t* outStrLim = outStr + count;
+        wchar_t *o = outStr;
 
-        //TODO the mapping based on unicode tables needs review for ES5.
-        // mapping is not always 1.1
+        while (o < outStrLim)
+        {
+            *o++ = *inStr++;
+        }
+
         if(toCase == ToUpper)
         {
-            while (outStr < outStrLim)
-            {
-                *outStr++ = CharToUpperCase(*inStr++);
-            }
+#if DBG
+            DWORD converted =
+#endif
+                CharUpperBuffW(outStr, count);
+
+            Assert(converted == count);
         }
         else
         {
             Assert(toCase == ToLower);
-            while(outStr < outStrLim)
-            {
-                *outStr++ = CharToLowerCase(*inStr++);
-            }
+#if DBG
+            DWORD converted =
+#endif
+                CharLowerBuffW(outStr, count);
+
+            Assert(converted == count);
         }
 
         return builder.ToString();
