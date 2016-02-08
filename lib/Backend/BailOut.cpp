@@ -1707,7 +1707,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         }
         else switch(bailOutKind)
         {
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
                 if (profileInfo->IsLossyIntTypeSpecDisabled())
                 {
                     reThunk = true;
@@ -2152,7 +2152,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
         }
         else switch(bailOutKind)
         {
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
                 profileInfo->DisableLossyIntTypeSpec();
                 executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::LossyIntTypeSpecDisabled;

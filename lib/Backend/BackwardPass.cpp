@@ -6134,7 +6134,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             case IR::BailOutExpectingInteger:
             case IR::BailOutPrimitiveButString:
             case IR::BailOutExpectingString:
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
             case IR::BailOutFailedInlineTypeCheck:
             case IR::BailOutOnFloor:
             case IR::BailOnModByPowerOf2:

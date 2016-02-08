@@ -2380,13 +2380,15 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject)
+        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
+            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            bailOutInstr->m_opcode = Js::OpCode::BailOnNotObject;
+            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
+            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndInstance);
         }
         else
@@ -2413,6 +2415,10 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
         if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
         {
             this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
+        }
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        {
+            this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
         else
         {
@@ -7515,7 +7521,7 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
 }
 
 bool
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     // isInt:
     //   dst = ASR r1, AtomTag
@@ -7617,7 +7623,14 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad)
             return true;
         }
 
-        this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        if (conversionFromObjectAllowed)
+        {
+            this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            this->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
 
     return false;

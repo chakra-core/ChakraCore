@@ -13688,7 +13688,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     // supposed to happen, so the resulting lossy int32 value cannot be reused. Bail out on implicit calls.
                     Assert(DoLossyIntTypeSpec());
 
-                    bailOutKind = IR::BailOutOnLossyToInt32ImplicitCalls;
+                    bailOutKind = IR::BailOutOnNotPrimitive;
                     isBailout = true;
                 }
             }

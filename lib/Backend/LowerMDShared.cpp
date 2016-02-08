@@ -646,13 +646,15 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject)
+        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
+            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            bailOutInstr->m_opcode = Js::OpCode::BailOnNotObject;
+            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
+            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
         else
@@ -681,6 +683,10 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
         if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
         {
             this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
+        }
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        {
+            this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
         else if (bailOutInstr->m_opcode == Js::OpCode::BailOut)
         {
@@ -7496,9 +7502,9 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 }
 
 bool
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
-    return lowererMDArch.EmitLoadInt32(instrLoad);
+    return lowererMDArch.EmitLoadInt32(instrLoad, conversionFromObjectAllowed);
 }
 
 void

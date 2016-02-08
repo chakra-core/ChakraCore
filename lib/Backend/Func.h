@@ -502,6 +502,7 @@ public:
     unsigned int        m_labelCount;
     BitVector           m_regsUsed;
     StackSym *          tempSymDouble;
+    StackSym *          tempSymBool;
     uint32              loopCount;
     Js::ProfileId       callSiteIdInParentFunc;
     bool                m_isLeaf: 1;  // This is set in the IRBuilder and might be inaccurate after inlining

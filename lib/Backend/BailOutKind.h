@@ -12,7 +12,7 @@ BAIL_OUT_KIND(BailOutNumberOnly,                    IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutPrimitiveButString,            IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutOnImplicitCalls,               IR::BailOutForArrayBits)
 BAIL_OUT_KIND(BailOutOnImplicitCallsPreOp,          (IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutMarkTempObject) & ~IR::BailOutOnArrayAccessHelperCall )
-BAIL_OUT_KIND(BailOutOnLossyToInt32ImplicitCalls,   IR::BailOutMarkTempObject) // separate from BailOutOnImplicitCalls so that the bailout can disable LossyIntTypeSpec, but otherwise equivalent in functionality
+BAIL_OUT_KIND(BailOutOnNotPrimitive,                IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutOnMemOpError,                  IR::BailOutForArrayBits)
 BAIL_OUT_KIND(BailOutOnInlineFunction,              0)
 BAIL_OUT_KIND(BailOutOnNoProfile,                   0)
