@@ -11,12 +11,17 @@
 #if ENABLE_TTD
 
 //2MB slabs in allocator with a threshold of 4Kb to allocate a single block in our large space
-#define TTD_SLAB_BLOCK_ALLOCATION_SIZE 2097152
+#define TTD_SLAB_BLOCK_ALLOCATION_SIZE_LARGE 2097152
+#define TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID 262144
+#define TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL 32768
+
+//A threshold of 4Kb to allocate a single block in our large space
 #define TTD_SLAB_LARGE_BLOCK_SIZE 4096
+
 #define TTD_WORD_ALIGN_ALLOC_SIZE(ASIZE) (((ASIZE) + 0x3) & 0xFFFFFFFC)
 
 #define TTD_SLAB_BLOCK_SIZE TTD_WORD_ALIGN_ALLOC_SIZE(sizeof(SlabBlock))
-#define TTD_SLAB_BLOCK_USABLE_SIZE (TTD_SLAB_BLOCK_ALLOCATION_SIZE - TTD_SLAB_BLOCK_SIZE)
+#define TTD_SLAB_BLOCK_USABLE_SIZE(SLABSIZE) (SLABSIZE - TTD_SLAB_BLOCK_SIZE)
 
 #define TTD_LARGE_SLAB_BLOCK_SIZE TTD_WORD_ALIGN_ALLOC_SIZE(sizeof(LargeSlabBlock))
 
@@ -164,6 +169,9 @@ namespace TTD
         byte* m_currPos;
         byte* m_endPos;
 
+        //The size we want to allocate for each SlabBlock -- set in constructor and unchanged after
+        const uint32 m_slabBlockSize;
+
         //The list of slab blocks used in the allocator (the current block to allocate from is always at the head)
         SlabBlock* m_headBlock;
 
@@ -181,14 +189,14 @@ namespace TTD
         //Get a new block in the slab
         void AddNewBlock()
         {
-            byte* allocBlock = HeapNewArray(byte, TTD_SLAB_BLOCK_ALLOCATION_SIZE);
+            byte* allocBlock = HeapNewArray(byte, this->m_slabBlockSize);
             AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             SlabBlock* newBlock = (SlabBlock*)allocBlock;
             byte* dataArray = (allocBlock + TTD_SLAB_BLOCK_SIZE);
 
             this->m_currPos = dataArray;
-            this->m_endPos = dataArray + TTD_SLAB_BLOCK_USABLE_SIZE;
+            this->m_endPos = dataArray + TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize);
 
             newBlock->BlockData = dataArray;
             newBlock->Next = nullptr;
@@ -209,7 +217,7 @@ namespace TTD
             AssertMsg(n <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
 
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(n + canUnlink); //make alloc size word aligned
-            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (n + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_ALLOCATION_SIZE), "We can never allocate a block this big with the slab allocator!!");
+            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (n + canUnlink)) & (desiredsize < this->m_slabBlockSize), "We can never allocate a block this big with the slab allocator!!");
 
             if(this->m_currPos + desiredsize > this->m_endPos)
             {
@@ -247,7 +255,7 @@ namespace TTD
 
             byte* res = nullptr;
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes + canUnlink); //make alloc size word aligned
-            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_ALLOCATION_SIZE), "We can never allocate a block this big with the slab allocator!!");
+            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + canUnlink)) & (desiredsize < this->m_slabBlockSize), "We can never allocate a block this big with the slab allocator!!");
 
             if(reserve)
             {
@@ -341,17 +349,17 @@ namespace TTD
         }
 
     public:
-        SlabAllocatorBase()
-            : m_largeBlockList(nullptr)
+        SlabAllocatorBase(uint32 slabBlockSize)
+            : m_largeBlockList(nullptr), m_slabBlockSize(slabBlockSize)
         {
-            byte* allocBlock = HeapNewArray(byte, TTD_SLAB_BLOCK_ALLOCATION_SIZE);
+            byte* allocBlock = HeapNewArray(byte, this->m_slabBlockSize);
             AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             this->m_headBlock = (SlabBlock*)allocBlock;
             byte* dataArray = (allocBlock + TTD_SLAB_BLOCK_SIZE);
 
             this->m_currPos = dataArray;
-            this->m_endPos = dataArray + TTD_SLAB_BLOCK_USABLE_SIZE;
+            this->m_endPos = dataArray + TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize);
 
             this->m_headBlock->BlockData = dataArray;
 
@@ -374,7 +382,7 @@ namespace TTD
                 SlabBlock* tmp = currBlock;
                 currBlock = currBlock->Previous;
 
-                HeapDeleteArray(TTD_SLAB_BLOCK_ALLOCATION_SIZE, (byte*)tmp);
+                HeapDeleteArray(this->m_slabBlockSize, (byte*)tmp);
             }
 
             LargeSlabBlock* currLargeBlock = this->m_largeBlockList;
@@ -423,7 +431,7 @@ namespace TTD
 
             for(SlabBlock* currBlock = this->m_headBlock; currBlock != nullptr; currBlock = currBlock->Previous)
             {
-                memreserved += (uint64)TTD_SLAB_BLOCK_ALLOCATION_SIZE;
+                memreserved += (uint64)this->m_slabBlockSize;
             }
 
             for(LargeSlabBlock* currLargeBlock = this->m_largeBlockList; currLargeBlock != nullptr; currLargeBlock = currLargeBlock->Previous)
@@ -592,7 +600,7 @@ namespace TTD
                         //we always need a head block to allocate out of -- so instead of deleting just reset it
 
                         this->m_currPos = this->m_headBlock->BlockData;
-                        this->m_endPos = this->m_headBlock->BlockData + TTD_SLAB_BLOCK_USABLE_SIZE;
+                        this->m_endPos = this->m_headBlock->BlockData + TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize);
 
                         this->m_headBlock->RefCounter = 0;
                     }
@@ -608,7 +616,7 @@ namespace TTD
                             block->Previous->Next = block->Next;
                         }
 
-                        HeapDeleteArray(TTD_SLAB_BLOCK_ALLOCATION_SIZE, (byte*)block);
+                        HeapDeleteArray(this->m_slabBlockSize, (byte*)block);
                     }
                 }
             }

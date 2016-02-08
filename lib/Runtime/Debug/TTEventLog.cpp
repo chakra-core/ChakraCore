@@ -268,7 +268,7 @@ namespace TTD
     }
 
     EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
-        : m_threadContext(threadContext), m_slabAllocator(),
+        : m_threadContext(threadContext), m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_events(nullptr), m_currentEvent(nullptr),
         m_callStack(&HeapAllocator::Instance), 
@@ -1979,21 +1979,20 @@ namespace TTD
 
         EventLogEntry::EmitEventList(this->m_events, this->m_logInfoRootDir.Contents, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
 
-        //if we haven't moved the properties to their serialized form them take care of it 
-        if(this->m_propertyRecordList.Count() == 0)
+        //we haven't moved the properties to their serialized form them take care of it 
+        AssertMsg(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
+
+        for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
-            {
-                Js::PropertyRecord* pRecord = static_cast<Js::PropertyRecord*>(iter.CurrentValue());
-                NSSnapType::SnapPropertyRecord* sRecord = this->m_propertyRecordList.NextOpenEntry();
+            Js::PropertyRecord* pRecord = static_cast<Js::PropertyRecord*>(iter.CurrentValue());
+            NSSnapType::SnapPropertyRecord* sRecord = this->m_propertyRecordList.NextOpenEntry();
 
-                sRecord->PropertyId = pRecord->GetPropertyId();
-                sRecord->IsNumeric = pRecord->IsNumeric();
-                sRecord->IsBound = pRecord->IsBound();
-                sRecord->IsSymbol = pRecord->IsSymbol();
+            sRecord->PropertyId = pRecord->GetPropertyId();
+            sRecord->IsNumeric = pRecord->IsNumeric();
+            sRecord->IsBound = pRecord->IsBound();
+            sRecord->IsSymbol = pRecord->IsSymbol();
 
-                this->m_slabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
-            }
+            this->m_slabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
         }
 
         //emit the properties

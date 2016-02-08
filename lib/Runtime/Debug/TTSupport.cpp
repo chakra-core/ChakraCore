@@ -10,19 +10,6 @@ namespace TTD
 {
     namespace UtilSupport
     {
-        //Ensure a function is fully parsed/deserialized 
-        Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi);
-
-        //Copy a string into the heap allocator
-        void CopyStringToHeapAllocator(LPCWSTR string, TTString& into);
-        void CopyStringToHeapAllocatorWLength(LPCWSTR string, uint32 length, TTString& into);
-        void DeleteStringFromHeapAllocator(TTString& string);
-
-        void WriteCodeToFile();
-        void ReadCodeFromFile();
-
-        ////
-
         TTAutoString::TTAutoString()
             : m_allocSize(-1), m_contents(nullptr), m_optFormatBuff(nullptr)
         {

@@ -202,7 +202,7 @@ namespace TTD
     }
 
     SnapShot::SnapShot()
-        : m_slabAllocator(),
+        : m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_LARGE),
         m_ctxList(&this->m_slabAllocator), m_handlerList(&this->m_slabAllocator), m_typeList(&this->m_slabAllocator),
         m_functionBodyList(&this->m_slabAllocator), m_primitiveObjectList(&this->m_slabAllocator), m_compoundObjectList(&this->m_slabAllocator),
         m_scopeEntries(&this->m_slabAllocator), m_slotArrayEntries(&this->m_slabAllocator),

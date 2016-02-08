@@ -95,6 +95,8 @@ namespace TTD
     {
     private:
         ThreadContext* m_threadContext;
+
+        //Allocator we use for all the events we see
         SlabAllocator m_slabAllocator;
 
         //The root directory that the log info gets stored into
