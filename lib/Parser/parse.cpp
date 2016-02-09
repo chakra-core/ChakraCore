@@ -9985,6 +9985,17 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         // by command-line switch.
         grfscr &= ~fscrDeferFncParse;
     }
+    else if ((grfscr & (fscrImplicitThis | fscrImplicitParents)) &&
+             (
+                 PHASE_OFF1(Js::Phase::DeferEventHandlersPhase) ||
+                 this->m_scriptContext->IsInDebugOrSourceRundownMode()
+             )
+        )
+    {
+        // Don't defer event handlers in debug/rundown mode, because we need to register the document,
+        // so we need to create a full FunctionBody for the script body.
+        grfscr &= ~fscrDeferFncParse;
+    }
 
     bool isDeferred = (grfscr & fscrDeferredFnc) != 0;
 
