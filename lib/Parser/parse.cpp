@@ -3215,22 +3215,23 @@ ParseNodePtr Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
     }
 
     MemberType memberType;
-    ushort flags;
-    if(nop == knopGetMember)
+    ushort flags = fFncMethod | fFncNoName;
+    if (nop == knopGetMember)
     {
         memberType = MemberTypeGetter;
-        flags = fFncNoArg | fFncNoName;
+        flags |= fFncNoArg;
     }
     else
     {
         Assert(nop == knopSetMember);
         memberType = MemberTypeSetter;
-        flags = fFncOneArg | fFncNoName;
+        flags |= fFncOneArg;
     }
 
     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-    ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(flags | fFncMethod | (nop == knopSetMember ? fFncSetter : fFncNoFlgs), *ppNameHint,
-        /*isSourceElement*/ false, /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
+    ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(flags, *ppNameHint,
+        /*isSourceElement*/ false, /*needsPIDOnRCurlyScan*/ false,
+        /*resetParsingSuperRestrictionState*/ false);
 
     if (buildAST)
     {
@@ -5283,11 +5284,20 @@ void Parser::UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *f
 template<bool buildAST>
 void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 {
-    // In strict mode we need to detect duplicated formals so force PID creation (unless the function should take 0 or 1 arg).
-    BOOL forcePid = IsStrictMode() && ((flags & (fFncNoArg | fFncOneArg)) == 0);
-    AutoTempForcePid autoForcePid(m_pscan, forcePid);
-
     bool fLambda = (flags & fFncLambda) != 0;
+    bool fMethod = (flags & fFncMethod) != 0;
+    bool fNoArg = (flags & fFncNoArg) != 0;
+    bool fOneArg = (flags & fFncOneArg) != 0;
+
+    Assert(!fNoArg || !fOneArg); // fNoArg and fOneArg can never be true at the same time.
+
+    // strictFormals corresponds to the StrictFormalParameters grammar production
+    // in the ES spec which just means duplicate names are not allowed
+    bool fStrictFormals = IsStrictMode() || fLambda || fMethod;
+
+    // When detecting duplicated formals pids are needed so force PID creation (unless the function should take 0 or 1 arg).
+    bool forcePid = fStrictFormals && !fNoArg && !fOneArg;
+    AutoTempForcePid autoForcePid(m_pscan, forcePid);
 
     // Lambda's allow single formal specified by a single binding identifier without parentheses, special case it.
     if (fLambda && m_token.tk == tkID)
@@ -5311,21 +5321,20 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
     // Otherwise, must have a parameter list within parens.
     ChkCurTok(tkLParen, ERRnoLparen);
+
     // Now parse the list of arguments, if present
-    Assert((flags & (fFncNoArg | fFncOneArg)) != (fFncNoArg | fFncOneArg)); // fFncNoArg and fFncOneArg can never be at same time.
     if (m_token.tk == tkRParen)
     {
-        if (flags & fFncOneArg)
+        if (fOneArg)
         {
-            Error(ERRSetterMustHaveOneArgument);
+            Error(ERRSetterMustHaveOneParameter);
         }
     }
     else
     {
-        if (flags & fFncNoArg)
+        if (fNoArg)
         {
-            Error(ERRnoRparen); //enforce no arguments
-            // No recovery necessary since this is a semantic, not structural, error
+            Error(ERRGetterMustHaveNoParameters);
         }
         SList<IdentPtr> formals(&m_nodeAllocator);
         ParseNodePtr pnodeT = nullptr;
@@ -5387,7 +5396,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             {
                 if (seenRestParameter)
                 {
-                    if (flags & fFncSetter)
+                    if (flags & fFncOneArg)
                     {
                         // The parameter of a setter cannot be a rest parameter.
                         Error(ERRUnexpectedEllipsis);
@@ -5430,7 +5439,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
                 }
 
-                if (IsStrictMode() || isNonSimpleParameterList || fLambda)
+                if (fStrictFormals)
                 {
                     IdentPtr pid = m_token.GetIdentifier(m_phtbl);
                     UpdateOrCheckForDuplicateInFormals(pid, &formals);
@@ -5447,7 +5456,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                 {
                     if (m_token.tk != tkRParen)
                     {
-                        Error(ERRSetterMustHaveOneArgument);
+                        Error(ERRSetterMustHaveOneParameter);
                     }
                     break; //enforce only one arg
                 }
@@ -6400,7 +6409,9 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                 {
                     AutoParsingSuperRestrictionStateRestorer restorer(this);
                     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-                    pnodeFnc = ParseFncDecl<buildAST>((isGetter ? fFncNoArg : fFncSetter) | fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, false, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
+                    pnodeFnc = ParseFncDecl<buildAST>(fncDeclFlags | (isGetter ? fFncNoArg : fFncOneArg),
+                        pidHint ? pidHint->Psz() : nullptr, false, /* needsPIDOnRCurlyScan */ true,
+                        /* resetParsingSuperRestrictionState */false);
                 }
 
                 pnodeFnc->sxFnc.SetIsStaticMember(isStatic);
@@ -6409,7 +6420,9 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                 {
                     pnodeFnc->sxFnc.SetIsAccessor();
                     pnodeMember = CreateBinNode(isGetter ? knopGetMember : knopSetMember, pnodeMemberName, pnodeFnc);
-                    pMemberNameHint = ConstructFinalHintNode(pClassNamePid, pidHint, isGetter ? wellKnownPropertyPids.getter : wellKnownPropertyPids.setter, isStatic, &memberNameHintLength, &memberNameOffset, isComputedName, pMemberNameHint);
+                    pMemberNameHint = ConstructFinalHintNode(pClassNamePid, pidHint,
+                        isGetter ? wellKnownPropertyPids.getter : wellKnownPropertyPids.setter, isStatic,
+                        &memberNameHintLength, &memberNameOffset, isComputedName, pMemberNameHint);
                 }
             }
             else
@@ -7312,7 +7325,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // is not a grammar production outside of async functions.
                 //
                 // Further, await expressions are disallowed within parameter scopes.
-                Error(ERRbadAwait);
+                Error(ERRBadAwait);
             }
         }
 

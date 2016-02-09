@@ -53,7 +53,7 @@ LSC_ERROR_MSG( 1047, ERRFncDeclNotSourceElement, "In strict mode, function decla
 LSC_ERROR_MSG( 1048, ERRKeywordNotId  , "The use of a keyword for an identifier is invalid")
 LSC_ERROR_MSG( 1049, ERRFutureReservedWordNotId, "The use of a future reserved word for an identifier is invalid")
 LSC_ERROR_MSG( 1050, ERRFutureReservedWordInStrictModeNotId, "The use of a future reserved word for an identifier is invalid. The identifier name is reserved in strict mode.")
-LSC_ERROR_MSG( 1051, ERRSetterMustHaveOneArgument  , "Setter functions must have one argument")
+LSC_ERROR_MSG( 1051, ERRSetterMustHaveOneParameter, "Setter functions must have exactly one parameter")
 LSC_ERROR_MSG( 1052, ERRRedeclaration  , "Let/Const redeclaration") // "var x; let x;" is also a redeclaration
 LSC_ERROR_MSG( 1053, ERRUninitializedConst  , "Const must be initialized")
 LSC_ERROR_MSG( 1054, ERRDeclOutOfStmt  , "Declaration outside statement context")
@@ -89,4 +89,6 @@ LSC_ERROR_MSG(1080, ERRForInNoInitAllowed, "for-in loop head declarations cannot
 LSC_ERROR_MSG(1081, ERRForOfNoInitAllowed, "for-of loop head declarations cannot have an initializer")
 LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode on functions with non-simple parameter list")
 
-LSC_ERROR_MSG(1083, ERRbadAwait, "'await' expression not allowed in this context")
+LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context")
+
+LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have no parameters")
