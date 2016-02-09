@@ -235,7 +235,7 @@ namespace TTD
             {
             case L'\0':
                 this->WriteWCHAR(L'\\');
-                this->WriteWCHAR(L'\0');
+                this->WriteWCHAR(L'0');
                 break;
             case L'\"':
                 this->WriteWCHAR(L'\\');
@@ -808,6 +808,8 @@ namespace TTD
                 case 0:
                     return NSTokens::ParseTokenKind::Error; //we shouldn't hit EOF explicitly here
                 case '0':
+                    charList.Add(0x0);
+                    break;
                 case '"':
                 case '/':
                 case '\\':

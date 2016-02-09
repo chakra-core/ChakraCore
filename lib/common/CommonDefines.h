@@ -272,7 +272,7 @@
 #define ENABLE_TTD_IDENTITY_TRACING 1
 
 //A temp workaround with default recording actions for Node
-#define ENABLE_TTD_FORCE_RECORD_NODE 0
+#define ENABLE_TTD_FORCE_RECORD_NODE 1
 
 //A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
 #define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1

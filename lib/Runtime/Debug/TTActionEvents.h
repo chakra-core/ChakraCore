@@ -316,7 +316,7 @@ namespace TTD
     class JsRTDeletePropertyAction : public JsRTActionLogEntry
     {
     private:
-        const NSLogValue::ArgRetValue& m_var;
+        const NSLogValue::ArgRetValue m_var;
         const Js::PropertyId m_propertyId;
         const bool m_useStrictRules;
 
@@ -333,8 +333,8 @@ namespace TTD
     class JsRTSetPrototypeAction : public JsRTActionLogEntry
     {
     private:
-        const NSLogValue::ArgRetValue& m_var;
-        const NSLogValue::ArgRetValue& m_proto;
+        const NSLogValue::ArgRetValue m_var;
+        const NSLogValue::ArgRetValue m_proto;
 
     public:
         JsRTSetPrototypeAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, const NSLogValue::ArgRetValue& proto);
@@ -349,9 +349,9 @@ namespace TTD
     class JsRTSetPropertyAction : public JsRTActionLogEntry
     {
     private:
-        const NSLogValue::ArgRetValue& m_var;
+        const NSLogValue::ArgRetValue m_var;
         Js::PropertyId m_propertyId;
-        const NSLogValue::ArgRetValue& m_value;
+        const NSLogValue::ArgRetValue m_value;
         bool m_useStrictRules;
 
     public:
@@ -367,9 +367,9 @@ namespace TTD
     class JsRTSetIndexAction : public JsRTActionLogEntry
     {
     private:
-        const NSLogValue::ArgRetValue& m_var;
-        const NSLogValue::ArgRetValue& m_index;
-        const NSLogValue::ArgRetValue& m_value;
+        const NSLogValue::ArgRetValue m_var;
+        const NSLogValue::ArgRetValue m_index;
+        const NSLogValue::ArgRetValue m_value;
 
     public:
         JsRTSetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, const NSLogValue::ArgRetValue& index, const NSLogValue::ArgRetValue& val);
@@ -385,7 +385,7 @@ namespace TTD
     {
     private:
         const bool m_returnsArrayBuff;
-        const NSLogValue::ArgRetValue& m_var;
+        const NSLogValue::ArgRetValue m_var;
 
     public:
         JsRTGetTypedArrayInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool returnsArrayBuff, const NSLogValue::ArgRetValue& var);
