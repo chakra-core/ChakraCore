@@ -17,9 +17,11 @@ public:
     uint GetScopeSlotArraySize() const;
     uint GetByteCodeCount() const;
     uint GetByteCodeInLoopCount() const;
+    uint GetNonLoadByteCodeCount() const;
     uint GetLoopCount() const;
     uint GetByteCodeLength() const;
     uint GetInnerScopeCount() const;
+    uint GetInlineCacheCount() const;
     Js::RegSlot GetLocalFrameDisplayReg() const;
     Js::RegSlot GetLocalClosureReg() const;
     Js::RegSlot GetEnvReg() const;
@@ -31,6 +33,8 @@ public:
     Js::RegSlot GetTempCount() const;
     Js::RegSlot GetFuncExprScopeReg() const;
     Js::RegSlot GetThisRegForEventHandler() const;
+
+    Js::PropertyId GetPropertyIdFromCacheId(uint cacheId) const;
 
     uint16 GetEnvDepth() const;
     Js::ProfileId GetProfiledCallSiteCount() const;
@@ -54,6 +58,7 @@ public:
     Js::SmallSpanSequence * GetStatementMapSpanSequence();
 
     intptr_t GetConstantVar(Js::RegSlot location) const;
+    intptr_t GetInlineCache(uint index) const;
     Js::TypeId GetConstantType(Js::RegSlot location) const;
 
 private:

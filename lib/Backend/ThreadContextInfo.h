@@ -11,8 +11,8 @@ class ThreadContextInfo
 public:
     ThreadContextInfo(ThreadContextData * data);
 
-    intptr_t GetNullFrameDisplayAddress() const;
-    intptr_t GetStrictNullFrameDisplayAddress() const;
+    intptr_t GetNullFrameDisplayAddr() const;
+    intptr_t GetStrictNullFrameDisplayAddr() const;
 
 private:
     ThreadContextData * m_threadContextData;

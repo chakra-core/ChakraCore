@@ -880,6 +880,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 (&funcAlloc),
                 jitWorkItem,
                 nullptr,
+                nullptr,
                 workItem->RecyclableData()->JitTimeData(),
                 nullptr,
                 workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo()->GetSelfInfo(),
@@ -895,7 +896,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         JITOutputData jitWriteData;
         HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
             workItem->GetJITData(),
-            scriptContext->GetThreadContext()->GetRemoteThreadContextInfo(),
+            scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
+            scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
         if (hr != S_OK)
         {

@@ -1709,6 +1709,10 @@ namespace Js
 #endif
             WriteBarrierPtr<StatementMapList> pStatementMaps;
     public:
+        PropertyId * GetCacheIdToPropertyIdMap()
+        {
+            return cacheIdToPropertyIdMap;
+        }
 
         static DWORD GetConstTableOffset() { return offsetof(FunctionBody, m_constTable); }
         static DWORD GetAuxiliaryDataOffset() { return offsetof(FunctionBody, auxBlock); }

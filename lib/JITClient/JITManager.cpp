@@ -209,7 +209,6 @@ JITManager::InitializeThreadContext(
     RpcEndExcept;
 
     return hr;
-
 }
 
 HRESULT
@@ -228,19 +227,17 @@ JITManager::CleanupThreadContext(
     RpcEndExcept;
 
     return hr;
-
 }
 
 HRESULT
-JITManager::RemoteCodeGenCall(
-    __in CodeGenWorkItemJITData *workItemData,
-    __in intptr_t threadContextInfoAddress,
-    __out JITOutputData *jitData)
+JITManager::InitializeScriptContext(
+    __in ScriptContextData * data,
+    __out intptr_t * scriptContextInfoAddress)
 {
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, workItemData, jitData);
+        hr = ClientInitializeScriptContext(m_rpcBindingHandle, data, scriptContextInfoAddress);
     }
         RpcExcept(1)
     {
@@ -249,5 +246,43 @@ JITManager::RemoteCodeGenCall(
     RpcEndExcept;
 
     return hr;
+}
 
+HRESULT
+JITManager::CleanupScriptContext(
+    __in intptr_t scriptContextInfoAddress)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientCleanupScriptContext(m_rpcBindingHandle, scriptContextInfoAddress);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
+JITManager::RemoteCodeGenCall(
+    __in CodeGenWorkItemJITData *workItemData,
+    __in intptr_t threadContextInfoAddress,
+    __in intptr_t scriptContextInfoAddress,
+    __out JITOutputData *jitData)
+{
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientRemoteCodeGen(m_rpcBindingHandle, threadContextInfoAddress, scriptContextInfoAddress, workItemData, jitData);
+    }
+        RpcExcept(1)
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
 }

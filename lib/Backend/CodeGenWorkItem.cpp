@@ -26,7 +26,7 @@ CodeGenWorkItem::CodeGenWorkItem(
     , irViewerRequestContext(nullptr)
 #endif
 {
-    // TODO: (michhol) put bodyData directly on function body rather than doing this copying
+    // TODO: (michhol) OOP JIT put bodyData directly on function body rather than doing this copying
     // bytecode
     this->jitData.bodyData.byteCodeLength = functionBody->GetByteCode()->GetLength();
     this->jitData.bodyData.byteCodeBuffer = functionBody->GetByteCode()->GetBuffer();
@@ -84,6 +84,13 @@ CodeGenWorkItem::CodeGenWorkItem(
         this->jitData.bodyData.statementMap.statementBuffer = nullptr;
     }
 
+    this->jitData.bodyData.inlineCacheCount = functionBody->GetInlineCacheCount();
+    if (functionBody->GetInlineCacheCount() > 0)
+    {
+        this->jitData.bodyData.cacheIdToPropertyIdMap = functionBody->GetCacheIdToPropertyIdMap();
+        this->jitData.bodyData.inlineCaches = reinterpret_cast<intptr_t*>(functionBody->GetInlineCaches());
+    }
+
     // body data
     this->jitData.bodyData.funcNumber = functionBody->GetFunctionNumber();
     this->jitData.bodyData.localFuncId = functionBody->GetLocalFunctionId();
@@ -99,6 +106,7 @@ CodeGenWorkItem::CodeGenWorkItem(
 
     this->jitData.bodyData.byteCodeCount = functionBody->GetByteCodeCount();
     this->jitData.bodyData.byteCodeInLoopCount = functionBody->GetByteCodeInLoopCount();
+    this->jitData.bodyData.nonLoadByteCodeCount = functionBody->GetByteCodeWithoutLDACount();
     this->jitData.bodyData.loopCount = functionBody->GetLoopCount();
     this->jitData.bodyData.localFrameDisplayReg = functionBody->GetLocalFrameDisplayReg();
     this->jitData.bodyData.localClosureReg = functionBody->GetLocalClosureReg();

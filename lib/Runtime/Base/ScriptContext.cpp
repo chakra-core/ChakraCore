@@ -124,6 +124,7 @@ namespace Js
         bindRefChunkEnd(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
+        m_remoteScriptContextAddr(0),
         isWeakReferenceDictionaryListCleared(false),
         referencesSharedDynamicSourceContextInfo(false)
 #if DBG
@@ -359,6 +360,11 @@ namespace Js
     {
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+
+        if (m_remoteScriptContextAddr != 0)
+        {
+            GetThreadContext()->m_codeGenManager.CleanupScriptContext(m_remoteScriptContextAddr);
+        }
 
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
@@ -1180,7 +1186,6 @@ namespace Js
             this->threadContext->GetRecycler()->SetProfiler(profiler->GetProfiler(), profiler->GetBackgroundRecyclerProfiler());
         }
 #endif
-
 #if DBG
         this->javascriptLibrary->DumpLibraryByteCode();
 

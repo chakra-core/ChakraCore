@@ -120,8 +120,10 @@ enum IRDumpFlags
 //
 
 #include "ChakraJIT.h"
+#include "JITTimeProfileInfo.h"
 #include "CodeGenWorkItemType.h"
 #include "ThreadContextInfo.h"
+#include "ScriptContextInfo.h"
 #include "JITOutput.h"
 #include "JITTimeScriptContext.h"
 #include "JITTimeFunctionBody.h"

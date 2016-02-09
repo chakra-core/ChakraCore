@@ -3390,24 +3390,24 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, J
     }
     else
     {
-        if (varConst == func->GetThreadContextInfo()->GetNullFrameDisplayAddress())
+        if (varConst == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())
         {
             instr = IR::Instr::New(
                 Js::OpCode::Ld_A,
                 dstOpnd,
                 IR::AddrOpnd::New(
-                    func->GetThreadContextInfo()->GetNullFrameDisplayAddress(),
+                    func->GetThreadContextInfo()->GetNullFrameDisplayAddr(),
                     IR::AddrOpndKindDynamicMisc,
                     func),
                 func);
         }
-        else if (varConst == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddress())
+        else if (varConst == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr())
         {
             instr = IR::Instr::New(
                 Js::OpCode::Ld_A,
                 dstOpnd,
                 IR::AddrOpnd::New(
-                    func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddress(),
+                    func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr(),
                     IR::AddrOpndKindDynamicMisc,
                     func),
                 func);
@@ -4088,12 +4088,12 @@ Instr::Dump(IRDumpFlags flags)
     {
         dst->Dump(flags, this->m_func);
 
-        bool const dumpMarkTemp = PHASE_DUMP(Js::MarkTempPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempPhase, m_func->GetJnFunction());
-        bool const dumpMarkTempNumber = dumpMarkTemp || PHASE_DUMP(Js::MarkTempNumberPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempNumberPhase, m_func->GetJnFunction());
-        bool const dumpMarkTempObject = dumpMarkTemp || PHASE_DUMP(Js::MarkTempObjectPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempObjectPhase, m_func->GetJnFunction());
+        bool const dumpMarkTemp = PHASE_DUMP(Js::MarkTempPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempPhase, m_func);
+        bool const dumpMarkTempNumber = dumpMarkTemp || PHASE_DUMP(Js::MarkTempNumberPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempNumberPhase, m_func);
+        bool const dumpMarkTempObject = dumpMarkTemp || PHASE_DUMP(Js::MarkTempObjectPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempObjectPhase, m_func);
 
         if ((dumpMarkTempNumber && (this->dstIsTempNumberTransferred || this->dstIsTempNumber))
             || (dumpMarkTempObject && this->dstIsTempObject))
@@ -4313,10 +4313,12 @@ LabelInstr::Dump(IRDumpFlags flags)
 void
 PragmaInstr::Dump(IRDumpFlags flags)
 {
+#if 0 // TODO: michhol OOP JIT
     if (Js::Configuration::Global.flags.PrintSrcInDump && this->m_opcode == Js::OpCode::StatementBoundary)
     {
         this->m_func->GetJnFunction()->PrintStatementSourceLine(this->m_statementIndex);
     }
+#endif
     __super::Dump(flags);
 }
 

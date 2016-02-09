@@ -700,7 +700,7 @@ void
 PropertySymOpnd::Init(uint inlineCacheIndex, Func *func)
 {
     this->Init(inlineCacheIndex,
-        inlineCacheIndex != -1 ? func->GetRuntimeInlineCache(inlineCacheIndex) : nullptr,
+        inlineCacheIndex != -1 ? func->GetRuntimeInlineCache(inlineCacheIndex) : 0,
         inlineCacheIndex != -1 ? func->GetRuntimePolymorphicInlineCache(inlineCacheIndex) : nullptr,
         inlineCacheIndex != -1 ? func->GetObjTypeSpecFldInfo(inlineCacheIndex) : nullptr,
         inlineCacheIndex != -1 ? func->GetPolyCacheUtilToInitialize(inlineCacheIndex) : PolymorphicInlineCacheUtilizationMinValue);
@@ -727,7 +727,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
 }
 
 void
-PropertySymOpnd::Init(uint inlineCacheIndex, Js::InlineCache * runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
+PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
 {
     this->m_inlineCacheIndex = inlineCacheIndex;
     this->m_runtimeInlineCache = runtimeInlineCache;
@@ -3131,7 +3131,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             else
             {
                 DumpAddress(address, printToConsole, skipMaskedAddress);
-
+#if 0 // TODO: michhol OOP JIT, fix these
                 switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
                 {
                 case Js::TypeIds_Boolean:
@@ -3162,6 +3162,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                     WriteToBuffer(&buffer, &n, L" (DynamicObject)");
                     break;
                 }
+#endif
             }
             break;
         case IR::AddrOpndKindConstantVar:

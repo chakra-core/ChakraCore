@@ -2155,8 +2155,8 @@ FlowGraph::PeepCm(IR::Instr *instr)
 
     instrBr->m_opcode = newOpcode;
 
-    IR::AddrOpnd* trueOpnd = IR::AddrOpnd::New(func->GetScriptContext()->GetLibrary()->GetTrue(), IR::AddrOpndKindDynamicVar, func, true);
-    IR::AddrOpnd* falseOpnd = IR::AddrOpnd::New(func->GetScriptContext()->GetLibrary()->GetFalse(), IR::AddrOpndKindDynamicVar, func, true);
+    IR::AddrOpnd* trueOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, func, true);
+    IR::AddrOpnd* falseOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetFalseAddr(), IR::AddrOpndKindDynamicVar, func, true);
 
     trueOpnd->SetValueType(ValueType::Boolean);
     falseOpnd->SetValueType(ValueType::Boolean);

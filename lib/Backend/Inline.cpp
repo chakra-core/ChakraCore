@@ -1204,6 +1204,7 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
                             this->topFunc->m_alloc,
                             jitWorkItem,
                             this->topFunc->GetThreadContextInfo(),
+                            this->topFunc->GetScriptContextInfo(),
                             workItem->RecyclableData()->JitTimeData(),
                             inlineeData.inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
@@ -2663,6 +2664,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
                          this->topFunc->m_alloc,
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
+                         this->topFunc->GetScriptContextInfo(),
                          workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
@@ -3398,6 +3400,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const Js::FunctionC
                          this->topFunc->m_alloc,
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
+                         this->topFunc->GetScriptContextInfo(),
                          workItem->RecyclableData()->JitTimeData(),
                          accessorInstr->m_func->m_runtimeData ?
                             accessorInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
@@ -3714,6 +3717,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
                          this->topFunc->m_alloc,
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
+                         this->topFunc->GetScriptContextInfo(),
                          workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetInlineeForTargetInlinee(profileId, funcBody) :
@@ -4342,7 +4346,7 @@ Inline::MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *
                     newStackSym->m_isInlinedArgSlot = true;
 
                     IR::SymOpnd * linkOpnd = IR::SymOpnd::New(newStackSym, sym->GetType(), argInstr->m_func);
-                    IR::Opnd * undefined = IR::AddrOpnd::New(this->topFunc->GetScriptContext()->GetLibrary()->GetUndefined(),
+                    IR::Opnd * undefined = IR::AddrOpnd::New(this->topFunc->GetScriptContextInfo()->GetUndefinedAddr(),
                                                 IR::AddrOpndKindDynamicVar, this->topFunc, true);
                     undefined->SetValueType(ValueType::Undefined);
 
@@ -4564,7 +4568,7 @@ Inline::MapFormals(Func *inlinee,
             }
             else
             {
-                instr->SetSrc1(IR::AddrOpnd::New(this->topFunc->GetScriptContext()->GetLibrary()->GetUndefined(),
+                instr->SetSrc1(IR::AddrOpnd::New(this->topFunc->GetScriptContextInfo()->GetUndefinedAddr(),
                     IR::AddrOpndKindDynamicVar, this->topFunc, true));
                 instr->GetSrc1()->SetValueType(ValueType::Undefined);
                 instr->m_opcode = Js::OpCode::Ld_A;
@@ -4630,7 +4634,7 @@ Inline::MapFormals(Func *inlinee,
                         IR::Instr* formalArgOutUse = argInstr->GetArgOutSnapshot();
 
                         Assert(formalArgOutUse->m_opcode == Js::OpCode::Ld_A);
-                        Assert(formalArgOutUse->GetSrc1()->AsAddrOpnd()->m_address == this->topFunc->GetScriptContext()->GetLibrary()->GetUndefined());
+                        Assert((intptr_t)formalArgOutUse->GetSrc1()->AsAddrOpnd()->m_address == this->topFunc->GetScriptContextInfo()->GetUndefinedAddr());
 
                         formalArgOutUse->ReplaceSrc1(bytecodeArgoutCapture->GetDst());
 
@@ -4698,7 +4702,7 @@ Inline::MapFormals(Func *inlinee,
                 }
                 else
                 {
-                    instr->SetSrc1(IR::AddrOpnd::New(this->topFunc->GetScriptContext()->GetLibrary()->GetUndefined(),
+                    instr->SetSrc1(IR::AddrOpnd::New(this->topFunc->GetScriptContextInfo()->GetUndefinedAddr(),
                         IR::AddrOpndKindDynamicVar, this->topFunc, true));
                     instr->GetSrc1()->SetValueType(ValueType::Undefined);
                 }

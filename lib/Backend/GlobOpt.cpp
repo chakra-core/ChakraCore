@@ -8691,7 +8691,7 @@ GlobOpt::OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, Val
     return true;
 }
 
-Js::Var
+Js::Var // TODO: michhol OOP JIT, shouldn't play with Vars
 GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
 {
     ValueInfo *valueInfo = val->GetValueInfo();
@@ -8730,11 +8730,11 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
         }
         else if (valueInfo->IsUndefined())
         {
-            return this->func->GetScriptContext()->GetLibrary()->GetUndefined();
+            return (Js::Var)this->func->GetScriptContextInfo()->GetUndefinedAddr();
         }
         else if (valueInfo->IsNull())
         {
-            return this->func->GetScriptContext()->GetLibrary()->GetNull();
+            return (Js::Var)this->func->GetScriptContextInfo()->GetNullAddr();
         }
     }
 

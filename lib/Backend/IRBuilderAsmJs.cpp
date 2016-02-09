@@ -1286,7 +1286,7 @@ IRBuilderAsmJs::BuildStartCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
         m_argStack->Push(instr);
 
         // also need to add undefined as arg0
-        addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+        addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
         addrOpnd->SetValueType(ValueType::Undefined);
 
         symDst = m_func->m_symTable->GetArgSlotSym(1);
@@ -1717,7 +1717,7 @@ IRBuilderAsmJs::BuildAsmReg1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSl
         dstOpnd->m_sym->m_isNotInt = true;
     }
 
-    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
     addrOpnd->SetValueType(ValueType::Undefined);
 
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, addrOpnd, m_func);

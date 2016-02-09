@@ -5,11 +5,102 @@
 
 import "wtypes.idl";
 
+typedef struct CallSiteData
+{
+    unsigned short bitFields;
+    unsigned short returnType;
+    unsigned int ldFldInlineCacheId;
+    unsigned int sourceId;
+    unsigned int functionId;
+} CallSiteData;
+
+typedef struct ThisData
+{
+    unsigned short valueType;
+    byte thisType;
+} ThisData;
+
+typedef struct FldData
+{
+    unsigned short valueType;
+    byte flags;
+    byte polymorphicInlineCacheUtilization;
+} FldData;
+
+typedef struct ArrayCallSiteData
+{
+    byte bits;
+    unsigned int functionNumber;
+    unsigned short callSiteNumber;
+} ArrayCallSiteData;
+
+typedef struct LdElemData
+{
+    unsigned short arrayType;
+    unsigned short elemType;
+    byte bits;
+} LdElemData;
+
+typedef struct StElemData
+{
+    unsigned short arrayType;
+    byte bits;
+} StElemData;
+
+typedef struct ProfileData
+{
+    int flags;
+
+    unsigned short profiledLdElemCount;
+    [size_is(profiledLdElemCount)] LdElemData * ldElemData;
+
+    unsigned short profiledStElemCount;
+    [size_is(profiledStElemCount)] StElemData * stElemData;
+
+    unsigned short profiledArrayCallSiteCount;
+    [size_is(profiledArrayCallSiteCount)] ArrayCallSiteData * arrayCallSiteData;
+
+    // TODO: michhol OOP JIT, share counts with body
+    unsigned int inlineCacheCount;
+    [size_is(inlineCacheCount)] FldData * fldData;
+
+    unsigned short profiledCallSiteCount;
+    [size_is(profiledCallSiteCount)] CallSiteData * callSiteData;
+
+    unsigned short profiledReturnTypeCount;
+    [size_is(profiledReturnTypeCount)] unsigned short * returnTypeData;
+
+    unsigned short profiledDivOrRemCount;
+    [size_is(profiledDivOrRemCount)] unsigned short * divideTypeInfo;
+
+    unsigned short profiledSwitchCount;
+    [size_is(profiledSwitchCount)] unsigned short * switchTypeInfo;
+
+    unsigned short profiledInParamsCount;
+    [size_is(profiledInParamsCount)] unsigned short * parameterInfo;
+
+    unsigned int loopCount;
+    [size_is(loopCount)] byte * loopImplicitCallFlags;
+
+    ThisData thisData;
+
+    byte implicitCallFlags;
+
+} ProfileData;
+
 typedef struct ThreadContextData
 {
-    __int3264 nullFrameDisplayAddress;
-    __int3264 strictNullFrameDisplayAddress;
+    __int3264 nullFrameDisplayAddr;
+    __int3264 strictNullFrameDisplayAddr;
 } ThreadContextData;
+
+typedef struct ScriptContextData
+{
+    __int3264 nullAddr;
+    __int3264 undefinedAddr;
+    __int3264 trueAddr;
+    __int3264 falseAddr;
+} ScriptContextData;
 
 typedef struct SmallSpanSequenceData
 {
@@ -30,6 +121,10 @@ typedef struct FunctionBodyJITData
     [size_is(constCount)] __int3264 * constTable;
     [size_is(constCount)] int * constTypeTable; // TODO: not needed for asm.js
 
+    unsigned int inlineCacheCount;
+    [size_is(inlineCacheCount)] int * cacheIdToPropertyIdMap;
+    [size_is(inlineCacheCount)] __int3264 * inlineCaches;
+
     SmallSpanSequenceData statementMap;
     unsigned int funcNumber;
     unsigned int localFuncId;
@@ -39,6 +134,7 @@ typedef struct FunctionBodyJITData
     unsigned int attributes;
     unsigned int byteCodeCount;
     unsigned int byteCodeInLoopCount;
+    unsigned int nonLoadByteCodeCount;
     unsigned int loopCount;
     unsigned int localFrameDisplayReg;
     unsigned int localClosureReg;
@@ -117,9 +213,19 @@ interface IChakraJIT
         [in] handle_t binding,
         [in] __int3264 threadContextInfoAddress);
 
+    HRESULT InitializeScriptContext(
+        [in] handle_t binding,
+        [in] ScriptContextData * scriptContextData,
+        [out] __int3264 * scriptContextInfoAddress);
+
+    HRESULT CleanupScriptContext(
+        [in] handle_t binding,
+        [in] __int3264 scriptContextInfoAddress);
+
     HRESULT RemoteCodeGen(
         [in] handle_t binding,
         [in] __int3264 threadContextInfoAddress,
+        [in] __int3264 scriptContextInfoAddress,
         [in] CodeGenWorkItemJITData * workItemData,
         [out] JITOutputData * jitData);
 

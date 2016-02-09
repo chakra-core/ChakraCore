@@ -193,7 +193,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
     <ClCompile Include="JITOutput.cpp" />
     <ClCompile Include="JITTimeFunctionBody.cpp" />
+    <ClCompile Include="JITTimeProfileInfo.cpp" />
     <ClCompile Include="JITTimeScriptContext.cpp" />
+    <ClCompile Include="ScriptContextInfo.cpp" />
     <ClCompile Include="ThreadContextInfo.cpp" />
     <ClCompile Include="JITTimeWorkItem.cpp" />
   </ItemGroup>
@@ -366,7 +368,9 @@
     <ClInclude Include="IRTypeList.h" />
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
+    <ClInclude Include="JITTimeProfileInfo.h" />
     <ClInclude Include="JITTimeScriptContext.h" />
+    <ClInclude Include="ScriptContextInfo.h" />
     <ClInclude Include="ThreadContextInfo.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />

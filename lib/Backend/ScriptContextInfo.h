@@ -2,21 +2,20 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "Backend.h"
 
-ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
-    m_threadContextData(data)
-{
-}
+#pragma once
 
-intptr_t
-ThreadContextInfo::GetNullFrameDisplayAddr() const
+class ScriptContextInfo
 {
-    return m_threadContextData->nullFrameDisplayAddr;
-}
+public:
+    ScriptContextInfo(ScriptContextData * contextData);
 
-intptr_t
-ThreadContextInfo::GetStrictNullFrameDisplayAddr() const
-{
-    return m_threadContextData->strictNullFrameDisplayAddr;
-}
+    intptr_t GetNullAddr() const;
+    intptr_t GetUndefinedAddr() const;
+    intptr_t GetTrueAddr() const;
+    intptr_t GetFalseAddr() const;
+
+
+private:
+    ScriptContextData * m_contextData;
+};

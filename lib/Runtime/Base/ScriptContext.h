@@ -389,6 +389,17 @@ namespace Js
             return isInvalidatedForHostObjects;
         }
 
+        void InitializeRemoteScriptContext()
+        {
+            ScriptContextData contextData;
+            contextData.nullAddr = (intptr_t)GetLibrary()->GetNull();
+            contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();
+            contextData.trueAddr = (intptr_t)GetLibrary()->GetTrue();
+            contextData.falseAddr = (intptr_t)GetLibrary()->GetFalse();
+
+            this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
+        }
+
 #ifdef ENABLE_JS_ETW
         void EmitStackTraceEvent(__in UINT64 operationID, __in USHORT maxFrameCount, bool emitV2AsyncStackEvent);
 #endif
@@ -469,6 +480,8 @@ namespace Js
         ArenaAllocator* diagnosticArena;
         void ** bindRefChunkCurrent;
         void ** bindRefChunkEnd;
+
+        intptr_t m_remoteScriptContextAddr;
 
         bool startupComplete; // Indicates if the heuristic startup phase for this script context is complete
         bool isInvalidatedForHostObjects;  // Indicates that we've invalidate all objects in the host so stop calling them.
@@ -836,6 +849,7 @@ private:
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }
 
         TypePath* GetRootPath() { return cache->rootPath; }
+        intptr_t GetRemoteScriptAddr() { return m_remoteScriptContextAddr; }
 
 #ifdef ENABLE_DOM_FAST_PATH
         DOMFastPathIRHelperMap* EnsureDOMFastPathIRHelperMap();

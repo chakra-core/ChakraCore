@@ -69,6 +69,7 @@ class Func
 public:
     Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         ThreadContextInfo * threadContextInfo,
+        ScriptContextInfo * scriptContextInfo,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
@@ -164,6 +165,11 @@ public:
     ThreadContextInfo * GetThreadContextInfo() const
     {
         return m_threadContextInfo;
+    }
+
+    ScriptContextInfo * GetScriptContextInfo() const
+    {
+        return m_scriptContextInfo;
     }
 
     const JITTimeFunctionBody * const GetJITFunctionBody() const
@@ -413,7 +419,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     void SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info);
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.
-    Js::InlineCache *GetRuntimeInlineCache(const uint index) const;
+    intptr_t GetRuntimeInlineCache(const uint index) const;
     Js::PolymorphicInlineCache * GetRuntimePolymorphicInlineCache(const uint index) const;
     byte GetPolyCacheUtil(const uint index) const;
     byte GetPolyCacheUtilToInitialize(const uint index) const;
@@ -439,6 +445,7 @@ public:
     const Js::FunctionCodeGenJitTimeData *const m_jitTimeData;
     const Js::FunctionCodeGenRuntimeData *const m_runtimeData;
     ThreadContextInfo * m_threadContextInfo;
+    ScriptContextInfo * m_scriptContextInfo;
     JITTimeWorkItem * m_workItem;
     Js::PolymorphicInlineCacheInfo *const m_polymorphicInlineCacheInfo;
 
@@ -841,7 +848,7 @@ public:
     {
         Assert(this->func == func);
         Assert(this->phase == phase);
-        this->dump = dump && (PHASE_DUMP(Js::SimpleJitPhase, func->GetJnFunction()) || !func->IsSimpleJit());
+        this->dump = dump && (PHASE_DUMP(Js::SimpleJitPhase, func) || !func->IsSimpleJit());
         this->isPhaseComplete = isPhaseComplete;
     }
 private:

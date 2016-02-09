@@ -8,6 +8,7 @@
 
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
+    ScriptContextInfo * scriptContextInfo,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -19,6 +20,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_workItem(workItem),
     m_jitTimeData(jitTimeData),
     m_threadContextInfo(threadContextInfo),
+    m_scriptContextInfo(scriptContextInfo),
     m_runtimeData(runtimeData),
     m_polymorphicInlineCacheInfo(polymorphicInlineCacheInfo),
     m_codeGenAllocators(codeGenAllocators),
@@ -256,16 +258,18 @@ Func::Codegen()
         }
 
         END_CODEGEN_PHASE(this, Js::IRBuilderPhase);
-
+        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::IRBuilderPhase);
 #endif /* IR_VIEWER */
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
+#if 0 // TODO michhol: oop jit, enable inlining
         InliningHeuristics heuristics(this->GetJnFunction());
         Inline inliner(this, heuristics);
         inliner.Optimize();
+#endif
 
         END_CODEGEN_PHASE(this, Js::InlinePhase);
 
@@ -372,7 +376,7 @@ Func::Codegen()
 
         // Prolog/Epilog
         BEGIN_CODEGEN_PHASE(this, Js::PrologEpilogPhase);
-        if (m_jnFunction->GetIsAsmjsMode())
+        if (GetJITFunctionBody()->IsAsmJsMode())
         {
             lowerer.LowerPrologEpilogAsmJs();
         }
@@ -1051,19 +1055,20 @@ Func::GetWeakFuncRef() const
     return this->m_jitTimeData->GetWeakFuncRef();
 }
 
-Js::InlineCache *
+intptr_t
 Func::GetRuntimeInlineCache(const uint index) const
 {
     if(this->m_runtimeData)
     {
+        // TODO: michhol OOP JIT, implement this
         const auto inlineCache = this->m_runtimeData->ClonedInlineCaches()->GetInlineCache(this->m_jnFunction, index);
         if(inlineCache)
         {
-            return inlineCache;
+            return (intptr_t)inlineCache;
         }
     }
 
-    return this->m_jnFunction->GetInlineCache(index);
+    return GetJITFunctionBody()->GetInlineCache(index);
 }
 
 Js::PolymorphicInlineCache *
@@ -1454,7 +1459,8 @@ void
 Func::DumpHeader()
 {
     Output::Print(L"-----------------------------------------------------------------------------\n");
-    this->m_jnFunction->DumpFullFunctionName();
+
+    Output::Print(L"Function %s", this->GetWorkItem()->GetDisplayName());
 
     Output::SkipToColumn(50);
     Output::Print(L"Instr Count:%d", GetInstrCount());

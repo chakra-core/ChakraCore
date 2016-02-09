@@ -1528,7 +1528,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
 
     case Js::OpCode::LdC_A_Null:
         {
-            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetNull(), IR::AddrOpndKindDynamicVar, m_func, true);
+            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
             addrOpnd->SetValueType(ValueType::Null);
             srcOpnd = addrOpnd;
             newOpcode = Js::OpCode::Ld_A;
@@ -1537,7 +1537,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
 
     case Js::OpCode::LdUndef:
         {
-            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndefined(), IR::AddrOpndKindDynamicVar, m_func, true);
+            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
             addrOpnd->SetValueType(ValueType::Undefined);
             srcOpnd = addrOpnd;
             newOpcode = Js::OpCode::Ld_A;
@@ -1562,7 +1562,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
 
     case Js::OpCode::LdFalse:
         {
-            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetFalse(), IR::AddrOpndKindDynamicVar, m_func, true);
+            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFalseAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
             addrOpnd->SetValueType(ValueType::Boolean);
             srcOpnd = addrOpnd;
             newOpcode = Js::OpCode::Ld_A;
@@ -1571,7 +1571,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
 
     case Js::OpCode::LdTrue:
         {
-            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetTrue(), IR::AddrOpndKindDynamicVar, m_func, true);
+            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
             addrOpnd->SetValueType(ValueType::Boolean);
             srcOpnd = addrOpnd;
             newOpcode = Js::OpCode::Ld_A;
@@ -1704,7 +1704,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         else
         {
             opndFrameObj = IR::AddrOpnd::New(
-                m_func->GetScriptContext()->GetLibrary()->GetNull(), IR::AddrOpndKindDynamicVar, m_func, true);
+                m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
         }
         IR::RegOpnd * dstOpnd = BuildDstOpnd(R0);
         IR::Instr * instr = IR::Instr::New(newOpcode, dstOpnd, opndFrameObj, src1Opnd, m_func);  
@@ -3953,7 +3953,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
     }
 
-    propertyId = this->m_func->GetJnFunction()->GetPropertyIdFromCacheId(inlineCacheIndex);
+    propertyId = this->m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(inlineCacheIndex);
 
     Js::RegSlot instance = this->GetEnvRegForEvalCode();
 
@@ -4184,7 +4184,7 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
     }
 
-    propertyId = this->m_func->GetJnFunction()->GetPropertyIdFromCacheId(inlineCacheIndex);
+    propertyId = this->m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(inlineCacheIndex);
 
     IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
     IR::RegOpnd *   regOpnd;

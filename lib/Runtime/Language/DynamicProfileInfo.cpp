@@ -837,6 +837,11 @@ namespace Js
         return &arrayCallSiteInfo[index];
     }
 
+    ArrayCallSiteInfo * DynamicProfileInfo::GetArrayCallSiteInfo() const
+    {
+        return arrayCallSiteInfo;
+    }
+
     __inline void DynamicProfileInfo::RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags)
     {
         Assert(fieldAccessId < functionBody->GetProfiledFldCount());

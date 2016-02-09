@@ -82,12 +82,10 @@ ServerShutdown(/* [in] */ handle_t binding)
     return S_OK;
 }
 
-
-
 HRESULT
 ServerInitializeThreadContext(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in ThreadContextData *threadContextData,
+    /* [in] */ __RPC__in ThreadContextData * threadContextData,
     /* [out] */ __RPC__out __int3264 *threadContextRoot)
 {
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -102,9 +100,30 @@ ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextRoot)
 {
+    ThreadContextInfo * contextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    HeapDelete(contextInfo);
+    return S_OK;
+}
+
+HRESULT
+ServerInitializeScriptContext(
+    /* [in] */ handle_t binding,
+    /* [in] */ __RPC__in ScriptContextData * scriptContextData,
+    /* [out] */ __RPC__out __int3264 * scriptContextInfoAddress)
+{
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    ThreadContextInfo * contextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    ScriptContextInfo * contextInfo = HeapNew(ScriptContextInfo, scriptContextData);
+    *scriptContextInfoAddress = (intptr_t)contextInfo;
+    return S_OK;
+}
+
+HRESULT
+ServerCleanupScriptContext(
+    /* [in] */ handle_t binding,
+    /* [in] */ __int3264 scriptContextRoot)
+{
+    ScriptContextInfo * contextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
     HeapDelete(contextInfo);
     return S_OK;
 }
@@ -113,6 +132,7 @@ HRESULT
 ServerRemoteCodeGen(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextInfoAddress,
+    /* [in] */ __int3264 scriptContextInfoAddress,
     /* [in] */ CodeGenWorkItemJITData *workItemData,
     /* [out] */ JITOutputData *jitData)
 {
@@ -128,10 +148,10 @@ ServerRemoteCodeGen(
     JitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
 
     JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
-    ThreadContextInfo * contextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextInfoAddress);
+    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextInfoAddress);
+    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextInfoAddress);
 
-    Func func(&jitArena, jitWorkItem, contextInfo, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, true);
-    //FuncProxy proxy(&jitArena, nullptr,nullptr, nullptr, nullptr,nullptr, nullptr,nullptr);
+    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, true);
     func.Codegen();
     return S_OK;
 }

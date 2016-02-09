@@ -505,12 +505,12 @@ public:
         m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
         // TODO: OOP JIT, do we need to do this initialization in a different place?
         ThreadContextData contextData;
-        contextData.nullFrameDisplayAddress = reinterpret_cast<intptr_t>(&Js::NullFrameDisplay);
-        contextData.strictNullFrameDisplayAddress = reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay);
+        contextData.nullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::NullFrameDisplay);
+        contextData.strictNullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay);
         m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
     }
 
-    intptr_t GetRemoteThreadContextInfo() const
+    intptr_t GetRemoteThreadContextAddr() const
     {
         return m_remoteThreadContextInfo;
     }

@@ -494,13 +494,13 @@ public:
 
 private:
     static PropertySymOpnd * New(PropertySym *propertySym, IRType type, Func *func);
-    void Init(uint inlineCacheIndex, Js::InlineCache * runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
+    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
 #if DBG
     virtual bool      DbgIsPropertySymOpnd() const override { return true; }
 #endif
 public:
     Js::InlineCacheIndex m_inlineCacheIndex;
-    Js::InlineCache* m_runtimeInlineCache;
+    intptr_t m_runtimeInlineCache;
     Js::PolymorphicInlineCache* m_runtimePolymorphicInlineCache;
 private:
     Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo;

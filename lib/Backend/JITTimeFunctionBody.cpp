@@ -54,6 +54,12 @@ JITTimeFunctionBody::GetByteCodeInLoopCount() const
 }
 
 uint
+JITTimeFunctionBody::GetNonLoadByteCodeCount() const
+{
+    return m_bodyData->nonLoadByteCodeCount;
+}
+
+uint
 JITTimeFunctionBody::GetLoopCount() const
 {
     return m_bodyData->loopCount;
@@ -69,6 +75,12 @@ uint
 JITTimeFunctionBody::GetInnerScopeCount() const
 {
     return m_bodyData->innerScopeCount;
+}
+
+uint
+JITTimeFunctionBody::GetInlineCacheCount() const
+{
+    return m_bodyData->inlineCacheCount;
 }
 
 Js::RegSlot
@@ -126,15 +138,23 @@ JITTimeFunctionBody::GetTempCount() const
 }
 
 Js::RegSlot
+JITTimeFunctionBody::GetFuncExprScopeReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData->funcExprScopeRegister);
+}
+
+Js::RegSlot
 JITTimeFunctionBody::GetThisRegForEventHandler() const
 {
     return static_cast<Js::RegSlot>(m_bodyData->thisRegisterForEventHandler);
 }
 
-Js::RegSlot
-JITTimeFunctionBody::GetFuncExprScopeReg() const
+Js::PropertyId
+JITTimeFunctionBody::GetPropertyIdFromCacheId(uint cacheId) const
 {
-    return static_cast<Js::RegSlot>(m_bodyData->funcExprScopeRegister);
+    Assert(m_bodyData->cacheIdToPropertyIdMap);
+    Assert(cacheId < GetInlineCacheCount());
+    return static_cast<Js::PropertyId>(m_bodyData->cacheIdToPropertyIdMap[cacheId]);
 }
 
 uint16
@@ -256,6 +276,19 @@ JITTimeFunctionBody::GetConstantVar(Js::RegSlot location) const
     Assert(location != 0);
 
     return static_cast<intptr_t>(m_bodyData->constTable[location - Js::FunctionBody::FirstRegSlot]);
+}
+
+intptr_t
+JITTimeFunctionBody::GetInlineCache(uint index) const
+{
+    Assert(m_bodyData->inlineCaches != nullptr);
+    Assert(index < GetInlineCacheCount());
+#if 0 // TODO: michhol OOP JIT, add these asserts
+    Assert(this->m_inlineCacheTypes[index] == InlineCacheTypeNone ||
+        this->m_inlineCacheTypes[index] == InlineCacheTypeInlineCache);
+    this->m_inlineCacheTypes[index] = InlineCacheTypeInlineCache;
+#endif
+    return static_cast<intptr_t>(m_bodyData->inlineCaches[index]);
 }
 
 Js::TypeId

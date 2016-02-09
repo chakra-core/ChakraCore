@@ -3141,7 +3141,7 @@ Lowerer::LoadIsInstInlineCacheOpnd(IR::Instr * instr, uint inlineCacheIndex)
 IR::Opnd *
 Lowerer::LoadRuntimeInlineCacheOpnd(IR::Instr * instr, IR::PropertySymOpnd * propertySymOpnd, bool isHelper)
 {
-    Assert(propertySymOpnd->m_runtimeInlineCache != nullptr);
+    Assert(propertySymOpnd->m_runtimeInlineCache != 0);
     IR::Opnd * inlineCacheOpnd = nullptr;
     if (instr->m_func->GetJnFunction()->GetInlineCachesOnFunctionObject() && !instr->m_func->IsInlinee())
     {
@@ -3149,7 +3149,7 @@ Lowerer::LoadRuntimeInlineCacheOpnd(IR::Instr * instr, IR::PropertySymOpnd * pro
     }
     else
     {
-        Js::InlineCache * inlineCache = propertySymOpnd->m_runtimeInlineCache;
+        intptr_t inlineCache = propertySymOpnd->m_runtimeInlineCache;
         inlineCacheOpnd = IR::AddrOpnd::New(inlineCache, IR::AddrOpndKindDynamicInlineCache, this->m_func, /* dontEncode */ true);
     }
     return inlineCacheOpnd;
@@ -6007,7 +6007,7 @@ Lowerer::GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionProxyP
     // Currently we don't initialize the environment until we actually allocate the function, we also
     // walk the list of stack function when we need to box them. so we should use initialize it to NullFrameDisplay
     GenerateStackScriptFunctionInit(addressOpnd, nestedProxy,
-        IR::AddrOpnd::New((Js::Var)&Js::NullFrameDisplay, IR::AddrOpndKindDynamicMisc, func), insertBeforeInstr);
+        IR::AddrOpnd::New(func->GetThreadContextInfo()->GetNullFrameDisplayAddr(), IR::AddrOpndKindDynamicMisc, func), insertBeforeInstr);
 
     // Establish the next link
     InsertMove(nextStackFunctionOpnd, addressOpnd, insertBeforeInstr);
