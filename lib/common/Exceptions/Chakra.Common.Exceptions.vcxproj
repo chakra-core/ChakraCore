@@ -45,6 +45,7 @@
     <ClInclude Include="EvalDisabledException.h" />
     <ClInclude Include="ExceptionBase.h" />
     <ClInclude Include="ExceptionCheck.h" />
+    <ClInclude Include="InScriptExceptionBase.h" />
     <ClInclude Include="InternalErrorException.h" />
     <ClInclude Include="NotImplementedException.h" />
     <ClInclude Include="OperationAbortedException.h" />

@@ -193,6 +193,23 @@ PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER List
 
 #define WRITE_WATCH_FLAG_RESET 1
 
+// xplat-todo: implement these for JIT and Concurrent/Partial GC
+uintptr_t _beginthreadex(
+   void *security,
+   unsigned stack_size,
+   unsigned ( __stdcall *start_address )( void * ),
+   void *arglist,
+   unsigned initflag,
+   unsigned *thrdaddr);
+BOOL WINAPI GetModuleHandleEx(
+  _In_     DWORD   dwFlags,
+  _In_opt_ LPCTSTR lpModuleName,
+  _Out_    HMODULE *phModule
+);
+
+// xplat-todo: cryptographically secure PRNG?
+errno_t rand_s(unsigned int* randomValue);
+
 #endif // _WIN32
 
 
