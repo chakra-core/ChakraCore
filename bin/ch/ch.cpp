@@ -16,7 +16,7 @@ HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
     return ChakraRTInterface::OnChakraCoreLoaded(testHooks);
 }
 
-JsRuntimeAttributes jsrtAttributes = JsRuntimeAttributeAllowScriptInterrupt;
+JsRuntimeAttributes jsrtAttributes = static_cast<JsRuntimeAttributes>(JsRuntimeAttributeAllowScriptInterrupt | JsRuntimeAttributeEnableExperimentalFeatures);
 LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
 {
     switch (jsErrorCode)
@@ -632,7 +632,6 @@ void GetFileFromURI(const wchar_t* uri, std::wstring& res)
             break;
         }
     }
-    AssertMsg(fpos != 0, "Need fully resolved paths!!!");
 
     res.append(uri + fpos);
 }
