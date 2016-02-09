@@ -7,7 +7,7 @@ set (SOURCES
   Event.cpp
   Int32Math.cpp
   Int64Math.cpp
-  # Jobs.cpp
+  Jobs.cpp
   # MathUtil.cpp
   NumberUtilities.cpp
   # NumberUtilities_strtod.cpp

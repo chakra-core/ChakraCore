@@ -3,31 +3,28 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
+#ifdef _WIN32
 #include <process.h>
+#endif
 
+#include "core/EtwTraceCore.h"
 
-#include "core\EtwTraceCore.h"
-
-#include "Exceptions\ExceptionBase.h"
-#include "Exceptions\OperationAbortedException.h"
-#include "Exceptions\OutOfMemoryException.h"
-#include "Exceptions\StackOverflowException.h"
+#include "Exceptions/ExceptionBase.h"
+#include "Exceptions/InScriptExceptionBase.h"
+#include "Exceptions/OperationAbortedException.h"
+#include "Exceptions/OutOfMemoryException.h"
+#include "Exceptions/StackOverflowException.h"
 
 #include "TemplateParameter.h"
-#include "DataStructures\DoublyLinkedListElement.h"
-#include "DataStructures\DoublyLinkedList.h"
-#include "DataStructures\DoublyLinkedListElement.inl"
-#include "DataStructures\DoublyLinkedList.inl"
+#include "DataStructures/DoublyLinkedListElement.h"
+#include "DataStructures/DoublyLinkedList.h"
+#include "DataStructures/DoublyLinkedListElement.inl"
+#include "DataStructures/DoublyLinkedList.inl"
 
-#include "Common\Event.h"
-#include "Common\ThreadService.h"
-#include "Common\Jobs.h"
-#include "Common\Jobs.inl"
-
-namespace Js
-{
-    class JavascriptExceptionObject;
-};
+#include "common/Event.h"
+#include "common/ThreadService.h"
+#include "common/Jobs.h"
+#include "common/Jobs.inl"
 
 namespace JsUtil
 {
@@ -417,7 +414,7 @@ namespace JsUtil
         {
             return job->Manager()->Process(job, 0);
         }
-        catch (Js::JavascriptExceptionObject *)
+        catch (Js::InScriptExceptionBase *)
         {
             // Treat OOM or stack overflow to be a non-terminal failure. The foreground job processor processes jobs when the
             // jobs are prioritized, on the calling thread. The script would be active (at the time of this writing), so a
@@ -1009,7 +1006,7 @@ namespace JsUtil
     {
         JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
 
-        ArenaAllocator threadArena(L"ThreadArena", threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
+        ArenaAllocator threadArena(CH_WSTR("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
         threadData->threadArena = &threadArena;
 
         {
@@ -1029,7 +1026,7 @@ namespace JsUtil
             } autoDecommit(this, threadData);
 
             criticalSection.Enter();
-            while (!IsClosed() || jobs.Head() && jobs.Head()->IsCritical())
+            while (!IsClosed() || (jobs.Head() && jobs.Head()->IsCritical()))
             {
                 Job *job = jobs.UnlinkFromBeginning();
 
@@ -1230,6 +1227,10 @@ namespace JsUtil
 #if DBG
         threadData->backgroundPageAllocator.SetConcurrentThreadId(GetCurrentThreadId());
 #endif
+
+#ifdef DISABLE_SEH
+        processor->Run(threadData);
+#else
         __try
         {
             processor->Run(threadData);
@@ -1238,6 +1239,7 @@ namespace JsUtil
         {
             Assert(false);
         }
+#endif
 
         // Indicate to Close that the thread is about to exit. This has to be done before CoUninitialize because CoUninitialize
         // may require the loader lock and if Close was called while holding the loader lock during DLL_THREAD_DETACH, it could

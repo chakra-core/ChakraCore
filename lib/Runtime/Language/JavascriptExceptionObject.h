@@ -19,7 +19,7 @@ namespace Js {
 
     class JavascriptExceptionContext;
 
-    class JavascriptExceptionObject
+    class JavascriptExceptionObject: public InScriptExceptionBase
     {
     public:
         typedef Var (__stdcall *HostWrapperCreateFuncType)(Var var, ScriptContext * sourceScriptContext, ScriptContext * destScriptContext);

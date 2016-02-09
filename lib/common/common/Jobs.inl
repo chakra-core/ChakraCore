@@ -52,7 +52,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void JobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(!isClosed);
 
@@ -164,7 +164,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void ForegroundJobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(manager->isWaitable);
         Assert(!IsClosed());
@@ -369,7 +369,7 @@ namespace JsUtil
     template<class TJobManager, class TJobHolder>
     void BackgroundJobProcessor::PrioritizeJobAndWait(TJobManager *const manager, const TJobHolder holder, void* function)
     {
-        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>;
+        TemplateParameter::SameOrDerivedFrom<TJobManager, WaitableJobManager>();
         Assert(manager);
         Assert(manager->isWaitable);
         Assert(!IsClosed());
