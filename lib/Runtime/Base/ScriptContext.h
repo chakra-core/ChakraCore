@@ -358,7 +358,7 @@ namespace Js
         Js::JavascriptMethod DeferredParsingThunk;
         Js::JavascriptMethod DeferredDeserializationThunk;
         Js::JavascriptMethod DispatchDefaultInvoke;
-        Js::JavascriptMethod DispatchProfileInoke;
+        Js::JavascriptMethod DispatchProfileInvoke;
 
         typedef HRESULT (*GetDocumentContextFunction)(
             ScriptContext *pContext,
@@ -565,7 +565,7 @@ public:
         uint byteCodeDataSize;
         uint byteCodeAuxiliaryDataSize;
         uint byteCodeAuxiliaryContextDataSize;
-        uint byteCodeHistogram[OpCode::ByteCodeLast];
+        uint byteCodeHistogram[static_cast<uint>(OpCode::ByteCodeLast)];
         uint32 forinCache;
         uint32 forinNoCache;
 #endif
@@ -913,6 +913,7 @@ private:
         void RestoreRegexStacks(UnifiedRegex::RegexStacks *const contStack);
 
         void InitializeGlobalObject();
+        bool IsIntlEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }
 #if DBG
@@ -1064,7 +1065,7 @@ private:
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
-        void ResetWeakReferenceDicitionaryList() { weakReferenceDictionaryList.Reset(); }
+        void ResetWeakReferenceDictionaryList() { weakReferenceDictionaryList.Reset(); }
 
         BOOL ReserveStaticTypeIds(__in int first, __in int last);
         TypeId ReserveTypeIds(int count);
@@ -1073,8 +1074,8 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        JavascriptFunction* LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs = false);
-        JavascriptFunction* LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs = false);
+        JavascriptFunction* LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs);
+        JavascriptFunction* LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 

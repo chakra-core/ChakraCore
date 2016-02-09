@@ -70,7 +70,7 @@ namespace Js
         tmpbValue.m128i_value = _mm_xor_si128(tmpbValue.m128i_value, signBits.m128i_value);
         x86Result.m128i_value = _mm_cmplt_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a < b?
         tmpaValue.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a == b?
-        x86Result.m128i_value = _mm_or_si128(x86Result.m128i_value, tmpaValue.m128i_value);   // reault = (a<b)|(a==b)
+        x86Result.m128i_value = _mm_or_si128(x86Result.m128i_value, tmpaValue.m128i_value);   // result = (a<b)|(a==b)
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }

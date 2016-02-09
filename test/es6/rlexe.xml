@@ -60,7 +60,7 @@
     <default>
       <files>toPrimitiveJitBug654983.js</files>
       <compile-flags>-es6toprimitive -trace:bailout</compile-flags>
-      <!-- This test sometimes fails with bailout trace ouput.  Pending investigation in bug OS 5244610. -->
+      <!-- This test sometimes fails with bailout trace output.  Pending investigation in bug OS 5244610. -->
       <tags>fail</tags>
     </default>
   </test>
@@ -414,7 +414,7 @@
   <test>
     <default>
       <files>ES6Symbol.js</files>
-      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -args summary -endargs</compile-flags>
+      <compile-flags> -ES6Symbol -ES6ObjectLiterals -es6toprimitive -es6isConcatSpreadable -es6tostringtag -ES6Species -ES6HasInstance -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -481,7 +481,7 @@
       <files>unicode_6_identifiers.js</files>
       <baseline>unicode_6_identifiers.baseline</baseline>
       <compile-flags> -ES6Unicode</compile-flags>
-      <tags>exclude_ship</tags>
+      <tags>exclude_win7,exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -885,6 +885,12 @@
   </test>
   <test>
     <default>
+      <files>regex-symbols.js</files>
+      <compile-flags>-ES6RegExSymbols -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regexflags.js</files>
       <compile-flags>-version:6 -ES6RegExSticky -ES6Unicode -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
     </default>
@@ -984,7 +990,7 @@
   <test>
     <default>
       <files>bug_OS_2553885.js</files>
-      <tags>BugFix</tags>
+      <tags>exclude_win7,BugFix</tags>
     </default>
   </test>
   <test>

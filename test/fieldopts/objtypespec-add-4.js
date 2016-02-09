@@ -6,7 +6,7 @@
 //Switches:   -bgJit- -maxInterpretCount:2
 
 // This test verifies that we mark all types (not just the type of the object being modified) as potentially having been
-// updated whenever we a) store a property using a live cache or b) add a property via an object type spec'ed instruction.
+// updated whenever we a) store a property using a live cache or b) add a property via an object type spec'd instruction.
 function test0(condition) {
     var obj0 = {};
     obj0.prop0 = 1;

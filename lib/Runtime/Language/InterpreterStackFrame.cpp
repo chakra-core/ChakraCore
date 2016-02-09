@@ -25,9 +25,9 @@
 /// - X: Nothing
 ///
 /// Examples:
-/// - "A2toA1" reads two registers, each storing an Var, and writes a single
+/// - "A2toA1" reads two registers, each storing a Var, and writes a single
 ///   register with a new Var.
-/// - "A1I1toA2" reads two registers, first an Var and second an Int32, then
+/// - "A1I1toA2" reads two registers, first a Var and second an Int32, then
 ///   writes two Var registers.
 ///
 /// Although these could use lookup tables to standard OpLayout types, this
@@ -2497,14 +2497,14 @@ namespace Js
             if (!info->IsRuntimeProcessed())
             {
                 // don't reset entrypoint upon relinking
-                FunctionEntryPointInfo* entypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
+                entrypointInfo->SetIsAsmJSFunction(true);
+                entrypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
 
 #if DYNAMIC_INTERPRETER_THUNK
                 if (!PHASE_ON1(AsmJsJITTemplatePhase))
                 {
-                    entypointInfo->address = AsmJsDefaultEntryThunk;
+                    entrypointInfo->address = AsmJsDefaultEntryThunk;
                 }
 #endif
             }
@@ -2832,12 +2832,12 @@ namespace Js
         uint homingAreaSize = 0;
 #endif
 
-        uintptr argAddress = (uintptr)m_inParams;
+        uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
 #if _M_X64
             // 3rd Argument should be at the end of the homing area.
-            Assert(i != 3 || argAddress == (uintptr)m_inParams + homingAreaSize);
+            Assert(i != 3 || argAddress == (uintptr_t)m_inParams + homingAreaSize);
             if (i < 3)
             {
                 // for x64 we spill the first 3 floating point args below the rest of the arguments on the stack
@@ -2857,7 +2857,7 @@ namespace Js
                 // IAT xmm1 spill <- floatSpillAddress for arg1
 
                 // floats are spilled as xmmwords
-                uintptr floatSpillAddress = (uintptr)m_inParams - MachPtr * (15 - 2*i);
+                uintptr_t floatSpillAddress = (uintptr_t)m_inParams - MachPtr * (15 - 2*i);
 
                 if (info->GetArgType(i).isInt())
                 {
@@ -2889,7 +2889,7 @@ namespace Js
                     // If we have simd arguments, the homing area in m_inParams can be larger than 3 64-bit slots. This is because SIMD values are unboxed there too.
                     // After unboxing, the homing area is overwritten by rdx, r8 and r9, and we read/skip 64-bit slots from the homing area (argAddress += MachPtr).
                     // After the last argument of the 3 is read, we need to advance argAddress to skip over the possible extra space and to the start of the rest of the arguments.
-                    argAddress = (uintptr)m_inParams + homingAreaSize;
+                    argAddress = (uintptr_t)m_inParams + homingAreaSize;
                 }
                 else
                 {

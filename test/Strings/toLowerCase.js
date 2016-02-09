@@ -85,7 +85,7 @@ var obj=new Object()
 Object.prototype.toLowerCase=String.prototype.toLowerCase;
 verify(obj.toLowerCase(), "[object object]", id++, "\"Testing Coercible Objects eg Object\" ");
 
-//Need to test for null and undefined but have to know the error mesage
+//Need to test for null and undefined but have to know the error message
 
 //test 17 Concatenated String
 

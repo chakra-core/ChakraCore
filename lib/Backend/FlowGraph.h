@@ -619,9 +619,9 @@ public:
     struct MemSetCandidate : public MemOpCandidate
     {
         BailoutConstantValue constant;
-        StackSym* varSym;
+        StackSym* srcSym;
 
-        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET), varSym(nullptr) {}
+        MemSetCandidate() : MemOpCandidate(MemOpCandidate::MEMSET), srcSym(nullptr) {}
     };
 
     struct MemCopyCandidate : public MemOpCandidate
@@ -665,8 +665,8 @@ public:
         BVSparse<JitArenaAllocator> *inductionVariablesUsedAfterLoop;
         InductionVariableChangeInfoMap *inductionVariableChangeInfoMap;
         InductionVariableOpndPerUnrollMap *inductionVariableOpndPerUnrollMap;
-        // This assumes that all memop operation use the same index and has the same length
-        // Temporary map to reuse existing startIndexOpnd while emiting
+        // This assumes that all memop operations use the same index and have the same length
+        // Temporary map to reuse existing startIndexOpnd while emitting
         // 0 = !increment & !alreadyChanged, 1 = !increment & alreadyChanged, 2 = increment & !alreadyChanged, 3 = increment & alreadyChanged
         IR::RegOpnd* startIndexOpndCache[4];
     } MemOpInfo;

@@ -1508,7 +1508,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::Memset:
         case Js::OpCode::Memcopy:
         {
-            LowerMemOp(instr);
+            instrPrev = LowerMemOp(instr);
             break;
         }
 
@@ -1715,7 +1715,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             Assert(instr->GetSrc1()->GetType() == TyVar);
             if (instr->GetDst()->GetType() == TyInt32)
             {
-                if(m_lowererMD.EmitLoadInt32(instr))
+                if(m_lowererMD.EmitLoadInt32(instr, !(instr->HasBailOutInfo() && (instr->GetBailOutKind() == IR::BailOutOnNotPrimitive))))
                 {
                     // Bail out instead of calling a helper
                     Assert(instr->GetBailOutKind() == IR::BailOutIntOnly || instr->GetBailOutKind() == IR::BailOutExpectingInteger);
@@ -3230,7 +3230,7 @@ Lowerer::GenerateFastBrSrEq(IR::Instr * instr, IR::RegOpnd * srcReg1, IR::RegOpn
         this->LowerBrCMem(instr, IR::HelperOp_StrictEqualEmptyString, noMathFastPath, false);
         return true;
     }
-    else if (srcReg1 && (srcReg1->m_sym->m_isStrConst))
+    else if (srcReg1 && (srcReg1->m_sym->m_isStrEmpty))
     {
         instr->SwapOpnds();
         this->LowerBrCMem(instr, IR::HelperOp_StrictEqualEmptyString, noMathFastPath, false);
@@ -7594,27 +7594,27 @@ Lowerer::LoadArgumentsFromFrame(IR::Instr *const instr)
 }
 
 IR::Instr *
-Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     IR::Opnd *src1 = instr->UnlinkSrc1();
     instrPrev = m_lowererMD.LoadHelperArgument(instr, src1);
 
-    m_lowererMD.ChangeToHelperCall(instr, helperMethod);
+    m_lowererMD.ChangeToHelperCall(instr, helperMethod, nullptr, opndBailoutArg);
 
     return instrPrev;
 }
 
 // helper takes memory context as second argument
 IR::Instr *
-Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     instrPrev = LoadScriptContext(instr);
 
-    return this->LowerUnaryHelper(instr, helperMethod);
+    return this->LowerUnaryHelper(instr, helperMethod, opndBailoutArg);
 }
 
 IR::Instr *
@@ -7668,6 +7668,23 @@ Lowerer::LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helpe
     }
 
     return this->LowerUnaryHelperMem(instr, helperMethod);
+}
+
+IR::Instr *
+Lowerer::LowerUnaryHelperMemWithBoolReference(IR::Instr *instr, IR::JnHelperMethod helperMethod, bool useBoolForBailout)
+{
+    if (!this->m_func->tempSymBool)
+    {
+        this->m_func->tempSymBool = StackSym::New(TyUint8, this->m_func);
+        this->m_func->StackAllocate(this->m_func->tempSymBool, TySize[TyUint8]);
+    }
+    IR::SymOpnd * boolOpnd = IR::SymOpnd::New(this->m_func->tempSymBool, TyUint8, this->m_func);
+    IR::RegOpnd * boolRefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+    InsertLea(boolRefOpnd, boolOpnd, instr);
+
+    m_lowererMD.LoadHelperArgument(instr, boolRefOpnd);
+
+    return this->LowerUnaryHelperMem(instr, helperMethod, useBoolForBailout ? boolOpnd : nullptr);
 }
 
 ///----------------------------------------------------------------------------
@@ -8379,7 +8396,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     return instrPrev;
 }
 
-void
+IR::Instr *
 Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
 {
     IR::Opnd * dst = instr->UnlinkDst();
@@ -8396,7 +8413,14 @@ Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
     Assert(indexOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperOp_Memset;
-
+    IR::Instr *instrPrev = nullptr;
+    if (src1->IsRegOpnd() && !src1->IsVar())
+    {
+        IR::RegOpnd* varOpnd = IR::RegOpnd::New(TyVar, instr->m_func);
+        instrPrev = IR::Instr::New(Js::OpCode::ToVar, varOpnd, src1, instr->m_func);
+        instr->InsertBefore(instrPrev);
+        src1 = varOpnd;
+    }
     instr->SetDst(helperRet);
     LoadScriptContext(instr);
     m_lowererMD.LoadHelperArgument(instr, sizeOpnd);
@@ -8405,9 +8429,11 @@ Lowerer::LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet)
     m_lowererMD.LoadHelperArgument(instr, baseOpnd);
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
     dst->Free(m_func);
+    
+    return instrPrev;
 }
 
-void
+IR::Instr *
 Lowerer::LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet)
 {
     IR::Opnd * dst = instr->UnlinkDst();
@@ -8442,6 +8468,8 @@ Lowerer::LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet)
     m_lowererMD.ChangeToHelperCall(instr, helperMethod);
     dst->Free(m_func);
     src->Free(m_func);
+
+    return nullptr;
 }
 
 IR::Instr *
@@ -8504,13 +8532,19 @@ Lowerer::LowerMemOp(IR::Instr * instr)
         instr->ClearBailOutInfo();
     }
 
+    IR::Instr* newInstrPrev = nullptr;
     if (instr->m_opcode == Js::OpCode::Memset)
     {
-        LowerMemset(instr, helperRet);
+        newInstrPrev = LowerMemset(instr, helperRet);
     }
     else if (instr->m_opcode == Js::OpCode::Memcopy)
     {
-        LowerMemcopy(instr, helperRet);
+        newInstrPrev = LowerMemcopy(instr, helperRet);
+    }
+
+    if (newInstrPrev != nullptr)
+    {
+        instrPrev = newInstrPrev;
     }
     return instrPrev;
 }
@@ -9444,7 +9478,7 @@ Lowerer::LowerStElemC(IR::Instr * stElem)
             }
             else
             {
-                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be a int array at the first place
+                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be an int array at the first place
                 //if this code was ever hit. Just bailout, this code path would be updated with the profile information next time around.
                 InsertBranch(Js::OpCode::Br, labelBailOut, stElem);
 #if DBG
@@ -10258,90 +10292,95 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
     IR::Opnd* dst = instr->GetDst();
 
 #if defined(_M_X64)
-    static const uint64 mExp = 0x3FF0000000000000;
-    static const uint64 mMant = 0x000FFFFFFFFFFFFF;
-
-    IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, this->m_func);  // s0
-    IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, this->m_func);  // s1
-    IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, this->m_func);  // helper uint64 reg
-    IR::RegOpnd* r4 = IR::RegOpnd::New(TyFloat64, this->m_func); // helper float64 reg
-
-    // ===========================================================
-    // s0 = scriptContext->GetLibrary()->GetRandSeed1();
-    // s1 = scriptContext->GetLibrary()->GetRandSeed0();
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r0,
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
-    this->m_lowererMD.CreateAssign(r1,
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
-
-    // ===========================================================
-    // s1 ^= s1 << 23;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r1, instr);
-    this->InsertShift(Js::OpCode::Shl_A, false, r3, r3, IR::IntConstOpnd::New(23, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // s1 ^= s1 >> 17;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r1, instr);
-    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(17, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // s1 ^= s0;
-    // ===========================================================
-    this->InsertXor(r1, r1, r0, instr);
-
-    // ===========================================================
-    // s1 ^= s0 >> 26;
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(r3, r0, instr);
-    this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(26, TyInt8, this->m_func), instr);
-    this->InsertXor(r1, r1, r3, instr);
-
-    // ===========================================================
-    // scriptContext->GetLibrary()->SetRandSeed0(s0);
-    // scriptContext->GetLibrary()->SetRandSeed1(s1);
-    // ===========================================================
-    this->m_lowererMD.CreateAssign(
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, this->m_func), r0, instr);
-    this->m_lowererMD.CreateAssign(
-        IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, this->m_func), r1, instr);
-
-    // ===========================================================
-    // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
-    // ===========================================================
-    this->InsertAdd(false, r1, r1, r0, instr);
-    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
-    this->InsertAnd(r1, r1, r3, instr);
-    this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
-    this->InsertOr(r1, r1, r3, instr);
-    this->InsertMoveBitCast(dst, r1, instr);
-
-    // ===================================================================
-    // dst -= 1.0;
-    // ===================================================================
-    this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
-    this->InsertSub(false, dst, dst, r4, instr);
-#else
-    IR::Opnd* tmpdst = dst;
-    if(!dst->IsRegOpnd())
+    if (m_func->GetScriptContext()->GetLibrary()->IsPRNGSeeded())
     {
-        tmpdst = IR::RegOpnd::New(dst->GetType(), instr->m_func);
-    }
+        const uint64 mExp = 0x3FF0000000000000;
+        const uint64 mMant = 0x000FFFFFFFFFFFFF;
 
-    LoadScriptContext(instr);
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, tmpdst, instr->m_func);
-    instr->InsertBefore(helperCallInstr);
-    m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperDirectMath_Random);
+        IR::RegOpnd* r0 = IR::RegOpnd::New(TyUint64, m_func);  // s0
+        IR::RegOpnd* r1 = IR::RegOpnd::New(TyUint64, m_func);  // s1
+        IR::RegOpnd* r3 = IR::RegOpnd::New(TyUint64, m_func);  // helper uint64 reg
+        IR::RegOpnd* r4 = IR::RegOpnd::New(TyFloat64, m_func); // helper float64 reg
 
-    if(tmpdst != dst)
-    {
-        InsertMove(dst, tmpdst, instr);
+        // ===========================================================
+        // s0 = scriptContext->GetLibrary()->GetRandSeed1();
+        // s1 = scriptContext->GetLibrary()->GetRandSeed0();
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r0,
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, instr->m_func), instr);
+        this->m_lowererMD.CreateAssign(r1,
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, instr->m_func), instr);
+
+        // ===========================================================
+        // s1 ^= s1 << 23;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r1, instr);
+        this->InsertShift(Js::OpCode::Shl_A, false, r3, r3, IR::IntConstOpnd::New(23, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // s1 ^= s1 >> 17;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r1, instr);
+        this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(17, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // s1 ^= s0;
+        // ===========================================================
+        this->InsertXor(r1, r1, r0, instr);
+
+        // ===========================================================
+        // s1 ^= s0 >> 26;
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(r3, r0, instr);
+        this->InsertShift(Js::OpCode::ShrU_A, false, r3, r3, IR::IntConstOpnd::New(26, TyInt8, m_func), instr);
+        this->InsertXor(r1, r1, r3, instr);
+
+        // ===========================================================
+        // scriptContext->GetLibrary()->SetRandSeed0(s0);
+        // scriptContext->GetLibrary()->SetRandSeed1(s1);
+        // ===========================================================
+        this->m_lowererMD.CreateAssign(
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed0Offset(), TyUint64, m_func), r0, instr);
+        this->m_lowererMD.CreateAssign(
+            IR::MemRefOpnd::New((BYTE*)m_func->GetScriptContext()->GetLibrary() + Js::JavascriptLibrary::GetRandSeed1Offset(), TyUint64, m_func), r1, instr);
+
+        // ===========================================================
+        // dst = bit_cast<float64>(((s0 + s1) & mMant) | mExp);
+        // ===========================================================
+        this->InsertAdd(false, r1, r1, r0, instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mMant, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->InsertAnd(r1, r1, r3, instr);
+        this->m_lowererMD.CreateAssign(r3, IR::AddrOpnd::New((Js::Var)mExp, IR::AddrOpndKindConstantVar, m_func, true), instr);
+        this->InsertOr(r1, r1, r3, instr);
+        this->InsertMoveBitCast(dst, r1, instr);
+
+        // ===================================================================
+        // dst -= 1.0;
+        // ===================================================================
+        this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
+        this->InsertSub(false, dst, dst, r4, instr);
     }
+    else
 #endif
+    {
+        IR::Opnd* tmpdst = dst;
+        if (!dst->IsRegOpnd())
+        {
+            tmpdst = IR::RegOpnd::New(dst->GetType(), instr->m_func);
+        }
+
+        LoadScriptContext(instr);
+        IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, tmpdst, instr->m_func);
+        instr->InsertBefore(helperCallInstr);
+        m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperDirectMath_Random);
+
+        if (tmpdst != dst)
+        {
+            InsertMove(dst, tmpdst, instr);
+        }
+    }
 
     instr->Remove();
     return retInstr;
@@ -10858,6 +10897,21 @@ Lowerer::LowerBailOnNotObject(IR::Instr       *instr,
     this->GenerateBailOut(instr, branchInstr, labelBailOut);
 
     return prevInstr;
+}
+
+IR::Instr *
+Lowerer::LowerBailOnTrue(IR::Instr* instr, IR::LabelInstr* labelBailOut /*nullptr*/)
+{
+    IR::Instr* instrPrev = instr->m_prev;
+
+    IR::LabelInstr* continueLabel = instr->GetOrCreateContinueLabel();
+    IR::RegOpnd * regSrc1 = IR::RegOpnd::New(instr->GetSrc1()->GetType(), this->m_func);
+    InsertMove(regSrc1, instr->UnlinkSrc1(), instr);
+    InsertTestBranch(regSrc1, regSrc1, Js::OpCode::BrEq_A, continueLabel, instr);
+
+    GenerateBailOut(instr, nullptr, labelBailOut);
+
+    return instrPrev;
 }
 
 IR::Instr *
@@ -11819,7 +11873,6 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     const auto bailOutKind = instr->GetBailOutKind();
     Assert(
         BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind) ||
-        bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
         bailOutKind == IR::BailOutExpectingObject);
 
     IR::Opnd * implicitCallFlags = this->GetImplicitCallFlagsOpnd();
@@ -11831,8 +11884,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     LowererMD::CreateAssign(implicitCallFlags, noImplicitCall, instr);
 
     IR::Instr *disableImplicitCallsInstr = nullptr, *enableImplicitCallsInstr = nullptr;
-    if(bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
-       bailOutKind == IR::BailOutOnImplicitCallsPreOp)
+    if(bailOutKind == IR::BailOutOnImplicitCallsPreOp)
     {
         const auto disableImplicitCallAddress =
             m_lowererMD.GenerateMemRef(
@@ -11845,10 +11897,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 disableImplicitCallAddress,
-                IR::IntConstOpnd::New(
-                    // LossyToInt32 is a special case where we need to disable exceptions because the helper can throw where the interpreter wouldn't
-                    bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ? DisableImplicitCallAndExceptionFlag : DisableImplicitCallFlag,
-                    TyInt8, instr->m_func, true),
+                IR::IntConstOpnd::New(DisableImplicitCallFlag, TyInt8, instr->m_func, true),
                 instr->m_func);
         instr->InsertBefore(disableImplicitCallsInstr);
 
@@ -14884,7 +14933,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     // Load the string buffer and make sure it is not null
     //  MOV bufferOpnd, [baseOpnd + offset(m_pszValue)]
     //  TEST bufferOpnd, bufferOpnd
-    //  JEQ $lableHelper
+    //  JEQ $labelHelper
     indirOpnd = IR::IndirOpnd::New(baseOpnd, offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, this->m_func);
 
     InsertMove(bufferOpnd, indirOpnd, ldElem);
@@ -15893,7 +15942,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                     // Convert reg to int32
                     // Note: ToUint32 is implemented as (uint32)ToInt32()
-                    m_lowererMD.EmitLoadInt32(instr);
+                    m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/);
 
                     // MOV indirOpnd, reg
                     InsertMove(indirOpnd, reg, stElem);
@@ -18226,7 +18275,7 @@ Lowerer::GenerateFunctionTypeFromFixedFunctionObject(IR::Instr *insertInstrPt, I
         IR::AddrOpnd* functionObjAddrOpnd = functionObjOpnd->AsAddrOpnd();
         // functionTypeRegOpnd = MOV [fixed function address + type offset]
         functionObjAddrOpnd->m_address;
-        functionTypeOpnd = IR::MemRefOpnd::New((void *)((intptr)functionObjAddrOpnd->m_address + Js::RecyclableObject::GetOffsetOfType()), TyMachPtr, this->m_func,
+        functionTypeOpnd = IR::MemRefOpnd::New((void *)((intptr_t)functionObjAddrOpnd->m_address + Js::RecyclableObject::GetOffsetOfType()), TyMachPtr, this->m_func,
             IR::AddrOpndKindDynamicObjectTypeRef);
     }
     else
@@ -21196,7 +21245,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     }
     else
     {
-        // Just generate all the assignment in loop of loopUnroolCount and the rest as straight line code
+        // Just generate all the assignment in loop of loopUnrollCount and the rest as straight line code
         //
         //      lea currOpnd, [dst + sizeof(Var) * (loopAssignCount + Js::ScopeSlots::FirstSlotIndex - loopUnrollCount)];
         //      mov [currOpnd + loopUnrollCount + leftOverAssignCount - 1] , undefinedOpnd
@@ -22004,7 +22053,7 @@ Lowerer::LowerLdEnv(IR::Instr * instr)
     {
         Assert(functionObjOpnd->IsAddrOpnd());
         IR::AddrOpnd* functionObjAddrOpnd = functionObjOpnd->AsAddrOpnd();
-        IR::MemRefOpnd* functionEnvMemRefOpnd = IR::MemRefOpnd::New((void *)((intptr)functionObjAddrOpnd->m_address + Js::ScriptFunction::GetOffsetOfEnvironment()),
+        IR::MemRefOpnd* functionEnvMemRefOpnd = IR::MemRefOpnd::New((void *)((intptr_t)functionObjAddrOpnd->m_address + Js::ScriptFunction::GetOffsetOfEnvironment()),
             TyMachPtr, this->m_func, IR::AddrOpndKindDynamicFunctionEnvironmentRef);
         instr->SetSrc1(functionEnvMemRefOpnd);
     }

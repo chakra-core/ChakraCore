@@ -44,7 +44,7 @@ var tests = [
         name: "Async keyword as generator",
         body: function () {
             assert.throws(function () { eval("async function* badFunction() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in a statement", "Syntax error");
-            assert.throws(function () { eval("var badVaribale = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Syntax error");
+            assert.throws(function () { eval("var badVariable = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Syntax error");
             assert.throws(function () { eval("var o { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a object literal member", "Expected ';'");
             assert.throws(function () { eval("class C { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a class member", "Syntax error");
         }
@@ -126,6 +126,64 @@ var tests = [
             var b = async () => { };
             var c = async x => x;
             var d = async (a, b) => { };
+        }
+    },
+    {
+        name: "await is a future reserved keyword and recognized in strict mode as an error in non-async functions",
+        body: function () {
+            assert.throws(function () { eval("function f() { 'use strict'; await 10; }"); }, SyntaxError, "await expression not allowed in self-strict non-async function", "'await' expression not allowed in this context");
+            assert.throws(function () { "use strict"; eval("function f() { await 10; }"); }, SyntaxError, "await expression not allowed in parent-strict non-async function", "'await' expression not allowed in this context");
+        }
+    },
+    {
+        name: "It is a Syntax Error if FormalParameters Contains AwaitExpression is true",
+        body: function () {
+            assert.throws(function () { eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in non-strict async function", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af(a, b = await a) { 'use strict'; }"); }, SyntaxError, "await expressions not allowed in self-strict async function", "'await' expression not allowed in this context");
+            assert.throws(function () { "use strict"; eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in parent-strict async function", "'await' expression not allowed in this context");
+
+            assert.doesNotThrow(function () { eval("function f(a = async function (x) { await x; }) { a(); } f();"); }, "await is allowed within the body of an async function that appears in a default parameter value expression");
+
+            assert.throws(function () { eval("async function af(x) { function f(a = await x) { } f(); } af();"); }, SyntaxError, "await expression is not available within non-async function parameter default expression", "Expected ')'");
+        }
+    },
+    {
+        name: "[no LineTerminator here] after `async` in grammar",
+        body: function () {
+            assert.throws(function () { eval("async\nfunction af() { }"); }, ReferenceError, "AsyncFunctionDeclaration", "'async' is undefined");
+            assert.throws(function () { eval("var af = async\nfunction () { }"); }, SyntaxError, "AsyncFunctionExpression", "Expected identifier");
+            assert.throws(function () { eval("var o = { async\nam() { } };"); }, SyntaxError, "AsyncMethod in object literal", "Expected ':'");
+            assert.throws(function () { eval("class C { async\nam() { } };"); }, SyntaxError, "AsyncMethod in class", "Expected '('");
+            assert.throws(function () { eval("var aaf = async\n(x, y) => { };"); }, SyntaxError, "AsyncArrowFunction", "Syntax error");
+        }
+    },
+    {
+        name: "'arguments' and 'eval' are not allowed as formal parameter names in strict mode",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(arguments) { }"); }, "'arguments' can be the name of a parameter in a non-strict mode async function");
+            assert.doesNotThrow(function () { eval("async function af(eval) { }"); }, "'eval' can be the name of a parameter in a non-strict mode async function");
+
+            assert.throws(function () { eval("async function af(arguments) { 'use strict'; }"); }, SyntaxError, "'arguments' cannot be the name of a parameter in an async function that turns on strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { eval("async function af(eval) { 'use strict'; }"); }, SyntaxError, "'eval' cannot be the name of a parameter in an async function that turns on strict mode", "Invalid usage of 'eval' in strict mode");
+
+            assert.throws(function () { "use strict"; eval("async function af(arguments) { }"); }, SyntaxError, "'arguments' cannot be the name of a parameter in an async function that is already in strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { "use strict"; eval("async function af(eval) { }"); }, SyntaxError, "'eval' cannot be the name of a parameter in an async function that is already in strict mode", "Invalid usage of 'eval' in strict mode");
+        }
+    },
+    {
+        name: "duplicate formal parameter names are not allowed in strict mode",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(x, x) { }"); }, "duplicate parameter names are allowed in a non-strict mode async function");
+            assert.doesNotThrow(function () { eval("async function af(a, b, a) { }"); }, "duplicate parameter names are allowed in a non-strict mode async function (when there are other names)");
+
+            assert.throws(function () { eval("async (x, x) => { }"); }, SyntaxError, "duplicate parameter names are not allowed in a non-strict mode async arrow function due to arrow function static semantics", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval("async (a, b, a) => { }"); }, SyntaxError, "duplicate parameter names are not allowed in a non-strict mode async arrow function due to arrow function static semantics (when there are other names)", "Duplicate formal parameter names not allowed in this context");
+
+            assert.throws(function () { eval("async function af(x, x) { 'use strict'; }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that turns on strict mode", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { eval("async function af(a, b, a) { 'use strict'; }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that turns on strict mode (when there are other names)", "Duplicate formal parameter names not allowed in strict mode");
+
+            assert.throws(function () { "use strict"; eval("async function af(x, x) { }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { "use strict"; eval("async function af(a, b, a) { }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that is already in strict mode (when there are other names)", "Duplicate formal parameter names not allowed in strict mode");
         }
     },
 ];

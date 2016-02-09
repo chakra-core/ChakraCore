@@ -14,7 +14,6 @@ set (SOURCES
   RejitReason.cpp
   SmartFPUControl.cpp
   Tick.cpp
-  unicode.cpp
   vtinfo.cpp
 )
 

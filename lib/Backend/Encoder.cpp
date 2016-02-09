@@ -840,7 +840,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
             }
 
             src_size = to - from + 1;
-            Assert(dst_size >= src_size);
+            AnalysisAssert(dst_size >= src_size);
 
             memcpy_s(dst_p, dst_size, from, src_size);
             dst_p += src_size;
@@ -848,6 +848,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
 
             // fix the BR
             // write new opcode
+            AnalysisAssert(dst_p < tmpBuffer + newCodeSize);
             *dst_p = (*opcodeByte == 0xe9) ? (BYTE)0xeb : (BYTE)(*opcodeByte - 0x10);
             dst_p += 2; // 1 byte for opcode + 1 byte for imm8
             dst_size -= 2;
@@ -965,7 +966,7 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
         Assert(origPInstrList->Count() == pInstrList->Count());
 
 #if DBG_DUMP
-        Assert(m_origOffsetBuffer)
+        Assert(m_origOffsetBuffer);
         Assert((uint32)(*m_origOffsetBuffer)->Count() == m_instrNumber);
 #endif
     }

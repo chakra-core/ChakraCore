@@ -447,7 +447,7 @@ namespace Js
         void * nativeAddress;
         ptrdiff_t codeSize;
         bool isAsmJsFunction; // true if entrypoint is for asmjs function
-        uintptr  mModuleAddress; //asm Module address
+        uintptr_t  mModuleAddress; //asm Module address
 
 #ifdef FIELD_ACCESS_STATS
         FieldAccessStatsPtr fieldAccessStats;
@@ -658,14 +658,14 @@ namespace Js
 #endif
 
 #ifndef TEMP_DISABLE_ASMJS
-        void SetModuleAddress(uintptr moduleAddress)
+        void SetModuleAddress(uintptr_t moduleAddress)
         {
             Assert(this->GetIsAsmJSFunction());
             Assert(moduleAddress);
             mModuleAddress = moduleAddress;
         }
 
-        uintptr GetModuleAddress()const
+        uintptr_t GetModuleAddress()const
         {
             Assert(this->GetIsAsmJSFunction());
             Assert(mModuleAddress); // module address should not be null
@@ -864,7 +864,7 @@ namespace Js
         void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees() { return this->frameHeight > 0; }
-        void DoLazyBailout(BYTE** addressOfeturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
+        void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
 #endif
 #if DBG_DUMP
      public:
@@ -1413,7 +1413,7 @@ namespace Js
         {
             this->m_boundPropertyRecords = nullptr;
         }
-        ParseableFunctionInfo* Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        virtual ParseableFunctionInfo* Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex);
         ParseableFunctionInfo* CopyFunctionInfoInto(ScriptContext *scriptContext, Js::ParseableFunctionInfo* functionInfo, uint sourceIndex = Js::Constants::InvalidSourceIndex);
         void CloneSourceInfo(ScriptContext* scriptContext, const ParseableFunctionInfo& other, ScriptContext* othersScriptContext, uint sourceIndex);
 
@@ -2618,9 +2618,9 @@ namespace Js
 
         bool InstallProbe(int offset);
         bool UninstallProbe(int offset);
-        bool ProbeAtOffset(int offsest, OpCode* pOriginalOpcode);
+        bool ProbeAtOffset(int offset, OpCode* pOriginalOpcode);
 
-        FunctionBody * Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        ParseableFunctionInfo * Clone(ScriptContext *scriptContext, uint sourceIndex = Js::Constants::InvalidSourceIndex) override;
 
         static bool ShouldShareInlineCaches() { return CONFIG_FLAG(ShareInlineCaches); }
 

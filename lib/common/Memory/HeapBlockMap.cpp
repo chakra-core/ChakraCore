@@ -815,12 +815,13 @@ HeapBlockMap32::GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseA
         DWORD r = ::GetWriteWatch(writeWatchFlags, pageAddress, AutoSystemInfo::PageSize, &result, &resultBufferCount, granularity);
         Assert(r == 0);
         Assert(resultBufferCount <= 1);
-        AnalysisAssert(dirtyCount <= pageCount);
+        AnalysisAssert(dirtyCount < pageCount);
 
         // The requested page was dirty
         if (resultBufferCount == 1)
         {
             Assert(result == pageAddress);
+#pragma prefast(suppress:22102)
             addresses[dirtyCount] = pageAddress;
             dirtyCount++;
         }

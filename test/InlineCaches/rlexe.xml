@@ -62,8 +62,8 @@
   </test>
   <test>
     <default>
-      <files>inlnieLocalCacheWithoutProperty.js</files>
-      <baseline>inlnieLocalCacheWithoutProperty.baseline</baseline>
+      <files>inlineLocalCacheWithoutProperty.js</files>
+      <baseline>inlineLocalCacheWithoutProperty.baseline</baseline>
     </default>
   </test>
   <test>

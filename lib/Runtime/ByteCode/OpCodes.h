@@ -608,7 +608,7 @@ MACRO_BACKEND_ONLY(     Coerse_Regex, Empty, OpCallsValueOf|OpHasImplicitCall|Op
 // Operation CreateRegex(regex) or CoerseStr(arg)
 MACRO_BACKEND_ONLY(     Coerse_StrOrRegex, Empty, OpCallsValueOf|OpHasImplicitCall|OpTempNumberSources|OpTempNumberTransfer|OpPostOpDbgBailOut)
 
-// Operation ToString(ToPrimtive(src1))
+// Operation ToString(ToPrimitive(src1))
 MACRO_BACKEND_ONLY(     Conv_PrimStr,       Empty,          OpCallsValueOf|OpHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
 
 // The following are for lowering; currently the specified layout is not used
@@ -632,6 +632,7 @@ MACRO_BACKEND_ONLY(     BailTarget,                  Empty,          OpBailOutRe
 MACRO_BACKEND_ONLY(     BailOnNoProfile,             Empty,          OpBailOutRec|OpDeadFallThrough)
 MACRO_BACKEND_ONLY(     BailOnNoSimdTypeSpec,        Empty,          OpBailOutRec|OpDeadFallThrough)
 MACRO_BACKEND_ONLY(     BailOnNotObject,             Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
+MACRO_BACKEND_ONLY(     BailOnNotPrimitive,          Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
 MACRO_BACKEND_ONLY(     BailOnNotArray,              Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpTempObjectSources)
 MACRO_BACKEND_ONLY(     BailForDebugger,             Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpSideEffect)    // Bail out so that we can continue the function under debugger. Disable optimizations for this instr so that it's not moved.
 MACRO_BACKEND_ONLY(     BailOnNotBuiltIn,            Empty,          OpBailOutRec|OpTempNumberSources|OpTempObjectSources|OpCanCSE)

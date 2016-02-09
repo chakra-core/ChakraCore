@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -41,7 +42,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectSnapshotEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectSnapshotEnumeratorWPCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicType.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ES5ArrayTypeHandler.cpp" />    
+    <ClCompile Include="$(MSBuildThisFileDirectory)ES5ArrayTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MissingPropertyTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NullTypeHandler.cpp" />

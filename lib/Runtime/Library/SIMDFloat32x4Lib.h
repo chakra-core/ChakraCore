@@ -4,9 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if ENABLE_NATIVE_CODEGEN
 namespace Js {
-
 
     class SIMDFloat32x4Lib
     {
@@ -148,4 +146,3 @@ namespace Js {
         // End entry points
     };
 } // namespace Js
-#endif

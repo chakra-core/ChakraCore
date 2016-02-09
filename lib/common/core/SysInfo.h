@@ -36,7 +36,7 @@ public:
     BOOL GetAvailableCommit(ULONG64 *pCommit);
     void SetAvailableCommit(ULONG64 commit);
     DWORD GetNumberOfLogicalProcessors() const { return this->dwNumberOfProcessors; }
-    DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhyscialProcessors; }
+    DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhysicalProcessors; }
 
 #if defined(_M_ARM32_OR_ARM64)
     bool ArmDivAvailable() const { return this->armDivAvailable; }
@@ -78,7 +78,7 @@ private:
 #if defined(_M_ARM32_OR_ARM64)
     bool armDivAvailable;
 #endif
-    DWORD dwNumberOfPhyscialProcessors;
+    DWORD dwNumberOfPhysicalProcessors;
 
     bool disableDebugScopeCapture;
 #if DBG

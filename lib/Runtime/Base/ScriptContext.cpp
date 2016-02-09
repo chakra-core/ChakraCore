@@ -174,8 +174,8 @@ namespace Js
         , codeSize(0)
         , bailOutRecordBytes(0)
         , bailOutOffsetBytes(0)
-        , debugContext(nullptr)
 #endif
+        , debugContext(nullptr)
     {
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
        // are field init and those dtor will be called if exception occurs
@@ -1589,7 +1589,7 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1668,6 +1668,12 @@ namespace Js
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
 
+            if (isLibraryCode)
+            {
+                grfscr |= fscrIsLibraryCode;
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             ParseNodePtr parseTree;
             hr = parser.ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
@@ -1688,7 +1694,7 @@ namespace Js
                 Assert(!disableAsmJs);
 
                 pse->Clear();
-                return LoadScript(script, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, true);
+                return LoadScript(script, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
             }
 
             if (pFunction != nullptr && this->IsProfiling())
@@ -1709,7 +1715,7 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1753,6 +1759,11 @@ namespace Js
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
 
+            if (isLibraryCode)
+            {
+                grfscr |= fscrIsLibraryCode;
+            }
+
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
             {
@@ -1775,6 +1786,12 @@ namespace Js
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             *ppSourceInfo = Utf8SourceInfo::New(this, script, parser.GetSourceIchLim(), cb, pSrcInfo);
             (*ppSourceInfo)->SetParseFlags(grfscr);
+
+            if (isLibraryCode)
+            {
+                (*ppSourceInfo)->SetIsLibraryCode();
+            }
+
             uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser.GetSourceIchLim(), /* isCesu8*/ false);
 
             JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
@@ -1784,7 +1801,7 @@ namespace Js
                 Assert(!disableAsmJs);
 
                 pse->Clear();
-                return LoadScript(script, cb, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, true);
+                return LoadScript(script, cb, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
             }
 
             if (pFunction != nullptr && this->IsProfiling())
@@ -3054,7 +3071,7 @@ namespace Js
             // Set library to profile mode so that for built-ins all new instances of functions
             // are created with entry point set to the ProfileThunk.
             this->javascriptLibrary->SetProfileMode(true);
-            this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInoke);
+            this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInvoke);
             if (!calledDuringAttach)
             {
                 m_fTraceDomCall = TRUE; // This flag is always needed in DebugMode to wrap external functions with DebugProfileThunk
@@ -3802,7 +3819,7 @@ namespace Js
 
     HRESULT ScriptContext::OnScriptCompiled(PROFILER_TOKEN scriptId, PROFILER_SCRIPT_TYPE type, IUnknown *pIDebugDocumentContext)
     {
-        // TODO : can we do a delay send of these events or can we send a event before doing all this stuff that could calculate overhead?
+        // TODO : can we do a delay send of these events or can we send an event before doing all this stuff that could calculate overhead?
         Assert(m_pProfileCallback != NULL);
 
         OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnScriptCompiled scriptId : %d, ScriptType : %d\n", scriptId, type);
@@ -5235,6 +5252,17 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         if (this->debugContext != nullptr)
         {
             return this->GetDebugContext()->IsInDebugOrSourceRundownMode();
+        }
+        return false;
+    }
+
+    bool ScriptContext::IsIntlEnabled()
+    {
+        if (GetConfig()->IsIntlEnabled())
+        {
+            // This will try to load globalization dlls if not already loaded.
+            Js::DelayLoadWindowsGlobalization* globLibrary = GetThreadContext()->GetWindowsGlobalizationLibrary();
+            return globLibrary->HasGlobalizationDllLoaded();
         }
         return false;
     }

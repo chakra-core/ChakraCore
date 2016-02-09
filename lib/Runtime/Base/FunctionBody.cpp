@@ -1181,7 +1181,7 @@ namespace Js
         Assert(scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
 #ifdef PERF_COUNTERS
-        PERF_COUNTER_INC(Code, DeferedFunction);
+        PERF_COUNTER_INC(Code, DeferredFunction);
 #endif
         uint newFunctionNumber = scriptContext->GetThreadContext()->NewFunctionNumber();
         if (!sourceInfo->GetSourceContextInfo()->IsDynamic())
@@ -1696,7 +1696,7 @@ namespace Js
                 );
 
             this->Copy(funcBody);
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
 
             if (!this->GetSourceContextInfo()->IsDynamic())
             {
@@ -1780,11 +1780,6 @@ namespace Js
 #if ENABLE_PROFILE_INFO
             Assert(!funcBody->HasExecutionDynamicProfileInfo());
 #endif
-
-            // In debug mode, the eval code will be asked to recompile again.
-            AssertMsg(isDebugReparse || !(funcBody->GetGrfscr() & (fscrImplicitThis | fscrImplicitParents)),
-                        "Deferred parsing of event handler body?");
-
             // In debug or asm.js mode, the scriptlet will be asked to recompile again.
             AssertMsg(isReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
 
@@ -1961,7 +1956,7 @@ namespace Js
             );
 
         this->Copy(funcBody);
-        PERF_COUNTER_DEC(Code, DeferedFunction);
+        PERF_COUNTER_DEC(Code, DeferredFunction);
 
         if (!this->GetSourceContextInfo()->IsDynamic())
         {
@@ -2041,7 +2036,7 @@ namespace Js
             {
                 this->m_utf8SourceInfo->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             }
-            PERF_COUNTER_DEC(Code, DeferedFunction);
+            PERF_COUNTER_DEC(Code, DeferredFunction);
         }
     }
 
@@ -2271,7 +2266,7 @@ namespace Js
             this->m_isEval = isEval;
             this->m_isDynamicFunction = isDynamicFunction;
 
-            // It would have been better if we detect and reject large source buffer eariler before parsing
+            // It would have been better if we detect and reject large source buffer earlier before parsing
             size_t cbMin = node->sxFnc.cbMin;
             size_t lengthInBytes = node->sxFnc.LengthInBytes();
             if (cbMin > UINT_MAX || lengthInBytes > UINT_MAX)
@@ -2460,7 +2455,7 @@ namespace Js
         }
         if(!!pnode->sxFnc.HasReferenceableBuiltInArguments() != this->HasReferenceableBuiltInArguments())
         {
-            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"Referencable Built in args is different on debug reparse: %s(%s)\n", this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
+            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"Referenceable Built in args is different on debug reparse: %s(%s)\n", this->GetExternalDisplayName(), this->GetDebugNumberSet(debugStringBuffer));
         }
 
         pnode->sxFnc.SetChildCallsEval(this->GetChildCallsEval());
@@ -2777,7 +2772,7 @@ namespace Js
                 regex::Interval* pSourceSpan = &(statementMaps->Item(i)->sourceSpan);
                 if (FunctionBody::IsDummyGlobalRetStatement(pSourceSpan))
                 {
-                    // Workaround for handling global return, which is a empty range.
+                    // Workaround for handling global return, which is an empty range.
                     continue;
                 }
 
@@ -3562,7 +3557,7 @@ namespace Js
         newFunctionBody->m_isFromNativeCodeModule = this->m_isFromNativeCodeModule;
     }
 
-    FunctionBody *
+    ParseableFunctionInfo *
     FunctionBody::Clone(ScriptContext * scriptContext, uint sourceIndex)
     {
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
@@ -7591,7 +7586,7 @@ namespace Js
     {
         // DisableJIT-TODO: Move this to be under if DYNAMIC_PROFILE
 #if ENABLE_NATIVE_CODEGEN
-        // (See also the FunctionBody member written in CaptureDymamicProfileState.)
+        // (See also the FunctionBody member written in CaptureDynamicProfileState.)
         this->savedPolymorphicCacheState = entryPointInfo->GetPendingPolymorphicCacheState();
         this->savedInlinerVersion = entryPointInfo->GetPendingInlinerVersion();
         this->savedImplicitCallsFlags = entryPointInfo->GetPendingImplicitCallFlags();

@@ -2305,7 +2305,7 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
 
         // Win8 bug: 757126. If we are trying to type specialize the arguments object,
         // let's make sure stack args optimization is not enabled. This is a problem, particularly,
-        // if the instruction comes from a unreachable block. In other cases, the pass on the
+        // if the instruction comes from an unreachable block. In other cases, the pass on the
         // instruction itself should disable arguments object optimization.
         if(block->globOptData.argObjSyms && IsArgumentsSymID(id, block->globOptData))
         {
@@ -2433,7 +2433,7 @@ GlobOpt::CleanUpValueMaps()
                         deadSymsBv.Set(bucket.value->m_id);
 
                         // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                        // created in backward pass and so their symIds > maxIntitialSymID.
+                        // created in backward pass and so their symIds > maxInitialSymID.
                         if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                         {
                             deadSymsBv.Set(sym->AsStackSym()->GetObjectTypeSym()->m_id);
@@ -2444,7 +2444,7 @@ GlobOpt::CleanUpValueMaps()
                 else
                 {
                     // Make sure the type sym is added to the dead syms vector as well, because type syms are
-                    // created in backward pass and so their symIds > maxIntitialSymID. Perhaps we could remove
+                    // created in backward pass and so their symIds > maxInitialSymID. Perhaps we could remove
                     // it explicitly here, but would it work alright with the iterator?
                     if (sym->IsStackSym() && sym->AsStackSym()->HasObjectTypeSym())
                     {
@@ -3711,7 +3711,9 @@ void GlobOpt::InsertValueCompensation(
                     mergedHeadSegmentSym ? mergedHeadSegmentSym : predecessorHeadSegmentSym,
                     mergedHeadSegmentLengthSym ? mergedHeadSegmentLengthSym : predecessorHeadSegmentLengthSym,
                     mergedLengthSym ? mergedLengthSym : predecessorLengthSym,
-                    predecessorValueInfo->GetSymStore()));
+                    predecessorValueInfo->GetSymStore()),
+                false /*allowIncompatibleType*/,
+                compensated);
         }
     }
 
@@ -4156,7 +4158,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     const InductionVariable* iv = GetInductionVariable(indexSymID, loop);
     if (!iv)
     {
-        // If the index is not a induction variable return
+        // If the index is not an induction variable return
         TRACE_MEMOP_VERBOSE(loop, instr, L"Index (s%d) is not an induction variable", indexSymID);
         return false;
     }
@@ -4248,23 +4250,14 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     SymID baseSymID = GetVarSymID(baseOp->GetStackSym());
 
     IR::Opnd *srcDef = instr->GetSrc1();
-    StackSym *varSym = nullptr;
+    StackSym *srcSym = nullptr;
     if (srcDef->IsRegOpnd())
     {
         IR::RegOpnd* opnd = srcDef->AsRegOpnd();
         if (this->OptIsInvariant(opnd, this->currentBlock, loop, this->FindValue(opnd->m_sym), true, true))
         {
-            StackSym* sym = opnd->GetStackSym();
-            if (sym->GetType() != TyVar)
-            {
-                varSym = sym->GetVarEquivSym(instr->m_func);
-            }
-            else
-            {
-                varSym = sym;
-            }
+            srcSym = opnd->GetStackSym();
         }
-
     }
 
     BailoutConstantValue constant = {TyIllegal, 0};
@@ -4280,7 +4273,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     {
         constant.InitVarConstValue(srcDef->AsAddrOpnd()->m_address);
     }
-    else if(!varSym)
+    else if(!srcSym)
     {
         TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, L"Source is not an invariant");
         return false;
@@ -4297,7 +4290,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     memsetInfo->base = baseSymID;
     memsetInfo->index = inductionSymID;
     memsetInfo->constant = constant;
-    memsetInfo->varSym = varSym;
+    memsetInfo->srcSym = srcSym;
     memsetInfo->count = 1;
     memsetInfo->bIndexAlreadyChanged = isIndexPreIncr;
     loop->memOpInfo->candidates->Prepend(memsetInfo);
@@ -6010,7 +6003,6 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         return opnd;
     }
 
-    // SIMD_JS
     // Don't copy-prop operand of SIMD instr with ExtendedArg operands. Each instr should have its exclusive EA sequence.
     if (
             Js::IsSimd128Opcode(instr->m_opcode) && 
@@ -7020,7 +7012,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             "Creator of this instruction should have set the type");
         // fall-through
     case Js::OpCode::Coerse_StrOrRegex:
-        // We don't set the ValyueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
+        // We don't set the ValueType of src1 for Coerse_StrOrRegex, hence skip the ASSERT
         if (this->IsLoopPrePass() || src1ValueInfo == nullptr || !src1ValueInfo->IsString())
         {
             break;
@@ -7148,7 +7140,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         if(!this->IsLoopPrePass())
         {
             // We cannot transfer value if the field hasn't been copy prop'd because we don't generate
-            // an implicit call bailout between those values if we don't have "live fields" unnless, we are hoisting the field.
+            // an implicit call bailout between those values if we don't have "live fields" unless, we are hoisting the field.
             PropertySym *propertySym = instr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
             StackSym * fieldHoistSym;
             Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
@@ -9622,7 +9614,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 }
                 // Type specialize to int
                 bool retVal = this->TypeSpecializeIntBinary(pInstr, src1Val, src2Val, pDstVal, newMin, newMax, false /* skipDst */);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any both of the srces are int, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to int if any one of the sources is an int, but something failed during the process.");
             }
 
             // Couldn't type specialize to int, type specialize to float
@@ -9632,7 +9624,7 @@ GlobOpt::TypeSpecializeInlineBuiltInBinary(IR::Instr **pInstr, Value *src1Val, V
                 src1Val = src1OriginalVal;
                 src2Val = src2OriginalVal;
                 bool retVal = this->TypeSpecializeFloatBinary(instr, src1Val, src2Val, pDstVal);
-                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the src is a float, but something failed during the process.");
+                AssertMsg(retVal, "For min and max, the args have to be type-specialized to float if any one of the sources is a float, but something failed during the process.");
             }
             break;
         }
@@ -9737,8 +9729,8 @@ GlobOpt::TypeSpecializeIntBinary(IR::Instr **pInstr, Value *src1Val, Value *src2
                 isIntConstMissingItem = Js::SparseArraySegment<int>::IsMissingItem(&intConstantValue);
             }
 
-            // Don't specialize if the element is not likelyInt or a IntConst which is a missing item value.
-            if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
+            // Don't specialize if the element is not likelyInt or an IntConst which is a missing item value.
+            if(!(src2Val->GetValueInfo()->IsLikelyInt()) || isIntConstMissingItem)
             {
                 return false;
             }
@@ -10083,7 +10075,7 @@ GlobOpt::TypeSpecializeIntUnary(
             StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
             if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
             {
-                // Type specializing an BrTrue_A/BrFalse_A isn't worth it, unless the src
+                // Type specializing a BrTrue_A/BrFalse_A isn't worth it, unless the src
                 // is already type specialized
                 specialize = false;
             }
@@ -11855,7 +11847,7 @@ GlobOpt::IsWorthSpecializingToInt32Branch(IR::Instr * instr, Value * src1Val, Va
                 StackSym *sym = instr->GetSrc2()->AsRegOpnd()->m_sym;
                 if (this->IsInt32TypeSpecialized(sym, this->currentBlock) == false)
                 {
-                    // Type specializing an Br itself isn't worth it, unless one src
+                    // Type specializing a Br itself isn't worth it, unless one src
                     // is already type specialized
                     return false;
                 }
@@ -12549,7 +12541,7 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
                     isFloatConstMissingItem = Js::SparseArraySegment<double>::IsMissingItem(&floatValue);
                 }
                 // Don't specialize if the element is not likelyNumber - we will surely bailout
-                if(!src2Val || !(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
+                if(!(src2Val->GetValueInfo()->IsLikelyNumber()) || isFloatConstMissingItem)
                 {
                     return false;
                 }
@@ -13696,7 +13688,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     // supposed to happen, so the resulting lossy int32 value cannot be reused. Bail out on implicit calls.
                     Assert(DoLossyIntTypeSpec());
 
-                    bailOutKind = IR::BailOutOnLossyToInt32ImplicitCalls;
+                    bailOutKind = IR::BailOutOnNotPrimitive;
                     isBailout = true;
                 }
             }
@@ -14631,7 +14623,7 @@ GlobOpt::ChangeValueType(
 }
 
 void
-GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType) const
+GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType, const bool compensated) const
 {
     Assert(value);
     Assert(newValueInfo);
@@ -14654,7 +14646,7 @@ GlobOpt::ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo 
 
     if(block)
     {
-        TrackValueInfoChangeForKills(block, value, newValueInfo);
+        TrackValueInfoChangeForKills(block, value, newValueInfo, compensated);
     }
     value->SetValueInfo(newValueInfo);
 }
@@ -14764,6 +14756,7 @@ GlobOpt::AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *con
         (!likelyIntValueinfo->IsLikelyTaggedInt() || !Js::TaggedInt::IsOverflow(int32Value));
 }
 
+#if DBG
 void
 GlobOpt::VerifyArrayValueInfoForTracking(
     const ValueInfo *const valueInfo,
@@ -14829,6 +14822,7 @@ GlobOpt::VerifyArrayValueInfoForTracking(
             !DoArrayLengthHoist()
         ));
 }
+#endif
 
 void
 GlobOpt::TrackNewValueForKills(Value *const value)
@@ -14887,7 +14881,9 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
         }
     }
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
+#endif
 
     if(!isJsArray)
     {
@@ -14925,7 +14921,9 @@ GlobOpt::DoTrackCopiedValueForKills(Value *const value)
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
+#endif
 
     if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
@@ -14970,7 +14968,9 @@ GlobOpt::DoTrackMergedValueForKills(
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+#if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock, true);
+#endif
 
     if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
@@ -14988,17 +14988,21 @@ GlobOpt::DoTrackMergedValueForKills(
 }
 
 void
-GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo) const
+GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool compensated) const
 {
     Assert(block);
     Assert(value);
     Assert(newValueInfo);
 
     ValueInfo *const oldValueInfo = value->GetValueInfo();
+
+#if DBG
     if(oldValueInfo->IsAnyOptimizedArray())
     {
-        VerifyArrayValueInfoForTracking(oldValueInfo, oldValueInfo->IsArrayOrObjectWithArray(), block);
+        VerifyArrayValueInfoForTracking(oldValueInfo, oldValueInfo->IsArrayOrObjectWithArray(), block, compensated);
     }
+#endif
+
     const bool trackOldValueInfo =
         oldValueInfo->IsArrayOrObjectWithArray() ||
         (
@@ -15008,10 +15012,13 @@ GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const valu
         );
     Assert(trackOldValueInfo == block->globOptData.valuesToKillOnCalls->ContainsKey(value));
 
+#if DBG
     if(newValueInfo->IsAnyOptimizedArray())
     {
-        VerifyArrayValueInfoForTracking(newValueInfo, newValueInfo->IsArrayOrObjectWithArray(), block);
+        VerifyArrayValueInfoForTracking(newValueInfo, newValueInfo->IsArrayOrObjectWithArray(), block, compensated);
     }
+#endif
+
     const bool trackNewValueInfo =
         newValueInfo->IsArrayOrObjectWithArray() ||
         (
@@ -17025,7 +17032,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
         // benefit much from the no-missing-values information, it may be beneficial to avoid checking for no missing
         // values, especially in the case for a single array access, where the cost of the check could be relatively
         // significant. An StElem has to do additional checks in the common path if the array may have missing values, and
-        // an StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
+        // a StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
         // on the array more precise, so it still benefits a little from the no-missing-values info.
         CaptureNoImplicitCallUses(baseOpnd, isLoad || isStore);
     }
@@ -20469,7 +20476,7 @@ GlobOpt::KillStateForGeneratorYield()
     GlobOptBlockData* globOptData = &this->currentBlock->globOptData;
 
     /*
-    TODO[generators][ianhall]: Do a ToVar on any typespec'ed syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'ed values
+    TODO[generators][ianhall]: Do a ToVar on any typespec'd syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'd values
     FOREACH_BITSET_IN_SPARSEBV(symId, globOptData->liveInt32Syms)
     {
         this->ToVar(instr, , this->currentBlock, , );
@@ -20822,10 +20829,9 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     {
         MemSetEmitData* data = (MemSetEmitData*)emitData;
         const Loop::MemSetCandidate* candidate = data->candidate->AsMemSet();
-        if (candidate->varSym)
+        if (candidate->srcSym)
         {
-            Assert(candidate->varSym->GetType() == TyVar);
-            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->varSym, TyVar, func);
+            IR::RegOpnd* regSrc = IR::RegOpnd::New(candidate->srcSym, candidate->srcSym->GetType(), func);
             regSrc->SetIsJITOptimizedReg(true);
             src1 = regSrc;
         }
@@ -20846,7 +20852,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         IR::RegOpnd *srcIndexOpnd = nullptr;
         IRType srcType;
         GetMemOpSrcInfo(loop, data->ldElemInstr, srcBaseOpnd, srcIndexOpnd, srcType);
-        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(srcIndexOpnd->GetStackSym()));
+        Assert(GetVarSymID(srcIndexOpnd->GetStackSym()) == GetVarSymID(indexOpnd->GetStackSym()));
 
         src1 = IR::IndirOpnd::New(srcBaseOpnd, startIndexOpnd, srcType, localFunc);
     }
@@ -20878,9 +20884,9 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
             const Loop::MemSetCandidate* candidate = emitData->candidate->AsMemSet();
             const int constBufSize = 32;
             wchar_t constBuf[constBufSize];
-            if (candidate->varSym)
+            if (candidate->srcSym)
             {
-                _snwprintf_s(constBuf, constBufSize, L"s%u", candidate->varSym->m_id);
+                _snwprintf_s(constBuf, constBufSize, L"s%u", candidate->srcSym->m_id);
             }
             else
             {
@@ -21023,9 +21029,9 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
 
 // The caller is responsible to free the memory allocated between inOrderEmitData[iEmitData -> end]
 bool
-GlobOpt::ValidateMemOpCandidates(Loop * loop, MemOpEmitData** inOrderEmitData, int& iEmitData)
+GlobOpt::ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) MemOpEmitData** inOrderEmitData, int& iEmitData)
 {
-    Assert(iEmitData >= (int)loop->memOpInfo->candidates->Count());
+    AnalysisAssert(iEmitData == (int)loop->memOpInfo->candidates->Count());
     // We iterate over the second block of the loop only. MemOp Works only if the loop has exactly 2 blocks
     Assert(loop->blockList.HasTwo());
 
@@ -21104,10 +21110,16 @@ GlobOpt::ValidateMemOpCandidates(Loop * loop, MemOpEmitData** inOrderEmitData, i
         }
         if (candidateFound)
         {
-            Assert(iEmitData > 0);
+            AnalysisAssert(iEmitData > 0);
+            if (iEmitData == 0)
+            {
+                // Explicit for OACR
+                break;
+            }
             inOrderEmitData[--iEmitData] = emitData;
             candidate = nullptr;
             emitData = nullptr;
+
         }
     } NEXT_INSTR_BACKWARD_IN_BLOCK;
 
@@ -21173,3 +21185,4 @@ GlobOpt::ProcessMemOp()
         }
     } NEXT_LOOP_EDITING;
 }
+

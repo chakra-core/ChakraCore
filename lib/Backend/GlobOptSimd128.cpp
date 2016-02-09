@@ -93,7 +93,7 @@ Value **pDstVal
         instr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(instr->m_opcode, simdFuncSignature);
         // type-spec logic
 
-        // special handling for load/sotre
+        // special handling for load/store
         // OptArraySrc will type-spec the array and the index. We type-spec the value here.
         if (Js::IsSimd128Load(instr->m_opcode))
         {
@@ -305,7 +305,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
         indexOpnd = instr->GetDst()->AsIndirOpnd()->GetIndexOpnd();
         valueOpnd = instr->GetSrc1();
 
-        // St(arr, index, value). Make sure value can be Simd128 type-spec'ed
+        // St(arr, index, value). Make sure value can be Simd128 type-spec'd
         doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(FindValue(valueOpnd->AsRegOpnd()->m_sym)->GetValueInfo()->Type(), simdFuncSignature->args[2]);
     }
     else
@@ -406,7 +406,7 @@ bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opn
         return true; // not a lane index
     }
 
-    // arg in lanex index pos of operation ?
+    // arg in lane index pos of operation ?
     if (argPos < argPosLo || argPos > argPosHi)
     {
         return true; // not a lane index
@@ -414,7 +414,7 @@ bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opn
 
     // It is a lane index ...
 
-    // Arg is Int constant (literal or const prop'ed) ?
+    // Arg is Int constant (literal or const prop'd) ?
     if (!opnd->IsIntConstOpnd())
     {
         return false;

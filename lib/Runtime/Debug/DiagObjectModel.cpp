@@ -120,7 +120,7 @@ namespace Js
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableObjectDisplay, this);
         }
 
-        if (this->isConst || this->propId == Js::PropertyIds::_superReferenceSymbol || this->propId == Js::PropertyIds::_superReferenceSymbol)
+        if (this->isConst || this->propId == Js::PropertyIds::_superReferenceSymbol || this->propId == Js::PropertyIds::_superCtorReferenceSymbol)
         {
             pOMDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY);
         }
@@ -2009,13 +2009,14 @@ namespace Js
         AssertMsg(pResolvedObject, "Bad usage of RecyclableObjectWalker::Get");
 
         int fakeObjCount = fakeGroupObjectWalkerList ? fakeGroupObjectWalkerList->Count() : 0;
-        int nonArrayElementCount = Js::RecyclableObject::Is(instance) ? pMembersList->Count() : 0;
         int arrayItemCount = innerArrayObjectWalker ? innerArrayObjectWalker->GetChildrenCount() : 0;
 
         if (index < 0 || !pMembersList || index >= (pMembersList->Count() + arrayItemCount + fakeObjCount))
         {
             return FALSE;
         }
+
+        int nonArrayElementCount = Js::RecyclableObject::Is(instance) ? pMembersList->Count() : 0;
 
         // First the virtual groups
         if (index < fakeObjCount)
@@ -2325,7 +2326,7 @@ namespace Js
                     // If the object contains array indices.
                     if (typeId == TypeIds_Arguments)
                     {
-                        // Create ArgumentsArray walker for a arguments object
+                        // Create ArgumentsArray walker for an arguments object
 
                         Js::ArgumentsObject * argObj = static_cast<Js::ArgumentsObject*>(instance);
                         Assert(argObj);

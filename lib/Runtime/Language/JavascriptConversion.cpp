@@ -32,7 +32,7 @@ namespace Js
     }
 
     //ES5 9.11  Undefined, Null, Boolean, Number, String - return false
-    //If Object has an [[Call]] internal method, then return true, otherwise return false
+    //If Object has a [[Call]] internal method, then return true, otherwise return false
     bool JavascriptConversion::IsCallable(Var aValue)
     {
         if (!RecyclableObject::Is(aValue))
@@ -237,7 +237,7 @@ CommonNumber:
     template bool JavascriptConversion::SameValueCommon<true>(Var aLeft, Var aRight);
 
     //----------------------------------------------------------------------------
-    // ToObject() takes a value and converts it to a Object type
+    // ToObject() takes a value and converts it to an Object type
     // Implementation of ES5 9.9
     // The spec indicates that this method should throw a TypeError if the supplied value is Undefined or Null.
     // Our implementation returns FALSE in this scenario, expecting the caller to throw the TypeError.

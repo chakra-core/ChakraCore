@@ -874,7 +874,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 4 * TySize[TyInt32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 4 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDUint32x4Lib::EntryLoad1(RecyclableObject* function, CallInfo callInfo, ...)
@@ -887,7 +887,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 1 * TySize[TyInt32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 1 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDUint32x4Lib::EntryLoad2(RecyclableObject* function, CallInfo callInfo, ...)
@@ -900,7 +900,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 2 * TySize[TyInt32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 2 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDUint32x4Lib::EntryLoad3(RecyclableObject* function, CallInfo callInfo, ...)
@@ -913,7 +913,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 3 * TySize[TyInt32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDUint32x4>(args[1], args[2], 3 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDUint32x4Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -928,7 +928,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDUint32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 4 * TySize[TyInt32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 4 * INT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.UInt32x4.store");
@@ -946,7 +946,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDUint32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 1 * TySize[TyInt32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 1 * INT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.UInt32x4.store");
@@ -964,7 +964,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDUint32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 2 * TySize[TyInt32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 2 * INT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.UInt32x4.store");
@@ -982,7 +982,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDUint32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 3 * TySize[TyInt32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDUint32x4>(args[1], args[2], args[3], 3 * INT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.UInt32x4.store");

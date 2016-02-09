@@ -99,7 +99,7 @@ extern TARGET_OS TargetOS;
 #define CFG_ERROR_EX(file,line,fmt,args) fprintf(stderr, "Error: %s(%d) - " ##fmt "\n", file, line, args)
 #define CFG_WARNING_EX(file,line,fmt,args) do { if (!FQuiet) printf("Warning: %s(%d) - " ##fmt "\n", file, line, (args)); } while (0)
 
-// Parsing delimeters
+// Parsing delimiters
 
 #define OPT_DELIM " \t"
 #define XML_DELIM ","
@@ -711,18 +711,20 @@ class CThreadInfo
     struct TmpFileList
     {
         TmpFileList* _next;
-        char* _fullPath;
+        char* const _fullPath;
 
         TmpFileList(TmpFileList* next, char* fullPath)
-            : _next(next)
+            : _next(next), _fullPath(_strdup(fullPath))
         {
-            _fullPath = _strdup(fullPath);
         }
 
         ~TmpFileList()
         {
-            delete [] _fullPath;
+            free(_fullPath);
         }
+
+        TmpFileList(const TmpFileList&) = delete;
+        void operator=(const TmpFileList&) = delete;
     };
 
     TmpFileList* _head;

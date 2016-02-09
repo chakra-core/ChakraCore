@@ -288,7 +288,7 @@ WScript.Echo();
 
     // Change the writable attribute without actually adding or deleting any properties.
     // This should invalidate all inline caches for property b, including those that are part of a
-    // polymorphic inline cache - provided they got registered for invalidaiton properly.
+    // polymorphic inline cache - provided they got registered for invalidation properly.
     Object.defineProperty(Blank.prototype, "b", { writable: false });
 
     var testObjects = new Array(2);

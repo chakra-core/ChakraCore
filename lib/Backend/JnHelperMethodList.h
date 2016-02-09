@@ -115,6 +115,7 @@ HELPERCALL_MATH(Op_ShiftRightU_Full, Js::JavascriptMath::ShiftRightU_Full, Js::S
 
 HELPERCALL_MATH(Conv_ToInt32_Full, Js::JavascriptMath::ToInt32_Full, Js::SSE2::JavascriptMath::ToInt32_Full, AttrCanThrow)
 HELPERCALL_MATH(Conv_ToInt32, (int32 (*)(Js::Var, Js::ScriptContext *))Js::JavascriptMath::ToInt32, (int32 (*)(Js::Var, Js::ScriptContext *))Js::SSE2::JavascriptMath::ToInt32, AttrCanThrow)
+HELPERCALL_MATH(Conv_ToInt32_NoObjects, Js::JavascriptMath::ToInt32_NoObjects, Js::SSE2::JavascriptMath::ToInt32_NoObjects, AttrCanThrow)
 
 HELPERCALL_MATH(Op_FinishOddDivByPow2, Js::JavascriptMath::FinishOddDivByPow2, Js::SSE2::JavascriptMath::FinishOddDivByPow2, 0)
 HELPERCALL_MATH(Op_FinishOddDivByPow2InPlace, Js::JavascriptMath::FinishOddDivByPow2_InPlace, Js::SSE2::JavascriptMath::FinishOddDivByPow2_InPlace, 0)
@@ -478,6 +479,7 @@ HELPERCALL(RegExp_ExecResultUsedAndMayBeTemp, Js::RegexHelper::RegexExecResultUs
 HELPERCALL(RegExp_ExecResultNotUsed, Js::RegexHelper::RegexExecResultNotUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultUsed, Js::RegexHelper::RegexReplaceResultUsed, 0)
 HELPERCALL(RegExp_ReplaceStringResultNotUsed, Js::RegexHelper::RegexReplaceResultNotUsed, 0)
+HELPERCALL(RegExp_SymbolSearch, Js::JavascriptRegExp::EntrySymbolSearch, 0)
 
 HELPERCALL(Uint8ClampedArraySetItem, (BOOL (*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem, 0)
 HELPERCALL(EnsureFunctionProxyDeferredPrototypeType, &Js::FunctionProxy::EnsureFunctionProxyDeferredPrototypeType, 0)

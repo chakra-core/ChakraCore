@@ -10,7 +10,7 @@ namespace Js
 {
     Var NullEnumerator::GetCurrentIndex()
     {
-        // This function may be called without calling MoveNext to verify element availbility
+        // This function may be called without calling MoveNext to verify element availability
         // by JavascriptDispatch::GetNextDispIDWithScriptEnter which call
         // GetEnumeratorCurrentPropertyId to resume an enumeration
         return this->GetLibrary()->GetUndefined();

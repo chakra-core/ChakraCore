@@ -32,12 +32,19 @@ namespace Js
         SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithLengthAndNameTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable),
+        SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
+    };
+
     SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(BuiltInPropertyRecords::constructor, PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(BuiltInPropertyRecords::name, PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(BuiltInPropertyRecords::prototype, PropertyWritable);
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandler(SharedFunctionPropertyDescriptors);
     SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(BuiltInPropertyRecords::prototype);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(BuiltInPropertyRecords::length);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(FunctionWithLengthAndNameTypeDescriptors);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
@@ -1046,6 +1053,11 @@ namespace Js
         return CreateFunctionWithLengthType(this->GetFunctionPrototype(), functionInfo);
     }
 
+    DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo)
+    {
+        return CreateFunctionWithLengthAndNameType(this->GetFunctionPrototype(), functionInfo);
+    }
+
     DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndPrototypeType(FunctionInfo * functionInfo)
     {
         return CreateFunctionWithLengthAndPrototypeType(this->GetFunctionPrototype(), functionInfo);
@@ -1057,6 +1069,14 @@ namespace Js
         return DynamicType::New(scriptContext, TypeIds_Function, prototype,
             this->inProfileMode? ProfileEntryThunk : functionInfo->GetOriginalEntryPoint(),
             &SharedFunctionWithLengthTypeHandler);
+    }
+
+    DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndNameType(DynamicObject * prototype, FunctionInfo * functionInfo)
+    {
+        Assert(!functionInfo->HasBody());
+        return DynamicType::New(scriptContext, TypeIds_Function, prototype,
+            this->inProfileMode ? ProfileEntryThunk : functionInfo->GetOriginalEntryPoint(),
+            &SharedFunctionWithLengthAndNameTypeHandler);
     }
 
     DynamicType * JavascriptLibrary::CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo)
@@ -1086,7 +1106,7 @@ namespace Js
         {
             // Clear the weak reference dictionary so we don't need to clean them
             // during PostCollectCallBack before Dispose deleting the script context.
-            scriptContext->ResetWeakReferenceDicitionaryList();
+            scriptContext->ResetWeakReferenceDictionaryList();
         }
     }
 
@@ -1213,6 +1233,17 @@ namespace Js
             symbolUnscopables = nullptr;
         }
 
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
+            symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
+        }
+        else
+        {
+            symbolMatch = nullptr;
+            symbolSearch = nullptr;
+        }
+
         debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(L"[Uninitialized block variable]");
         defaultAccessorFunction = CreateNonProfiledFunction(&JavascriptOperators::EntryInfo::DefaultAccessor);
 
@@ -1254,6 +1285,8 @@ namespace Js
 
         booleanTrue = RecyclerNew(recycler, JavascriptBoolean, true, booleanTypeStatic);
         booleanFalse = RecyclerNew(recycler, JavascriptBoolean, false, booleanTypeStatic);
+
+        isPRNGSeeded = false;
         randSeed0 = 0;
         randSeed1 = 0;
 
@@ -1375,7 +1408,6 @@ namespace Js
             simdUint16x8ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint16x8::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
             simdUint8x16ToStringFunction = DefaultCreateFunction(&JavascriptSIMDUint8x16::EntryInfo::ToString, 1, nullptr, nullptr, PropertyIds::toString);
         }
-
         debugObject = nullptr;
 
         numberConstructor = CreateBuiltinConstructor(&JavascriptNumber::EntryInfo::NewInstance,
@@ -1484,7 +1516,7 @@ namespace Js
         AddMember(globalObject, PropertyIds::JSON, JSONObject);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (scriptContext->GetConfig()->IsIntlEnabled())
+        if (scriptContext->IsIntlEnabled())
         {
             IntlObject = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -2176,7 +2208,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 12);
+        typeHandler->Convert(symbolConstructor, mode, 14);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2211,6 +2243,12 @@ namespace Js
             library->AddMember(symbolConstructor, PropertyIds::toStringTag, library->GetSymbolToStringTag(), PropertyNone);
         }
         library->AddMember(symbolConstructor, PropertyIds::unscopables, library->GetSymbolUnscopables(), PropertyNone);
+
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
+            library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
+        }
 
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::for_, &JavascriptSymbol::EntryInfo::For, 1);
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::keyFor, &JavascriptSymbol::EntryInfo::KeyFor, 1);
@@ -2701,7 +2739,6 @@ namespace Js
         mathObject->SetHasNoEnumerableProperties(true);
     }
 
-#if ENABLE_NATIVE_CODEGEN
     // SIMD_JS
     void JavascriptLibrary::InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -3172,7 +3209,6 @@ namespace Js
         library->AddFunctionToLibraryObject(Uint8x16Function, PropertyIds::select, &SIMDUint8x16Lib::EntryInfo::Select, 4, PropertyNone);
         /** end Uint8x16 **/
     }
-#endif
 
     void JavascriptLibrary::InitializeReflectObject(DynamicObject* reflectObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -3562,6 +3598,9 @@ namespace Js
         case PropertyIds::search:
             return BuiltinFunction::String_Search;
 
+        case PropertyIds::_symbolSearch:
+            return BuiltinFunction::RegExp_SymbolSearch;
+
         case PropertyIds::split:
             return BuiltinFunction::String_Split;
 
@@ -3619,15 +3658,15 @@ namespace Js
     // Returns true if the function's return type is always float.
     BOOL JavascriptLibrary::IsFltFunc(BuiltinFunction index)
     {
-        // Note: MathFuncion is one of built-ins.
+        // Note: MathFunction is one of built-ins.
         if (!JavascriptLibrary::CanFloatPreferenceFunc(index))
         {
             return FALSE;
         }
 
         Js::BuiltInFlags builtInFlags = JavascriptLibrary::GetFlagsForBuiltIn(index);
-        Js::BuiltInArgSpecizationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
-        bool isFloatFunc = dstType == Js::BuiltInArgSpecizationType::BIAST_Float;
+        Js::BuiltInArgSpecializationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
+        bool isFloatFunc = dstType == Js::BuiltInArgSpecializationType::BIAST_Float;
         return isFloatFunc;
     }
 
@@ -3994,6 +4033,22 @@ namespace Js
                 library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
             }
 
+        }
+
+        if (scriptConfig->IsES6RegExSymbolsEnabled())
+        {
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolMatch,
+                PropertyIds::_RuntimeFunctionNameId_match,
+                &JavascriptRegExp::EntryInfo::SymbolMatch,
+                1);
+            builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolSearch,
+                PropertyIds::_RuntimeFunctionNameId_search,
+                &JavascriptRegExp::EntryInfo::SymbolSearch,
+                1);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
@@ -4485,10 +4540,14 @@ namespace Js
     {
         Assert(nameId != nullptr);
         RuntimeFunction * function;
+
         if (nullptr == functionType)
         {
             functionType = (nullptr == prototype) ?
-                CreateFunctionWithLengthType(functionInfo) : CreateFunctionWithLengthAndPrototypeType(functionInfo);
+                                scriptContext->GetConfig()->IsES6FunctionNameEnabled() ? 
+                                    CreateFunctionWithLengthAndNameType(functionInfo) : 
+                                    CreateFunctionWithLengthType(functionInfo) : 
+                                CreateFunctionWithLengthAndPrototypeType(functionInfo);
         }
 
         function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, RuntimeFunction, functionType, functionInfo);
@@ -4721,7 +4780,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
         };
-        IntlObject->GetLibrary()->InitializeIntlForProtototypes(intlInitializer);
+        IntlObject->GetLibrary()->InitializeIntlForPrototypes(intlInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForStringPrototype()
@@ -4730,7 +4789,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
         };
-        InitializeIntlForProtototypes(stringPrototypeInitializer);
+        InitializeIntlForPrototypes(stringPrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForDatePrototype()
@@ -4739,7 +4798,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
         };
-        InitializeIntlForProtototypes(datePrototypeInitializer);
+        InitializeIntlForPrototypes(datePrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForNumberPrototype()
@@ -4748,11 +4807,11 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
         };
-        InitializeIntlForProtototypes(numberPrototypeInitializer);
+        InitializeIntlForPrototypes(numberPrototypeInitializer);
     }
 
     template <class Fn>
-    void JavascriptLibrary::InitializeIntlForProtototypes(Fn fn)
+    void JavascriptLibrary::InitializeIntlForPrototypes(Fn fn)
     {
         ScriptContext* scriptContext = this->IntlObject->GetScriptContext();
         if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
@@ -6254,11 +6313,11 @@ namespace Js
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
-    BuiltInArgSpecizationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
+    BuiltInArgSpecializationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
     {
         Assert(argKind == BuiltInArgShift::BIAS_Dst || BuiltInArgShift::BIAS_Src1 || BuiltInArgShift::BIAS_Src2);
 
-        BuiltInArgSpecizationType type = static_cast<BuiltInArgSpecizationType>(
+        BuiltInArgSpecializationType type = static_cast<BuiltInArgSpecializationType>(
             (flags >> argKind) &              // Shift-out everything to the right of start of interesting area.
             ((1 << Js::BIAS_ArgSize) - 1));   // Mask-out everything to the left of interesting area.
 
@@ -7079,7 +7138,6 @@ namespace Js
         return hr;
     }
 
-#if ENABLE_NATIVE_CODEGEN
     HRESULT JavascriptLibrary::ProfilerRegisterSIMD()
     {
         HRESULT hr = S_OK;
@@ -7434,7 +7492,6 @@ namespace Js
 
         return hr;
     }
-#endif
 
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()

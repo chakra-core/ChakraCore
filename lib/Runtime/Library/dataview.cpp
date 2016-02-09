@@ -53,7 +53,7 @@ namespace Js
 
             default:
                 // Any FAILURE HRESULT or unexpected HRESULT.
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidArugment, L"buffer");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidArgument, L"buffer");
                 break;
             }
         }
@@ -86,7 +86,7 @@ namespace Js
                 numberOffset != offset)
             {
                 JavascriptError::ThrowRangeError(
-                    scriptContext, JSERR_DataView_InvalidArugment, L"byteOffset");
+                    scriptContext, JSERR_DataView_InvalidArgument, L"byteOffset");
             }
         }
 
@@ -103,7 +103,7 @@ namespace Js
         if ((uint32)offset > byteLength)
         {
             JavascriptError::ThrowRangeError(
-                scriptContext, JSERR_DataView_InvalidArugment, L"byteOffset");
+                scriptContext, JSERR_DataView_InvalidArgument, L"byteOffset");
         }
 
         //11.   If byteLength is undefined, then
@@ -121,7 +121,7 @@ namespace Js
                 if (viewRange > byteLength || viewRange < mappedLength) // overflow indicates out-of-range
                 {
                     JavascriptError::ThrowRangeError(
-                        scriptContext, JSERR_DataView_InvalidArugment, L"byteLength");
+                        scriptContext, JSERR_DataView_InvalidArgument, L"byteLength");
                 }
             }
         else

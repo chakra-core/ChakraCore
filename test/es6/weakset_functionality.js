@@ -63,7 +63,7 @@ var tests = [
     },
 
     {
-        name: "WeakSet constructor populates the weakset with values from given optional iteratable argument",
+        name: "WeakSet constructor populates the weakset with values from given optional iterable argument",
         body: function () {
             var keys = [ { }, { }, { }, { } ];
             var ws = new WeakSet([ keys[0], keys[1], keys[2] ]);

@@ -561,15 +561,15 @@ namespace Js
 
     BOOL JavascriptOperators::Greater_Full(Var aLeft,Var aRight,ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aRight, aLeft, scriptContext, false, false);
+        return RelationalComparisonHelper(aRight, aLeft, scriptContext, false, false);
     }
 
     BOOL JavascriptOperators::Less_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aLeft, aRight, scriptContext, true, false);
+        return RelationalComparisonHelper(aLeft, aRight, scriptContext, true, false);
     }
 
-    BOOL JavascriptOperators::RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
+    BOOL JavascriptOperators::RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aLeft);
 
@@ -9507,6 +9507,7 @@ CommonNumber:
             {
                 element = GetElementAtIndex(arrayObject, i, scriptContext);
                 AnalysisAssert((i + 1) * sizeof(int8) <= allocSize);
+#pragma prefast(suppress:22102)
                 ((int8*)buffer)[i] = Js::JavascriptConversion::ToInt8(element, scriptContext);
             }
             break;
@@ -9668,7 +9669,7 @@ CommonNumber:
             //7.ReturnIfAbrupt(S).
             Var species = nullptr;
             if (!JavascriptOperators::GetProperty(RecyclableObject::FromVar(constructor), PropertyIds::_symbolSpecies, &species, scriptContext)
-                || JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                || JavascriptOperators::IsUndefinedOrNull(species))
             {
                 //8.If S is either undefined or null, return defaultConstructor.
                 return defaultConstructor;
@@ -9713,7 +9714,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aLeft, aRight, scriptContext, true, true);
+        return !RelationalComparisonHelper(aLeft, aRight, scriptContext, true, true);
     }
 
     BOOL JavascriptOperators::LessEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -9746,7 +9747,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aRight, aLeft, scriptContext, false, true);
+        return !RelationalComparisonHelper(aRight, aLeft, scriptContext, false, true);
     }
 
     BOOL JavascriptOperators::NotEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -9997,6 +9998,11 @@ CommonNumber:
     BOOL JavascriptOperators::IsUndefinedOrNullType(TypeId typeId)
     {
         return typeId <= TypeIds_UndefinedOrNull;
+    }
+
+    BOOL JavascriptOperators::IsUndefinedOrNull(Var instance)
+    {
+        return IsUndefinedOrNullType(JavascriptOperators::GetTypeId(instance));
     }
 
     BOOL JavascriptOperators::IsSpecialObjectType(TypeId typeId)
@@ -10316,7 +10322,7 @@ CommonNumber:
 
             // Let S be Get(C, @@species)
             if (JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolSpecies, &species, scriptContext)
-                && !JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                && !JavascriptOperators::IsUndefinedOrNull(species))
             {
                 // If S is neither undefined nor null, let C be S
                 return species;

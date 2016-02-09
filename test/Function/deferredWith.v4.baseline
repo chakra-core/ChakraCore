@@ -8,7 +8,7 @@ k.z() = [object Object]
 k.z().test() = "4"
 k.z().test()+1 = "41"
 
-sibbling with block
+sibling with block
 k.z2 = function handlerFactory2() {
                 return {
                     test:

@@ -335,6 +335,11 @@
   </test>
   <test>
     <default>
+      <files>objptrcopyprop_typescript.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>fieldcopyprop_typespec.js</files>
       <baseline>fieldcopyprop_typespec.baseline</baseline>
       <compile-flags>-force:fieldcopyprop</compile-flags>

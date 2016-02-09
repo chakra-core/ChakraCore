@@ -187,7 +187,7 @@ namespace Js
 
 #ifdef _M_ARM
         // For ARM, memory access for float/double address causes data alignment exception if the address is not aligned.
-        // Provide template specilization (only) for these scenarios.
+        // Provide template specialization (only) for these scenarios.
         template<> Var GetValueWithCheck<float>(uint32 byteOffset, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
         template<> Var GetValueWithCheck<double>(uint32 byteOffset, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);
         template<> void SetValue<float>(uint32 byteOffset, float value, wchar_t *funcName, BOOL isLittleEndian /* = FALSE */);

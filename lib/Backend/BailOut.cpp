@@ -765,7 +765,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             //      bar(a, b, c);
             // } catch(..) {..}
             // and we bailout during bar args evaluation, we recover from args from argoutRestoreAddress, not from caller function frame.
-            // This is beceause try-catch is implemented as a C wrapper, so args will be a different offset from rbp in that case.
+            // This is because try-catch is implemented as a C wrapper, so args will be a different offset from rbp in that case.
             Assert(!isFloat64 && !isInt32 && !isSimd128F4 && !isSimd128I4);
 
             value = *((Js::Var *)(((char *)argoutRestoreAddress) + regSlot * MachPtr));
@@ -1579,7 +1579,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 //
 // To avoid always incurring the cost of collecting runtime stats (function calls count and valid bailOutKind),
 // the initial codegen'd version of a function does not collect them. After a second bailout we rejit the function
-// with runtime stats collection. On subsequent bailouts we can evaulate our heuristics and decide whether to rejit.
+// with runtime stats collection. On subsequent bailouts we can evaluate our heuristics and decide whether to rejit.
 //
 // Function bodies always use the least optimized version of the code as default. At the same time, there can be
 // function objects with some older, more optimized, version of the code active. When a bailout occurs out of such
@@ -1707,7 +1707,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         }
         else switch(bailOutKind)
         {
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
                 if (profileInfo->IsLossyIntTypeSpecDisabled())
                 {
                     reThunk = true;
@@ -2099,7 +2099,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
 // To avoid always incurring the cost of collecting runtime stats (valid bailOutKind),
 // the initial codegen'd version of a loop body does not collect them. After a second bailout we rejit the body
-// with runtime stats collection. On subsequent bailouts we can evaulate our heuristics.
+// with runtime stats collection. On subsequent bailouts we can evaluate our heuristics.
 void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind)
 {
     Assert(bailOutKind != IR::LazyBailOut);
@@ -2152,7 +2152,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
         }
         else switch(bailOutKind)
         {
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
                 profileInfo->DisableLossyIntTypeSpec();
                 executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::LossyIntTypeSpecDisabled;

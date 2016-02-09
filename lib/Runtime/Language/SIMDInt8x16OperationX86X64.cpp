@@ -149,8 +149,18 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
-        x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == a
-        x86Result.m128i_value = _mm_cmpeq_epi8(tmpbValue.m128i_value, x86Result.m128i_value); //
+        if (AutoSystemInfo::Data.SSE4_1Available())
+        {
+            x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == a
+            x86Result.m128i_value = _mm_cmpeq_epi8(tmpbValue.m128i_value, x86Result.m128i_value); //
+        }
+        else
+        {
+            X86SIMDValue x86Tmp1, x86Tmp2;
+            x86Tmp1.m128i_value = _mm_cmplt_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a > b?
+            x86Tmp2.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a == b?
+            x86Result.m128i_value = _mm_or_si128(x86Tmp1.m128i_value, x86Tmp2.m128i_value);
+        }
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -194,8 +204,19 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(aValue);
         X86SIMDValue tmpbValue = X86SIMDValue::ToX86SIMDValue(bValue);
-        x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == b
-        x86Result.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, x86Result.m128i_value); //
+        if (AutoSystemInfo::Data.SSE4_1Available())
+        {
+            x86Result.m128i_value = _mm_max_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value);  //  max(a,b) == b
+            x86Result.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, x86Result.m128i_value); //
+        }
+        else
+        {
+            X86SIMDValue x86Tmp1, x86Tmp2;
+            x86Tmp1.m128i_value = _mm_cmpgt_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a > b?
+            x86Tmp2.m128i_value = _mm_cmpeq_epi8(tmpaValue.m128i_value, tmpbValue.m128i_value); // compare a == b?
+            x86Result.m128i_value = _mm_or_si128(x86Tmp1.m128i_value, x86Tmp2.m128i_value);
+        }
+
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }

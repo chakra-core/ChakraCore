@@ -8,7 +8,7 @@ namespace Js{
 
     class ASMLink{
     public:
-        static bool CheckParams(ScriptContext* scriptContext, AsmJsModuleInfo* info , const Var stdlib, const Var foreigh, Var bufferView);
+        static bool CheckParams(ScriptContext* scriptContext, AsmJsModuleInfo* info , const Var stdlib, const Var foreign, Var bufferView);
     private:
         static bool CheckArrayBuffer(ScriptContext* scriptContext, const Var bufferView, const AsmJsModuleInfo* info);
         static bool CheckStdLib(ScriptContext* scriptContext, const AsmJsModuleInfo* info, const Var stdlib);

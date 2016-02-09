@@ -318,7 +318,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor(IR::Instr *instr)
             // b-namost: better way to implement this on SSE2? Using MOVD directly zeroes upper bits.
             IR::RegOpnd *temp = IR::RegOpnd::New(TyFloat32, m_func);
 
-            // src's might have been constant prop'ed. Enregister them if so.
+            // src's might have been constant prop'd. Enregister them if so.
             src4 = EnregisterIntConst(instr, src4);
             src3 = EnregisterIntConst(instr, src3);
             src2 = EnregisterIntConst(instr, src2);

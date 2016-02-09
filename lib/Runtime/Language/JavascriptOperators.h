@@ -203,12 +203,13 @@ namespace Js
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
+        static BOOL IsUndefinedOrNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
         static BOOL IsUndefinedObject(Var instance, ScriptContext *scriptContext);
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
-        static BOOL IsUndefinedObject(Var isntance, JavascriptLibrary* library);
+        static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
@@ -585,7 +586,7 @@ namespace Js
         static Var GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext);
 
     private:
-        static BOOL RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
+        static BOOL RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
 
         template <typename ArrayType>
         static void ObjectToNativeArray(ArrayType* arrayObject,

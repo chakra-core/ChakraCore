@@ -250,7 +250,7 @@ namespace Js
         template <typename TPropertyKey>
         void Add(TPropertyIndex propertyIndex, TPropertyKey propertyKey, PropertyAttributes attributes, ScriptContext *const scriptContext);
         template <typename TPropertyKey>
-        void Add(TPropertyIndex propertyIndex, TPropertyKey propertyKey, PropertyAttributes attributes, bool isIntiailized, bool isFixed, bool usedAsFixed, ScriptContext *const scriptContext);
+        void Add(TPropertyIndex propertyIndex, TPropertyKey propertyKey, PropertyAttributes attributes, bool isInitialized, bool isFixed, bool usedAsFixed, ScriptContext *const scriptContext);
         DictionaryTypeHandlerBase<TPropertyIndex>* ConvertToDictionaryType(DynamicObject* instance);
         ES5ArrayTypeHandlerBase<TPropertyIndex>* ConvertToES5ArrayType(DynamicObject* instance);
         SimpleDictionaryTypeHandlerBase* ConvertToNonSharedSimpleDictionaryType(DynamicObject* instance);

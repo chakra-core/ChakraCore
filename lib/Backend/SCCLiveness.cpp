@@ -546,7 +546,7 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
         }
     }
 
-    // Arg slot sym can be in an RegOpnd for param passed via registers
+    // Arg slot sym can be in a RegOpnd for param passed via registers
     // Skip creating a lifetime for those.
     if (stackSym->IsArgSlotSym())
     {

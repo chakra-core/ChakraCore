@@ -62,7 +62,7 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     L2MapChunk * chunk = map[id1];
     if (chunk == nullptr)
     {
-        // False refernce; no further processing needed.
+        // False reference; no further processing needed.
         return;
     }
 

@@ -21,8 +21,8 @@
 #include "RegexPattern.h"
 
 // Runtime includes
-#include "..\Runtime\runtime.h"
-#include "..\Runtime\ByteCode\Symbol.h"
-#include "..\Runtime\ByteCode\Scope.h"
-#include "..\Runtime\ByteCode\FuncInfo.h"
-#include "..\Runtime\ByteCode\ScopeInfo.h"
+#include "runtime.h"
+#include "ByteCode\Symbol.h"
+#include "ByteCode\Scope.h"
+#include "ByteCode\FuncInfo.h"
+#include "ByteCode\ScopeInfo.h"

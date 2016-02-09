@@ -5,7 +5,7 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function testGetProperyNames(foo,checkForName)
+function testGetPropertyNames(foo,checkForName)
 {
     var properties = Object.getOwnPropertyNames(foo);
     var len = properties.length;
@@ -55,22 +55,22 @@ var tests = [
             f.name = "foo";
             assert.areEqual("f", f.name, "function names are read only");
             assert.areEqual(undefined, (function (){}).prototype.name, "function.prototype.name is undefined");
-            assert.isFalse(Object.hasOwnProperty.call((function(){}), 'name'), "[hasProperyCheck]: anonymous function does not have a name property");
+            assert.isFalse(Object.hasOwnProperty.call((function(){}), 'name'), "[hasPropertyCheck]: anonymous function does not have a name property");
             assert.areEqual("", (function(){}).name);
             assert.areEqual("", (function(){})["name"]);
 
             //lambdas () => {}
-            assert.isFalse(Object.hasOwnProperty.call((() => {}), 'name'), "[hasProperyCheck]: anonymous lambda function does not have a name property");
+            assert.isFalse(Object.hasOwnProperty.call((() => {}), 'name'), "[hasPropertyCheck]: anonymous lambda function does not have a name property");
             assert.areEqual("", (() => {}).name);
             assert.areEqual("", (() => {})["name"]);
 
             //generators
-            assert.isFalse(Object.hasOwnProperty.call((function*(){}), 'name'), "[hasProperyCheck]: anonymous generator function does not have name property");
+            assert.isFalse(Object.hasOwnProperty.call((function*(){}), 'name'), "[hasPropertyCheck]: anonymous generator function does not have name property");
             assert.areEqual("", (function*(){}).name);
             assert.areEqual("", (function*(){})["name"]);
 
             //classes
-            assert.isFalse(Object.hasOwnProperty.call(class {}, 'name'), "[hasProperyCheck]: anonymous class does not have a name property");
+            assert.isFalse(Object.hasOwnProperty.call(class {}, 'name'), "[hasPropertyCheck]: anonymous class does not have a name property");
             assert.areEqual("", class {}.name);
             assert.areEqual("", class {}['name']);
 
@@ -105,7 +105,7 @@ var tests = [
                 "14.5.15 Runtime Semantics: If the class definition included a 'name' static method then that method is not over-written");
              assert.areEqual("name",qux.name.name,"confirm we get the name 'name'");
              assert.areEqual(qux.name , qux.prototype.constructor.name,
-                "confirm qux.prototype.constructor.name is the same functionn as qux.name");
+                "confirm qux.prototype.constructor.name is the same function as qux.name");
              assert.areEqual("Function",qux.constructor.name,"The function constructor should still have the name Function");
 
              var qux = class { constructor(a,b) {} static name() {} };
@@ -404,7 +404,7 @@ var tests = [
        {
        	function foo(){}
 
-        assert.areEqual(true,testGetProperyNames(foo,true),"Properties on foo");
+        assert.areEqual(true,testGetPropertyNames(foo,true),"Properties on foo");
         assert.areEqual(0,Object.keys(foo).length,"no enumerable properties in function instance foo");
         Object.defineProperty(foo,"name",{writable: false,enumerable: true,configurable: true});
         var o  = Object.getOwnPropertyDescriptor(foo,"name");
@@ -424,9 +424,9 @@ var tests = [
        {
             function foo(){}
 
-            assert.areEqual(true,testGetProperyNames(foo,true), "Properties on foo");
+            assert.areEqual(true,testGetPropertyNames(foo,true), "Properties on foo");
             delete foo.name;
-            assert.areEqual(true,testGetProperyNames(foo,false),"Properties on foo");
+            assert.areEqual(true,testGetPropertyNames(foo,false),"Properties on foo");
        }
     },
 
@@ -444,9 +444,9 @@ var tests = [
        name: "built-in function.name delete test",
        body: function ()
        {
-            assert.areEqual(true,testGetProperyNames([].splice,true),"Properties on foo");
+            assert.areEqual(true,testGetPropertyNames([].splice,true),"Properties on foo");
             delete [].splice.name;
-            assert.areEqual(true,testGetProperyNames([].splice,false),"Properties on foo");
+            assert.areEqual(true,testGetPropertyNames([].splice,false),"Properties on foo");
        }
     },
     {
@@ -694,8 +694,8 @@ var tests = [
             var classASymbolSet = Object.getOwnPropertyDescriptor(A.prototype, namedSym).set;
             var classASymbolGet = Object.getOwnPropertyDescriptor(A.prototype, namedSym).get;
 
-            assert.areEqual("get [test]",classASymbolGet.name, " should not throw b\c of toString call on symbol");
-            assert.areEqual("set [test]",classASymbolSet.name, " should not throw b\c of toString call on symbol");
+            assert.areEqual("get [test]",classASymbolGet.name, " should not throw because of toString call on symbol");
+            assert.areEqual("set [test]",classASymbolSet.name, " should not throw because of toString call on symbol");
 
             class B {
                 set [anonSym](_) {}
@@ -704,8 +704,8 @@ var tests = [
             var classBSymbolSet = Object.getOwnPropertyDescriptor(B.prototype, anonSym).set;
             var classBSymbolGet = Object.getOwnPropertyDescriptor(B.prototype, anonSym).get;
 
-            assert.areEqual("get ",classBSymbolGet.name, " should not throw b\c of toString call on symbol");
-            assert.areEqual("set ",classBSymbolSet.name, " should not throw b\c of toString call on symbol");
+            assert.areEqual("get ",classBSymbolGet.name, " should not throw because of toString call on symbol");
+            assert.areEqual("set ",classBSymbolSet.name, " should not throw because of toString call on symbol");
 
         }
     },

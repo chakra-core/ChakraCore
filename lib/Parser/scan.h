@@ -647,6 +647,7 @@ public:
 
     void Capture(_Out_ RestorePoint* restorePoint);
     void SeekTo(const RestorePoint& restorePoint);
+    void SeekToForcingPid(const RestorePoint& restorePoint);
 
     void Capture(_Out_ RestorePoint* restorePoint, uint functionIdIncrement, size_t lengthDecr);
     void SeekTo(const RestorePoint& restorePoint, uint *nextFunctionId);
@@ -704,6 +705,9 @@ private:
 
     Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext);
     ~Scanner(void);
+
+    template <bool forcePid>
+    void SeekAndScan(const RestorePoint& restorePoint);
 
     tokens ScanCore(bool identifyKwds);
     tokens ScanAhead();

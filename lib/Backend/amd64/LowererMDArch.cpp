@@ -483,7 +483,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
         cfgInsertLoc = argInstr->GetPrevRealInstr();
 
         // The arg sym isn't assigned a constant directly anymore
-        // TODO: We can just move the instruction down next to the call if it is just an constant assignment
+        // TODO: We can just move the instruction down next to the call if it is just a constant assignment
         // but AMD64 doesn't have the MOV mem,imm64 encoding, and we have no code to detect if the value can fit
         // into imm32 and hoist the src if it is not.
         argLinkSym->m_isConst = false;
@@ -1640,7 +1640,7 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
         insertInstr->InsertBefore(instr);
         Security::InsertRandomFunctionPad(insertInstr);
 
-        // This is generated after layout.   Generate the block at the end of the function manually
+        // This is generated after layout. Generate the block at the end of the function manually
         insertInstr = IR::PragmaInstr::New(Js::OpCode::StatementBoundary, Js::Constants::NoStatementIndex, m_func);
 
         this->m_func->m_tailInstr->InsertAfter(insertInstr);
@@ -2274,7 +2274,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
 }
 
 bool
-LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     //
     //    r1 = MOV src1
@@ -2415,7 +2415,15 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
             // Need to bail out instead of calling a helper
             return true;
         }
-        lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        
+        if (conversionFromObjectAllowed)
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
     else
     {
@@ -2604,7 +2612,7 @@ bool LowererMDArch::GenerateFastShiftRight(IR::Instr * instrShift)
         // 32-bit Shifts only uses the bottom 5 bits.
         s2Value &=  0x1F;
 
-        // Unsigned shift by 0 could yield a value not encodable as an tagged int.
+        // Unsigned shift by 0 could yield a value not encodable as a tagged int.
         if (isUnsigned && src2IsIntConst && s2Value == 0)
         {
             return true;
@@ -2742,7 +2750,7 @@ LowererMDArch::FinalLower()
             if (instr->GetSrc2())
             {
                 // CMOV inserted before regalloc have a dummy src1 to simulate the fact that
-                // CMOV is not an definite def of the dst.
+                // CMOV is not a definite def of the dst.
                 instr->SwapOpnds();
                 instr->FreeSrc2();
             }

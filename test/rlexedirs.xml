@@ -278,19 +278,19 @@
 <dir>
   <default>
     <files>SIMD.float32x4</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.int32x4</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.int8x16</files>
-    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 <dir>
@@ -314,7 +314,7 @@
 <dir>
   <default>
     <files>SIMD.TypeSpec</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
   </default>
 </dir>
 </regress-exe>

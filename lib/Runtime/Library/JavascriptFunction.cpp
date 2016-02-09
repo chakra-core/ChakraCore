@@ -2004,7 +2004,7 @@ LABEL1:
         {
             // some extra checks for asm.js because we have slightly more information that we can validate
             Js::EntryPointInfo* entryPointInfo = (Js::EntryPointInfo*)funcBody->GetDefaultEntryPointInfo();
-            uintptr moduleMemory = entryPointInfo->GetModuleAddress();
+            uintptr_t moduleMemory = entryPointInfo->GetModuleAddress();
             if (!moduleMemory)
             {
                 return EXCEPTION_CONTINUE_SEARCH;
@@ -2880,8 +2880,8 @@ LABEL1:
         {
             if (TaggedInt::Is(sourceString))
             {
-                int32 propertIdOfSourceString = TaggedInt::ToInt32(sourceString);
-                *name = scriptContext->GetPropertyString(propertIdOfSourceString);
+                int32 propertyIdOfSourceString = TaggedInt::ToInt32(sourceString);
+                *name = scriptContext->GetPropertyString(propertyIdOfSourceString);
                 return true;
             }
             Assert(JavascriptString::Is(sourceString));

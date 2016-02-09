@@ -362,7 +362,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
     case Js::OpCode::InlineThrow:
     case Js::OpCode::InlineRuntimeTypeError:
     case Js::OpCode::InlineRuntimeReferenceError:
-        //We are not going to see an  inlinee end
+        //We are not going to see an inlinee end
         this->func->UpdateMaxInlineeArgOutCount(this->currentBlock->globOptData.inlinedArgOutCount);
         break;
 

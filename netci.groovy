@@ -138,7 +138,7 @@ CreateBuildTasks('Windows_NT', null, null, null, null, null)
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', null,
+CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
     /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,

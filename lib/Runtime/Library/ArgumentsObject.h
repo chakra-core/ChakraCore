@@ -67,7 +67,7 @@ namespace Js
 
     public:
         HeapArgumentsObject(DynamicType * type);
-        HeapArgumentsObject(Recycler *recyler, ActivationObject* obj, uint32 formalCount, DynamicType * type);
+        HeapArgumentsObject(Recycler *recycler, ActivationObject* obj, uint32 formalCount, DynamicType * type);
         void SetNumberOfArguments(uint32 len);
 
         static HeapArgumentsObject* As(Var aValue);

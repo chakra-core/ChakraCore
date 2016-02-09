@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// ES6 Genertors APIs tests -- verifies built-in API objects and properties
+// ES6 Generators APIs tests -- verifies built-in API objects and properties
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 

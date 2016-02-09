@@ -276,8 +276,8 @@ var tests = [
             assert.areEqual("[object Object]", Object.prototype.toString.call(m), "toString should have tag Object m2 only changed instance tag");
 
             MyClass.prototype[Symbol.toStringTag] = "MyClass";
-            assert.areEqual("[object MyClassInstance]", Object.prototype.toString.call(m2), "toString should have tag MyClassInstance b\c MyClass is higher in the prototype chain");
-            assert.areEqual("[object MyClass]", Object.prototype.toString.call(m), "toString should have tag MyClass b\c prototype tag changed");
+            assert.areEqual("[object MyClassInstance]", Object.prototype.toString.call(m2), "toString should have tag MyClassInstance because MyClass is higher in the prototype chain");
+            assert.areEqual("[object MyClass]", Object.prototype.toString.call(m), "toString should have tag MyClass because prototype tag changed");
        }
     },
     */

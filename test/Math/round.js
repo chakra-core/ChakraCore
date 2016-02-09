@@ -18,7 +18,7 @@ check(-Infinity, Math.round(-Infinity), "Math.round(-Infinity)");
 check(-0, Math.round(-0), "Math.round(-0)");
 
 // check various values between 0 and 0.5
-check(1, Math.round(4.9999999999999994000e-001), "round largest value < 0.5"); // for ES5 the result is 0
+check(0, Math.round(4.9999999999999994000e-001), "round largest value < 0.5"); // for ES5 the result is 0
 check(0, Math.round(4.9999999999999989000e-001), "round 2nd largest value < 0.5");
 check(0, Math.round(4.9406564584124654000e-324), "round smallest value > 0");
 check(0, Math.round(9.8813129168249309000e-324), "round 2nd smallest value > 0");
@@ -78,6 +78,16 @@ check(1.7976931348623157000e+308, Math.round(1.7976931348623157000e+308), "round
 check(1.7976931348623155000e+308, Math.round(1.7976931348623155000e+308), "round 2nd largest number < Infinity");
 check(-1.7976931348623157000e+308, Math.round(-1.7976931348623157000e+308), "round least positive number > -Infinity");
 check(-1.7976931348623155000e+308, Math.round(-1.7976931348623155000e+308), "round 2nd least positive number > -Infinity");
+
++// if x <= -2^52 or x >= 2^52, Math.round(x) == x
++check(4503599627370496, Math.round(4503599627370496), "round 4503599627370496");
++check(4503599627370497, Math.round(4503599627370497), "round 4503599627370497");
++check(4503599627370548, Math.round(4503599627370548), "round 4503599627370548");
++check(9007199254740991, Math.round(9007199254740991), "round 9007199254740991");
++check(-4503599627370496, Math.round(-4503599627370496), "round -4503599627370496");
++check(-4503599627370497, Math.round(-4503599627370497), "round -4503599627370497");
++check(-4503599627370548, Math.round(-4503599627370548), "round -4503599627370548");
++check(-9007199254740991, Math.round(-9007199254740991), "round -9007199254740991");
 
 // values around INT_MIN and INT_MAX for amd64 (Bug 179932)
 function foo(b)

@@ -187,7 +187,7 @@ public:
     uint8           m_isNotInt:1;
     uint8           m_isSafeThis : 1;
     uint8           m_isConst : 1;              // single def and it is a constant
-    uint8           m_isIntConst : 1;           // a constant and it's value is a Int32
+    uint8           m_isIntConst : 1;           // a constant and it's value is an Int32
     uint8           m_isTaggableIntConst : 1;   // a constant and it's value is taggable (Int31 in 32-bit, Int32 in x64)
     uint8           m_isEncodedConstant : 1;    // the constant has
     uint8           m_isFltConst: 1;
