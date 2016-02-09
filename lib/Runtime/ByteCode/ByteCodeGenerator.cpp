@@ -1800,6 +1800,19 @@ FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
     return nullptr;
 }
 
+FuncInfo* GetParentFuncInfo(FuncInfo* child)
+{
+    for (Scope* scope = child->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
+    {
+        if (scope->GetFunc() != child)
+        {
+            return scope->GetFunc();
+        }
+    }
+    Assert(0);
+    return nullptr;
+}
+
 bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2530,7 +2543,16 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 byteCodeGenerator->AssignRegister(sym);
                 pnode->location = sym->GetLocation();
 
-                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
+                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc() ||
+                    sym->GetScope()->GetFunc()->root->sxFnc.IsAsync());
+                if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
+                {
+                    Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
+                    sym->GetScope()->SetMustInstantiate(true);
+                    sym->SetHasNonLocalReference(true, byteCodeGenerator);
+                    sym->GetScope()->GetFunc()->SetHasLocalInClosure(true);
+                }
+
                 Symbol * functionScopeVarSym = sym->GetFuncScopeVarSym();
                 if (functionScopeVarSym &&
                     !functionScopeVarSym->GetIsGlobal() &&
@@ -4937,6 +4959,19 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         {
             sym = pnode->sxVar.sym;
             Assert(sym != nullptr);
+
+            if (sym->GetScope()->GetEnclosingFunc() != byteCodeGenerator->TopFuncInfo())
+            {
+                FuncInfo* parentFunc = GetParentFuncInfo(byteCodeGenerator->TopFuncInfo());
+                Assert(parentFunc == sym->GetScope()->GetEnclosingFunc());
+                if (parentFunc->root->sxFnc.IsAsync())
+                {
+                    // async functions produce a situation where a var decl can have a symbol
+                    // declared from an enclosing function.  In this case just no-op the vardecl.
+                    return;
+                }
+            }
+
             Assert(sym->GetScope()->GetEnclosingFunc() == byteCodeGenerator->TopFuncInfo());
 
             if (pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar())
@@ -4954,14 +4989,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
                 if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar() && !pnode->sxVar.isBlockScopeFncDeclVar))
                 {
-                // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
+                    // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
                     // But the assignment will go to the catch or let symbol. Just assign a register to the local
                     // so that it can get initialized to undefined.
 #if DBG
                     if (!sym->GetIsCatch())
                     {
-                    // Catch cannot be at function scope and let and var at function scope is redeclaration error.
-                    Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
+                        // Catch cannot be at function scope and let and var at function scope is redeclaration error.
+                        Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
                     }
 #endif
                     auto symName = sym->GetName();
@@ -4973,12 +5008,12 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     Assert((sym && !sym->GetIsCatch() && !sym->GetIsBlockVar()));
                 }
                 // Don't give the declared var a register if it's in a closure, because the closure slot
-            // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
+                // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
                 if (!sym->GetIsGlobal() && !sym->IsInSlot(funcInfo))
                 {
-                if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
+                    if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                    if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
+                        if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
                         {
                             Output::Print(L"--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n", sym->GetName());
                             Output::Flush();

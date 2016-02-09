@@ -6756,6 +6756,16 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     ppnodeExprScopeSave = m_ppnodeExprScope;
     m_ppnodeExprScope = nullptr;
 
+    // Push the formal parameter symbols again for the inner generator to get proper
+    // redeclaration semantics (error for let/const locals, merge for var locals)
+    Scope* paramScope = pnodeFncSave->sxFnc.pnodeScopes->sxBlock.scope;
+    paramScope->ForEachSymbol([this](Symbol* paramSym)
+    {
+        Symbol* sym = paramSym->GetPid()->GetTopRef()->GetSym();
+        PidRefStack* ref = PushPidRef(paramSym->GetPid());
+        ref->SetSym(sym);
+    });
+
     pnodeInnerBlock = StartParseBlock<true>(PnodeBlockType::Function, ScopeType_FunctionBody);
     *m_ppnodeScope = pnodeInnerBlock;
     pnodeFncGenerator->sxFnc.pnodeBodyScope = pnodeInnerBlock;

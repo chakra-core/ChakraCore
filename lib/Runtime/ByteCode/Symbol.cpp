@@ -245,7 +245,23 @@ Symbol * Symbol::GetFuncScopeVarSym() const
     if (fncScopeSym == nullptr && parentFuncInfo->GetParamScope() != nullptr)
     {
         // We couldn't find the sym in the body scope, try finding it in the parameter scope.
-        fncScopeSym = parentFuncInfo->GetParamScope()->FindLocalSymbol(this->GetName());
+        Scope* paramScope = parentFuncInfo->GetParamScope();
+        fncScopeSym = paramScope->FindLocalSymbol(this->GetName());
+        if (fncScopeSym == nullptr)
+        {
+            FuncInfo* parentParentFuncInfo = paramScope->GetEnclosingScope()->GetFunc();
+            if (parentParentFuncInfo->root->sxFnc.IsAsync())
+            {
+                // In the case of async functions the func-scope var sym might have
+                // come from the parent function parameter scope due to the syntax
+                // desugaring implementation of async functions.
+                fncScopeSym = parentParentFuncInfo->GetBodyScope()->FindLocalSymbol(this->GetName());
+                if (fncScopeSym == nullptr)
+                {
+                    fncScopeSym = parentParentFuncInfo->GetParamScope()->FindLocalSymbol(this->GetName());
+                }
+            }
+        }
     }
     Assert(fncScopeSym);
     // Parser should have added a fake var decl node for block scoped functions in non-strict mode

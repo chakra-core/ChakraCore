@@ -1159,7 +1159,15 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
                 }
             }
 
-            byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
+            if (sym->GetScope()->GetFunc() != byteCodeGenerator->TopFuncInfo())
+            {
+                byteCodeGenerator->EmitPropStore(pnodeFnc->location, sym, nullptr, funcInfoParent);
+            }
+            else
+            {
+                byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
+            }
+
             Symbol * fncScopeSym = sym->GetFuncScopeVarSym();
 
             if (fncScopeSym)
@@ -1253,11 +1261,8 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
                 // Note that having a function with the same name as a let/const declaration
                 // is a redeclaration error, but we're pushing the fix for this out since it's
                 // a bit involved.
-                //
-                // TODO: Once the redeclaration error is in place, this boolean can be replaced
-                // by funcSymbol->GetIsBlockVar().
                 Assert(funcInfoParent->GetBodyScope() != nullptr && funcSymbol->GetScope() != nullptr);
-                bool isFunctionDeclarationInBlock = funcSymbol->GetScope() != funcInfoParent->GetBodyScope();
+                bool isFunctionDeclarationInBlock = funcSymbol->GetIsBlockVar();
 
                 // Track all vars/lets/consts register slot function declarations.
                 if (ShouldTrackDebuggerMetadata()
@@ -4481,10 +4486,23 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     // isFncDeclVar denotes that the symbol being stored to here is the var
     // binding of a function declaration and we know we want to store directly
     // to it, skipping over any dynamic scopes that may lie in between.
-    Scope *scope = isFncDeclVar ? symScope : nullptr;
-    Js::RegSlot scopeLocation = isFncDeclVar ? scope->GetLocation() : Js::Constants::NoRegister;
+    Scope *scope = nullptr;
+    Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     bool scopeAcquired = false;
     Js::OpCode op;
+
+    if (isFncDeclVar)
+    {
+        // async functions allow for the fncDeclVar to be in the body or parameter scope
+        // of the parent function, so we need to calculate envIndex in lieu of the while
+        // loop below.
+        do
+        {
+            scope = this->FindScopeForSym(symScope, scope, &envIndex, funcInfo);
+        } while (scope != symScope);
+        Assert(scope == symScope);
+        scopeLocation = scope->GetLocation();
+    }
 
     while (!isFncDeclVar)
     {
