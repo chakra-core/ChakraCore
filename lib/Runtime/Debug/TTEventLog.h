@@ -6,6 +6,8 @@
 
 #if ENABLE_TTD
 
+#define TTD_EVENTLOG_LIST_BLOCK_SIZE 512
+
 namespace TTD
 {
     //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed
@@ -64,6 +66,74 @@ namespace TTD
         double GetStartTime();
     };
 
+    //A list class for the events that we accumulate in the event log
+    class TTEventList
+    {
+        struct TTEventListLink
+        {
+            //The current end of the allocated data in the block
+            uint32 CurrPos;
+
+            //The First index that holds data
+            uint32 StartPos;
+
+            //The actual block for the data
+            EventLogEntry** BlockData;
+
+            //The next block in the list
+            TTEventListLink* Next;
+            TTEventListLink* Previous;
+        };
+
+        //The the data in this
+        TTEventListLink* m_headBlock;
+
+        //the allocators we use for this work
+        UnlinkableSlabAllocator* m_alloc;
+
+        void AddArrayLink();
+        void RemoveArrayLink(TTEventListLink* block);
+
+    public:
+        TTEventList(UnlinkableSlabAllocator* alloc);
+        void UnloadEventList();
+
+        //Add the entry to the list
+        void AddEntry(EventLogEntry* data);
+
+        //Delete the entry from the list (must always be the first link/entry in the list)
+        //This also calls unload on the entry
+        void DeleteFirstEntry(TTEventListLink* block, EventLogEntry* data);
+
+        //Return true if this is empty
+        bool IsEmpty() const;
+
+        //NOT constant time
+        uint32 Count() const;
+
+        class Iterator
+        {
+        private:
+            TTEventListLink* m_currLink;
+            uint32 m_currIdx;
+
+        public:
+            Iterator();
+            Iterator(TTEventListLink* head, uint32 pos);
+
+            const EventLogEntry* Current() const;
+            EventLogEntry* Current();
+
+            bool IsValid() const;
+
+            void MoveNext();
+            void MovePrevious();
+        };
+
+        Iterator GetIteratorAtFirst() const;
+        Iterator GetIteratorAtLast() const;
+    };
+
     //A struct for tracking time events in a single method
     struct SingleCallCounter
     {
@@ -97,10 +167,10 @@ namespace TTD
         ThreadContext* m_threadContext;
 
         //Allocator we use for all the events we see
-        SlabAllocator m_slabAllocator;
+        UnlinkableSlabAllocator m_eventSlabAllocator;
 
         //Allocator we use for all the property records
-        SlabAllocator m_propertyRecordSlabAllocator;
+        SlabAllocator m_miscSlabAllocator;
 
         //The root directory that the log info gets stored into
         TTString m_logInfoRootDir;
@@ -117,11 +187,9 @@ namespace TTD
         //The tag (from the host) that tells us which callback id this (toplevel) callback is associated with (-1 if not initiated by a callback)
         int64 m_hostCallbackId;
 
-        //The list of all the events
-        EventLogEntry* m_events;
-
-        //The current position in the log (null if we are recording)
-        EventLogEntry* m_currentEvent;
+        //The list of all the events and the iterator we use during replay
+        TTEventList m_eventList;
+        TTEventList::Iterator m_currentReplayEventIterator;
 
         //Array of call counters (used as stack)
         JsUtil::List<SingleCallCounter, HeapAllocator> m_callStack;

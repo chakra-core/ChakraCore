@@ -268,6 +268,9 @@ namespace TTD
             };
         };
 
+        //Initialize as invalid
+        void InitializeArgRetValueAsInvalid(ArgRetValue& val);
+
         //Extract a ArgRetValue 
         void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val);
 

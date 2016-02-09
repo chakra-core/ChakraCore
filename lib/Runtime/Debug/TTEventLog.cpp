@@ -141,6 +141,215 @@ namespace TTD
         return this->m_startTime;
     }
 
+    /////////////
+
+    void TTEventList::AddArrayLink()
+    {
+        TTEventListLink* newHeadBlock = this->m_alloc->SlabAllocateStruct<TTEventListLink>();
+        newHeadBlock->BlockData = this->m_alloc->SlabAllocateFixedSizeArray<EventLogEntry*, TTD_EVENTLOG_LIST_BLOCK_SIZE>();
+
+        newHeadBlock->CurrPos = 0;
+        newHeadBlock->StartPos = 0;
+
+        newHeadBlock->Next = nullptr;
+        newHeadBlock->Previous = this->m_headBlock;
+
+        if(this->m_headBlock != nullptr)
+        {
+            this->m_headBlock->Next = newHeadBlock;
+        }
+
+        this->m_headBlock = newHeadBlock;
+    }
+
+    void TTEventList::RemoveArrayLink(TTEventListLink* block)
+    {
+        AssertMsg(block->Previous == nullptr, "Not first event block in log!!!");
+        AssertMsg(block->StartPos == block->CurrPos, "Haven't cleared all the events in this link");
+
+        if(block->Next == nullptr)
+        {
+            this->m_headBlock = nullptr; //was only 1 block to we are now all null
+        }
+        else
+        {
+            block->Next->Previous = nullptr;
+        }
+
+        this->m_alloc->UnlinkAllocation(block->BlockData);
+        this->m_alloc->UnlinkAllocation(block);
+    }
+
+    TTEventList::TTEventList(UnlinkableSlabAllocator* alloc)
+        : m_alloc(alloc), m_headBlock(nullptr)
+    {
+        ;
+    }
+
+    void TTEventList::UnloadEventList()
+    {
+        if(this->m_headBlock == nullptr)
+        {
+            return;
+        }
+
+        TTEventListLink* firstBlock = this->m_headBlock;
+        while(firstBlock->Previous != nullptr)
+        {
+            firstBlock = firstBlock->Previous;
+        }
+
+        TTEventListLink* curr = firstBlock;
+        while(curr != nullptr)
+        {
+            for(uint32 i = curr->StartPos; i < curr->CurrPos; ++i)
+            {
+                curr->BlockData[i]->UnloadEventMemory(*(this->m_alloc));
+
+                this->m_alloc->UnlinkAllocation(curr->BlockData[i]);
+            }
+            curr->StartPos = curr->CurrPos;
+
+            TTEventListLink* next = curr->Next;
+            this->RemoveArrayLink(curr);
+            curr = next;
+        }
+
+        this->m_headBlock = nullptr;
+    }
+
+    void TTEventList::AddEntry(EventLogEntry* data)
+    {
+        if((this->m_headBlock == nullptr) || (this->m_headBlock->CurrPos == TTD_EVENTLOG_LIST_BLOCK_SIZE))
+        {
+            this->AddArrayLink();
+        }
+
+        this->m_headBlock->BlockData[this->m_headBlock->CurrPos] = data;
+        this->m_headBlock->CurrPos++;
+    }
+
+    void TTEventList::DeleteFirstEntry(TTEventListLink* block, EventLogEntry* data)
+    {
+        AssertMsg(block->Previous == nullptr, "Not first event block in log!!!");
+        AssertMsg(block->BlockData[block->StartPos] == data, "Not the data at the start of the list!!!");
+
+        data->UnloadEventMemory(*(this->m_alloc));
+        this->m_alloc->UnlinkAllocation(data);
+
+        block->StartPos++;
+        if(block->StartPos == block->CurrPos)
+        {
+            this->RemoveArrayLink(block);
+        }
+    }
+
+    bool TTEventList::IsEmpty() const
+    {
+        return this->m_headBlock == nullptr;
+    }
+
+    uint32 TTEventList::Count() const
+    {
+        uint32 count = 0;
+
+        for(TTEventListLink* curr = this->m_headBlock; curr != nullptr; curr = curr->Previous)
+        {
+            count += (curr->CurrPos - curr->StartPos);
+        }
+
+        return (uint32)count;
+    }
+
+    TTEventList::Iterator::Iterator()
+        : m_currLink(nullptr), m_currIdx(0)
+    {
+        ;
+    }
+
+    TTEventList::Iterator::Iterator(TTEventListLink* head, uint32 pos)
+        : m_currLink(head), m_currIdx(pos)
+    {
+        ;
+    }
+
+    const EventLogEntry* TTEventList::Iterator::Current() const
+    {
+        AssertMsg(this->IsValid(), "Iterator is invalid!!!");
+
+        return this->m_currLink->BlockData[this->m_currIdx];
+    }
+
+    EventLogEntry* TTEventList::Iterator::Current()
+    {
+        AssertMsg(this->IsValid(), "Iterator is invalid!!!");
+
+        return this->m_currLink->BlockData[this->m_currIdx];
+    }
+
+    bool TTEventList::Iterator::IsValid() const
+    {
+        return (this->m_currLink != nullptr && this->m_currLink->StartPos <= this->m_currIdx && this->m_currIdx < this->m_currLink->CurrPos);
+    }
+
+    void TTEventList::Iterator::MoveNext()
+    {
+        if(this->m_currIdx != this->m_currLink->CurrPos)
+        {
+            this->m_currIdx++;
+        }
+        else
+        {
+            this->m_currLink = this->m_currLink->Next;
+            this->m_currIdx = (this->m_currLink != nullptr) ? this->m_currLink->StartPos : 0;
+        }
+    }
+
+    void TTEventList::Iterator::MovePrevious()
+    {
+        if(this->m_currIdx != this->m_currLink->StartPos)
+        {
+            this->m_currIdx--;
+        }
+        else
+        {
+            this->m_currLink = this->m_currLink->Previous;
+            this->m_currIdx = (this->m_currLink != nullptr) ? (TTD_EVENTLOG_LIST_BLOCK_SIZE - 1) : 0;
+        }
+    }
+
+    TTEventList::Iterator TTEventList::GetIteratorAtFirst() const
+    {
+        if(this->m_headBlock == nullptr)
+        {
+            return Iterator(nullptr, 0);
+        }
+        else
+        {
+            TTEventListLink* firstBlock = this->m_headBlock;
+            while(firstBlock->Previous != nullptr)
+            {
+                firstBlock = firstBlock->Previous;
+            }
+
+            return Iterator(firstBlock, firstBlock->StartPos);
+        }
+    }
+
+    TTEventList::Iterator TTEventList::GetIteratorAtLast() const
+    {
+        if(this->m_headBlock == nullptr)
+        {
+            return Iterator(nullptr, 0);
+        }
+        else
+        {
+            return Iterator(this->m_headBlock, this->m_headBlock->CurrPos - 1);
+        }
+    }
+
+    //////
+
     const SingleCallCounter& EventLog::GetTopCallCounter() const
     {
         AssertMsg(this->m_callStack.Count() != 0, "Empty stack!");
@@ -170,21 +379,14 @@ namespace TTD
     void EventLog::AdvanceTimeAndPositionForReplay()
     {
         this->m_eventTimeCtr++;
-        this->m_currentEvent = this->m_currentEvent->GetNextEvent();
+        this->m_currentReplayEventIterator.MoveNext();
 
-        AssertMsg(this->m_currentEvent == nullptr || this->m_eventTimeCtr <= this->m_currentEvent->GetEventTime(), "Something is out of sync.");
+        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_eventTimeCtr <= this->m_currentReplayEventIterator.Current()->GetEventTime(), "Something is out of sync.");
     }
 
     void EventLog::InsertEventAtHead(EventLogEntry* evnt)
     {
-        evnt->SetPreviousEvent(this->m_events);
-
-        if(this->m_events != nullptr)
-        {
-            this->m_events->SetNextEvent(evnt);
-        }
-
-        this->m_events = evnt;
+        this->m_eventList.AddEntry(evnt);
     }
 
     void EventLog::UpdateComputedMode()
@@ -268,17 +470,17 @@ namespace TTD
     }
 
     EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
-        : m_threadContext(threadContext), m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_propertyRecordSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
+        : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
-        m_events(nullptr), m_currentEvent(nullptr),
-        m_callStack(&HeapAllocator::Instance), 
+        m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
+        m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
         m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
-        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_propertyRecordSlabAllocator)
+        m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
 #if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
         , BPIsSet(false)
         , BPRootEventTime(-1)
@@ -301,15 +503,7 @@ namespace TTD
 
     EventLog::~EventLog()
     {
-        EventLogEntry* curr = this->m_events;
-        while(curr != nullptr)
-        {
-            EventLogEntry* tmp = curr;
-            curr = curr->GetPreviousEvent();
-
-            this->m_slabAllocator.SlabDelete<EventLogEntry>(tmp);
-        }
-        this->m_events = nullptr;
+        this->m_eventList.UnloadEventList();
 
         this->UnloadRetainedData();
 
@@ -461,7 +655,7 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
 
-        DoubleEventLogEntry* devent = this->m_slabAllocator.SlabNew<DoubleEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), time);
+        DoubleEventLogEntry* devent = this->m_eventSlabAllocator.SlabNew<DoubleEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), time);
         this->InsertEventAtHead(devent);
     }
 
@@ -470,9 +664,9 @@ namespace TTD
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
 
         TTString copyStr;
-        this->m_slabAllocator.CopyStringIntoWLength(stringValue->GetSz(), stringValue->GetLength(), copyStr);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue->GetSz(), stringValue->GetLength(), copyStr);
 
-        StringValueEventLogEntry* sevent = this->m_slabAllocator.SlabNew<StringValueEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), copyStr);
+        StringValueEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<StringValueEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), copyStr);
         this->InsertEventAtHead(sevent);
     }
 
@@ -480,14 +674,14 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        DoubleEventLogEntry* devent = DoubleEventLogEntry::As(this->m_currentEvent);
+        DoubleEventLogEntry* devent = DoubleEventLogEntry::As(this->m_currentReplayEventIterator.Current());
         *result = devent->GetDoubleValue();
 
         this->AdvanceTimeAndPositionForReplay();
@@ -497,14 +691,14 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        StringValueEventLogEntry* sevent = StringValueEventLogEntry::As(this->m_currentEvent);
+        StringValueEventLogEntry* sevent = StringValueEventLogEntry::As(this->m_currentReplayEventIterator.Current());
         const TTString& str = sevent->GetStringValue();
         *result = Js::JavascriptString::NewCopyBuffer(str.Contents, str.Length, ctx);
 
@@ -515,7 +709,7 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        RandomSeedEventLogEntry* revent = this->m_slabAllocator.SlabNew<RandomSeedEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), seed0, seed1);
+        RandomSeedEventLogEntry* revent = this->m_eventSlabAllocator.SlabNew<RandomSeedEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), seed0, seed1);
         this->InsertEventAtHead(revent);
     }
 
@@ -523,14 +717,14 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        RandomSeedEventLogEntry* revent = RandomSeedEventLogEntry::As(this->m_currentEvent);
+        RandomSeedEventLogEntry* revent = RandomSeedEventLogEntry::As(this->m_currentReplayEventIterator.Current());
         *seed0 = revent->GetSeed0();
         *seed1 = revent->GetSeed1();
 
@@ -547,7 +741,7 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         if(returnCode)
         {
-            this->m_slabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
+            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #else
         if(pid == Js::Constants::NoProperty)
@@ -556,7 +750,7 @@ namespace TTD
         }
 #endif
 
-        PropertyEnumStepEventLogEntry* eevent = this->m_slabAllocator.SlabNew<PropertyEnumStepEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), returnCode, pid, attributes, optName);
+        PropertyEnumStepEventLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<PropertyEnumStepEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), returnCode, pid, attributes, optName);
         this->InsertEventAtHead(eevent);
     }
 
@@ -564,14 +758,14 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        PropertyEnumStepEventLogEntry* eevent = PropertyEnumStepEventLogEntry::As(this->m_currentEvent);
+        PropertyEnumStepEventLogEntry* eevent = PropertyEnumStepEventLogEntry::As(this->m_currentReplayEventIterator.Current());
         *returnCode = eevent->GetReturnCode();
         *pid = eevent->GetPropertyId();
         *attributes = eevent->GetAttributes();
@@ -599,7 +793,7 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        SymbolCreationEventLogEntry* sevent = this->m_slabAllocator.SlabNew<SymbolCreationEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), pid);
+        SymbolCreationEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SymbolCreationEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), pid);
         this->InsertEventAtHead(sevent);
     }
 
@@ -607,14 +801,14 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
-        SymbolCreationEventLogEntry* sevent = SymbolCreationEventLogEntry::As(this->m_currentEvent);
+        SymbolCreationEventLogEntry* sevent = SymbolCreationEventLogEntry::As(this->m_currentReplayEventIterator.Current());
         *pid = sevent->GetPropertyId();
 
         this->AdvanceTimeAndPositionForReplay();
@@ -624,12 +818,12 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        ExternalCallEventBeginLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
+        ExternalCallEventBeginLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TTString fname;
         Js::JavascriptString* displayName = func->GetDisplayName();
-        this->m_slabAllocator.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), fname);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), fname);
 
         eevent->SetFunctionName(fname);
 #endif
@@ -643,10 +837,10 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        NSLogValue::ArgRetValue* retVal = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_slabAllocator);
+        NSLogValue::ArgRetValue retVal;
+        NSLogValue::ExtractArgRetValueFromVar(value, retVal);
 
-        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootNestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
+        ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootNestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
 
         this->InsertEventAtHead(eevent);
     }
@@ -655,11 +849,11 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        ExternalCallEventBeginLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
+        ExternalCallEventBeginLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventBeginLogEntry>(this->GetCurrentEventTimeAndAdvance(), rootDepth, beginTime);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TTString pname;
-        this->m_slabAllocator.CopyNullTermStringInto(L"Register Promise Function", pname);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(L"Register Promise Function", pname);
 
         eevent->SetFunctionName(pname);
 #endif
@@ -673,10 +867,10 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
-        NSLogValue::ArgRetValue* retVal = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_slabAllocator);
+        NSLogValue::ArgRetValue retVal;
+        NSLogValue::ExtractArgRetValueFromVar(value, retVal);
 
-        ExternalCallEventEndLogEntry* eevent = this->m_slabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootDepth, false, false, endTime, retVal);
+        ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootDepth, false, false, endTime, retVal);
 
         this->InsertEventAtHead(eevent);
     }
@@ -685,30 +879,32 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
         //advance the begin event item off the event list
-        ExternalCallEventBeginLogEntry* eeventBegin = ExternalCallEventBeginLogEntry::As(this->m_currentEvent);
+        ExternalCallEventBeginLogEntry* eeventBegin = ExternalCallEventBeginLogEntry::As(this->m_currentReplayEventIterator.Current());
         this->AdvanceTimeAndPositionForReplay();
 
         //replay anything that happens when we are out of the call
-        if(this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
+        if(this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
         {
             this->ReplayActionLoopStep();
         }
 
-        if(this->m_currentEvent == nullptr)
+        if(this->m_currentReplayEventIterator.Current() == nullptr)
         {
             this->AbortReplayReturnToHost();
         }
-        AssertMsg(this->m_currentEvent->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
 
         //advance the end event item off the event list and get the return value
-        ExternalCallEventEndLogEntry* eeventEnd = ExternalCallEventEndLogEntry::As(this->m_currentEvent);
+        ExternalCallEventEndLogEntry* eeventEnd = ExternalCallEventEndLogEntry::As(this->m_currentReplayEventIterator.Current());
         this->AdvanceTimeAndPositionForReplay();
 
         AssertMsg(eeventBegin->GetRootNestingDepth() == eeventEnd->GetRootNestingDepth(), "These should always match!!!");
@@ -1030,11 +1226,11 @@ namespace TTD
             return nullptr;
         }
 
-        for(EventLogEntry* curr = this->m_events; curr != nullptr; curr = curr->GetPreviousEvent())
+        for(auto iter = this->m_currentReplayEventIterator; iter.IsValid(); iter.MovePrevious())
         {
-            if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->GetActionTypeTag() == JsRTActionType::CallbackOp)
+            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallbackOp)
             {
-                JsRTCallbackAction* callbackAction = JsRTCallbackAction::As(JsRTActionLogEntry::As(curr));
+                JsRTCallbackAction* callbackAction = JsRTCallbackAction::As(JsRTActionLogEntry::As(iter.Current()));
                 if(callbackAction->GetAssociatedHostCallbackId() == hostIdOfInterest && callbackAction->IsCreateOp() == wantRegisterOp)
                 {
                     return callbackAction;
@@ -1047,19 +1243,12 @@ namespace TTD
 
     int64 EventLog::GetKthEventTime(uint32 k) const
     {
-        //move to the 0th event
-        EventLogEntry* curr = this->m_events;
-        while(curr->GetPreviousEvent() != nullptr)
-        {
-            curr = curr->GetPreviousEvent();
-        }
-
         uint32 topLevelCount = 0;
-        while(curr != nullptr)
+        for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
-            if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCallBegin())
+            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->IsRootCallBegin())
             {
-                JsRTCallFunctionBeginAction* rootCallAction = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
+                JsRTCallFunctionBeginAction* rootCallAction = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
                 topLevelCount++;
 
                 if(topLevelCount == k)
@@ -1067,8 +1256,6 @@ namespace TTD
                     return rootCallAction->GetEventTime();
                 }
             }
-
-            curr = curr->GetNextEvent();
         }
 
         AssertMsg(false, "Bad event index!!!");
@@ -1334,7 +1521,7 @@ namespace TTD
 
     bool EventLog::HasDoneFirstSnapshot() const
     {
-        return this->m_events != nullptr;
+        return !this->m_eventList.IsEmpty();
     }
 
     void EventLog::DoSnapshotExtract(bool firstSnap)
@@ -1352,7 +1539,7 @@ namespace TTD
 
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
 
-        SnapshotEventLogEntry* sevent = this->m_slabAllocator.SlabNew<SnapshotEventLogEntry>(etime, snap, etime, logTag, idTag);
+        SnapshotEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SnapshotEventLogEntry>(etime, snap, etime, logTag, idTag);
         this->InsertEventAtHead(sevent);
 
         this->m_elapsedExecutionTimeSinceSnapshot = 0.0;
@@ -1361,10 +1548,10 @@ namespace TTD
     void EventLog::DoRtrSnapIfNeeded()
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
-        AssertMsg(this->m_currentEvent != nullptr && this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Something in wrong with the event position.");
-        AssertMsg(JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCallBegin(), "Something in wrong with the event position.");
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Something in wrong with the event position.");
+        AssertMsg(JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current())->IsRootCallBegin(), "Something in wrong with the event position.");
 
-        JsRTCallFunctionBeginAction* rootCall = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(this->m_currentEvent));
+        JsRTCallFunctionBeginAction* rootCall = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current()));
 
         if(!rootCall->HasReadyToRunSnapshotInfo())
         {
@@ -1382,23 +1569,23 @@ namespace TTD
         *newCtxsNeeded = false;
         int64 snapTime = -1;
 
-        for(EventLogEntry* curr = this->m_events; curr != nullptr; curr = curr->GetPreviousEvent())
+        for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
-            if(curr->GetEventTime() <= targetTime)
+            if(iter.Current()->GetEventTime() <= targetTime)
             {
-                if(curr->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
+                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
                 {
-                    snapTime = curr->GetEventTime();
+                    snapTime = iter.Current()->GetEventTime();
                     break;
                 }
 
-                if(curr->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(curr)->IsRootCallBegin())
+                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->IsRootCallBegin())
                 {
-                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
+                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
 
                     if(rootEntry->HasReadyToRunSnapshotInfo())
                     {
-                        snapTime = curr->GetEventTime();
+                        snapTime = iter.Current()->GetEventTime();
                         break;
                     }
                 }
@@ -1435,13 +1622,13 @@ namespace TTD
         TTD_LOG_TAG restoreLogTagCtr = TTD_INVALID_LOG_TAG;
         TTD_IDENTITY_TAG restoreIdentityTagCtr = TTD_INVALID_IDENTITY_TAG;
 
-        for(EventLogEntry* curr = this->m_events; curr != nullptr; curr = curr->GetPreviousEvent())
+        for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
-            if(curr->GetEventTime() == etime)
+            if(iter.Current()->GetEventTime() == etime)
             {
-                if(curr->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
+                if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
                 {
-                    SnapshotEventLogEntry* snpEntry = SnapshotEventLogEntry::As(curr);
+                    SnapshotEventLogEntry* snpEntry = SnapshotEventLogEntry::As(iter.Current());
                     snpEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
 
                     restoreEventTime = snpEntry->GetRestoreEventTime();
@@ -1452,7 +1639,7 @@ namespace TTD
                 }
                 else
                 {
-                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(curr));
+                    JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
 
                     SnapShot* ncSnap = nullptr;
                     rootEntry->GetReadyToRunSnapshotInfo(&ncSnap, &restoreLogTagCtr, &restoreIdentityTagCtr);
@@ -1488,11 +1675,11 @@ namespace TTD
             NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
 
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
-            for(EventLogEntry* curr = this->m_events; curr != nullptr; curr = curr->GetPreviousEvent())
+            for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
             {
-                if(curr->GetEventTime() != etime)
+                if(iter.Current()->GetEventTime() != etime)
                 {
-                    curr->UnloadSnapshot();
+                    iter.Current()->UnloadSnapshot();
                 }
             }
         }
@@ -1504,19 +1691,19 @@ namespace TTD
         snap->Inflate(this->m_lastInflateMap, sCtx);
         this->m_lastInflateMap->CleanupAfterInflate();
 
-        if(this->m_events != nullptr)
+        if(!this->m_eventList.IsEmpty())
         {
-            this->m_currentEvent = this->m_events;
-            while(this->m_currentEvent->GetEventTime() != this->m_eventTimeCtr)
+            this->m_currentReplayEventIterator = this->m_eventList.GetIteratorAtLast();
+            while(this->m_currentReplayEventIterator.Current()->GetEventTime() != this->m_eventTimeCtr)
             {
-                this->m_currentEvent = this->m_currentEvent->GetPreviousEvent();
+                this->m_currentReplayEventIterator.MovePrevious();
             }
 
             //we want to advance to the event immediately after the snapshot as well so do that
-            if(this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
+            if(this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::SnapshotTag)
             {
                 this->m_eventTimeCtr++;
-                this->m_currentEvent = this->m_currentEvent->GetNextEvent();
+                this->m_currentReplayEventIterator.MoveNext();
             }
 
             //clear this out -- it shouldn't matter for most JsRT actions (alloc etc.) and should be reset by any call actions
@@ -1528,12 +1715,12 @@ namespace TTD
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
 
-        if(this->m_currentEvent == nullptr)
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }
 
-        switch(this->m_currentEvent->GetEventKind())
+        switch(this->m_currentReplayEventIterator.Current()->GetEventKind())
         {
             case EventLogEntry::EventKind::SnapshotTag:
                 this->AdvanceTimeAndPositionForReplay(); //nothing to replay so we just move along
@@ -1548,20 +1735,20 @@ namespace TTD
 
     void EventLog::ReplayToTime(int64 eventTime)
     {
-        AssertMsg(this->m_currentEvent != nullptr && this->m_currentEvent->GetEventTime() <= eventTime, "This isn't going to work.");
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventTime() <= eventTime, "This isn't going to work.");
 
         //Note use of == in test as we want a specific root event not just sometime later
-        while(this->m_currentEvent->GetEventTime() != eventTime)
+        while(this->m_currentReplayEventIterator.Current()->GetEventTime() != eventTime)
         {
             this->ReplaySingleEntry();
 
-            AssertMsg(this->m_currentEvent != nullptr && this->m_currentEvent->GetEventTime() <= eventTime, "Something is not lined up correctly.");
+            AssertMsg(this->m_currentReplayEventIterator.IsValid() && m_currentReplayEventIterator.Current()->GetEventTime() <= eventTime, "Something is not lined up correctly.");
         }
     }
 
     void EventLog::ReplayFullTrace()
     {
-        while(this->m_currentEvent != nullptr)
+        while(this->m_currentReplayEventIterator.IsValid())
         {
             this->ReplaySingleEntry();
         }
@@ -1575,7 +1762,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTNumberAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, true, ival, 0.0);
+        JsRTNumberAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, true, ival, 0.0);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1585,7 +1772,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTNumberAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, false, 0, dval);
+        JsRTNumberAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, false, 0, dval);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1596,8 +1783,8 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         TTString str;
-        this->m_slabAllocator.CopyStringIntoWLength(stringValue, stringLength, str);
-        JsRTStringAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTStringAllocateAction>(etime, ctxTag, str);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue, stringLength, str);
+        JsRTStringAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTStringAllocateAction>(etime, ctxTag, str);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1607,10 +1794,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* symDescriptor = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(symbolDescription, symDescriptor, this->m_slabAllocator);
+        NSLogValue::ArgRetValue symDescriptor;
+        NSLogValue::ExtractArgRetValueFromVar(symbolDescription, symDescriptor);
 
-        JsRTSymbolAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTSymbolAllocateAction>(etime, ctxTag, symDescriptor);
+        JsRTSymbolAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTSymbolAllocateAction>(etime, ctxTag, symDescriptor);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1620,10 +1807,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* vval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, vval, this->m_slabAllocator);
+        NSLogValue::ArgRetValue vval;
+        NSLogValue::ExtractArgRetValueFromVar(var, vval);
 
-        JsRTVarConvertAction* convertEvent = this->m_slabAllocator.SlabNew<JsRTVarConvertAction>(etime, ctxTag, toBool, toNumber, toString, toObject, vval);
+        JsRTVarConvertAction* convertEvent = this->m_eventSlabAllocator.SlabNew<JsRTVarConvertAction>(etime, ctxTag, toBool, toNumber, toString, toObject, vval);
 
         this->InsertEventAtHead(convertEvent);
     }
@@ -1633,7 +1820,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTObjectAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTObjectAllocateAction>(etime, ctxTag, isRegularObject);
+        JsRTObjectAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTObjectAllocateAction>(etime, ctxTag, isRegularObject);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1643,7 +1830,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTArrayAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTArrayAllocateAction>(etime, ctxTag, arrayType, length);
+        JsRTArrayAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTArrayAllocateAction>(etime, ctxTag, arrayType, length);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1653,10 +1840,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        byte* abuff = this->m_slabAllocator.SlabAllocateArray<byte>(size);
+        byte* abuff = this->m_eventSlabAllocator.SlabAllocateArray<byte>(size);
         js_memcpy_s(abuff, size, buff, size);
 
-        JsRTArrayBufferAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTArrayBufferAllocateAction>(etime, ctxTag, size, buff);
+        JsRTArrayBufferAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTArrayBufferAllocateAction>(etime, ctxTag, size, buff);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1666,14 +1853,15 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* name = nullptr;
+        NSLogValue::ArgRetValue name;
+        NSLogValue::InitializeArgRetValueAsInvalid(name);
+
         if(isNamed)
         {
-            name = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-            NSLogValue::ExtractArgRetValueFromVar(optName, name, this->m_slabAllocator);
+            NSLogValue::ExtractArgRetValueFromVar(optName, name);
         }
 
-        JsRTFunctionAllocateAction* allocEvent = this->m_slabAllocator.SlabNew<JsRTFunctionAllocateAction>(etime, ctxTag, isNamed, name);
+        JsRTFunctionAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTFunctionAllocateAction>(etime, ctxTag, isNamed, name);
 
         this->InsertEventAtHead(allocEvent);
     }
@@ -1683,7 +1871,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTGetAndClearExceptionAction* exceptionEvent = this->m_slabAllocator.SlabNew<JsRTGetAndClearExceptionAction>(etime, ctxTag);
+        JsRTGetAndClearExceptionAction* exceptionEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetAndClearExceptionAction>(etime, ctxTag);
 
         this->InsertEventAtHead(exceptionEvent);
     }
@@ -1693,10 +1881,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* val = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_slabAllocator);
+        NSLogValue::ArgRetValue val;
+        NSLogValue::ExtractArgRetValueFromVar(var, val);
 
-        JsRTGetPropertyAction* getEvent = this->m_slabAllocator.SlabNew<JsRTGetPropertyAction>(etime, ctxTag, pid, val);
+        JsRTGetPropertyAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetPropertyAction>(etime, ctxTag, pid, val);
 
         this->InsertEventAtHead(getEvent);
     }
@@ -1706,13 +1894,13 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* aindex = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_slabAllocator);
+        NSLogValue::ArgRetValue aindex;
+        NSLogValue::ExtractArgRetValueFromVar(index, aindex);
 
-        NSLogValue::ArgRetValue* aval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, aval, this->m_slabAllocator);
+        NSLogValue::ArgRetValue aval;
+        NSLogValue::ExtractArgRetValueFromVar(var, aval);
 
-        JsRTGetIndexAction* getEvent = this->m_slabAllocator.SlabNew<JsRTGetIndexAction>(etime, ctxTag, aindex, aval);
+        JsRTGetIndexAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetIndexAction>(etime, ctxTag, aindex, aval);
 
         this->InsertEventAtHead(getEvent);
     }
@@ -1722,10 +1910,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* val = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_slabAllocator);
+        NSLogValue::ArgRetValue val;
+        NSLogValue::ExtractArgRetValueFromVar(var, val);
 
-        JsRTGetOwnPropertyInfoAction* getInfoEvent = this->m_slabAllocator.SlabNew<JsRTGetOwnPropertyInfoAction>(etime, ctxTag, pid, val);
+        JsRTGetOwnPropertyInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertyInfoAction>(etime, ctxTag, pid, val);
 
         this->InsertEventAtHead(getInfoEvent);
     }
@@ -1735,10 +1923,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* val = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_slabAllocator);
+        NSLogValue::ArgRetValue val;
+        NSLogValue::ExtractArgRetValueFromVar(var, val);
 
-        JsRTGetOwnPropertiesInfoAction* getInfoEvent = this->m_slabAllocator.SlabNew<JsRTGetOwnPropertiesInfoAction>(etime, ctxTag, isGetNames, val);
+        JsRTGetOwnPropertiesInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertiesInfoAction>(etime, ctxTag, isGetNames, val);
 
         this->InsertEventAtHead(getInfoEvent);
     }
@@ -1748,13 +1936,13 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ArgRetValue* pdval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
 
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
-        NSLogValue::ExtractArgRetValueFromVar(propertyDescriptor, pdval, this->m_slabAllocator);
+        NSLogValue::ArgRetValue pdval;
+        NSLogValue::ExtractArgRetValueFromVar(propertyDescriptor, pdval);
 
-        JsRTDefinePropertyAction* defineEvent = this->m_slabAllocator.SlabNew<JsRTDefinePropertyAction>(etime, ctxTag, avar, pid, pdval);
+        JsRTDefinePropertyAction* defineEvent = this->m_eventSlabAllocator.SlabNew<JsRTDefinePropertyAction>(etime, ctxTag, avar, pid, pdval);
 
         this->InsertEventAtHead(defineEvent);
     }
@@ -1764,10 +1952,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
 
-        JsRTDeletePropertyAction* deleteEvent = this->m_slabAllocator.SlabNew<JsRTDeletePropertyAction>(etime, ctxTag, avar, pid, useStrictRules);
+        JsRTDeletePropertyAction* deleteEvent = this->m_eventSlabAllocator.SlabNew<JsRTDeletePropertyAction>(etime, ctxTag, avar, pid, useStrictRules);
 
         this->InsertEventAtHead(deleteEvent);
     }
@@ -1777,13 +1965,13 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ArgRetValue* aproto = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
 
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
-        NSLogValue::ExtractArgRetValueFromVar(proto, aproto, this->m_slabAllocator);
+        NSLogValue::ArgRetValue aproto;
+        NSLogValue::ExtractArgRetValueFromVar(proto, aproto);
 
-        JsRTSetPrototypeAction* setEvent = this->m_slabAllocator.SlabNew<JsRTSetPrototypeAction>(etime, ctxTag, avar, aproto);
+        JsRTSetPrototypeAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPrototypeAction>(etime, ctxTag, avar, aproto);
 
         this->InsertEventAtHead(setEvent);
     }
@@ -1793,13 +1981,13 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ArgRetValue* aval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
 
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
-        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_slabAllocator);
+        NSLogValue::ArgRetValue aval;
+        NSLogValue::ExtractArgRetValueFromVar(val, aval);
 
-        JsRTSetPropertyAction* setEvent = this->m_slabAllocator.SlabNew<JsRTSetPropertyAction>(etime, ctxTag, avar, pid, aval, useStrictRules);
+        JsRTSetPropertyAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPropertyAction>(etime, ctxTag, avar, pid, aval, useStrictRules);
 
         this->InsertEventAtHead(setEvent);
     }
@@ -1809,15 +1997,16 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ArgRetValue* aindex = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ArgRetValue* aval = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
 
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_slabAllocator);
-        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_slabAllocator);
+        NSLogValue::ArgRetValue aindex;
+        NSLogValue::ExtractArgRetValueFromVar(index, aindex);
 
-        JsRTSetIndexAction* setEvent = this->m_slabAllocator.SlabNew<JsRTSetIndexAction>(etime, ctxTag, avar, aindex, aval);
+        NSLogValue::ArgRetValue aval;
+        NSLogValue::ExtractArgRetValueFromVar(val, aval);
+
+        JsRTSetIndexAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetIndexAction>(etime, ctxTag, avar, aindex, aval);
 
         this->InsertEventAtHead(setEvent);
     }
@@ -1827,10 +2016,10 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        NSLogValue::ArgRetValue* avar = this->m_slabAllocator.SlabAllocateStruct<NSLogValue::ArgRetValue>();
-        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_slabAllocator);
-        
-        JsRTGetTypedArrayInfoAction* infoEvent = this->m_slabAllocator.SlabNew<JsRTGetTypedArrayInfoAction>(etime, ctxTag, returnsArrayBuff, avar);
+        NSLogValue::ArgRetValue avar;
+        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+
+        JsRTGetTypedArrayInfoAction* infoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetTypedArrayInfoAction>(etime, ctxTag, returnsArrayBuff, avar);
 
         this->InsertEventAtHead(infoEvent);
     }
@@ -1841,15 +2030,15 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
         TTD_LOG_TAG fTag = ctx->GetThreadContext()->TTDInfo->LookupTagForObject(func);
 
-        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_slabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
+        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
         for(uint32 i = 0; i < argCount; ++i)
         {
             Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray + i, this->m_slabAllocator);
+            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i]);
         }
-        Js::Var* execArgs = (argCount != 0) ? this->m_slabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
+        Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
 
-        JsRTConstructCallAction* constructEvent = this->m_slabAllocator.SlabNew<JsRTConstructCallAction>(etime, ctxTag, fTag, argCount, argArray, execArgs);
+        JsRTConstructCallAction* constructEvent = this->m_eventSlabAllocator.SlabNew<JsRTConstructCallAction>(etime, ctxTag, fTag, argCount, argArray, execArgs);
 
         this->InsertEventAtHead(constructEvent);
     }
@@ -1860,7 +2049,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
         TTD_LOG_TAG fTag = (func != nullptr) ? ctx->GetThreadContext()->TTDInfo->LookupTagForObject(func) : TTD_INVALID_LOG_TAG;
 
-        JsRTCallbackAction* createAction = this->m_slabAllocator.SlabNew<JsRTCallbackAction>(etime, ctxTag, isCancel, isRepeating, this->m_hostCallbackId, fTag, createdCallbackId);
+        JsRTCallbackAction* createAction = this->m_eventSlabAllocator.SlabNew<JsRTCallbackAction>(etime, ctxTag, isCancel, isRepeating, this->m_hostCallbackId, fTag, createdCallbackId);
 
         this->InsertEventAtHead(createAction);
     }
@@ -1873,20 +2062,20 @@ namespace TTD
         Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(func->GetFunctionBody());
 
         TTString optSrcUri;
-        this->m_slabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
 
         DWORD_PTR optDocumentID = fb->GetSourceContextId();
 
         TTString sourceCode;
-        this->m_slabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
 
         TTString dir;
-        this->m_slabAllocator.CopyStringIntoWLength(this->m_logInfoRootDir.Contents, this->m_logInfoRootDir.Length, dir);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(this->m_logInfoRootDir.Contents, this->m_logInfoRootDir.Length, dir);
 
         TTString ssUri;
-        this->m_slabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
+        this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
 
-        JsRTCodeParseAction* parseEvent = this->m_slabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir, ssUri);
+        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, sourceCode, optDocumentID, optSrcUri, dir, ssUri);
 
         this->InsertEventAtHead(parseEvent);
     }
@@ -1897,20 +2086,20 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
         TTD_LOG_TAG fTag = ctx->GetThreadContext()->TTDInfo->LookupTagForObject(func);
 
-        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_slabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
+        NSLogValue::ArgRetValue* argArray = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<NSLogValue::ArgRetValue>(argCount) : 0;
         for(uint32 i = 0; i < argCount; ++i)
         {
             Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray + i, this->m_slabAllocator);
+            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i]);
         }
-        Js::Var* execArgs = (argCount != 0) ? this->m_slabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
+        Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
 
-        JsRTCallFunctionBeginAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionBeginAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
+        JsRTCallFunctionBeginAction* callEvent = this->m_eventSlabAllocator.SlabNew<JsRTCallFunctionBeginAction>(etime, ctxTag, rootDepth, hostCallbackId, beginTime, fTag, argCount, argArray, execArgs);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         TTString fname;
         Js::JavascriptString* dname = func->GetDisplayName();
-        this->m_slabAllocator.CopyStringIntoWLength(dname->GetSz(), dname->GetLength(), fname);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(dname->GetSz(), dname->GetLength(), fname);
         callEvent->SetFunctionName(fname);
 #endif
 
@@ -1926,7 +2115,7 @@ namespace TTD
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
-        JsRTCallFunctionEndAction* callEvent = this->m_slabAllocator.SlabNew<JsRTCallFunctionEndAction>(etime, ctxTag, matchingBeginTime, hasScriptException, hasTerminatingException, callbackDepth, endTime);
+        JsRTCallFunctionEndAction* callEvent = this->m_eventSlabAllocator.SlabNew<JsRTCallFunctionEndAction>(etime, ctxTag, matchingBeginTime, hasScriptException, hasTerminatingException, callbackDepth, endTime);
 
         this->InsertEventAtHead(callEvent);
     }
@@ -1934,28 +2123,31 @@ namespace TTD
     void EventLog::ReplayActionLoopStep()
     {
         AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
-        AssertMsg(this->m_currentEvent != nullptr && this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Should check this first!");
+        AssertMsg(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag, "Should check this first!");
 
         bool nextActionValid = false;
         bool nextActionRootCall = false;
         do
         {
-            JsRTActionLogEntry* action = JsRTActionLogEntry::As(this->m_currentEvent);
+            JsRTActionLogEntry* action = JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current());
             this->AdvanceTimeAndPositionForReplay();
 
-            //
-            //TODO: I don't think this is quite right. Instead we probably need to push the into/exit context down into the action code
-            //      In particular for enter/exit calls where we don't want to enter/exit script in between executing their actions
-            //
             Js::ScriptContext* ctx = action->GetScriptContextForAction(this->m_threadContext);
-            BEGIN_ENTER_SCRIPT(ctx, true, true, true);
+            if(action->IsExecutedInScriptWrapper())
             {
-               action->ExecuteAction(this->m_threadContext);
+                BEGIN_ENTER_SCRIPT(ctx, true, true, true);
+                {
+                    action->ExecuteAction(this->m_threadContext);
+                }
+                END_ENTER_SCRIPT;
             }
-            END_ENTER_SCRIPT;
+            else
+            {
+                action->ExecuteAction(this->m_threadContext);
+            }
 
-            nextActionValid = (this->m_currentEvent != nullptr && this->m_currentEvent->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag);
-            nextActionRootCall = (nextActionValid && JsRTActionLogEntry::As(this->m_currentEvent)->IsRootCallBegin());
+            nextActionValid = (this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag);
+            nextActionRootCall = (nextActionValid && JsRTActionLogEntry::As(this->m_currentReplayEventIterator.Current())->IsRootCallBegin());
 
         } while(nextActionValid & !nextActionRootCall);
     }
@@ -1970,14 +2162,61 @@ namespace TTD
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
 
+        TTString archString;
+#if defined(_M_IX86)
+        this->m_miscSlabAllocator(L"x86", archString);
+#elif defined(_M_X64)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(L"x64", archString);
+#elif defined(_M_ARM)
+        this->m_miscSlabAllocator(L"arm64", archString);
+#else
+        this->m_miscSlabAllocator(L"unknown", archString);
+#endif
+
+        writer.WriteString(NSTokens::Key::arch, archString);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        bool diagEnabled = true;
+#else
+        bool diagEnabled = false;
+#endif
+
+        writer.WriteBool(NSTokens::Key::diagEnabled, diagEnabled, NSTokens::Separator::CommaSeparator);
+
         uint64 usedSpace = 0;
         uint64 reservedSpace = 0;
-        this->m_slabAllocator.ComputeMemoryUsed(&usedSpace, &reservedSpace);
+        this->m_eventSlabAllocator.ComputeMemoryUsed(&usedSpace, &reservedSpace);
 
-        writer.WriteUInt64(NSTokens::Key::snapUsedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
-        writer.WriteUInt64(NSTokens::Key::snapReservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
+        writer.WriteUInt64(NSTokens::Key::usedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
+        writer.WriteUInt64(NSTokens::Key::reservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
 
-        EventLogEntry::EmitEventList(this->m_events, this->m_logInfoRootDir.Contents, &writer, this->m_threadContext, NSTokens::Separator::BigSpaceSeparator);
+        uint32 ecount = this->m_eventList.Count();
+        writer.WriteLengthValue(ecount, NSTokens::Separator::CommaAndBigSpaceSeparator);
+
+        bool firstEvent = true;
+        writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        writer.AdjustIndent(1);
+        for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
+        {
+            bool isJsRTEndCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallExistingFunctionEnd);
+            bool isExternalEndCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::ExternalCallEndTag);
+            if(isJsRTEndCall | isExternalEndCall)
+            {
+                writer.AdjustIndent(-1);
+            }
+
+            iter.Current()->EmitEvent(this->m_logInfoRootDir.Contents, &writer, this->m_threadContext, !firstEvent ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
+            firstEvent = false;
+
+            bool isJsRTBeginCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag && JsRTActionLogEntry::As(iter.Current())->GetActionTypeTag() == JsRTActionType::CallExistingFunctionBegin);
+            bool isExternalBeginCall = (iter.Current()->GetEventKind() == EventLogEntry::EventKind::ExternalCallBeginTag);
+            if(isJsRTBeginCall | isExternalBeginCall)
+            {
+                writer.AdjustIndent(1);
+            }
+        }
+        writer.AdjustIndent(-1);
+        writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
         //we haven't moved the properties to their serialized form them take care of it 
         AssertMsg(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
@@ -1992,20 +2231,21 @@ namespace TTD
             sRecord->IsBound = pRecord->IsBound();
             sRecord->IsSymbol = pRecord->IsSymbol();
 
-            this->m_slabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
+            this->m_miscSlabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
         }
 
         //emit the properties
         writer.WriteLengthValue(this->m_propertyRecordList.Count(), NSTokens::Separator::CommaSeparator);
+
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
-        bool first = true;
+        bool firstProperty = true;
         for(auto iter = this->m_propertyRecordList.GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            NSTokens::Separator sep = (!first) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
+            NSTokens::Separator sep = (!firstProperty) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
             NSSnapType::EmitSnapPropertyRecord(iter.Current(), &writer, sep);
 
-            first = false;
+            firstProperty = false;
         }
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
@@ -2025,10 +2265,39 @@ namespace TTD
 
         reader.ReadRecordStart();
 
-        reader.ReadUInt64(NSTokens::Key::snapUsedMemory, true);
-        reader.ReadUInt64(NSTokens::Key::snapReservedMemory, true);
+        TTString archString;
+        reader.ReadString(NSTokens::Key::arch, this->m_miscSlabAllocator, archString);
 
-        this->m_events = EventLogEntry::ParseEventList(false, this->m_threadContext, &reader, this->m_slabAllocator);
+#if defined(_M_IX86)
+        AssertMsg(wcscmp(L"x86", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+#elif defined(_M_X64)
+        AssertMsg(wcscmp(L"x64", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+#elif defined(_M_ARM)
+        AssertMsg(wcscmp(L"arm64", archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+#else
+        AssertMsg(false, "Unknown arch!!!");
+#endif
+
+        bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        AssertMsg(diagEnabled, "Diag was enabled in record so it shoud be in replay as well!!!");
+#else
+        AssertMsg(!diagEnabled, "Diag was *not* enabled in record so it shoud *not* be in replay either!!!");
+#endif
+
+        reader.ReadUInt64(NSTokens::Key::usedMemory, true);
+        reader.ReadUInt64(NSTokens::Key::reservedMemory, true);
+
+        uint32 ecount = reader.ReadLengthValue(true);
+        reader.ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < ecount; ++i)
+        {
+            EventLogEntry* curr = EventLogEntry::Parse(i != 0, this->m_threadContext, &reader, this->m_eventSlabAllocator);
+
+            this->m_eventList.AddEntry(curr);
+        }
+        reader.ReadSequenceEnd();
 
         //parse the properties
         uint32 propertyCount = reader.ReadLengthValue(true);
@@ -2036,7 +2305,7 @@ namespace TTD
         for(uint32 i = 0; i < propertyCount; ++i)
         {
             NSSnapType::SnapPropertyRecord* sRecord = this->m_propertyRecordList.NextOpenEntry();
-            NSSnapType::ParseSnapPropertyRecord(sRecord, i != 0, &reader, this->m_slabAllocator);
+            NSSnapType::ParseSnapPropertyRecord(sRecord, i != 0, &reader, this->m_miscSlabAllocator);
         }
         reader.ReadSequenceEnd();
 

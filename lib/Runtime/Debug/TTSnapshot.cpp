@@ -21,8 +21,8 @@ namespace TTD
         this->ComputeSnapshotMemory(&usedSpace, &reservedSpace);
 
         writer->WriteDouble(NSTokens::Key::timeTotal, this->MarkTime + this->ExtractTime);
-        writer->WriteUInt64(NSTokens::Key::snapUsedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
-        writer->WriteUInt64(NSTokens::Key::snapReservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::usedMemory, usedSpace, NSTokens::Separator::CommaSeparator);
+        writer->WriteUInt64(NSTokens::Key::reservedMemory, reservedSpace, NSTokens::Separator::CommaSeparator);
         writer->WriteDouble(NSTokens::Key::timeMark, this->MarkTime, NSTokens::Separator::CommaSeparator);
         writer->WriteDouble(NSTokens::Key::timeExtract, this->ExtractTime, NSTokens::Separator::CommaSeparator);
 
@@ -89,8 +89,8 @@ namespace TTD
         reader->ReadRecordStart();
 
         reader->ReadDouble(NSTokens::Key::timeTotal);
-        reader->ReadUInt64(NSTokens::Key::snapUsedMemory, true);
-        reader->ReadUInt64(NSTokens::Key::snapReservedMemory, true);
+        reader->ReadUInt64(NSTokens::Key::usedMemory, true);
+        reader->ReadUInt64(NSTokens::Key::reservedMemory, true);
         reader->ReadDouble(NSTokens::Key::timeMark, true);
         reader->ReadDouble(NSTokens::Key::timeExtract, true);
 

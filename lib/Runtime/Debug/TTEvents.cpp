@@ -456,6 +456,11 @@ namespace TTD
 
     namespace NSLogValue
     {
+        void InitializeArgRetValueAsInvalid(ArgRetValue& val)
+        {
+            val.Tag = ArgRetValueTag::Invalid;
+        }
+
         void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val)
         {
             if(var == nullptr)
