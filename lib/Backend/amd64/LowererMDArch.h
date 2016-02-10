@@ -77,6 +77,7 @@ public:
     IR::Instr *         LoadDynamicArgument(IR::Instr * instr, uint argNumber);
     IR::Instr *         LoadDynamicArgumentUsingLength(IR::Instr *instr);
     IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+    IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
     IR::Instr *         LoadStackArgPtr(IR::Instr * instr);
     IR::Instr *         LoadHeapArguments(IR::Instr * instr, bool force = false, IR::Opnd* opndInputParamCount = nullptr);
     IR::Instr *         LoadHeapArgsCached(IR::Instr * instr);
@@ -91,7 +92,7 @@ public:
     void                EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32 = false, bool isHelper = false);
     void                EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
     void                EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
-    bool                EmitLoadInt32(IR::Instr *instrLoad);
+    bool                EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed);
 
     IR::Instr *         LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, IR::LabelInstr *labelInline, IR::LabelInstr *labelHelper, IR::Instr *instrInsert, const bool checkForNullInLoopBody = false);
 

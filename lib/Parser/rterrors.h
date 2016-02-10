@@ -20,6 +20,9 @@
 #define RT_ERROR_MSG_UNUSED_ENTRY
 #endif
 
+// These VBS macros were taken from VBScript and the names and definitions are
+// written in stone. Other projects depend on these definitions as well.
+// Keep the commented lines as documentation of values that should not be reused.
 
 RT_ERROR_MSG(VBSERR_None, 0,    "", "", kjstError, 0)
 //RT_ERROR_MSG(VBSERR_ReturnWOGoSub, 3,    "",   "Return without GoSub")
@@ -138,8 +141,8 @@ RT_ERROR_MSG(JSERR_NeedArrayOrArg, 5028, "%s is not an Array or arguments object
 RT_ERROR_MSG(JSERR_ArrayLengthConstructIncorrect, 5029, "", "Array length must be a finite positive integer", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ArrayLengthAssignIncorrect, 5030, "", "Array length must be assigned a finite positive integer", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_NeedArrayObject, 5031, "%s is not an Array object", "Array object expected", kjstTypeError, 0)
-// RETIRED ECMACP removd ;; RT_ERROR_MSG(JSERR_NoCPEval,     5032, "", "'eval' is not available in the ECMA 327 Compact Profile",               kjstEvalError, 0)
-// RETIRED ECMACP removd ;; RT_ERROR_MSG(JSERR_NoCPFunction, 5033, "", "Function constructor is not available in the ECMA 327 Compact Profile", kjstEvalError, 0)
+// RETIRED ECMACP removed ;; RT_ERROR_MSG(JSERR_NoCPEval,     5032, "", "'eval' is not available in the ECMA 327 Compact Profile",               kjstEvalError, 0)
+// RETIRED ECMACP removed ;; RT_ERROR_MSG(JSERR_NoCPFunction, 5033, "", "Function constructor is not available in the ECMA 327 Compact Profile", kjstEvalError, 0)
 RT_ERROR_MSG(JSERR_JSONSerializeCircular, 5034, "", "Circular reference in value argument not supported", kjstError, 0)
 RT_ERROR_MSG(JSERR_JSONInvalidReplacer, 5035, "", "Invalid replacer argument", kjstError, 0)
 RT_ERROR_MSG(JSERR_InvalidAttributeTrue,5036,"'%s' attribute on the property descriptor cannot be set to 'true' on this object","",kjstTypeError, 0)
@@ -203,13 +206,13 @@ RT_ERROR_MSG(JSERR_TypedArray_NeedSource, 5086, "", "Invalid source in typed arr
 RT_ERROR_MSG(JSERR_This_NeedDataView, 5087, "", "'this' is not a DataView object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_NeedArgument, 5088, "Required argument %s in DataView method is not specified", "Invalid arguments in DataView", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_InvalidOffset, 5089, "", "DataView operation access beyond specified buffer length",  kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_DataView_InvalidArugment, 5090, "DataView constructor argument %s is invalid", "Invalid arguments in DataView", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_DataView_InvalidArgument, 5090, "DataView constructor argument %s is invalid", "Invalid arguments in DataView", kjstRangeError, 0)
 
 RT_ERROR_MSG(JSERR_InvalidFunctionSignature, 5091, "The function '%s' has an invalid signature and cannot be called", "invalid function signature", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_InvalidPropertySiganture, 5092, "The property '%s' has an invalid signature and cannot be accessed", "invalid property signature", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidPropertySignature, 5092, "The property '%s' has an invalid signature and cannot be accessed", "invalid property signature", kjstTypeError, 0)
 
-RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as input parameter type", "invalid input parameter type", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as out parameter", "invalid ouput parameter", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as an input parameter type", "invalid input parameter type", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as an output parameter", "invalid output parameter", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_AccessArgumentsRestricted, 5095, "", "Accessing the 'arguments' property is restricted in this context", kjstTypeError, 0)
 
@@ -259,9 +262,9 @@ RT_ERROR_MSG(JSERR_IntlNotAvailable, 5125, "", "Intl is not available.", kjstTyp
 RT_ERROR_MSG(JSERR_ArgumentOutOfRange, 5130, "%s: argument out of range", "argument out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ErrorOnNew, 5131, "", "Function is not a constructor", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_This_NeedArrayIterator, 5132, "%s: 'this' is not an Array Iterator object", "Array Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedMapIterator, 5133, "%s: 'this' is not an Map Iterator object", "Map Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedSetIterator, 5134, "%s: 'this' is not an Set Iterator object", "Set Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
-RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not an String Iterator object", "String Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedMapIterator, 5133, "%s: 'this' is not a Map Iterator object", "Map Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedSetIterator, 5134, "%s: 'this' is not a Set Iterator object", "Set Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
+RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String Iterator object", "String Iterator expected", kjstTypeError, 0) // {Locked="\'this\'"}
 
 RT_ERROR_MSG(JSERR_InvalidSpreadArgument, 5140, "%s: argument cannot be spread; expected Array or Object with a 'length' property", "Argument cannot be spread; expected Array or Object with a 'length' property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidSpreadLength, 5141, "%s: argument cannot be spread; the 'length' property must be a number or convert to a number", "Argument cannot be spread; the 'length' property must be a number or convert to a number", kjstTypeError, 0)
@@ -304,7 +307,6 @@ RT_ERROR_MSG(JSERR_ObjectIsNotInitialized, 5617, "%s: Object internal state is n
 
 RT_ERROR_MSG(JSERR_GeneratorAlreadyExecuting, 5618, "%s: Cannot execute generator function because it is currently executing", "", kjstTypeError, 0)
 
-// SIMD_JS
 RT_ERROR_MSG(JSERR_This_NeedSimd, 5620, "%s: 'this' is not a SIMD type", "SIMD type expected", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_SimdFloat32x4TypeMismatch, 5621, "SIMD.Float32x4.%s: Invalid SIMD types for operation", "Expecting Float32x4 values", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_SimdFloat64x2TypeMismatch, 5622, "SIMD.Float64x2.%s: Invalid SIMD types for operation", "Expecting Float64x2 values", kjstTypeError, 0)
@@ -312,7 +314,6 @@ RT_ERROR_MSG(JSERR_SimdInt32x4TypeMismatch, 5623, "SIMD.Int32x4.%s: Invalid SIMD
 RT_ERROR_MSG(JSERR_SimdInt8x16TypeMismatch, 5624, "SIMD.Int8x16.%s: Invalid SIMD types for operation", "Expecting Int8x16 values", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_SimdLaneRangeError, 5625, "Lane index is out of range for this SIMD type", "Lane index is out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_SimdInvalidArgType, 5626, "%s: Invalid argument type for SIMD operation", "Invalid argument type for SIMD operation", kjstTypeError, 0)
-
 RT_ERROR_MSG(JSERR_NeedConstructor, 5627, "'%s' is not a constructor", "Constructor expected", kjstTypeError, 0)
 
 RT_ERROR_MSG(VBSERR_CantDisplayDate, 32812, "", "The specified date is not available in the current locale's calendar", kjstRangeError, 0)
@@ -322,3 +323,14 @@ RT_ERROR_MSG(JSERR_ClassSuperInBaseClass, 5629, "", "Unexpected call to 'super' 
 RT_ERROR_MSG(JSERR_ClassDerivedConstructorInvalidReturnType, 5630, "", "Derived class constructor can return only object or undefined", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_ClassStaticMethodCannotBePrototype, 5631, "", "Class static member cannot be named 'prototype'", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_ClassConstructorCannotBeCalledWithoutNew, 5632, "%s: cannot be called without the new keyword", "Class constructor cannot be called without the new keyword", kjstTypeError, 0)
+
+RT_ERROR_MSG(JSERR_SimdBool32x4TypeMismatch, 5633, "SIMD.Bool32x4.%s: Invalid SIMD types for operation", "Expecting Bool32x4 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdBool16x8TypeMismatch, 5634, "SIMD.Bool16x8.%s: Invalid SIMD types for operation", "Expecting Bool16x8 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdBool8x16TypeMismatch, 5635, "SIMD.Bool8x16.%s: Invalid SIMD types for operation", "Expecting Bool8x16 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdInt16x8TypeMismatch, 5636, "SIMD.Int16x8.%s: Invalid SIMD types for operation", "Expecting Int16x8 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdUint32x4TypeMismatch, 5637, "SIMD.Uint32x4.%s: Invalid SIMD types for operation", "Expecting UInt32x4 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdUint16x8TypeMismatch, 5638, "SIMD.Uint16x8.%s: Invalid SIMD types for operation", "Expecting UInt16x8 values", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SimdUint8x16TypeMismatch, 5639, "SIMD.Uint8x16.%s: Invalid SIMD types for operation", "Expecting UInt8x16 values", kjstTypeError, 0)
+
+RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5640, "%s: first argument cannot be a RegExp", "First argument cannot be a RegExp", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)

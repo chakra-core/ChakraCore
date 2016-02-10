@@ -515,7 +515,7 @@ namespace UnifiedRegex
                         //
                         // Obviously starting later in the string won't help, so can hard fail if:
                         //  - this pattern must always be matched
-                        //  - not in an negative assertion
+                        //  - not in a negative assertion
                         //  - backtracking could never rewind the input pointer
                         //
                         EMIT(compiler, BOITestInst, isAtLeastOnce && isNotNegated && isPrevWillNotRegress);
@@ -540,7 +540,7 @@ namespace UnifiedRegex
                     //
                     // Can hard fail if
                     //  - this pattern must always be matched
-                    //  - not in an negative assertion
+                    //  - not in a negative assertion
                     //  - backtracking could never advance the input pointer
                     //
                     EMIT(compiler, EOITestInst, isAtLeastOnce && isNotNegated && isPrevWillNotProgress);
@@ -2223,7 +2223,7 @@ namespace UnifiedRegex
             // Recalculate firstSet. Since it can only get smaller, and alternative could not have had an exact
             // first set, this recalculation does not make any decisions already made based on the current firstSet
             // unsound.
-            // NOTE: Is it worth recalculating the WillNotProgess/WillNotRegress bools?
+            // NOTE: Is it worth recalculating the WillNotProgress/WillNotRegress bools?
             firstSet = Anew(compiler.ctAllocator, UnicodeCharSet);
             for (AltNode* curr = this; curr != 0; curr = curr->tail)
                 firstSet->UnionInPlace(compiler.ctAllocator, *curr->head->firstSet);

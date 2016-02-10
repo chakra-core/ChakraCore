@@ -4,21 +4,28 @@
 ;-------------------------------------------------------------------------------------------------------
     OPT 2   ; disable listing
 #include "ksarm.h"
+#if !DISABLE_JIT
+#define _ENABLE_DYNAMIC_THUNKS
+#endif
     OPT 1   ; re-enable listing
 
     TTL Lib\Runtime\Language\arm\arm_DelayDynamicInterpreterThunk.asm
 
+#ifdef _ENABLE_DYNAMIC_THUNKS
     ;Var InterpreterStackFrame::DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     EXPORT  |?DelayDynamicInterpreterThunk@InterpreterStackFrame@Js@@SAPAXPAVRecyclableObject@2@UCallInfo@2@ZZ|
     ;Var DynamicProfileInfo::EnsureDynamicProfileInfoThunk(RecyclableObject* function, CallInfo callInfo, ...)
     EXPORT  |?EnsureDynamicProfileInfoThunk@DynamicProfileInfo@Js@@SAPAXPAVRecyclableObject@2@UCallInfo@2@ZZ|
+#endif
     ; Var ScriptContext::ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...)
     EXPORT  |?ProfileModeDeferredParsingThunk@ScriptContext@Js@@SAPAXPAVRecyclableObject@2@UCallInfo@2@ZZ|
 
+#ifdef _ENABLE_DYNAMIC_THUNKS
     ;JavascriptMethod InterpreterStackFrame::EnsureDynamicInterpreterThunk(Js::ScriptFunction * function)
     IMPORT  |?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APAXPAVRecyclableObject@2@UCallInfo@2@ZZPAVScriptFunction@2@@Z|
     ;JavascriptMethod DynamicProfileInfo::EnsureDynamicProfileInfoThunk(Js::ScriptFunction * function)
     IMPORT  |?EnsureDynamicProfileInfo@DynamicProfileInfo@Js@@CAP6APAXPAVRecyclableObject@2@UCallInfo@2@ZZPAVScriptFunction@2@@Z|
+#endif
     ;JavascriptMethod ScriptContext::ProfileModeDeferredParse(ScriptFunction **function)
     IMPORT  |?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APAXPAVRecyclableObject@2@UCallInfo@2@ZZPAPAVScriptFunction@2@@Z|
     ;JavascriptMethod ScriptContext::ProfileModeDeferredDeserialize(ScriptFunction *function)
@@ -26,6 +33,7 @@
 
     TEXTAREA
 
+#ifdef _ENABLE_DYNAMIC_THUNKS
 ;;============================================================================================================
 ;; InterpreterStackFrame::DelayDynamicInterpreterThunk
 ;;============================================================================================================
@@ -70,6 +78,8 @@
     EPILOG_NOP  bx   r12          ; jump (tail call) to new entryPoint
 
     NESTED_END
+
+#endif ;; _ENABLE_DYNAMIC_THUNKS
 
 ;;============================================================================================================
 ;; ScriptContext::ProfileModeDeferredParsingThunk

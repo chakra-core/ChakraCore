@@ -24,7 +24,7 @@ namespace Js
         Assert(proxy->GetFunctionProxy() == proxy);
         ScriptContext * scriptContext = proxy->GetScriptContext();
         JavascriptLibrary * library = scriptContext->GetLibrary();
-        DynamicObject * functionPrototype = library->GetFunctionPrototype();
+        DynamicObject * functionPrototype = proxy->IsAsync() ? library->GetAsyncFunctionPrototype() : library->GetFunctionPrototype();
         JavascriptMethod address = (JavascriptMethod)proxy->GetDefaultEntryPointInfo()->address;
 
         return RecyclerNew(scriptContext->GetRecycler(), ScriptFunctionType,

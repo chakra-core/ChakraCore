@@ -46,6 +46,54 @@ namespace Js
     {
     }
 
+    inline JsUtil::List<Var, ArenaAllocator>* IterableToList(RecyclableObject *object, ScriptContext *scriptContext, ArenaAllocator *alloc)
+    {
+        Assert(JavascriptOperators::IsIterable(object, scriptContext));
+
+        Var nextValue;
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(object, scriptContext);
+        JsUtil::List<Var, ArenaAllocator>* retList = JsUtil::List<Var, ArenaAllocator>::New(alloc);
+
+        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
+        {
+            retList->Add(nextValue);
+        }
+
+        return retList;
+    }
+
+    Var TypedArrayBase::CreateNewInstanceFromIterableObj(RecyclableObject *object, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
+    {
+        TypedArrayBase *newArr = nullptr;
+
+        DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
+
+        ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, L"Runtime");
+        {
+            JsUtil::List<Var, ArenaAllocator>* tempList = IterableToList(object, scriptContext, tempAlloc);
+
+            uint32 len = tempList->Count();
+            uint32 byteLen;
+
+            if (UInt32Math::Mul(len, elementSize, &byteLen))
+            {
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
+            }
+
+            ArrayBuffer *arrayBuffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLen);
+            newArr = static_cast<TypedArrayBase*>(pfnCreateTypedArray(arrayBuffer, 0, len, scriptContext->GetLibrary()));
+
+            for (uint32 k = 0; k < len; k++)
+            {
+                Var kValue = tempList->Item(k);
+                newArr->SetItem(k, kValue);
+            }
+        }
+        RELEASE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext);
+
+        return newArr;
+    }
+
     Var TypedArrayBase::CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
     {
         uint32 byteLength = 0;
@@ -93,38 +141,46 @@ namespace Js
             }
             else
             {
-                if (JavascriptOperators::IsObject(firstArgument) && JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
+                if (JavascriptOperators::IsObject(firstArgument))
                 {
-                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &arrayBuffer);
-                    switch (hr)
+                    if (JavascriptOperators::IsIterable(RecyclableObject::FromVar(firstArgument), scriptContext))
                     {
-                    case S_OK:
-                        // We found an IBuffer
-                        fromExternalObject = true;
-                        OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query succeeded with HR=0x%08X\n", hr);
-                        // We have an ArrayBuffer now, so we can skip all the object probing.
-                        break;
-
-                    case S_FALSE:
-                        // We didn't find an IBuffer - fall through
-                        OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n", hr);
-                        break;
-
-                    default:
-                        // Any FAILURE HRESULT or unexpected HRESULT
-                        OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query failed with HR=0x%08X\n", hr);
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                        break;
+                        return CreateNewInstanceFromIterableObj(RecyclableObject::FromVar(firstArgument), scriptContext, elementSize, pfnCreateTypedArray);
                     }
-                    if (!fromExternalObject)
+                    else if (JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
                     {
-                        Var lengthVar = JavascriptOperators::OP_GetProperty(jsArraySource, PropertyIds::length, scriptContext);
-                        if (JavascriptOperators::GetTypeId(lengthVar) == TypeIds_Undefined)
+                        HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &arrayBuffer);
+                        switch (hr)
                         {
-                            JavascriptError::ThrowTypeError(
-                                scriptContext, JSERR_InvalidTypedArray_Constructor);
+                        case S_OK:
+                            // We found an IBuffer
+                            fromExternalObject = true;
+                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query succeeded with HR=0x%08X\n", hr);
+                            // We have an ArrayBuffer now, so we can skip all the object probing.
+                            break;
+
+                        case S_FALSE:
+                            // We didn't find an IBuffer - fall through
+                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n", hr);
+                            break;
+
+                        default:
+                            // Any FAILURE HRESULT or unexpected HRESULT
+                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query failed with HR=0x%08X\n", hr);
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+                            break;
                         }
-                        elementCount = ToLengthChecked(lengthVar, elementSize, scriptContext);
+                        if (!fromExternalObject)
+                        {
+                            Var lengthVar = JavascriptOperators::OP_GetProperty(jsArraySource, PropertyIds::length, scriptContext);
+                            if (JavascriptOperators::GetTypeId(lengthVar) == TypeIds_Undefined)
+                            {
+                                JavascriptError::ThrowTypeError(
+                                    scriptContext, JSERR_InvalidTypedArray_Constructor);
+                            }
+
+                            elementCount = ToLengthChecked(lengthVar, elementSize, scriptContext);
+                        }
                     }
                 }
                 else
@@ -1363,9 +1419,6 @@ namespace Js
 
         if (JavascriptOperators::IsIterable(items, scriptContext))
         {
-            RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
-            Var nextValue;
-
             DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
 
             ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, L"Runtime");
@@ -1379,12 +1432,7 @@ namespace Js
                 //       for types we know such as TypedArray. We know the length of a TypedArray but we still
                 //       have to be careful in case there is a proxy which could return anything from [[Get]]
                 //       or the built-in @@iterator has been replaced.
-                JsUtil::List<Var, ArenaAllocator>* tempList = JsUtil::List<Var, ArenaAllocator>::New(tempAlloc);
-
-                while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
-                {
-                    tempList->Add(nextValue);
-                }
+                JsUtil::List<Var, ArenaAllocator>* tempList = IterableToList(items, scriptContext, tempAlloc);
 
                 uint32 len = tempList->Count();
 
@@ -3196,7 +3244,7 @@ namespace Js
         return GetLibrary()->GetUndefined();
     }
 
-    Var CharArray::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascirptLibrary)
+    Var CharArray::Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
     {
         CharArray* arr;
         uint32 totalLength, mappedByteLength;
@@ -3206,7 +3254,7 @@ namespace Js
         {
             JavascriptError::ThrowRangeError(arrayBuffer->GetScriptContext(), JSERR_InvalidTypedArrayLength);
         }
-        arr = RecyclerNew(javascirptLibrary->GetRecycler(), CharArray, arrayBuffer, byteOffSet, mappedLength, javascirptLibrary->GetCharArrayType());
+        arr = RecyclerNew(javascriptLibrary->GetRecycler(), CharArray, arrayBuffer, byteOffSet, mappedLength, javascriptLibrary->GetCharArrayType());
         return arr;
     }
 

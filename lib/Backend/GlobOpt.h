@@ -1384,11 +1384,17 @@ private:
     // SIMD_JS
     bool                    TypeSpecializeSimd128(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val, Value **pDstVal);
     bool                    Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal);
+    bool                    Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, const Value *src2Val, const Value *dstVal, const ThreadContext::SimdFuncSignature *simdFuncSignature);
     bool                    Simd128CanTypeSpecOpnd(const ValueType opndType, const ValueType expectedType);
+    bool                    Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos);
+    
     IRType                  GetIRTypeFromValueType(const ValueType &valueType);
     ValueType               GetValueTypeFromIRType(const IRType &type);
     IR::BailOutKind         GetBailOutKindFromValueType(const ValueType &valueType);
     IR::Instr *             GetExtendedArg(IR::Instr *instr);
+    void                    UpdateBoundCheckHoistInfoForSimd(ArrayUpperBoundCheckHoistInfo &upperHoistInfo, ValueType arrValueType, const IR::Instr *instr);
+    int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
+    void                    Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode);
 
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
@@ -1437,7 +1443,7 @@ private:
     void                    ProcessMemOp();
     bool                    InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, struct MemSetEmitData* emitData, bool& errorInInstr);
     bool                    InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, struct MemCopyEmitData* emitData, bool& errorInInstr);
-    bool                    ValidateMemOpCandidates(Loop * loop, struct MemOpEmitData** emitData, int& iEmitData);
+    bool                    ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) struct MemOpEmitData** emitData, int& iEmitData);
     void                    HoistHeadSegmentForMemOp(IR::Instr *instr, IR::ArrayRegOpnd *arrayRegOpnd, IR::Instr *insertBeforeInstr);
     void                    EmitMemop(Loop * loop, LoopCount *loopCount, const struct MemOpEmitData* emitData);
     IR::Opnd*               GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::Instr *insertBeforeInstr = nullptr);
@@ -1451,18 +1457,20 @@ private:
 
 private:
     void                    ChangeValueType(BasicBlock *const block, Value *const value, const ValueType newValueType, const bool preserveSubclassInfo, const bool allowIncompatibleType = false) const;
-    void                    ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType = false) const;
+    void                    ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType = false, const bool compensated = false) const;
     bool                    AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *const v1) const;
 
 private:
+#if DBG
     void                    VerifyArrayValueInfoForTracking(const ValueInfo *const valueInfo, const bool isJsArray, const BasicBlock *const block, const bool ignoreKnownImplicitCalls = false) const;
+#endif
     void                    TrackNewValueForKills(Value *const value);
     void                    DoTrackNewValueForKills(Value *const value);
     void                    TrackCopiedValueForKills(Value *const value);
     void                    DoTrackCopiedValueForKills(Value *const value);
     void                    TrackMergedValueForKills(Value *const value, GlobOptBlockData *const blockData, BVSparse<JitArenaAllocator> *const mergedValueTypesTrackedForKills) const;
     void                    DoTrackMergedValueForKills(Value *const value, GlobOptBlockData *const blockData, BVSparse<JitArenaAllocator> *const mergedValueTypesTrackedForKills) const;
-    void                    TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo) const;
+    void                    TrackValueInfoChangeForKills(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool compensated) const;
     void                    ProcessValueKills(IR::Instr *const instr);
     void                    ProcessValueKills(BasicBlock *const block, GlobOptBlockData *const blockData);
     void                    ProcessValueKillsForLoopHeaderAfterBackEdgeMerge(BasicBlock *const block, GlobOptBlockData *const blockData);

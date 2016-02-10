@@ -32,20 +32,20 @@ class StackSym;
 class Func;
 struct InlinedFrameLayout;
 
-typedef intptr IntConstType;
-typedef uintptr  UIntConstType;
-typedef IntMath<intptr>::Type IntConstMath;
+typedef intptr_t IntConstType;
+typedef uintptr_t  UIntConstType;
+typedef IntMath<intptr_t>::Type IntConstMath;
 typedef double  FloatConstType;
 
-#include "..\Backend\EmitBuffer.h"
-#include "..\Backend\InterpreterThunkEmitter.h"
-#include "..\Runtime\Bytecode\BackEndOpCodeAttr.h"
-#include "..\Backend\BackEndOpCodeAttrAsmJs.h"
-#include "..\Backend\CodeGenNumberAllocator.h"
-#include "..\Backend\NativeCodeData.h"
-#include "..\Backend\JnHelperMethod.h"
-#include "..\Backend\IRType.h"
-#include "..\Backend\InlineeFrameInfo.h"
+#include "EmitBuffer.h"
+#include "InterpreterThunkEmitter.h"
+#include "BackEndOpCodeAttr.h"
+#include "BackEndOpCodeAttrAsmJs.h"
+#include "CodeGenNumberAllocator.h"
+#include "NativeCodeData.h"
+#include "JnHelperMethod.h"
+#include "IRType.h"
+#include "InlineeFrameInfo.h"
 
 NativeCodeGenerator * NewNativeCodeGenerator(Js::ScriptContext * nativeCodeGen);
 void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen);

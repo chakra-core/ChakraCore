@@ -415,7 +415,7 @@ var tests = [
             assertFunctionExactlyEqual4(                      25, Math.hypot,      6,      3,     24,       2, "hypot(6, 3, 24, 2) = 25");
 
             assertFunctionExactlyEqual7( 2.6457513110645905e+307, Math.hypot, 1e+307, 1e+307, 1e+307,  1e+307,  1e+307,  1e+307,  1e+307, "hypot(1e+307, ...) = 2.545e+307 and shouldn't cause NaN from premature overflow");
-            assertFunctionExactlyEqual7( 2.6457513110645904e-308, Math.hypot, 1e-308, 1e-308, 1e-308,  1e-308,  1e-308,  1e-308,  1e-308, "hypot(1e-308, ...) = 2.645e-308, and shouldn't cause NaN from premature undeflow");
+            assertFunctionExactlyEqual7( 2.6457513110645904e-308, Math.hypot, 1e-308, 1e-308, 1e-308,  1e-308,  1e-308,  1e-308,  1e-308, "hypot(1e-308, ...) = 2.645e-308, and shouldn't cause NaN from premature underflow");
         }
     },
     {

@@ -6,7 +6,7 @@
 
 #ifndef TEMP_DISABLE_ASMJS
 
-#include "..\Backend\CodeGenAllocators.h"
+#include "CodeGenAllocators.h"
 #ifdef DBG_DUMP
 #include "ByteCode\ByteCodeDumper.h"
 #include "ByteCode\AsmJSByteCodeDumper.h"

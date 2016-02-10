@@ -44,13 +44,13 @@ PASSED
 PASSED
 *** obj (test23): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** obj (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** obj (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** obj (test25): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** obj (test25): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** obj (test26): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** obj (test26): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** obj (test27): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** obj (test27): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** obj (test28): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED
@@ -112,13 +112,13 @@ PASSED
 PASSED
 *** obj (test_123): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** obj (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** obj (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** obj (test_125): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** obj (test_125): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** obj (test_126): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** obj (test_126): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** obj (test_127): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** obj (test_127): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** obj (test_128): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED
@@ -222,13 +222,13 @@ PASSED
 PASSED
 *** arr (test23): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** arr (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** arr (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** arr (test25): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** arr (test25): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** arr (test26): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** arr (test26): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** arr (test27): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** arr (test27): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** arr (test28): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED
@@ -290,13 +290,13 @@ PASSED
 PASSED
 *** arr (test_123): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** arr (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** arr (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** arr (test_125): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** arr (test_125): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** arr (test_126): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** arr (test_126): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** arr (test_127): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** arr (test_127): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** arr (test_128): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED
@@ -400,13 +400,13 @@ PASSED
 PASSED
 *** es5arr (test23): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** es5arr (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** es5arr (test24): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** es5arr (test25): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** es5arr (test25): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** es5arr (test26): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** es5arr (test26): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** es5arr (test27): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** es5arr (test27): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** es5arr (test28): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED
@@ -468,13 +468,13 @@ PASSED
 PASSED
 *** es5arr (test_123): 8.12.9.10.a (variation 2): re-define data property: current is configurable
 PASSED
-*** es5arr (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: curent configurable is true: valid case
+*** es5arr (test_124): Test: 8.12.9.11 (variation 1): re-define accessor property: current configurable is true: valid case
 PASSED
-*** es5arr (test_125): 8.12.9.11.a.i: re-define accessor property: curent configurable is false, descriptor specifies setter as different, expect TypeError
+*** es5arr (test_125): 8.12.9.11.a.i: re-define accessor property: current configurable is false, descriptor specifies setter as different, expect TypeError
 PASSED
-*** es5arr (test_126): 8.12.9.11.a.ii: re-define accessor property: curent configurable is false, descriptor specifies getter as different, expect TypeError
+*** es5arr (test_126): 8.12.9.11.a.ii: re-define accessor property: current configurable is false, descriptor specifies getter as different, expect TypeError
 PASSED
-*** es5arr (test_127): 8.12.9.11 (variation 2): re-define accessor property: curent configurable is true and no getter, descriptor specifies getter as undefined, setter as same
+*** es5arr (test_127): 8.12.9.11 (variation 2): re-define accessor property: current configurable is true and no getter, descriptor specifies getter as undefined, setter as same
 PASSED
 *** es5arr (test_128): Re-define property from data to accessor property. Make sure that setter is called when setting the value.
 PASSED

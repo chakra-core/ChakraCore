@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
     var i4 = stdlib.SIMD.Int32x4;
@@ -49,8 +49,8 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+
+
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -83,8 +83,8 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
+
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -264,37 +264,13 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Float32x4(90934.2, 123.9, 419.39, 449.0), g2: SIMD.Int32x4(-1065353216, -1073741824, -1077936128, -1082130432) });
 
 var ret;
-//print("Func1");
-//ret = m.func1();
-//print(typeof(ret));
-//print(ret.toString());
 
-//print("Func2");
-//ret = m.func2();
-//print(typeof(ret));
-//print(ret.toString());
-
-//print("Func3");
-//ret = m.func3();
-//print(typeof(ret));
-//print(ret.toString());
-
-//print("Func4");
-//ret = m.func4();
-//print(typeof(ret));
-//print(ret.toString());
-
-print("Func5");
 ret = m.func5();
-print(typeof(ret));
-print(ret.toString());
+equalSimd([-2130706432, -18048, 1073741824, 1065353216],ret, SIMD.Int32x4, "Func5");
 
-print("Func6");
 ret = m.func6();
-print(typeof (ret));
-print(ret.toString());
+equal(10, ret);
 
-print("Func7");
 ret = m.func7();
-print(typeof (ret));
-print(ret.toString());
+equalSimd([33, 10, -1, 20], ret, SIMD.Int32x4, "Func7");
+print("PASS");

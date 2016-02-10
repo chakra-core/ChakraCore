@@ -182,7 +182,7 @@ bool HeapAllocator::CheckLeaks()
 {
     return Instance.data.CheckLeaks();
 }
-#endif HEAP_TRACK_ALLOC
+#endif // HEAP_TRACK_ALLOC
 
 char * NoThrowHeapAllocator::AllocZero(size_t byteSize)
 {
@@ -205,14 +205,14 @@ NoThrowHeapAllocator * NoThrowHeapAllocator::TrackAllocInfo(TrackAllocData const
     HeapAllocator::Instance.TrackAllocInfo(data);
     return this;
 }
-#endif TRACK_ALLOC
+#endif // TRACK_ALLOC
 
 #ifdef TRACK_ALLOC
 void NoThrowHeapAllocator::ClearTrackAllocInfo(TrackAllocData* data /*= NULL*/)
 {
     HeapAllocator::Instance.ClearTrackAllocInfo(data);
 }
-#endif TRACK_ALLOC
+#endif // TRACK_ALLOC
 
 HeapAllocator * HeapAllocator::GetNoMemProtectInstance()
 {
@@ -293,14 +293,14 @@ NoThrowNoMemProtectHeapAllocator * NoThrowNoMemProtectHeapAllocator::TrackAllocI
     HeapAllocator::GetNoMemProtectInstance()->TrackAllocInfo(data);
     return this;
 }
-#endif TRACK_ALLOC
+#endif // TRACK_ALLOC
 
 #ifdef TRACK_ALLOC
 void NoThrowNoMemProtectHeapAllocator::ClearTrackAllocInfo(TrackAllocData* data /*= NULL*/)
 {
     HeapAllocator::GetNoMemProtectInstance()->ClearTrackAllocInfo(data);
 }
-#endif TRACK_ALLOC
+#endif // TRACK_ALLOC
 #endif
 
 #if defined(HEAP_TRACK_ALLOC) || defined(INTERNAL_MEM_PROTECT_HEAP_ALLOC)

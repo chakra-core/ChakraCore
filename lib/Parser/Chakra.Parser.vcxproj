@@ -24,6 +24,9 @@
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Backend;
         $(MSBuildThisFileDirectory)..\WasmReader;
+        $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
+        $(ChakraManifestsIncludeDirectory);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -119,7 +122,12 @@
       <PreprocessToFile>true</PreprocessToFile>
       <PreprocessSuppressLineNumbers>true</PreprocessSuppressLineNumbers>
       <ObjectFileName>$(IntDir)jserr.rc2</ObjectFileName>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory);$(MSBuildThisFileDirectory)..\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      $(MSBuildThisFileDirectory);
+      $(MSBuildThisFileDirectory)..\Common;
+      $(MSBuildThisFileDirectory)..\runtime;
+      $(MSBuildThisFileDirectory)..\runtime\library;
+      </AdditionalIncludeDirectories>
       <LibCompiled>false</LibCompiled>
       <ForcedIncludeFiles>
       </ForcedIncludeFiles>

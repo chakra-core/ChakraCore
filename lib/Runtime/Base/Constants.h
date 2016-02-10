@@ -36,7 +36,7 @@ namespace Js
         static const PropertyIndex      PropertyIndexMax            = 0xFFFE;
         static const BigPropertyIndex   NoBigSlot                   = (BigPropertyIndex)-1;
         static const int                IntMaxValue                 = 2147483647;
-        static const int                Int31MinValue               = -1 << 30;
+        static const int                Int31MinValue               = -1073741824; //0xC0000000
         static const int                Int31MaxValue               = ~Int31MinValue;
         static const unsigned int       UShortMaxValue              = 0xFFFF;
         static const uint               InvalidSourceIndex          = (uint)-1;

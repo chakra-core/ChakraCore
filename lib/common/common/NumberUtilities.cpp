@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------------------------------------------
+﻿//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -14,6 +14,7 @@ namespace Js
     const double NumberConstants::NEGATIVE_INFINITY= *(double*)(&NumberConstants::k_NegInf);
     const double NumberConstants::POSITIVE_INFINITY= *(double*)(&NumberConstants::k_PosInf );
     const double NumberConstants::NEG_ZERO= *(double*)(&NumberConstants::k_NegZero );
+    const double NumberConstants::ONE_POINT_ZERO = *(double*)(&NumberConstants::k_OnePointZero);
 
     // These are used in 128-bit operations in the JIT and inline asm
     __declspec(align(16)) const BYTE NumberConstants::AbsDoubleCst[] =

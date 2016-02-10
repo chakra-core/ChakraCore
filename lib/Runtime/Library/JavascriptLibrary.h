@@ -162,6 +162,8 @@ namespace Js
         static DWORD GetCharStringCacheAOffset() { return GetCharStringCacheOffset() + CharStringCache::GetCharStringCacheAOffset(); }
         const  JavascriptLibraryBase* GetLibraryBase() const { return static_cast<const JavascriptLibraryBase*>(this); }
         void SetGlobalObject(GlobalObject* globalObject) {globalObject = globalObject; }
+        static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
+        static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
 
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
 
@@ -254,11 +256,18 @@ namespace Js
         StaticType  * int64NumberTypeStatic;
         StaticType  * uint64NumberTypeStatic;
 
-        // SIMD
+        // SIMD_JS
         StaticType * simdFloat32x4TypeStatic;
         StaticType * simdInt32x4TypeStatic;
         StaticType * simdInt8x16TypeStatic;
         StaticType * simdFloat64x2TypeStatic;
+        StaticType * simdInt16x8TypeStatic;
+        StaticType * simdBool32x4TypeStatic;
+        StaticType * simdBool16x8TypeStatic;
+        StaticType * simdBool8x16TypeStatic;
+        StaticType * simdUint32x4TypeStatic;
+        StaticType * simdUint16x8TypeStatic;
+        StaticType * simdUint8x16TypeStatic;
 
         DynamicType * numberTypeDynamic;
         DynamicType * objectTypes[PreInitializedObjectTypeCount];
@@ -285,6 +294,7 @@ namespace Js
         JavascriptString* errorDisplayString;
         JavascriptString* functionPrefixString;
         JavascriptString* generatorFunctionPrefixString;
+        JavascriptString* asyncFunctionPrefixString;
         JavascriptString* functionDisplayString;
         JavascriptString* xDomainFunctionDisplayString;
         JavascriptString* undefinedDisplayString;
@@ -302,11 +312,20 @@ namespace Js
         JavascriptString* booleanTypeDisplayString;
         JavascriptString* numberTypeDisplayString;
 
-        // SIMD
+        // SIMD_JS
         JavascriptString* simdFloat32x4DisplayString;
         JavascriptString* simdFloat64x2DisplayString;
         JavascriptString* simdInt32x4DisplayString;
+        JavascriptString* simdInt16x8DisplayString;
         JavascriptString* simdInt8x16DisplayString;
+        JavascriptString* simdBool32x4DisplayString;
+        JavascriptString* simdBool16x8DisplayString;
+        JavascriptString* simdBool8x16DisplayString;
+        JavascriptString* simdUint32x4DisplayString;
+        JavascriptString* simdUint16x8DisplayString;
+        JavascriptString* simdUint8x16DisplayString;
+
+
 
         JavascriptString* symbolTypeDisplayString;
         JavascriptString* debuggerDeadZoneBlockVariableString;
@@ -341,15 +360,24 @@ namespace Js
         JavascriptFunction* objectValueOfFunction;
         JavascriptFunction* objectToStringFunction;
 
+
         // SIMD_JS
-        // Float32x4
         JavascriptFunction* simdFloat32x4ToStringFunction;
-        // Float64x2
         JavascriptFunction* simdFloat64x2ToStringFunction;
-        // Int32x4
         JavascriptFunction* simdInt32x4ToStringFunction;
-        // Int8x16
+        JavascriptFunction* simdInt16x8ToStringFunction;
         JavascriptFunction* simdInt8x16ToStringFunction;
+        JavascriptFunction* simdBool32x4ToStringFunction;
+        JavascriptFunction* simdBool16x8ToStringFunction;
+        JavascriptFunction* simdBool8x16ToStringFunction;
+        JavascriptFunction* simdUint32x4ToStringFunction;
+        JavascriptFunction* simdUint16x8ToStringFunction;
+        JavascriptFunction* simdUint8x16ToStringFunction;
+
+
+
+        JavascriptSymbol* symbolMatch;
+        JavascriptSymbol* symbolSearch;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
 
@@ -383,7 +411,8 @@ namespace Js
         // and prototypes contain only writable data properties, which is reset upon invalidating the status.
         JsUtil::List<Type *> *typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain;
 
-        uint64 randSeed;
+        uint64 randSeed0, randSeed1;
+        bool isPRNGSeeded;
         bool inProfileMode;
         bool inDispatchProfileMode;
         bool arrayObjectHasUserDefinedSpecies;
@@ -415,6 +444,7 @@ namespace Js
         static SimpleTypeHandler<1> SharedFunctionWithPrototypeTypeHandlerV11;
         static SimpleTypeHandler<2> SharedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedFunctionWithLengthTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
         static SimpleTypeHandler<1> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
@@ -422,6 +452,7 @@ namespace Js
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptorsV11[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
 
     public:
 
@@ -477,6 +508,8 @@ namespace Js
         JavascriptSymbol* GetSymbolHasInstance() { return symbolHasInstance; }
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
+        JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
+        JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
@@ -499,6 +532,7 @@ namespace Js
         JavascriptString* GetErrorDisplayString() const { return errorDisplayString; }
         JavascriptString* GetFunctionPrefixString() { return functionPrefixString; }
         JavascriptString* GetGeneratorFunctionPrefixString() { return generatorFunctionPrefixString; }
+        JavascriptString* GetAsyncFunctionPrefixString() { return asyncFunctionPrefixString; }
         JavascriptString* GetFunctionDisplayString() { return functionDisplayString; }
         JavascriptString* GetXDomainFunctionDisplayString() { return xDomainFunctionDisplayString; }
         JavascriptString* GetInvalidDateString() { return invalidDateString; }
@@ -507,10 +541,20 @@ namespace Js
         JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
         JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
 
+        // SIMD_JS
         JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }
         JavascriptString* GetSIMDFloat64x2DisplayString() const { return simdFloat64x2DisplayString; }
         JavascriptString* GetSIMDInt32x4DisplayString()   const { return simdInt32x4DisplayString; }
+        JavascriptString* GetSIMDInt16x8DisplayString()   const { return simdInt16x8DisplayString; }
         JavascriptString* GetSIMDInt8x16DisplayString()   const { return simdInt8x16DisplayString; }
+
+        JavascriptString* GetSIMDBool32x4DisplayString()   const { return simdBool32x4DisplayString; }
+        JavascriptString* GetSIMDBool16x8DisplayString()   const { return simdBool16x8DisplayString; }
+        JavascriptString* GetSIMDBool8x16DisplayString()   const { return simdBool8x16DisplayString; }
+
+        JavascriptString* GetSIMDUint32x4DisplayString()   const { return simdUint32x4DisplayString; }
+        JavascriptString* GetSIMDUint16x8DisplayString()   const { return simdUint16x8DisplayString; }
+        JavascriptString* GetSIMDUint8x16DisplayString()   const { return simdUint8x16DisplayString; }
 
         JavascriptString* GetSymbolTypeDisplayString() const { return symbolTypeDisplayString; }
         JavascriptString* GetDebuggerDeadZoneBlockVariableString() { Assert(debuggerDeadZoneBlockVariableString); return debuggerDeadZoneBlockVariableString; }
@@ -551,7 +595,7 @@ namespace Js
         void ResetIntlObject();
         void EnsureIntlObjectReady();
         template <class Fn>
-        void InitializeIntlForProtototypes(Fn fn);
+        void InitializeIntlForPrototypes(Fn fn);
         void InitializeIntlForStringPrototype();
         void InitializeIntlForDatePrototype();
         void InitializeIntlForNumberPrototype();
@@ -587,7 +631,14 @@ namespace Js
         StaticType* GetSIMDFloat32x4TypeStatic() const { return simdFloat32x4TypeStatic; }
         StaticType* GetSIMDFloat64x2TypeStatic() const { return simdFloat64x2TypeStatic; }
         StaticType* GetSIMDInt32x4TypeStatic()   const { return simdInt32x4TypeStatic; }
+        StaticType* GetSIMDInt16x8TypeStatic()   const { return simdInt16x8TypeStatic; }
         StaticType* GetSIMDInt8x16TypeStatic()   const { return simdInt8x16TypeStatic; }
+        StaticType* GetSIMDBool32x4TypeStatic() const { return simdBool32x4TypeStatic; }
+        StaticType* GetSIMDBool16x8TypeStatic() const { return simdBool16x8TypeStatic; }
+        StaticType* GetSIMDBool8x16TypeStatic() const { return simdBool8x16TypeStatic; }
+        StaticType* GetSIMDUInt32x4TypeStatic()   const { return simdUint32x4TypeStatic; }
+        StaticType* GetSIMDUint16x8TypeStatic()   const { return simdUint16x8TypeStatic; }
+        StaticType* GetSIMDUint8x16TypeStatic()   const { return simdUint8x16TypeStatic; }
 
         DynamicType * GetObjectLiteralType(uint16 requestedInlineSlotCapacity);
         DynamicType * GetObjectHeaderInlinedLiteralType(uint16 requestedInlineSlotCapacity);
@@ -637,7 +688,14 @@ namespace Js
         JavascriptFunction* GetSIMDFloat32x4ToStringFunction() const { return simdFloat32x4ToStringFunction;  }
         JavascriptFunction* GetSIMDFloat64x2ToStringFunction() const { return simdFloat64x2ToStringFunction; }
         JavascriptFunction* GetSIMDInt32x4ToStringFunction()   const { return simdInt32x4ToStringFunction; }
+        JavascriptFunction* GetSIMDInt16x8ToStringFunction()   const { return simdInt16x8ToStringFunction; }
         JavascriptFunction* GetSIMDInt8x16ToStringFunction()   const { return simdInt8x16ToStringFunction; }
+        JavascriptFunction* GetSIMDBool32x4ToStringFunction()   const { return simdBool32x4ToStringFunction; }
+        JavascriptFunction* GetSIMDBool16x8ToStringFunction()   const { return simdBool16x8ToStringFunction; }
+        JavascriptFunction* GetSIMDBool8x16ToStringFunction()   const { return simdBool8x16ToStringFunction; }
+        JavascriptFunction* GetSIMDUint32x4ToStringFunction()   const { return simdUint32x4ToStringFunction; }
+        JavascriptFunction* GetSIMDUint16x8ToStringFunction()   const { return simdUint16x8ToStringFunction; }
+        JavascriptFunction* GetSIMDUint8x16ToStringFunction()   const { return simdUint8x16ToStringFunction; }
 
         JavascriptFunction* GetDebugObjectNonUserGetterFunction() const { return debugObjectNonUserGetterFunction; }
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
@@ -754,7 +812,7 @@ namespace Js
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler();
 
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
-        DynamicTypeHandler * ScriptFunctionTypeHandler(bool hasPrototype, bool isAnonymousFunction);
+        DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true>
         static DynamicTypeHandler * GetDeferredFunctionTypeHandlerBase();
@@ -765,8 +823,10 @@ namespace Js
         DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
         DynamicType * CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype = nullptr);
         DynamicType * CreateFunctionWithLengthType(FunctionInfo * functionInfo);
+        DynamicType * CreateFunctionWithLengthAndNameType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthType(DynamicObject * prototype, FunctionInfo * functionInfo);
+        DynamicType * CreateFunctionWithLengthAndNameType(DynamicObject * prototype, FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthAndPrototypeType(DynamicObject * prototype, FunctionInfo * functionInfo);
         ScriptFunction * CreateScriptFunction(FunctionProxy* proxy);
         AsmJsScriptFunction * CreateAsmJsScriptFunction(FunctionProxy* proxy);
@@ -842,8 +902,12 @@ namespace Js
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
-        uint64 GetRandSeed(){return randSeed;}
-        void SetRandSeed(uint64 rs){randSeed = rs;}
+        bool IsPRNGSeeded() { return isPRNGSeeded; }
+        uint64 GetRandSeed0() { return randSeed0; }
+        uint64 GetRandSeed1() { return randSeed1; }
+        void SetIsPRNGSeeded(bool val) { isPRNGSeeded = val; }
+        void SetRandSeed0(uint64 rs) { randSeed0 = rs;}
+        void SetRandSeed1(uint64 rs) { randSeed1 = rs; }
 
         void SetProfileMode(bool fSet);
         void SetDispatchProfile(bool fSet, JavascriptMethod dispatchInvoke);
@@ -895,7 +959,7 @@ namespace Js
             return (BuiltInFlags)JavascriptLibrary::LibraryFunctionFlags[index];
         }
         static BuiltinFunction GetBuiltInInlineCandidateId(Js::OpCode opCode);
-        static BuiltInArgSpecizationType GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argGroup);
+        static BuiltInArgSpecializationType GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argGroup);
         static bool IsTypeSpecRequired(BuiltInFlags flags)
         {
             return GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Src1) || GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Src2) || GetBuiltInArgType(flags, BuiltInArgShift::BIAS_Dst);
@@ -922,7 +986,7 @@ namespace Js
         CharStringCache& GetCharStringCache() { return charStringCache;  }
         static JavascriptLibrary * FromCharStringCache(CharStringCache * cache)
         {
-            return (JavascriptLibrary *)((uintptr)cache - offsetof(JavascriptLibrary, charStringCache));
+            return (JavascriptLibrary *)((uintptr_t)cache - offsetof(JavascriptLibrary, charStringCache));
         }
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
@@ -964,25 +1028,25 @@ namespace Js
         static void __cdecl InitializeURIErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeURIErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
-        static void __cdecl InitializeTypedArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeTypedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeTypedArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt8ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeInt8ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeInt8ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeUint8ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint8ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint8ClampedArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeUint8ClampedArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint8ClampedArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt16ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeInt16ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeInt16ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint16ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeUint16ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint16ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeInt32ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeInt32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeInt32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeUint32ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeUint32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat32ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeFloat32ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeFloat32ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static void __cdecl InitializeFloat64ArrayConstructor(DynamicObject* typedArrayConsructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeFloat64ArrayConstructor(DynamicObject* typedArrayConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeFloat64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeInt64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeUint64ArrayPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1003,11 +1067,9 @@ namespace Js
         void InitializeComplexThings();
         void InitializeStaticValues();
         static void __cdecl InitializeMathObject(DynamicObject* mathObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-#if ENABLE_NATIVE_CODEGEN
         // SIMD_JS
         static void __cdecl InitializeSIMDObject(DynamicObject* simdObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeSIMDOpCodeMaps();
-#endif
 
         static void __cdecl InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeNumberPrototype(DynamicObject* numberPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
@@ -1048,6 +1110,9 @@ namespace Js
         static void __cdecl InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeGeneratorFunctionPrototype(DynamicObject* generatorFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static void __cdecl InitializeGeneratorPrototype(DynamicObject* generatorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
+        static void __cdecl InitializeAsyncFunctionConstructor(DynamicObject* asyncFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeAsyncFunctionPrototype(DynamicObject* asyncFunctionPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);
@@ -1127,9 +1192,7 @@ namespace Js
         HRESULT ProfilerRegisterProxy();
         HRESULT ProfilerRegisterReflect();
         HRESULT ProfilerRegisterGenerator();
-#if ENABLE_NATIVE_CODEGEN
         HRESULT ProfilerRegisterSIMD();
-#endif
 
 #ifdef IR_VIEWER
         HRESULT ProfilerRegisterIRViewer();

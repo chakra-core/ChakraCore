@@ -405,7 +405,7 @@ LblDone:
     Var TaggedInt::ShiftRight(Var aLeft, Var aRight)
     {
         //
-        // If aLeft was a Int31 coming in, then the result must always be a Int31 going out because
+        // If aLeft was an Int31 coming in, then the result must always be an Int31 going out because
         // shifting right only makes value smaller. Therefore, we may call ToVarUnchecked()
         // directly.
         //
@@ -419,7 +419,7 @@ LblDone:
     Var TaggedInt::ShiftRightU(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
         //
-        // If aLeft was a Int31 coming in, then the result must always be a Int31 going out because
+        // If aLeft was an Int31 coming in, then the result must always be an Int31 going out because
         // shifting right only makes value smaller. Therefore, we may call ToVarUnchecked()
         // directly.
         //
@@ -469,7 +469,7 @@ LblDone:
 
     Var TaggedInt::NegateUnchecked(Var aValue)
     {
-        AssertMsg( Is(aValue), "Ensure var is actually an 'TaggedInt'");
+        AssertMsg( Is(aValue), "Ensure var is actually a 'TaggedInt'");
         AssertMsg( aValue != ToVarUnchecked(0), "Do not use NegateUnchecked on zero because NegativeZero is special");
         AssertMsg( aValue != ToVarUnchecked(k_nMinValue), "Do not use NegateUnchecked on min value because it cannot be represented");
 

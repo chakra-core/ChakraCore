@@ -415,8 +415,8 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
     {
         Output::SetStackTraceHelper(Js::StackTraceHelper::Create(::GetOutputAllocator2()));
     }
-#endif STACK_BACK_TRACE
-#endif ENABLE_TRACE
+#endif // STACK_BACK_TRACE
+#endif // ENABLE_TRACE
 
     if (hasOutput)
     {

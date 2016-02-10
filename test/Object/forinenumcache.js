@@ -73,7 +73,7 @@ for (var i in obj)
     }
 }
 
-// Test two for in enumerator simutaniously updating the enumerator data cache
+// Test two for in enumerator simultaneously updating the enumerator data cache
 WScript.Echo("test " + testnumber++);
 var obj = createObject2();
 

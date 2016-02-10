@@ -64,7 +64,7 @@ private:
 // Implementation
 private:
             bool                       ParseBoolean();
-            LPWSTR                     ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ceBuffer = MaxTokenSize, bool fTreatColonAsSeperator = true);
+            LPWSTR                     ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ceBuffer = MaxTokenSize, bool fTreatColonAsSeparator = true);
             int                        ParseInteger();
             Js::SourceFunctionNode     ParseSourceFunctionIds();
             void                       ParsePhase(Js::Phases *pPhase);
@@ -78,6 +78,11 @@ private:
             wchar_t CurChar()
             {
                 return this->pszCurrentArg[0];
+            }
+
+            wchar_t PeekChar()
+            {
+                return this->pszCurrentArg[1];
             }
 
             void NextChar()

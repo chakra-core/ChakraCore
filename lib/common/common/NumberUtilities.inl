@@ -62,7 +62,7 @@ namespace Js
         {
             return Pos_InvalidInt64;
         }
-        else if (T1 < -9223372036854775808.0) // -9223372036854775808 is double value corresponsing to Neg_InvalidInt64.
+        else if (T1 < -9223372036854775808.0) // -9223372036854775808 is double value corresponding to Neg_InvalidInt64.
         {
             // TODO: Remove this temp workaround.
             // This is to walk around CRT issue (Win8 404170): there is a band of values near/less than negative overflow
@@ -80,7 +80,7 @@ namespace Js
 #if defined(_M_ARM32_OR_ARM64)
         if (T4_64 == Neg_InvalidInt64)
         {
-            // Win8 391983: what happens in 64bit overflow is not spec'ed. On ARM T4_64 would be 0x7F..FF but if we extend
+            // Win8 391983: what happens in 64bit overflow is not spec'd. On ARM T4_64 would be 0x7F..FF but if we extend
             // ToInt32 to 64bit, because of ES5_9.5.5 the result would be 0x80..00. On Intel all overflows result in 0x80..00.
             // So, be consistent with Intel.
             return Pos_InvalidInt64;
@@ -127,5 +127,16 @@ namespace Js
     NUMBER_UTIL_INLINE uint64 NumberUtilities::ToSpecial(double value)
     {
         return  *(reinterpret_cast<uint64 *>(&value));
+    }
+
+    NUMBER_UTIL_INLINE uint32 NumberUtilities::ToSpecial(float value)
+    {
+        return  *(reinterpret_cast<uint32 *>(&value));
+    }
+
+    NUMBER_UTIL_INLINE bool NumberUtilities::IsFloat32NegZero(float value)
+    {
+        uint32 nCompare = ToSpecial(value);
+        return nCompare == NumberConstants::k_Float32NegZero;
     }
 }

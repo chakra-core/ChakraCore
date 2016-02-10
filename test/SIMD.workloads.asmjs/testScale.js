@@ -59,8 +59,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -103,8 +102,7 @@ function asmModule(stdlib, imports, buffer) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+    
     var d2sqrt = d2.sqrt;
     var d2swizzle = d2.swizzle;
     var d2shuffle = d2.shuffle;
@@ -164,12 +162,12 @@ function asmModule(stdlib, imports, buffer) {
         var i = 0;
         var xx = f4(0.0, 0.0, 0.0, 0.0);
 
-        //No bound check to enable negative tests.
+        //No bound check to enable negative tests.  
          for (i = fromIdx; (i|0) < (toIdx|0); i = (i + 16) | 0)
          {
              xx = f4load(Int8Heap, i | 0);
              xx = f4mul(xx, f4(2.0, 2.0, 2.0, 2.0));
-
+             
              f4store(Int8Heap, toIdx, xx);
              f4store(Int8Heap, (i + 0) | 0, f4load(Int8Heap, (toIdx + 0) | 0));
              //f4store(Int8Heap, (i) | 0, f4load(Int8Heap, (toIdx) | 0));
@@ -182,12 +180,12 @@ function asmModule(stdlib, imports, buffer) {
         var i = 0;
         var xx = i4(0, 0, 0, 0);
 
-        //No bound check to enable negative tests.
+        //No bound check to enable negative tests.  
          for (i = fromIdx;(i|0) < (toIdx|0); i = (i + 16) | 0)
          {
              xx = i4load(Int8Heap, i | 0);
              xx = i4mul(xx, i4(2, 2, 2, 2));
-
+             
              i4store(Int8Heap, toIdx, xx);
              i4store(Int8Heap, (i + 0) | 0, i4load(Int8Heap, (toIdx + 0) | 0));
              //f4store(Int8Heap, (i) | 0, f4load(Int8Heap, (toIdx) | 0));
@@ -200,12 +198,12 @@ function asmModule(stdlib, imports, buffer) {
         var i = 0;
         var xx = d2(0.0, 0.0);
 
-        //No bound check to enable negative tests.
+        //No bound check to enable negative tests.  
          for (i = fromIdx; (i|0) < (toIdx|0); i = (i + 16) | 0)
          {
              xx = d2load(Int8Heap, i | 0);
              xx = d2mul(xx, d2(2.0, 2.0));
-
+             
              d2store(Int8Heap, toIdx, xx);
              d2store(Int8Heap, (i + 0) | 0, d2load(Int8Heap, (toIdx + 0) | 0));
              //f4store(Int8Heap, (i) | 0, f4load(Int8Heap, (toIdx) | 0));
@@ -300,5 +298,5 @@ initI32(buffer);
 
 m.scale2(0, 16 * 10); //Scale
 validateBuffer2(values, 4 * 10);
-WScript.Echo("PASS");
 
+print("PASS");

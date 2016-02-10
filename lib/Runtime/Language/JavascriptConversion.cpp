@@ -32,7 +32,7 @@ namespace Js
     }
 
     //ES5 9.11  Undefined, Null, Boolean, Number, String - return false
-    //If Object has an [[Call]] internal method, then return true, otherwise return false
+    //If Object has a [[Call]] internal method, then return true, otherwise return false
     bool JavascriptConversion::IsCallable(Var aValue)
     {
         if (!RecyclableObject::Is(aValue))
@@ -237,7 +237,7 @@ CommonNumber:
     template bool JavascriptConversion::SameValueCommon<true>(Var aLeft, Var aRight);
 
     //----------------------------------------------------------------------------
-    // ToObject() takes a value and converts it to a Object type
+    // ToObject() takes a value and converts it to an Object type
     // Implementation of ES5 9.9
     // The spec indicates that this method should throw a TypeError if the supplied value is Undefined or Null.
     // Our implementation returns FALSE in this scenario, expecting the caller to throw the TypeError.
@@ -794,11 +794,16 @@ CommonNumber:
         case TypeIds_SIMDFloat32x4:
         case TypeIds_SIMDFloat64x2:
         case TypeIds_SIMDInt32x4:
-        {   // SIMD review: may need update once spec is finalized
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return true;
-            }
+        case TypeIds_SIMDInt16x8:
+        case TypeIds_SIMDInt8x16:
+        case TypeIds_SIMDBool32x4:
+        case TypeIds_SIMDBool16x8:
+        case TypeIds_SIMDBool8x16:
+        case TypeIds_SIMDUint32x4:
+        case TypeIds_SIMDUint16x8:
+        case TypeIds_SIMDUint8x16:
+        {
+            return true;
         }
 
         default:
@@ -898,7 +903,15 @@ CommonNumber:
 
             case TypeIds_SIMDFloat32x4:
             case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt8x16:
             case TypeIds_SIMDFloat64x2:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint8x16:
                 JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 
             default:
@@ -954,6 +967,19 @@ CommonNumber:
 
             case TypeIds_VariantDate:
                 return ToInteger(ToNumber_Full(aValue, scriptContext));
+
+            case TypeIds_SIMDFloat32x4:
+            case TypeIds_SIMDFloat64x2:
+            case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt8x16:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint8x16:
+                JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 
             default:
                 {
@@ -1041,6 +1067,19 @@ CommonNumber:
 
         case TypeIds_VariantDate:
             return ToInt32(ToNumber_Full(aValue, scriptContext));
+
+        case TypeIds_SIMDFloat32x4:
+        case TypeIds_SIMDFloat64x2:
+        case TypeIds_SIMDInt32x4:
+        case TypeIds_SIMDInt16x8:
+        case TypeIds_SIMDInt8x16:
+        case TypeIds_SIMDBool32x4:
+        case TypeIds_SIMDBool16x8:
+        case TypeIds_SIMDBool8x16:
+        case TypeIds_SIMDUint32x4:
+        case TypeIds_SIMDUint16x8:
+        case TypeIds_SIMDUint8x16:
+            JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 
         default:
             AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger32");
@@ -1141,6 +1180,19 @@ CommonNumber:
 
             case TypeIds_VariantDate:
                 return ToInt32Finite(ToNumber_Full(aValue, scriptContext), result);
+
+            case TypeIds_SIMDFloat32x4:
+            case TypeIds_SIMDFloat64x2:
+            case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt8x16:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint8x16:
+                JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 
             default:
                 {
@@ -1278,6 +1330,19 @@ CommonNumber:
             case TypeIds_VariantDate:
                 return JavascriptMath::ToUInt32(ToNumber_Full(aValue, scriptContext));
 
+            case TypeIds_SIMDFloat32x4:
+            case TypeIds_SIMDFloat64x2:
+            case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt8x16:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint8x16:
+                JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
+
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToUInt32");
@@ -1351,6 +1416,19 @@ CommonNumber:
 
             case TypeIds_VariantDate:
                 return ToUInt16(ToNumber_Full(aValue, scriptContext));
+
+            case TypeIds_SIMDFloat32x4:
+            case TypeIds_SIMDFloat64x2:
+            case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt8x16:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint8x16:
+                JavascriptError::ThrowError(scriptContext, JSERR_NeedNumber);
 
             default:
                 {

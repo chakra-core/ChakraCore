@@ -6,7 +6,7 @@
 // They become nameless compile time known PropertyRecords, stored as static
 // fields on the InternalPropertyRecords class.
 
-INTERNALPROPERTY(TypeOfPrototypObject)  // Used to store the type of the prototype object in the prototype objects slots
+INTERNALPROPERTY(TypeOfPrototypeObject) // Used to store the type of the prototype object in the prototype objects slots
 INTERNALPROPERTY(NonExtensibleType)     // Used to store shared non-extensible type in PathTypeHandler::propertySuccessors map.
 INTERNALPROPERTY(SealedType)            // Used to store shared sealed type in PathTypeHandler::propertySuccessors map.
 INTERNALPROPERTY(FrozenType)            // Used to store shared frozen type in PathTypeHandler::propertySuccessors map.

@@ -69,7 +69,7 @@ LSC_ERROR_MSG( 1062, ERRnoDArrow      , "Expected '=>'")
 LSC_ERROR_MSG( 1063, ERRInvalidCodePoint      , "Invalid codepoint value in the escape sequence.")
 LSC_ERROR_MSG( 1064, ERRMissingCurlyBrace      , "Closing curly brace ('}') expected.")
 LSC_ERROR_MSG( 1065, ERRRestLastArg, "The rest parameter must be the last parameter in a formals list.")
-LSC_ERROR_MSG( 1066, ERRRestWithDefault, "The rest parameter cannot have a default intializer.")
+LSC_ERROR_MSG( 1066, ERRRestWithDefault, "The rest parameter cannot have a default initializer.")
 LSC_ERROR_MSG( 1067, ERRUnexpectedEllipsis, "Unexpected ... operator")
 
 LSC_ERROR_MSG( 1068, ERRDestructInit, "Destructuring declarations must have an initializer")
@@ -87,3 +87,6 @@ LSC_ERROR_MSG( 1077, ERRDestructNotInit, "Destructuring declarations cannot have
 LSC_ERROR_MSG(1079, ERRInvalidNewTarget, "Invalid use of the 'new.target' keyword")
 LSC_ERROR_MSG(1080, ERRForInNoInitAllowed, "for-in loop head declarations cannot have an initializer")
 LSC_ERROR_MSG(1081, ERRForOfNoInitAllowed, "for-of loop head declarations cannot have an initializer")
+LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode on functions with non-simple parameter list")
+
+LSC_ERROR_MSG(1083, ERRbadAwait, "'await' expression not allowed in this context")

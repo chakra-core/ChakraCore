@@ -55,6 +55,10 @@ public:
     static const Js::OpCode MDExtend32Opcode;
     static const Js::OpCode MDTestOpcode;
     static const Js::OpCode MDOrOpcode;
+    static const Js::OpCode MDXorOpcode;
+#if _M_X64
+    static const Js::OpCode MDMovUint64ToFloat64Opcode;
+#endif
     static const Js::OpCode MDOverflowBranchOpcode;
     static const Js::OpCode MDNotOverflowBranchOpcode;
     static const Js::OpCode MDConvertFloat32ToFloat64Opcode;
@@ -191,7 +195,7 @@ public:
      static void            EmitPtrInstr(IR::Instr *instr);
             void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false);
             void            EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *instrLoad, bool isFromUint32, bool isHelper);
-            bool            EmitLoadInt32(IR::Instr *instr);
+            bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed);
             void            EmitIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
             void            EmitFloatToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert);
@@ -243,6 +247,7 @@ public:
             IR::Instr *         LowerCallPut(IR::Instr * callInstr);
             IR::Instr *         LoadHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LoadDoubleHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
+            IR::Instr *         LoadFloatHelperArgument(IR::Instr * instr, IR::Opnd * opndArg);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
             IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);
@@ -315,15 +320,27 @@ public:
     IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
     IR::Instr*          Simd128LowerNegI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr);
+    IR::Instr*          Simd128AsmJsLowerLoadElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerLoadElem(IR::Instr *instr);
+    IR::Instr*          Simd128ConvertToLoad(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth, IR::Instr* instr, byte scaleFactor = 0);
+    IR::Instr*          Simd128AsmJsLowerStoreElem(IR::Instr *instr);
     IR::Instr*          Simd128LowerStoreElem(IR::Instr *instr);
-    IR::Instr*          Simd128LowerShuffle(IR::Instr *instr);
+    IR::Instr*          Simd128ConvertToStore(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth, IR::Instr* instr, byte scaleFactor = 0);
+    void                Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, IR::Instr *instr);
+    void                Simd128GenerateUpperBoundCheck(IR::RegOpnd *indexOpnd, IR::IndirOpnd *indirOpnd, ValueType arrType, IR::Instr *instr);
+    IR::Instr*          Simd128LowerSwizzle4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerShuffle4(IR::Instr *instr);
+    BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
     IR::Opnd *          EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
     void                GenerateCheckedSimdLoad(IR::Instr * instr);
     void                GenerateSimdStore(IR::Instr * instr);
+    void                CheckShuffleLanes4(uint8 lanes[], uint8 lanesSrc[], uint *fromSrc1, uint *fromSrc2);
+    void                InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *insertBeforeInstr);
 
 private:
+
     void GenerateFlagInlineCacheCheckForGetterSetter(
         IR::Instr * insertBeforeInstr,
         IR::RegOpnd * opndInlineCache,

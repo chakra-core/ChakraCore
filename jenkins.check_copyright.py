@@ -26,8 +26,8 @@ if len(sys.argv) < 2:
 
 file_name = sys.argv[1]
 if not os.path.isfile(file_name):
-    print "File does not exist:", file_name
-    exit(1)
+    print "File does not exist:", file_name, "(not necessarily an error)"
+    exit(0)
 
 with open(file_name, 'r') as sourcefile:
     for x in range(0,len(copyright_lines)):

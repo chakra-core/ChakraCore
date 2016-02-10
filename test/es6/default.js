@@ -20,7 +20,18 @@ var tests = [
       assert.throws(function () { eval("var x = function*(a =) { return a; }"); },          SyntaxError, "Incomplete default expression throws in a generator function",      "Syntax error");
       assert.throws(function () { eval("var x = class { * foo(a =) { return a; } }"); },    SyntaxError, "Incomplete default expression throws in a class generator method",  "Syntax error");
 
-      assert.throws(function () { eval("function foo(a *= 5)"); }, SyntaxError, "Other assignment operators do not work");
+      // Duplicate parameters
+      assert.throws(function () { eval("function f(a, b, a, c = 10) { }"); },               SyntaxError, "Duplicate parameters are not allowed before the default argument", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(a, b = 10, a) { }"); },                  SyntaxError, "Duplicate parameters are not allolwed after the default argument", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(a, b, a, c) { \"use strict\"; }"); },    SyntaxError, "When function is in strict mode duplicate parameters are not allowed for simple parameter list", "Duplicate formal parameter names not allowed in strict mode");
+      assert.throws(function () { eval("function f(a, b = 1) { \"use strict\"; }"); },      SyntaxError, "Strict mode cannot be applied to functions with default parameters", "Cannot apply strict mode on functions with non-simple parameter list");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a) { } }"); },      SyntaxError, "When a function is already in strict mode duplicate parameters are not allowed for simple parameter list", "Duplicate formal parameter names not allowed in strict mode");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a = 10) { } }"); }, SyntaxError, "When a function is already in strict mode duplicate parameters are not allowed for formal parameter list", "Duplicate formal parameter names not allowed in strict mode");
+
+      assert.doesNotThrow(function f() { "use strict"; function g(a, b = 10) { } },           "Default arguments are allowed for functions which are already in strict mode");
+      assert.doesNotThrow(function f(a, b, a, c) { return a + b + c; },                       "In non-strict mode duplicate parameters are allowed");
+
+      assert.throws(function () { eval("function foo(a *= 5)"); },                          SyntaxError, "Other assignment operators do not work");
 
       // Redeclaration errors - non-simple in this case means any parameter list with a default expression
       assert.doesNotThrow(function () { eval("function foo(a = 1) { var a; }"); },            "Var redeclaration with a non-simple parameter list");
@@ -35,10 +46,6 @@ var tests = [
 
       assert.throws(function () { eval("x = 3 => x"); },                                    SyntaxError, "Lambda formals without parentheses cannot have default expressions", "Expected \'(\'");
       assert.throws(function () { eval("var a = 0, b = 0; (x = ++a,++b) => x"); },          SyntaxError, "Default expressions cannot have comma separated expressions",        "Expected identifier");
-
-      // Bug 263626: Checking strict formal parameters with defaults should not throw
-      function foostrict1(a = 1, b) { "use strict"; }
-      function foostrict2(a, b = 1) { "use strict"; }
     }
   },
   {
@@ -63,6 +70,19 @@ var tests = [
       this.val = { test : "test" };
       function thisTest(a = this.val, b = this.val = 1.1, c = this.val, d = this.val2 = 2, e = this.val2) { return [a,b,c,d,e]; }
       assert.areEqual([{test:"test"}, 1.1, 1.1, 2, 2], thisTest(), "'this' is able to be referenced and modified");
+
+      var expAValue, expBValue, expCValue;
+      function f(a = 10, b = 20, c) {
+          assert.areEqual(a, expAValue, "First argument");
+          assert.areEqual(b, expBValue, "Second argument");
+          assert.areEqual(c, expCValue, "Third argument");
+      }
+      expAValue = null, expBValue = 20, expCValue = 1;
+      f(null, undefined, 1);
+      expAValue = null, expBValue = null, expCValue = null;
+      f(null, null, null);
+      expAValue = 10, expBValue = null, expCValue = 3;
+      f(undefined, null, 3);
 
       function lambdaCapture() {
         this.propA = 1;
@@ -99,7 +119,7 @@ var tests = [
       assert.throws(function () { eval("function foo(a = eval('b'), b) {}; foo();"); }, ReferenceError, "Future default references using eval are not allowed", "Use before declaration");
 
       function argsFoo(a = (arguments[1] = 5), b) { return b };
-      assert.areEqual(undefined, argsFoo(),     "Unevaluated paramaters are referencable using the arguments object");
+      assert.areEqual(undefined, argsFoo(),     "Unevaluated parameters are referenceable using the arguments object");
       assert.areEqual(undefined, argsFoo(1),    "Side effects on the arguments object are allowed but has no effect on default parameter initialization");
       assert.areEqual(2,         argsFoo(1, 2), "Side effects on the arguments object are allowed but has no effect on default parameter initialization");
     }
@@ -317,6 +337,110 @@ var tests = [
   {
     name: "Split parameter scope",
     body: function () {
+      function f1(a = 10, b = function () { return a; }) {
+          assert.areEqual(a, 10, "Initial value of parameter in the body scope should be the same as the one in param scope");
+          var a = 20;
+          assert.areEqual(a, 20, "New assignment in the body scope updates the variable's value in body scope");
+          return b;
+      }
+      assert.areEqual(f1()(), 10, "Function defined in the param scope captures the formals from the param scope not body scope");
+
+      function f2(a = 10, b = function () { return a; }, c = b() + a) {
+          assert.areEqual(a, 10, "Initial value of parameter in the body scope should be the same as the one in param scope");
+          assert.areEqual(c, 20, "Initial value of the third parameter in the body scope should be twice the value of the first parameter");
+          var a = 20;
+          assert.areEqual(a, 20, "New assignment in the body scope updates the variable's value in body scope");
+          return b;
+      }
+      assert.areEqual(f2()(), 10, "Function defined in the param scope captures the formals from the param scope not body scope");
+
+      var obj = {
+          f(a = 10, b = function () { return a; }) {
+              assert.areEqual(a, 10, "Initial value of parameter in the body scope of the method should be the same as the one in param scope");
+              var a = 20;
+              assert.areEqual(a, 20, "New assignment in the body scope of the method updates the variable's value in body scope");
+              return b;
+          }
+      }
+      assert.areEqual(obj.f()(), 10, "Function defined in the param scope of the object method captures the formals from the param scope not body scope");
+
+      function f3(a = 10, b = function c() { return a; }) {
+          assert.areEqual(a, 10, "Initial value of parameter in the body scope of the method should be the same as the one in param scope");
+          var a = 20;
+          assert.areEqual(a, 20, "New assignment in the body scope of the method updates the variable's value in body scope");
+          return b;
+      }
+      assert.areEqual(f3()(), 10, "Function expression defined in the param scope captures the formals from the param scope not body scope");
+
+      function f4(a = 10, b = function () { return a; }) {
+        assert.areEqual(a, 1, "Initial value of parameter in the body scope should be the same as the one passed in");
+        var a = 20;
+        assert.areEqual(a, 20, "Assignment in the body scope updates the variable's value in body scope");
+        return b;
+      }
+      assert.areEqual(f4(1)(), 1, "Function defined in the param scope captures the formals from the param scope even when the default expression is not applied for that param");
+
+      (function (a = 10, b = a += 10, c = function () { return a + b; }) {
+        assert.areEqual(a, 20, "Initial value of parameter in the body scope should be same as the corresponding symbol's final value in the param scope");
+        var a2 = 40;
+        (function () { assert.areEqual(a2, 40, "Symbols defined in the body scope should be unaffected by the duplicate formal symbols"); })();
+        assert.areEqual(c(), 40, "Function defined in param scope uses the formals from param scope even when executed inside the body");
+      })();
+
+      (function (a = 10, b = function () { assert.areEqual(a, 10, "Function defined in the param scope captures the formals from the param scope when exectued from the param scope"); }, c = b()) {
+      })();
+
+      function f5(a = 10, b = function () { return a; }) {
+          a = 20;
+          return b;
+      }
+      assert.areEqual(f5()(), 10, "Even if the formals are not redeclared in the function body the symbol in the param scope and body scope are different");
+
+      function f6(a = 10, b = function () { return function () { return a; } }) {
+        var a = 20
+        return b;
+      }
+      assert.areEqual(f6()()(), 10, "Parameter scope works fine with nested functions");
+
+      var a1 = 10
+      function f7(b = function () { return a1; }) {
+        assert.areEqual(a1, undefined, "Inside the function body the assignment hasn't happened yet");
+        var a1 = 20;
+        assert.areEqual(a1, 20, "Assignment to the symbol inside the function changes the value");
+        return b;
+      }
+      assert.areEqual(f7()(), 10, "Function in the param scope correctly binds to the outer variable");
+
+      var arr = [2, 3, 4];
+      function f8(a = 10, b = function () { return a; }, ...c) {
+          assert.areEqual(arr.length, c.length, "Rest parameter should contain the same number of elements as the spread arg");
+          for (i = 0; i < arr.length; i++) {
+              assert.areEqual(arr[i], c[i], "Elements in the rest and the spread should be in the same order");
+          }
+          return b;
+      }
+      assert.areEqual(f8(undefined, undefined, ...arr)(), 10, "Presence of rest parameter shouldn't affect the binding");
+
+      function f9( {a:a1, b:b1}, c = function() { return a1 + b1; } ) {
+          assert.areEqual(a1, 10, "Initial value of the first destructuring parameter in the body scope should be the same as the one in param scope");
+          assert.areEqual(b1, 20, "Initial value of the second destructuring parameter in the body scope should be the same as the one in param scope");
+          a1 = 1;
+          b1 = 2;
+          assert.areEqual(a1, 1, "New assignment in the body scope updates the first formal's value in body scope");
+          assert.areEqual(b1, 2, "New assignment in the body scope updates the second formal's value in body scope");
+          assert.areEqual(c(), 30, "The param scope method should return the sum of the destructured formals from the param scope");
+          return c;
+      }
+      assert.areEqual(f9({ a : 10, b : 20 })(), 30, "Returned method should return the sum of the destructured formals from the param scope");
+
+      function f10({x:x = 10, y:y = function () { return x; }}) {
+          assert.areEqual(x, 10, "Initial value of the first destructuring parameter in the body scope should be the same as the one in param scope");
+          x = 20;
+          assert.areEqual(x, 20, "Assignment in the body updates the formal's value");
+          return y;
+      }
+      assert.areEqual(f10({ })(), 10, "Returned method should return the value of the destructured formal from the param scope");
+
       function g() {
         return 3 * 3;
       }
@@ -329,7 +453,7 @@ var tests = [
       }
     }
     // TODO(tcare): Re-enable when split scope support is implemented
-    //assert.areEqual(9, f(), "Paramater scope remains split");
+    //assert.areEqual(9, f(), "Parameter scope remains split");
   },
   {
     name: "OS 1583694: Arguments sym is not set correctly on undo defer",

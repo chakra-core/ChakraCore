@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
     
@@ -48,8 +48,8 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+
+
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -82,8 +82,8 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
+
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -223,58 +223,10 @@ var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
 var ret4 = m.func4();
 
-/*
-var ret5 = m.func5();
-var ret6 = m.func6();
-*/
-/*
-var ret7 = m.func7();
-var ret8 = m.func8();
-var ret9 = m.func9();
 
+equalSimd([2, 4, 6, 8], ret1, SIMD.Int32x4, "TestCalls");
+equalSimd([4, 8, 12, 16], ret2, SIMD.Int32x4, "TestCalls");
+equalSimd([8, 16, 24, 32], ret3, SIMD.Int32x4, "TestCalls");
+equalSimd([301, 301, 301, 301], ret4, SIMD.Int32x4, "TestCalls");
+print("PASS");
 
-var ret10 = m.func10();
-var ret11 = m.func11();
-var ret12 = m.func12();
-
-*/
-
-print(typeof(ret1));
-print(ret1.toString());
-
-print(typeof(ret2));
-print(ret2.toString());
-
-print(typeof(ret3));
-print(ret3.toString());
-
-print(typeof(ret4));
-print(ret4.toString());
-
-
-/*
-print(typeof(ret5));
-print(ret5.toString());
-
-print(typeof(ret6));
-print(ret6.toString());
-*/
-/*
-print(typeof(ret7));
-print(ret7.toString());
-
-print(typeof(ret8));
-print(ret8.toString());
-
-print(typeof(ret9));
-print(ret9.toString());
-
-print(typeof(ret10));
-print(ret10.toString());
-
-print(typeof(ret11));
-print(ret11.toString());
-
-print(typeof(ret12));
-print(ret12.toString());
-*/

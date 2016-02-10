@@ -9,7 +9,7 @@ function flattenArray(array) {
     return Array.prototype.concat.apply([], array);
 }
 
-var propertyNames = [
+var nonGenericPropertyNames = [
     "global",
     "ignoreCase",
     "multiline",
@@ -18,6 +18,7 @@ var propertyNames = [
     "sticky",
     "unicode",
 ];
+var propertyNames = nonGenericPropertyNames.concat("flags");
 
 var tests = flattenArray(propertyNames.map(function (name) {
     // Values returned by the properties are tested in other files since they
@@ -58,14 +59,6 @@ var tests = flattenArray(propertyNames.map(function (name) {
             }
         },
         {
-            name: name + " getter can not be called by non-RegExp objects",
-            body: function () {
-                var o = Object.create(/./);
-                var getter = Object.getOwnPropertyDescriptor(RegExp.prototype, name).get;
-                assert.throws(getter.bind(o));
-            }
-        },
-        {
             name: name + " should be deletable",
             body: function () {
                 var descriptor = Object.getOwnPropertyDescriptor(RegExp.prototype, name);
@@ -75,6 +68,16 @@ var tests = flattenArray(propertyNames.map(function (name) {
             }
         }
     ];
+}));
+tests = tests.concat(nonGenericPropertyNames.map(function (name) {
+    return {
+        name: name + " getter can not be called by non-RegExp objects",
+        body: function () {
+            var o = Object.create(/./);
+            var getter = Object.getOwnPropertyDescriptor(RegExp.prototype, name).get;
+            assert.throws(getter.bind(o));
+        }
+    };
 }));
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != 'summary' });

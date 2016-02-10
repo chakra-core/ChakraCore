@@ -225,7 +225,7 @@ private:
 #if DBG_DUMP
     uint32 numDeadStore;
     uint32 numMarkTempNumber;
-    uint32 numMarkTempNumberTransfered;
+    uint32 numMarkTempNumberTransferred;
     uint32 numMarkTempObject;
 #endif
 

@@ -34,10 +34,7 @@ namespace Js
         Var computedNameVar;
         bool hasInlineCaches;
         bool hasSuperReference;
-        bool isDefaultConstructor;
         bool isActiveScript;
-        static const wchar_t diagDefaultCtor[];
-        static const wchar_t diagDefaultExtendsCtor[];
 
         bool HasFunctionBody();
         Var FormatToString(JavascriptString* inputString);
@@ -88,9 +85,6 @@ namespace Js
         bool HasSuperReference() { return hasSuperReference; }
         void SetHasSuperReference(bool has) { hasSuperReference = has; }
 
-        bool IsDefaultConstructor() { return isDefaultConstructor; }
-        void SetIsDefaultConstructor(bool has) { isDefaultConstructor = has; }
-
         void SetIsActiveScript(bool is) { isActiveScript = is; }
 
         virtual Var GetHomeObj() const override { return homeObj; }
@@ -101,7 +95,6 @@ namespace Js
         virtual JavascriptString* GetDisplayNameImpl() const;
         JavascriptString* GetComputedName() const;
         virtual bool IsAnonymousFunction() const override;
-        virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
     };

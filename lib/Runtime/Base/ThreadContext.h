@@ -434,6 +434,7 @@ public:
     SimdFuncSignature *simdOpcodeToSignatureMap;
 
     void AddSimdFuncToMaps(Js::OpCode op, ...);
+    void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
 #endif
@@ -1027,7 +1028,7 @@ public:
     void AddBuiltInPropertyRecord(const Js::PropertyRecord *propertyRecord);
 
     void GetOrAddPropertyId(__in LPCWSTR propertyName, __in int propertyNameLength, Js::PropertyRecord const** propertyRecord);
-    void GetOrAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertName, Js::PropertyRecord const** propertyRecord);
+    void GetOrAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertyName, Js::PropertyRecord const** propertyRecord);
     Js::PropertyRecord const * UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& propertyName, bool bind, bool isSymbol = false);
     Js::PropertyRecord const * UncheckedAddPropertyId(__in LPCWSTR propertyName, __in int propertyNameLength, bool bind = false, bool isSymbol = false);
 

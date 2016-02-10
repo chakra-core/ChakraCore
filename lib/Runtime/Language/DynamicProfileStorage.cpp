@@ -334,8 +334,8 @@ bool DynamicProfileStorage::Initialize()
 
         // -DynamicProfileInput
         //      Without other -DynamicProfile flags - enable in memory profile cache without exporting
-        //      With -DyanmicProfileCache           - override the dynamic profile cache file
-        //      With -DyanmicProfileCacheDir        - clear the dynamic profile cache directory
+        //      With -DynamicProfileCache           - override the dynamic profile cache file
+        //      With -DynamicProfileCacheDir        - clear the dynamic profile cache directory
 
         if (Js::Configuration::Global.flags.DynamicProfileInput != nullptr)
         {

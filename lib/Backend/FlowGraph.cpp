@@ -650,7 +650,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n Before cannonicalizeLoops \n");
+    this->Dump(true, L"\n Before canonicalizeLoops \n");
 #endif
 
     bool breakBlockRelocated = false;
@@ -669,7 +669,7 @@ FlowGraph::CanonicalizeLoops()
     }
 
 #if DBG_DUMP
-    this->Dump(true, L"\n After cannonicalizeLoops \n");
+    this->Dump(true, L"\n After canonicalizeLoops \n");
 #endif
 
     return breakBlockRelocated;
@@ -1810,6 +1810,8 @@ FlowGraph::PeepTypedCm(IR::Instr *instr)
     {
         return nullptr;
     }
+
+    AssertMsg(instrLd || (!instrLd && !instrLd2), "Either instrLd is non-null or both null");
 
     // if we have intermediate Lds, then make sure pattern is:
     //      t1 = CmEq a, b

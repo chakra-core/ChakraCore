@@ -9,7 +9,7 @@
 void
 DbCheckPostLower::Check()
 {
-    bool doOpHelperCheck = (Js::Configuration::Global.flags.CheckOpHelpers && !this->func->isPostLayout);
+    bool doOpHelperCheck = !this->func->isPostLayout;
     bool isInHelperBlock = false;
 
     FOREACH_INSTR_IN_FUNC_EDITING(instr, instrNext, this->func)

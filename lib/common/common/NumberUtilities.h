@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------------------------------------------
+﻿//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -20,10 +20,20 @@ namespace Js
         static const uint64     k_PointFive = 0x3FE0000000000000ull;
         static const uint64     k_NegPointFive = 0xBFE0000000000000ull;
         static const uint64     k_NegOne    = 0xBFF0000000000000ull;
+        static const uint64     k_OnePointZero = 0x3FF0000000000000ull;
+        // 2^52
+        static const uint64     k_TwoToFraction = 0x4330000000000000ull;
+        // -2^52
+        static const uint64     k_NegTwoToFraction = 0xC330000000000000ull;
 
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
         static const uint32     k_Float32NegPointFive = 0xBF000000ul;
+        static const uint32     k_Float32NegZero   = 0x80000000ul;
+        // 2^23
+        static const uint32     k_Float32TwoToFraction = 0x4B000000ul;
+        // -2^23
+        static const uint32     k_Float32NegTwoToFraction = 0xCB000000ul;
 
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;
@@ -31,6 +41,7 @@ namespace Js
         static const double     NEGATIVE_INFINITY;
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
+        static const double     ONE_POINT_ZERO;
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];
@@ -57,8 +68,10 @@ namespace Js
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
+        static bool IsFloat32NegZero(float value);
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);
+        static uint32 ToSpecial(float value);
 
         // Convert a given UINT16 into its corresponding string.
         // outBufferSize is in WCHAR elements (and used only for ASSERTs)

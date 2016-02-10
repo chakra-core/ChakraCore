@@ -203,12 +203,13 @@ namespace Js
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
+        static BOOL IsUndefinedOrNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
         static BOOL IsUndefinedObject(Var instance, ScriptContext *scriptContext);
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
-        static BOOL IsUndefinedObject(Var isntance, JavascriptLibrary* library);
+        static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
@@ -318,8 +319,8 @@ namespace Js
         static Var OP_DeleteElementI(Var instance, Var aElementIndex, ScriptContext* scriptContext, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
         static Var OP_DeleteElementI_UInt32(Var instance, uint32 aElementIndex, ScriptContext* scriptContext, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
         static Var OP_DeleteElementI_Int32(Var instance, int aElementIndex, ScriptContext* scriptContext, PropertyOperationFlags propertyOperationFlags = PropertyOperation_None);
-        static BOOL OP_Memset(Var instance, int32 start, Var value, uint32 length, ScriptContext* scriptContext);
-        static BOOL OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, uint32 length, ScriptContext* scriptContext);
+        static BOOL OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext);
+        static BOOL OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, int32 length, ScriptContext* scriptContext);
         static Var OP_GetLength(Var instance, ScriptContext* scriptContext);
         static Var OP_GetThis(Var thisVar, int moduleID, ScriptContext* scriptContext);
         static Var OP_GetThisNoFastPath(Var thisVar, int moduleID, ScriptContext* scriptContext);
@@ -585,7 +586,7 @@ namespace Js
         static Var GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext);
 
     private:
-        static BOOL RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
+        static BOOL RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
 
         template <typename ArrayType>
         static void ObjectToNativeArray(ArrayType* arrayObject,

@@ -38,7 +38,7 @@ enum OpCodeAttrEnum
     OpFastFldInstr              = 0x00004000,
     OpBailOutRec                = 0x00008000,
 
-    OpInlinableBuiltIn          = 0x00010000, // OpCode is an inlineable built-in, such as InlineMathSin, etc.
+    OpInlinableBuiltIn          = 0x00010000, // OpCode is an inlinable built-in, such as InlineMathSin, etc.
     OpNonIntTransfer            = 0x00020000, // OpCode may transfer a non-integer value from the non-constant source to the destination
     OpIsInt32                   = 0x00040000, // OpCode converts its srcs to int32 or a narrower int type, and produces an int32
     OpProducesNumber            = 0x00080000, // OpCode always produces a number

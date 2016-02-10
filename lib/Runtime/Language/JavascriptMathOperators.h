@@ -4,6 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "..\Math\JavascriptMath.h"
-#include "..\Math\AsmJsMath.h"
+#include "JavascriptMath.h"
+#include "AsmJsMath.h"
 

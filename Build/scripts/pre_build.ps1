@@ -34,7 +34,7 @@ param (
     [string]$oauth
 )
 
-$OutterScriptRoot = $PSScriptRoot;
+$OuterScriptRoot = $PSScriptRoot;
 . "$PSScriptRoot\pre_post_util.ps1"
 if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
     if (-not(Test-Path -Path "$Env:TF_BUILD_BINARIESDIRECTORY\logs")) {

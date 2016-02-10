@@ -46,7 +46,7 @@ var tests = [
             assertMatches(/^[^\u10000]$/u, "\u{10101}", "Code point in RegExp and code point in string to test");
 
             assertMatches(/^[^\u10000]$/u, "\u0345", "Code point in RegExp and code unit in string to test");
-            assertMatches(/^[^\ud800\udc00]$/u, "\u0345", "Surrorgate pair in RegExp and code unit in string to test");
+            assertMatches(/^[^\ud800\udc00]$/u, "\u0345", "Surrogate pair in RegExp and code unit in string to test");
         }
     },
     {

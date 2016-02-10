@@ -2822,7 +2822,7 @@ StoreCommon:
 
     void ByteCodeWriter::EndStatement(ParseNode* node)
     {
-        AssertMsg(m_pMatchingNode, "EndStatement unmatched to StartStartment");
+        AssertMsg(m_pMatchingNode, "EndStatement unmatched to StartStatement");
         if (m_pMatchingNode != node)
         {
             return;
@@ -3169,7 +3169,7 @@ StoreCommon:
         }
         else
         {
-            ByteBlock* finalByteCodeBlock = ByteBlock::New(alloc, /*intialContent*/nullptr, cbFinalData);
+            ByteBlock* finalByteCodeBlock = ByteBlock::New(alloc, /*initialContent*/nullptr, cbFinalData);
 
             DataChunk* currentChunk = head;
             size_t bytesLeftToCopy = cbFinalData;

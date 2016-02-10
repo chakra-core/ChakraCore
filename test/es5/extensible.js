@@ -78,4 +78,4 @@ function SafeCall(f)
 }
 
 Object.preventExtensions(this);
-this[10]=10; //GlobalObject set after preventExtesnions
+this[10]=10; //GlobalObject set after preventExtensions

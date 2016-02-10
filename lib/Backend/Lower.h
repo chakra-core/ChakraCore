@@ -158,8 +158,8 @@ private:
     void            LowerLdLen(IR::Instr *const instr, const bool isHelper);
 
     IR::Instr *     LowerMemOp(IR::Instr * instr);
-    void            LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet);
-    void            LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet);
+    IR::Instr *     LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet);
+    IR::Instr *     LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet);
 
     IR::Instr *     LowerLdArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerStArrViewElem(IR::Instr * instr);
@@ -184,12 +184,13 @@ private:
     void            LoadArgumentCount(IR::Instr *const instr);
     void            LoadStackArgPtr(IR::Instr *const instr);
     void            LoadArgumentsFromFrame(IR::Instr *const instr);
-    IR::Instr *     LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod);
-    IR::Instr *     LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+    IR::Instr *     LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
+    IR::Instr *     LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBinaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod helperMethodWithTemp);
+    IR::Instr *     LowerUnaryHelperMemWithBoolReference(IR::Instr *instr, IR::JnHelperMethod helperMethod, bool useBoolForBailout);
     IR::Instr *     LowerBinaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBinaryHelperMemWithTemp(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBinaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod helperMethodWithTemp);
@@ -269,10 +270,9 @@ public:
     static uint32   GetArrayOffsetOfHeadSegment(const ValueType valueType);
     static uint32   GetArrayOffsetOfLength(const ValueType valueType);
     static IRType   GetArrayIndirType(const ValueType valueType);
-
+    static BYTE     GetArrayIndirScale(const ValueType valueType);
+    static int      SimdGetElementCountFromBytes(ValueType arrValueType, uint8 dataWidth);
 private:
-    BYTE            GetArrayIndirScale(const ValueType valueType) const;
-
     bool            ShouldGenerateArrayFastPath(const IR::Opnd *const arrayOpnd, const bool supportsObjectsWithArrays, const bool supportsTypedArrays, const bool requiresSse2ForFloatArrays) const;
     IR::RegOpnd *   LoadObjectArray(IR::RegOpnd *const baseOpnd, IR::Instr *const insertBeforeInstr);
     IR::RegOpnd *   GenerateArrayTest(IR::RegOpnd *const baseOpnd, IR::LabelInstr *const isNotObjectLabel, IR::LabelInstr *const isNotArrayLabel, IR::Instr *const insertBeforeInstr, const bool forceFloat, const bool isStore = false, const bool allowDefiniteArray = false);
@@ -298,6 +298,9 @@ public:
 
     static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = false);
     static IR::Instr *          InsertMoveWithBarrier(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
+#if _M_X64
+    static IR::Instr *          InsertMoveBitCast(IR::Opnd *const dst, IR::Opnd *const src1, IR::Instr *const insertBeforeInstr);
+#endif
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::BranchInstr *    InsertBranch(const Js::OpCode opCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertCompare(IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
@@ -309,6 +312,7 @@ public:
     static IR::Instr *          InsertAdd(const bool needFlags, IR::Opnd *const dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertSub(const bool needFlags, IR::Opnd *const dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
+    static IR::Instr *          InsertXor(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertAnd(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertOr(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertShift(const Js::OpCode opCode, const bool needFlags, IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
@@ -375,6 +379,7 @@ private:
     IR::Instr *     LowerBailOnNotPolymorphicInlinee(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotStackArgs(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotObject(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
+    IR::Instr *     LowerBailOnTrue(IR::Instr *instr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotBuiltIn(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotInteger(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnIntMin(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);

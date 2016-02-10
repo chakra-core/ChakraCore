@@ -125,7 +125,7 @@ Js::FunctionInfo *InliningDecider::InlineCallSite(Js::FunctionBody *const inline
     return nullptr;
 }
 
-uint InliningDecider::InlinePolymorhicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId,
+uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId,
     Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth)
 {
     Assert(inliner);
@@ -190,7 +190,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
     Js::FunctionProxy * proxy = functionInfo->GetFunctionProxy();
     if (proxy && proxy->IsFunctionBody())
     {
-        if (isLoopBody && PHASE_OFF(Js::InlineInJitLoopBodyPhase, this->topFunc))
+        if (isLoopBody && !PHASE_ON(Js::InlineInJitLoopBodyPhase, this->topFunc))
         {
             INLINE_TESTTRACE_VERBOSE(L"INLINING: Skip Inline: Jit loop body: %s (%s)\n", this->topFunc->GetDisplayName(),
                 this->topFunc->GetDebugNumberSet(debugStringBuffer));
@@ -441,6 +441,8 @@ bool InliningDecider::GetBuiltInInfo(
     case Js::JavascriptBuiltInFunction::JavascriptString_Trim:
     case Js::JavascriptBuiltInFunction::JavascriptString_TrimLeft:
     case Js::JavascriptBuiltInFunction::JavascriptString_TrimRight:
+    case Js::JavascriptBuiltInFunction::JavascriptString_PadStart:
+    case Js::JavascriptBuiltInFunction::JavascriptString_PadEnd:
         *returnType = ValueType::String;
         goto CallDirectCommon;
 
@@ -455,6 +457,7 @@ bool InliningDecider::GetBuiltInInfo(
     case Js::JavascriptBuiltInFunction::JavascriptString_IndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptString_LastIndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptString_Search:
+    case Js::JavascriptBuiltInFunction::JavascriptRegExp_SymbolSearch:
     case Js::JavascriptBuiltInFunction::GlobalObject_ParseInt:
         *returnType = ValueType::GetNumberAndLikelyInt(true);
         goto CallDirectCommon;

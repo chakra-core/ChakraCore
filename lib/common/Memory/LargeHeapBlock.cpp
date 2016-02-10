@@ -30,7 +30,7 @@ LargeObjectHeader::CalculateCheckSum(LargeObjectHeader* decodedNext, unsigned ch
 LargeObjectHeader*
 LargeObjectHeader::EncodeNext(uint cookie, LargeObjectHeader* next)
 {
-    return (LargeObjectHeader *)((uintptr)next ^ cookie);
+    return (LargeObjectHeader *)((uintptr_t)next ^ cookie);
 }
 
 ushort
@@ -1289,10 +1289,10 @@ LargeHeapBlock::TrimObject(Recycler* recycler, LargeObjectHeader* header, size_t
         char* objectAddress = (char*) header;
         char* objectEndAddress = objectAddress + sizeof(LargeObjectHeader) + header->objectSize;
 
-        uintptr alignmentMask = ~((uintptr) (AutoSystemInfo::PageSize - 1));
+        uintptr_t alignmentMask = ~((uintptr_t) (AutoSystemInfo::PageSize - 1));
 
-        uintptr objectFreeAddress = (uintptr) objectAddress;
-        uintptr objectFreeEndAddress = ((uintptr) objectEndAddress) & alignmentMask;
+        uintptr_t objectFreeAddress = (uintptr_t) objectAddress;
+        uintptr_t objectFreeEndAddress = ((uintptr_t) objectEndAddress) & alignmentMask;
 
         size_t bytesToFree = (objectFreeEndAddress - objectFreeAddress);
 
@@ -1304,9 +1304,9 @@ LargeHeapBlock::TrimObject(Recycler* recycler, LargeObjectHeader* header, size_t
         // The exception is if the original object's size + header size is a multiple of the page size
         Assert(objectAddress == this->address);
         Assert(header->objectIndex == 0);
-        Assert(objectFreeEndAddress <= (uintptr) objectEndAddress);
+        Assert(objectFreeEndAddress <= (uintptr_t) objectEndAddress);
         Assert(objectFreeAddress <= objectFreeEndAddress);
-        Assert(bytesToFree < sizeOfObject + sizeof(LargeObjectHeader) || (uintptr) objectEndAddress == objectFreeEndAddress);
+        Assert(bytesToFree < sizeOfObject + sizeof(LargeObjectHeader) || (uintptr_t) objectEndAddress == objectFreeEndAddress);
 
         // If we actually have something to free, release those pages
         // Move the heap block to start from the new start address

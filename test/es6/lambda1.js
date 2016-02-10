@@ -226,8 +226,6 @@ var tests = [
                 }
             }
 
-            // Bug, f doesn't work because lambda capturing arguments doesn't cause parser to realize that
-            // enclosing non-lambda function has reference to arguments object, so it doesn't load it.
             verify(f, 'f');
             verify(g, 'g');
 
@@ -288,7 +286,7 @@ var tests = [
                 }
             };
 
-            assert.areEqual(lambdaobj1, lambdaobj1.method()(), "lambda's lexical ''this'' binding is unaffected by capturing a dyanamically scoped variable introduced by eval");
+            assert.areEqual(lambdaobj1, lambdaobj1.method()(), "lambda's lexical ''this'' binding is unaffected by capturing a dynamically scoped variable introduced by eval");
 
 
             var obj = { b: 20 };
@@ -311,13 +309,53 @@ var tests = [
         }
     },
     {
-        name: "Formal parameter binding and strictness",
+        name: "'arguments' and 'eval' allowed as formal parameter names in non-strict mode",
         body: function () {
-            assert.throws(function () { eval('(eval) => { }'); }, SyntaxError, "'eval' is not allowed as a lambda formal parameter name", "Invalid usage of 'eval' in strict mode");
-            assert.throws(function () { eval('(arguments) => { }'); }, SyntaxError, "'arguments' is not allowed as a lambda formal parameter name", "Invalid usage of 'arguments' in strict mode");
-            assert.throws(function () { eval('(x, x) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list", "Duplicate formal parameter names not allowed in strict mode");
-            assert.throws(function () { eval('x => { let x; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with function scoped let bindings of the same name", "Let/Const redeclaration");
+            var a = eval => eval + 1;
+            var b = arguments => arguments + 2;
+            var c = (eval, arguments) => eval + arguments;
+            assert.areEqual(2, a(1), "'eval' allowed as lambda formal parameter name in non-strict mode of single parameter list");
+            assert.areEqual(3, b(1), "'arguments' allowed as lambda formal parameter name in non-strict mode of single parameter list");
+            assert.areEqual(5, c(2, 3), "'arguments' and 'eval' allowed as lambda formal parameter names in non-strict mode of multiple parameter list");
 
+            assert.throws(function () { eval("eval => { 'use strict'; return eval + 1; }"); }, SyntaxError, "'eval' is not allowed as a lambda formal parameter name in a single parameter list when the lambda turns on strict mode", "Invalid usage of 'eval' in strict mode");
+            assert.throws(function () { eval("arguments => { 'use strict'; return arguments + 2; }"); }, SyntaxError, "'arguments' is not allowed as a lambda formal parameter name in a single parameter list when the lambda turns on strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { eval("(eval, a) => { 'use strict'; return eval + a; }"); }, SyntaxError, "'eval' is not allowed as a lambda formal parameter name in a multiple parameter list when the lambda turns on strict mode", "Invalid usage of 'eval' in strict mode");
+            assert.throws(function () { eval("(e, arguments) => { 'use strict'; return e + arguments; }"); }, SyntaxError, "'arguments' is not allowed as a lambda formal parameter name in a multiple parameter list when the lambda turns on strict mode", "Invalid usage of 'arguments' in strict mode");
+
+            assert.throws(function () { "use strict"; eval("eval => eval + 1"); }, SyntaxError, "'eval' is not allowed as a lambda formal parameter name in a single parameter list when the lambda is in strict mode", "Invalid usage of 'eval' in strict mode");
+            assert.throws(function () { "use strict"; eval("arguments => arguments + 2"); }, SyntaxError, "'arguments' is not allowed as a lambda formal parameter name in a single parameter list when the lambda is in strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { "use strict"; eval("(eval, a) => eval + a"); }, SyntaxError, "'eval' is not allowed as a lambda formal parameter name in a multiple parameter list when the lambda is in strict mode", "Invalid usage of 'eval' in strict mode");
+            assert.throws(function () { "use strict"; eval("(e, arguments) => e + arguments"); }, SyntaxError, "'arguments' is not allowed as a lambda formal parameter name in a multiple parameter list when the lambda is in strict mode", "Invalid usage of 'arguments' in strict mode");
+        }
+    },
+    {
+        name: "Duplicate names not allowed in formal parameter name list in non-strict mode",
+        body: function () {
+            assert.throws(function () { eval('(x, x) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list in non-strict mode", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval('(a, b, a) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list in non-strict mode (when there are other names)", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval('(a, b, ...a) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list when the list is a non-simple parameter list in non-strict mode", "Duplicate formal parameter names not allowed in this context");
+
+            assert.throws(function () { eval('(x, x) => { "use strict"; }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list (when lambda turns on strict mode)", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval('(a, b, a) => { "use strict"; }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list (when lambda turns on strict mode and there are other names)", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval('(a, b, ...a) => { "use strict"; }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list when the list is a non-simple parameter list (when lambda turns on strict mode)", "Duplicate formal parameter names not allowed in this context");
+
+            assert.throws(function () { "use strict"; eval('(x, x) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list (when lambda is in strict mode)", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { "use strict"; eval('(a, b, a) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list (when lambda is in strict mode and there are other names)", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { "use strict"; eval('(a, b, ...a) => { }'); }, SyntaxError, "duplicate names are not allowed in a lambda formal parameter list when the list is a non-simple parameter list (when lambda is in strict mode)", "Duplicate formal parameter names not allowed in strict mode");
+        }
+    },
+    {
+        name: "Formal names redeclared by local variables behave as if formals are var-like",
+        body: function () {
+            assert.doesNotThrow(function () { eval('x => { var x; }'); }, "lambda formal parameters do not cause redeclaration error with local var bindings of the same name", "Let/Const redeclaration");
+            assert.throws(function () { eval('x => { let x; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped let bindings of the same name", "Let/Const redeclaration");
+            assert.throws(function () { eval('x => { const x = 0; }'); }, SyntaxError, "lambda formal parameters cause redeclaration error with local function scoped const bindings of the same name", "Let/Const redeclaration");
+        }
+    },
+    {
+        name: "Formal names shadow parent scope parameter and local variable names",
+        body: function () {
             assert.areEqual(10, (function (x) { return x => x; })(20)(10), "lambda formal parameters should shadow outside local variables of the same name [parameter]");
             assert.areEqual(10, (function () { var x = 20; return x => x; })()(10), "lambda formal parameters should shadow outside local variables of the same name [var]");
             assert.areEqual(10, (function () { let x = 20; return x => x; })()(10), "lambda formal parameters should shadow outside local variables of the same name [let]");

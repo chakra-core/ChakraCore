@@ -7,7 +7,7 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function VerfiyToPropertyKey(key) {
+function VerifyToPropertyKey(key) {
     var obj = {};
 
     assert.isFalse(obj.hasOwnProperty(key), "Object#hasOwnProperty uses ToPropertyKey. Initially we don't have the property.");
@@ -152,63 +152,27 @@ var tests = [
     {
         name: "Symbol constructor has the well-known symbols as properties",
         body: function() {
-            var descriptor;
+            function verifySymbol(propertyName) {
+                var fullName = "Symbol[" + propertyName + "]";
 
-            assert.isTrue(Symbol.hasInstance !== undefined, "Symbol.hasInstance !== undefined");
-            assert.areEqual('symbol', typeof Symbol.hasInstance, "typeof Symbol.hasInstance === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'hasInstance');
+                assert.isTrue(Symbol[propertyName] !== undefined,  fullName + " !== undefined");
+                assert.areEqual('symbol', typeof Symbol[propertyName], "typeof " + fullName + " === 'symbol'");
 
-            assert.isFalse(descriptor.writable, 'Symbol.hasInstance.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.hasInstance.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.hasInstance.descriptor.configurable == false');
+                var descriptor = Object.getOwnPropertyDescriptor(Symbol, propertyName);
+                assert.isFalse(descriptor.writable, fullName + '.descriptor.writable == false');
+                assert.isFalse(descriptor.enumerable, fullName + 'descriptor.enumerable == false');
+                assert.isFalse(descriptor.configurable, fullName + 'descriptor.configurable == false');
+            }
 
-            assert.isTrue(Symbol.isConcatSpreadable !== undefined, "Symbol.isConcatSpreadable !== undefined");
-            assert.areEqual('symbol', typeof Symbol.isConcatSpreadable, "typeof Symbol.isConcatSpreadable === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'isConcatSpreadable');
-
-            assert.isFalse(descriptor.writable, 'Symbol.isConcatSpreadable.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.isConcatSpreadable.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.isConcatSpreadable.descriptor.configurable == false');
-
-            assert.isTrue(Symbol.iterator !== undefined, "Symbol.iterator !== undefined");
-            assert.areEqual('symbol', typeof Symbol.iterator, "typeof Symbol.iterator === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'iterator');
-
-            assert.isFalse(descriptor.writable, 'Symbol.iterator.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.iterator.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.iterator.descriptor.configurable == false');
-
-            assert.isTrue(Symbol.toPrimitive !== undefined, "Symbol.toPrimitive !== undefined");
-            assert.areEqual('symbol', typeof Symbol.toPrimitive, "typeof Symbol.toPrimitive === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'toPrimitive');
-
-            assert.isFalse(descriptor.writable, 'Symbol.toPrimitive.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.toPrimitive.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.toPrimitive.descriptor.configurable == false');
-
-            assert.isTrue(Symbol.toStringTag !== undefined, "Symbol.toStringTag !== undefined");
-            assert.areEqual('symbol', typeof Symbol.toStringTag, "typeof Symbol.toStringTag === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'toStringTag');
-
-            assert.isFalse(descriptor.writable, 'Symbol.toStringTag.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.toStringTag.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.toStringTag.descriptor.configurable == false');
-
-            assert.isTrue(Symbol.unscopables !== undefined, "Symbol.unscopables !== undefined");
-            assert.areEqual('symbol', typeof Symbol.unscopables, "typeof Symbol.unscopables === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'unscopables');
-
-            assert.isFalse(descriptor.writable, 'Symbol.unscopables.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.unscopables.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.unscopables.descriptor.configurable == false');
-
-            assert.isTrue(Symbol.species !== undefined, "Symbol.species !== undefined");
-            assert.areEqual('symbol', typeof Symbol.species, "typeof Symbol.species === 'symbol'");
-            descriptor = Object.getOwnPropertyDescriptor(Symbol, 'species');
-
-            assert.isFalse(descriptor.writable, 'Symbol.species.descriptor.writable == false');
-            assert.isFalse(descriptor.enumerable, 'Symbol.species.descriptor.enumerable == false');
-            assert.isFalse(descriptor.configurable, 'Symbol.species.descriptor.configurable == false');
+            verifySymbol("hasInstance");
+            verifySymbol("isConcatSpreadable");
+            verifySymbol("iterator");
+            verifySymbol("toPrimitive");
+            verifySymbol("toStringTag");
+            verifySymbol("unscopables");
+            verifySymbol("species");
+            verifySymbol("search");
+            verifySymbol("match");
         }
     },
     {
@@ -582,9 +546,9 @@ var tests = [
             Object.defineProperty(o, sym, { value: 'some value' } );
 
             assert.areEqual('some value', o[sym], "Property keyed off symbol and set via Object.defineProperty should be reachable by the same symbol");
-            assert.areEqual(undefined, o['sym'], "defineProperty does not create a propery based on symbol name");
-            assert.areEqual(undefined, o[''], "defineProperty does not create a propery based on symbol description");
-            assert.areEqual(undefined, o[sym.toString()], "defineProperty does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o['sym'], "defineProperty does not create a property based on symbol name");
+            assert.areEqual(undefined, o[''], "defineProperty does not create a property based on symbol description");
+            assert.areEqual(undefined, o[sym.toString()], "defineProperty does not create a property based on symbol toString() value");
         }
     },
     {
@@ -610,8 +574,8 @@ var tests = [
             assert.areEqual(undefined, o['s2'], "defineProperties does not create a property based on symbol name");
             assert.areEqual(undefined, o['symbol 1'], "defineProperties does not create a property based on symbol description");
             assert.areEqual(undefined, o['symbol 2'], "defineProperties does not create a property based on symbol description");
-            assert.areEqual(undefined, o[s1.toString()], "defineProperty does not create a propery based on symbol toString() value");
-            assert.areEqual(undefined, o[s2.toString()], "defineProperty does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o[s1.toString()], "defineProperty does not create a property based on symbol toString() value");
+            assert.areEqual(undefined, o[s2.toString()], "defineProperty does not create a property based on symbol toString() value");
         }
     },
     {
@@ -636,8 +600,8 @@ var tests = [
             assert.areEqual(undefined, o['s2'], "Object.create does not create a property based on symbol name");
             assert.areEqual(undefined, o['symbol 1'], "Object.create does not create a property based on symbol description");
             assert.areEqual(undefined, o['symbol 2'], "Object.create does not create a property based on symbol description");
-            assert.areEqual(undefined, o[s1.toString()], "Object.create does not create a propery based on symbol toString() value");
-            assert.areEqual(undefined, o[s2.toString()], "Object.create does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o[s1.toString()], "Object.create does not create a property based on symbol toString() value");
+            assert.areEqual(undefined, o[s2.toString()], "Object.create does not create a property based on symbol toString() value");
         }
     },
     {
@@ -880,7 +844,7 @@ var tests = [
             var sym = Symbol('sym');
             var symbol_object = Object(sym);
 
-            VerfiyToPropertyKey(symbol_object);
+            VerifyToPropertyKey(symbol_object);
         }
     },
     {
@@ -896,7 +860,7 @@ var tests = [
                 }
             };
 
-            VerfiyToPropertyKey(tostring_object);
+            VerifyToPropertyKey(tostring_object);
         }
     },
     {
@@ -911,7 +875,7 @@ var tests = [
                 }
             };
 
-            VerfiyToPropertyKey(valueof_object);
+            VerifyToPropertyKey(valueof_object);
         }
     },
     {

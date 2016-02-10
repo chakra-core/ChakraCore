@@ -3,24 +3,38 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+var DEBUG = false;
 function sameValue(x, y) {
   if (x == y)
-    return x != 0 || y != 0 || (1/x == 1/y); // 0.0 != -0.0
- 
-  return x != x && y != y;  // NaN == NaN
+  {
+     return x != 0 || y != 0 || (1/x == 1/y); // 0.0 != -0.0
+  }
+  return (x != x) && (y != y);  // NaN == NaN
 }
 
-function equal(v, ev) {
+function equal(ev, v) {
     var eps = 0.000001;
-    
+
     if (sameValue(ev, v))
+    {
+        if(DEBUG) WScript.Echo("same value");
         return true;
+    }
     else if ((ev == 0.0 || v == 0.0) && Math.abs(v - ev) <= eps) // -0.0 covered here
+    {
+        if(DEBUG) WScript.Echo("Float 0.0 ");
         return true;
-    else if (Math.abs(v - ev) / ev <= eps)
+    }
+    else if (Math.abs(v - ev) / Math.abs(ev) <= eps)
+    {
+        if(DEBUG) WScript.Echo("Float values within eps");
         return true;
+    }
     else
-        return false;
+    {
+        WScript.Echo(">> Fail!");
+        WScript.Echo("Expected "+ev+" Found "+v);
+    }
 }
 
 function equalSimd(values, simdValue, type, msg)

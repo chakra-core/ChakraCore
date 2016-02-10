@@ -3255,10 +3255,10 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
         case IR::AddrOpndKindDynamicObjectTypeRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
-                Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr)address - Js::RecyclableObject::GetOffsetOfType());
+                Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
                 if (Js::JavascriptFunction::Is(dynamicObject))
                 {
-                    DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
+                    DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, L"FunctionObjectTypeRef");
                 }
                 else

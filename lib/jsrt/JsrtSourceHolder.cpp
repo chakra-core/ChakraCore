@@ -33,8 +33,10 @@ namespace Js
             Js::JavascriptError::ThrowOutOfMemoryError(nullptr);
         }
 
-        size_t cbUtf8Buffer = (length + 1) * 3;
-        if (cbUtf8Buffer > UINT_MAX)
+        // `length` should not be bigger than MAXLONG 
+        // UINT_MAX / 3 < MAXLONG
+        size_t cbUtf8Buffer = ((UINT_MAX / 3) - 1 > length) ? (length + 1) * 3 : UINT_MAX;
+        if (cbUtf8Buffer >= UINT_MAX)
         {
             Js::JavascriptError::ThrowOutOfMemoryError(nullptr);
         }
@@ -49,7 +51,6 @@ namespace Js
             *utf8Script = HeapNewArray(utf8char_t, cbUtf8Buffer);
         }
 
-        Assert(length < MAXLONG);
         *utf8Length = utf8::EncodeIntoAndNullTerminate(*utf8Script, script, static_cast<charcount_t>(length));
         *scriptLength = length;
 
