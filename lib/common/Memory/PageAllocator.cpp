@@ -2239,6 +2239,12 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
     }
     *dwOldVirtualProtectFlags = memBasicInfo.Protect;
 
+#if defined(ENABLE_JIT_CLAMP)
+    bool makeExecutable = (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) ? true : false;
+
+    AutoEnableDynamicCodeGen enableCodeGen(makeExecutable);
+#endif
+
     DWORD oldProtect; // this is only for first page
     BOOL retVal = ::VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
     Assert(oldProtect == *dwOldVirtualProtectFlags);

@@ -401,6 +401,12 @@ namespace Js
         _In_ ULONG NumberOfOffsets,
         _In_reads_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation)
     {
+#if defined(ENABLE_JIT_CLAMP)
+        // Ensure that dynamic code generation is allowed for this thread as
+        // this is required for the call to SetProcessValidCallTargets to
+        // succeed.
+        AutoEnableDynamicCodeGen enableCodeGen;
+#endif
 
 #if defined(DELAYLOAD_SET_CFG_TARGET)
         if (m_hModule)
