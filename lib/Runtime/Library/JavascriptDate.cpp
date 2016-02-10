@@ -1306,7 +1306,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -1357,7 +1357,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
@@ -1416,7 +1416,7 @@ namespace Js
         JavascriptDate* date = JavascriptDate::FromVar(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
-        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->GetConfig()->IsIntlEnabled()){
+        if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
 
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)

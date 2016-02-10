@@ -56,7 +56,7 @@ void (*InitializeAdditionalProperties)(ThreadContext *threadContext) = DefaultIn
 // To make sure the marker function doesn't get inlined, optimized away, or merged with other functions we disable optimization.
 // If this method ends up causing a perf problem in the future, we should replace it with asm versions which should be lighter.
 #pragma optimize("g", off)
-extern "C" void* MarkerForExternalDebugStep()
+__declspec(noinline) extern "C" void* MarkerForExternalDebugStep()
 {
     // We need to return something here to prevent this function from being merged with other empty functions by the linker.
     static int __dummy;
@@ -584,7 +584,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
         return;
     }
     Js::FunctionInfo *funcInfo = va_arg(arguments, Js::FunctionInfo*);
-    simdFuncInfoToOpcodeMap->AddNew(funcInfo, op);
+    AddSimdFuncInfo(op, funcInfo);
 
     SimdFuncSignature simdFuncSignature;
     simdFuncSignature.valid = true;
@@ -599,6 +599,36 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
     simdOpcodeToSignatureMap[Js::SimdOpcodeAsIndex(op)] = simdFuncSignature;
 
     va_end(arguments);
+}
+
+void ThreadContext::AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo)
+{
+    // primary funcInfo
+    simdFuncInfoToOpcodeMap->AddNew(funcInfo, op);
+    // Entry points of SIMD loads/stores of non-full width all map to the same opcode. This is not captured in the opcode table, so add additional entry points here.
+    switch (op)
+    {
+    case Js::OpCode::Simd128_LdArr_F4:
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load1, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load2, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Load3, op);
+        break;
+    case Js::OpCode::Simd128_StArr_F4:
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store1, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store2, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDFloat32x4Lib::EntryInfo::Store3, op);
+        break;
+    case Js::OpCode::Simd128_LdArr_I4:
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load1, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load2, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Load3, op);
+        break;
+    case Js::OpCode::Simd128_StArr_I4:
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store1, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store2, op);
+        simdFuncInfoToOpcodeMap->AddNew(&Js::SIMDInt32x4Lib::EntryInfo::Store3, op);
+        break;
+    }
 }
 
 Js::OpCode ThreadContext::GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo)
@@ -2197,7 +2227,7 @@ void
 ThreadContext::PreCollectionCallBack(CollectionFlags flags)
 {
 #ifdef PERF_COUNTERS
-    PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, L"TestTrace: deferparse - # of func: %d # deferparsed: %d\n", PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferedFunctionCounter().GetValue());
+    PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, L"TestTrace: deferparse - # of func: %d # deferparsed: %d\n", PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferredFunctionCounter().GetValue());
 #endif
     // This needs to be done before ClearInlineCaches since that method can empty the list of
     // script contexts with inline caches

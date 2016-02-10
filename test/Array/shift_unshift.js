@@ -107,7 +107,7 @@ try {
   echo("e instanceOf TypeError = " + (ex instanceof TypeError));
 }
 echo("a.length = " + a.length); // This should be unmodified.
-// Note that at this point alhough unshift throws, the array instance is modified as side-effect.
+// Note that at this point although unshift throws, the array instance is modified as side-effect.
 // This is according to the spec (spec bug).
 
 //Bug 61822: array length was getting hoisted
@@ -161,7 +161,7 @@ function foo()
     a.unshift(b,x,x=5, d=Math.sin(n) + 1);
     WScript.Echo (x); //5
 }
-Array.prototype.unshift = function(){WScript.Echo ("Overriden unshift")};
+Array.prototype.unshift = function(){WScript.Echo ("Overridden unshift")};
 foo();
 WScript.Echo (a);
 

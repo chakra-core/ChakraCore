@@ -87,7 +87,7 @@ namespace Js
         static Var EntryRejitFunction(RecyclableObject *function, CallInfo callInfo, ...);
 #endif /* IR_VIEWER */
 
-        static void ValidateSyntax(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, bool isGenerator, void (Parser::*validateSyntax)());
+        static void ValidateSyntax(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)());
         static void UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode) ;
         static ScriptFunction* DefaultEvalHelper(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
         static ScriptFunction* ProfileModeEvalHelper(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, ModuleID moduleID, ulong grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);

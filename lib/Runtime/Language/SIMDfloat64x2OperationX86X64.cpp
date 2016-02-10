@@ -19,17 +19,6 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDFloat64x2Operation::OpFloat64x2(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-
-        // Sets the lower double-precision, floating-point value to x
-        // and sets the upper double-precision, floating-point value to y.
-        x86Result.m128d_value = _mm_set_pd(v.f64[SIMD_Y], v.f64[SIMD_X]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     SIMDValue SIMDFloat64x2Operation::OpZero()
     {
         X86SIMDValue x86Result;
@@ -44,15 +33,6 @@ namespace Js
         X86SIMDValue x86Result;
         // Sets the 2 double-precision, floating-point values to x
         x86Result.m128d_value = _mm_set1_pd(x);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDFloat64x2Operation::OpSplat(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-        // Sets the 2 double-precision, floating-point values to v.f64[SIMD_X]
-        x86Result.m128d_value = _mm_set1_pd(v.f64[SIMD_X]);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -80,21 +60,6 @@ namespace Js
         x86Result.m128d_value = _mm_cvtepi32_pd(v.m128i_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDFloat64x2Operation::OpFromFloat32x4Bits(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-
-        _mm_store_ps(x86Result.simdValue.f32, v.m128_value);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDFloat64x2Operation::OpFromInt32x4Bits(const SIMDValue& value)
-    {
-        return OpFromFloat32x4Bits(value);
     }
 
     // Unary Ops

@@ -34,7 +34,7 @@ namespace Js
         sakIntArray = 5,
         sakFloatArray = 6,
 
-        sakPropertyIdArrayForCachedScope = 7,       // serialization only type, indiciate extra slots
+        sakPropertyIdArrayForCachedScope = 7,       // serialization only type, indicate extra slots
     };
 
 // Tightly pack serialized structures

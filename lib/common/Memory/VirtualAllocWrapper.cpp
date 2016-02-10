@@ -13,6 +13,22 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
     Assert(this == nullptr);
     LPVOID address = nullptr;
 
+#if defined(ENABLE_JIT_CLAMP)
+    bool makeExecutable;
+
+    if ((isCustomHeapAllocation) || 
+        (protectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)))
+    {
+        makeExecutable = true;
+    }
+    else
+    {
+        makeExecutable = false;
+    }
+
+    AutoEnableDynamicCodeGen enableCodeGen(makeExecutable);
+#endif
+
 #if defined(_CONTROL_FLOW_GUARD)
     DWORD oldProtectFlags;
     if (AutoSystemInfo::Data.IsCFGEnabled() && isCustomHeapAllocation)
@@ -27,6 +43,7 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
     {
         address = VirtualAlloc(lpAddress, dwSize, allocationType, protectFlags);
     }
+
     return address;
 }
 
@@ -64,6 +81,7 @@ VirtualAllocWrapper::IsInRange(void * address)
     Assert(this == nullptr);
     return false;
 }
+
 
 /*
 * class PreReservedVirtualAllocWrapper
@@ -235,33 +253,37 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
         AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid BitVector index calculation?");
         AssertMsg(dwSize % AutoSystemInfo::PageSize == 0, "COMMIT is managed at AutoSystemInfo::PageSize granularity");
 
-        char * commitedAddress = nullptr;
+        char * committedAddress = nullptr;
+
+#if defined(ENABLE_JIT_CLAMP)
+        AutoEnableDynamicCodeGen enableCodeGen;
+#endif
+
 #if defined(_CONTROL_FLOW_GUARD)
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
             DWORD oldProtect;
-            commitedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
-            AssertMsg(commitedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
-            VirtualProtect(commitedAddress, dwSize, protectFlags, &oldProtect);
+            committedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE | PAGE_TARGETS_INVALID);
+            AssertMsg(committedAddress != nullptr, "If no space to allocate, then how did we fetch this address from the tracking bit vector?");
+            VirtualProtect(committedAddress, dwSize, protectFlags, &oldProtect);
             AssertMsg(oldProtect == (PAGE_EXECUTE_READWRITE), "CFG Bitmap gets allocated and bits will be set to invalid only upon passing these flags.");
         }
         else
 #endif
         {
-            commitedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, protectFlags);
+            committedAddress = (char *) VirtualAlloc(addressToCommit, dwSize, MEM_COMMIT, protectFlags);
         }
 
-
         //Keep track of the committed pages within the preReserved Memory Region
-        if (lpAddress == nullptr && commitedAddress != nullptr)
+        if (lpAddress == nullptr && committedAddress != nullptr)
         {
-            Assert(commitedAddress == addressToCommit);
+            Assert(committedAddress == addressToCommit);
             Assert(requestedNumOfSegments != 0);
             freeSegments.ClearRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
         }
 
-        PreReservedHeapTrace(L"MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n", commitedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-        return commitedAddress;
+        PreReservedHeapTrace(L"MEM_COMMIT: StartAddress: 0x%p of size: 0x%x * 0x%x bytes \n", committedAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+        return committedAddress;
     }
 }
 
@@ -317,3 +339,118 @@ PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
         return success;
     }
 }
+
+#if defined(ENABLE_JIT_CLAMP)
+/*
+* class AutoEnableDynamicCodeGen
+*/
+
+typedef
+BOOL
+(WINAPI *PGET_PROCESS_MITIGATION_POLICY_PROC)(
+    _In_  HANDLE                    hProcess,
+    _In_  PROCESS_MITIGATION_POLICY MitigationPolicy,
+    _Out_ PVOID                     lpBuffer,
+    _In_  SIZE_T                    dwLength
+);
+
+AutoEnableDynamicCodeGen::PSET_THREAD_INFORMATION_PROC AutoEnableDynamicCodeGen::SetThreadInformationProc = nullptr;
+AutoEnableDynamicCodeGen::PGET_THREAD_INFORMATION_PROC AutoEnableDynamicCodeGen::GetThreadInformationProc = nullptr;
+PROCESS_MITIGATION_DYNAMIC_CODE_POLICY AutoEnableDynamicCodeGen::processPolicy;
+CriticalSection AutoEnableDynamicCodeGen::processPolicyCS;
+volatile bool AutoEnableDynamicCodeGen::processPolicyObtained = false;
+
+AutoEnableDynamicCodeGen::AutoEnableDynamicCodeGen(bool enable) : enabled(false)
+{
+    if (enable == false)
+    {
+        return;
+    }
+
+    //
+    // Snap the dynamic code generation policy for this process so that we
+    // don't need to resolve APIs and query it each time. We expect the policy
+    // to have been established upfront.
+    //
+
+    if (processPolicyObtained == false)
+    {
+        AutoCriticalSection autocs(&processPolicyCS);
+
+        if (processPolicyObtained == false)
+        {
+            PGET_PROCESS_MITIGATION_POLICY_PROC GetProcessMitigationPolicyProc = nullptr;
+
+            HMODULE module = GetModuleHandleW(L"api-ms-win-core-processthreads-l1-1-3.dll");
+
+            if (module != nullptr)
+            {
+                GetProcessMitigationPolicyProc = (PGET_PROCESS_MITIGATION_POLICY_PROC) GetProcAddress(module, "GetProcessMitigationPolicy");
+                SetThreadInformationProc = (PSET_THREAD_INFORMATION_PROC) GetProcAddress(module, "SetThreadInformation");
+                GetThreadInformationProc = (PGET_THREAD_INFORMATION_PROC) GetProcAddress(module, "GetThreadInformation");
+            }
+
+            if ((GetProcessMitigationPolicyProc == nullptr) ||
+                (!GetProcessMitigationPolicyProc(GetCurrentProcess(), ProcessDynamicCodePolicy, (PPROCESS_MITIGATION_DYNAMIC_CODE_POLICY) &processPolicy, sizeof(processPolicy))))
+            {
+                processPolicy.ProhibitDynamicCode = 0;
+            }
+
+            processPolicyObtained = true;
+        }
+    }
+
+    //
+    // The process is not prohibiting dynamic code or does not allow threads
+    // to opt out.  In either case, return to the caller.
+    //
+    // N.B. It is OK that this policy is mutable at runtime. If a process
+    //      really does not allow thread opt-out, then the call below will fail
+    //      benignly.
+    //
+    
+    if ((processPolicy.ProhibitDynamicCode == 0) || (processPolicy.AllowThreadOptOut == 0))
+    {
+        return;
+    }
+
+    if (SetThreadInformationProc == nullptr || GetThreadInformationProc == nullptr)
+    {
+        return;
+    }
+
+    // 
+    // If dynamic code is already allowed for this thread, then don't attempt to allow it again.
+    //
+
+    DWORD threadPolicy;
+
+    if ((GetThreadInformationProc(GetCurrentThread(), ThreadDynamicCodePolicy, &threadPolicy, sizeof(DWORD))) &&
+        (threadPolicy == THREAD_DYNAMIC_CODE_ALLOW))
+    {
+        return;
+    }
+
+    threadPolicy = THREAD_DYNAMIC_CODE_ALLOW;
+
+    BOOL result = SetThreadInformationProc(GetCurrentThread(), ThreadDynamicCodePolicy, &threadPolicy, sizeof(DWORD));
+    Assert(result);
+
+    enabled = true;
+}
+
+AutoEnableDynamicCodeGen::~AutoEnableDynamicCodeGen()
+{
+    if (enabled)
+    {
+        DWORD threadPolicy = 0;
+
+        BOOL result = SetThreadInformationProc(GetCurrentThread(), ThreadDynamicCodePolicy, &threadPolicy, sizeof(DWORD));
+        Assert(result);
+
+        enabled = false;
+    }
+}
+
+#endif // defined(ENABLE_JIT_CLAMP)
+

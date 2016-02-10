@@ -52,7 +52,7 @@ RecyclerSweep::BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adju
     // modify the heap block lists
 
     // CONCURRENT-TODO: Consider doing it during FinishDisposeObjects to get these block
-    // available sooner as well.   We will still need it here as we only always get to
+    // available sooner as well. We will still need it here as we only always get to
     // finish dispose before sweep.
     this->FlushPendingTransferDisposedObjects();
 

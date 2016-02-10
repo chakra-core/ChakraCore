@@ -39,8 +39,8 @@ Correct
 Correct
 Correct
 I4 ExtractLane
-Int32x4
-Int32x4(10,-20,30,0)
+int32x4
+SIMD.Int32x4(10, -20, 30, 0)
 number
 10
 number
@@ -51,14 +51,8 @@ number
 0
 
 I4 ReplaceLane
-Int32x4
-Int32x4(10,-20,30,0)
-Int32x4
-Int32x4(10,-20,30,0)
-Int32x4
-Int32x4(10,12,30,0)
-Int32x4
-Int32x4(10,-20,-30,0)
-Int32x4
-Int32x4(10,-20,30,0)
+SIMD.Int32x4(10, -20, 30, 0)
+SIMD.Int32x4(10, 12, 30, 0)
+SIMD.Int32x4(10, -20, -30, 0)
+SIMD.Int32x4(10, -20, 30, 0)
 

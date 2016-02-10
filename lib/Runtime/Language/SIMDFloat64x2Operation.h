@@ -10,18 +10,14 @@ namespace Js {
     {
         // following are operation wrappers for SIMD.Float64x2 general implementation
         static SIMDValue OpFloat64x2(double x, double y);
-        static SIMDValue OpFloat64x2(const SIMDValue& v);
 
         static SIMDValue OpZero();
 
         static SIMDValue OpSplat(double x);
-        static SIMDValue OpSplat(const SIMDValue& v);
 
         // conversion
         static SIMDValue OpFromFloat32x4(const SIMDValue& value);
-        static SIMDValue OpFromFloat32x4Bits(const SIMDValue& value);
         static SIMDValue OpFromInt32x4(const SIMDValue& value);
-        static SIMDValue OpFromInt32x4Bits(const SIMDValue& value);
 
         // Unary Ops
         static SIMDValue OpAbs(const SIMDValue& v);

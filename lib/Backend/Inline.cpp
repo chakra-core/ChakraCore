@@ -1178,7 +1178,6 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
 {
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
     Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
@@ -1962,7 +1961,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         inlineBuiltInEndInstr = InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
 
         // InlineArrayPop - TrackCalls Need to be done at InlineArrayPop and not at the InlineBuiltInEnd
-        // Hence we use a new opcode, to detect that it is a InlineArrayPop and we don't track the call during End of inlineBuiltInCall sequence
+        // Hence we use a new opcode, to detect that it is an InlineArrayPop and we don't track the call during End of inlineBuiltInCall sequence
         if(inlineCallOpCode == Js::OpCode::InlineArrayPop)
         {
             inlineBuiltInEndInstr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
@@ -1981,10 +1980,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         )
     {
         // Emit byteCodeUses for function object
-        IR::Instr * inlineBuilitInStartInstr = inlineBuiltInEndInstr;
-        while(inlineBuilitInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
+        IR::Instr * inlineBuiltInStartInstr = inlineBuiltInEndInstr;
+        while(inlineBuiltInStartInstr->m_opcode != Js::OpCode::InlineBuiltInStart)
         {
-            inlineBuilitInStartInstr = inlineBuilitInStartInstr->m_prev;
+            inlineBuiltInStartInstr = inlineBuiltInStartInstr->m_prev;
         }
 
         IR::Opnd * tmpDst = nullptr;
@@ -2034,7 +2033,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(callInstr->m_func);
         byteCodeUsesInstr->SetByteCodeOffset(callInstr);
         byteCodeUsesInstr->byteCodeUpwardExposedUsed = JitAnew(callInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>, callInstr->m_func->m_alloc);
-        IR::Instr *argInsertInstr = inlineBuilitInStartInstr;
+        IR::Instr *argInsertInstr = inlineBuiltInStartInstr;
 
 // SIMD_JS
         IR::Instr *eaInsertInstr = callInstr;
@@ -2044,6 +2043,9 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
         {
             callInstr->m_func->GetScriptContext()->GetThreadContext()->GetSimdFuncSignatureFromOpcode(callInstr->m_opcode, simdFuncSignature);
             Assert(simdFuncSignature.valid);
+            // if we have decided to inline, then actual arg count == signature arg count == required arg count from inlinee list (LibraryFunction.h)
+            Assert(simdFuncSignature.argCount == (uint)inlineCallArgCount);
+            Assert(simdFuncSignature.argCount == (uint)requiredInlineCallArgCount);
         }
 //
         inlineBuiltInEndInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
@@ -2133,6 +2135,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, Js::FunctionInfo *funcInfo, 
             argInsertInstr = argInstr;
             return false;
         });
+
+        //SIMD_JS
+        Simd128FixLoadStoreInstr(builtInId, callInstr);
+
         if(inlineCallOpCode == Js::OpCode::InlineMathImul || inlineCallOpCode == Js::OpCode::InlineMathClz32)
         {
             // Convert:
@@ -2264,7 +2270,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
         }
         else
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlineable as apply target \tCaller: %s (%s)\n",
+            INLINE_TESTTRACE(L"INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlinable as apply target \tCaller: %s (%s)\n",
                 inlinerData->GetFunctionBody()->GetDisplayName(), inlinerData->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer));
             return callInstr;
         }
@@ -2624,7 +2630,6 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
 
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     // inlinee
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
@@ -3168,6 +3173,13 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_TrimRight, callInstr->m_func));
         break;
 
+    case Js::BuiltinFunction::String_PadStart:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadStart, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::String_PadEnd:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_PadEnd, callInstr->m_func));
+        break;
 
     case Js::BuiltinFunction::GlobalObject_ParseInt:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperGlobalObject_ParseInt, callInstr->m_func));
@@ -3175,6 +3187,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 
     case Js::BuiltinFunction::RegExp_Exec:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_Exec, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::RegExp_SymbolSearch:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperRegExp_SymbolSearch, callInstr->m_func));
         break;
 
     };
@@ -3654,7 +3670,6 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
 
     Assert(callInstr->IsProfiledInstr());
     Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callInstr->AsProfiledInstr()->u.profileId);
-    Assert(callSiteId >= 0);
 
     Js::ProxyEntryPointInfo *defaultEntryPointInfo = funcBody->GetDefaultEntryPointInfo();
     Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
@@ -5239,4 +5254,105 @@ Inline::GetMethodLdOpndForCallInstr(IR::Instr* callInstr)
         return nullptr;
     }
     return nullptr;
+}
+
+// SIMD_JS
+/*
+Fixes the format of a SIMD load/store to match format expected by globOpt. Namely:
+Load:
+    dst = Simd128LdArr arr, index
+    becomes
+    dst = Simd128LdArr [arr, indx]
+
+Store:
+    t3 =    EA arr
+    t2 =    EA index, t3
+    t1 =    EA value, t2
+            Simd128StArr t1
+    becomes
+    [arr, index] = Simd128StArr value
+
+It also sets width in bytes of data to be loaded. Needed for bound check generation in GlobOpt.
+*/
+void
+Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * callInstr)
+{
+    bool isStore = false;
+    callInstr->dataWidth = 0;
+    switch (builtInId)
+    {
+        case Js::BuiltinFunction::SIMD_Float32x4_Store:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load:
+            callInstr->dataWidth = 16;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store3:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store3:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load3:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load3:
+            callInstr->dataWidth = 12;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store2:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store2:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load2:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load2:
+            callInstr->dataWidth = 8;
+            break;
+
+        case Js::BuiltinFunction::SIMD_Float32x4_Store1:
+        case Js::BuiltinFunction::SIMD_Int32x4_Store1:
+            isStore = true;
+            // fall through
+        case Js::BuiltinFunction::SIMD_Float32x4_Load1:
+        case Js::BuiltinFunction::SIMD_Int32x4_Load1:
+            callInstr->dataWidth = 4;
+            break;
+        default:
+            // nothing to do
+            return;
+    }
+
+    IR::IndirOpnd *indirOpnd;
+    if (!isStore)
+    {
+        // load
+        indirOpnd = IR::IndirOpnd::New(callInstr->GetSrc1()->AsRegOpnd(), callInstr->GetSrc2()->AsRegOpnd(), TyVar, callInstr->m_func);
+        callInstr->ReplaceSrc1(indirOpnd);
+        callInstr->FreeSrc2();
+    }
+    else
+    {
+        IR::Opnd *linkOpnd = callInstr->GetSrc1();
+        IR::Instr *eaInstr1, *eaInstr2, *eaInstr3;
+        IR::Opnd *value, *index, *arr;
+
+        eaInstr1 = linkOpnd->GetStackSym()->m_instrDef;
+        value = eaInstr1->GetSrc1();
+        linkOpnd = eaInstr1->GetSrc2();
+
+        eaInstr2 = linkOpnd->GetStackSym()->m_instrDef;
+        index = eaInstr2->GetSrc1();
+        linkOpnd = eaInstr2->GetSrc2();
+
+        eaInstr3 = linkOpnd->GetStackSym()->m_instrDef;
+        Assert(!eaInstr3->GetSrc2()); // end of args list
+        arr = eaInstr3->GetSrc1();
+
+        indirOpnd = IR::IndirOpnd::New(arr->AsRegOpnd(), index->AsRegOpnd(), TyVar, callInstr->m_func);
+        callInstr->SetDst(indirOpnd);
+        callInstr->ReplaceSrc1(value);
+
+        // remove ea instructions
+        eaInstr1->Remove(); eaInstr2->Remove(); eaInstr3->Remove();
+
+    }
 }

@@ -561,7 +561,7 @@ namespace Js
     void JavascriptExceptionOperators::DbgCheckEHChain()
     {
 #if 0
-        // This debug check is disabled until we figure out how to trace an fs:0 chain if we throw from inside
+        // This debug check is disabled until we figure out how to trace a fs:0 chain if we throw from inside
         // a finally.
 
         void *currentFS0;

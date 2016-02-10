@@ -14,10 +14,10 @@ function equal(a, b) {
 function testWithX() {
     print("Int8x16 replaceLane 0");
     var a = SIMD.Int8x16(16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1);
-    var c = SIMD.Int8x16.replaceLane(a, 0, 20);
-    equal(20, SIMD.Int8x16.extractLane(c, 0));
-    equal(9, SIMD.Int8x16.extractLane(c, 1));
-    equal(4, SIMD.Int8x16.extractLane(c, 2));
+    var c = SIMD.Int8x16.replaceLane(a, false, 20);
+    equal(20, SIMD.Int8x16.extractLane(c, false));
+    equal(9, SIMD.Int8x16.extractLane(c, true));
+    equal(4, SIMD.Int8x16.extractLane(c, ["2"]));
     equal(1, SIMD.Int8x16.extractLane(c, 3));
     equal(16, SIMD.Int8x16.extractLane(c, 4));
     equal(9, SIMD.Int8x16.extractLane(c, 5));
@@ -54,7 +54,7 @@ function testWithX() {
 function testWithY() {
     print("Int8x16 replaceLane 1");
     var a = SIMD.Int8x16(16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1);
-    var c = SIMD.Int8x16.replaceLane(a, 1, 20);
+    var c = SIMD.Int8x16.replaceLane(a, true, 20);
     equal(16, SIMD.Int8x16.extractLane(c, 0));
     equal(20, SIMD.Int8x16.extractLane(c, 1));
     equal(4, SIMD.Int8x16.extractLane(c, 2));
@@ -95,7 +95,7 @@ function testWithY() {
 function testWithZ() {
     print("Int8x16 replaceLane 2");
     var a = SIMD.Int8x16(16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1, 16, 9, 4, 1);
-    var c = SIMD.Int8x16.replaceLane(a, 2, 20);
+    var c = SIMD.Int8x16.replaceLane(a, ["2"], 20);
     equal(16, SIMD.Int8x16.extractLane(c, 0));
     equal(9, SIMD.Int8x16.extractLane(c, 1));
     equal(20, SIMD.Int8x16.extractLane(c, 2));

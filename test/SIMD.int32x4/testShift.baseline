@@ -1,4 +1,4 @@
-Int32x4 shiftLeft
+Int32x4 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -7,7 +7,7 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftLeft
+Int32x4 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -16,7 +16,7 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftLeft
+Int32x4 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -25,7 +25,7 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftLeft
+Int32x4 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -34,7 +34,7 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftRightLogical
+Int32x4 shiftRightByScalar
 Correct
 Correct
 Correct
@@ -43,16 +43,15 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftRightLogical
 Correct
 Correct
 Correct
 Correct
+Int32x4 shiftRightByScalar
 Correct
 Correct
 Correct
 Correct
-Int32x4 shiftRightLogical
 Correct
 Correct
 Correct
@@ -61,7 +60,7 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftRightLogical
+Int32x4 shiftRightByScalar
 Correct
 Correct
 Correct
@@ -70,46 +69,11 @@ Correct
 Correct
 Correct
 Correct
-Int32x4 shiftRightArithmetic
 Correct
 Correct
 Correct
 Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int32x4 shiftRightArithmetic
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int32x4 shiftRightArithmetic
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int32x4 shiftRightArithmetic
+Int32x4 shiftRightByScalar
 Correct
 Correct
 Correct

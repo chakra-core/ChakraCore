@@ -29,8 +29,8 @@
         %(DisableSpecificWarnings);
         4456;     <!-- declaration of '' hides previous local declaration -->
         4457;     <!-- declaration of '' hides function parameter -->
-        4458;     <!-- declaration of '' hides class memeber -->
-        4091;     <!-- '': ignore on lef of 'type' when no variable is declared -->
+        4458;     <!-- declaration of '' hides class member -->
+        4091;     <!-- '': ignore on left of 'type' when no variable is declared -->
         4838;     <!-- conversion from 'unsigned int' to 'int requires a narrowing conversion -->
         4499;     <!-- explicit specialization cannot have a storage class (ignored) -->
         4463;     <!-- overflow; assigning 1 to bit-field that can only hold values from -1 to 0 -->
@@ -45,12 +45,12 @@
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
 
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <Optimization Condition="'$(ENABLE_CODECOVERAGE)'=='true'">Disabled</Optimization>
     </ClCompile>
 
     <Link>
-      <!-- ======== For Code Covearge ======== -->
+      <!-- ======== For Code Coverage ======== -->
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

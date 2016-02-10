@@ -582,7 +582,7 @@ bool LegalizeMD::LegalizeDirectBranch(IR::BranchInstr *branchInstr, uint32 branc
         return false;
     }
 
-    // Convert an conditional branch which can only be +-1MB to unconditional branch which is +-16MB
+    // Convert a conditional branch which can only be +-1MB to unconditional branch which is +-16MB
     // Convert beq Label (where Label is long jump) to something like this
     //          bne Fallback
     //          b Label

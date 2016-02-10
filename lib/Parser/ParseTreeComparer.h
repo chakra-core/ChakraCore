@@ -382,7 +382,7 @@ namespace Js
         }
 
         //
-        // Check if a node has token (node type ownning an implicit token, e.g. "var x" (var declaration)).
+        // Check if a node has token (node type owning an implicit token, e.g. "var x" (var declaration)).
         //
         static bool HasToken(ParseNode* pnode)
         {

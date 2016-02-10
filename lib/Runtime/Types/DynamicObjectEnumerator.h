@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
     class DynamicObjectEnumerator : public JavascriptEnumerator
     {
     protected:

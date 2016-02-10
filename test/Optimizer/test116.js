@@ -62,7 +62,7 @@ function test0() {
     var f64 = new Float64Array(256);
     var FloatArr0 = [];
     var c = 1;
-    var aliasOfobj0 = obj0;;
+    var aliasOfObj0 = obj0;;
     var aliasOfarrObj0 = arrObj0;;
     var aliasOfFloatArr0 = FloatArr0;;
     function bar0(argFunc8, argArrObj9, argMath10, argArrObj11) {
@@ -77,7 +77,7 @@ function test0() {
     for(var strvar0 in f64) {
         if(strvar0.indexOf('method') != -1) continue;
         if(__loopvar1++ > 3) break;
-        func0.call(aliasOfobj0, 1, 1, 1, aliasOfFloatArr0);
+        func0.call(aliasOfObj0, 1, 1, 1, aliasOfFloatArr0);
         // Snippet switch2
         aliasOfarrObj0.prop0 = (function() {
             switch(Object.keys(obj0).length) {

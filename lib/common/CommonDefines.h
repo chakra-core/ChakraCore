@@ -11,7 +11,7 @@
 // Chakra Core version
 //----------------------------------------------------------------------------------------------------
 #define CHAKRA_CORE_MAJOR_VERSION 1
-#define CHAKRA_CORE_MINOR_VERSION 0
+#define CHAKRA_CORE_MINOR_VERSION 1
 #define CHAKRA_CORE_VERSION_RELEASE 0
 #define CHAKRA_CORE_VERSION_PRERELEASE 1
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0
@@ -154,6 +154,7 @@
 #define ENABLE_DOM_FAST_PATH
 #define ENABLE_JS_ETW                               // ETW support
 #define EDIT_AND_CONTINUE
+#define ENABLE_JIT_CLAMP
 #endif
 
 // Telemetry flags

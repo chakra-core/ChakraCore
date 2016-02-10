@@ -40,7 +40,7 @@ namespace Js
             {
                 // If we have the buffer already, just copy it
                 const CharCount copyCharLength = s->GetLength();
-                Assert(copiedCharLength + copyCharLength <= this->GetLength());
+                AnalysisAssert(copiedCharLength + copyCharLength <= this->GetLength());
                 CopyHelper(&buffer[copiedCharLength], s->GetString(), copyCharLength);
                 copiedCharLength += copyCharLength;
                 continue;
@@ -62,7 +62,7 @@ namespace Js
             }
 
             const CharCount copyCharLength = s->GetLength();
-            Assert(copyCharLength <= GetLength() - copiedCharLength);
+            AnalysisAssert(copyCharLength <= GetLength() - copiedCharLength);
 
             if(recursionDepth == MaxCopyRecursionDepth && s->IsTree())
             {

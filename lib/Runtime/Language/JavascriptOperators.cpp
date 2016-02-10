@@ -271,40 +271,37 @@ namespace Js
         {
         case TypeIds_Undefined:
             return scriptContext->GetLibrary()->GetUndefinedDisplayString();
-
         case TypeIds_Null:
             //null
             return scriptContext->GetLibrary()->GetObjectTypeDisplayString();
-
         case TypeIds_Integer:
         case TypeIds_Number:
         case TypeIds_Int64Number:
         case TypeIds_UInt64Number:
             return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
-
         case TypeIds_SIMDFloat32x4:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDFloat32x4DisplayString();
         case TypeIds_SIMDFloat64x2:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDFloat64x2DisplayString();
         case TypeIds_SIMDInt32x4:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString();
-            }
+            return scriptContext->GetLibrary()->GetSIMDInt32x4DisplayString();
+        case TypeIds_SIMDInt16x8:
+            return scriptContext->GetLibrary()->GetSIMDInt16x8DisplayString();
         case TypeIds_SIMDInt8x16:
-            if (scriptContext->GetConfig()->IsSimdjsEnabled())
-            {
-                return scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString();
-            }
-
+            return scriptContext->GetLibrary()->GetSIMDInt8x16DisplayString();
+        case TypeIds_SIMDUint32x4:
+            return scriptContext->GetLibrary()->GetSIMDUint32x4DisplayString();
+        case TypeIds_SIMDUint16x8:
+            return scriptContext->GetLibrary()->GetSIMDUint16x8DisplayString();
+        case TypeIds_SIMDUint8x16:
+            return scriptContext->GetLibrary()->GetSIMDUint8x16DisplayString();
+        case TypeIds_SIMDBool32x4:
+            return scriptContext->GetLibrary()->GetSIMDBool32x4DisplayString();
+        case TypeIds_SIMDBool16x8:
+            return scriptContext->GetLibrary()->GetSIMDBool16x8DisplayString();
+        case TypeIds_SIMDBool8x16:
+            return scriptContext->GetLibrary()->GetSIMDBool8x16DisplayString();
         default:
-
             // Falsy objects are typeof 'undefined'.
             if (RecyclableObject::FromVar(var)->GetType()->IsFalsy())
             {
@@ -564,15 +561,15 @@ namespace Js
 
     BOOL JavascriptOperators::Greater_Full(Var aLeft,Var aRight,ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aRight, aLeft, scriptContext, false, false);
+        return RelationalComparisonHelper(aRight, aLeft, scriptContext, false, false);
     }
 
     BOOL JavascriptOperators::Less_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
     {
-        return RelationalComparsionHelper(aLeft, aRight, scriptContext, true, false);
+        return RelationalComparisonHelper(aLeft, aRight, scriptContext, true, false);
     }
 
-    BOOL JavascriptOperators::RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
+    BOOL JavascriptOperators::RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aLeft);
 
@@ -4380,9 +4377,9 @@ CommonNumber:
             (Js::JavascriptNumber *)buffer), scriptContext, flags, dValue);
 #endif
     }
-    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memcopy(Var dstInstance, int32 dstStart, Var srcInstance, int32 srcStart, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
@@ -4461,13 +4458,13 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(dstInstance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<Var>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
                 else
                 {
-                    JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
+                    returnValue = JavascriptArray::FromVar(dstInstance)->DirectSetItemAtRangeFromArray<int32>(dstStart, length, JavascriptArray::FromVar(srcInstance), srcStart);
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(dstInstance);
             }
             break;
         }
@@ -4481,9 +4478,9 @@ CommonNumber:
         return returnValue;
     }
 
-    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, uint32 length, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_Memset(Var instance, int32 start, Var value, int32 length, ScriptContext* scriptContext)
     {
-        if (length == 0)
+        if (length <= 0)
         {
             return true;
         }
@@ -4558,17 +4555,17 @@ CommonNumber:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(instance);
                 if (instanceType == TypeIds_Array)
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<int32>(start, length, JavascriptConversion::ToInt32(value, scriptContext));
                 }
                 else
                 {
-                    JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
+                    returnValue = JavascriptArray::FromVar(instance)->DirectSetItemAtRange<double>(start, length, JavascriptConversion::ToNumber(value, scriptContext));
                 }
-                returnValue = vt == VirtualTableInfoBase::GetVirtualTable(instance);
+                returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
             break;
         }
@@ -9510,6 +9507,7 @@ CommonNumber:
             {
                 element = GetElementAtIndex(arrayObject, i, scriptContext);
                 AnalysisAssert((i + 1) * sizeof(int8) <= allocSize);
+#pragma prefast(suppress:22102)
                 ((int8*)buffer)[i] = Js::JavascriptConversion::ToInt8(element, scriptContext);
             }
             break;
@@ -9671,7 +9669,7 @@ CommonNumber:
             //7.ReturnIfAbrupt(S).
             Var species = nullptr;
             if (!JavascriptOperators::GetProperty(RecyclableObject::FromVar(constructor), PropertyIds::_symbolSpecies, &species, scriptContext)
-                || JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                || JavascriptOperators::IsUndefinedOrNull(species))
             {
                 //8.If S is either undefined or null, return defaultConstructor.
                 return defaultConstructor;
@@ -9716,7 +9714,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aLeft, aRight, scriptContext, true, true);
+        return !RelationalComparisonHelper(aLeft, aRight, scriptContext, true, true);
     }
 
     BOOL JavascriptOperators::LessEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -9749,7 +9747,7 @@ CommonNumber:
             }
         }
 
-        return !RelationalComparsionHelper(aRight, aLeft, scriptContext, false, true);
+        return !RelationalComparisonHelper(aRight, aLeft, scriptContext, false, true);
     }
 
     BOOL JavascriptOperators::NotEqual(Var aLeft, Var aRight, ScriptContext* scriptContext)
@@ -10000,6 +9998,11 @@ CommonNumber:
     BOOL JavascriptOperators::IsUndefinedOrNullType(TypeId typeId)
     {
         return typeId <= TypeIds_UndefinedOrNull;
+    }
+
+    BOOL JavascriptOperators::IsUndefinedOrNull(Var instance)
+    {
+        return IsUndefinedOrNullType(JavascriptOperators::GetTypeId(instance));
     }
 
     BOOL JavascriptOperators::IsSpecialObjectType(TypeId typeId)
@@ -10319,7 +10322,7 @@ CommonNumber:
 
             // Let S be Get(C, @@species)
             if (JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolSpecies, &species, scriptContext)
-                && !JavascriptOperators::IsUndefinedOrNullType(JavascriptOperators::GetTypeId(species)))
+                && !JavascriptOperators::IsUndefinedOrNull(species))
             {
                 // If S is neither undefined nor null, let C be S
                 return species;

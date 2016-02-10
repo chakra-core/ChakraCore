@@ -112,8 +112,8 @@ namespace Js
             _Outptr_opt_ IMetaDataImport2 **metaDataImport,
             _Out_opt_ mdTypeDef *typeDefToken);
 
-        typedef FNCWRoGetMetaDataFile* PFNCWRoGetMettadataFile;
-        PFNCWRoGetMettadataFile m_pfnRoGetMetadataFile;
+        typedef FNCWRoGetMetaDataFile* PFNCWRoGetMetadataFile;
+        PFNCWRoGetMetadataFile m_pfnRoGetMetadataFile;
 
 
     public:
@@ -166,13 +166,15 @@ namespace Js
         PFNCWDllGetActivationFactory m_pfnFNCWDllGetActivationFactory;
 
         Js::DelayLoadWinRtString *winRTStringLibrary;
-        BOOL winRTStringsPresent;
+        bool winRTStringsPresent;
+        bool hasGlobalizationDllLoaded;
 
     public:
         DelayLoadWindowsGlobalization() : DelayLoadWinRtString(),
             m_pfnFNCWDllGetActivationFactory(nullptr),
             winRTStringLibrary(nullptr),
-            winRTStringsPresent(false) { }
+            winRTStringsPresent(false),
+            hasGlobalizationDllLoaded(false) { }
 
         virtual ~DelayLoadWindowsGlobalization() { }
 
@@ -187,6 +189,7 @@ namespace Js
         void Ensure(Js::DelayLoadWinRtString *winRTStringLibrary);
 
         HRESULT DllGetActivationFactory(__in HSTRING activatibleClassId, __out IActivationFactory** factory);
+        bool HasGlobalizationDllLoaded();
 
         HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;
         HRESULT WindowsCreateStringReference(_In_reads_opt_(length+1) const WCHAR * sourceString, UINT32 length, _Out_ HSTRING_HEADER * header, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;
@@ -266,8 +269,8 @@ namespace Js
             _In_ HANDLE hProcess,
             _In_ PVOID VirtualAddress,
             _In_ SIZE_T RegionSize,
-            _In_ ULONG NumberOfOffets,
-            _In_reads_(NumberOfOffets) PCFG_CALL_TARGET_INFO OffsetInformation
+            _In_ ULONG NumberOfOffsets,
+            _In_reads_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation
             );
     };
 #endif

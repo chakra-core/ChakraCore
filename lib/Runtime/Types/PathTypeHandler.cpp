@@ -978,7 +978,7 @@ namespace Js
             }
             typeHandler->Add(propertyRecord, attributes, scriptContext);
         }
-        AssertMsg((typeHandler->GetFlags() & IsPrototypeFlag) == 0, "Why does a newly created type handler have a IsPrototypeFlag set?");
+        AssertMsg((typeHandler->GetFlags() & IsPrototypeFlag) == 0, "Why does a newly created type handler have the IsPrototypeFlag set?");
 
  #ifdef PROFILE_OBJECT_LITERALS
         scriptContext->objectLiteralSimpleDictionaryCount++;
@@ -1532,7 +1532,7 @@ namespace Js
 
         if (index >= this->typePath->GetMaxInitializedLength())
         {
-            // We are a adding a property where no instance property has been set before.  We rely on properties being
+            // We are adding a property where no instance property has been set before.  We rely on properties being
             // added in order of indexes to be sure that we don't leave any uninitialized properties interspersed with
             // initialized ones, which could lead to incorrect behavior.  See comment in TypePath::Branch.
             AssertMsg(index == this->typePath->GetMaxInitializedLength(), "Adding properties out of order?");
@@ -1579,7 +1579,7 @@ namespace Js
 
         if (slotIndex >= newTypeHandler->typePath->GetMaxInitializedLength())
         {
-            // We are a adding a property where no instance property has been set before.  We rely on properties being
+            // We are adding a property where no instance property has been set before.  We rely on properties being
             // added in order of indexes to be sure that we don't leave any uninitialized properties interspersed with
             // initialized ones, which could lead to incorrect behavior.  See comment in TypePath::Branch.
             AssertMsg(slotIndex == newTypeHandler->typePath->GetMaxInitializedLength(), "Adding properties out of order?");

@@ -927,12 +927,13 @@ namespace Js
         // Offset of doubles from (double*)m_localSlot
         mDoubleByteOffset = (doubleOffset32bitsFix *sizeof(int));
 
+        // SIMD_JS
+        const int totalDoubleCount = mDoubleConstCount + mDoubleVarCount + mDoubleTmpCount;
+        mSimdByteOffset = mDoubleByteOffset + totalDoubleCount * sizeof(double);
+        // Alignment
+        mSimdByteOffset = ::Math::Align<int>((int)mSimdByteOffset, sizeof(AsmJsSIMDValue));
+        
 
-        if (isSimdjsEnabled)
-        {
-            const int totalDoubleCount = mDoubleConstCount + mDoubleVarCount + mDoubleTmpCount;
-            mSimdByteOffset = mDoubleByteOffset + totalDoubleCount * sizeof(double);
-        }
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
         {
@@ -956,10 +957,12 @@ namespace Js
 
     int AsmJsFunctionInfo::GetTotalSizeinBytes() const
     {
-        int size = mDoubleByteOffset + (mDoubleConstCount + mDoubleVarCount + mDoubleTmpCount) * sizeof(double);
+        int size;
 
-        // SimdJs values
-        size += GetSimdAllCount()* sizeof(AsmJsSIMDValue);
+        // SIMD values are aligned
+        Assert(mSimdByteOffset % sizeof(AsmJsSIMDValue) == 0);
+        size = mSimdByteOffset + GetSimdAllCount()* sizeof(AsmJsSIMDValue);
+        
         return size;
     }
 

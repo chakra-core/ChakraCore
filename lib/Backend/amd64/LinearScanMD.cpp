@@ -103,7 +103,7 @@ void
 LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
 {
     Assert(opnd->IsAddrOpnd() || opnd->IsIntConstOpnd());
-    intptr value = opnd->IsAddrOpnd() ? (intptr)opnd->AsAddrOpnd()->m_address : opnd->AsIntConstOpnd()->GetValue();
+    intptr_t value = opnd->IsAddrOpnd() ? (intptr_t)opnd->AsAddrOpnd()->m_address : opnd->AsIntConstOpnd()->GetValue();
     if (value == 0
         && instr->m_opcode == Js::OpCode::MOV
         && !instr->GetDst()->IsRegOpnd()
@@ -111,7 +111,7 @@ LinearScanMD::LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd)
     {
         Assert(this->linearScan->instrUseRegs.IsEmpty());
 
-        // MOV doesn't have a imm8 encoding for 32-bit/64-bit assignment, so if we have a register available,
+        // MOV doesn't have an imm8 encoding for 32-bit/64-bit assignment, so if we have a register available,
         // we should hoist it and generate xor reg, reg and MOV dst, reg
         BitVector regsBv;
         regsBv.Copy(this->linearScan->activeRegs);

@@ -619,28 +619,36 @@ void Js::CharClassifier::initClassifier(ScriptContext * scriptContext, CharClass
     if (es6ModeNeeded)
     {
         HRESULT hr = globalizationAdapter->EnsureDataTextObjectsInitialized(globLibrary);
+        // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support
+        // in that case.
         if (FAILED(hr))
         {
-            AssertMsg(false, "Failed to initialize COM interfaces, verify correct version of globalization dll is used.");
-            JavascriptError::MapAndThrowError(scriptContext, hr);
-        }
-
-        this->winGlobCharApi = globalizationAdapter->GetUnicodeStatics();
-        if (this->winGlobCharApi == nullptr)
-        {
-            // No fallback mode, then assert
-            if (es6FallbackMode == CharClassifierModes::ES6)
-            {
-                AssertMsg(false, "Windows::Data::Text::IUnicodeCharactersStatics not initialized");
-                //Fallback to ES5 just in case for fre builds.
-                es6FallbackMode = CharClassifierModes::ES5;
-            }
             if (isES6UnicodeVerboseEnabled)
             {
                 Output::Print(L"Windows::Data::Text::IUnicodeCharactersStatics not initialized\r\n");
             }
-            //Default to non-es6
             es6Supported = false;
+            es6FallbackMode = CharClassifierModes::ES5;
+        }
+        else
+        {
+            this->winGlobCharApi = globalizationAdapter->GetUnicodeStatics();
+            if (this->winGlobCharApi == nullptr)
+            {
+                // No fallback mode, then assert
+                if (es6FallbackMode == CharClassifierModes::ES6)
+                {
+                    AssertMsg(false, "Windows::Data::Text::IUnicodeCharactersStatics not initialized");
+                    //Fallback to ES5 just in case for fre builds.
+                    es6FallbackMode = CharClassifierModes::ES5;
+                }
+                if (isES6UnicodeVerboseEnabled)
+                {
+                    Output::Print(L"Windows::Data::Text::IUnicodeCharactersStatics not initialized\r\n");
+                }
+                //Default to non-es6
+                es6Supported = false;
+            }
         }
     }
 #else

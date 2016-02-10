@@ -393,7 +393,7 @@ namespace Js
     // The locals var's addresses.
 
 
-    // A representation of a address when this Var is taken from the slot array.
+    // A representation of an address when this Var is taken from the slot array.
     class LocalObjectAddressForSlot : public IDiagObjectAddress
     {
         ScopeSlots slotArray;
@@ -408,7 +408,7 @@ namespace Js
         virtual BOOL IsInDeadZone() const;
     };
 
-    // A representation of a address when this Var is taken from the direct regslot.
+    // A representation of an address when this Var is taken from the direct regslot.
     class LocalObjectAddressForRegSlot : public IDiagObjectAddress
     {
         DiagStackFrame* pFrame;

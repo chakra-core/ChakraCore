@@ -16,7 +16,7 @@ namespace Js
                 uint16 preventdataSlotIndexFalseRef;
                 uint16 dataSlotIndex;
             };
-            intptr ptrSlot1;
+            intptr_t ptrSlot1;
         };
         union
         {
@@ -26,9 +26,9 @@ namespace Js
                 bool isInlineSlot;
                 bool isStoreFieldEnabled;
             };
-            intptr ptrSlot2;
+            intptr_t ptrSlot2;
         };
-        intptr blank;
+        intptr_t blank;
     };
 
     CompileAssert(sizeof(PropertyCache) == sizeof(InlineCacheAllocator::CacheLayout));

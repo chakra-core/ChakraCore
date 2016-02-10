@@ -847,7 +847,7 @@ namespace Js
 
     void JavascriptArrayBuffer::Finalize(bool isShutdown)
     {
-            // In debugger scenario, ScriptAuthor can create scriptContxt and delete scriptContext
+            // In debugger scenario, ScriptAuthor can create scriptContext and delete scriptContext
             // explicitly. So for the builtin, while javascriptLibrary is still alive fine, the
             // matching scriptContext might have been deleted and the javascriptLibrary->scriptContext
             // field reset (but javascriptLibrary is still alive).

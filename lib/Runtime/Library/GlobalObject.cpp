@@ -731,7 +731,7 @@ namespace Js
         return pEvalFunction;
     }
 
-    void GlobalObject::ValidateSyntax(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, bool isGenerator, void (Parser::*validateSyntax)())
+    void GlobalObject::ValidateSyntax(ScriptContext* scriptContext, const wchar_t *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)())
     {
         Assert(sourceLength >= 0);
 
@@ -752,7 +752,7 @@ namespace Js
             utf8Source = reinterpret_cast< LPUTF8 >( tempAlloc.Realloc(utf8Source, cbUtf8Buffer, cbSource + 1) );
 
             Parser parser(scriptContext);
-            hrParser = parser.ValidateSyntax(utf8Source, cbSource, isGenerator, &se, validateSyntax);
+            hrParser = parser.ValidateSyntax(utf8Source, cbSource, isGenerator, isAsync, &se, validateSyntax);
         }
         END_TRANSLATE_EXCEPTION_TO_HRESULT(hr);
         END_LEAVE_SCRIPT_INTERNAL(scriptContext);

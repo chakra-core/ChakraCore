@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -706,6 +706,13 @@
     <default>
       <files>OS_1362136.js</files>
       <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nonSimpleParameterList.js</files>
+      <baseline>nonSimpleParameterList.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
 </regress-exe>

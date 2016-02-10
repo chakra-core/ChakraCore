@@ -186,7 +186,7 @@ private:
     void                BuildProfiled2CallIExtended(Js::OpCode opcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::ProfileId profileId, Js::ProfileId profileId2, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildLdSpreadIndices(uint32 offset, uint32 spreadAuxOffset);
-    void                BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
+    IR::Instr *         BuildCallIExtended(Js::OpCode newOpcode, uint32 offset, Js::RegSlot returnValue, Js::RegSlot function,
                             Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset);
     void                BuildCallCommon(IR::Instr *instr, StackSym *symDst, Js::ArgSlot argCount);
     void                BuildRegexFromPattern(Js::RegSlot dstRegSlot, uint32 patternIndex, uint32 offset);

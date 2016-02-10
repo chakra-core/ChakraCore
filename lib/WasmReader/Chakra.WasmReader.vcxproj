@@ -24,6 +24,7 @@
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Parser;
         $(MSBuildThisFileDirectory)..\Backend;
         %(AdditionalIncludeDirectories)

@@ -64,7 +64,7 @@ var tests = [
                 constructor() {
                     super();
                     assert.areEqual(42, super.x, "confirm we can make dot property calls on non function types");
-                    assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot proerties");
+                    assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot properties");
                     assert.areEqual(30, super["y"], "confirm we can make index property calls on string properties promoted to dot properties");
                     assert.areEqual(10, super[10], "confirm we can make index property calls on integer properties");
                     assert.areEqual(10.1, super[10.1], "confirm we can make index property calls on float point properties");
@@ -84,7 +84,7 @@ var tests = [
                         super();
                         var super_arrow = () => {
                         assert.areEqual(42, super.x, "confirm we can make dot property calls on non function types");
-                        assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot proerties");
+                        assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot properties");
                         assert.areEqual(30, super["y"], "confirm we can make index property calls on string properties promoted to dot properties");
                         assert.areEqual(10, super[10], "confirm we can make index property calls on integer properties");
                         assert.areEqual(10.1, super[10.1], "confirm we can make index property calls on float point properties");
@@ -106,7 +106,7 @@ var tests = [
                     var super_arrow = () => {
                         super();
                         assert.areEqual(42, super.x, "confirm we can make dot property calls on non function types");
-                        assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot proerties");
+                        assert.areEqual(42, super["x"], "confirm we can make index property calls of properties defined as dot properties");
                         assert.areEqual(30, super["y"], "confirm we can make index property calls on string properties promoted to dot properties");
                         assert.areEqual(10, super[10], "confirm we can make index property calls on integer properties");
                         assert.areEqual(10.1, super[10.1], "confirm we can make index property calls on float point properties");

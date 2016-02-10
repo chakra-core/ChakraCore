@@ -13,7 +13,7 @@ function test(x, s, e)
 // Test regular strings
 //
 
-var left = "abcdefghjiklmnopqrstuvwxyz";
+var left = "abcdefghijklmnopqrstuvwxyz";
 test(left, 1, 10);
 test(left, 0, 5);
 test(left, 15, 25);

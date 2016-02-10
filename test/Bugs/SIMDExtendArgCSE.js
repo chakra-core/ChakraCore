@@ -41,8 +41,7 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    
     var f4sqrt = f4.sqrt;
 
     var f4lessThan = f4.lessThan;
@@ -73,8 +72,7 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+    
     var d2sqrt = d2.sqrt;
     var d2lessThan = d2.lessThan;
     var d2lessThanOrEqual = d2.lessThanOrEqual;
@@ -159,10 +157,8 @@ var m = asmModule(this, {g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)
 
 var ret1 = m.func1();
 
-WScript.Echo(typeof(ret1));
 WScript.Echo(ret1.toString());
 
 var ret2 = m.func2();
 
-WScript.Echo(typeof(ret2));
 WScript.Echo(ret2.toString());

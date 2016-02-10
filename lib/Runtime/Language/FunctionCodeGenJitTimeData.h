@@ -622,7 +622,6 @@ namespace Js
             }
             inlinees[profiledCallSiteId] = this;
             inlineeCount++;
-            this->isInlined = isInlined;
         }
 
         uint16 GetProfiledIterations() const;

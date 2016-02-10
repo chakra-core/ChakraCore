@@ -30,8 +30,11 @@ using namespace Windows::Globalization;
 
 #pragma warning(pop)
 
-#define IfCOMFailAssertMsgAndThrowHr(op) \
-   IfFailAssertMsgAndThrowHr(op, "Failed to initialize COM interfaces, verify correct version of globalization dll is used.")
+#define IfCOMFailIgnoreSilentlyAndReturn(op) \
+    if(FAILED(hr=(op))) \
+    { \
+        return; \
+    } \
 
 #define IfFailAssertMsgAndThrowHr(op, msg) \
     if (FAILED(hr=(op))) \
@@ -233,7 +236,7 @@ namespace Js
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
-        if (scriptContext->GetConfig()->IsIntlEnabled())
+        if (scriptContext->IsIntlEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
             this->intlNativeInterfaces = DynamicObject::New(library->GetRecycler(),
@@ -383,7 +386,7 @@ namespace Js
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
-            IfCOMFailAssertMsgAndThrowHr(GetWindowsGlobalizationAdapter(scriptContext)->EnsureCommonObjectsInitialized(library));
+            IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureCommonObjectsInitialized(library));
             switch (intlInitializationType)
             {
                 default:
@@ -391,8 +394,8 @@ namespace Js
                     // fall thru
                 case IntlInitializationType::Intl:
 
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureNumberFormatObjectsInitialized(library));
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Intl");
                     break;
                 case IntlInitializationType::StringPrototype:
@@ -400,11 +403,11 @@ namespace Js
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"String");
                     break;
                 case IntlInitializationType::DatePrototype:
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Date");
                     break;
                 case IntlInitializationType::NumberPrototype:
-                    IfCOMFailAssertMsgAndThrowHr(globAdapter->EnsureNumberFormatObjectsInitialized(library));
+                    IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Number");
                     break;
             }
@@ -422,7 +425,7 @@ namespace Js
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
 
-            // Clear disable implict call bit as initialization code doesn't have any side effect
+            // Clear disable implicit call bit as initialization code doesn't have any side effect
             Js::ImplicitCallFlags saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
             JavascriptFunction::CallRootFunctionInScript(function, Js::Arguments(callInfo, args));
@@ -603,7 +606,7 @@ namespace Js
         }
 
         AutoCOMPtr<ILanguage> language;
-        AutoCOMPtr<ILanguageExtensionSubtags> extensionSubtatgs;
+        AutoCOMPtr<ILanguageExtensionSubtags> extensionSubtags;
         HRESULT hr;
         if (FAILED(hr = wga->CreateLanguage(scriptContext, JavascriptString::FromVar(args.Values[1])->GetSz(), &language)))
         {
@@ -611,18 +614,18 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        if (FAILED(hr = language->QueryInterface(__uuidof(ILanguageExtensionSubtags), reinterpret_cast<void**>(&extensionSubtatgs))))
+        if (FAILED(hr = language->QueryInterface(__uuidof(ILanguageExtensionSubtags), reinterpret_cast<void**>(&extensionSubtags))))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
         }
-        Assert(extensionSubtatgs);
+        Assert(extensionSubtags);
 
         AutoHSTRING singletonString;
         AutoCOMPtr<Windows::Foundation::Collections::IVectorView<HSTRING>> subtags;
         uint32 length;
 
-        if (FAILED(hr = wgl->WindowsCreateString(L"u", 1, &singletonString)) || FAILED(hr = extensionSubtatgs->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
+        if (FAILED(hr = wgl->WindowsCreateString(L"u", 1, &singletonString)) || FAILED(hr = extensionSubtags->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
@@ -1101,7 +1104,7 @@ namespace Js
     *  - Format as Percent.
     *  - Format as Number.
     *  - If significant digits are present, format using the significant digts;
-    *  - Otherwise format using minimumFractionDigits, maximuimFractionDigits, minimumIntegerDigits
+    *  - Otherwise format using minimumFractionDigits, maximumFractionDigits, minimumIntegerDigits
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -1233,7 +1236,7 @@ namespace Js
     }
 
     /*
-    *   This function returns defaultTimeZone for host's current environement has specified in
+    *   This function returns defaultTimeZone for host's current environment as specified in
     *   DefaultTimeZone () section of ECMA-402 dated June 2015.
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1257,7 +1260,7 @@ namespace Js
     *  - 1 for Date.prototype.toLocaleDateString
     *  - 2 for Date.prototype.toLocaleTimeString
     *  - 3 for Number.prototype.toLocaleString
-    *  - 4 for String.prototype.localeComapre
+    *  - 4 for String.prototype.localeCompare
     */
     Var IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {

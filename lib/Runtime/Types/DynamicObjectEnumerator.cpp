@@ -6,27 +6,27 @@
 
 namespace Js
 {
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    JavascriptEnumerator* DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::New(ScriptContext* scriptContext, DynamicObject* object)
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    JavascriptEnumerator* DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::New(ScriptContext* scriptContext, DynamicObject* object)
     {
         DynamicObjectEnumerator* enumerator = RecyclerNew(scriptContext->GetRecycler(), DynamicObjectEnumerator, scriptContext);
         enumerator->Initialize(object);
         return enumerator;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    DynamicType *DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetTypeToEnumerate() const
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    DynamicType *DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetTypeToEnumerate() const
     {
         return
-            snapShotSementics &&
+            snapShotSemantics &&
             initialType->GetIsLocked() &&
             CONFIG_FLAG(TypeSnapshotEnumeration)
                 ? initialType
                 : object->GetDynamicType();
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetCurrentIndex()
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentIndex()
     {
         if (arrayEnumerator)
         {
@@ -45,8 +45,8 @@ namespace Js
         return propertyString;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetCurrentValue()
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentValue()
     {
         if (arrayEnumerator)
         {
@@ -56,15 +56,15 @@ namespace Js
         return object->GetNextProperty(objectIndex, GetTypeToEnumerate(), !enumNonEnumerable, enumSymbols);
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    BOOL DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::MoveNext(PropertyAttributes* attributes)
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    BOOL DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::MoveNext(PropertyAttributes* attributes)
     {
         PropertyId propId;
         return GetCurrentAndMoveNext(propId, attributes) != NULL;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    bool DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetCurrentPropertyId(PropertyId *pPropertyId)
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    bool DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentPropertyId(PropertyId *pPropertyId)
     {
         if (arrayEnumerator)
         {
@@ -83,8 +83,8 @@ namespace Js
         }
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    uint32 DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetCurrentItemIndex()
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    uint32 DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentItemIndex()
     {
         if (arrayEnumerator)
         {
@@ -96,22 +96,22 @@ namespace Js
         }
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::Reset()
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::Reset()
     {
         ResetHelper();
     }
 
     // Initialize (or reuse) this enumerator for a given object.
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::Initialize(DynamicObject* object)
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::Initialize(DynamicObject* object)
     {
         this->object = object;
         ResetHelper();
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    Var DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::GetCurrentAndMoveNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (arrayEnumerator)
         {
@@ -141,13 +141,13 @@ namespace Js
         return propertyString;
     }
 
-    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics>
-    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSementics>::ResetHelper()
+    template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics>
+    void DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, snapShotSemantics>::ResetHelper()
     {
         if (object->HasObjectArray())
         {
             // Pass "object" as originalInstance to objectArray enumerator
-            BOOL result = object->GetObjectArrayOrFlagsAsArray()->GetEnumerator(object, enumNonEnumerable, (Var*)&arrayEnumerator, GetScriptContext(), snapShotSementics, enumSymbols);
+            BOOL result = object->GetObjectArrayOrFlagsAsArray()->GetEnumerator(object, enumNonEnumerable, (Var*)&arrayEnumerator, GetScriptContext(), snapShotSemantics, enumSymbols);
             Assert(result);
         }
         else
@@ -158,20 +158,20 @@ namespace Js
         objectIndex = (T)-1; // This is Constants::NoSlot or Constants::NoBigSlot
     }
 
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSementics*/false>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSementics*/true>;
-    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSementics*/true>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<PropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/true>;
+    template class DynamicObjectEnumerator<BigPropertyIndex, /*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/true>;
 }

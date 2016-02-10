@@ -2918,6 +2918,7 @@ Instr::TransferTo(Instr * instr)
     instr->m_src2 = this->m_src2;
     instr->dstIsAlwaysConvertedToInt32 = this->dstIsAlwaysConvertedToInt32;
     instr->dstIsAlwaysConvertedToNumber = this->dstIsAlwaysConvertedToNumber;
+    instr->dataWidth = this->dataWidth;
     IR::Opnd * dst = this->m_dst;
 
     if (dst)
@@ -2977,7 +2978,7 @@ Instr::ConvertToBailOutInstr(BailOutInfo * bailOutInfo, IR::BailOutKind kind, bo
     if (this->HasAuxBailOut())
     {
         // This instr has already been converted to bailout instr. Only possible with aux bail out.
-        // Typical scenario is when globopt calls to convert to e.g. BailOutOnImplcitCalls for the instr which
+        // Typical scenario is when globopt calls to convert to e.g. BailOutOnImplicitCalls for the instr which
         // was already converted to bail out instr with HasBailOutInfo() == false and HasAuxBailOutInfo() == true,
         // so that aux bail out is hidden in between IRBuilder and lowerer.
 
@@ -3661,7 +3662,7 @@ bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, Int
         IntConstMath::ShrU(src1Const, src2Const & 0x1F, &value);
         if (value < 0)
         {
-            // ShrU produces a UInt32.  If it doesn't fit in a Int32, bail as we don't
+            // ShrU produces a UInt32.  If it doesn't fit in an Int32, bail as we don't
             // track signs of int values.
             return false;
         }
@@ -4143,17 +4144,27 @@ Instr::Dump(IRDumpFlags flags)
     {
         BranchInstr * branchInstr = this->AsBranchInstr();
         LabelInstr * targetInstr = branchInstr->GetTarget();
+        bool labelPrinted = true;
         if (targetInstr == NULL)
         {
             // Checking the 'm_isMultiBranch' field here directly as well to bypass asserting when tracing IR builder
             if(branchInstr->m_isMultiBranch && branchInstr->IsMultiBranch())
             {
                 IR::MultiBranchInstr * multiBranchInstr = branchInstr->AsMultiBrInstr();
-
-                multiBranchInstr->MapMultiBrLabels([](IR::LabelInstr * labelInstr) -> void
+                
+                // If this MultiBranchInstr has been lowered to a machine instruction, which means
+                // its opcode is not Js::OpCode::MultiBr, there is no need to print the labels.
+                if (this->m_opcode == Js::OpCode::MultiBr)
                 {
-                    Output::Print(L"$L%d ", labelInstr->m_id);
-                });
+                    multiBranchInstr->MapMultiBrLabels([](IR::LabelInstr * labelInstr) -> void
+                    {
+                        Output::Print(L"$L%d ", labelInstr->m_id);
+                    });
+                }
+                else
+                {
+                    labelPrinted = false;
+                }
             }
             else
             {
@@ -4164,7 +4175,7 @@ Instr::Dump(IRDumpFlags flags)
         {
             Output::Print(L"$L%d", targetInstr->m_id);
         }
-        if (this->GetSrc1())
+        if (this->GetSrc1() && labelPrinted)
         {
             Output::Print(L", ");
         }

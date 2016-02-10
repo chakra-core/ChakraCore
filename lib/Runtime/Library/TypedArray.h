@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    typedef Var (*PFNCreateTypedArray)(Js::ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascirptLibrary);
+    typedef Var (*PFNCreateTypedArray)(Js::ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascriptLibrary);
 
     template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2);
 
@@ -167,6 +167,7 @@ namespace Js
 
     protected:
         inline BOOL IsBuiltinProperty(PropertyId);
+        static Var CreateNewInstanceFromIterableObj(RecyclableObject *object, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
 
@@ -397,7 +398,7 @@ namespace Js
         }
     };
 
-    // in windows build environment, wchar_t is not a intrinsic type, and we cannot do the type
+    // in windows build environment, wchar_t is not an intrinsic type, and we cannot do the type
     // specialization
     class CharArray : public TypedArrayBase
     {
@@ -425,7 +426,7 @@ namespace Js
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
-        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascirptLibrary);
+        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static BOOL Is(Var aValue);
 

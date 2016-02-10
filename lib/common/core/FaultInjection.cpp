@@ -268,7 +268,7 @@ namespace Js
         }
     }
 #pragma warning( pop )
-#pragma optimize( "g", on )
+#pragma optimize( "", on )
 #define CaptureStack(FramesToSkip, FramesToCapture, BackTrace, BackTraceHash) \
     RtlCaptureStackBackTrace(FramesToSkip, FramesToCapture, BackTrace, BackTraceHash)
 #else
@@ -905,7 +905,14 @@ namespace Js
         if (vectoredExceptionHandler != nullptr)
         {
             RemoveVectoredExceptionHandler(vectoredExceptionHandler);
-            exceptionFilterRemovalLastError = GetLastError(); // looks sometimes the removal fails
+
+            // remove the handler from the list second time. 
+            // This code is called inside an exception handler, when the exception handler is called, 
+            // the refcount of the handler in ntdll!LdrpVectorHandlerList is increased, 
+            // so need to call RemoveVectoredExceptionHandler twice to really remove the handler from the list
+            // otherwise the exception from the handler itself will re-enter the handler
+            RemoveVectoredExceptionHandler(vectoredExceptionHandler);
+
             vectoredExceptionHandler = nullptr;
         }
     }
@@ -1102,7 +1109,7 @@ namespace Js
     }
 
     // For faster fault injection test run, filter out the AVs on same IP/hash
-    void FaultInjection::FaultInjetionAnalyzeException(_EXCEPTION_POINTERS *ep)
+    void FaultInjection::FaultInjectionAnalyzeException(_EXCEPTION_POINTERS *ep)
     {
 #if !defined(_M_ARM32_OR_ARM64) // not support ARM for now, add support in case we run fault injection on ARM
         AutoCriticalSection autocs(&cs_Sym);
@@ -1375,6 +1382,7 @@ namespace Js
 #endif  //_M_ARM and _M_ARM64
     }
 
+    static volatile bool inExceptionHandler = false;
     LONG WINAPI FaultInjection::FaultInjectionExceptionFilter(_In_  struct _EXCEPTION_POINTERS *ExceptionInfo)
     {
         RemoveExceptionFilters();
@@ -1383,7 +1391,18 @@ namespace Js
         {
             DebugBreak();
         }
-        FaultInjection::Global.FaultInjetionAnalyzeException(ExceptionInfo);
+
+        if (inExceptionHandler) 
+        {
+            // Let it crash and the postmorterm debugger can catch it.
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+
+        struct AutoValue {
+            AutoValue() { inExceptionHandler = true; }
+            ~AutoValue() { inExceptionHandler = false; }
+        } autoVal;
+        FaultInjection::Global.FaultInjectionAnalyzeException(ExceptionInfo);
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
