@@ -653,7 +653,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
 
                 TrackActivationObjectPropertyForDebugger(debuggerScope, sym, pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
-            else if (CONFIG_FLAG(TDZ))
+            else
             {
                 Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
                 this->m_writer.Reg1(Js::OpCode::InitUndecl, tmpReg);
@@ -667,7 +667,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
         }
         else
         {
-            if (sym->GetDecl()->sxVar.isSwitchStmtDecl && CONFIG_FLAG(TDZ))
+            if (sym->GetDecl()->sxVar.isSwitchStmtDecl)
             {
                 // let/const declared in a switch is the only case of a variable that must be checked for
                 // use-before-declaration dynamically within its own function.
@@ -4980,7 +4980,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         {
             this->m_writer.Reg2(Js::OpCode::Ld_A, lhsLocation, sym->GetLocation());
         }
-        if (sym->GetIsBlockVar() && ((sym->GetDecl()->nop == knopLetDecl || sym->GetDecl()->nop == knopConstDecl) && sym->GetDecl()->sxVar.isSwitchStmtDecl) && CONFIG_FLAG(TDZ))
+        if (sym->GetIsBlockVar() && ((sym->GetDecl()->nop == knopLetDecl || sym->GetDecl()->nop == knopConstDecl) && sym->GetDecl()->sxVar.isSwitchStmtDecl))
         {
             this->m_writer.Reg1(Js::OpCode::ChkUndecl, lhsLocation);
         }
@@ -4997,8 +4997,7 @@ bool ByteCodeGenerator::NeedCheckBlockVar(Symbol* sym, Scope* scope, FuncInfo* f
     bool tdz = sym->GetIsBlockVar()
         && (scope->GetFunc() != funcInfo || ((sym->GetDecl()->nop == knopLetDecl || sym->GetDecl()->nop == knopConstDecl) && sym->GetDecl()->sxVar.isSwitchStmtDecl))
         // Skip the check for parameters when not merged with body scope
-        && (sym->GetScope()->GetScopeType() != ScopeType_Parameter || sym->GetScope()->GetCanMergeWithBodyScope())
-        && CONFIG_FLAG(TDZ);
+        && (sym->GetScope()->GetScopeType() != ScopeType_Parameter || sym->GetScope()->GetCanMergeWithBodyScope());
 
     return tdz || sym->GetIsNonSimpleParameter();
 }
