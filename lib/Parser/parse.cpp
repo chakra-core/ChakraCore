@@ -4436,13 +4436,16 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 {
                     // We can't merge the param scope and body scope if the nested methods within the param scope captures any param.
                     Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
-                    paramScope->ForEachSymbol([paramScope](Symbol* sym) {
-                        if (sym->GetPid()->GetTopRef()->sym == nullptr && paramScope->GetCanMergeWithBodyScope())
+                    paramScope->ForEachSymbolUntil([paramScope](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
                         {
                             // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
                             paramScope->SetCannotMergeWithBodyScope();
+                            return true;
                         }
+                        return false;
                     });
+
                     if (!paramScope->GetCanMergeWithBodyScope())
                     {
                         OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");

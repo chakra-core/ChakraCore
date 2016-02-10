@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
@@ -59,6 +64,12 @@ var tests = [
                 return b;
             }
             assert.areEqual(f6()(), 10, "Function in the param scope correctly binds to the outer variable");
+            
+            function f7(a = 10, b = { iFnc () { return a; } }) {
+                a = 20;
+                return b;
+            }
+            assert.areEqual(f7().iFnc(), 10, "Function definition inside the object literal should capture the formal from the param scope");
         }
     },
     {
@@ -177,7 +188,7 @@ var tests = [
             }
             assert.areEqual(f1.call({x : 10}).call({x : 100}), 10, "Arrow functions defined in the param scope captures the formals from the param scope not body scope");
             
-            (function (a = this.x, b = function() {this.x = 20}) {
+            (function (a = this.x, b = function() {this.x = 20; return a;}) {
                 assert.areEqual(this.x, 10, "this objects property retains the value in param scope before the inner function call");
                 b.call(this);
                 assert.areEqual(this.x, 20, "Update to a this's property from the param scope is reflected in the body scope");
