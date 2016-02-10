@@ -558,6 +558,10 @@ namespace Js
             {
                 return EmitExpressionInfo(mFunction->GetConstRegister<int>((uint32)pnode->sxFlt.dbl), AsmJsType::Unsigned);
             }
+            else if (pnode->sxFlt.maybeInt)
+            {
+                throw AsmJsCompilationException(L"Int literal must be in the range [-2^31, 2^32)");
+            }
             else
             {
                 return EmitExpressionInfo(mFunction->GetConstRegister<double>(pnode->sxFlt.dbl), AsmJsType::DoubleLit);
