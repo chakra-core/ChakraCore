@@ -435,14 +435,42 @@ void FuncInfo::OnStartVisitScope(Scope *scope)
         return;
     }
 
-    if (scope->GetScopeType() == ScopeType_Parameter)
+    Scope* childScope = this->GetCurrentChildScope();
+    if (childScope)
     {
-        // If the scopes are unmerged and we are visiting the parameter scope, the child scope will be the function body scope.
-        Assert(!scope->GetCanMergeWithBodyScope() || this->GetCurrentChildScope()->GetEnclosingScope() == scope || this->GetCurrentChildScope() == nullptr);
-    }
-    else
-    {
-        Assert(this->GetCurrentChildScope() == scope->GetEnclosingScope() || this->GetCurrentChildScope() == nullptr);
+        if (scope->GetScopeType() == ScopeType_Parameter)
+        {
+            // If the scopes are unmerged and we are visiting the parameter scope, the child scope will be the function body scope.
+            Assert(!scope->GetCanMergeWithBodyScope() || this->GetCurrentChildScope()->GetEnclosingScope() == scope);
+        }
+        else
+        {
+            if (childScope->GetScopeType() == ScopeType_Parameter)
+            {
+                if (scope->GetScopeType() == ScopeType_FunctionBody)
+                {
+                    if (scope->GetFunc() == childScope->GetFunc())
+                    {
+                        Assert(scope->GetEnclosingScope() == childScope && childScope->GetCanMergeWithBodyScope());
+                    }
+                    else
+                    {
+                        Assert(!scope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope() && !childScope->GetCanMergeWithBodyScope());
+                    }
+                }
+                else
+                {
+                    if (childScope->GetCanMergeWithBodyScope())
+                    {
+                        Assert(childScope == scope->GetEnclosingScope()->GetEnclosingScope());
+                    }
+                    else
+                    {
+                        Assert(childScope == scope->GetEnclosingScope());
+                    }
+                }
+            }
+        }
     }
 
     this->SetCurrentChildScope(scope);
