@@ -117,13 +117,13 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
         def jobName = Utilities.getFullJobName(project, taskName, isPR)
 
         def newJob = job(jobName) {
-            label('ubuntu')
             steps {
                 shell(taskString)
             }
         }
 
         Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, checkName)
+        Utilities.setMachineAffinity(newJob, 'Ubuntu14.04', 'latest-or-auto')
     }
 }
 
