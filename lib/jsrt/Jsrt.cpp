@@ -108,6 +108,13 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
         PARAM_NOT_NULL(runtimeHandle);
         *runtimeHandle = nullptr;
 
+#if ENABLE_TTD
+        if(Js::Configuration::Global.flags.TTRecord != nullptr || Js::Configuration::Global.flags.TTDebug != nullptr)
+        {
+            attributes = static_cast<JsRuntimeAttributes>(attributes | JsRuntimeAttributeEnableExperimentalFeatures);
+        }
+#endif
+
         const JsRuntimeAttributes JsRuntimeAttributesAll =
             (JsRuntimeAttributes)(
             JsRuntimeAttributeDisableBackgroundWork |
@@ -2239,7 +2246,7 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
         *result = nullptr;
     }
 
-#if !(ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING)
+#if (ENABLE_TTD && !ENABLE_TTD_CAUSALITY_TRACKING)
     INT64 hostCallbackId = -1;
 #endif
 

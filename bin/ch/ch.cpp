@@ -16,7 +16,7 @@ HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
     return ChakraRTInterface::OnChakraCoreLoaded(testHooks);
 }
 
-JsRuntimeAttributes jsrtAttributes = static_cast<JsRuntimeAttributes>(JsRuntimeAttributeAllowScriptInterrupt | JsRuntimeAttributeEnableExperimentalFeatures);
+JsRuntimeAttributes jsrtAttributes = static_cast<JsRuntimeAttributes>(JsRuntimeAttributeAllowScriptInterrupt);
 LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
 {
     switch (jsErrorCode)
