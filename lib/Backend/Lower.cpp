@@ -124,8 +124,10 @@ Lowerer::Lower()
 
     if (!m_func->IsSimpleJit())
     {
+#if 0 // TODO michhol oop jit, reenable assert
         Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
         Assert(entryPointInfo->GetJitTransferData() != nullptr && !entryPointInfo->GetJitTransferData()->GetIsReady());
+#endif
     }
 
     this->initializedTempSym = nullptr;
@@ -3014,7 +3016,7 @@ Lowerer::LoadFunctionBodyOpnd(IR::Instr * instr)
 IR::Opnd *
 Lowerer::LoadScriptContextOpnd(IR::Instr * instr)
 {
-    return IR::AddrOpnd::New(this->m_func->GetScriptContext(), IR::AddrOpndKindDynamicScriptContext, this->m_func);
+    return IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetAddr(), IR::AddrOpndKindDynamicScriptContext, this->m_func);
 }
 
 IR::Opnd *
@@ -3143,7 +3145,7 @@ Lowerer::LoadRuntimeInlineCacheOpnd(IR::Instr * instr, IR::PropertySymOpnd * pro
 {
     Assert(propertySymOpnd->m_runtimeInlineCache != 0);
     IR::Opnd * inlineCacheOpnd = nullptr;
-    if (instr->m_func->GetJnFunction()->GetInlineCachesOnFunctionObject() && !instr->m_func->IsInlinee())
+    if (instr->m_func->GetJITFunctionBody()->HasInlineCachesOnFunctionObject() && !instr->m_func->IsInlinee())
     {
         inlineCacheOpnd = this->GetInlineCacheFromFuncObjectForRuntimeUse(instr, propertySymOpnd, isHelper);
     }

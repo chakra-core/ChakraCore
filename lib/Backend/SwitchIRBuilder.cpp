@@ -194,7 +194,7 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
 
     if (hasProfile)
     {
-        const ValueType valueType(m_profiledSwitchInstr->m_func->GetProfileInfo()->GetSwitchProfileInfo(m_profiledSwitchInstr->m_func->GetJnFunction(), profileId));
+        const ValueType valueType(m_profiledSwitchInstr->m_func->GetProfileInfo()->GetSwitchProfileInfo(profileId));
         instr->AsProfiledInstr()->u.FldInfo().valueType = valueType;
         m_switchIntDynProfile = valueType.IsLikelyTaggedInt();
         m_switchStrDynProfile = valueType.IsLikelyString();

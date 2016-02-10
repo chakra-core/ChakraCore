@@ -37,6 +37,7 @@ public:
     Js::PropertyId GetPropertyIdFromCacheId(uint cacheId) const;
 
     uint16 GetEnvDepth() const;
+    uint16 GetProfiledIterations() const;
     Js::ProfileId GetProfiledCallSiteCount() const;
     Js::ArgSlot GetInParamsCount() const;
 
@@ -53,6 +54,8 @@ public:
     bool HasRestParameter() const;
     bool HasScopeObject() const;
     bool HasCachedScopePropIds() const;
+    bool HasInlineCachesOnFunctionObject() const;
+    bool DoInterruptProbe() const;
 
     const byte * GetByteCodeBuffer() const;
     Js::SmallSpanSequence * GetStatementMapSpanSequence();

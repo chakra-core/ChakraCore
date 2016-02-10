@@ -933,9 +933,9 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
     IR::LabelInstr *helperLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, afterProlog);
     IR::Instr *instr;
     ThreadContext *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-    bool doInterruptProbe = threadContext->DoInterruptProbe(this->m_func->GetJnFunction());
+    bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
-    if (doInterruptProbe || !threadContext->GetIsThreadBound())
+    if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
         // Load the current stack limit and add the current frame allocation.
         {
@@ -1388,7 +1388,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
     }
 
     bool useDynamicStackProbe =
-        (threadContext->DoInterruptProbe(this->m_func->GetJnFunction()) || !threadContext->GetIsThreadBound()) &&
+        (m_func->GetJITFunctionBody()->DoInterruptProbe() || !m_func->GetThreadContextInfo()->IsThreadBound()) &&
         !EncoderMD::CanEncodeModConst12(stackProbeStackHeight + Js::Constants::MinStackJIT);
 
     if (useDynamicStackProbe && !hasCalls)

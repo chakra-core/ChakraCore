@@ -163,6 +163,12 @@ JITTimeFunctionBody::GetEnvDepth() const
     return m_bodyData->envDepth;
 }
 
+uint16
+JITTimeFunctionBody::GetProfiledIterations() const
+{
+    return m_bodyData->profiledIterations;
+}
+
 Js::ProfileId
 JITTimeFunctionBody::GetProfiledCallSiteCount() const
 {
@@ -248,6 +254,20 @@ bool
 JITTimeFunctionBody::HasCachedScopePropIds() const
 {
     return m_bodyData->hasCachedScopePropIds != FALSE;
+}
+
+bool
+JITTimeFunctionBody::HasInlineCachesOnFunctionObject() const
+{
+    return m_bodyData->inlineCachesOnFunctionObject != FALSE;
+}
+
+bool
+JITTimeFunctionBody::DoInterruptProbe() const
+{
+    // TODO michhol: this is technically a threadcontext flag,
+    // may want to pass all these when initializing thread context
+    return m_bodyData->doInterruptProbe != FALSE;
 }
 
 bool

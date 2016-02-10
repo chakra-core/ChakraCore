@@ -12,11 +12,29 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
 intptr_t
 ThreadContextInfo::GetNullFrameDisplayAddr() const
 {
-    return m_threadContextData->nullFrameDisplayAddr;
+    return static_cast<intptr_t>(m_threadContextData->nullFrameDisplayAddr);
 }
 
 intptr_t
 ThreadContextInfo::GetStrictNullFrameDisplayAddr() const
 {
-    return m_threadContextData->strictNullFrameDisplayAddr;
+    return static_cast<intptr_t>(m_threadContextData->strictNullFrameDisplayAddr);
+}
+
+intptr_t
+ThreadContextInfo::GetThreadStackLimitAddr() const
+{
+    return static_cast<intptr_t>(m_threadContextData->threadStackLimitAddr);
+}
+
+size_t
+ThreadContextInfo::GetScriptStackLimit() const
+{
+    return static_cast<size_t>(m_threadContextData->scriptStackLimit);
+}
+
+bool
+ThreadContextInfo::IsThreadBound() const
+{
+    return m_threadContextData->isThreadBound != FALSE;
 }

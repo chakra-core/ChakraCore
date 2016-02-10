@@ -884,7 +884,7 @@ LowererMDArch::GetArgSlotOpnd(uint16 index, StackSym * argSym)
 
     // Without SIMD the index is the Var offset and is also the argument index. Since each arg = 1 Var.
     // With SIMD, args are of variable length and we need to the argument position in the args list.
-    if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled() &&
+    if (m_func->IsSIMDEnabled() &&
         m_func->GetJITFunctionBody()->IsAsmJsMode() &&
         argSym != nullptr &&
         argSym->m_argPosition != 0)
@@ -1584,16 +1584,15 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     IR::Instr *insertInstr = entryInstr->m_next;
     IR::Instr *instr;
     IR::Opnd *stackLimitOpnd;
-    ThreadContext   *threadContext = this->m_func->GetScriptContext()->GetThreadContext();
-    bool doInterruptProbe = threadContext->DoInterruptProbe(this->m_func->GetJnFunction());
+    bool doInterruptProbe = m_func->GetJITFunctionBody()->DoInterruptProbe();
 
     // MOV rax, ThreadContext::scriptStackLimit + frameSize
     stackLimitOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
-    if (doInterruptProbe || !threadContext->GetIsThreadBound())
+    if (doInterruptProbe || !m_func->GetThreadContextInfo()->IsThreadBound())
     {
         // Load the current stack limit from the ThreadContext and add the current frame size.
         {
-            void *pLimit = threadContext->GetAddressOfStackLimitForCurrentThread();
+            intptr_t pLimit = m_func->GetThreadContextInfo()->GetThreadStackLimitAddr();
             IR::RegOpnd *baseOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
             this->lowererMD->CreateAssign(baseOpnd, IR::AddrOpnd::New(pLimit, IR::AddrOpndKindDynamicMisc, this->m_func), insertInstr);
             IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseOpnd, 0, TyMachReg, this->m_func);
@@ -1614,7 +1613,8 @@ LowererMDArch::GeneratePrologueStackProbe(IR::Instr *entryInstr, IntConstType fr
     }
     else
     {
-        size_t scriptStackLimit = (size_t)this->m_func->GetScriptContext()->GetThreadContext()->GetScriptStackLimit();
+        // TODO: michhol, check this math
+        size_t scriptStackLimit = m_func->GetThreadContextInfo()->GetScriptStackLimit();
         this->lowererMD->CreateAssign(stackLimitOpnd, IR::AddrOpnd::New((void *)(frameSize + scriptStackLimit), IR::AddrOpndKindConstant, this->m_func), insertInstr);
     }
 

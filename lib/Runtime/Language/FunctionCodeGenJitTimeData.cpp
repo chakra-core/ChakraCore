@@ -811,7 +811,6 @@ namespace Js
 #ifdef FIELD_ACCESS_STATS
         inlineCacheStats(nullptr),
 #endif
-        profiledIterations(GetFunctionBody() ? GetFunctionBody()->GetProfiledIterations() : 0),
         next(0)
     {
     }
@@ -941,9 +940,4 @@ namespace Js
         this->inlineCacheStats->Add(inlineeJitTimeData->inlineCacheStats);
     }
 #endif
-
-    uint16 FunctionCodeGenJitTimeData::GetProfiledIterations() const
-    {
-        return profiledIterations;
-    }
 }

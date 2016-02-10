@@ -1188,14 +1188,14 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
         funcBody->GetScriptContext()->GetNativeCodeGenerator(), funcBody, functionEntryPointInfo, this->topFunc->IsJitInDebugMode());
     workItem->SetRecyclableData(JitAnew(this->topFunc->m_alloc, Js::CodeGenRecyclableData, inlineeData.inlineeJitTimeData));
     workItem->SetJitMode(this->topFunc->GetWorkItem()->GetJitMode());
-
+#if 0
     const auto profileInfo =
         JitAnew(
             this->topFunc->m_alloc,
             Js::ReadOnlyDynamicProfileInfo,
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
-
+#endif
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
 
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -1210,7 +1210,7 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
                             entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                             this->topFunc->GetCodeGenAllocators(),
                             this->topFunc->GetNumberAllocator(),
-                            profileInfo,
+                            nullptr,
                             this->topFunc->GetCodeGenProfiler(),
                             this->topFunc->IsBackgroundJIT(),
                             callInstr->m_func,
@@ -2648,14 +2648,14 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
         funcBody->GetScriptContext()->GetNativeCodeGenerator(), funcBody, functionEntryPointInfo, this->topFunc->IsJitInDebugMode());
     workItem->SetRecyclableData(JitAnew(this->topFunc->m_alloc, Js::CodeGenRecyclableData, inlineeData));
     workItem->SetJitMode(this->topFunc->m_workItem->GetJitMode());
-
+#if 0
     const auto profileInfo =
         JitAnew(
             this->topFunc->m_alloc,
             Js::ReadOnlyDynamicProfileInfo,
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
-
+#endif
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
 
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -2672,7 +2672,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
                          entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                          this->topFunc->GetCodeGenAllocators(),
                          this->topFunc->GetNumberAllocator(),
-                         profileInfo,
+                         nullptr,
                          this->topFunc->GetCodeGenProfiler(),
                          this->topFunc->IsBackgroundJIT(),
                          callInstr->m_func,
@@ -3384,14 +3384,14 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const Js::FunctionC
         returnValueOpnd = nullptr;
         returnRegSlot = Js::Constants::NoRegister;
     }
-
+#if 0
     const auto profileInfo =
         JitAnew(
             this->topFunc->m_alloc,
             Js::ReadOnlyDynamicProfileInfo,
             funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
             this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
-
+#endif
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
 
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -3408,7 +3408,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const Js::FunctionC
                          entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                          this->topFunc->GetCodeGenAllocators(),
                          this->topFunc->GetNumberAllocator(),
-                         profileInfo,
+                         nullptr,
                          this->topFunc->GetCodeGenProfiler(),
                          this->topFunc->IsBackgroundJIT(),
                          accessorInstr->m_func,
@@ -3701,14 +3701,14 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
         returnValueOpnd = nullptr;
         returnRegSlot = Js::Constants::NoRegister;
     }
-
+#if 0
     const auto profileInfo =
         JitAnew(
         this->topFunc->m_alloc,
         Js::ReadOnlyDynamicProfileInfo,
         funcBody->HasDynamicProfileInfo() ? funcBody->GetAnyDynamicProfileInfo() : nullptr,
         this->topFunc->IsBackgroundJIT() ? this->topFunc->m_alloc : nullptr);
-
+#endif
     JITTimeWorkItem * jitWorkItem = JitAnew(this->topFunc->m_alloc, JITTimeWorkItem, workItem->GetJITData());
 
     Js::EntryPointPolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->m_workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo();
@@ -3725,7 +3725,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
                          entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
                          this->topFunc->GetCodeGenAllocators(),
                          this->topFunc->GetNumberAllocator(),
-                         profileInfo,
+                         nullptr,
                          this->topFunc->GetCodeGenProfiler(),
                          this->topFunc->IsBackgroundJIT(),
                          callInstr->m_func,

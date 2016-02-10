@@ -96,6 +96,24 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsCheckThisDisabled() ? Flags_disableCheckThis : 0;
 }
 
+bool
+JITTimeProfileInfo::HasProfileInfo() const
+{
+    return m_profileData != nullptr;
+}
+
+const Js::LdElemInfo *
+JITTimeProfileInfo::GetLdElemInfo(Js::ProfileId ldElemId) const
+{
+    return &(reinterpret_cast<Js::LdElemInfo*>(m_profileData->ldElemData)[ldElemId]);
+}
+
+const Js::StElemInfo *
+JITTimeProfileInfo::GetStElemInfo(Js::ProfileId stElemId) const
+{
+    return &(reinterpret_cast<Js::StElemInfo*>(m_profileData->stElemData)[stElemId]);
+}
+
 Js::ArrayCallSiteInfo *
 JITTimeProfileInfo::GetArrayCallSiteInfo(Js::ProfileId index) const
 {
@@ -431,4 +449,10 @@ Js::CallSiteInfo *
 JITTimeProfileInfo::GetCallSiteInfo() const
 {
     return reinterpret_cast<Js::CallSiteInfo*>(m_profileData->callSiteData);
+}
+
+bool
+JITTimeProfileInfo::TestFlag(ProfileDataFlags flag) const
+{
+    return (m_profileData->flags & flag) != 0;
 }

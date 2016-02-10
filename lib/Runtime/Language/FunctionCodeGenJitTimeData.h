@@ -526,9 +526,6 @@ namespace Js
         // This indicates the function is aggressively Inlined(see NativeCodeGenerator::TryAggressiveInlining) .
         bool isAggressiveInliningEnabled;
 
-        // The profiled iterations need to be determined at the time of gathering code gen data on the main thread
-        const uint16 profiledIterations;
-
 #ifdef FIELD_ACCESS_STATS
     public:
         FieldAccessStatsPtr inlineCacheStats;
@@ -623,8 +620,6 @@ namespace Js
             inlineeCount++;
             this->isInlined = isInlined;
         }
-
-        uint16 GetProfiledIterations() const;
 
         PREVENT_COPY(FunctionCodeGenJitTimeData)
     };

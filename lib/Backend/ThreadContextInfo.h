@@ -13,6 +13,9 @@ public:
 
     intptr_t GetNullFrameDisplayAddr() const;
     intptr_t GetStrictNullFrameDisplayAddr() const;
+    intptr_t GetThreadStackLimitAddr() const;
+    size_t GetScriptStackLimit() const;
+    bool IsThreadBound() const;
 
 private:
     ThreadContextData * m_threadContextData;

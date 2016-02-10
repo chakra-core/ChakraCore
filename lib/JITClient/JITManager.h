@@ -28,6 +28,7 @@ public:
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemJITData *workItemData,
+        __in ProfileData * profileData,
         __in intptr_t threadContextInfoAddress,
         __in intptr_t scriptContextInfoAddress,
         __out JITOutputData *jitData);

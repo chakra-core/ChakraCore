@@ -1056,15 +1056,11 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
             Output::Print(L"(");
         }
 
-        Js::ScriptContext* scriptContext;
         switch (propertySym->m_fieldKind)
         {
         case PropertyKindData:
         {
             propertySym->m_stackSym->Dump(flags, valueType);
-            scriptContext = propertySym->m_func->GetScriptContext();
-            Js::PropertyRecord const* fieldName = scriptContext->GetPropertyNameLocked(propertySym->m_propertyId);
-            Output::Print(L"->%s", fieldName->GetBuffer());
             break;
         }
         case PropertyKindSlots:

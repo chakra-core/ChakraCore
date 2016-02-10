@@ -375,8 +375,7 @@ ValueType GlobOpt::GetDivValueType(IR::Instr* instr, Value* src1Val, Value* src2
 
     if (instr->IsProfiledInstr() && instr->m_func->HasProfileInfo())
     {
-        ValueType resultType = instr->m_func->GetProfileInfo()->GetDivProfileInfo(instr->m_func->GetJnFunction(),
-            static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
+        ValueType resultType = instr->m_func->GetProfileInfo()->GetDivProfileInfo(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
         if (resultType.IsLikelyInt())
         {
             if (specialize && src1ValueInfo && src2ValueInfo
@@ -526,8 +525,6 @@ GlobOpt::ForwardPass()
 void
 GlobOpt::OptBlock(BasicBlock *block)
 {
-    this->func->ThrowIfScriptClosed();
-
     if (this->func->m_fg->RemoveUnreachableBlock(block, this))
     {
         GOPT_TRACE(L"Removing unreachable block #%d\n", block->GetBlockNum());
@@ -5373,8 +5370,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 int paramSlotNum = sym->AsStackSym()->GetParamSlotNum() - 2;
                 if (paramSlotNum >= 0)
                 {
-                    const auto parameterType = instr->m_func->GetProfileInfo()->GetParameterInfo(
-                        instr->m_func->GetJnFunction(), static_cast<Js::ArgSlot>(paramSlotNum));
+                    const auto parameterType = instr->m_func->GetProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
                     val = NewGenericValue(parameterType);
                     opnd->SetValueType(val->GetValueInfo()->Type());
                     return val;
@@ -11361,7 +11357,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 }
 
                 bool isModByPowerOf2 = (instr->IsProfiledInstr() && instr->m_func->HasProfileInfo() &&
-                    instr->m_func->GetProfileInfo()->IsModulusOpByPowerOf2(instr->m_func->GetJnFunction(), static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)));
+                    instr->m_func->GetProfileInfo()->IsModulusOpByPowerOf2(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)));
 
                 if(isModByPowerOf2)
                 {

@@ -119,6 +119,7 @@ CodeGenWorkItem::CodeGenWorkItem(
         this->jitData.bodyData.firstInnerScopeReg = functionBody->FirstInnerScopeReg();
     }
     this->jitData.bodyData.envDepth = functionBody->GetEnvDepth();
+    this->jitData.bodyData.profiledIterations = functionBody->GetProfiledIterations();
     this->jitData.bodyData.profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     this->jitData.bodyData.inParamCount = functionBody->GetInParamsCount();
     this->jitData.bodyData.thisRegisterForEventHandler = functionBody->GetThisRegForEventHandler();
@@ -133,6 +134,8 @@ CodeGenWorkItem::CodeGenWorkItem(
     this->jitData.bodyData.hasScopeObject = functionBody->HasScopeObject();
     this->jitData.bodyData.hasImplicitArgIns = functionBody->GetHasImplicitArgIns();
     this->jitData.bodyData.hasCachedScopePropIds = functionBody->HasCachedScopePropIds();
+    this->jitData.bodyData.inlineCachesOnFunctionObject = functionBody->GetInlineCachesOnFunctionObject();
+    this->jitData.bodyData.doInterruptProbe = functionBody->GetScriptContext()->GetThreadContext()->DoInterruptProbe(functionBody);
 
     // work item data
     this->jitData.type = type;

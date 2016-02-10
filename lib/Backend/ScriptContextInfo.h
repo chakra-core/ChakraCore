@@ -14,6 +14,7 @@ public:
     intptr_t GetUndefinedAddr() const;
     intptr_t GetTrueAddr() const;
     intptr_t GetFalseAddr() const;
+    intptr_t GetAddr() const;
 
 
 private:

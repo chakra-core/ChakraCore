@@ -33,3 +33,9 @@ ScriptContextInfo::GetFalseAddr() const
 {
     return m_contextData->falseAddr;
 }
+
+intptr_t
+ScriptContextInfo::GetAddr() const
+{
+    return m_contextData->scriptContextAddr;
+}

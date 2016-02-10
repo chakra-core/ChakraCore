@@ -3188,7 +3188,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             break;
         }
         case IR::AddrOpndKindDynamicScriptContext:
-            Assert(func == nullptr || address == func->GetScriptContext());
+            Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetAddr());
             // The script context pointer is unstable allocated from the CRT
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, L" (ScriptContext)");
@@ -3366,6 +3366,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
+#if 0 // TODO: michhol reenable dump of addresses
             if (address == &Js::NullFrameDisplay)
             {
                 WriteToBuffer(&buffer, &n, L" (NullFrameDisplay)");
@@ -3421,6 +3422,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 WriteToBuffer(&buffer, &n, L" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)");
             }
             else
+#endif
             {
                 WriteToBuffer(&buffer, &n, L" (Unknown)");
             }

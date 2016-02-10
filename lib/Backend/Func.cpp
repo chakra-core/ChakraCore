@@ -12,7 +12,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-    CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
+    CodeGenNumberAllocator * numberAllocator, JITTimeProfileInfo *const profileInfo,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
     uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
     Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter) :
@@ -258,7 +258,7 @@ Func::Codegen()
         }
 
         END_CODEGEN_PHASE(this, Js::IRBuilderPhase);
-        Dump();
+
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::IRBuilderPhase);
 #endif /* IR_VIEWER */
@@ -302,8 +302,6 @@ Func::Codegen()
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::GlobOptPhase);
 #endif /* IR_VIEWER */
 
-        ThrowIfScriptClosed();
-
         // Lowering
         Lowerer lowerer(this);
         BEGIN_CODEGEN_PHASE(this, Js::LowererPhase);
@@ -321,8 +319,7 @@ Func::Codegen()
         BEGIN_CODEGEN_PHASE(this, Js::EncodeConstantsPhase)
         security.EncodeLargeConstants();
         END_CODEGEN_PHASE(this, Js::EncodeConstantsPhase);
-
-        if (this->GetScriptContext()->GetThreadContext()->DoInterruptProbe(this->GetJnFunction()))
+        if (GetJITFunctionBody()->DoInterruptProbe())
         {
             BEGIN_CODEGEN_PHASE(this, Js::InterruptProbePhase)
             lowerer.DoInterruptProbes();
@@ -341,8 +338,6 @@ Func::Codegen()
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::RegAllocPhase);
 #endif /* IR_VIEWER */
-
-        ThrowIfScriptClosed();
 
         // Peephole optimizations
 
@@ -390,6 +385,7 @@ Func::Codegen()
         lowerer.FinalLower();
         END_CODEGEN_PHASE(this, Js::FinalLowerPhase);
 
+        Dump();
         // Encoder
         BEGIN_CODEGEN_PHASE(this, Js::EncoderPhase);
 
@@ -624,7 +620,7 @@ bool
 Func::DoGlobOptsForGeneratorFunc()
 {
     // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !m_jnFunction->IsGenerator();
+    return !GetJITFunctionBody()->IsGenerator();
 }
 
 void
@@ -633,15 +629,11 @@ Func::SetDoFastPaths()
     // Make sure we only call this once!
     Assert(!this->hasCalledSetDoFastPaths);
 
-    bool isLeaf = this->m_isLeaf && !PHASE_OFF(Js::LeafFastPathPhase, this);
     bool doFastPaths = false;
 
     if(!PHASE_OFF(Js::FastPathPhase, this) && (!IsSimpleJit() || Js::FunctionBody::IsNewSimpleJit()))
     {
-        if (isLeaf || this->GetScriptContext()->GetThreadContext()->GetSourceSize() < (size_t)CONFIG_FLAG(FastPathCap) || CONFIG_FLAG(ForceFastPath))
-        {
-            doFastPaths = true;
-        }
+        doFastPaths = true;
     }
 
     this->m_doFastPaths = doFastPaths;
@@ -762,6 +754,7 @@ void Func::InitLocalClosureSyms()
 
 bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
+#if 0 // TODO: michhol enable CFG
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
         !IsJitInDebugMode() && !GetScriptContext()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
@@ -775,6 +768,9 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 #else
     return false;
 #endif//_CONTROL_FLOW_GUARD
+#else
+    return false;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1348,18 +1344,6 @@ Cloner::RetargetClonedBranches()
         }
     }
     NEXT_INSTR_IN_RANGE;
-}
-
-void Func::ThrowIfScriptClosed()
-{
-    Js::ScriptContext* scriptContext = this->GetScriptContext();
-    if(scriptContext->IsClosed())
-    {
-        // Should not be jitting something in the foreground when the script context is actually closed
-        Assert(IsBackgroundJIT() || !scriptContext->IsActuallyClosed());
-
-        throw Js::OperationAbortedException();
-    }
 }
 
 IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)

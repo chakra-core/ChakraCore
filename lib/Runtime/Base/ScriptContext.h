@@ -396,6 +396,7 @@ namespace Js
             contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();
             contextData.trueAddr = (intptr_t)GetLibrary()->GetTrue();
             contextData.falseAddr = (intptr_t)GetLibrary()->GetFalse();
+            contextData.scriptContextAddr = (intptr_t)this;
 
             this->threadContext->m_codeGenManager.InitializeScriptContext(&contextData, &m_remoteScriptContextAddr);
         }

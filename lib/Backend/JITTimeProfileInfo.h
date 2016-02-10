@@ -7,43 +7,7 @@
 
 class JITTimeProfileInfo
 {
-private:
-    enum ProfileDataFlags
-    {
-        Flags_None = 0,
-        Flags_disableAggressiveIntTypeSpec = 1,
-        Flags_disableAggressiveIntTypeSpec_jitLoopBody = 1 << 1,
-        Flags_disableAggressiveMulIntTypeSpec = 1 << 2,
-        Flags_disableAggressiveMulIntTypeSpec_jitLoopBody = 1 << 3,
-        Flags_disableDivIntTypeSpec = 1 << 4,
-        Flags_disableDivIntTypeSpec_jitLoopBody = 1 << 5,
-        Flags_disableLossyIntTypeSpec = 1 << 6,
-        Flags_disableTrackCompoundedIntOverflow = 1 << 7,
-        Flags_disableFloatTypeSpec = 1 << 8,
-        Flags_disableArrayCheckHoist = 1 << 9,
-        Flags_disableArrayCheckHoist_jitLoopBody = 1 << 10,
-        Flags_disableArrayMissingValueCheckHoist = 1 << 11,
-        Flags_disableArrayMissingValueCheckHoist_jitLoopBody = 1 << 12,
-        Flags_disableJsArraySegmentHoist = 1 << 13,
-        Flags_disableJsArraySegmentHoist_jitLoopBody = 1 << 14,
-        Flags_disableArrayLengthHoist = 1 << 15,
-        Flags_disableArrayLengthHoist_jitLoopBody = 1 << 16,
-        Flags_disableTypedArrayTypeSpec = 1 << 17,
-        Flags_disableTypedArrayTypeSpec_jitLoopBody = 1 << 18,
-        Flags_disableLdLenIntSpec = 1 << 19,
-        Flags_disableBoundCheckHoist = 1 << 20,
-        Flags_disableBoundCheckHoist_jitLoopBody = 1 << 21,
-        Flags_disableLoopCountBasedBoundCheckHoist = 1 << 22,
-        Flags_disableLoopCountBasedBoundCheckHoist_jitLoopBody = 1 << 23,
-        Flags_disableFloorInlining = 1 << 24,
-        Flags_disableNoProfileBailouts = 1 << 25,
-        Flags_disableSwitchOpt = 1 << 26,
-        Flags_disableEquivalentObjTypeSpec = 1 << 27,
-        Flags_disableObjTypeSpec_jitLoopBody = 1 << 28,
-        Flags_disableMemOp = 1 << 29,
-        Flags_disableCheckThis = 1 << 30
-    };
-
+public:
     JITTimeProfileInfo(ProfileData * profileData);
 
     static void InitializeJITProfileData(
@@ -53,8 +17,8 @@ private:
 
     bool HasProfileInfo() const;
 
-    const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId);
-    const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId);
+    const Js::LdElemInfo * GetLdElemInfo(Js::ProfileId ldElemId) const;
+    const Js::StElemInfo * GetStElemInfo(Js::ProfileId stElemId) const;
 
     Js::ArrayCallSiteInfo * GetArrayCallSiteInfo(Js::ProfileId index) const;
     Js::FldInfo * GetFldInfo(uint fieldAccessId) const;
@@ -92,6 +56,41 @@ private:
     bool IsNoProfileBailoutsDisabled() const;
 
 private:
+    enum ProfileDataFlags
+    {
+        Flags_None = 0,
+        Flags_disableAggressiveIntTypeSpec = 1,
+        Flags_disableAggressiveIntTypeSpec_jitLoopBody = 1 << 1,
+        Flags_disableAggressiveMulIntTypeSpec = 1 << 2,
+        Flags_disableAggressiveMulIntTypeSpec_jitLoopBody = 1 << 3,
+        Flags_disableDivIntTypeSpec = 1 << 4,
+        Flags_disableDivIntTypeSpec_jitLoopBody = 1 << 5,
+        Flags_disableLossyIntTypeSpec = 1 << 6,
+        Flags_disableTrackCompoundedIntOverflow = 1 << 7,
+        Flags_disableFloatTypeSpec = 1 << 8,
+        Flags_disableArrayCheckHoist = 1 << 9,
+        Flags_disableArrayCheckHoist_jitLoopBody = 1 << 10,
+        Flags_disableArrayMissingValueCheckHoist = 1 << 11,
+        Flags_disableArrayMissingValueCheckHoist_jitLoopBody = 1 << 12,
+        Flags_disableJsArraySegmentHoist = 1 << 13,
+        Flags_disableJsArraySegmentHoist_jitLoopBody = 1 << 14,
+        Flags_disableArrayLengthHoist = 1 << 15,
+        Flags_disableArrayLengthHoist_jitLoopBody = 1 << 16,
+        Flags_disableTypedArrayTypeSpec = 1 << 17,
+        Flags_disableTypedArrayTypeSpec_jitLoopBody = 1 << 18,
+        Flags_disableLdLenIntSpec = 1 << 19,
+        Flags_disableBoundCheckHoist = 1 << 20,
+        Flags_disableBoundCheckHoist_jitLoopBody = 1 << 21,
+        Flags_disableLoopCountBasedBoundCheckHoist = 1 << 22,
+        Flags_disableLoopCountBasedBoundCheckHoist_jitLoopBody = 1 << 23,
+        Flags_disableFloorInlining = 1 << 24,
+        Flags_disableNoProfileBailouts = 1 << 25,
+        Flags_disableSwitchOpt = 1 << 26,
+        Flags_disableEquivalentObjTypeSpec = 1 << 27,
+        Flags_disableObjTypeSpec_jitLoopBody = 1 << 28,
+        Flags_disableMemOp = 1 << 29,
+        Flags_disableCheckThis = 1 << 30
+    };
 
     Js::ProfileId GetProfiledArrayCallSiteCount() const;
     Js::ProfileId GetProfiledCallSiteCount() const;

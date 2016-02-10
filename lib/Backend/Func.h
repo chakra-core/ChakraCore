@@ -72,7 +72,7 @@ public:
         ScriptContextInfo * scriptContextInfo,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-        CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
+        CodeGenNumberAllocator * numberAllocator, JITTimeProfileInfo *const profileInfo,
         Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc = nullptr,
         uint postCallByteCodeOffset = Js::Constants::NoByteCodeOffset,
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
@@ -133,9 +133,12 @@ public:
 
     bool DoGlobOpt() const
     {
+        return false;
+#if 0 // TODO: michhol OOP JIT, enable globopt
         return
-            !PHASE_OFF(Js::GlobOptPhase, this->GetJnFunction()) && !IsSimpleJit() &&
+            !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch());
+#endif
     }
 
     bool DoInline() const
@@ -179,8 +182,6 @@ public:
 
     void BuildIR();
     void Codegen();
-
-    void ThrowIfScriptClosed();
 
     int32 StackAllocate(int size);
     int32 StackAllocate(StackSym *stackSym, int size);
@@ -235,6 +236,12 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
 #endif
 
+    bool IsSIMDEnabled() const
+    {
+        // TODO: michhol OOP JIT, this flag is accessed in a weird way, temporarily completely disable
+        // m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled()
+        return false;
+    }
     uint32 GetInstrCount();
     inline Js::ScriptContext* GetScriptContext() const
     {
@@ -663,7 +670,7 @@ public:
     bool                GetHasTempObjectProducingInstr() const { return this->hasTempObjectProducingInstr; }
     void                SetHasTempObjectProducingInstr(bool has) { this->hasTempObjectProducingInstr = has; }
 
-    Js::ReadOnlyDynamicProfileInfo * GetProfileInfo() const { return this->profileInfo; }
+    JITTimeProfileInfo * GetProfileInfo() const { return this->profileInfo; }
     bool                HasProfileInfo() { return this->profileInfo->HasProfileInfo(); }
     bool                HasArrayInfo()
     {
@@ -803,7 +810,7 @@ private:
     bool                hasMarkTempObjects;
     Cloner *            m_cloner;
     InstrMap *          m_cloneMap;
-    Js::ReadOnlyDynamicProfileInfo *const profileInfo;
+    JITTimeProfileInfo *const profileInfo;
     NativeCodeData::Allocator       nativeCodeDataAllocator;
     NativeCodeData::Allocator       transferDataAllocator;
     CodeGenNumberAllocator *        numberAllocator;

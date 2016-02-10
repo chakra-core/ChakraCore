@@ -507,6 +507,9 @@ public:
         ThreadContextData contextData;
         contextData.nullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::NullFrameDisplay);
         contextData.strictNullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay);
+        contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
+        contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
+        contextData.isThreadBound = GetIsThreadBound();
         m_codeGenManager.InitializeThreadContext(&contextData, &m_remoteThreadContextInfo);
     }
 

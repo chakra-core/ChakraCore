@@ -886,16 +886,19 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo()->GetSelfInfo(),
                 allocators,
                 &numberAllocator,
-                &profileInfo,
+                nullptr,
                 codeGenProfiler,
                 !foreground);
 #if DBG_DUMP
         CurrentFunc = func;
 #endif
-        func->m_symTable->SetStartingID(static_cast<SymID>(nRegs + 1));
+        
         JITOutputData jitWriteData;
+        ProfileData profileData;
+        JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
         HRESULT hr = scriptContext->GetThreadContext()->m_codeGenManager.RemoteCodeGenCall(
             workItem->GetJITData(),
+            body->HasDynamicProfileInfo() ? &profileData : nullptr,
             scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);

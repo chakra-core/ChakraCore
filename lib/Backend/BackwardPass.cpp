@@ -1433,8 +1433,6 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
 void
 BackwardPass::OptBlock(BasicBlock * block)
 {
-    this->func->ThrowIfScriptClosed();
-
     if (block->loop && !block->loop->hasDeadStorePrepass)
     {
         ProcessLoop(block);

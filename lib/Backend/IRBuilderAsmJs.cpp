@@ -1614,7 +1614,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
         prevInstr = argInstr;
 
 #if defined(_M_X64)
-        if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+        if (m_func->IsSIMDEnabled())
         {
             m_tempList->Push(argInstr);
         }
@@ -1631,7 +1631,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 #if defined(_M_X64)
     // Without SIMD vars, all args are Var in size. So offset in Var = arg position in args list.
     // With SIMD, args have variable size, so we need to track argument position in the args list to be able to assign arg register for first four args on x64.
-    if (m_func->GetScriptContext()->GetConfig()->IsSimdjsEnabled())
+    if (m_func->IsSIMDEnabled())
     {
         IR::Instr *instr;
         for (uint i = 1; !m_tempList->Empty(); i++)

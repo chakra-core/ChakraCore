@@ -86,7 +86,7 @@ IRBuilder::DoBailOnNoProfile()
     }
 
     Func *const topFunc = m_func->GetTopFunc();
-    if(topFunc->m_jitTimeData->GetProfiledIterations() == 0)
+    if(topFunc->GetJITFunctionBody()->GetProfiledIterations() == 0)
     {
         // The top function has not been profiled yet. Some switch must have been used to force jitting. This is not a
         // real-world case, but for the purpose of testing the JIT, it's beneficial to generate code in unprofiled paths.
@@ -1926,7 +1926,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
         Assert(newOpcode == Js::OpCode::LdLen_A);
         if(m_func->HasProfileInfo())
         {
-            ldElemInfo = m_func->GetProfileInfo()->GetLdElemInfo(m_func->GetJnFunction(), profileId);
+            ldElemInfo = m_func->GetProfileInfo()->GetLdElemInfo(profileId);
             ValueType arrayType(ldElemInfo->GetArrayType());
             if(arrayType.IsLikelyNativeArray() &&
                 (
@@ -2602,9 +2602,8 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             Js::LoopFlags loopFlags;
             if (this->m_func->HasProfileInfo())
             {
-                Js::ReadOnlyDynamicProfileInfo * dynamicProfileInfo = this->m_func->GetProfileInfo();
-                flags = dynamicProfileInfo->GetLoopImplicitCallFlags(this->m_func->GetJnFunction(), num);
-                loopFlags = dynamicProfileInfo->GetLoopFlags(num);
+                flags = m_func->GetProfileInfo()->GetLoopImplicitCallFlags(num);
+                loopFlags = m_func->GetProfileInfo()->GetLoopFlags(num);
             }
 
             if (this->IsLoopBody() && !m_loopCounterSym)
@@ -2766,7 +2765,7 @@ IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::R
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
     if (m_func->HasArrayInfo())
     {
-        arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(m_func->GetJnFunction(), profileId);
+        arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
     }
     Js::TypeId arrayTypeId = Js::TypeIds_Array;
     if (arrayInfo && !m_func->IsJitInDebugMode() && Js::JavascriptArray::HasInlineHeadSegment(value))
@@ -3884,9 +3883,8 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
     }
     else if (this->m_func->HasProfileInfo())
     {
-        Js::ReadOnlyDynamicProfileInfo * profile = this->m_func->GetProfileInfo();
         instr = IR::ProfiledInstr::New(loadOp, dstOpnd, srcOpnd, m_func);
-        instr->AsProfiledInstr()->u.FldInfo() = *(profile->GetFldInfo(this->m_func->GetJnFunction(), inlineCacheIndex));
+        instr->AsProfiledInstr()->u.FldInfo() = *(m_func->GetProfileInfo()->GetFldInfo(inlineCacheIndex));
         *pUnprofiled = !instr->AsProfiledInstr()->u.FldInfo().WasLdFldProfiled();
         dstOpnd->SetValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -4050,10 +4048,8 @@ stCommon:
             }
             else if (this->m_func->HasProfileInfo())
             {
-
-                Js::ReadOnlyDynamicProfileInfo * profile = this->m_func->GetProfileInfo();
                 instr = IR::ProfiledInstr::New(newOpcode, fieldSymOpnd, srcOpnd, m_func);
-                instr->AsProfiledInstr()->u.FldInfo() = *(profile->GetFldInfo(this->m_func->GetJnFunction(), inlineCacheIndex));
+                instr->AsProfiledInstr()->u.FldInfo() = *(m_func->GetProfileInfo()->GetFldInfo(inlineCacheIndex));
             }
         }
 
@@ -4280,9 +4276,8 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
             else if (this->m_func->HasProfileInfo())
             {
 
-                Js::ReadOnlyDynamicProfileInfo * profile = this->m_func->GetProfileInfo();
                 instr = IR::ProfiledInstr::New(newOpcode, fieldSymOpnd, srcOpnd, m_func);
-                instr->AsProfiledInstr()->u.FldInfo() = *(profile->GetFldInfo(this->m_func->GetJnFunction(), inlineCacheIndex));
+                instr->AsProfiledInstr()->u.FldInfo() = *(m_func->GetProfileInfo()->GetFldInfo(inlineCacheIndex));
             }
         }
 
@@ -4851,7 +4846,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
             {
                 instr = IR::ProfiledInstr::New(newOpcode, dstOpnd, src1Opnd, m_func);
                 instr->AsProfiledInstr()->u.profileId = profileId;
-                arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(m_func->GetJnFunction(), profileId);
+                arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
                 if (arrayInfo && !m_func->IsJitInDebugMode())
                 {
                     if (arrayInfo->IsNativeIntArray())
@@ -4917,7 +4912,7 @@ IRBuilder::BuildProfiledAuxiliary(Js::OpCode newOpcode, uint32 offset)
                 instr = IR::ProfiledInstr::New(newOpcode, dstOpnd, src1Opnd, m_func);
                 instr->AsProfiledInstr()->u.profileId = profileId;
                 if (m_func->HasArrayInfo()) {
-                    arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(m_func->GetJnFunction(), profileId);
+                    arrayInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId);
                 }
             }
 
@@ -5189,7 +5184,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
             {
                 break;
             }
-            ldElemInfo = this->m_func->GetProfileInfo()->GetLdElemInfo(m_func->GetJnFunction(), profileId);
+            ldElemInfo = this->m_func->GetProfileInfo()->GetLdElemInfo(profileId);
             arrayType = ldElemInfo->GetArrayType();
             isLdElemOrStElemThatWasNotProfiled = !ldElemInfo->WasProfiled();
             isProfiledLoad = true;
@@ -5206,7 +5201,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
                 break;
             }
             isProfiledStore = true;
-            stElemInfo = this->m_func->GetProfileInfo()->GetStElemInfo(this->m_func->GetJnFunction(), profileId);
+            stElemInfo = this->m_func->GetProfileInfo()->GetStElemInfo(profileId);
             arrayType = stElemInfo->GetArrayType();
             isLdElemOrStElemThatWasNotProfiled = !stElemInfo->WasProfiled();
             break;
@@ -5518,8 +5513,7 @@ IRBuilder::BuildArgIn(uint32 offset, Js::RegSlot dstRegSlot, uint16 argument)
         if (paramSlotIndex >= 0)
         {
             ValueType profiledValueType;
-            profiledValueType = this->m_func->GetProfileInfo()->GetParameterInfo(
-                this->m_func->GetJnFunction(), static_cast<Js::ArgSlot>(paramSlotIndex));
+            profiledValueType = this->m_func->GetProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotIndex));
             dstOpnd->SetValueType(profiledValueType);
         }
     }
@@ -5996,7 +5990,7 @@ IRBuilder::BuildProfiledCallI(Js::OpCode opcode, uint32 offset, Js::RegSlot retu
     {
         if (this->m_func->HasProfileInfo())
         {
-            returnType = this->m_func->GetProfileInfo()->GetReturnType(this->m_func->GetJnFunction(), opcode, profileId);
+            returnType = this->m_func->GetProfileInfo()->GetReturnType(opcode, profileId);
         }
 
         if (opcode < Js::OpCode::ProfiledReturnTypeCallI)
@@ -6110,7 +6104,7 @@ IRBuilder::BuildProfiled2CallI(Js::OpCode opcode, uint32 offset, Js::RegSlot ret
         Js::ArrayCallSiteInfo *arrayCallSiteInfo = nullptr;
         if (m_func->HasArrayInfo())
         {
-            arrayCallSiteInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(m_func->GetJnFunction(), profileId2);
+            arrayCallSiteInfo = m_func->GetProfileInfo()->GetArrayCallSiteInfo(profileId2);
         }
         if (arrayCallSiteInfo && !m_func->IsJitInDebugMode())
         {
