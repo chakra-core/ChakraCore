@@ -105,6 +105,21 @@ namespace Js
 
         DynamicObject* keyObj = DynamicObject::FromVar(key);
 
+#if ENABLE_TTD
+        //
+        //This makes the set decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
+        //
+        ThreadContext* threadContext = function->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
+            {
+                threadContext->TTDInfo->TrackTagObject(keyObj);
+            }
+        }
+#endif
+
         weakSet->Add(keyObj);
 
         return weakSet;
@@ -190,13 +205,36 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType JavascriptWeakSet::GetSnapTag_TTD() const
     {
-        //Make sure this isn't accidentally handled by parent class
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapSetObject;
     }
 
     void JavascriptWeakSet::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+        TTD::NSSnapObjects::SnapSetInfo* ssi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapSetInfo>();
+        uint32 setCountEst = this->Size();
+
+        ssi->SetSize = 0;
+        ssi->SetValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(setCountEst + 1); //always reserve at least 1 element
+
+        this->Map([&](DynamicObject* key)
+        {
+            AssertMsg(ssi->SetSize < setCountEst, "We are writting junk");
+
+            ssi->SetValueArray[ssi->SetSize] = key;
+            ssi->SetSize++;
+        });
+
+        if(ssi->SetSize == 0)
+        {
+            ssi->SetValueArray = nullptr;
+            alloc.SlabAbortArraySpace<TTD::TTDVar>();
+        }
+        else
+        {
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(ssi->SetSize);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapSetInfo*, TTD::NSSnapObjects::SnapObjectType::SnapSetObject>(objData, ssi);
     }
 #endif
 }

@@ -4987,9 +4987,19 @@ namespace Js
         return JavascriptSet::CreateForSnapshotRestore(this->scriptContext);
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreateWeakSet_TTD()
+    {
+        return this->CreateWeakSet();
+    }
+
     void JavascriptLibrary::AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value)
     {
         set->Add(value);
+    }
+
+    void JavascriptLibrary::AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value)
+    {
+        set->Add(Js::DynamicObject::FromVar(value));
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateMap_TTD()
@@ -4997,9 +5007,19 @@ namespace Js
         return JavascriptMap::CreateForSnapshotRestore(this->scriptContext);
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreateWeakMap_TTD()
+    {
+        return this->CreateWeakMap();
+    }
+
     void JavascriptLibrary::AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value)
     {
         map->Set(key, value);
+    }
+
+    void JavascriptLibrary::AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value)
+    {
+        map->Set(Js::DynamicObject::FromVar(key), value);
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::JavascriptString* fname)

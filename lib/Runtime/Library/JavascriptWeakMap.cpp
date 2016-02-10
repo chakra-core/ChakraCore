@@ -246,6 +246,21 @@ namespace Js
 
         DynamicObject* keyObj = DynamicObject::FromVar(key);
 
+#if ENABLE_TTD
+        //
+        //This makes the map decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
+        //
+        ThreadContext* threadContext = function->GetScriptContext()->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        {
+            TTD::EventLog* elog = threadContext->TTDLog;
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
+            {
+                threadContext->TTDInfo->TrackTagObject(keyObj);
+            }
+        }
+#endif
+
         weakMap->Set(keyObj, value);
 
         return weakMap;
@@ -332,13 +347,37 @@ namespace Js
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType JavascriptWeakMap::GetSnapTag_TTD() const
     {
-        //Make sure this isn't accidentally handled by parent class
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapMapObject;
     }
 
     void JavascriptWeakMap::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::Invalid>(objData, nullptr);
+        TTD::NSSnapObjects::SnapMapInfo* smi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapMapInfo>();
+        uint32 mapCountEst = this->Size() * 2;
+
+        smi->MapSize = 0;
+        smi->MapKeyValueArray = alloc.SlabReserveArraySpace<TTD::TTDVar>(mapCountEst + 1); //always reserve at least 1 element
+
+        this->Map([&](DynamicObject* key, Js::Var value)
+        {
+            AssertMsg(smi->MapSize + 1 < mapCountEst, "We are writting junk");
+
+            smi->MapKeyValueArray[smi->MapSize] = key;
+            smi->MapKeyValueArray[smi->MapSize + 1] = value;
+            smi->MapSize += 2;
+        });
+
+        if(smi->MapSize == 0)
+        {
+            smi->MapKeyValueArray = nullptr;
+            alloc.SlabAbortArraySpace<TTD::TTDVar>();
+        }
+        else
+        {
+            alloc.SlabCommitArraySpace<TTD::TTDVar>(smi->MapSize);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapMapInfo*, TTD::NSSnapObjects::SnapObjectType::SnapMapObject>(objData, smi);
     }
 #endif
 }

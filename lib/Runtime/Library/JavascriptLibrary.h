@@ -600,10 +600,14 @@ namespace Js
         Js::RecyclableObject* CreateError_TTD();
 
         Js::RecyclableObject* CreateSet_TTD();
+        Js::RecyclableObject* CreateWeakSet_TTD();
         static void AddSetElementInflate_TTD(Js::JavascriptSet* set, Var value);
+        static void AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value);
 
         Js::RecyclableObject* CreateMap_TTD();
+        Js::RecyclableObject* CreateWeakMap_TTD();
         static void AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value);
+        static void AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value);
 
         Js::RecyclableObject* CreateExternalFunction_TTD(Js::JavascriptString* fname);
         Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);

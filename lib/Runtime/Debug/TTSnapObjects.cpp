@@ -1319,11 +1319,7 @@ namespace TTD
             }
             else
             {
-                //
-                //TODO: we need to have weak sets keep track of when they GC/realease objects -- probably as part of log
-                //
-                AssertMsg(false, "WeakSet not supported yet!!!");
-                return nullptr;
+                return ctx->GetLibrary()->CreateWeakSet_TTD();
             }
         }
 
@@ -1342,7 +1338,12 @@ namespace TTD
             }
             else
             {
-                AssertMsg(false, "WeakSet not supported yet!!!");
+                Js::JavascriptWeakSet* sobj = (Js::JavascriptWeakSet*)obj;
+                for(uint32 i = 0; i < setInfo->SetSize; ++i)
+                {
+                    Js::Var val = inflator->InflateTTDVar(setInfo->SetValueArray[i]);
+                    Js::JavascriptLibrary::AddWeakSetElementInflate_TTD(sobj, val);
+                }
             }
         }
 
@@ -1397,11 +1398,7 @@ namespace TTD
             }
             else
             {
-                //
-                //TODO: we need to have weak maps keep track of when they GC/realease objects -- probably as part of log
-                //
-                AssertMsg(false, "WeakMap not supported yet!!!");
-                return nullptr;
+                return ctx->GetLibrary()->CreateWeakMap_TTD();
             }
         }
 
@@ -1421,7 +1418,13 @@ namespace TTD
             }
             else
             {
-                AssertMsg(false, "WeakMap not supported yet!!!");
+                Js::JavascriptWeakMap* mobj = (Js::JavascriptWeakMap*)obj;
+                for(uint32 i = 0; i < mapInfo->MapSize; i += 2)
+                {
+                    Js::Var key = inflator->InflateTTDVar(mapInfo->MapKeyValueArray[i]);
+                    Js::Var data = inflator->InflateTTDVar(mapInfo->MapKeyValueArray[i + 1]);
+                    Js::JavascriptLibrary::AddWeakMapElementInflate_TTD(mobj, key, data);
+                }
             }
         }
 
