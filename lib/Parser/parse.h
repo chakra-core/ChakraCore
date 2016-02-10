@@ -405,7 +405,6 @@ private:
     Js::ParseableFunctionInfo* m_functionBody; // For a deferred parsed function, the function body is non-null
     ParseType m_parseType;
 
-    uint m_parsingDuplicate;
     uint m_arrayDepth;
     uint m_funcInArrayDepth; // Count func depth within array literal
     charcount_t m_funcInArray;

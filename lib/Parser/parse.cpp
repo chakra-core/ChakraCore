@@ -93,7 +93,6 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_doingFastScan = false;
     m_scriptContext = scriptContext;
     m_pCurrentAstSize = nullptr;
-    m_parsingDuplicate = 0;
     m_arrayDepth = 0;
     m_funcInArrayDepth = 0;
     m_parenDepth = 0;
@@ -3433,6 +3432,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             ParseNodePtr pnodeExpr = nullptr;
             if (isObjectPattern)
             {
+                if (m_token.tk == tkEllipsis)
+                {
+                    Error(ERRUnexpectedEllipsis);
+                }
                 pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/);
 
                 if (m_token.tk != tkComma && m_token.tk != tkRCurly)
@@ -3967,7 +3970,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     if (this->m_arrayDepth)
     {
         this->m_funcInArrayDepth--;
-        if (this->m_funcInArrayDepth == 0 && !this->m_parsingDuplicate)
+        if (this->m_funcInArrayDepth == 0)
         {
             // We disable deferred parsing if array literals dominate.
             // But don't do this if the array literal is dominated by function bodies.
@@ -11157,20 +11160,6 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
     }
     else
     {
-        // we should allow
-        // references (name/string/knopDots and knopIndex)
-        // Allow assignment operator for initializer
-        // rest is syntax error.
-
-        if (!(op == knopName || op == knopStr || op == knopDot || op == knopIndex || op == knopAsg))
-        {
-            if (m_token.IsOperator())
-            {
-                Error(ERRDestructNoOper);
-            }
-            Error(ERRDestructIDRef);
-        }
-
         rightNode = pnode;
     }
 
@@ -11231,6 +11220,9 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
 
     m_ppnodeExprScope = nullptr;
 
+    charcount_t funcInArraySave = m_funcInArray;
+    uint funcInArrayDepthSave = m_funcInArrayDepth;
+
     ParseDestructuredLiteral<false>(declarationType, isDecl, topLevel, initializerContext, allowIn);
 
     m_currentNodeFunc = pnodeFncSave;
@@ -11238,6 +11230,8 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
     m_pnestedCount = pNestedCountSave;
     m_ppnodeScope = ppnodeScopeSave;
     m_ppnodeExprScope = ppnodeExprScopeSave;
+    m_funcInArray = funcInArraySave;
+    m_funcInArrayDepth = funcInArrayDepthSave;
 }
 
 template <bool buildAST>
@@ -11404,10 +11398,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             // We aren't declaring anything, so scan the ID reference manually.
             pnodeElem = ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false,
                                                              &fCanAssign);
-            if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
+
+            // In this destructuring case we can force error here as we cannot assign.
+
+            if (!fCanAssign)
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidAssignmentTarget);
             }
+
             if (buildAST)
             {
                 if (IsStrictMode() && pnodeElem != nullptr && pnodeElem->nop == knopName)
