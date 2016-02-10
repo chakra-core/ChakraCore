@@ -162,6 +162,19 @@ public:
         return GetScriptContext()->GetLibrary()->GetThrowerFunction();
     }
 
+    HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, Js::JavascriptString* specifier, Js::ModuleRecordBase** dependentModuleRecord) override
+    {
+        AssertMsg(false, "not implemented");
+        return S_FALSE;
+    }
+
+    HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override
+    {
+        AssertMsg(false, "not implemented");
+        return S_FALSE;
+    }
+
+
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
     {
