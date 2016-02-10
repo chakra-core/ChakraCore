@@ -4151,6 +4151,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
 
         AnalysisAssert(pnodeFnc);
         ParseNodePtr pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
+        AnalysisAssert(pnodeBlock != nullptr);
         pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
         m_ppnodeVar = &pnodeFnc->sxFnc.pnodeParams;
 
