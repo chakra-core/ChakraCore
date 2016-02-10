@@ -496,6 +496,38 @@ var tests = [
             });
         }
     },
+    {
+        name: "local variables with same names as formal parameters have proper redeclaration semantics (non-error cases, var and function)",
+        body: function (index) {
+            async function af1(x) { var y = x; var x = 'b'; return y + x; }
+
+            af1('a').then(result => {
+                if (result === 'ab') {
+                    echo(`Test #${index} - Success inner var x overwrote formal parameter x only after the declaration statement`);
+                } else {
+                    echo(`Test #${index} - Failure x appears to have an unexpected value x = ${x}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error var redeclaration with err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch var redeclaration with err = ${err}`);
+            });
+
+            async function af2(x) { var xx = x(); function x() { return 'afx'; } return xx; }
+
+            af2(function () { return ''; }).then(result => {
+                if (result === 'afx') {
+                    echo(`Test #${index} - Success inner function x() overwrote formal parameter x`);
+                } else {
+                    echo(`Test #${index} - Failure x appears not assigned with inner function x(), x = ${x}`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch err = ${err}`);
+            });
+        }
+    },
 ];
 
 var index = 1;

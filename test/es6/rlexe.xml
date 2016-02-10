@@ -284,15 +284,13 @@
   <test>
     <default>
       <files>classes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Off:Deferparse</compile-flags>
-      <baseline>classes.baseline</baseline>
+      <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>classes.js</files>
-      <compile-flags>-ES6Classes -ES6Lambda -ES6Spread -ES6Generators -Force:Deferparse</compile-flags>
-      <baseline>classes.baseline</baseline>
+      <compile-flags>-Force:Deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

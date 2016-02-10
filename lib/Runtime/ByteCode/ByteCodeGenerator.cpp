@@ -1800,6 +1800,19 @@ FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
     return nullptr;
 }
 
+FuncInfo* GetParentFuncInfo(FuncInfo* child)
+{
+    for (Scope* scope = child->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
+    {
+        if (scope->GetFunc() != child)
+        {
+            return scope->GetFunc();
+        }
+    }
+    Assert(0);
+    return nullptr;
+}
+
 bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2214,7 +2227,7 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
 {
     Assert(byteCodeGenerator->TopFuncInfo()->varRegsCount == 0);
     Js::ArgSlot pos = 1;
-    bool isSimpleParameterList = pnode->sxFnc.IsSimpleParameterList();
+    bool isNonSimpleParameterList = pnode->sxFnc.HasNonSimpleParameterList();
 
     auto addArgToScope = [&](ParseNode *arg)
     {
@@ -2232,13 +2245,13 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
             }
 #endif
 
-            if (!isSimpleParameterList)
+            if (isNonSimpleParameterList)
             {
                 formal->SetIsNonSimpleParameter(true);
             }
 
             arg->sxVar.sym = formal;
-            MarkFormal(byteCodeGenerator, formal, assignLocation || !isSimpleParameterList, !isSimpleParameterList);
+            MarkFormal(byteCodeGenerator, formal, assignLocation || isNonSimpleParameterList, isNonSimpleParameterList);
         }
         else if (arg->nop == knopParamPattern)
         {
@@ -2530,7 +2543,16 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 byteCodeGenerator->AssignRegister(sym);
                 pnode->location = sym->GetLocation();
 
-                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
+                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc() ||
+                    sym->GetScope()->GetFunc()->root->sxFnc.IsAsync());
+                if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
+                {
+                    Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
+                    sym->GetScope()->SetMustInstantiate(true);
+                    sym->SetHasNonLocalReference(true, byteCodeGenerator);
+                    sym->GetScope()->GetFunc()->SetHasLocalInClosure(true);
+                }
+
                 Symbol * functionScopeVarSym = sym->GetFuncScopeVarSym();
                 if (functionScopeVarSym &&
                     !functionScopeVarSym->GetIsGlobal() &&
@@ -2680,7 +2702,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             if (top->GetCallsEval() ||
                 top->GetChildCallsEval() ||
-                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeArgs != nullptr) ||
+                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeParams != nullptr) ||
                 top->GetHasLocalInClosure() ||
                 top->funcExprScope && top->funcExprScope->GetMustInstantiate())
             {
@@ -2703,7 +2725,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (top->GetCallsEval() ||
                     pnode->sxFnc.nestedCount != 0
                     || (top->GetHasArguments()
-                        && (pnode->sxFnc.pnodeArgs != nullptr)
+                        && (pnode->sxFnc.pnodeParams != nullptr)
                         && byteCodeGenerator->IsInDebugMode()))
                 {
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
@@ -2751,7 +2773,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
                     Assert(top->GetHasHeapArguments());
                     if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)
-                        && pnode->sxFnc.IsSimpleParameterList())
+                        && !pnode->sxFnc.HasNonSimpleParameterList())
                     {
                         top->byteCodeFunction->SetHasImplicitArgIns(false);
                     }
@@ -3104,7 +3126,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                 MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
 
-                if (!pnodeScope->sxFnc.IsSimpleParameterList())
+                if (pnodeScope->sxFnc.HasNonSimpleParameterList())
                 {
                     byteCodeGenerator->AssignUndefinedConstRegister();
                 }
@@ -4937,6 +4959,19 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         {
             sym = pnode->sxVar.sym;
             Assert(sym != nullptr);
+
+            if (sym->GetScope()->GetEnclosingFunc() != byteCodeGenerator->TopFuncInfo())
+            {
+                FuncInfo* parentFunc = GetParentFuncInfo(byteCodeGenerator->TopFuncInfo());
+                Assert(parentFunc == sym->GetScope()->GetEnclosingFunc());
+                if (parentFunc->root->sxFnc.IsAsync())
+                {
+                    // async functions produce a situation where a var decl can have a symbol
+                    // declared from an enclosing function.  In this case just no-op the vardecl.
+                    return;
+                }
+            }
+
             Assert(sym->GetScope()->GetEnclosingFunc() == byteCodeGenerator->TopFuncInfo());
 
             if (pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar())
@@ -4954,14 +4989,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
                 if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar() && !pnode->sxVar.isBlockScopeFncDeclVar))
                 {
-                // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
+                    // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
                     // But the assignment will go to the catch or let symbol. Just assign a register to the local
                     // so that it can get initialized to undefined.
 #if DBG
                     if (!sym->GetIsCatch())
                     {
-                    // Catch cannot be at function scope and let and var at function scope is redeclaration error.
-                    Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
+                        // Catch cannot be at function scope and let and var at function scope is redeclaration error.
+                        Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
                     }
 #endif
                     auto symName = sym->GetName();
@@ -4973,12 +5008,12 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     Assert((sym && !sym->GetIsCatch() && !sym->GetIsBlockVar()));
                 }
                 // Don't give the declared var a register if it's in a closure, because the closure slot
-            // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
+                // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
                 if (!sym->GetIsGlobal() && !sym->IsInSlot(funcInfo))
                 {
-                if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
+                    if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                    if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
+                        if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
                         {
                             Output::Print(L"--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n", sym->GetName());
                             Output::Flush();
@@ -5124,7 +5159,7 @@ bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
     }
 
     if (!fncDecl->HasVarArguments()
-        && fncDecl->sxFnc.pnodeArgs == nullptr
+        && fncDecl->sxFnc.pnodeParams == nullptr
         && fncDecl->sxFnc.pnodeRest == nullptr
         && fncDecl->sxFnc.nestedCount == 0)
     {
@@ -5186,14 +5221,14 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
         funcInfo->GetHasHeapArguments()
         // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
         && (funcInfo->GetIsStrictMode()
-            || !pnodeFnc->sxFnc.IsSimpleParameterList())
+            || pnodeFnc->sxFnc.HasNonSimpleParameterList())
         // Neither of the scopes are objects
         && !funcInfo->paramScope->GetIsObject()
         && !funcInfo->bodyScope->GetIsObject();
 
     return funcInfo->GetHasHeapArguments()
         // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
-        && (pnodeFnc->sxFnc.pnodeArgs != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
+        && (pnodeFnc->sxFnc.pnodeParams != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
         && !dontNeedScopeObject;
 }
 

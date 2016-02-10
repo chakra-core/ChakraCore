@@ -187,7 +187,7 @@ enum FncFlags
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
     kFunctionIsLambda                           = 1 << 13,
     kFunctionChildCallsEval                     = 1 << 14,
-    kFunctionHasDestructuringPattern            = 1 << 15,
+    kFunctionHasNonSimpleParameterList          = 1 << 15,
     kFunctionHasSuperReference                  = 1 << 16,
     kFunctionIsMethod                           = 1 << 17,
     kFunctionIsClassConstructor                 = 1 << 18, // function is a class constructor
@@ -218,7 +218,7 @@ struct PnFnc
     bool  isNameIdentifierRef;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
-    ParseNodePtr pnodeArgs;
+    ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeRest;
@@ -276,8 +276,8 @@ public:
     void SetDeclaration(bool set = true) { SetFlags(kFunctionDeclaration, set); }
     void SetDoesNotEscape(bool set = true) { SetFlags(kFunctionDoesNotEscape, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
-    void SetHasDestructuringPattern(bool set = true) { SetFlags(kFunctionHasDestructuringPattern, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
+    void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
     void SetHasNonThisStmt(bool set = true) { SetFlags(kFunctionHasNonThisStmt, set); }
     void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferenceableBuiltInArguments, set); }
     void SetHasSuperReference(bool set = true) { SetFlags(kFunctionHasSuperReference, set); }
@@ -308,13 +308,13 @@ public:
     bool GetAsmjsMode() const { return HasFlags(kFunctionAsmjsMode); }
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
-    bool HasDestructuringPattern() const { return HasFlags(kFunctionHasDestructuringPattern); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
     bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferenceableBuiltInArguments); }
     bool HasSuperReference() const { return HasFlags(kFunctionHasSuperReference); }
     bool HasDirectSuper() const { return HasFlags(kFunctionHasDirectSuper); }
     bool HasNewTargetReference() const { return HasFlags(kFunctionHasNewTargetReference); }
+    bool HasNonSimpleParameterList() { return HasFlags(kFunctionHasNonSimpleParameterList); }
     bool HasThisStmt() const { return HasFlags(kFunctionHasThisStmt); }
     bool HasWithStmt() const { return HasFlags(kFunctionHasWithStmt); }
     bool IsAccessor() const { return HasFlags(kFunctionIsAccessor); }
@@ -333,8 +333,6 @@ public:
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
 
-    bool IsSimpleParameterList() const { return !HasDefaultArguments() && !HasDestructuringPattern() && pnodeRest == nullptr; }
-
     size_t LengthInBytes()
     {
         return cbLim - cbMin;
@@ -344,9 +342,7 @@ public:
     void SetFuncSymbol(Symbol *sym);
 
     ParseNodePtr GetParamScope() const;
-    ParseNodePtr *GetParamScopeRef() const;
     ParseNodePtr GetBodyScope() const;
-    ParseNodePtr *GetBodyScopeRef() const;
     ParseNodePtr GetTopLevelScope() const
     {
         // Top level scope will be the same for knopProg and knopFncDecl.

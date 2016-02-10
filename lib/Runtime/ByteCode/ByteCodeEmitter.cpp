@@ -500,14 +500,14 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     Js::RegSlot argumentsLoc = argSym->GetLocation();
     Js::RegSlot propIdsLoc = funcInfo->nullConstantRegister;
 
-    Js::OpCode opcode = funcInfo->root->sxFnc.IsSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
+    Js::OpCode opcode = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
     bool hasRest = funcInfo->root->sxFnc.pnodeRest != nullptr;
     uint count = funcInfo->inArgsCount + (hasRest ? 1 : 0) - 1;
     if (count == 0)
     {
         // If no formals to function (only "this"), then no need to create the scope object.
         // Leave both the arguments location and the propertyIds location as null.
-        Assert(funcInfo->root->sxFnc.pnodeArgs == nullptr && !hasRest);
+        Assert(funcInfo->root->sxFnc.pnodeParams == nullptr && !hasRest);
     }
     else if (!NeedScopeObjectForArguments(funcInfo, funcInfo->root))
     {
@@ -548,7 +548,7 @@ void ByteCodeGenerator::LoadCachedHeapArguments(FuncInfo *funcInfo)
     Assert(argSym && argSym->GetIsArguments());
     Js::RegSlot argumentsLoc = argSym->GetLocation();
 
-    Js::OpCode op = funcInfo->root->sxFnc.IsSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
+    Js::OpCode op = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArgsCached : Js::OpCode::LdLetHeapArgsCached;
 
     this->m_writer.Reg1(op, argumentsLoc);
     EmitLocalPropInit(argumentsLoc, argSym, funcInfo);
@@ -1159,7 +1159,15 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
                 }
             }
 
-            byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
+            if (sym->GetScope()->GetFunc() != byteCodeGenerator->TopFuncInfo())
+            {
+                byteCodeGenerator->EmitPropStore(pnodeFnc->location, sym, nullptr, funcInfoParent);
+            }
+            else
+            {
+                byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
+            }
+
             Symbol * fncScopeSym = sym->GetFuncScopeVarSym();
 
             if (fncScopeSym)
@@ -1253,11 +1261,8 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNode *pnodeFnc, FuncInfo *
                 // Note that having a function with the same name as a let/const declaration
                 // is a redeclaration error, but we're pushing the fix for this out since it's
                 // a bit involved.
-                //
-                // TODO: Once the redeclaration error is in place, this boolean can be replaced
-                // by funcSymbol->GetIsBlockVar().
                 Assert(funcInfoParent->GetBodyScope() != nullptr && funcSymbol->GetScope() != nullptr);
-                bool isFunctionDeclarationInBlock = funcSymbol->GetScope() != funcInfoParent->GetBodyScope();
+                bool isFunctionDeclarationInBlock = funcSymbol->GetIsBlockVar();
 
                 // Track all vars/lets/consts register slot function declarations.
                 if (ShouldTrackDebuggerMetadata()
@@ -1656,7 +1661,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     slots[2] = firstVarSlot;
     slots[3] = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
-    propIds->hasNonSimpleParams = !funcInfo->root->sxFnc.IsSimpleParameterList();
+    propIds->hasNonSimpleParams = funcInfo->root->sxFnc.HasNonSimpleParameterList();
     funcInfo->localPropIdOffset = m_writer.InsertAuxiliaryData(propIds, sizeof(Js::PropertyIdArray) + extraAlloc);
     Assert(funcInfo->localPropIdOffset == 0);
     funcInfo->GetParsedFunctionBody()->SetHasCachedScopePropIds(true);
@@ -3132,7 +3137,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         }
         DefineLabels(funcInfo);
 
-        if (!pnode->sxFnc.IsSimpleParameterList())
+        if (pnode->sxFnc.HasNonSimpleParameterList())
         {
             Scope* bodyScope = funcInfo->GetBodyScope();
 
@@ -3427,7 +3432,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode)
             if (pnode->sxFnc.GetAsmjsMode())
             {
                 Js::ExclusiveContext context(this, GetScriptContext());
-                if (Js::AsmJSCompiler::Compile(&context, pnode, pnode->sxFnc.pnodeArgs))
+                if (Js::AsmJSCompiler::Compile(&context, pnode, pnode->sxFnc.pnodeParams))
                 {
                     pnode = pnode->sxFnc.pnodeNext;
                     break;
@@ -4481,10 +4486,23 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     // isFncDeclVar denotes that the symbol being stored to here is the var
     // binding of a function declaration and we know we want to store directly
     // to it, skipping over any dynamic scopes that may lie in between.
-    Scope *scope = isFncDeclVar ? symScope : nullptr;
-    Js::RegSlot scopeLocation = isFncDeclVar ? scope->GetLocation() : Js::Constants::NoRegister;
+    Scope *scope = nullptr;
+    Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     bool scopeAcquired = false;
     Js::OpCode op;
+
+    if (isFncDeclVar)
+    {
+        // async functions allow for the fncDeclVar to be in the body or parameter scope
+        // of the parent function, so we need to calculate envIndex in lieu of the while
+        // loop below.
+        do
+        {
+            scope = this->FindScopeForSym(symScope, scope, &envIndex, funcInfo);
+        } while (scope != symScope);
+        Assert(scope == symScope);
+        scopeLocation = scope->GetLocation();
+    }
 
     while (!isFncDeclVar)
     {

@@ -623,7 +623,7 @@ namespace Js
         }
         GetByteCodeGenerator()->PushFuncInfo(L"Start asm.js AST prepass", fncNode->sxFnc.funcInfo);
         fncNode->sxFnc.funcInfo->byteCodeFunction->SetBoundPropertyRecords(GetByteCodeGenerator()->EnsurePropertyRecordList());
-        BindArguments(fncNode->sxFnc.pnodeArgs);
+        BindArguments(fncNode->sxFnc.pnodeParams);
         ASTPrepass(pnodeBody, func);
         GetByteCodeGenerator()->PopFuncInfo(L"End asm.js AST prepass");
 
@@ -1081,7 +1081,7 @@ namespace Js
     {
         ParseNode * fncNode = func->GetFncNode();
         ParseNode * pnodeBody = fncNode->sxFnc.pnodeBody;
-        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeArgs;
+        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeParams;
 
         // match AST for changeHeap function.
         // it must be defined in the following format (names/whitespace can differ):

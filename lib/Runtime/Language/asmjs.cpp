@@ -59,7 +59,7 @@ namespace Js
     AsmJSCompiler::CheckFunctionHead(AsmJsModuleCompiler &m, ParseNode *fn, bool isGlobal /*= true*/)
     {
         PnFnc fnc = fn->sxFnc;
-        if (!fnc.IsSimpleParameterList())
+        if (fnc.HasNonSimpleParameterList())
         {
             return m.Fail(fn, L"default & rest args not allowed");
         }

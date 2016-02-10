@@ -952,8 +952,7 @@ private:
         fFncMethod      = 1 << 5,
         fFncClassMember = 1 << 6,
         fFncGenerator   = 1 << 7,
-        fFncSetter      = 1 << 8,
-        fFncAsync       = 1 << 9,
+        fFncAsync       = 1 << 8,
     };
 
     //
@@ -964,11 +963,11 @@ private:
     {
     private:
         Scanner_t* m_scanner;
-        BOOL m_forcePid;
+        bool m_forcePid;
         BYTE m_oldScannerDeferredParseFlags;
 
     public:
-        AutoTempForcePid(Scanner_t* scanner, BOOL forcePid)
+        AutoTempForcePid(Scanner_t* scanner, bool forcePid)
             : m_scanner(scanner), m_forcePid(forcePid)
         {
             if (forcePid)
