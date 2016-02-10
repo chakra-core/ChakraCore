@@ -10,7 +10,7 @@ namespace Js
 {
     SIMDValue SIMDInt8x16Operation::OpInt8x16(int8 values[])
     {
-        SIMDValue result;
+        SIMDValue result = {0, 0, 0, 0};
 
         for (uint8 i = 0; i < 16; i++)
         {
@@ -159,7 +159,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpLessThan(const SIMDValue& aValue, const SIMDValue& bValue) // TODO arun: return bool types
+    SIMDValue SIMDInt8x16Operation::OpLessThan(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
@@ -170,7 +170,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpLessThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    SIMDValue SIMDInt8x16Operation::OpLessThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
@@ -181,7 +181,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpEqual(const SIMDValue& aValue, const SIMDValue& bValue) // TODO arun: return bool types
+    SIMDValue SIMDInt8x16Operation::OpEqual(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
@@ -194,7 +194,7 @@ namespace Js
     }
 
 
-    SIMDValue SIMDInt8x16Operation::OpNotEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    SIMDValue SIMDInt8x16Operation::OpNotEqual(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
@@ -207,25 +207,25 @@ namespace Js
     }
 
 
-    SIMDValue SIMDInt8x16Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    SIMDValue SIMDInt8x16Operation::OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
         for(uint idx = 0; idx < 16; ++idx)
         {
-            result.i8[idx] = (aValue.i8[idx] > bValue.i8[idx]) ? 0xff : 0x0; //Return should be bool vector according to spec
+            result.i8[idx] = (aValue.i8[idx] > bValue.i8[idx]) ? 0xff : 0x0;
         }
 
         return result;
     }
 
-    SIMDValue SIMDInt8x16Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue) //arun::ToDo return bool types
+    SIMDValue SIMDInt8x16Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
 
         for (uint idx = 0; idx < 16; ++idx)
         {
-            result.i8[idx] = (aValue.i8[idx] >= bValue.i8[idx]) ? 0xff : 0x0; //Return should be bool vector accordig to spec
+            result.i8[idx] = (aValue.i8[idx] >= bValue.i8[idx]) ? 0xff : 0x0;
         }
 
         return result;

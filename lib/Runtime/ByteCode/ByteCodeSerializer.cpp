@@ -900,6 +900,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int32x4_1);
                 // Float64x2
+#if 0
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_4);
@@ -913,6 +914,8 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Int32x4_1Float64x2_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float64x2_1);
+#endif // 0
+
                 // Int16x8
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Int8)
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int16x8_1)
@@ -932,6 +935,25 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint32x4_1)
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint16x8_1)
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int16x8_1Uint8x16_1)
+                // In8x16
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_3)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int16)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int16)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_3Int16)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int8x16_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int8x16_2)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Bool8x16_1Int8x16_2)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Float32x4_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int32x4_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Int16x8_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint32x4_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint16x8_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_1Uint8x16_1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int8x16_1Int1)
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int8x16_2Int2)
                 // Uint32x4
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Uint32x4_1Int4)
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Uint32x4_1)

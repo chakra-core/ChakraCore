@@ -1195,6 +1195,8 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             case Js::OpCode::PSLLD:
             case Js::OpCode::PSLLDQ:
             case Js::OpCode::PSRLDQ:
+            case Js::OpCode::PSLLW:  
+            case Js::OpCode::PSRLW:  
                 // SSE shift
                 Assert(opr1->IsRegOpnd());
                 rexByte |= this->EmitModRM(instr, opr1, this->GetOpcodeByte2(instr) >> 3);

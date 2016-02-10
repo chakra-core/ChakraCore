@@ -1,3 +1,4 @@
+
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
@@ -91,22 +92,16 @@ ENTRY(Int16x8)
 ENTRY(Bool32x4)
 ENTRY(Bool16x8)
 ENTRY(Bool8x16)
-
 ENTRY(Uint32x4)
 ENTRY(Uint16x8)
 ENTRY(Uint8x16)
-
 ENTRY(zero)
 ENTRY(splat)
 ENTRY2(bool_, L"bool") // "bool" cannot be an identifier in C++ so using "bool_" instead
-
 ENTRY(fromFloat32x4)
-
 ENTRY(fromInt32x4)
 ENTRY(fromUint32x4)
-ENTRY(fromInt8x16)
 ENTRY(fromFloat64x2)
-
 ENTRY(fromFloat32x4Bits)
 ENTRY(fromFloat64x2Bits)
 ENTRY(fromInt32x4Bits)
@@ -159,8 +154,6 @@ ENTRY(greaterThan)
 ENTRY(minNum)
 ENTRY(maxNum)
 ENTRY(shiftLeft)
-ENTRY(shiftRightLogical)
-ENTRY(shiftRightArithmetic)
 ENTRY(shiftLeftByScalar)
 ENTRY(shiftRightByScalar)
 

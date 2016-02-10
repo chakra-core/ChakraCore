@@ -325,6 +325,9 @@ public:
     IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
     IR::Instr*          Simd128LowerNegI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerShift(IR::Instr *instr);
+    IR::Instr*          Simd128LowerNegI16(IR::Instr *instr);
+    IR::Instr*          Simd128LowerMulI16(IR::Instr *instr);
     IR::Instr*          Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr);
     IR::Instr*          Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr);
     IR::Instr*          Simd128AsmJsLowerLoadElem(IR::Instr *instr);
@@ -338,6 +341,13 @@ public:
     IR::Instr*          Simd128LowerSwizzle_4(IR::Instr *instr);
     IR::Instr*          Simd128LowerShuffle_4(IR::Instr *instr);
     IR::Instr*          Simd128LowerShuffle(IR::Instr *instr);
+    IR::Instr*          Simd128LowerNotEqual(IR::Instr* instr);
+    IR::Instr*          Simd128LowerLessThan(IR::Instr* instr);
+    IR::Instr*          Simd128LowerLessThanOrEqual(IR::Instr* instr);
+    IR::Instr*          Simd128LowerGreaterThanOrEqual(IR::Instr* instr);
+    IR::Instr*          Simd128LowerMinMax(IR::Instr* instr);
+    IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
+    IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
     IR::Opnd *          EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type = TyInt32);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);

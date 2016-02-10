@@ -172,6 +172,7 @@ namespace Js {
         SIMDNameMap                         mStdLibSIMDFloat32x4Map;
         SIMDNameMap                         mStdLibSIMDFloat64x2Map;
         SIMDNameMap                         mStdLibSIMDInt16x8Map;
+        SIMDNameMap                         mStdLibSIMDInt8x16Map;
         SIMDNameMap                         mStdLibSIMDUint32x4Map;
         SIMDNameMap                         mStdLibSIMDUint16x8Map;
         SIMDNameMap                         mStdLibSIMDUint8x16Map;

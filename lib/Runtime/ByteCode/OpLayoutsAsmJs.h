@@ -915,7 +915,219 @@ namespace Js
         typename SizePolicy::RegSlotType     B16_1;
     };
 
-// Disabled for now
+    /* Int8x16 layouts */
+    //--------------------
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_2
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_3
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool8x16_1Int8x16_2
+    {
+        typename SizePolicy::RegSlotType    B16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Bool8x16_1Int8x16_2
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    B16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+        typename SizePolicy::RegSlotType    I16_3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_4
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+        typename SizePolicy::RegSlotType    I16_3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Int1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Int16
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+        typename SizePolicy::RegSlotType    I4;
+        typename SizePolicy::RegSlotType    I5;
+        typename SizePolicy::RegSlotType    I6;
+        typename SizePolicy::RegSlotType    I7;
+        typename SizePolicy::RegSlotType    I8;
+        typename SizePolicy::RegSlotType    I9;
+        typename SizePolicy::RegSlotType    I10;
+        typename SizePolicy::RegSlotType    I11;
+        typename SizePolicy::RegSlotType    I12;
+        typename SizePolicy::RegSlotType    I13;
+        typename SizePolicy::RegSlotType    I14;
+        typename SizePolicy::RegSlotType    I15;
+        typename SizePolicy::RegSlotType    I16;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_2Int16
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+        typename SizePolicy::RegSlotType    I4;
+        typename SizePolicy::RegSlotType    I5;
+        typename SizePolicy::RegSlotType    I6;
+        typename SizePolicy::RegSlotType    I7;
+        typename SizePolicy::RegSlotType    I8;
+        typename SizePolicy::RegSlotType    I9;
+        typename SizePolicy::RegSlotType    I10;
+        typename SizePolicy::RegSlotType    I11;
+        typename SizePolicy::RegSlotType    I12;
+        typename SizePolicy::RegSlotType    I13;
+        typename SizePolicy::RegSlotType    I14;
+        typename SizePolicy::RegSlotType    I15;
+        typename SizePolicy::RegSlotType    I16;
+        typename SizePolicy::RegSlotType    I17;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_3Int16
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+        typename SizePolicy::RegSlotType    I3;
+        typename SizePolicy::RegSlotType    I4;
+        typename SizePolicy::RegSlotType    I5;
+        typename SizePolicy::RegSlotType    I6;
+        typename SizePolicy::RegSlotType    I7;
+        typename SizePolicy::RegSlotType    I8;
+        typename SizePolicy::RegSlotType    I9;
+        typename SizePolicy::RegSlotType    I10;
+        typename SizePolicy::RegSlotType    I11;
+        typename SizePolicy::RegSlotType    I12;
+        typename SizePolicy::RegSlotType    I13;
+        typename SizePolicy::RegSlotType    I14;
+        typename SizePolicy::RegSlotType    I15;
+        typename SizePolicy::RegSlotType    I16;
+        typename SizePolicy::RegSlotType    I17;
+        typename SizePolicy::RegSlotType    I18;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_3Int4
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I16_2;
+        typename SizePolicy::RegSlotType    I3;
+        typename SizePolicy::RegSlotType    I4;
+        typename SizePolicy::RegSlotType    I5;
+        typename SizePolicy::RegSlotType    I6;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_2Int1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I2;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_2Int2
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int1Int8x16_1Int1
+    {
+        typename SizePolicy::RegSlotType    I0;
+        typename SizePolicy::RegSlotType    I16_1;
+        typename SizePolicy::RegSlotType    I2;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Reg1Int8x16_1
+    {
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     I16_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Float32x4_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    F4_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Int32x4_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I4_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Int16x8_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    I8_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Uint32x4_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    U4_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Uint16x8_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    U8_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int8x16_1Uint8x16_1
+    {
+        typename SizePolicy::RegSlotType    I16_0;
+        typename SizePolicy::RegSlotType    U16_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int1Int8x16_1
+    {
+        typename SizePolicy::RegSlotType    I0;
+        typename SizePolicy::RegSlotType    I16_1;
+    };
+    
+    // Disabled for now
     /* Float64x2 layouts */
     //--------------------
     template <typename SizePolicy>
@@ -1113,7 +1325,7 @@ namespace Js
         typename SizePolicy::RegSlotType I8_1;
         typename SizePolicy::RegSlotType I8_2;
     };
-
+    
     template <typename SizePolicy>
     struct OpLayoutT_Bool16x8_1Int16x8_2
     {
@@ -1130,7 +1342,7 @@ namespace Js
         typename SizePolicy::RegSlotType    I8_2;
         typename SizePolicy::RegSlotType    I8_3;
     };
-
+  
     template <typename SizePolicy>
     struct OpLayoutT_Int16x8_2Int1
     {
@@ -1181,7 +1393,7 @@ namespace Js
         typename SizePolicy::RegSlotType I8_0;
         typename SizePolicy::RegSlotType U16_1;
     };
-    
+
     /* Uint32x4 layouts */
     template <typename SizePolicy>
     struct OpLayoutT_Uint32x4_1Int4
@@ -1419,7 +1631,7 @@ namespace Js
         typename SizePolicy::RegSlotType    U8_1;
         typename SizePolicy::RegSlotType    U8_2;
     };
-
+    
     template <typename SizePolicy>
     struct OpLayoutT_Bool16x8_1Uint16x8_2
     {
@@ -1672,7 +1884,30 @@ namespace Js
         typename SizePolicy::RegSlotType    U8_1;
     };
 
+    /* bool32x4 layout */
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool32x4_1Int1
+    {
+        typename SizePolicy::RegSlotType    B4_0;
+        typename SizePolicy::RegSlotType    I1;
+    };
 
+    /* bool16x8 layout */
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool16x8_1Int1
+    {
+        typename SizePolicy::RegSlotType    B8_0;
+        typename SizePolicy::RegSlotType    I1;
+    };
+
+    /* bool8x16 layout */
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool8x16_1Int1
+    {
+        typename SizePolicy::RegSlotType    B16_0;
+        typename SizePolicy::RegSlotType    I1;
+    };
+    
     template <typename SizePolicy>
     struct OpLayoutT_AsmSimdTypedArr
     {

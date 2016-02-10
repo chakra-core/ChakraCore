@@ -326,6 +326,13 @@ namespace Js
                     }
                     simdVal = ((JavascriptSIMDInt16x8*)(*origArgs))->GetValue();
                     break;
+                case AsmJsType::Int8x16:
+                    if (!JavascriptSIMDInt8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
+                    }
+                    simdVal = ((JavascriptSIMDInt8x16*)(*origArgs))->GetValue();
+                    break;
                 case AsmJsType::Uint32x4:
                     if (!JavascriptSIMDUint32x4::Is(*origArgs))
                     {
@@ -430,6 +437,13 @@ namespace Js
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
             returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            break;
+        }
+        case AsmJsRetType::Int8x16:
+        {
+            X86SIMDValue simdVal;
+            simdVal.m128_value = simdRetVal;
+            returnValue = JavascriptSIMDInt8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
             break;
         }
         case AsmJsRetType::Uint32x4:
@@ -584,6 +598,13 @@ namespace Js
                             JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
                         }
                         simdVal = ((JavascriptSIMDInt16x8*)(args.Values[i + 1]))->GetValue();
+                        break;
+                    case AsmJsType::Int8x16:
+                        if (i >= argInCount || !JavascriptSIMDInt8x16::Is(args.Values[i + 1]))
+                        {
+                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
+                        }
+                        simdVal = ((JavascriptSIMDInt8x16*)(args.Values[i + 1]))->GetValue();
                         break;
                     case AsmJsType::Uint32x4:
                         if (i >= argInCount || !JavascriptSIMDUint32x4::Is(args.Values[i + 1]))
@@ -780,6 +801,21 @@ namespace Js
                     movups simdVal, xmm0
             }
             returnValue = JavascriptSIMDInt16x8::New(&simdVal, func->GetScriptContext());
+            break;
+
+        case AsmJsRetType::Int8x16:
+            simdVal.Zero();
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                    push func
+                    call ecx
+                    movups simdVal, xmm0
+            }
+            returnValue = JavascriptSIMDInt8x16::New(&simdVal, func->GetScriptContext());
             break;
 
         case AsmJsRetType::Uint32x4:

@@ -1167,6 +1167,8 @@ modrm:
             case Js::OpCode::PSLLD:
             case Js::OpCode::PSLLDQ:
             case Js::OpCode::PSRLDQ:
+            case Js::OpCode::PSRLW:
+            case Js::OpCode::PSLLW:
                 // SSE shift
                 Assert(opr1->IsRegOpnd());
                 this->EmitModRM(instr, opr1, this->GetOpcodeByte2(instr) >> 3);

@@ -100,9 +100,10 @@ namespace Js
         case Float32x4:   return L"SIMD.Float32x4";
         case Float64x2:   return L"SIMD.Float64x2";
         case Int16x8:     return L"SIMD.Int16x8";
-        case Uint32x4:     return L"SIMD.Uint32x4";
-        case Uint16x8:     return L"SIMD.Uint16x8";
-        case Uint8x16:     return L"SIMD.Uint8x16";
+        case Int8x16:     return L"SIMD.Int8x16";
+        case Uint32x4:    return L"SIMD.Uint32x4";
+        case Uint16x8:    return L"SIMD.Uint16x8";
+        case Uint8x16:    return L"SIMD.Uint8x16";
         }
         Assert(false);
         return L"none";
@@ -110,11 +111,10 @@ namespace Js
 
     bool AsmJsType::isSIMDType() const
     {
-        return isSIMDInt32x4()  || isSIMDFloat32x4() || isSIMDFloat64x2() ||
+        return isSIMDInt32x4()  || isSIMDInt16x8()   || isSIMDInt8x16()   || 
                isSIMDBool32x4() || isSIMDBool16x8()  || isSIMDBool8x16()  ||
-               isSIMDInt16x8()  || isSIMDUint32x4()  || isSIMDUint16x8()  || 
-               isSIMDUint8x16();
-            
+               isSIMDUint32x4() || isSIMDUint16x8()  || isSIMDUint8x16()  ||
+               isSIMDFloat32x4()|| isSIMDFloat64x2();
     }
 
     bool AsmJsType::isSIMDInt32x4() const
@@ -136,6 +136,10 @@ namespace Js
     bool AsmJsType::isSIMDInt16x8() const
     {
         return which_ == Int16x8;
+    }
+    bool AsmJsType::isSIMDInt8x16() const
+    {
+        return which_ == Int8x16;
     }
     bool AsmJsType::isSIMDFloat32x4() const
     {
@@ -304,6 +308,9 @@ namespace Js
         case AsmJsType::Int16x8:
             return isSIMDInt16x8();
             break;
+        case AsmJsType::Int8x16:
+            return isSIMDInt8x16();
+            break;
         case AsmJsType::Uint32x4:
             return isSIMDUint32x4();
             break;
@@ -366,16 +373,17 @@ namespace Js
     {
         switch (coercion)
         {
-        case AsmJS_ToInt32: which_ = Signed; break;
-        case AsmJS_ToNumber: which_ = Double; break;
-        case AsmJS_FRound: which_ = Float; break;
-        case AsmJS_Int32x4: which_ = Int32x4; break;
+        case AsmJS_ToInt32: which_   = Signed; break;
+        case AsmJS_ToNumber: which_  = Double; break;
+        case AsmJS_FRound: which_    = Float; break;
+        case AsmJS_Int32x4: which_   = Int32x4; break;
         case AsmJS_Bool32x4: which_ = Bool32x4; break;
         case AsmJS_Bool16x8: which_ = Bool16x8; break;
         case AsmJS_Bool8x16: which_ = Bool8x16; break;
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
-        case AsmJS_Int16x8: which_ = Int16x8; break;
+        case AsmJS_Int16x8: which_  = Int16x8; break;
+        case AsmJS_Int8x16: which_  = Int8x16; break;
         case AsmJS_Uint32x4: which_ = Uint32x4; break;
         case AsmJS_Uint16x8: which_ = Uint16x8; break;
         case AsmJS_Uint8x16: which_ = Uint8x16; break;
@@ -436,6 +444,7 @@ namespace Js
         case Float32x4: return AsmJS_Float32x4;
         case Float64x2: return AsmJS_Float64x2;
         case Int16x8:   return AsmJS_Int16x8;
+        case Int8x16:   return AsmJS_Int8x16;
         case Uint32x4:   return AsmJS_Uint32x4;
         case Uint16x8:   return AsmJS_Uint16x8;
         case Uint8x16:   return AsmJS_Uint8x16;
@@ -468,6 +477,7 @@ namespace Js
         case AsmJS_Float32x4: which_ = Float32x4; break;
         case AsmJS_Float64x2: which_ = Float64x2; break;
         case AsmJS_Int16x8: which_ = Int16x8; break;
+        case AsmJS_Int8x16: which_ = Int8x16; break;
         case AsmJS_Uint32x4: which_ = Uint32x4; break;
         case AsmJS_Uint16x8: which_ = Uint16x8; break;
         case AsmJS_Uint8x16: which_ = Uint8x16; break;
@@ -1235,6 +1245,7 @@ namespace Js
                mBuiltIn == AsmJsSIMDBuiltin_float32x4_check || 
                mBuiltIn == AsmJsSIMDBuiltin_float64x2_check ||
                mBuiltIn == AsmJsSIMDBuiltin_int16x8_check || 
+               mBuiltIn == AsmJsSIMDBuiltin_int8x16_check ||                
                mBuiltIn == AsmJsSIMDBuiltin_uint32x4_check || 
                mBuiltIn == AsmJsSIMDBuiltin_uint16x8_check || 
                mBuiltIn == AsmJsSIMDBuiltin_uint8x16_check || 
@@ -1254,6 +1265,7 @@ namespace Js
             mBuiltIn == AsmJsSIMDBuiltin_Float32x4 ||
             mBuiltIn == AsmJsSIMDBuiltin_Float64x2 ||
             mBuiltIn == AsmJsSIMDBuiltin_Int16x8 || 
+            mBuiltIn == AsmJsSIMDBuiltin_Int8x16 || 
             mBuiltIn == AsmJsSIMDBuiltin_Uint32x4 || 
             mBuiltIn == AsmJsSIMDBuiltin_Uint16x8 || 
             mBuiltIn == AsmJsSIMDBuiltin_Uint8x16 ||
@@ -1284,6 +1296,7 @@ namespace Js
         case AsmJsSIMDBuiltin_Bool16x8:
             return argCount == 8;
         case AsmJsSIMDBuiltin_Uint8x16:
+        case AsmJsSIMDBuiltin_Int8x16:
         case AsmJsSIMDBuiltin_Bool8x16:
             return argCount == 16;
         };

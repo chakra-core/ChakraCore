@@ -1802,12 +1802,10 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     {
         regType = TySimd128I8;
     }
-    /* Enable with Int8x16 support
     else if (asmRetType.toVarType().isInt8x16())
     {
-        regType = TySimd128I4;
+        regType = TySimd128I16;
     }
-    */
     else if (asmRetType.toVarType().isUint32x4())
     {
         regType = TySimd128U4;

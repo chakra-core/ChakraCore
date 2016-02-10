@@ -176,6 +176,9 @@ namespace Js
                     case AsmJsSIMDBuiltin_int16x8_check:
                         *coercion = AsmJS_Int16x8;
                         break;
+                    case AsmJsSIMDBuiltin_int8x16_check:
+                        *coercion = AsmJS_Int8x16;
+                        break;
                     case AsmJsSIMDBuiltin_uint32x4_check:
                         *coercion = AsmJS_Uint32x4;
                         break;

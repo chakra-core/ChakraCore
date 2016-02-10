@@ -64,7 +64,7 @@ namespace Js
         return result;
     }
 
-    SIMDValue SIMDUint16x8Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
+    SIMDValue SIMDUint8x16Operation::OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue)
     {
         SIMDValue result;
         result = SIMDUint8x16Operation::OpLessThan(aValue, bValue);

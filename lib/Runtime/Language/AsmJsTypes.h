@@ -42,6 +42,7 @@ namespace Js
         AsmJS_Float32x4,
         AsmJS_Float64x2,
         AsmJS_Int16x8,
+        AsmJS_Int8x16,
         AsmJS_Uint32x4,
         AsmJS_Uint16x8,
         AsmJS_Uint8x16,
@@ -104,8 +105,8 @@ namespace Js
             Int32x4,
             Uint32x4,
             Int16x8,
-            Uint16x8,
             Int8x16,
+            Uint16x8,
             Uint8x16,
             Bool32x4,
             Bool16x8,
@@ -149,6 +150,7 @@ namespace Js
         bool isSIMDFloat32x4() const;
         bool isSIMDFloat64x2() const;
         bool isSIMDInt16x8() const;
+        bool isSIMDInt8x16() const;
         bool isSIMDUint32x4() const;
         bool isSIMDUint16x8() const;
         bool isSIMDUint8x16() const;
@@ -176,6 +178,7 @@ namespace Js
             Float32x4 = AsmJsType::Float32x4,
             Float64x2 = AsmJsType::Float64x2,
             Int16x8 = AsmJsType::Int16x8,
+            Int8x16 = AsmJsType::Int8x16,
             Uint32x4 = AsmJsType::Uint32x4,
             Uint16x8 = AsmJsType::Uint16x8,
             Uint8x16 = AsmJsType::Uint8x16
@@ -232,6 +235,7 @@ namespace Js
             Float32x4 = AsmJsType::Float32x4,
             Float64x2 = AsmJsType::Float64x2,
             Int16x8 = AsmJsType::Int16x8,
+            Int8x16 = AsmJsType::Int8x16,
             Uint32x4 = AsmJsType::Uint32x4,
             Uint16x8 = AsmJsType::Uint16x8,
             Uint8x16 = AsmJsType::Uint8x16
@@ -258,14 +262,14 @@ namespace Js
         inline bool isFloat32x4()const  { return which_ == Float32x4; }
         inline bool isFloat64x2()const  { return which_ == Float64x2; }
         inline bool isInt16x8() const   { return which_ == Int16x8; }
+        inline bool isInt8x16() const   { return which_ == Int8x16; }
         inline bool isUint32x4() const  { return which_ == Uint32x4; }
         inline bool isUint16x8() const  { return which_ == Uint16x8; }
         inline bool isUint8x16() const  { return which_ == Uint8x16; }
-        inline bool isSIMD()    const   { return isInt32x4() || isFloat32x4() ||
-                                                 isFloat64x2() || isInt16x8() ||
-                                                 isUint32x4() || isUint16x8() ||
-                                                 isUint8x16() || isBool32x4() ||
-                                                 isBool16x8() || isBool8x16(); }
+        inline bool isSIMD()    const   { return isInt32x4()  || isInt16x8()  || isInt8x16()  ||
+                                                 isUint32x4() || isUint16x8() || isUint8x16() ||
+                                                 isBool32x4() || isBool16x8() || isBool8x16() ||
+                                                 isFloat32x4() || isFloat64x2() ; }
         bool operator==( AsmJsVarType rhs ) const;
         bool operator!=( AsmJsVarType rhs ) const;
     };
@@ -1170,6 +1174,7 @@ namespace Js
         bool IsFloat64x2Func(){ return mBuiltIn >  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Float64x2_Start && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Float64x2_End; }
 
         bool IsInt16x8Func()  { return mBuiltIn >  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Int16x8_Start   && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Int16x8_End;   }
+        bool IsInt8x16Func() { return mBuiltIn > AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Int8x16_Start && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Int8x16_End; }
         bool IsUint32x4Func() { return mBuiltIn >  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint32x4_Start  && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint32x4_End;  }
         bool IsUint16x8Func() { return mBuiltIn >  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint16x8_Start  && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint16x8_End;  }
         bool IsUint8x16Func() { return mBuiltIn >  AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint8x16_Start  && mBuiltIn < AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_Uint8x16_End;  }
@@ -1178,6 +1183,7 @@ namespace Js
         {
             return (mBuiltIn >= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_load && mBuiltIn <= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_load3) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_load) ||
+                (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_load) ||
                 (mBuiltIn >= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_load && mBuiltIn <= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_load3) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_load) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_load) ||
@@ -1194,6 +1200,7 @@ namespace Js
         {
             return (mBuiltIn >= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_store && mBuiltIn <= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_store3) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_store) ||
+                (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_store) ||
                 (mBuiltIn >= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_store && mBuiltIn <= AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_store3) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_store) ||
                 (mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_store) ||
@@ -1205,6 +1212,7 @@ namespace Js
             return (
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_extractLane ||
+                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_extractLane ||
@@ -1216,6 +1224,7 @@ namespace Js
             return (
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_replaceLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_replaceLane ||
+                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_replaceLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_replaceLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_replaceLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_replaceLane ||
@@ -1239,7 +1248,7 @@ namespace Js
             {
                 return 8;
             }
-            if (IsUint8x16Func())
+            if (IsUint8x16Func() || IsInt8x16Func())
             {
                 return 16;
             }
@@ -1257,6 +1266,7 @@ namespace Js
            return (
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_shuffle ||
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_shuffle ||
+               mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_shuffle ||
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_shuffle ||
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_shuffle ||
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_shuffle ||
@@ -1270,6 +1280,7 @@ namespace Js
             return  (
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_swizzle ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_swizzle ||
+                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int8x16_swizzle ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint32x4_swizzle ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint16x8_swizzle ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_uint8x16_swizzle ||

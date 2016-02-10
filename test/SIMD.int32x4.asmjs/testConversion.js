@@ -104,6 +104,9 @@ function asmModule(stdlib, imports) {
     var i8 = stdlib.SIMD.Int16x8;
     var i8check = i8.check;
     
+    var i16 = stdlib.SIMD.Int8x16;
+    var i16check = i16.check;
+    
     var u4 = stdlib.SIMD.Uint32x4;
     var u4check = u4.check;
     var u8 = stdlib.SIMD.Uint16x8;
@@ -125,6 +128,7 @@ function asmModule(stdlib, imports) {
     var g5 = u4(106553216, 10737824,77936128, 108132);
     var g6 = u8(1065353216, 1073741824,1077936128, 1082130432, -1065353216, -1073741824,-1077936128, -1082130432);
     var g7 = u16(106535, 1014824,1076128, 108212, -1065353216, -1073724,-77936128, -1082130432, 10653216, 1741824, 7936128, 108432, -103216, -1741824, -1128, -1082130432);
+    var g8 = i16(106535, 1014824,1076128, 108212, -1065353216, -1073724,-77936128, -1082130432, 10653216, 1741824, 7936128, 108432, -103216, -1741824, -1128, -1082130432);
     
     var gval = 1234;
     var gval2 = 1234.0;
@@ -378,6 +382,7 @@ function asmModule(stdlib, imports) {
         a = i4add(a, i4fromUint32x4Bits (g5));
         a = i4sub(a, i4fromUint16x8Bits (g6));
         a = i4sub(a, i4fromUint8x16Bits (g7))
+        a = i4sub(a, i4fromInt8x16Bits (g8))
         return i4check(a);
     }
     
@@ -472,6 +477,6 @@ try{m.func16(); print("Error16");}catch(e){};
 
 
 var ret17 = m.func17();
-equalSimd([1371207553, 1727206560, 1948595680, -9853548], ret17, SIMD.Int32x4, "func17")
+equalSimd([-1659187366, 1727156384, -475712064, -19815228], ret17, SIMD.Int32x4, "func17")
 
 print("PASS");

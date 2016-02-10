@@ -118,6 +118,10 @@ const _x86_SIMDValue X86_ALL_ONES_D2 = { 0x00000000, 0x3ff00000, 0x00000000, 0x3
 const _x86_SIMDValue X86_ALL_NEG_ONES = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
 
 const _x86_SIMDValue X86_ALL_ZEROS    = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_ALL_ONES_I16       = { 0x01010101, 0x01010101, 0x01010101, 0x01010101 }; // {1, 1, 1, 1,1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+const _x86_SIMDValue X86_LANE0_ONES_I16     = { 0x000000ff, 0x00000000, 0x00000000, 0x00000000 };
+const _x86_SIMDValue X86_LOWBYTES_MASK_I16  = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
+
 const _x86_SIMDValue X86_LANE_W_ZEROS = { 0xffffffff, 0xffffffff, 0xffffffff, 0x00000000 };
 
 const _x86_SIMDValue X86_TWO_31_F4 = { 0x4f000000, 0x4f000000, 0x4f000000, 0x4f000000 }; // f32(2^31), ....
@@ -125,6 +129,8 @@ const _x86_SIMDValue X86_NEG_TWO_31_F4 = { 0xcf000000, 0xcf000000, 0xcf000000, 0
 const _x86_SIMDValue X86_TWO_32_F4 = { 0x4f800000, 0x4f800000, 0x4f800000, 0x4f800000 }; // f32(2^32), ....
 const _x86_SIMDValue X86_TWO_31_I4 = X86_NEG_MASK_F4;                                    // 2^31, ....
 const _x86_SIMDValue X86_WORD_SIGNBITS = { { 0x80008000, 0x80008000, 0x80008000, 0x80008000 } };
+const _x86_SIMDValue X86_DWORD_SIGNBITS = { {0x80000000, 0x80000000, 0x80000000, 0x80000000 } };
+const _x86_SIMDValue X86_BYTE_SIGNBITS = { { 0x80808080, 0x80808080, 0x80808080, 0x80808080 } };
 const _x86_SIMDValue X86_4LANES_MASKS[] = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
                                            { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
                                            { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },

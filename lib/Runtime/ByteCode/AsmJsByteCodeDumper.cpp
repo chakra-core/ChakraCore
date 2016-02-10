@@ -46,6 +46,9 @@ namespace Js
                 case AsmJsType::Int32x4:
                     Output::Print(L"I4(In%hu)", i);
                     break;
+                case AsmJsType::Int8x16:
+                    Output::Print(L"I16(In%hu)", i);
+                    break;
                 case AsmJsType::Float32x4:
                     Output::Print(L"F4(In%hu)", i);
                     break;
@@ -255,6 +258,9 @@ namespace Js
                 Output::Print(L"\tI4(%d, %d, %d, %d),", simdTable->i32[SIMD_X], simdTable->i32[SIMD_Y], simdTable->i32[SIMD_Z], simdTable->i32[SIMD_W]);
                 Output::Print(L"\tF4(%.4f, %.4f, %.4f, %.4f),", simdTable->f32[SIMD_X], simdTable->f32[SIMD_Y], simdTable->f32[SIMD_Z], simdTable->f32[SIMD_W]);
                 Output::Print(L"\tD2(%.4f, %.4f)\n    ", simdTable->f64[SIMD_X], simdTable->f64[SIMD_Y]);
+                Output::Print(L"\tI8(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d )\n    ", 
+                    simdTable->i8[0], simdTable->i8[1], simdTable->i8[2], simdTable->i8[3], simdTable->i8[4], simdTable->i8[5], simdTable->i8[6], simdTable->i8[7],
+                    simdTable->i8[8], simdTable->i8[9], simdTable->i8[10], simdTable->i8[11], simdTable->i8[12], simdTable->i8[13], simdTable->i8[14], simdTable->i8[15]);
                 ++simdTable;
             }
         }
@@ -330,14 +336,15 @@ namespace Js
         Output::Print(L"I8_%d ", (int)reg);
     }
 
-    void AsmJsByteCodeDumper::DumpUint16x8Reg(RegSlot reg)
-    {
-        Output::Print(L"U8_%d ", (int)reg);
-    }
-
+    // Int8x16
     void AsmJsByteCodeDumper::DumpInt8x16Reg(RegSlot reg)
     {
         Output::Print(L"I16_%d ", (int)reg);
+    }
+
+    void AsmJsByteCodeDumper::DumpUint16x8Reg(RegSlot reg)
+    {
+        Output::Print(L"U8_%d ", (int)reg);
     }
 
     void AsmJsByteCodeDumper::DumpUint8x16Reg(RegSlot reg)
@@ -413,9 +420,12 @@ namespace Js
         case OpCodeAsmJs::Simd128_LdSlot_B16:
             Output::Print(L" B16_%d = R%d[%d] ", data->Value, data->Instance, data->SlotIndex);
             break;
+#if 0
         case OpCodeAsmJs::Simd128_LdSlot_D2:
             Output::Print(L" D2_%d = R%d[%d] ", data->Value, data->Instance, data->SlotIndex);
             break;
+
+#endif // 0
 
         case OpCodeAsmJs::Simd128_StSlot_F4:
             Output::Print(L" R%d[%d]  = F4_%d", data->Instance, data->SlotIndex, data->Value);
@@ -432,9 +442,12 @@ namespace Js
         case OpCodeAsmJs::Simd128_StSlot_B16:
             Output::Print(L" R%d[%d]  = B16_%d", data->Instance, data->SlotIndex, data->Value);
             break;
+#if 0
         case OpCodeAsmJs::Simd128_StSlot_D2:
             Output::Print(L" R%d[%d]  = D2_%d", data->Instance, data->SlotIndex, data->Value);
             break;
+#endif // 0
+
         default:
         {
             AssertMsg(false, "Unknown OpCode for OpLayoutElementSlot");
@@ -1331,6 +1344,189 @@ namespace Js
         DumpInt32x4Reg(data->B16_1);
     }
 
+    // Int8x16
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpInt8x16Reg(data->I16_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_3(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt32x4Reg(data->I16_0);
+        DumpInt32x4Reg(data->I16_1);
+        DumpInt32x4Reg(data->I16_2);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Int16(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpIntReg(data->I1);
+        DumpIntReg(data->I2);
+        DumpIntReg(data->I3);
+        DumpIntReg(data->I4);
+        DumpIntReg(data->I5);
+        DumpIntReg(data->I6);
+        DumpIntReg(data->I7);
+        DumpIntReg(data->I8);
+        DumpIntReg(data->I9);
+        DumpIntReg(data->I10);
+        DumpIntReg(data->I11);
+        DumpIntReg(data->I12);
+        DumpIntReg(data->I13);
+        DumpIntReg(data->I14);
+        DumpIntReg(data->I15);
+        DumpIntReg(data->I16);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_3Int16(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpUint8x16Reg(data->I16_0);
+        DumpUint8x16Reg(data->I16_1);
+        DumpUint8x16Reg(data->I16_2);
+        DumpIntReg(data->I3);
+        DumpIntReg(data->I4);
+        DumpIntReg(data->I5);
+        DumpIntReg(data->I6);
+        DumpIntReg(data->I7);
+        DumpIntReg(data->I8);
+        DumpIntReg(data->I9);
+        DumpIntReg(data->I10);
+        DumpIntReg(data->I11);
+        DumpIntReg(data->I12);
+        DumpIntReg(data->I13);
+        DumpIntReg(data->I14);
+        DumpIntReg(data->I15);
+        DumpIntReg(data->I16);
+        DumpIntReg(data->I17);
+        DumpIntReg(data->I18);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_2Int16(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpUint8x16Reg(data->I16_0);
+        DumpUint8x16Reg(data->I16_1);
+        DumpIntReg(data->I2);
+        DumpIntReg(data->I3);
+        DumpIntReg(data->I4);
+        DumpIntReg(data->I5);
+        DumpIntReg(data->I6);
+        DumpIntReg(data->I7);
+        DumpIntReg(data->I8);
+        DumpIntReg(data->I9);
+        DumpIntReg(data->I10);
+        DumpIntReg(data->I11);
+        DumpIntReg(data->I12);
+        DumpIntReg(data->I13);
+        DumpIntReg(data->I14);
+        DumpIntReg(data->I15);
+        DumpIntReg(data->I16);
+        DumpIntReg(data->I17);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpBool8x16_1Int8x16_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpBool16x8Reg(data->B16_0);
+        DumpInt16x8Reg(data->I16_1);
+        DumpInt16x8Reg(data->I16_2);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Bool8x16_1Int8x16_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt16x8Reg(data->I16_0);
+        DumpBool16x8Reg(data->B16_1);
+        DumpInt16x8Reg(data->I16_2);
+        DumpInt16x8Reg(data->I16_3);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_2Int2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpInt8x16Reg(data->I16_1);
+        DumpIntReg(data->I2);
+        DumpIntReg(data->I3);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt1Int8x16_1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpIntReg(data->I0);
+        DumpInt8x16Reg(data->I16_1);
+        DumpIntReg(data->I2);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpIntReg(data->I1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_2Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpInt8x16Reg(data->I16_1);
+        DumpIntReg(data->I2);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpReg1Int8x16_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpReg(data->R0);
+        DumpInt8x16Reg(data->I16_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Float32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpFloat32x4Reg(data->F4_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Int32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpInt32x4Reg(data->I4_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Int16x8_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpInt16x8Reg(data->I8_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Uint32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpUint32x4Reg(data->U4_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Uint16x8_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpUint16x8Reg(data->U8_1);
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt8x16_1Uint8x16_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt8x16Reg(data->I16_0);
+        DumpUint8x16Reg(data->U16_1);
+    }
+    
 // Disabled for now
     // Float64x2
     template <class T>
@@ -1527,7 +1723,7 @@ namespace Js
         DumpInt16x8Reg(data->I8_1);
         DumpInt16x8Reg(data->I8_2);
     }
-
+    
     template <class T>
     void AsmJsByteCodeDumper::DumpBool16x8_1Int16x8_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -1674,7 +1870,7 @@ namespace Js
         DumpUint32x4Reg(data->U4_1);
         DumpUint32x4Reg(data->U4_2);
     }
-
+    
     template <class T>
     void AsmJsByteCodeDumper::DumpBool32x4_1Uint32x4_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -1833,7 +2029,7 @@ namespace Js
         DumpUint16x8Reg(data->U8_1);
         DumpUint16x8Reg(data->U8_2);
     }
-
+    
     template <class T>
     void AsmJsByteCodeDumper::DumpBool16x8_1Uint16x8_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -2085,7 +2281,30 @@ namespace Js
         DumpUint16x8Reg(data->U8_1);
     }
 
+    // bool32x4
+    template <class T>
+    void AsmJsByteCodeDumper::DumpBool32x4_1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt16x8Reg(data->B4_0);
+        DumpIntReg(data->I1);
+    }
 
+    // bool16x8
+    template <class T>
+    void AsmJsByteCodeDumper::DumpBool16x8_1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt16x8Reg(data->B8_0);
+        DumpIntReg(data->I1);
+    }
+
+    // bool8x16
+    template <class T>
+    void AsmJsByteCodeDumper::DumpBool8x16_1Int1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt16x8Reg(data->B16_0);
+        DumpIntReg(data->I1);
+    }
+    
     template <class T>
     void AsmJsByteCodeDumper::DumpAsmSimdTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -2119,18 +2338,18 @@ namespace Js
         {
         case OpCodeAsmJs::Simd128_LdArrConst_I4:
         case OpCodeAsmJs::Simd128_LdArrConst_F4:
-        case OpCodeAsmJs::Simd128_LdArrConst_D2:
+        //case OpCodeAsmJs::Simd128_LdArrConst_D2:
         case OpCodeAsmJs::Simd128_StArrConst_I4:
         case OpCodeAsmJs::Simd128_StArrConst_F4:
-        case OpCodeAsmJs::Simd128_StArrConst_D2:
+        //case OpCodeAsmJs::Simd128_StArrConst_D2:
             Output::Print(L" %s[%d] ", heapTag, data->SlotIndex);
             break;
         case OpCodeAsmJs::Simd128_LdArr_I4:
         case OpCodeAsmJs::Simd128_LdArr_F4:
-        case OpCodeAsmJs::Simd128_LdArr_D2:
+        //case OpCodeAsmJs::Simd128_LdArr_D2:
         case OpCodeAsmJs::Simd128_StArr_I4:
         case OpCodeAsmJs::Simd128_StArr_F4:
-        case OpCodeAsmJs::Simd128_StArr_D2:
+        //case OpCodeAsmJs::Simd128_StArr_D2:
             Output::Print(L" %s[I%d] ", heapTag, data->SlotIndex);
             break;
         default:
@@ -2153,12 +2372,15 @@ namespace Js
         case OpCodeAsmJs::Simd128_StArrConst_F4:
             DumpFloat32x4Reg(data->Value);
             break;
+#if 0
         case OpCodeAsmJs::Simd128_LdArr_D2:
         case OpCodeAsmJs::Simd128_LdArrConst_D2:
         case OpCodeAsmJs::Simd128_StArr_D2:
         case OpCodeAsmJs::Simd128_StArrConst_D2:
             DumpFloat64x2Reg(data->Value);
             break;
+#endif // 0
+
         default:
             Assert(false);
             __assume(false);

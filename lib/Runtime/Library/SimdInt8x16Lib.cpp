@@ -872,7 +872,6 @@ namespace Js
             {
                 lanes[i] = args[i + 3];
             }
-                //arun::ToDo shuffle can take 2*lanes indices.
             return SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[2], lanes, 32, scriptContext);
 
         }

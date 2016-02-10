@@ -737,6 +737,16 @@ bool ValueType::IsSimd128(IRType type) const
         return IsSimd128Float32x4();
     case TySimd128I4:
         return IsSimd128Int32x4();
+    case TySimd128I8:
+        return IsSimd128Int16x8();
+    case TySimd128I16:
+        return IsSimd128Int8x16();
+    case TySimd128U4:
+        return IsSimd128Uint32x4();
+    case TySimd128U8:
+        return IsSimd128Uint16x8();
+    case TySimd128U16:
+        return IsSimd128Uint8x16();
     case TySimd128D2:
         return IsSimd128Float64x2();
     default:
@@ -763,6 +773,11 @@ bool ValueType::IsSimd128Int16x8() const
 bool ValueType::IsSimd128Int8x16() const
 {
     return IsObject() && GetObjectType() == ObjectType::Simd128Int8x16;
+}
+
+bool ValueType::IsSimd128Uint32x4() const
+{
+    return IsObject() && GetObjectType() == ObjectType::Simd128Uint32x4;
 }
 
 bool ValueType::IsSimd128Uint16x8() const

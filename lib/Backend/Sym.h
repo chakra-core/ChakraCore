@@ -128,6 +128,7 @@ public:
     StackSym *      GetSimd128EquivSym(IRType type, Func *func);
     StackSym *      GetSimd128F4EquivSym(Func *func);
     StackSym *      GetSimd128I4EquivSym(Func *func);
+    StackSym *      GetSimd128I16EquivSym(Func *func);
     StackSym *      GetSimd128D2EquivSym(Func *func);
     bool            IsSimd128() const { return IRType_IsSimd128(this->GetType()); }
 

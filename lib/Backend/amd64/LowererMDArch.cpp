@@ -1532,6 +1532,10 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
                 this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128I8);
                 offset += 2;
                 break;
+            case Js::AsmJsVarType::Int8x16:
+                this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128I16);
+                offset += 2;
+                break;
             case Js::AsmJsVarType::Uint32x4:
                 this->MovArgFromReg2Stack(entryInstr, (RegNum)(RegXMM1 + i), offset, TySimd128U4);
                 offset += 2;
@@ -1822,6 +1826,9 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
             break;
         case Js::AsmJsRetType::Int16x8:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I8), TySimd128I8, this->m_func);
+            break;
+        case Js::AsmJsRetType::Int8x16:
+            retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128I16), TySimd128U16, this->m_func);
             break;
         case Js::AsmJsRetType::Uint32x4:
             retReg = IR::RegOpnd::New(nullptr, this->GetRegReturnAsmJs(TySimd128U4), TySimd128U4, this->m_func);

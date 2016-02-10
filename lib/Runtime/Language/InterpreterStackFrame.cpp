@@ -1474,21 +1474,22 @@ namespace Js
     __declspec(naked)
     void InterpreterStackFrame::InterpreterAsmThunk(AsmJsCallStackLayout* layout)
     {
-        enum {
-            Void = AsmJsRetType::Void,
-            Signed = AsmJsRetType::Signed,
-            Float = AsmJsRetType::Float,
-            Double = AsmJsRetType::Double,
-            Int32x4 = AsmJsRetType::Int32x4,
-            Bool32x4 = AsmJsRetType::Bool32x4,
-            Bool16x8 = AsmJsRetType::Bool16x8,
-            Bool8x16 = AsmJsRetType::Bool8x16,
-            Float32x4  = AsmJsRetType::Float32x4,
-            Float64x2  = AsmJsRetType::Float64x2,
-            Int16x8    = AsmJsRetType::Int16x8,
-            Uint32x4   = AsmJsRetType::Uint32x4,
-            Uint16x8   = AsmJsRetType::Uint16x8,
-            Uint8x16   = AsmJsRetType::Uint8x16,
+            enum {
+                Void       = AsmJsRetType::Void,
+                Signed     = AsmJsRetType::Signed,
+                Float      = AsmJsRetType::Float,
+                Double     = AsmJsRetType::Double,
+                Int32x4    = AsmJsRetType::Int32x4,
+                Bool32x4   = AsmJsRetType::Bool32x4,
+                Bool16x8   = AsmJsRetType::Bool16x8,
+                Bool8x16   = AsmJsRetType::Bool8x16,
+                Float32x4  = AsmJsRetType::Float32x4,
+                Float64x2  = AsmJsRetType::Float64x2,
+                Int16x8    = AsmJsRetType::Int16x8,
+                Int8x16    = AsmJsRetType::Int8x16,
+                Uint32x4   = AsmJsRetType::Uint32x4,
+                Uint16x8   = AsmJsRetType::Uint16x8,
+                Uint8x16   = AsmJsRetType::Uint8x16,
 
             };
 
@@ -1957,6 +1958,7 @@ namespace Js
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Float64x2:
         case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
@@ -2020,6 +2022,7 @@ namespace Js
         case Js::AsmJsRetType::Float32x4:
         case Js::AsmJsRetType::Float64x2:
         case Js::AsmJsRetType::Int16x8:
+        case Js::AsmJsRetType::Int8x16:
         case Js::AsmJsRetType::Uint32x4:
         case Js::AsmJsRetType::Uint16x8:
         case Js::AsmJsRetType::Uint8x16:
@@ -2460,6 +2463,10 @@ namespace Js
                     case AsmJsVarType::Int16x8:
                         valid = JavascriptSIMDInt16x8::Is(value);
                         val = ((JavascriptSIMDInt16x8*)value)->GetValue();
+                        break;
+                    case AsmJsVarType::Int8x16:
+                        valid = JavascriptSIMDInt8x16::Is(value);
+                        val = ((JavascriptSIMDInt8x16*)value)->GetValue();
                         break;
                     case AsmJsVarType::Uint32x4:
                         valid = JavascriptSIMDUint32x4::Is(value);
@@ -3490,6 +3497,7 @@ namespace Js
         case AsmJsRetType::Bool8x16:
         case AsmJsRetType::Float64x2:
         case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
         case AsmJsRetType::Uint32x4:
         case AsmJsRetType::Uint16x8:
         case AsmJsRetType::Uint8x16:
@@ -3525,6 +3533,7 @@ namespace Js
             Float32x4 = AsmJsRetType::Float32x4,
             Float64x2 = AsmJsRetType::Float64x2,
             Int16x8   = AsmJsRetType::Int16x8,
+            Int8x16 = AsmJsRetType::Int8x16,
             Uint32x4  = AsmJsRetType::Uint32x4,
             Uint16x8  = AsmJsRetType::Uint16x8,
             Uint8x16  = AsmJsRetType::Uint8x16,
@@ -3622,10 +3631,11 @@ namespace Js
         case AsmJsRetType::Bool8x16:
         case AsmJsRetType::Float32x4:
         case AsmJsRetType::Float64x2:
-        case AsmJsRetType:: Int16x8:
-        case AsmJsRetType:: Uint32x4:
-        case AsmJsRetType:: Uint16x8:
-        case AsmJsRetType:: Uint8x16:
+        case AsmJsRetType::Int16x8:
+        case AsmJsRetType::Int8x16:
+        case AsmJsRetType::Uint32x4:
+        case AsmJsRetType::Uint16x8:
+        case AsmJsRetType::Uint8x16:
             if (scriptContext->GetConfig()->IsSimdjsEnabled())
             {
                 m_localSimdSlots[0] = retSimdVal;
@@ -7526,6 +7536,31 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         
         AsmJsSIMDValue result = SIMDInt16x8Operation::OpInt16x8(values);
         SetRegRawSimd(playout->I8_0, result);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_SimdInt8x16(const unaligned T* playout)
+    {
+        int8 values[16];
+        values[0]  = (int8)GetRegRawInt(playout->I1);
+        values[1]  = (int8)GetRegRawInt(playout->I2);
+        values[2]  = (int8)GetRegRawInt(playout->I3);
+        values[3]  = (int8)GetRegRawInt(playout->I4);
+        values[4]  = (int8)GetRegRawInt(playout->I5);
+        values[5]  = (int8)GetRegRawInt(playout->I6);
+        values[6]  = (int8)GetRegRawInt(playout->I7);
+        values[7]  = (int8)GetRegRawInt(playout->I8);
+        values[8]  = (int8)GetRegRawInt(playout->I9);
+        values[9]  = (int8)GetRegRawInt(playout->I10);
+        values[10] = (int8)GetRegRawInt(playout->I11);
+        values[11] = (int8)GetRegRawInt(playout->I12);
+        values[12] = (int8)GetRegRawInt(playout->I13);
+        values[13] = (int8)GetRegRawInt(playout->I14);
+        values[14] = (int8)GetRegRawInt(playout->I15);
+        values[15] = (int8)GetRegRawInt(playout->I16);
+
+        AsmJsSIMDValue result = SIMDInt8x16Operation::OpInt8x16(values);
+        SetRegRawSimd(playout->I16_0, result);
     }
 
     template <class T>

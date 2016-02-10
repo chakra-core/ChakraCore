@@ -313,6 +313,12 @@
 </dir>
 <dir>
   <default>
+    <files>SIMD.int8x16.asmjs</files>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>SIMD.uint32x4.asmjs</files>
     <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
