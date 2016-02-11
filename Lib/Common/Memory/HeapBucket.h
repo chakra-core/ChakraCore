@@ -136,10 +136,8 @@ public:
 #ifdef DUMP_FRAGMENTATION_STATS
     void AggregateBucketStats(HeapBucketStats& stats);
 #endif
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     uint Rescan(Recycler * recycler, RescanFlags flags);
-#endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     void MergeNewHeapBlock(TBlockType * heapBlock);
     void PrepareSweep();
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
@@ -195,7 +193,7 @@ protected:
 #endif
     template<bool pageheap>
     void SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList, bool allocable);
-#if defined(PARTIAL_GC_ENABLED)
+#if ENABLE_PARTIAL_GC
     bool DoQueuePendingSweep(Recycler * recycler);
     bool DoPartialReuseSweep(Recycler * recycler);
 #endif
@@ -274,12 +272,14 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep, Fn sweepFn)
     // Continue to sweep other list from derived class
     sweepFn(recyclerSweep);
 
-#if defined(PARTIAL_GC_ENABLED)
+#if ENABLE_PARTIAL_GC
     if (!this->DoPartialReuseSweep(recyclerSweep.GetRecycler()))
 #endif
     {
+#if ENABLE_CONCURRENT_GC
         // We should only queue up pending sweep if we are doing partial collect
         Assert(recyclerSweep.GetPendingSweepBlockList(this) == nullptr);
+#endif
 
         // Every thing is swept immediately in non partial collect, so we can allocate
         // from the heap block list now

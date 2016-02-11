@@ -100,8 +100,8 @@
 #define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES          // *** TODO: Won't build if disabled currently
 
 // GC features
-#define CONCURRENT_GC_ENABLED 1                     // *** TODO: Won't build if disabled currently
-#define PARTIAL_GC_ENABLED 1                        // *** TODO: Won't build if disabled currently
+#define ENABLE_CONCURRENT_GC 1
+#define ENABLE_PARTIAL_GC 1  
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
 #define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
 #define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
@@ -445,7 +445,7 @@
 //  - flags values that are dependent on other flags
 //----------------------------------------------------------------------------------------------------
 
-#ifndef CONCURRENT_GC_ENABLED
+#if !ENABLE_CONCURRENT_GC
 #undef IDLE_DECOMMIT_ENABLED   // Currently idle decommit can only be enabled if concurrent gc is enabled
 #endif
 

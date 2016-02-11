@@ -26,12 +26,15 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
     return markStack.Push(markCandidate);
 }
 
+#if ENABLE_CONCURRENT_GC
 __inline
 bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 {
     Assert(obj != nullptr);
+#if ENABLE_CONCURRENT_GC
     Assert(recycler->DoQueueTrackedObject());
-#ifdef PARTIAL_GC_ENABLED
+#endif
+#if ENABLE_PARTIAL_GC
     Assert(!recycler->inPartialCollectMode);
 #endif
 
@@ -39,6 +42,7 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 
     return trackStack.Push(obj);
 }
+#endif
 
 template <bool parallel, bool interior>
 __inline
@@ -111,8 +115,12 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 
     if (interior)
     {
+#if ENABLE_CONCURRENT_GC
         Assert(recycler->enableScanInteriorPointers
             || (!recycler->IsConcurrentState() && recycler->collectionState != CollectionStateParallelMark));
+#else
+        Assert(recycler->enableScanInteriorPointers || recycler->collectionState != CollectionStateParallelMark);
+#endif
         recycler->heapBlockMap.MarkInterior<parallel>(candidate, this);
         return;
     }
@@ -133,11 +141,13 @@ void MarkContext::Mark(void * candidate, void * parentReference)
 __inline
 void MarkContext::MarkTrackedObject(FinalizableObject * trackedObject)
 {
+#if ENABLE_CONCURRENT_GC
     Assert(!recycler->queueTrackedObject);
-#ifdef PARTIAL_GC_ENABLED
+    Assert(!recycler->IsConcurrentExecutingState());
+#endif
+#if ENABLE_PARTIAL_GC
     Assert(!recycler->inPartialCollectMode);
 #endif
-    Assert(!recycler->IsConcurrentExecutingState());
     Assert(!(recycler->collectionState == CollectionStateParallelMark));
 
     // Mark is not expected to throw.

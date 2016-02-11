@@ -277,7 +277,7 @@ protected:
     Segment * segment;
     HeapBlockType const heapBlockType;
     bool needOOMRescan;                             // Set if we OOMed while marking a particular object
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     bool isPendingConcurrentSweep;
 #endif
 
@@ -356,9 +356,9 @@ public:
 enum SweepMode
 {
     SweepMode_InThread,
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     SweepMode_Concurrent,
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     SweepMode_ConcurrentPartial
 #endif
 #endif
@@ -371,7 +371,7 @@ enum SweepState
     SweepStateSwept,                // the block is partially allocated, no object needs to be swept or finalized
     SweepStateFull,                 // the block is full, no object needs to be swept or finalized
     SweepStatePendingDispose,       // the block has object that needs to be finalized
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     SweepStatePendingSweep,         // the block has object that needs to be swept
 #endif
 };
@@ -431,7 +431,7 @@ public:
     ushort lastFreeCount;
     ushort markCount;
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     ushort oldFreeCount;
 #endif
     bool   isInAllocator;
@@ -586,8 +586,8 @@ public:
     void SweepObjects(Recycler * recycler);
 
     uint GetAndClearLastFreeCount();
-#ifdef PARTIAL_GC_ENABLED
     void ClearAllAllocBytes();      // Reset all unaccounted alloc bytes and the new alloc count
+#if ENABLE_PARTIAL_GC
     uint GetAndClearUnaccountedAllocBytes();
     void AdjustPartialUncollectedAllocBytes(RecyclerSweep& recyclerSweep, uint const expectSweepCount);
     bool DoPartialReusePage(RecyclerSweep const& recyclerSweep, uint& expectFreeByteCount);

@@ -13,7 +13,11 @@ class RecyclerSweep
 #endif
 {
 public:
+#if ENABLE_PARTIAL_GC
     void BeginSweep(Recycler * recycler, size_t rescanRootBytes, bool adjustPartialHeuristics);
+#else
+    void BeginSweep(Recycler * recycler);
+#endif
     void FinishSweep();
     void EndSweep();
     void ShutdownCleanup();
@@ -23,13 +27,11 @@ public:
     bool HasSetupBackgroundSweep() const;
     void FlushPendingTransferDisposedObjects();
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_CONCURRENT_GC
     bool HasPendingSweepSmallHeapBlocks() const;
     void SetHasPendingSweepSmallHeapBlocks();
     template <typename TBlockType>
     TBlockType *& GetPendingSweepBlockList(HeapBucketT<TBlockType> const * heapBucket);
-#endif
-#ifdef CONCURRENT_GC_ENABLED
     bool HasPendingEmptyBlocks() const;
     template <typename TBlockType, bool pageheap> void QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock);
     template <typename TBlockType> void TransferPendingEmptyHeapBlocks(HeapBucketT<TBlockType> * heapBucket);
@@ -52,15 +54,15 @@ public:
 #endif
 #endif
 
-#ifdef PARTIAL_GC_ENABLED
+    template <typename TBlockAttributes>
+    void AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAttributes> * smallHeapBlock);
+#if ENABLE_PARTIAL_GC
     bool InPartialCollectMode() const;
     bool InPartialCollect() const;
     void StartPartialCollectMode();
     bool DoPartialCollectMode();
     bool DoAdjustPartialHeuristics() const;
     bool AdjustPartialHeuristics();
-    template <typename TBlockAttributes>
-    void AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAttributes> * smallHeapBlock);
     void SubtractSweepNewObjectAllocBytes(size_t newObjectExpectSweepByteCount);
     size_t GetNewObjectAllocBytes() const;
     size_t GetNewObjectFreeBytes() const;
@@ -79,11 +81,11 @@ private:
     template <typename TBlockType>
     struct BucketData
     {
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
         TBlockType * pendingSweepList;
         TBlockType * pendingFinalizableSweptList;
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         TBlockType * pendingEmptyBlockList;
         TBlockType * pendingEmptyBlockListTail;
 #if DBG
@@ -111,7 +113,7 @@ private:
     struct Data
     {
         BucketData<TBlockType> bucketData[TBlockType::HeapBlockAttributes::BucketCount];
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         TBlockType * pendingMergeNewHeapBlockList;
 #endif
     };
@@ -157,7 +159,7 @@ private:
     bool hasPendingSweepSmallHeapBlocks;
     bool hasPendingEmptyBlocks;
     bool inPartialCollect;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     bool adjustPartialHeuristics;
     size_t lastPartialUncollectedAllocBytes;
     size_t nextPartialUncollectedAllocBytes;
@@ -179,7 +181,7 @@ private:
 #endif
 };
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_CONCURRENT_GC
 template <typename TBlockType>
 TBlockType *&
 RecyclerSweep::GetPendingSweepBlockList(HeapBucketT<TBlockType> const * heapBucket)
@@ -188,7 +190,7 @@ RecyclerSweep::GetPendingSweepBlockList(HeapBucketT<TBlockType> const * heapBuck
 }
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 
 template <typename TBlockType, bool pageheap>
 void

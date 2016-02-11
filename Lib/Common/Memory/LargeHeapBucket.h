@@ -25,11 +25,11 @@ public:
         largePageHeapBlockList(nullptr),
 #endif
         pendingDisposeLargeBlockList(nullptr)
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
         , pendingSweepLargeBlockList(nullptr)
-#endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
         , partialSweptLargeBlockList(nullptr)
+#endif
 #endif
     {
     }
@@ -69,16 +69,16 @@ public:
     void VerifyMark();
     void VerifyLargeHeapBlockCount();
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     size_t Rescan(RescanFlags flags);
+#if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void FinishPartialCollect(RecyclerSweep * recyclerSweep);
 #endif
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     void ConcurrentTransferSweptObjects(RecyclerSweep& recyclerSweep);
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void ConcurrentPartialTransferSweptObjects(RecyclerSweep& recyclerSweep);
 #endif
 #endif
@@ -108,9 +108,7 @@ private:
 
     void ConstructFreelist(LargeHeapBlock * heapBlock);
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     size_t Rescan(LargeHeapBlock * list, Recycler * recycler, bool isPartialSwept, RescanFlags flags);
-#endif
 
     LargeHeapBlock * fullLargeBlockList;
     LargeHeapBlock * largeBlockList;
@@ -118,9 +116,10 @@ private:
     LargeHeapBlock * largePageHeapBlockList;
 #endif
     LargeHeapBlock * pendingDisposeLargeBlockList;
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     LargeHeapBlock * pendingSweepLargeBlockList;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
+    // Used for concurrent-partial GC
     LargeHeapBlock * partialSweptLargeBlockList;
 #endif
 #endif
