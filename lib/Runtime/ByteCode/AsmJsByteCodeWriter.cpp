@@ -16,18 +16,28 @@ namespace Js
         Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
 
         uint offset;
-        if (op <= Js::OpCode::MaxByteSizedOpcodes)
+        if (IsByteOpCode(op))
         {
             byte byteop = (byte)op;
             offset = Write(&byteop, sizeof(byte));
         }
-        else
+        else if (IsExtendedOpCode(op))
         {
             byte byteop = (byte)Js::OpCodeAsmJs::ExtendedOpcodePrefix;
             offset = Write(&byteop, sizeof(byte));
             byteop = (byte)op;
             Write(&byteop, sizeof(byte));
         }
+        else
+        {
+            Assert(IsDblExtendedOpCode(op));
+            byte byteop = (byte)Js::OpCodeAsmJs::DblExtendedOpcodePrefix;
+            offset = Write(&byteop, sizeof(byte));
+            byteop = (byte)op;
+            Write(&byteop, sizeof(byte));
+        }
+
+
 
         if (!isPatching)
         {
@@ -40,12 +50,52 @@ namespace Js
     __inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
         Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
-
         CompileAssert(layoutSize != SmallLayout);
-        const byte exop = (byte)((op <= Js::OpCodeAsmJs::MaxByteSizedOpcodes) ?
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::LargeLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix) :
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix));
+        byte exop;
+        if (IsByteOpCode(op))
+        {
+            switch (layoutSize)
+            {
+            case MediumLayout:
+                exop = (byte)Js::OpCodeAsmJs::MediumLayoutPrefix;
+                break;
+            case LargeLayout:
+                exop = (byte)Js::OpCodeAsmJs::LargeLayoutPrefix;
+                break;
+            default:
+                Assert(UNREACHED);
+            }
+        }
+        else if (IsExtendedOpCode(op))
+        {
+            switch (layoutSize)
+            {
+            case MediumLayout:
+                exop = (byte)Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix;
+                break;
+            case LargeLayout:
+                exop = (byte)Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix;
+                break;
+            default:
+                Assert(UNREACHED);
+            }
+        }
+        else
+        {
+            Assert(IsDblExtendedOpCode(op));
 
+            switch (layoutSize)
+            {
+            case MediumLayout:
+                exop = (byte)Js::OpCodeAsmJs::DblExtendedMediumLayoutPrefix;
+                break;
+            case LargeLayout:
+                exop = (byte)Js::OpCodeAsmJs::DblExtendedLargeLayoutPrefix;
+                break;
+            default:
+                Assert(UNREACHED);
+            }
+        }
         uint offset = Write(&exop, sizeof(byte));
         byte byteop = (byte)op;
         Write(&byteop, sizeof(byte));

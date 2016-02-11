@@ -8,7 +8,7 @@ namespace Js
 {
     bool OpCodeUtil::IsPrefixOpcode(OpCode op)
     {
-        return op <= OpCode::ExtendedLargeLayoutPrefix && op != OpCode::EndOfBlock;
+        return op <= OpCode::DblExtendedLargeLayoutPrefix && op != OpCode::EndOfBlock;
     }
 
     bool OpCodeUtil::IsSmallEncodedOpcode(OpCode op)
