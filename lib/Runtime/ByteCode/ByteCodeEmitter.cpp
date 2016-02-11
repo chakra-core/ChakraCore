@@ -1733,9 +1733,9 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
 
     Js::FunctionBody *byteCodeFunction = funcInfo->GetParsedFunctionBody();
     Js::PropertyId *propertyIdsForScopeSlotArray = RecyclerNewArrayLeafZ(scriptContext->GetRecycler(), Js::PropertyId, scopeSlotCount);
+    byteCodeFunction->SetPropertyIdsForScopeSlotArray(propertyIdsForScopeSlotArray, scopeSlotCount);
     AssertMsg(!byteCodeFunction->IsReparsed() || byteCodeFunction->m_wasEverAsmjsMode || byteCodeFunction->scopeSlotArraySize == scopeSlotCount,
         "The slot array size is different between debug and non-debug mode");
-    byteCodeFunction->SetPropertyIdsForScopeSlotArray(propertyIdsForScopeSlotArray, scopeSlotCount);
 #if DEBUG
     for (UINT i = 0; i < scopeSlotCount; i++)
     {

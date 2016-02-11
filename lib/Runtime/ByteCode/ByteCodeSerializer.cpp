@@ -1625,7 +1625,7 @@ public:
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
-            PropertyId propertyId = encodePossiblyBuiltInPropertyId(function->propertyIdsForScopeSlotArray[i]);
+            PropertyId propertyId = encodePossiblyBuiltInPropertyId(function->GetPropertyIdsForScopeSlotArray()[i]);
             size += PrependInt32(builder, L"PropertyIdsForScopeSlots", propertyId);
         }
 
@@ -2090,13 +2090,14 @@ public:
 
         if (!OmitFunction(function->GetSerializationIndex()))
         {
-            if (function->loopHeaderArray)
+            auto loopHeaderArray = function->GetLoopHeaderArray();
+            if (loopHeaderArray)
             {
                 PrependByte(builder, L"Loop Header Array Exists", 1);
                 for (uint i = 0; i < function->loopCount; ++i)
                 {
-                    PrependInt32(builder, L"Loop Header Start", function->loopHeaderArray[i].startOffset);
-                    PrependInt32(builder, L"Loop Header End", function->loopHeaderArray[i].endOffset);
+                    PrependInt32(builder, L"Loop Header Start", loopHeaderArray[i].startOffset);
+                    PrependInt32(builder, L"Loop Header End", loopHeaderArray[i].endOffset);
                 }
             }
             else
@@ -2551,8 +2552,8 @@ public:
             Assert(magicEnd == magicEndOfAux);
 #endif
         }
-        functionBody->auxBlock = auxBlock;
-        functionBody->auxContextBlock = auxContextBlock;
+        functionBody->SetAuxiliaryData(auxBlock);
+        functionBody->SetAuxiliaryContextData(auxContextBlock);
 
         return current;
     }
@@ -2933,14 +2934,14 @@ public:
         Assert(constant == magicStartOfPropertyIdsForScopeSlotArray);
 #endif
 
-        function->propertyIdsForScopeSlotArray = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize);
+        function->SetPropertyIdsForScopeSlotArray(RecyclerNewArrayLeaf(scriptContext->GetRecycler(), Js::PropertyId, function->scopeSlotArraySize), function->scopeSlotArraySize);
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
             int value;
             current = ReadInt32(current, &value);
             PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(value);
-            function->propertyIdsForScopeSlotArray[i] =  propertyId;
+            function->GetPropertyIdsForScopeSlotArray()[i] =  propertyId;
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3516,8 +3517,8 @@ public:
 
             (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy);
             (*functionBody)->serializationIndex = serializationIndex;
-            (*functionBody)->byteCodeCache = cache;
-            (*functionBody)->m_utf8SourceInfo = utf8SourceInfo; // Set source info
+            (*functionBody)->SetByteCodeCache(cache);
+            (*functionBody)->SetUtf8SourceInfo(utf8SourceInfo); // Set source info
             (*function)->m_utf8SourceHasBeenSet = true;
         }
         else
@@ -3616,13 +3617,14 @@ public:
             if (loopHeaderExists)
             {
                 (*functionBody)->AllocateLoopHeaders();
+                auto loopHeaderArray = (*functionBody)->GetLoopHeaderArray();
                 for (uint i = 0; i < (*functionBody)->loopCount; ++i)
                 {
                     uint startOffset, endOffset;
                     current = ReadUInt32(current, &startOffset);
                     current = ReadUInt32(current, &endOffset);
-                    (*functionBody)->loopHeaderArray[i].startOffset = startOffset;
-                    (*functionBody)->loopHeaderArray[i].endOffset = endOffset;
+                    loopHeaderArray[i].startOffset = startOffset;
+                    loopHeaderArray[i].endOffset = endOffset;
                 }
             }
 
@@ -4136,7 +4138,7 @@ FunctionBody* ByteCodeSerializer::DeserializeFunction(ScriptContext* scriptConte
     FunctionBody* deserializedFunctionBody = nullptr;
     ByteCodeCache* cache = deferredFunction->m_cache;
     ByteCodeBufferReader* reader = cache->GetReader();
-    HRESULT hr = reader->ReadFunctionBody(deferredFunction->m_functionBytes, (FunctionProxy **)&deserializedFunctionBody, deferredFunction->m_utf8SourceInfo, cache, deferredFunction->m_nativeModule, true /* deserialize this */, false /* deserialize nested functions */, deferredFunction);
+    HRESULT hr = reader->ReadFunctionBody(deferredFunction->m_functionBytes, (FunctionProxy **)&deserializedFunctionBody, deferredFunction->GetUtf8SourceInfo(), cache, deferredFunction->m_nativeModule, true /* deserialize this */, false /* deserialize nested functions */, deferredFunction);
     if (FAILED(hr))
     {
         // This should never happen as the code is currently

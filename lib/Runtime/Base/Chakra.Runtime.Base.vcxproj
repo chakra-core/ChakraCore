@@ -70,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RuntimeBasePch.h" />
+    <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />
     <ClInclude Include="CharStringCache.h" />
     <ClInclude Include="Constants.h" />
