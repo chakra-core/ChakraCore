@@ -286,18 +286,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wnIF_ELSE:
         return EmitIfElseExpr();
     case wnBREAK:
-    {
-        uint8 depth = m_reader->m_currentNode.br.depth;
-        Assert(depth < m_labels->Count());
-        for (int i = 0; i < depth; i++) {
-            // [b-gekua] TODO
-            // Find label at depth nesting levels out
-            // Possibly the SList m_labels is not optimal for this.
-        }
-        Js::ByteCodeLabel target = m_labels->Top();
-        m_writer.AsmBr(target);
-        return EmitInfo();
-    }
+        return EmitBreak();
+    case wnSWITCH:
+        return EmitSwitch();
     case wnNOP:
         return EmitInfo();
 #define WASM_MEMREAD(token, name, type) \
@@ -952,8 +943,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitBreak()
 {
     uint8 depth = m_reader->m_currentNode.br.depth;
-    if (depth >= m_labels->Count())
-        Assert(UNREACHED);
+    Assert(depth < m_labels->Count());
 
     // TODO: Handle value that Break is supposed to "throw".
     WasmOp op = m_reader->ReadFromBlock();
