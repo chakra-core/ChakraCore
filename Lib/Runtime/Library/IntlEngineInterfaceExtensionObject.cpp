@@ -373,7 +373,7 @@ namespace Js
     void IntlEngineInterfaceExtensionObject::InjectIntlLibraryCode(_In_ ScriptContext * scriptContext, DynamicObject* intlObject, IntlInitializationType intlInitializationType)
     {
         JavascriptExceptionObject *pExceptionObject = nullptr;
-
+        WindowsGlobalizationAdapter* globAdapter = GetWindowsGlobalizationAdapter(scriptContext);
         try {
             this->EnsureIntlByteCode(scriptContext);
 
@@ -382,7 +382,7 @@ namespace Js
             HRESULT hr;
 
             DelayLoadWindowsGlobalization *library = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-            WindowsGlobalizationAdapter* globAdapter = GetWindowsGlobalizationAdapter(scriptContext);
+            
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
@@ -454,9 +454,26 @@ namespace Js
             if (pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() ||
                 pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
             {
-                if (intlInitializationType == IntlInitializationType::Intl)
-                {
+                // Reset factory objects that are might not have fully initialized
+                globAdapter->ResetCommonFactoryObjects();
+                switch (intlInitializationType) {
+                  default:
+                    AssertMsg(false, "Not a valid intlInitializationType.");
+                    // fall thru
+                  case IntlInitializationType::Intl:
+                    globAdapter->ResetNumberFormatFactoryObjects();
+                    globAdapter->ResetDateTimeFormatFactoryObjects();
                     scriptContext->GetLibrary()->ResetIntlObject();
+                    break;
+                  case IntlInitializationType::StringPrototype:
+                    // No other windows globalization adapter is created. Resetting common adapter should suffice
+                    break;
+                  case IntlInitializationType::DatePrototype:
+                    globAdapter->ResetDateTimeFormatFactoryObjects();
+                    break;
+                  case IntlInitializationType::NumberPrototype:
+                    globAdapter->ResetNumberFormatFactoryObjects();
+                    break;
                 }
                 pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
                 throw pExceptionObject;

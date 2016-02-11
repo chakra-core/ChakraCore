@@ -1328,7 +1328,6 @@ case_2:
                     {
                         return func->CallFunction(args);
                     }
-                    AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleCompare method.");
                 }
             }
         }

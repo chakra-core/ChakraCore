@@ -106,7 +106,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         RuntimeFunction* revoker = RecyclerNewEnumClass(scriptContext->GetRecycler(),
             library->EnumFunctionClass, RuntimeFunction,
-            library->CreateFunctionWithLengthAndPrototypeType(&EntryInfo::Revoke), &EntryInfo::Revoke);
+            library->CreateFunctionWithLengthType(&EntryInfo::Revoke), &EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);

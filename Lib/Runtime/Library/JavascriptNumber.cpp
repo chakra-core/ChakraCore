@@ -670,7 +670,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Number.prototype.toLocaleString method.");
             }
         }
 #endif
