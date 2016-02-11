@@ -677,10 +677,6 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
                 return pchT;
         case 'o':
         case 'O':
-            if (!this->m_scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-            {
-                goto LDefaultFScanNumber;
-            }
             // Octal
             *pdbl = Js::NumberUtilities::DblFromOctal(p + 2, &pchT);
             if (pchT == p + 2)
@@ -693,10 +689,6 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
 
         case 'b':
         case 'B':
-            if (!this->m_scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-            {
-                goto LDefaultFScanNumber;
-            }
             // Binary
             *pdbl = Js::NumberUtilities::DblFromBinary(p + 2, &pchT);
             if (pchT == p + 2)
@@ -708,7 +700,6 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
             return  pchT;
 
         default:
-LDefaultFScanNumber :
             // Octal
             *pdbl = Js::NumberUtilities::DblFromOctal(p, &pchT);
             Assert(pchT > p);
@@ -773,10 +764,6 @@ BOOL Scanner<EncodingPolicy>::oFScanNumber(double *pdbl, bool& likelyInt)
             break;
         case 'o':
         case 'O':
-            if (!this->m_scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-            {
-                goto LDefaultoFScanNumber;
-            }
             *pdbl = Js::NumberUtilities::DblFromOctal(m_currentCharacter + 2, &pchT);
             if (pchT == m_currentCharacter + 2)
             {
@@ -790,11 +777,6 @@ BOOL Scanner<EncodingPolicy>::oFScanNumber(double *pdbl, bool& likelyInt)
 
         case 'b':
         case 'B':
-            if (!this->m_scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-            {
-                goto LDefaultoFScanNumber;
-            }
-
             *pdbl = Js::NumberUtilities::DblFromBinary(m_currentCharacter + 2, &pchT);
             if (pchT == m_currentCharacter + 2)
             {
@@ -807,7 +789,6 @@ BOOL Scanner<EncodingPolicy>::oFScanNumber(double *pdbl, bool& likelyInt)
             break;
 
         default:
-LDefaultoFScanNumber :
             // Octal.
             *pdbl = Js::NumberUtilities::DblFromOctal(m_currentCharacter, &pchT);
             Assert(pchT > m_currentCharacter);
@@ -1175,11 +1156,6 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
     int wT;
     EncodedCharPtr p = *pp;
     EncodedCharPtr last = m_pchLast;
-
-    if (stringTemplateMode)
-    {
-        Assert(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled());
-    }
 
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;
@@ -1807,8 +1783,6 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
         {
             AssertMsg(m_fStringTemplateDepth > 0,
                 "Shouldn't be trying to parse a string template end or middle token if we aren't scanning a string template");
-            AssertMsg(m_scriptContext->GetConfig()->IsES6StringTemplateEnabled(),
-                "Shouldn't be in string template parse mode if string templates are not enabled.");
 
             m_scanState = ScanStateNormal;
 
@@ -1832,7 +1806,6 @@ LLoop:
         switch (ch)
         {
         default:
-LLoopDefault:
             if (ch == kchLS ||
                 ch == kchPS )
             {
@@ -2028,16 +2001,9 @@ LIdentifier:
         case '`':
             Assert(chType == _C_BKQ);
 
-            if (m_scriptContext->GetConfig()->IsES6StringTemplateEnabled())
-            {
-                pchT = p;
-                token = ScanStringTemplateBegin(&pchT);
-                p = pchT;
-            }
-            else
-            {
-                goto LLoopDefault;
-            }
+            pchT = p;
+            token = ScanStringTemplateBegin(&pchT);
+            p = pchT;
             break;
 
         case '}':
@@ -2078,11 +2044,8 @@ LIdentifier:
                 }
                 break;
             case '>':
-                if (m_scriptContext->GetConfig()->IsES6LambdaEnabled())
-                {
-                    p++;
-                    token = tkDArrow;
-                }
+                p++;
+                token = tkDArrow;
                 break;
             }
             break;

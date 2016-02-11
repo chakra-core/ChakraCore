@@ -2805,10 +2805,8 @@ case_2:
 
     bool JavascriptString::ToDouble(double * result)
     {
-
         const wchar_t* pch;
         long len = this->m_charLength;
-        ScriptContext *scriptContext = this->GetScriptContext();
         if (0 == len)
         {
             *result = 0;
@@ -2844,19 +2842,11 @@ case_2:
                 break;
             case 'o':
             case 'O':
-                if (!scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-                {
-                    break;
-                }
                 *result = NumberUtilities::DblFromOctal(pchT, &pch);
                 isNumericLiteral = true;
                 break;
             case 'b':
             case 'B':
-                if (!scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-                {
-                    break;
-                }
                 *result = NumberUtilities::DblFromBinary(pchT, &pch);
                 isNumericLiteral = true;
                 break;
