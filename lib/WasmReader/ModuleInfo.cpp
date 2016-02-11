@@ -5,6 +5,8 @@
 
 #include "WasmReaderPch.h"
 
+#ifdef ENABLE_WASM
+
 namespace Wasm
 {
 
@@ -50,3 +52,5 @@ ModuleInfo::GetMemory() const
 }
 
 } // namespace Wasm
+
+#endif // ENABLE_WASM

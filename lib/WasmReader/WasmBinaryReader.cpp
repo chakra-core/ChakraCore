@@ -401,8 +401,8 @@ void
 WasmBinaryReader::ReadMemorySection()
 {
     // TODO: change to use multiple of page size
-    size_t minSize = 1 << ReadConst<UINT8>();
-    size_t maxSize = 1 << ReadConst<UINT8>();
+    uint32 minSize = 1 << ReadConst<UINT8>();
+    uint32 maxSize = 1 << ReadConst<UINT8>();
     bool exported = ReadConst<UINT8>() != FALSE;
     m_moduleInfo->InitializeMemory(minSize, maxSize, exported);
 }
