@@ -912,7 +912,7 @@ namespace TTD
         *result = NSLogValue::InflateArgRetValueIntoVar(eeventEnd->GetReturnValue(), ctx);
     }
 
-    void EventLog::PushCallEvent(Js::FunctionBody* fbody)
+    void EventLog::PushCallEvent(Js::FunctionBody* fbody, bool isInFinally)
     {
         AssertMsg(this->IsTTDActive(), "Should check this first.");
 
@@ -920,7 +920,7 @@ namespace TTD
         {
 #if ENABLE_TTD_DEBUGGING
             //Clear any previous last return frame info
-            this->ClearReturnAndExceptionFrames();
+            this->ClearReturnFrame();
 #endif
 
             this->m_runningFunctionTimeCtr++;
@@ -958,7 +958,10 @@ namespace TTD
         if(this->ShouldPerformRecordAction() | this->ShouldPerformDebugAction())
         {
 #if ENABLE_TTD_DEBUGGING
-            this->SetReturnAndExceptionFramesFromCurrent(true, false);
+            if(!this->HasImmediateExceptionFrame())
+            {
+                this->SetReturnAndExceptionFramesFromCurrent(true, false);
+            }
 #endif
 
             this->m_runningFunctionTimeCtr++;
@@ -1011,9 +1014,13 @@ namespace TTD
         return this->m_lastFrame;
     }
 
-    void EventLog::ClearReturnAndExceptionFrames()
+    void EventLog::ClearReturnFrame()
     {
         this->m_isReturnFrame = false;
+    }
+
+    void EventLog::ClearExceptionFrame()
+    {
         this->m_isExceptionFrame = false;
     }
 
@@ -1500,7 +1507,8 @@ namespace TTD
         this->m_hostCallbackId = hostCallbackId;
 
 #if ENABLE_TTD_DEBUGGING
-        this->ClearReturnAndExceptionFrames();
+        this->ClearReturnFrame();
+        this->ClearExceptionFrame();
 #endif
     }
 

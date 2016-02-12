@@ -1881,7 +1881,9 @@ namespace Js
             TTD::EventLog* elog = threadContext->TTDLog;
             if(elog->ShouldPerformDebugAction())
             {
-                elog->PushCallEvent(executeFunction);
+                bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
+
+                elog->PushCallEvent(executeFunction, isInFinally);
                 exceptionFramePopper.PushInfo(elog);
             }
         }
@@ -2265,7 +2267,7 @@ namespace Js
             //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
             if(newstmt)
             {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnAndExceptionFrames();
+                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
             }
 #endif
         }
@@ -2316,7 +2318,7 @@ namespace Js
             //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
             if(newstmt)
             {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnAndExceptionFrames();
+                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
             }
 #endif
         }
@@ -6402,6 +6404,15 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::ProcessCatch()
     {
+#if ENABLE_TTD_DEBUGGING
+        //Clear any previous Exception Info
+        TTD::EventLog* elog = this->function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog != nullptr && elog->ShouldPerformDebugAction())
+        {
+            elog->ClearExceptionFrame();
+        }
+#endif
+
         if (this->scriptContext->IsInDebugMode())
         {
             this->DebugProcess();

@@ -341,7 +341,7 @@ namespace TTD
         void ReplayExternalCallEvent(Js::ScriptContext* ctx, Js::Var* result);
 
         //Log a function call
-        void PushCallEvent(Js::FunctionBody* fbody);
+        void PushCallEvent(Js::FunctionBody* fbody, bool isInFinally);
 
         //Log a function return in normal case and exception
         void PopCallEvent(Js::FunctionBody* fbody, Js::Var result);
@@ -353,7 +353,8 @@ namespace TTD
         bool HasImmediateExceptionFrame() const;
         const SingleCallCounter& GetImmediateReturnFrame() const;
         const SingleCallCounter& GetImmediateExceptionFrame() const;
-        void ClearReturnAndExceptionFrames();
+        void ClearReturnFrame();
+        void ClearExceptionFrame();
         void SetReturnAndExceptionFramesFromCurrent(bool setReturn, bool setException);
 #endif
 
