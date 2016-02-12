@@ -189,7 +189,6 @@ namespace Js
 
         bool SupportsCollectGarbage() const { return true; }
         bool IsTypedArrayEnabled() const { return true; }
-        bool BindDeferredPidRefs() const { return IsLetAndConstEnabled(); }
 
         void ForceNoNative() { this->NoNative = true; }
         void ForceNative() { this->NoNative = false; }
@@ -198,7 +197,6 @@ namespace Js
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ this->fCanOptimizeGlobalLookup = f;}
         BOOL CanOptimizeGlobalLookup() const { return this->fCanOptimizeGlobalLookup;}
         bool IsOptimizedForManyInstances() const { return isOptimizedForManyInstances; }
-        bool IsBlockScopeEnabled() const { return true; }
         void CopyFrom(ScriptConfiguration& other)
         {
             this->NoNative = other.NoNative;
@@ -358,7 +356,7 @@ namespace Js
         Js::JavascriptMethod DeferredParsingThunk;
         Js::JavascriptMethod DeferredDeserializationThunk;
         Js::JavascriptMethod DispatchDefaultInvoke;
-        Js::JavascriptMethod DispatchProfileInoke;
+        Js::JavascriptMethod DispatchProfileInvoke;
 
         typedef HRESULT (*GetDocumentContextFunction)(
             ScriptContext *pContext,
@@ -1065,7 +1063,7 @@ private:
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
-        void ResetWeakReferenceDicitionaryList() { weakReferenceDictionaryList.Reset(); }
+        void ResetWeakReferenceDictionaryList() { weakReferenceDictionaryList.Reset(); }
 
         BOOL ReserveStaticTypeIds(__in int first, __in int last);
         TypeId ReserveTypeIds(int count);
@@ -1074,8 +1072,8 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        JavascriptFunction* LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs);
-        JavascriptFunction* LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs);
+        JavascriptFunction* LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule = false);
+        JavascriptFunction* LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule = false);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 

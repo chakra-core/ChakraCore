@@ -117,8 +117,8 @@ namespace Js
 
         FunctionBody *funcBody = mFunction->GetFuncBody();
         funcBody->CreateConstantTable();
-        Var* table = (Var*)funcBody->GetConstTable();
-        table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is erobased calculation
+        Var* table = funcBody->GetConstTable();
+        table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is zero-based calculation
 
         int* intTable = (int*)table;
         // int Return Register
@@ -174,7 +174,7 @@ namespace Js
             {
                 JsUtil::BaseDictionary<AsmJsSIMDValue, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
                 RegSlot regSlot = entry.Value();
-                Assert((Var*)simdTable + regSlot < (Var*)funcBody->GetConstTable() + funcBody->GetConstantCount());
+                Assert((Var*)simdTable + regSlot < funcBody->GetConstTable() + funcBody->GetConstantCount());
                 // we cannot do sequential copy since registers are assigned to constants in the order they appear in the code, not per dictionary order.
                 simdTable[entry.Value()] = entry.Key();
             }
@@ -256,7 +256,7 @@ namespace Js
             DefineLabels( );
             EmitAsmJsFunctionBody();
 
-            // Set that the function is asmjsFuntion in functionBody here so that Initialize ExecutionMode call later will check for that and not profile in asmjsMode
+            // Set that the function is asmjsFunction in functionBody here so that Initialize ExecutionMode call later will check for that and not profile in asmjsMode
             functionBody->SetIsAsmJsFunction(true);
             functionBody->SetIsAsmjsMode(true);
 
@@ -558,6 +558,10 @@ namespace Js
             {
                 return EmitExpressionInfo(mFunction->GetConstRegister<int>((uint32)pnode->sxFlt.dbl), AsmJsType::Unsigned);
             }
+            else if (pnode->sxFlt.maybeInt)
+            {
+                throw AsmJsCompilationException(L"Int literal must be in the range [-2^31, 2^32)");
+            }
             else
             {
                 return EmitExpressionInfo(mFunction->GetConstRegister<double>(pnode->sxFlt.dbl), AsmJsType::DoubleLit);
@@ -621,7 +625,7 @@ namespace Js
             throw AsmJsCompilationException( L"Variable declaration must happen at the top of the function" );
             break;
         case knopDot:
-            // To handle expr.signMask for now, until Bools are suppored.
+            // To handle expr.signMask for now, until Bools are supported.
             return EmitDotExpr(pnode);
         default:
             throw AsmJsCompilationException( L"Unhandled parse opcode for asm.js" );

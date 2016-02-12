@@ -734,7 +734,7 @@ namespace JsUtil
         template <typename TLookup>
         static hash_t GetHashCodeWithKey(const TLookup& key)
         {
-            // set last bit to 1 to avoid false positive to make hash appears to be an valid recycler address.
+            // set last bit to 1 to avoid false positive to make hash appears to be a valid recycler address.
             // In the same line, 0 should be use to indicate a non-existing entry.
             return TAGHASH(Comparer<TLookup>::GetHashCode(key));
         }

@@ -48,7 +48,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RejitReason.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SmartFPUControl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Tick.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)unicode.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vtinfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonCommonPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -74,7 +73,6 @@
     <ClInclude Include="Tick.h" />
     <ClInclude Include="UInt16Math.h" />
     <ClInclude Include="UInt32Math.h" />
-    <ClInclude Include="unicode.h" />
     <ClInclude Include="vtinfo.h" />
     <ClInclude Include="vtregistry.h" />
   </ItemGroup>

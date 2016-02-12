@@ -12,7 +12,7 @@
 
 #define TMP_PREFIX "di"   // 2 characters
 
-// Currently not overrideable
+// Currently not overridable
 #define REGR_PERL "perl"
 
 #define DIR_START_CMD "startdir.cmd"

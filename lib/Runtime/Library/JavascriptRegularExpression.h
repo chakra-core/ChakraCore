@@ -40,6 +40,7 @@ namespace Js
         CharCount lastIndexOrFlag;
 
         static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
+        static JavascriptString * GetFirstStringArg(Arguments& args, ScriptContext* scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
@@ -109,6 +110,7 @@ namespace Js
             static FunctionInfo Exec;
             static FunctionInfo Test;
             static FunctionInfo ToString;
+            static FunctionInfo SymbolMatch;
             static FunctionInfo SymbolSearch;
             static FunctionInfo GetterSymbolSpecies;
             static FunctionInfo GetterGlobal;
@@ -127,6 +129,7 @@ namespace Js
         static Var EntryExec(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);

@@ -154,6 +154,7 @@
 #define ENABLE_DOM_FAST_PATH
 #define ENABLE_JS_ETW                               // ETW support
 #define EDIT_AND_CONTINUE
+#define ENABLE_JIT_CLAMP
 #endif
 
 // Telemetry flags

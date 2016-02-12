@@ -80,7 +80,7 @@ var tests = [
       assert.throws(function () { eval("(...rest = ...NaN) => {};"); },
                     SyntaxError,
                     "Invalid rest with invalid spread initializer throws on the invalid rest",
-                    "The rest parameter cannot have a default intializer.");
+                    "The rest parameter cannot have a default initializer.");
 
       assert.throws(function () { eval("var x = { set setter(...x) {} }"); },
                     SyntaxError,

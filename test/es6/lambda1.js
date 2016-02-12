@@ -286,7 +286,7 @@ var tests = [
                 }
             };
 
-            assert.areEqual(lambdaobj1, lambdaobj1.method()(), "lambda's lexical ''this'' binding is unaffected by capturing a dyanamically scoped variable introduced by eval");
+            assert.areEqual(lambdaobj1, lambdaobj1.method()(), "lambda's lexical ''this'' binding is unaffected by capturing a dynamically scoped variable introduced by eval");
 
 
             var obj = { b: 20 };

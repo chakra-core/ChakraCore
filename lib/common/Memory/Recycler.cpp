@@ -275,7 +275,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     this->heapBlockCount = 0;
     this->collectionCount = 0;
     this->disableThreadAccessCheck = false;
-    this->disableConcurentThreadExitedCheck = false;
+    this->disableConcurrentThreadExitedCheck = false;
 #endif
 #if DBG || defined RECYCLER_TRACE
     this->inResolveExternalWeakReferences = false;
@@ -397,9 +397,9 @@ Recycler::LogMemProtectHeapSize(bool fromGC)
 
 #if DBG
 void
-Recycler::SetDisableConcurentThreadExitedCheck()
+Recycler::SetDisableConcurrentThreadExitedCheck()
 {
-    disableConcurentThreadExitedCheck = true;
+    disableConcurrentThreadExitedCheck = true;
 #ifdef RECYCLER_STRESS
     this->recyclerStress = false;
 #ifdef CONCURRENT_GC_ENABLED
@@ -546,7 +546,7 @@ Recycler::~Recycler()
 #endif
     Assert(this->collectionState == CollectionStateExit || this->collectionState == CollectionStateNotCollecting);
 #ifdef CONCURRENT_GC_ENABLED
-    Assert(this->disableConcurentThreadExitedCheck || this->concurrentThreadExited == true);
+    Assert(this->disableConcurrentThreadExitedCheck || this->concurrentThreadExited == true);
 #endif
 }
 
@@ -2981,7 +2981,7 @@ Recycler::FinishDisposeObjectsWrapped()
         // Dispose may get into message loop and cause a reentrant GC. If those don't allow reentrant
         // it will get added to a pending collect request.
 
-        // FinishDipsosedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
+        // FinishDisposedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
         // and won't check NeedExhaustiveRepeatCollect(), need to check it here to honor those requests
 
          if (!this->CollectionInProgress() && NeedExhaustiveRepeatCollect() && ((flags & CollectOverride_NoExhaustiveCollect) != CollectOverride_NoExhaustiveCollect))
@@ -5092,7 +5092,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     bool concurrent = (flags & CollectMode_Concurrent) != 0;
     concurrent = concurrent && (!priorityBoost || this->backgroundRescanCount != 1);
 #ifdef RECYCLER_TRACE
-    collectionParam.priorityBoostConcurentSweepOverride = priorityBoost;
+    collectionParam.priorityBoostConcurrentSweepOverride = priorityBoost;
 #endif
 
     const DWORD waitTime = forceInThread? INFINITE : RecyclerHeuristic::FinishConcurrentCollectWaitTime(this->GetRecyclerFlagsTable());
@@ -5752,7 +5752,7 @@ Recycler::ShouldIdleCollectOnExit()
         CUSTOM_PHASE_PRINT_VERBOSE_TRACE1(GetRecyclerFlagsTable(), Js::IdleCollectPhase, L"%04X> Skipping scheduling Idle Collect. Reason: Collection in progress\n", ::GetCurrentThreadId());
 #endif
 
-        // Don't schedule a idle collect if there is a collection going on already
+        // Don't schedule an idle collect if there is a collection going on already
         // IDLE-GC-TODO: Fix ResetHeuristics in the GC so we can detect memory allocation during
         // the concurrent collect and still schedule an idle collect
         return false;
@@ -6059,7 +6059,7 @@ RecyclerParallelThread::StaticBackgroundWorkCallback(void * callbackData)
 void
 Recycler::CaptureCollectionParam(CollectionFlags flags, bool repeat)
 {
-    collectionParam.priorityBoostConcurentSweepOverride = false;
+    collectionParam.priorityBoostConcurrentSweepOverride = false;
     collectionParam.repeat = repeat;
     collectionParam.finishOnly = false;
     collectionParam.flags = flags;
@@ -6119,13 +6119,13 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
                 }
                 else if (concurrent && this->enableConcurrentSweep)
                 {
-                    if (!collectionParam.priorityBoostConcurentSweepOverride)
+                    if (!collectionParam.priorityBoostConcurrentSweepOverride)
                     {
                         Output::Print(L" Finish mark and start concurrent sweep");
                     }
                     else
                     {
-                        Output::Print(L" Finish mark and sweep (priority boost overrided concurrent sweep)");
+                        Output::Print(L" Finish mark and sweep (priority boost overridden concurrent sweep)");
                     }
                 }
                 else

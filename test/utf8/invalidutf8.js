@@ -35,12 +35,12 @@ var C885 = "È…";
 var x0205 = "\u0205";
 test(C885, x0205);
 
-// Ensure surragate pairs are encoded correctly
+// Ensure surrogate pairs are encoded correctly
 var F0909080 = "ğ€";
 var D801DC00 = "\uD801\uDC00";
 test(F0909080, D801DC00);
 
-// Ensure invalid surragate pairs are replaced with replacement characters.
+// Ensure invalid surrogate pairs are replaced with replacement characters.
 var EDA081_EDB080 = "í í°€";
 var Repx6 = "\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD";
 test(EDA081_EDB080, Repx6);

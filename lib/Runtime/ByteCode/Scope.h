@@ -37,6 +37,7 @@ private:
     BYTE mustInstantiate : 1;
     BYTE hasCrossScopeFuncAssignment : 1;
     BYTE hasDuplicateFormals : 1;
+    BYTE canMergeWithBodyScope : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -52,6 +53,7 @@ public:
         mustInstantiate(false),
         hasCrossScopeFuncAssignment(false),
         hasDuplicateFormals(false),
+        canMergeWithBodyScope(true),
         location(Js::Constants::NoRegister),
         symbolTable(nullptr),
         m_symList(nullptr),
@@ -224,7 +226,11 @@ public:
 
     bool IsInnerScope() const
     {
-        return scopeType == ScopeType_Block || scopeType == ScopeType_Catch || scopeType == ScopeType_CatchParamPattern || scopeType == ScopeType_GlobalEvalBlock;
+        return scopeType == ScopeType_Block
+            || scopeType == ScopeType_Catch
+            || scopeType == ScopeType_CatchParamPattern
+            || scopeType == ScopeType_GlobalEvalBlock
+            || (scopeType == ScopeType_Parameter && !this->GetCanMergeWithBodyScope());
     }
 
     int Count() const
@@ -277,13 +283,16 @@ public:
     bool GetMustInstantiate() const { return mustInstantiate; }
 
     void SetCanMerge(bool can) { canMerge = can; }
-    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject; }
+    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject && (this->scopeType != ScopeType::ScopeType_Parameter || this->GetCanMergeWithBodyScope()); }
 
     void SetScopeSlotCount(uint i) { scopeSlotCount = i; }
     uint GetScopeSlotCount() const { return scopeSlotCount; }
 
     void SetHasDuplicateFormals() { hasDuplicateFormals = true; }
     bool GetHasDuplicateFormals() { return hasDuplicateFormals; }
+
+    void SetCannotMergeWithBodyScope() { Assert(this->scopeType == ScopeType_Parameter); canMergeWithBodyScope = false; }
+    bool GetCanMergeWithBodyScope() const { return canMergeWithBodyScope; }
 
     void SetHasLocalInClosure(bool has);
 

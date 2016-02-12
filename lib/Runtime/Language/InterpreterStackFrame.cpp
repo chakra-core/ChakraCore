@@ -25,9 +25,9 @@
 /// - X: Nothing
 ///
 /// Examples:
-/// - "A2toA1" reads two registers, each storing an Var, and writes a single
+/// - "A2toA1" reads two registers, each storing a Var, and writes a single
 ///   register with a new Var.
-/// - "A1I1toA2" reads two registers, first an Var and second an Int32, then
+/// - "A1I1toA2" reads two registers, first a Var and second an Int32, then
 ///   writes two Var registers.
 ///
 /// Although these could use lookup tables to standard OpLayout types, this
@@ -2091,7 +2091,7 @@ namespace Js
     inline void InterpreterStackFrame::OP_SetOutAsmDb( RegSlot outRegisterID, double val )
     {
         Assert( m_outParams + outRegisterID < m_outSp );
-        m_outParams[outRegisterID] = JavascriptNumber::New( val, scriptContext );
+        m_outParams[outRegisterID] = JavascriptNumber::NewWithCheck( val, scriptContext );
     }
 
     inline void InterpreterStackFrame::OP_SetOutAsmInt( RegSlot outRegisterID, int val )
@@ -2497,14 +2497,14 @@ namespace Js
             if (!info->IsRuntimeProcessed())
             {
                 // don't reset entrypoint upon relinking
-                FunctionEntryPointInfo* entypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
+                entrypointInfo->SetIsAsmJSFunction(true);
+                entrypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
 
 #if DYNAMIC_INTERPRETER_THUNK
                 if (!PHASE_ON1(AsmJsJITTemplatePhase))
                 {
-                    entypointInfo->address = AsmJsDefaultEntryThunk;
+                    entrypointInfo->address = AsmJsDefaultEntryThunk;
                 }
 #endif
             }

@@ -118,8 +118,8 @@ var tests = [
         body: function () {
             var target = {};
             Object.preventExtensions(target);
-            enumalteProps = {};
-            enumalteProps.x = 5;
+            emulatedProps = {};
+            emulatedProps.x = 5;
             var proxy = new Proxy(target, emulatedProps);
             success = function () { };
             assert.throws(function () { Object.defineProperty(proxy, 'x', { value: 20 }) }, TypeError);

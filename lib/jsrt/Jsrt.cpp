@@ -2417,7 +2417,7 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
-JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes, JsValueRef *result)
+JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes, bool isSourceModule, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
@@ -2450,12 +2450,14 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
         bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
 
         Js::Utf8SourceInfo* utf8SourceInfo;
+
         scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr,
             false /*disableDeferredParse*/,
             false /*isByteCodeBufferForLibrary*/,
             &utf8SourceInfo, Js::Constants::GlobalCode,
             isLibraryCode,
-            false /*disableAsmJs*/);
+            false /*disableAsmJs*/,
+            isSourceModule);
 
         JsrtContext * context = JsrtContext::GetCurrent();
         context->OnScriptLoad(scriptFunction, utf8SourceInfo, &se);
@@ -2505,7 +2507,7 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
 
 STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, result);
+    return RunScriptCore(script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, false, result);
 }
 
 STDAPI_(JsErrorCode) JsParseScriptWithFlags(
@@ -2515,12 +2517,17 @@ STDAPI_(JsErrorCode) JsParseScriptWithFlags(
     _In_ JsParseScriptAttributes parseAttributes,
     _Out_ JsValueRef *result)
 {
-    return RunScriptCore(script, sourceContext, sourceUrl, true, parseAttributes, result);
+    return RunScriptCore(script, sourceContext, sourceUrl, true, parseAttributes, false, result);
 }
 
 STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, result);
+    return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, false, result);
+}
+
+STDAPI_(JsErrorCode) JsExperimentalApiRunModule(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+{
+    return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
 }
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
@@ -2593,7 +2600,7 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         const Js::Utf8SourceInfo *sourceInfo = functionBody->GetUtf8SourceInfo();
         size_t cSourceCodeLength = sourceInfo->GetCbLength(L"JsSerializeScript");
 
-        // trucation of code length can lead to accessing random memory. Reject the call.
+        // truncation of code length can lead to accessing random memory. Reject the call.
         if (cSourceCodeLength > DWORD_MAX)
         {
             return JsErrorOutOfMemory;

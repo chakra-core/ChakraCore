@@ -85,7 +85,7 @@ try {
 eval('var test = "\\u{0000}"');
 
 // Regex doesn't throw in these cases, however, it will try matching \u and then {1} instead of the actual value of \u0001.
-// Should print false(11/11/2014) '/u' option not suplied
+// Should print false(11/11/2014) '/u' option not supplied
 /\u{1}/.test("\u0001").echo();
 /\u{01}/.test("\u0001").echo();
 /\u{001}/.test("\u0001").echo();

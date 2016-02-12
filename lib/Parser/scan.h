@@ -302,7 +302,7 @@ enum ScanFlag
 {
     ScanFlagNone = 0,
     ScanFlagSuppressStrPid = 1,   // Force strings to always have pid
-    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid
+    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid (currently unused)
 };
 
 typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR secondChar, bool containTypeDef, charcount_t min, charcount_t lim, bool adjacent, bool multiline, charcount_t startLine, charcount_t endLine);
@@ -413,21 +413,12 @@ public:
 
     IdentPtr GetSecondaryBufferAsPid();
 
-    bool BindDeferredPidRefs() const
-    {
-        return m_scriptContext->GetConfig()->BindDeferredPidRefs();
-    }
-
     BYTE SetDeferredParse(BOOL defer)
     {
         BYTE fOld = m_DeferredParseFlags;
         if (defer)
         {
             m_DeferredParseFlags |= ScanFlagSuppressStrPid;
-            if (!this->BindDeferredPidRefs())
-            {
-                m_DeferredParseFlags |= ScanFlagSuppressIdPid;
-            }
         }
         else
         {

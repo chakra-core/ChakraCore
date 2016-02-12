@@ -86,14 +86,14 @@ var tests = [
             throw [];
         }
         catch ([e1 = 11]) {
-            assert.areEqual(e1, 11, "Array pattern as a catach param has initializer and initializes with initializer value");
+            assert.areEqual(e1, 11, "Array pattern as a catch param has initializer and initializes with initializer value");
         }
 
         try {
             throw {};
         }
         catch({e2:e2 = 22}) {
-            assert.areEqual(e2, 22, "Object pattern as a catach param has initializer and initializes with initializer value");
+            assert.areEqual(e2, 22, "Object pattern as a catch param has initializer and initializes with initializer value");
         }
 
         try {

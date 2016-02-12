@@ -127,7 +127,7 @@ var tests = [
             var myset = new MySet();
 
             assert.isTrue(myset instanceof MySet, "Should be a MySet object");
-            assert.isTrue(myset instanceof Set, "Shoudl also be a Set object");
+            assert.isTrue(myset instanceof Set, "Should also be a Set object");
             assert.isTrue(Object.getPrototypeOf(myset) === MySet.prototype, "Should have MySet prototype");
             assert.isTrue(Object.getPrototypeOf(myset) !== Set.prototype, "Should be distinct from Set prototype");
 

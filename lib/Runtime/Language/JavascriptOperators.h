@@ -47,7 +47,6 @@ namespace Js
     } \
     if (scriptContext->IsUndeclBlockVar(var)) \
     { \
-        Assert(scriptContext->GetConfig()->IsLetAndConstEnabled()); \
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
     }
 
@@ -209,7 +208,7 @@ namespace Js
         static BOOL IsUndefinedObject(Var instance);
         static BOOL IsUndefinedObject(Var instance, ScriptContext *scriptContext);
         static BOOL IsUndefinedObject(Var instance, RecyclableObject *libraryUndefined);
-        static BOOL IsUndefinedObject(Var isntance, JavascriptLibrary* library);
+        static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsIterable(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL IsClassConstructor(Var instance);
@@ -586,7 +585,7 @@ namespace Js
         static Var GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext);
 
     private:
-        static BOOL RelationalComparsionHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
+        static BOOL RelationalComparisonHelper(Var aLeft, Var aRight, ScriptContext* scriptContext, bool leftFirst, bool undefinedAs);
 
         template <typename ArrayType>
         static void ObjectToNativeArray(ArrayType* arrayObject,

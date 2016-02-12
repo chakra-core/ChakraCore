@@ -119,7 +119,7 @@ private:
 };
 
 //
-// Capture multiple call stack traces using a in-memory ring buffer. Useful for instrumenting source
+// Capture multiple call stack traces using an in-memory ring buffer. Useful for instrumenting source
 // code to track calls.
 //
 //  BUFFERS:    Number of stack traces to keep. When all the buffers are filled up, capture will start

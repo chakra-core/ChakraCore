@@ -591,8 +591,7 @@ namespace Js
 
         if (fncNode->sxFnc.pnodeBody == NULL)
         {
-            if (GetScriptContext()->GetConfig()->BindDeferredPidRefs() &&
-                !PHASE_OFF1(Js::SkipNestedDeferredPhase))
+            if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
             {
                 deferParseFunction->BuildDeferredStubs(fncNode);
             }
@@ -623,7 +622,7 @@ namespace Js
         }
         GetByteCodeGenerator()->PushFuncInfo(L"Start asm.js AST prepass", fncNode->sxFnc.funcInfo);
         fncNode->sxFnc.funcInfo->byteCodeFunction->SetBoundPropertyRecords(GetByteCodeGenerator()->EnsurePropertyRecordList());
-        BindArguments(fncNode->sxFnc.pnodeArgs);
+        BindArguments(fncNode->sxFnc.pnodeParams);
         ASTPrepass(pnodeBody, func);
         GetByteCodeGenerator()->PopFuncInfo(L"End asm.js AST prepass");
 
@@ -1081,7 +1080,7 @@ namespace Js
     {
         ParseNode * fncNode = func->GetFncNode();
         ParseNode * pnodeBody = fncNode->sxFnc.pnodeBody;
-        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeArgs;
+        ParseNode * pnodeArgs = fncNode->sxFnc.pnodeParams;
 
         // match AST for changeHeap function.
         // it must be defined in the following format (names/whitespace can differ):
@@ -2224,10 +2223,10 @@ namespace Js
                 switch (asmSlot->varType)
                 {
                 case AsmJsVarType::Double:
-                    value = JavascriptNumber::New(asmDoubleVars[asmSlot->location], scriptContext);
+                    value = JavascriptNumber::NewWithCheck(asmDoubleVars[asmSlot->location], scriptContext);
                     break;
                 case AsmJsVarType::Float:
-                    value = JavascriptNumber::New(asmFloatVars[asmSlot->location], scriptContext);
+                    value = JavascriptNumber::NewWithCheck(asmFloatVars[asmSlot->location], scriptContext);
                     break;
                 case AsmJsVarType::Int:
                     value = JavascriptNumber::ToVar(asmIntVars[asmSlot->location], scriptContext);
@@ -2275,7 +2274,7 @@ namespace Js
                 value = asmFuncs[asmSlot->location];
                 break;
             case AsmJsSymbol::MathConstant:
-                value = JavascriptNumber::New(asmSlot->mathConstVal, scriptContext);
+                value = JavascriptNumber::NewWithCheck(asmSlot->mathConstVal, scriptContext);
                 break;
             case AsmJsSymbol::ArrayView:
             {

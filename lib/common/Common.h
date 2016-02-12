@@ -63,7 +63,6 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Common\NumberUtilitiesBase.h"
 #include "Common\NumberUtilities.h"
 #include <codex\Utf8Codex.h>
-#include "Common\unicode.h"
 
 #include "core\DelayLoadLibrary.h"
 #include "core\EtwTraceCore.h"

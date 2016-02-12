@@ -42,19 +42,19 @@ enum PNodeFlags : ushort
     fpnArguments                             = 0x0004,
     fpnHidden                                = 0x0008,
 
-    // Statment nodes.
-    fpnExplicitSimicolon                     = 0x0010, // statment terminated by an explicit semicolon
-    fpnAutomaticSimicolon                    = 0x0020, // statment terminated by an automatic semicolon
-    fpnMissingSimicolon                      = 0x0040, // statment missing terminating semicolon, and is not applicable for automatic semicolon insersion
-    fpnDclList                               = 0x0080, // statment is a declaration list
+    // Statement nodes.
+    fpnExplicitSemicolon                     = 0x0010, // statement terminated by an explicit semicolon
+    fpnAutomaticSemicolon                    = 0x0020, // statement terminated by an automatic semicolon
+    fpnMissingSemicolon                      = 0x0040, // statement missing terminating semicolon, and is not applicable for automatic semicolon insertion
+    fpnDclList                               = 0x0080, // statement is a declaration list
     fpnSyntheticNode                         = 0x0100, // node is added by the parser or does it represent user code
     fpnIndexOperator                         = 0x0200, // dot operator is an optimization of an index operator
     fpnJumbStatement                         = 0x0400, // break or continue that was removed by error recovery
 
     // Unary/Binary nodes
-    fpnCanFlattenConcatExpr                  = 0x0800, // the result of the binary operation can particpate in concat N
+    fpnCanFlattenConcatExpr                  = 0x0800, // the result of the binary operation can participate in concat N
 
-    // Potentially overlapping transitor flags
+    // Potentially overlapping traversal flags
     // These flags are set and cleared during a single node traversal and their values can be used in other node traversals.
     fpnMemberReference                       = 0x1000, // The node is a member reference symbol
     fpnCapturesSyms                          = 0x2000, // The node is a statement (or contains a sub-statement)
@@ -153,9 +153,9 @@ struct PnArrLit : PnUni
 {
     uint count;
     uint spreadCount;
-    BYTE arrayOfTaggedInts:1;     // indicates that array initialzer nodes are all tagged ints
-    BYTE arrayOfInts:1;           // indicates that array initialzer nodes are all ints
-    BYTE arrayOfNumbers:1;        // indicates that array initialzer nodes are all numbers
+    BYTE arrayOfTaggedInts:1;     // indicates that array initializer nodes are all tagged ints
+    BYTE arrayOfInts:1;           // indicates that array initializer nodes are all ints
+    BYTE arrayOfNumbers:1;        // indicates that array initializer nodes are all numbers
     BYTE hasMissingValues:1;
 };
 
@@ -177,7 +177,7 @@ enum FncFlags
     kFunctionCallsEval                          = 1 << 2, // function uses eval
     kFunctionUsesArguments                      = 1 << 3, // function uses arguments
     kFunctionHasHeapArguments                   = 1 << 4, // function's "arguments" escape the scope
-    kFunctionHasReferencableBuiltInArguments    = 1 << 5, // the built-in 'arguments' object is referenceable in the function
+    kFunctionHasReferenceableBuiltInArguments   = 1 << 5, // the built-in 'arguments' object is referenceable in the function
     kFunctionIsAccessor                         = 1 << 6, // function is a property getter or setter
     kFunctionHasNonThisStmt                     = 1 << 7,
     kFunctionStrictMode                         = 1 << 8,
@@ -187,7 +187,7 @@ enum FncFlags
     kFunctionHasWithStmt                        = 1 << 12, // function (or child) uses with
     kFunctionIsLambda                           = 1 << 13,
     kFunctionChildCallsEval                     = 1 << 14,
-    kFunctionHasDestructuringPattern            = 1 << 15,
+    kFunctionHasNonSimpleParameterList          = 1 << 15,
     kFunctionHasSuperReference                  = 1 << 16,
     kFunctionIsMethod                           = 1 << 17,
     kFunctionIsClassConstructor                 = 1 << 18, // function is a class constructor
@@ -218,7 +218,7 @@ struct PnFnc
     bool  isNameIdentifierRef;
     ParseNodePtr pnodeScopes;
     ParseNodePtr pnodeBodyScope;
-    ParseNodePtr pnodeArgs;
+    ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
     ParseNodePtr pnodeRest;
@@ -276,13 +276,13 @@ public:
     void SetDeclaration(bool set = true) { SetFlags(kFunctionDeclaration, set); }
     void SetDoesNotEscape(bool set = true) { SetFlags(kFunctionDoesNotEscape, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
-    void SetHasDestructuringPattern(bool set = true) { SetFlags(kFunctionHasDestructuringPattern, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
+    void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
     void SetHasNonThisStmt(bool set = true) { SetFlags(kFunctionHasNonThisStmt, set); }
-    void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferencableBuiltInArguments, set); }
+    void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferenceableBuiltInArguments, set); }
     void SetHasSuperReference(bool set = true) { SetFlags(kFunctionHasSuperReference, set); }
     void SetHasDirectSuper(bool set = true) { SetFlags(kFunctionHasDirectSuper, set); }
-    void SetHasNewTargetReferene(bool set = true) { SetFlags(kFunctionHasNewTargetReference, set); }
+    void SetHasNewTargetReference(bool set = true) { SetFlags(kFunctionHasNewTargetReference, set); }
     void SetHasThisStmt(bool set = true) { SetFlags(kFunctionHasThisStmt, set); }
     void SetHasWithStmt(bool set = true) { SetFlags(kFunctionHasWithStmt, set); }
     void SetIsAccessor(bool set = true) { SetFlags(kFunctionIsAccessor, set); }
@@ -308,13 +308,13 @@ public:
     bool GetAsmjsMode() const { return HasFlags(kFunctionAsmjsMode); }
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
-    bool HasDestructuringPattern() const { return HasFlags(kFunctionHasDestructuringPattern); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
-    bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferencableBuiltInArguments); }
+    bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferenceableBuiltInArguments); }
     bool HasSuperReference() const { return HasFlags(kFunctionHasSuperReference); }
     bool HasDirectSuper() const { return HasFlags(kFunctionHasDirectSuper); }
     bool HasNewTargetReference() const { return HasFlags(kFunctionHasNewTargetReference); }
+    bool HasNonSimpleParameterList() { return HasFlags(kFunctionHasNonSimpleParameterList); }
     bool HasThisStmt() const { return HasFlags(kFunctionHasThisStmt); }
     bool HasWithStmt() const { return HasFlags(kFunctionHasWithStmt); }
     bool IsAccessor() const { return HasFlags(kFunctionIsAccessor); }
@@ -333,8 +333,6 @@ public:
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
 
-    bool IsSimpleParameterList() const { return !HasDefaultArguments() && !HasDestructuringPattern() && pnodeRest == nullptr; }
-
     size_t LengthInBytes()
     {
         return cbLim - cbMin;
@@ -344,9 +342,7 @@ public:
     void SetFuncSymbol(Symbol *sym);
 
     ParseNodePtr GetParamScope() const;
-    ParseNodePtr *GetParamScopeRef() const;
     ParseNodePtr GetBodyScope() const;
-    ParseNodePtr *GetBodyScopeRef() const;
     ParseNodePtr GetTopLevelScope() const
     {
         // Top level scope will be the same for knopProg and knopFncDecl.
@@ -388,6 +384,15 @@ struct PnProg : PnFnc
 {
     ParseNodePtr pnodeLastValStmt;
     bool m_UsesArgumentsAtGlobal;
+};
+
+struct PnModule : PnProg
+{
+    ModuleExportEntryList* localExportEntries;
+    ModuleExportEntryList* indirectExportEntries;
+    ModuleExportEntryList* starExportEntries;
+    ModuleImportEntryList* importEntries;
+    IdentPtrList* requestedModules;
 };
 
 struct PnCall
@@ -595,6 +600,7 @@ struct ParseNode
         PnJump          sxJump;         // break and continue
         PnLabel         sxLabel;        // label nodes
         PnLoop          sxLoop;         // base for loop nodes
+        PnModule        sxModule;       // global module
         PnPid           sxPid;          // identifier or string
         PnProg          sxProg;         // global program
         PnReturn        sxReturn;       // return [expr]
@@ -729,6 +735,7 @@ const int kcbPnIf           = kcbPnNone + sizeof(PnIf);
 const int kcbPnInt          = kcbPnNone + sizeof(PnInt);
 const int kcbPnJump         = kcbPnNone + sizeof(PnJump);
 const int kcbPnLabel        = kcbPnNone + sizeof(PnLabel);
+const int kcbPnModule       = kcbPnNone + sizeof(PnModule);
 const int kcbPnPid          = kcbPnNone + sizeof(PnPid);
 const int kcbPnProg         = kcbPnNone + sizeof(PnProg);
 const int kcbPnReturn       = kcbPnNone + sizeof(PnReturn);

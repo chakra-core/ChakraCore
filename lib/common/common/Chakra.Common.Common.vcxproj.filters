@@ -14,7 +14,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)cfglogger.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DaylightTimeHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NumberUtilities_strtod.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)unicode.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SmartFPUControl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonCommonPch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int64Math.cpp" />
@@ -34,7 +33,6 @@
     <ClInclude Include="vtinfo.h" />
     <ClInclude Include="cfglogger.h" />
     <ClInclude Include="DaylightTimeHelper.h" />
-    <ClInclude Include="unicode.h" />
     <ClInclude Include="vtregistry.h" />
     <ClInclude Include="NumberUtilities.inc" />
     <ClInclude Include="ByteSwap.h" />

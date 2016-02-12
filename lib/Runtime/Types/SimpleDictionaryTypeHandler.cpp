@@ -1380,7 +1380,6 @@ namespace Js
         {
             if ((descriptor->Attributes & PropertyNoRedecl) && !(flags & PropertyOperation_AllowUndecl))
             {
-                Assert(scriptContext->GetConfig()->IsLetAndConstEnabled());
                 if (scriptContext->IsUndeclBlockVar(instance->GetSlot(descriptor->propertyIndex)) && !(flags & PropertyOperation_AllowUndeclInConsoleScope))
                 {
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
@@ -2608,7 +2607,7 @@ namespace Js
         if (IsNotExtensibleSupported)
         {
             // The Var for window is reused across navigation. we shouldn't preserve the IsExtensibleFlag when we don't keep
-            // the expandoes. Reset the IsExtensibleFlag in cleanup scenario should be good enough
+            // the expandos. Reset the IsExtensibleFlag in cleanup scenario should be good enough
             // to cover all the preventExtension/Freeze/Seal scenarios.
             ChangeFlags(IsExtensibleFlag | IsSealedOnceFlag | IsFrozenOnceFlag, IsExtensibleFlag);
         }

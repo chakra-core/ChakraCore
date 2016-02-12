@@ -128,6 +128,7 @@ PTNODE(knopTemp       , "temp"             , Nop      , Var         , fnopNone  
 PTNODE(knopFncDecl    , "fncDcl"           , Nop      , Fnc         , fnopLeaf               , "FuncDecl"                      )
 PTNODE(knopClassDecl  , "classDecl"        , Nop      , Class       , fnopLeaf               , "ClassDecl"                     )
 PTNODE(knopProg       , "program"          , Nop      , Prog        , fnopNotExprStmt        , "Unit"                          )
+PTNODE(knopModule     , "module"           , Nop      , Module      , fnopNotExprStmt        , "Module")
 PTNODE(knopEndCode    , "<endcode>"        , Nop      , None        , fnopNotExprStmt        , ""                              )
 PTNODE(knopDebugger   , "debugger"         , Nop      , None        , fnopNotExprStmt        , "DebuggerStmt"                  )
 PTNODE(knopFor        , "for"              , Nop      , For         , fnopNotExprStmt|fnopCleanup|fnopBreak|fnopContinue , "ForStmtm"       )

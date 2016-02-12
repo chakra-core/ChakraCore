@@ -48,9 +48,9 @@ PASSED
 PASSED
 *** Running test #25 (test23_2): arguments (ES5 version): call Object.preventExtensions, make sure we can still modify atttibutes on formals without changing the value
 PASSED
-*** Running test #26 (test24_1): arguments (non-ES5 version): call Object.seal, verify desciptor on formal
+*** Running test #26 (test24_1): arguments (non-ES5 version): call Object.seal, verify descriptor on formal
 PASSED
-*** Running test #27 (test24_2): arguments (ES5 version): call Object.seal, verify desciptor on formal
+*** Running test #27 (test24_2): arguments (ES5 version): call Object.seal, verify descriptor on formal
 PASSED
 *** Running test #28 (test25_1): arguments (non-ES5 version): call Object.freeze, verify descriptor on formal
 PASSED

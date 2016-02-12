@@ -423,7 +423,7 @@ namespace Js
             else
             {
                 //Get the function from the interpreterFrame in jit loop body case
-                //This is exactly same as this->GetCurrentFunctionFromPhysicalFrame() if the interperterFrame is not
+                //This is exactly same as this->GetCurrentFunctionFromPhysicalFrame() if the interpreterFrame is not
                 //called from bailout path.
                 Assert(this->lastInternalFrameInfo.codeAddress);
                 function = this->interpreterFrame->GetJavascriptFunction();

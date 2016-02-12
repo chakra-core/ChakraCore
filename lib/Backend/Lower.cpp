@@ -1715,7 +1715,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             Assert(instr->GetSrc1()->GetType() == TyVar);
             if (instr->GetDst()->GetType() == TyInt32)
             {
-                if(m_lowererMD.EmitLoadInt32(instr))
+                if(m_lowererMD.EmitLoadInt32(instr, !(instr->HasBailOutInfo() && (instr->GetBailOutKind() == IR::BailOutOnNotPrimitive))))
                 {
                     // Bail out instead of calling a helper
                     Assert(instr->GetBailOutKind() == IR::BailOutIntOnly || instr->GetBailOutKind() == IR::BailOutExpectingInteger);
@@ -7594,27 +7594,27 @@ Lowerer::LoadArgumentsFromFrame(IR::Instr *const instr)
 }
 
 IR::Instr *
-Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     IR::Opnd *src1 = instr->UnlinkSrc1();
     instrPrev = m_lowererMD.LoadHelperArgument(instr, src1);
 
-    m_lowererMD.ChangeToHelperCall(instr, helperMethod);
+    m_lowererMD.ChangeToHelperCall(instr, helperMethod, nullptr, opndBailoutArg);
 
     return instrPrev;
 }
 
 // helper takes memory context as second argument
 IR::Instr *
-Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg)
 {
     IR::Instr *instrPrev;
 
     instrPrev = LoadScriptContext(instr);
 
-    return this->LowerUnaryHelper(instr, helperMethod);
+    return this->LowerUnaryHelper(instr, helperMethod, opndBailoutArg);
 }
 
 IR::Instr *
@@ -7668,6 +7668,23 @@ Lowerer::LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helpe
     }
 
     return this->LowerUnaryHelperMem(instr, helperMethod);
+}
+
+IR::Instr *
+Lowerer::LowerUnaryHelperMemWithBoolReference(IR::Instr *instr, IR::JnHelperMethod helperMethod, bool useBoolForBailout)
+{
+    if (!this->m_func->tempSymBool)
+    {
+        this->m_func->tempSymBool = StackSym::New(TyUint8, this->m_func);
+        this->m_func->StackAllocate(this->m_func->tempSymBool, TySize[TyUint8]);
+    }
+    IR::SymOpnd * boolOpnd = IR::SymOpnd::New(this->m_func->tempSymBool, TyUint8, this->m_func);
+    IR::RegOpnd * boolRefOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
+    InsertLea(boolRefOpnd, boolOpnd, instr);
+
+    m_lowererMD.LoadHelperArgument(instr, boolRefOpnd);
+
+    return this->LowerUnaryHelperMem(instr, helperMethod, useBoolForBailout ? boolOpnd : nullptr);
 }
 
 ///----------------------------------------------------------------------------
@@ -8128,14 +8145,7 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
 
     if (srcType == TyFloat64)
     {
-        // We don't support the X64 floating-point calling convention. So put this parameter on the end
-        // and save directly to the stack slot.
-#if _M_X64
-        IR::Opnd *argOpnd = IR::SymOpnd::New(m_func->m_symTable->GetArgSlotSym(5), TyFloat64, m_func);
-        m_lowererMD.CreateAssign(argOpnd, src1, instr);
-#else
         m_lowererMD.LoadDoubleHelperArgument(instr, src1);
-#endif
     }
     m_lowererMD.LoadHelperArgument(instr,
         IR::IntConstOpnd::New(static_cast<IntConstType>(flags), IRType::TyInt32, m_func, true));
@@ -9461,7 +9471,7 @@ Lowerer::LowerStElemC(IR::Instr * stElem)
             }
             else
             {
-                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be a int array at the first place
+                //Its a missing value store and data flow proves that src1 is always missing value. Array cannot be an int array at the first place
                 //if this code was ever hit. Just bailout, this code path would be updated with the profile information next time around.
                 InsertBranch(Js::OpCode::Br, labelBailOut, stElem);
 #if DBG
@@ -10422,17 +10432,7 @@ Lowerer::GenerateHelperToArrayPushFastPath(IR::Instr * instr, IR::LabelInstr * b
         Assert(arrayHelperOpnd->GetValueType().IsLikelyNativeFloatArray());
         helperMethod = IR::HelperArray_NativeFloatPush;
 
-    //Currently, X64 floating-point calling convention is not supported. Hence store the
-    // float value explicitly in RegXMM2 (RegXMM0 and RegXMM1 will be filled with ScriptContext and Var respectively)
-#if _M_X64
-        IR::RegOpnd* regXMM2 = IR::RegOpnd::New(nullptr, (RegNum)RegXMM2, TyMachDouble, this->m_func);
-        regXMM2->m_isCallArg = true;
-        IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOVSD, regXMM2, elementHelperOpnd, this->m_func);
-        instr->InsertBefore(movInstr);
-#else
         m_lowererMD.LoadDoubleHelperArgument(instr, elementHelperOpnd);
-#endif
-
     }
     else
     {
@@ -10880,6 +10880,21 @@ Lowerer::LowerBailOnNotObject(IR::Instr       *instr,
     this->GenerateBailOut(instr, branchInstr, labelBailOut);
 
     return prevInstr;
+}
+
+IR::Instr *
+Lowerer::LowerBailOnTrue(IR::Instr* instr, IR::LabelInstr* labelBailOut /*nullptr*/)
+{
+    IR::Instr* instrPrev = instr->m_prev;
+
+    IR::LabelInstr* continueLabel = instr->GetOrCreateContinueLabel();
+    IR::RegOpnd * regSrc1 = IR::RegOpnd::New(instr->GetSrc1()->GetType(), this->m_func);
+    InsertMove(regSrc1, instr->UnlinkSrc1(), instr);
+    InsertTestBranch(regSrc1, regSrc1, Js::OpCode::BrEq_A, continueLabel, instr);
+
+    GenerateBailOut(instr, nullptr, labelBailOut);
+
+    return instrPrev;
 }
 
 IR::Instr *
@@ -11841,7 +11856,6 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     const auto bailOutKind = instr->GetBailOutKind();
     Assert(
         BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind) ||
-        bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
         bailOutKind == IR::BailOutExpectingObject);
 
     IR::Opnd * implicitCallFlags = this->GetImplicitCallFlagsOpnd();
@@ -11853,8 +11867,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     LowererMD::CreateAssign(implicitCallFlags, noImplicitCall, instr);
 
     IR::Instr *disableImplicitCallsInstr = nullptr, *enableImplicitCallsInstr = nullptr;
-    if(bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ||
-       bailOutKind == IR::BailOutOnImplicitCallsPreOp)
+    if(bailOutKind == IR::BailOutOnImplicitCallsPreOp)
     {
         const auto disableImplicitCallAddress =
             m_lowererMD.GenerateMemRef(
@@ -11867,10 +11880,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 disableImplicitCallAddress,
-                IR::IntConstOpnd::New(
-                    // LossyToInt32 is a special case where we need to disable exceptions because the helper can throw where the interpreter wouldn't
-                    bailOutKind == IR::BailOutOnLossyToInt32ImplicitCalls ? DisableImplicitCallAndExceptionFlag : DisableImplicitCallFlag,
-                    TyInt8, instr->m_func, true),
+                IR::IntConstOpnd::New(DisableImplicitCallFlag, TyInt8, instr->m_func, true),
                 instr->m_func);
         instr->InsertBefore(disableImplicitCallsInstr);
 
@@ -14906,7 +14916,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     // Load the string buffer and make sure it is not null
     //  MOV bufferOpnd, [baseOpnd + offset(m_pszValue)]
     //  TEST bufferOpnd, bufferOpnd
-    //  JEQ $lableHelper
+    //  JEQ $labelHelper
     indirOpnd = IR::IndirOpnd::New(baseOpnd, offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, this->m_func);
 
     InsertMove(bufferOpnd, indirOpnd, ldElem);
@@ -15915,7 +15925,7 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                     // Convert reg to int32
                     // Note: ToUint32 is implemented as (uint32)ToInt32()
-                    m_lowererMD.EmitLoadInt32(instr);
+                    m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/);
 
                     // MOV indirOpnd, reg
                     InsertMove(indirOpnd, reg, stElem);
@@ -21218,7 +21228,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     }
     else
     {
-        // Just generate all the assignment in loop of loopUnroolCount and the rest as straight line code
+        // Just generate all the assignment in loop of loopUnrollCount and the rest as straight line code
         //
         //      lea currOpnd, [dst + sizeof(Var) * (loopAssignCount + Js::ScopeSlots::FirstSlotIndex - loopUnrollCount)];
         //      mov [currOpnd + loopUnrollCount + leftOverAssignCount - 1] , undefinedOpnd

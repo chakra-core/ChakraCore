@@ -29,7 +29,7 @@ BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
 #if DBG_DUMP
     this->numDeadStore = 0;
     this->numMarkTempNumber = 0;
-    this->numMarkTempNumberTransfered = 0;
+    this->numMarkTempNumberTransferred = 0;
     this->numMarkTempObject = 0;
 #endif
 }
@@ -86,7 +86,7 @@ BackwardPass::DoMarkTempObjects() const
 
     // Why MarkTempObject is disabled under debugger:
     //   We add 'identified so far dead non-temp locals' to byteCodeUpwardExposedUsed in ProcessBailOutInfo,
-    //   this may cause MarkTempObject to convert some temps back to non-temp when it sees a 'transfered exposed use'
+    //   this may cause MarkTempObject to convert some temps back to non-temp when it sees a 'transferred exposed use'
     //   from a temp to non-temp. That's in general not a supported conversion (while non-temp -> temp is fine).
 }
 
@@ -323,16 +323,16 @@ BackwardPass::Optimize()
         Output::Print(this->tag == Js::BackwardPhase? L"Backward Phase Stats:\n" : L"Deadstore Phase Stats:\n");
         if (this->DoDeadStore())
         {
-            Output::Print(L"  Deadstore             : %3d\n", this->numDeadStore);
+            Output::Print(L"  Deadstore              : %3d\n", this->numDeadStore);
         }
         if (this->DoMarkTempNumbers())
         {
-            Output::Print(L"  Temp Number           : %3d\n", this->numMarkTempNumber);
-            Output::Print(L"  Transfered Temp Number: %3d\n", this->numMarkTempNumberTransfered);
+            Output::Print(L"  Temp Number            : %3d\n", this->numMarkTempNumber);
+            Output::Print(L"  Transferred Temp Number: %3d\n", this->numMarkTempNumberTransferred);
         }
         if (this->DoMarkTempObjects())
         {
-            Output::Print(L"  Temp Object           : %3d\n", this->numMarkTempObject);
+            Output::Print(L"  Temp Object            : %3d\n", this->numMarkTempObject);
         }
     }
 #endif
@@ -5696,7 +5696,7 @@ BackwardPass::TransferCompoundedAddSubUsesToSrcs(IR::Instr *const instr, const i
 
         if(intOverflowDoesNotMatterInRangeBySymId->Test(srcSym->m_id))
         {
-            // Since an src may be compounded through different chains of add/sub instructions, the greater number must be
+            // Since a src may be compounded through different chains of add/sub instructions, the greater number must be
             // preserved
             srcSym->scratch.globOpt.numCompoundedAddSubUses =
                 max(srcSym->scratch.globOpt.numCompoundedAddSubUses, addSubUses);
@@ -6134,7 +6134,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             case IR::BailOutExpectingInteger:
             case IR::BailOutPrimitiveButString:
             case IR::BailOutExpectingString:
-            case IR::BailOutOnLossyToInt32ImplicitCalls:
+            case IR::BailOutOnNotPrimitive:
             case IR::BailOutFailedInlineTypeCheck:
             case IR::BailOutOnFloor:
             case IR::BailOnModByPowerOf2:

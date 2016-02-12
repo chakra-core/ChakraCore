@@ -50,6 +50,7 @@ enum
     fscrConsoleScopeEval = 1 << 24,  //  The eval string is console eval or debugEval, used to have top level
                                      //  let/const in global scope instead of eval scope so that they can be preserved across console inputs
     fscrNoAsmJs = 1 << 25, // Disable generation of asm.js code
-    fscrAll = (1 << 26) - 1
+    fscrIsModuleCode = 1 << 26, // Current code should be parsed as a module body
+    fscrAll = (1 << 27) - 1
 };
 

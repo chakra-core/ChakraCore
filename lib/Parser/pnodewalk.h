@@ -108,7 +108,7 @@ private:
         return result;
     }
 
-    ResultType WalkTiernary(ParseNode *pnode, Context context)
+    ResultType WalkTernary(ParseNode *pnode, Context context)
     {
         ResultType result = WalkFirstChild(pnode->sxTri.pnode1, context);
         if (ContinueWalk(result))
@@ -174,9 +174,9 @@ private:
     {
         ResultType result;
         // For ordering, arguments are considered prior to the function and the body after.
-        for (ParseNode** argNode = &(pnode->sxFnc.pnodeArgs); *argNode != nullptr; argNode = &((*argNode)->sxVar.pnodeNext))
+        for (ParseNode** argNode = &(pnode->sxFnc.pnodeParams); *argNode != nullptr; argNode = &((*argNode)->sxVar.pnodeNext))
         {
-            result = *argNode == pnode->sxFnc.pnodeArgs ? WalkFirstChild(*argNode, context) : WalkNthChild(pnode, *argNode, context);
+            result = *argNode == pnode->sxFnc.pnodeParams ? WalkFirstChild(*argNode, context) : WalkNthChild(pnode, *argNode, context);
             if (!ContinueWalk(result)) return result;
         }
 
@@ -421,10 +421,10 @@ private:
         case knopIndex:
             return WalkCall(pnode, context);
 
-        // Tierinary operator
+        // Ternary operator
         //PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
         case knopQmark:
-            return WalkTiernary(pnode, context);
+            return WalkTernary(pnode, context);
 
         // General nodes.
         //PTNODE(knopList       , "<list>"    ,None    ,Bin  ,fnopNone)

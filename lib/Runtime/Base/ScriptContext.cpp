@@ -1589,7 +1589,7 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1667,6 +1667,11 @@ namespace Js
             {
                 grfscr |= (fscrNoAsmJs | fscrNoPreJit);
             }
+            
+            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
+            {
+                grfscr |= fscrIsModuleCode;
+            }
 
             if (isLibraryCode)
             {
@@ -1715,7 +1720,7 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs)
+    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1762,6 +1767,11 @@ namespace Js
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
+            }
+
+            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
+            {
+                grfscr |= fscrIsModuleCode;
             }
 
 #if DBG_DUMP
@@ -3071,7 +3081,7 @@ namespace Js
             // Set library to profile mode so that for built-ins all new instances of functions
             // are created with entry point set to the ProfileThunk.
             this->javascriptLibrary->SetProfileMode(true);
-            this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInoke);
+            this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInvoke);
             if (!calledDuringAttach)
             {
                 m_fTraceDomCall = TRUE; // This flag is always needed in DebugMode to wrap external functions with DebugProfileThunk
@@ -3819,7 +3829,7 @@ namespace Js
 
     HRESULT ScriptContext::OnScriptCompiled(PROFILER_TOKEN scriptId, PROFILER_SCRIPT_TYPE type, IUnknown *pIDebugDocumentContext)
     {
-        // TODO : can we do a delay send of these events or can we send a event before doing all this stuff that could calculate overhead?
+        // TODO : can we do a delay send of these events or can we send an event before doing all this stuff that could calculate overhead?
         Assert(m_pProfileCallback != NULL);
 
         OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnScriptCompiled scriptId : %d, ScriptType : %d\n", scriptId, type);

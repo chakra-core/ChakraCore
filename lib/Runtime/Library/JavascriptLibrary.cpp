@@ -48,12 +48,6 @@ namespace Js
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
-    SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptorsV11[2] =
-    {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable | PropertyWritable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::callee, PropertyConfigurable | PropertyWritable)
-    };
-
     SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptors[3] =
     {
         SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable | PropertyWritable),
@@ -423,76 +417,48 @@ namespace Js
             DynamicType::New(scriptContext, TypeIds_Function, objectPrototype, JavascriptFunction::PrototypeEntryPoint,
             DeferredTypeHandler<InitializeFunctionPrototype>::GetDefaultInstance()), &JavascriptFunction::EntryInfo::PrototypeEntryPoint);
 
-        symbolPrototype = nullptr;
-        mapPrototype = nullptr;
-        setPrototype = nullptr;
-        weakMapPrototype = nullptr;
-        weakSetPrototype = nullptr;
-        arrayIteratorPrototype = nullptr;
-        mapIteratorPrototype = nullptr;
-        setIteratorPrototype = nullptr;
-        stringIteratorPrototype = nullptr;
         promisePrototype = nullptr;
         javascriptEnumeratorIteratorPrototype = nullptr;
         generatorFunctionPrototype = nullptr;
         generatorPrototype = nullptr;
-        iteratorPrototype = nullptr;
         asyncFunctionPrototype = nullptr;
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
-        }
+        symbolPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeSymbolPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6MapEnabled())
-        {
-            mapPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
-        }
+        mapPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeMapPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6SetEnabled())
-        {
-            setPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
-        }
+        setPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeSetPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6WeakMapEnabled())
-        {
-            weakMapPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
-        }
+        weakMapPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeWeakMapPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6WeakSetEnabled())
-        {
-            weakSetPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
-        }
+        weakSetPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeWeakSetPrototype>::GetDefaultInstance()));
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            iteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeIteratorPrototype>::GetDefaultInstance()));
+        iteratorPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializeIteratorPrototype>::GetDefaultInstance()));
 
-            arrayIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeArrayIteratorPrototype>::GetDefaultInstance()));
-            mapIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeMapIteratorPrototype>::GetDefaultInstance()));
-            setIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeSetIteratorPrototype>::GetDefaultInstance()));
-            stringIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
-                DeferredTypeHandler<InitializeStringIteratorPrototype>::GetDefaultInstance()));
-        }
+        arrayIteratorPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
+            DeferredTypeHandler<InitializeArrayIteratorPrototype>::GetDefaultInstance()));
+        mapIteratorPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
+            DeferredTypeHandler<InitializeMapIteratorPrototype>::GetDefaultInstance()));
+        setIteratorPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
+            DeferredTypeHandler<InitializeSetIteratorPrototype>::GetDefaultInstance()));
+        stringIteratorPrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
+            DeferredTypeHandler<InitializeStringIteratorPrototype>::GetDefaultInstance()));
 
         if (scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
@@ -503,13 +469,8 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
-            RecyclableObject* proto =
-                scriptContext->GetConfig()->IsES6IteratorsEnabled() ?
-                    iteratorPrototype :
-                    objectPrototype;
-
             javascriptEnumeratorIteratorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, proto, nullptr,
+                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
                 DeferredTypeHandler<InitializeJavascriptEnumeratorIteratorPrototype>::GetDefaultInstance()));
         }
 
@@ -519,13 +480,8 @@ namespace Js
                 DynamicType::New(scriptContext, TypeIds_Object, functionPrototype, nullptr,
                 DeferredTypeHandler<InitializeGeneratorFunctionPrototype>::GetDefaultInstance()));
 
-            RecyclableObject* proto =
-                scriptContext->GetConfig()->IsES6IteratorsEnabled() ?
-                    iteratorPrototype :
-                    objectPrototype;
-
             generatorPrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, proto, nullptr,
+                DynamicType::New(scriptContext, TypeIds_Object, iteratorPrototype, nullptr,
                 DeferredTypeHandler<InitializeGeneratorPrototype>::GetDefaultInstance()));
         }
 
@@ -545,20 +501,8 @@ namespace Js
         enumeratorType = StaticType::New(scriptContext, TypeIds_Enumerator, objectPrototype, nullptr);
 
         // Initialize Array/Argument types
-        uint heapArgumentPropertyDescriptorsCount = 0;
-        SimplePropertyDescriptor const * heapArgumentPropertyDescriptors = nullptr;
-        if (config->IsES6IteratorsEnabled())
-        {
-            heapArgumentPropertyDescriptors = HeapArgumentsPropertyDescriptors;
-            heapArgumentPropertyDescriptorsCount = _countof(HeapArgumentsPropertyDescriptors);
-        }
-        else
-        {
-            heapArgumentPropertyDescriptorsCount = _countof(HeapArgumentsPropertyDescriptorsV11);
-            heapArgumentPropertyDescriptors = HeapArgumentsPropertyDescriptorsV11;
-        }
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
-            SimpleDictionaryTypeHandler::New(scriptContext, heapArgumentPropertyDescriptors, heapArgumentPropertyDescriptorsCount, 0, 0, true, true), true, true);
+            SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
         activationObjectType = DynamicType::New(scriptContext, TypeIds_ActivationObject, nullValue, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
         arrayType = DynamicType::New(scriptContext, TypeIds_Array, arrayPrototype, nullptr,
@@ -620,8 +564,6 @@ namespace Js
         uriErrorType = DynamicType::New(scriptContext, TypeIds_Error, uriErrorPrototype, nullptr,
             SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        symbolTypeStatic = nullptr;
-        symbolTypeDynamic = nullptr;
         withType    = nullptr;
         proxyType   = nullptr;
         promiseType = nullptr;
@@ -631,12 +573,9 @@ namespace Js
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
         booleanTypeDynamic = DynamicType::New(scriptContext, TypeIds_BooleanObject, booleanPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
-        if (config->IsES6SymbolEnabled())
-        {
-            // Initialize symbol types
-            symbolTypeStatic = StaticType::New(scriptContext, TypeIds_Symbol, symbolPrototype, nullptr);
-            symbolTypeDynamic = DynamicType::New(scriptContext, TypeIds_SymbolObject, symbolPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
-        }
+        // Initialize symbol types
+        symbolTypeStatic = StaticType::New(scriptContext, TypeIds_Symbol, symbolPrototype, nullptr);
+        symbolTypeDynamic = DynamicType::New(scriptContext, TypeIds_SymbolObject, symbolPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
         if (config->IsES6UnscopablesEnabled())
         {
@@ -787,57 +726,32 @@ namespace Js
         // Initialize Throw error object type
         throwErrorObjectType = StaticType::New(scriptContext, TypeIds_Undefined, nullValue, ThrowErrorObject::DefaultEntryPoint);
 
-        mapType = nullptr;
-        setType = nullptr;
-        weakMapType = nullptr;
-        weakSetType = nullptr;
-        iteratorResultType = nullptr;
-        arrayIteratorType = nullptr;
-        mapIteratorType = nullptr;
-        setIteratorType = nullptr;
-        stringIteratorType = nullptr;
+        mapType = DynamicType::New(scriptContext, TypeIds_Map, mapPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6MapEnabled())
-        {
-            mapType = DynamicType::New(scriptContext, TypeIds_Map, mapPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        setType = DynamicType::New(scriptContext, TypeIds_Set, setPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6SetEnabled())
-        {
-            setType = DynamicType::New(scriptContext, TypeIds_Set, setPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        weakMapType = DynamicType::New(scriptContext, TypeIds_WeakMap, weakMapPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6WeakMapEnabled())
-        {
-            weakMapType = DynamicType::New(scriptContext, TypeIds_WeakMap, weakMapPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        weakSetType = DynamicType::New(scriptContext, TypeIds_WeakSet, weakSetPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
-        if (config->IsES6WeakSetEnabled())
-        {
-            weakSetType = DynamicType::New(scriptContext, TypeIds_WeakSet, weakSetPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        TypePath *const iteratorResultPath = TypePath::New(recycler);
+        iteratorResultPath->Add(BuiltInPropertyRecords::value);
+        iteratorResultPath->Add(BuiltInPropertyRecords::done);
+        iteratorResultType = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, iteratorResultPath, iteratorResultPath->GetPathLength(), 2, sizeof(DynamicObject), true, true), true, true);
 
-        if (config->IsES6IteratorsEnabled())
-        {
-            TypePath *const iteratorResultPath = TypePath::New(recycler);
-            iteratorResultPath->Add(BuiltInPropertyRecords::value);
-            iteratorResultPath->Add(BuiltInPropertyRecords::done);
-            iteratorResultType = DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, iteratorResultPath, iteratorResultPath->GetPathLength(), 2, sizeof(DynamicObject), true, true), true, true);
-
-            arrayIteratorType = DynamicType::New(scriptContext, TypeIds_ArrayIterator, arrayIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-            mapIteratorType = DynamicType::New(scriptContext, TypeIds_MapIterator, mapIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-            setIteratorType = DynamicType::New(scriptContext, TypeIds_SetIterator, setIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-            stringIteratorType = DynamicType::New(scriptContext, TypeIds_StringIterator, stringIteratorPrototype, nullptr,
-                SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
-        }
+        arrayIteratorType = DynamicType::New(scriptContext, TypeIds_ArrayIterator, arrayIteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+        mapIteratorType = DynamicType::New(scriptContext, TypeIds_MapIterator, mapIteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+        setIteratorType = DynamicType::New(scriptContext, TypeIds_SetIterator, setIteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
+        stringIteratorType = DynamicType::New(scriptContext, TypeIds_StringIterator, stringIteratorPrototype, nullptr,
+            SimplePathTypeHandler::New(scriptContext, scriptContext->GetRootPath(), 0, 0, 0, true, true), true, true);
 
         if (config->IsES6GeneratorsEnabled())
         {
@@ -1106,7 +1020,7 @@ namespace Js
         {
             // Clear the weak reference dictionary so we don't need to clean them
             // during PostCollectCallBack before Dispose deleting the script context.
-            scriptContext->ResetWeakReferenceDicitionaryList();
+            scriptContext->ResetWeakReferenceDictionaryList();
         }
     }
 
@@ -1209,36 +1123,24 @@ namespace Js
             simdUint8x16DisplayString = CreateStringFromCppLiteral(L"uint8x16");
         }
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolTypeDisplayString = CreateStringFromCppLiteral(L"symbol");
+        symbolTypeDisplayString = CreateStringFromCppLiteral(L"symbol");
 
-            symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
-            symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
-            symbolIterator = CreateSymbol(BuiltInPropertyRecords::_symbolIterator);
-            symbolSpecies = CreateSymbol(BuiltInPropertyRecords::_symbolSpecies);
-            symbolToPrimitive = CreateSymbol(BuiltInPropertyRecords::_symbolToPrimitive);
-            symbolToStringTag = CreateSymbol(BuiltInPropertyRecords::_symbolToStringTag);
-            symbolUnscopables = CreateSymbol(BuiltInPropertyRecords::_symbolUnscopables);
-        }
-        else
-        {
-            symbolTypeDisplayString = nullptr;
-            symbolHasInstance = nullptr;
-            symbolIsConcatSpreadable = nullptr;
-            symbolIterator = nullptr;
-            symbolSpecies = nullptr;
-            symbolToPrimitive = nullptr;
-            symbolToStringTag = nullptr;
-            symbolUnscopables = nullptr;
-        }
+        symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
+        symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
+        symbolIterator = CreateSymbol(BuiltInPropertyRecords::_symbolIterator);
+        symbolSpecies = CreateSymbol(BuiltInPropertyRecords::_symbolSpecies);
+        symbolToPrimitive = CreateSymbol(BuiltInPropertyRecords::_symbolToPrimitive);
+        symbolToStringTag = CreateSymbol(BuiltInPropertyRecords::_symbolToStringTag);
+        symbolUnscopables = CreateSymbol(BuiltInPropertyRecords::_symbolUnscopables);
 
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
+            symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
         }
         else
         {
+            symbolMatch = nullptr;
             symbolSearch = nullptr;
         }
 
@@ -1263,14 +1165,11 @@ namespace Js
         throwTypeErrorArgumentsAccessorFunction = CreateNonProfiledFunction(&JavascriptExceptionOperators::EntryInfo::ThrowTypeErrorArgumentsAccessor);
         throwTypeErrorArgumentsAccessorFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
 
-        if (scriptContext->GetConfig()->Is__proto__Enabled())
-        {
-            __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
-            __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        __proto__getterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__getter);
+        __proto__getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
 
-            __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
-            __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
-        }
+        __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
+        __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
 
         if (scriptContext->GetConfig()->IsES6PromiseEnabled())
         {
@@ -1344,12 +1243,9 @@ namespace Js
         promiseConstructor = nullptr;
         reflectObject = nullptr;
 
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            symbolConstructor = CreateBuiltinConstructor(&JavascriptSymbol::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeSymbolConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Symbol, symbolConstructor);
-        }
+        symbolConstructor = CreateBuiltinConstructor(&JavascriptSymbol::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeSymbolConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Symbol, symbolConstructor);
 
         if (scriptContext->GetConfig()->IsES6ProxyEnabled())
         {
@@ -1538,40 +1434,23 @@ namespace Js
 #endif
 #endif
 
-        mapConstructor = nullptr;
-        setConstructor = nullptr;
-        weakMapConstructor = nullptr;
-        weakSetConstructor = nullptr;
+        mapConstructor = CreateBuiltinConstructor(&JavascriptMap::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeMapConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Map, mapConstructor);
+
+        setConstructor = CreateBuiltinConstructor(&JavascriptSet::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeSetConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Set, setConstructor);
+
+        weakMapConstructor = CreateBuiltinConstructor(&JavascriptWeakMap::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWeakMapConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::WeakMap, weakMapConstructor);
+
+        weakSetConstructor = CreateBuiltinConstructor(&JavascriptWeakSet::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializeWeakSetConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::WeakSet, weakSetConstructor);
+
         generatorFunctionConstructor = nullptr;
-        asyncFunctionConstructor = nullptr;
-
-        if (scriptContext->GetConfig()->IsES6MapEnabled())
-        {
-            mapConstructor = CreateBuiltinConstructor(&JavascriptMap::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeMapConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Map, mapConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6SetEnabled())
-        {
-            setConstructor = CreateBuiltinConstructor(&JavascriptSet::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeSetConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Set, setConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6WeakMapEnabled())
-        {
-            weakMapConstructor = CreateBuiltinConstructor(&JavascriptWeakMap::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWeakMapConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::WeakMap, weakMapConstructor);
-        }
-
-        if (scriptContext->GetConfig()->IsES6WeakSetEnabled())
-        {
-            weakSetConstructor = CreateBuiltinConstructor(&JavascriptWeakSet::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializeWeakSetConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::WeakSet, weakSetConstructor);
-        }
 
         if (scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
@@ -1580,6 +1459,8 @@ namespace Js
                 functionConstructor);
             // GeneratorFunction is not a global property by ES6 spec so don't add it to the global object
         }
+
+        asyncFunctionConstructor = nullptr;
 
         if (scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
@@ -1711,6 +1592,16 @@ namespace Js
         arrayConstructor->SetHasNoEnumerableProperties(true);
     }
 
+    JavascriptFunction* JavascriptLibrary::EnsureArrayPrototypeValuesFunction()
+    {
+        if (arrayPrototypeValuesFunction == nullptr)
+        {
+            arrayPrototypeValuesFunction = DefaultCreateFunction(&JavascriptArray::EntryInfo::Values, 0, nullptr, nullptr, PropertyIds::values);
+        }
+
+        return arrayPrototypeValuesFunction;
+    }
+
     void JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayPrototype, mode, 24);
@@ -1769,14 +1660,12 @@ namespace Js
             /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
         }
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            /* No inlining            Array_Entries        */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::entries, &JavascriptArray::EntryInfo::Entries, 0);
-            /* No inlining            Array_Keys           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::keys, &JavascriptArray::EntryInfo::Keys, 0);
+        /* No inlining                Array_Entries        */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::entries,         &JavascriptArray::EntryInfo::Entries,           0);
+        /* No inlining                Array_Keys           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::keys,            &JavascriptArray::EntryInfo::Keys,              0);
 
-            JavascriptFunction *values = library->arrayPrototypeValuesFunction ? library->arrayPrototypeValuesFunction : /* No inlining Array_Values     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::values, &JavascriptArray::EntryInfo::Values, 0);
-            /* No inlining            Array_SymbolIterator */ library->AddMember(arrayPrototype, PropertyIds::_symbolIterator, values);
-        }
+        JavascriptFunction *values = library->EnsureArrayPrototypeValuesFunction();
+        /* No inlining                Array_Values         */ library->AddMember(arrayPrototype, PropertyIds::values, values);
+        /* No inlining                Array_SymbolIterator */ library->AddMember(arrayPrototype, PropertyIds::_symbolIterator, values);
 
         if (scriptContext->GetConfig()->IsES6UnscopablesEnabled())
         {
@@ -1965,13 +1854,10 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::slice, &TypedArrayBase::EntryInfo::Slice, 2);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::some, &TypedArrayBase::EntryInfo::Some, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::sort, &TypedArrayBase::EntryInfo::Sort, 1);
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::entries, &TypedArrayBase::EntryInfo::Entries, 0);
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::keys, &TypedArrayBase::EntryInfo::Keys, 0);
-            JavascriptFunction* valuesFunc = library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::values, &TypedArrayBase::EntryInfo::Values, 0);
-            library->AddMember(typedarrayPrototype, PropertyIds::_symbolIterator, valuesFunc);
-        }
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::entries, &TypedArrayBase::EntryInfo::Entries, 0);
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::keys, &TypedArrayBase::EntryInfo::Keys, 0);
+        JavascriptFunction* valuesFunc = library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::values, &TypedArrayBase::EntryInfo::Values, 0);
+        library->AddMember(typedarrayPrototype, PropertyIds::_symbolIterator, valuesFunc);
 
         if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
         {
@@ -2206,7 +2092,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 13);
+        typeHandler->Convert(symbolConstructor, mode, 14);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2244,6 +2130,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
+            library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
         }
 
@@ -3655,15 +3542,15 @@ namespace Js
     // Returns true if the function's return type is always float.
     BOOL JavascriptLibrary::IsFltFunc(BuiltinFunction index)
     {
-        // Note: MathFuncion is one of built-ins.
+        // Note: MathFunction is one of built-ins.
         if (!JavascriptLibrary::CanFloatPreferenceFunc(index))
         {
             return FALSE;
         }
 
         Js::BuiltInFlags builtInFlags = JavascriptLibrary::GetFlagsForBuiltIn(index);
-        Js::BuiltInArgSpecizationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
-        bool isFloatFunc = dstType == Js::BuiltInArgSpecizationType::BIAST_Float;
+        Js::BuiltInArgSpecializationType dstType = Js::JavascriptLibrary::GetBuiltInArgType(builtInFlags, Js::BuiltInArgShift::BIAS_Dst);
+        bool isFloatFunc = dstType == Js::BuiltInArgSpecializationType::BIAST_Float;
         return isFloatFunc;
     }
 
@@ -3855,11 +3742,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = objectConstructor->GetLibrary();
         ScriptContext* scriptContext = objectConstructor->GetScriptContext();
-        int propertyCount = 17;
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            propertyCount += 1;
-        }
+        int propertyCount = 18;
         if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
         {
             propertyCount += 2;
@@ -3901,11 +3784,8 @@ namespace Js
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertyNames, &JavascriptObject::EntryInfo::GetOwnPropertyNames, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::SetPrototypeOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::setPrototypeOf, &JavascriptObject::EntryInfo::SetPrototypeOf, 2));
-        if (scriptContext->GetConfig()->IsES6SymbolEnabled())
-        {
-            scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertySymbols.GetOriginalEntryPoint(),
-                library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertySymbols, &JavascriptObject::EntryInfo::GetOwnPropertySymbols, 1));
-        }
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::GetOwnPropertySymbols.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::getOwnPropertySymbols, &JavascriptObject::EntryInfo::GetOwnPropertySymbols, 1));
         if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
         {
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Is.GetOriginalEntryPoint(),
@@ -3930,9 +3810,7 @@ namespace Js
         JavascriptLibrary* library = objectPrototype->GetLibrary();
         ScriptContext* scriptContext = objectPrototype->GetScriptContext();
 
-        bool hasAccessors = scriptContext->GetConfig()->Is__proto__Enabled();
-
-        typeHandler->Convert(objectPrototype, mode, 11, hasAccessors);
+        typeHandler->Convert(objectPrototype, mode, 11, true);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterObject
         // so that the update is in sync with profiler
         library->AddMember(objectPrototype, PropertyIds::constructor, library->objectConstructor);
@@ -3946,25 +3824,19 @@ namespace Js
 
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::ToString.GetOriginalEntryPoint(), library->objectToStringFunction);
 
-        if (scriptContext->GetConfig()->Is__proto__Enabled())
+        bool hadOnlyWritableDataProperties = objectPrototype->GetDynamicType()->GetTypeHandler()->GetHasOnlyWritableDataProperties();
+        objectPrototype->SetAccessors(PropertyIds::__proto__, library->Get__proto__getterFunction(), library->Get__proto__setterFunction(), PropertyOperation_NonFixedValue);
+        objectPrototype->SetEnumerable(PropertyIds::__proto__, FALSE);
+        // Let's pretend __proto__ is actually writable.  We'll make sure we always go through a special code path when writing to it.
+        if (hadOnlyWritableDataProperties)
         {
-            bool hadOnlyWritableDataProperties = objectPrototype->GetDynamicType()->GetTypeHandler()->GetHasOnlyWritableDataProperties();
-            objectPrototype->SetAccessors(PropertyIds::__proto__, library->Get__proto__getterFunction(), library->Get__proto__setterFunction(), PropertyOperation_NonFixedValue);
-            objectPrototype->SetEnumerable(PropertyIds::__proto__, FALSE);
-            // Let's pretend __proto__ is actually writable.  We'll make sure we always go through a special code path when writing to it.
-            if (hadOnlyWritableDataProperties)
-            {
-                objectPrototype->GetDynamicType()->GetTypeHandler()->SetHasOnlyWritableDataProperties();
-            }
+            objectPrototype->GetDynamicType()->GetTypeHandler()->SetHasOnlyWritableDataProperties();
         }
 
-        if (scriptContext->GetConfig()->IsDefineGetterSetterEnabled())
-        {
-            library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__defineGetter__, &JavascriptObject::EntryInfo::DefineGetter, 2);
-            library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__defineSetter__, &JavascriptObject::EntryInfo::DefineSetter, 2);
-            library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__lookupGetter__, &JavascriptObject::EntryInfo::LookupGetter, 1);
-            library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__lookupSetter__, &JavascriptObject::EntryInfo::LookupSetter, 1);
-        }
+        library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__defineGetter__, &JavascriptObject::EntryInfo::DefineGetter, 2);
+        library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__defineSetter__, &JavascriptObject::EntryInfo::DefineSetter, 2);
+        library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__lookupGetter__, &JavascriptObject::EntryInfo::LookupGetter, 1);
+        library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::__lookupSetter__, &JavascriptObject::EntryInfo::LookupSetter, 1);
 
         objectPrototype->SetHasNoEnumerableProperties(true);
     }
@@ -4034,6 +3906,12 @@ namespace Js
 
         if (scriptConfig->IsES6RegExSymbolsEnabled())
         {
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolMatch,
+                PropertyIds::_RuntimeFunctionNameId_match,
+                &JavascriptRegExp::EntryInfo::SymbolMatch,
+                1);
             builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
                 regexPrototype,
                 PropertyIds::_symbolSearch,
@@ -4071,10 +3949,7 @@ namespace Js
             builtinFuncs[BuiltinFunction::String_FromCodePoint] = library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::fromCodePoint, &JavascriptString::EntryInfo::FromCodePoint, 1);
         }
 
-        if (scriptContext->GetConfig()->IsES6StringTemplateEnabled())
-        {
-            /* No inlining                String_Raw           */ library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::raw,           &JavascriptString::EntryInfo::Raw,           1);
-        }
+        /* No inlining                String_Raw           */ library->AddFunctionToLibraryObject(stringConstructor, PropertyIds::raw,           &JavascriptString::EntryInfo::Raw,           1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -4149,11 +4024,7 @@ namespace Js
             builtinFuncs[BuiltinFunction::String_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
         }
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator,
-                &JavascriptString::EntryInfo::SymbolIterator, 0);
-        }
+        library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
 
         if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
         {
@@ -4207,14 +4078,12 @@ namespace Js
 
         library->AddAccessorsToLibraryObject(mapPrototype, PropertyIds::size, &JavascriptMap::EntryInfo::SizeGetter, nullptr);
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            JavascriptFunction* entriesFunc;
-            entriesFunc = library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::entries, &JavascriptMap::EntryInfo::Entries, 0);
-            library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::keys, &JavascriptMap::EntryInfo::Keys, 0);
-            library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::values, &JavascriptMap::EntryInfo::Values, 0);
-            library->AddMember(mapPrototype, PropertyIds::_symbolIterator, entriesFunc);
-        }
+        JavascriptFunction* entriesFunc;
+        entriesFunc = library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::entries, &JavascriptMap::EntryInfo::Entries, 0);
+        library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::keys, &JavascriptMap::EntryInfo::Keys, 0);
+        library->AddFunctionToLibraryObject(mapPrototype, PropertyIds::values, &JavascriptMap::EntryInfo::Values, 0);
+        library->AddMember(mapPrototype, PropertyIds::_symbolIterator, entriesFunc);
+
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
             library->AddMember(mapPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Map"), PropertyConfigurable);
@@ -4263,14 +4132,11 @@ namespace Js
 
         library->AddAccessorsToLibraryObject(setPrototype, PropertyIds::size, &JavascriptSet::EntryInfo::SizeGetter, nullptr);
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            JavascriptFunction* valuesFunc;
-            library->AddFunctionToLibraryObject(setPrototype, PropertyIds::entries, &JavascriptSet::EntryInfo::Entries, 0);
-            valuesFunc = library->AddFunctionToLibraryObject(setPrototype, PropertyIds::values, &JavascriptSet::EntryInfo::Values, 0);
-            library->AddMember(setPrototype, PropertyIds::keys, valuesFunc);
-            library->AddMember(setPrototype, PropertyIds::_symbolIterator, valuesFunc);
-        }
+        JavascriptFunction* valuesFunc;
+        library->AddFunctionToLibraryObject(setPrototype, PropertyIds::entries, &JavascriptSet::EntryInfo::Entries, 0);
+        valuesFunc = library->AddFunctionToLibraryObject(setPrototype, PropertyIds::values, &JavascriptSet::EntryInfo::Values, 0);
+        library->AddMember(setPrototype, PropertyIds::keys, valuesFunc);
+        library->AddMember(setPrototype, PropertyIds::_symbolIterator, valuesFunc);
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
@@ -4771,7 +4637,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::Intl);
         };
-        IntlObject->GetLibrary()->InitializeIntlForProtototypes(intlInitializer);
+        IntlObject->GetLibrary()->InitializeIntlForPrototypes(intlInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForStringPrototype()
@@ -4780,7 +4646,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::StringPrototype);
         };
-        InitializeIntlForProtototypes(stringPrototypeInitializer);
+        InitializeIntlForPrototypes(stringPrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForDatePrototype()
@@ -4789,7 +4655,7 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::DatePrototype);
         };
-        InitializeIntlForProtototypes(datePrototypeInitializer);
+        InitializeIntlForPrototypes(datePrototypeInitializer);
     }
 
     void JavascriptLibrary::InitializeIntlForNumberPrototype()
@@ -4798,11 +4664,11 @@ namespace Js
         {
             intlExtension->InjectIntlLibraryCode(scriptContext, intlObject, IntlInitializationType::NumberPrototype);
         };
-        InitializeIntlForProtototypes(numberPrototypeInitializer);
+        InitializeIntlForPrototypes(numberPrototypeInitializer);
     }
 
     template <class Fn>
-    void JavascriptLibrary::InitializeIntlForProtototypes(Fn fn)
+    void JavascriptLibrary::InitializeIntlForPrototypes(Fn fn)
     {
         ScriptContext* scriptContext = this->IntlObject->GetScriptContext();
         if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
@@ -5354,10 +5220,8 @@ namespace Js
 
         Recycler *recycler = this->GetRecycler();
 
-        if (!this->arrayPrototypeValuesFunction) //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
-        {
-            this->arrayPrototypeValuesFunction = DefaultCreateFunction(&JavascriptArray::EntryInfo::Values, 0, nullptr, nullptr, PropertyIds::values);
-        }
+        EnsureArrayPrototypeValuesFunction(); //InitializeArrayPrototype can be delay loaded, which could prevent us from access to array.prototype.values
+
         return RecyclerNew(recycler, HeapArgumentsObject, recycler, (ActivationObject*)frameObj, formalCount, heapArgumentsType);
     }
 
@@ -6304,11 +6168,11 @@ namespace Js
 
     // Parses given flags and arg kind (dst or src1, or src2) returns the type the arg must be type-specialized to.
     // static
-    BuiltInArgSpecizationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
+    BuiltInArgSpecializationType JavascriptLibrary::GetBuiltInArgType(BuiltInFlags flags, BuiltInArgShift argKind)
     {
         Assert(argKind == BuiltInArgShift::BIAS_Dst || BuiltInArgShift::BIAS_Src1 || BuiltInArgShift::BIAS_Src2);
 
-        BuiltInArgSpecizationType type = static_cast<BuiltInArgSpecizationType>(
+        BuiltInArgSpecializationType type = static_cast<BuiltInArgSpecializationType>(
             (flags >> argKind) &              // Shift-out everything to the right of start of interesting area.
             ((1 << Js::BIAS_ArgSize) - 1));   // Mask-out everything to the left of interesting area.
 
@@ -6390,40 +6254,19 @@ namespace Js
         REGISTER_OBJECT(RegExp);
         REGISTER_OBJECT(JSON);
 
-        if (config.IsES6MapEnabled())
-        {
-            REGISTER_OBJECT(Map);
-        }
+        REGISTER_OBJECT(Map);
+        REGISTER_OBJECT(Set);
+        REGISTER_OBJECT(WeakMap);
+        REGISTER_OBJECT(WeakSet);
 
-        if (config.IsES6SetEnabled())
-        {
-            REGISTER_OBJECT(Set);
-        }
+        REGISTER_OBJECT(Symbol);
 
-        if (config.IsES6WeakMapEnabled())
-        {
-            REGISTER_OBJECT(WeakMap);
-        }
-
-        if (config.IsES6WeakSetEnabled())
-        {
-            REGISTER_OBJECT(WeakSet);
-        }
-
-        if (config.IsES6SymbolEnabled())
-        {
-            REGISTER_OBJECT(Symbol);
-        }
-
-        if (config.IsES6IteratorsEnabled())
-        {
-            REGISTER_OBJECT(Iterator);
-            REGISTER_OBJECT(ArrayIterator);
-            REGISTER_OBJECT(MapIterator);
-            REGISTER_OBJECT(SetIterator);
-            REGISTER_OBJECT(StringIterator);
-            REGISTER_OBJECT(EnumeratorIterator);
-        }
+        REGISTER_OBJECT(Iterator);
+        REGISTER_OBJECT(ArrayIterator);
+        REGISTER_OBJECT(MapIterator);
+        REGISTER_OBJECT(SetIterator);
+        REGISTER_OBJECT(StringIterator);
+        REGISTER_OBJECT(EnumeratorIterator);
 
         if (config.IsES6TypedArrayExtensionsEnabled())
         {
@@ -6492,11 +6335,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(setPrototypeOf, JavascriptObject::EntrySetPrototypeOf);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.IsES6SymbolEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(getOwnPropertySymbols, JavascriptObject::EntryGetOwnPropertySymbols);
-        }
+        REG_OBJECTS_LIB_FUNC(getOwnPropertySymbols, JavascriptObject::EntryGetOwnPropertySymbols);
 
         REG_OBJECTS_LIB_FUNC(hasOwnProperty, JavascriptObject::EntryHasOwnProperty);
         REG_OBJECTS_LIB_FUNC(propertyIsEnumerable, JavascriptObject::EntryPropertyIsEnumerable);
@@ -6505,12 +6344,10 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptObject::EntryToString);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptObject::EntryValueOf);
 
-        if (config.IsDefineGetterSetterEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(__defineGetter__, JavascriptObject::EntryDefineGetter);
-            REG_OBJECTS_LIB_FUNC(__defineSetter__, JavascriptObject::EntryDefineSetter);
-        }
+        REG_OBJECTS_LIB_FUNC(__defineGetter__, JavascriptObject::EntryDefineGetter);
+        REG_OBJECTS_LIB_FUNC(__defineSetter__, JavascriptObject::EntryDefineSetter);
 
+        ScriptConfiguration const& config = *(scriptContext->GetConfig());
         if (config.IsES6ObjectExtensionsEnabled())
         {
             REG_OBJECTS_LIB_FUNC(is, JavascriptObject::EntryIs);
@@ -6563,13 +6400,10 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(findIndex, JavascriptArray::EntryFindIndex);
         }
 
-        if (config.IsES6IteratorsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(entries, JavascriptArray::EntryEntries)
-            REG_OBJECTS_LIB_FUNC(keys, JavascriptArray::EntryKeys)
-            REG_OBJECTS_LIB_FUNC(values, JavascriptArray::EntryValues)
-            // _symbolIterator is just an alias for values on Array.prototype so do not register it as its own function
-        }
+        REG_OBJECTS_LIB_FUNC(entries, JavascriptArray::EntryEntries)
+        REG_OBJECTS_LIB_FUNC(keys, JavascriptArray::EntryKeys)
+        REG_OBJECTS_LIB_FUNC(values, JavascriptArray::EntryValues)
+        // _symbolIterator is just an alias for values on Array.prototype so do not register it as its own function
 
         if (config.IsES6TypedArrayExtensionsEnabled())
         {
@@ -6821,15 +6655,9 @@ namespace Js
 
         }
 
-        if (config.IsES6StringTemplateEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(raw, JavascriptString::EntryRaw);
-        }
+        REG_OBJECTS_LIB_FUNC(raw, JavascriptString::EntryRaw);
 
-        if (config.IsES6IteratorsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptString::EntrySymbolIterator);
-        }
+        REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptString::EntrySymbolIterator);
 
         if (config.IsES7BuiltinsEnabled())
         {
@@ -6910,12 +6738,9 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(has, JavascriptMap::EntryHas);
         REG_OBJECTS_LIB_FUNC(set, JavascriptMap::EntrySet);
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(entries, JavascriptMap::EntryEntries);
-            REG_OBJECTS_LIB_FUNC(keys, JavascriptMap::EntryKeys);
-            REG_OBJECTS_LIB_FUNC(values, JavascriptMap::EntryValues);
-        }
+        REG_OBJECTS_LIB_FUNC(entries, JavascriptMap::EntryEntries);
+        REG_OBJECTS_LIB_FUNC(keys, JavascriptMap::EntryKeys);
+        REG_OBJECTS_LIB_FUNC(values, JavascriptMap::EntryValues);
 
         return hr;
     }
@@ -6933,11 +6758,8 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptSet::EntryForEach);
         REG_OBJECTS_LIB_FUNC(has, JavascriptSet::EntryHas);
 
-        if (scriptContext->GetConfig()->IsES6IteratorsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(entries, JavascriptSet::EntryEntries);
-            REG_OBJECTS_LIB_FUNC(values, JavascriptSet::EntryValues);
-        }
+        REG_OBJECTS_LIB_FUNC(entries, JavascriptSet::EntryEntries);
+        REG_OBJECTS_LIB_FUNC(values, JavascriptSet::EntryValues);
 
         return hr;
     }

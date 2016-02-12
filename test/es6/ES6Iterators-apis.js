@@ -116,64 +116,64 @@ var tests = [
     {
         name: "Array.prototype iterator APIs should throw when called with this equal to undefined or null",
         body: function () {
-            assert.throws(function () { Array.prototype.entries.call(null); }, TypeError, "Array.protoype.entries throws if this is null", "Array.prototype.entries: 'this' is null or undefined");
-            assert.throws(function () { Array.prototype.entries.call(undefined); }, TypeError, "Array.protoype.entries throws if this is undefined", "Array.prototype.entries: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.entries.call(null); }, TypeError, "Array.prototype.entries throws if this is null", "Array.prototype.entries: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.entries.call(undefined); }, TypeError, "Array.prototype.entries throws if this is undefined", "Array.prototype.entries: 'this' is null or undefined");
 
-            assert.throws(function () { Array.prototype.keys.call(null); }, TypeError, "Array.protoype.keys throws if this is null", "Array.prototype.keys: 'this' is null or undefined");
-            assert.throws(function () { Array.prototype.keys.call(undefined); }, TypeError, "Array.protoype.keys throws if this is undefined", "Array.prototype.keys: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.keys.call(null); }, TypeError, "Array.prototype.keys throws if this is null", "Array.prototype.keys: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.keys.call(undefined); }, TypeError, "Array.prototype.keys throws if this is undefined", "Array.prototype.keys: 'this' is null or undefined");
 
-            assert.throws(function () { Array.prototype.values.call(null); }, TypeError, "Array.protoype.values throws if this is null", "Array.prototype.values: 'this' is null or undefined");
-            assert.throws(function () { Array.prototype.values.call(undefined); }, TypeError, "Array.protoype.values throws if this is undefined", "Array.prototype.values: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.values.call(null); }, TypeError, "Array.prototype.values throws if this is null", "Array.prototype.values: 'this' is null or undefined");
+            assert.throws(function () { Array.prototype.values.call(undefined); }, TypeError, "Array.prototype.values throws if this is undefined", "Array.prototype.values: 'this' is null or undefined");
         }
     },
     {
         name: "Map.prototype iterator APIs should throw when called with this equal to anything other than a Map object",
         body: function () {
-            assert.throws(function () { Map.prototype.entries.call(null); }, TypeError, "Map.protoype.entries throws if this is null", "Map.prototype.entries: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.entries.call(undefined); }, TypeError, "Map.protoype.entries throws if this is undefined", "Map.prototype.entries: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.entries.call(123); }, TypeError, "Map.protoype.entries throws if this is a number", "Map.prototype.entries: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.entries.call("abc"); }, TypeError, "Map.protoype.entries throws if this is a string", "Map.prototype.entries: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.entries.call({ }); }, TypeError, "Map.protoype.entries throws if this is a non-Map object", "Map.prototype.entries: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.entries.call(new Set()); }, TypeError, "Map.protoype.entries throws if this is a non-Map object (e.g. a Set)", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call(null); }, TypeError, "Map.prototype.entries throws if this is null", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call(undefined); }, TypeError, "Map.prototype.entries throws if this is undefined", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call(123); }, TypeError, "Map.prototype.entries throws if this is a number", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call("abc"); }, TypeError, "Map.prototype.entries throws if this is a string", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call({ }); }, TypeError, "Map.prototype.entries throws if this is a non-Map object", "Map.prototype.entries: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.entries.call(new Set()); }, TypeError, "Map.prototype.entries throws if this is a non-Map object (e.g. a Set)", "Map.prototype.entries: 'this' is not a Map object");
 
-            assert.throws(function () { Map.prototype.keys.call(null); }, TypeError, "Map.protoype.keys throws if this is null", "Map.prototype.keys: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.keys.call(undefined); }, TypeError, "Map.protoype.keys throws if this is undefined", "Map.prototype.keys: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.keys.call(123); }, TypeError, "Map.protoype.keys throws if this is a number", "Map.prototype.keys: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.keys.call("abc"); }, TypeError, "Map.protoype.keys throws if this is a string", "Map.prototype.keys: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.keys.call({ }); }, TypeError, "Map.protoype.keys throws if this is a non-Map object", "Map.prototype.keys: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.keys.call(new Set()); }, TypeError, "Map.protoype.keys throws if this is a non-Map object (e.g. a Set)", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call(null); }, TypeError, "Map.prototype.keys throws if this is null", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call(undefined); }, TypeError, "Map.prototype.keys throws if this is undefined", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call(123); }, TypeError, "Map.prototype.keys throws if this is a number", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call("abc"); }, TypeError, "Map.prototype.keys throws if this is a string", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call({ }); }, TypeError, "Map.prototype.keys throws if this is a non-Map object", "Map.prototype.keys: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.keys.call(new Set()); }, TypeError, "Map.prototype.keys throws if this is a non-Map object (e.g. a Set)", "Map.prototype.keys: 'this' is not a Map object");
 
-            assert.throws(function () { Map.prototype.values.call(null); }, TypeError, "Map.protoype.values throws if this is null", "Map.prototype.values: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.values.call(undefined); }, TypeError, "Map.protoype.values throws if this is undefined", "Map.prototype.values: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.values.call(123); }, TypeError, "Map.protoype.values throws if this is a number", "Map.prototype.values: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.values.call("abc"); }, TypeError, "Map.protoype.values throws if this is a string", "Map.prototype.values: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.values.call({ }); }, TypeError, "Map.protoype.values throws if this is a non-Map object", "Map.prototype.values: 'this' is not a Map object");
-            assert.throws(function () { Map.prototype.values.call(new Set()); }, TypeError, "Map.protoype.values throws if this is a non-Map object (e.g. a Set)", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call(null); }, TypeError, "Map.prototype.values throws if this is null", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call(undefined); }, TypeError, "Map.prototype.values throws if this is undefined", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call(123); }, TypeError, "Map.prototype.values throws if this is a number", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call("abc"); }, TypeError, "Map.prototype.values throws if this is a string", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call({ }); }, TypeError, "Map.prototype.values throws if this is a non-Map object", "Map.prototype.values: 'this' is not a Map object");
+            assert.throws(function () { Map.prototype.values.call(new Set()); }, TypeError, "Map.prototype.values throws if this is a non-Map object (e.g. a Set)", "Map.prototype.values: 'this' is not a Map object");
         }
     },
     {
         name: "Set.prototype iterator APIs should throw when called with this equal to anything other than a Set object",
         body: function () {
-            assert.throws(function () { Set.prototype.entries.call(null); }, TypeError, "Set.protoype.entries throws if this is null", "Set.prototype.entries: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.entries.call(undefined); }, TypeError, "Set.protoype.entries throws if this is undefined", "Set.prototype.entries: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.entries.call(123); }, TypeError, "Set.protoype.entries throws if this is a number", "Set.prototype.entries: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.entries.call("abc"); }, TypeError, "Set.protoype.entries throws if this is a string", "Set.prototype.entries: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.entries.call({ }); }, TypeError, "Set.protoype.entries throws if this is a non-Set object", "Set.prototype.entries: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.entries.call(new Map()); }, TypeError, "Set.protoype.entries throws if this is a non-Set object (e.g. a Map)", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call(null); }, TypeError, "Set.prototype.entries throws if this is null", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call(undefined); }, TypeError, "Set.prototype.entries throws if this is undefined", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call(123); }, TypeError, "Set.prototype.entries throws if this is a number", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call("abc"); }, TypeError, "Set.prototype.entries throws if this is a string", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call({ }); }, TypeError, "Set.prototype.entries throws if this is a non-Set object", "Set.prototype.entries: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.entries.call(new Map()); }, TypeError, "Set.prototype.entries throws if this is a non-Set object (e.g. a Map)", "Set.prototype.entries: 'this' is not a Set object");
 
-            assert.throws(function () { Set.prototype.values.call(null); }, TypeError, "Set.protoype.values throws if this is null", "Set.prototype.values: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.values.call(undefined); }, TypeError, "Set.protoype.values throws if this is undefined", "Set.prototype.values: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.values.call(123); }, TypeError, "Set.protoype.values throws if this is a number", "Set.prototype.values: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.values.call("abc"); }, TypeError, "Set.protoype.values throws if this is a string", "Set.prototype.values: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.values.call({ }); }, TypeError, "Set.protoype.values throws if this is a non-Set object", "Set.prototype.values: 'this' is not a Set object");
-            assert.throws(function () { Set.prototype.values.call(new Map()); }, TypeError, "Set.protoype.values throws if this is a non-Set object (e.g. a Map)", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call(null); }, TypeError, "Set.prototype.values throws if this is null", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call(undefined); }, TypeError, "Set.prototype.values throws if this is undefined", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call(123); }, TypeError, "Set.prototype.values throws if this is a number", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call("abc"); }, TypeError, "Set.prototype.values throws if this is a string", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call({ }); }, TypeError, "Set.prototype.values throws if this is a non-Set object", "Set.prototype.values: 'this' is not a Set object");
+            assert.throws(function () { Set.prototype.values.call(new Map()); }, TypeError, "Set.prototype.values throws if this is a non-Set object (e.g. a Map)", "Set.prototype.values: 'this' is not a Set object");
         }
     },
     {
         name: "String.prototype iterator APIs should throw when called with this equal to undefined or null",
         body: function () {
-            assert.throws(function () { String.prototype[Symbol.iterator].call(null); }, TypeError, "String.protoype[Symbol.iterator] throws if this is null", "String.prototype[Symbol.iterator]: 'this' is null or undefined");
-            assert.throws(function () { String.prototype[Symbol.iterator].call(undefined); }, TypeError, "String.protoype[Symbol.iterator] throws if this is undefined", "String.prototype[Symbol.iterator]: 'this' is null or undefined");
+            assert.throws(function () { String.prototype[Symbol.iterator].call(null); }, TypeError, "String.prototype[Symbol.iterator] throws if this is null", "String.prototype[Symbol.iterator]: 'this' is null or undefined");
+            assert.throws(function () { String.prototype[Symbol.iterator].call(undefined); }, TypeError, "String.prototype[Symbol.iterator] throws if this is undefined", "String.prototype[Symbol.iterator]: 'this' is null or undefined");
         }
     },
     {
@@ -207,9 +207,9 @@ var tests = [
 
             assert.areEqual("Map Iterator", mip[Symbol.toStringTag], "@@toStringTag is the string value 'Map Iterator'");
 
-            assert.throws(function () { mip.next.call(123); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is not an object", "Map Iterator.prototype.next: 'this' is not an Map Iterator object");
-            assert.throws(function () { mip.next.call("o"); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is not an object", "Map Iterator.prototype.next: 'this' is not an Map Iterator object");
-            assert.throws(function () { mip.next.call({ }); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is an object but not an Map Iterator object", "Map Iterator.prototype.next: 'this' is not an Map Iterator object");
+            assert.throws(function () { mip.next.call(123); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is not an object", "Map Iterator.prototype.next: 'this' is not a Map Iterator object");
+            assert.throws(function () { mip.next.call("o"); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is not an object", "Map Iterator.prototype.next: 'this' is not a Map Iterator object");
+            assert.throws(function () { mip.next.call({ }); }, TypeError, "%MapIteratorPrototype%.next() throws if its 'this' is an object but not a Map Iterator object", "Map Iterator.prototype.next: 'this' is not a Map Iterator object");
         }
     },
     {
@@ -225,9 +225,9 @@ var tests = [
 
             assert.areEqual("Set Iterator", sip[Symbol.toStringTag], "@@toStringTag is the string value 'Set Iterator'");
 
-            assert.throws(function () { sip.next.call(123); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is not an object", "Set Iterator.prototype.next: 'this' is not an Set Iterator object");
-            assert.throws(function () { sip.next.call("o"); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is not an object", "Set Iterator.prototype.next: 'this' is not an Set Iterator object");
-            assert.throws(function () { sip.next.call({ }); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is an object but not an Set Iterator object", "Set Iterator.prototype.next: 'this' is not an Set Iterator object");
+            assert.throws(function () { sip.next.call(123); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is not an object", "Set Iterator.prototype.next: 'this' is not a Set Iterator object");
+            assert.throws(function () { sip.next.call("o"); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is not an object", "Set Iterator.prototype.next: 'this' is not a Set Iterator object");
+            assert.throws(function () { sip.next.call({ }); }, TypeError, "%SetIteratorPrototype%.next() throws if its 'this' is an object but not a Set Iterator object", "Set Iterator.prototype.next: 'this' is not a Set Iterator object");
         }
     },
     {
@@ -243,9 +243,9 @@ var tests = [
 
             assert.areEqual("String Iterator", sip[Symbol.toStringTag], "@@toStringTag is the string value 'String Iterator'");
 
-            assert.throws(function () { sip.next.call(123); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is not an object", "String Iterator.prototype.next: 'this' is not an String Iterator object");
-            assert.throws(function () { sip.next.call("o"); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is not an object", "String Iterator.prototype.next: 'this' is not an String Iterator object");
-            assert.throws(function () { sip.next.call({ }); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is an object but not an String Iterator object", "String Iterator.prototype.next: 'this' is not an String Iterator object");
+            assert.throws(function () { sip.next.call(123); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is not an object", "String Iterator.prototype.next: 'this' is not a String Iterator object");
+            assert.throws(function () { sip.next.call("o"); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is not an object", "String Iterator.prototype.next: 'this' is not a String Iterator object");
+            assert.throws(function () { sip.next.call({ }); }, TypeError, "%StringIteratorPrototype%.next() throws if its 'this' is an object but not a String Iterator object", "String Iterator.prototype.next: 'this' is not a String Iterator object");
         }
     },
     {

@@ -42,7 +42,7 @@ namespace Js
 
         Var jsExceptionObject;
 
-        // Used for synchronizing with ProbeMananger
+        // Used for synchronizing with ProbeManager
         ulong debugSessionNumber;
 
         uint32  tmpRegCount; // Mentions the temp register count for the current statement (this will be used to determine if SetNextStatement can be applied)
@@ -54,7 +54,7 @@ namespace Js
         // Used when the throw is internal and engine does not want to be broken at exception.
         bool isThrowInternal;
 
-        // This variabled will be set true when we don't want to check for debug script engine being initialized.
+        // This variable will be set true when we don't want to check for debug script engine being initialized.
         bool forceBypassDebugEngine;
 
         bool isPrimaryBrokenToDebuggerContext;

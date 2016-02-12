@@ -2194,7 +2194,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
 }
 
 bool
-LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     // if(doShiftFirst)
     // {
@@ -2370,7 +2370,14 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad)
             return true;
         }
 
-        this->lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        if (conversionFromObjectAllowed)
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            lowererMD->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
     else
     {
@@ -3640,7 +3647,7 @@ LowererMDArch::FinalLower()
             if (instr->GetSrc2())
             {
                 // CMOV inserted before regalloc have a dummy src1 to simulate the fact that
-                // CMOV is not an definite def of the dst.
+                // CMOV is not a definite def of the dst.
                 instr->SwapOpnds();
                 instr->FreeSrc2();
             }
