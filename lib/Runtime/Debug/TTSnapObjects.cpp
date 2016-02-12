@@ -120,7 +120,10 @@ namespace TTD
             for(int32 i = 0; i < dynObj->GetPropertyCount(); i++)
             {
                 Js::PropertyId pid = dynObj->GetPropertyId((Js::PropertyIndex)i);
-                propertyReset.AddNew(pid);
+                if(!Js::IsInternalPropertyId(pid))
+                {
+                    propertyReset.AddNew(pid);
+                }
             }
 
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;

@@ -246,7 +246,7 @@ namespace TTD
     }
 
     JsRTSymbolAllocateAction::JsRTSymbolAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& symbolDescription)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvert), m_symbolDescription(symbolDescription)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateSymbol), m_symbolDescription(symbolDescription)
     {
         ;
     }
