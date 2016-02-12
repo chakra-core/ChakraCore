@@ -62,7 +62,14 @@ namespace Js {
         static inline uint GetUInt(ParseNode *node);
         static inline bool IsNegativeZero(ParseNode* node);
         static inline bool IsMinInt(ParseNode *node){ return node && node->nop == knopFlt && node->sxFlt.maybeInt && node->sxFlt.dbl == -2147483648.0; };
-        static inline bool IsUnsigned(ParseNode *node){ return node && node->nop == knopFlt && node->sxFlt.maybeInt && (((uint32)node->sxFlt.dbl) >> 31); };
+        static inline bool IsUnsigned(ParseNode *node)
+        {
+            return node &&
+                node->nop == knopFlt &&
+                node->sxFlt.maybeInt &&
+                node->sxFlt.dbl > (double)INT_MAX &&
+                node->sxFlt.dbl <= (double)UINT_MAX;
+        }
 
         static bool IsDefinition( ParseNode *arg );
         static bool ParseVarOrConstStatement( AsmJSParser &parser, ParseNode **var );

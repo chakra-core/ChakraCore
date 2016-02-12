@@ -23,6 +23,8 @@ private:
     Js::PropertyId position;        // argument position in function declaration
     Js::RegSlot location;           // register in which the symbol resides
     Js::PropertyId scopeSlot;
+    Js::PropertyId moduleIndex;
+    Js::PropertyId moduleExportSlot;
     Symbol *next;
 
     SymbolType symbolType;
@@ -41,6 +43,7 @@ private:
     BYTE hasNonCommittedReference : 1;
     BYTE hasVisitedCapturingFunc : 1;
     BYTE isTrackedForDebugger : 1; // Whether the sym is tracked for debugger scope. This is fine because a sym can only be added to (not more than) one scope.
+    BYTE isModuleExportStorage : 1; // If true, this symbol should be stored in the global scope export storage array.
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
     bool hasFuncAssignment;
@@ -72,7 +75,10 @@ public:
         hasVisitedCapturingFunc(false),
         isTrackedForDebugger(false),
         isNonSimpleParameter(false),
-        assignmentState(NotAssigned)
+        assignmentState(NotAssigned),
+        isModuleExportStorage(false),
+        moduleIndex(Js::Constants::NoProperty),
+        moduleExportSlot(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
 
@@ -140,6 +146,36 @@ public:
     bool GetIsBlockVar() const
     {
         return isBlockVar;
+    }
+
+    void SetIsModuleExportStorage(bool is)
+    {
+        isModuleExportStorage = is;
+    }
+
+    bool GetIsModuleExportStorage() const
+    {
+        return isModuleExportStorage;
+    }
+
+    void SetModuleIndex(Js::PropertyId index)
+    {
+        moduleIndex = index;
+    }
+
+    Js::PropertyId GetModuleIndex()
+    {
+        return moduleIndex;
+    }
+
+    void SetModuleExportSlot(Js::PropertyId slot)
+    {
+        moduleExportSlot = slot;
+    }
+
+    Js::PropertyId GetModuleExportSlot()
+    {
+        return moduleExportSlot;
     }
 
     void SetIsGlobalCatch(bool is)

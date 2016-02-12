@@ -206,7 +206,6 @@ namespace Js
 
         bool SupportsCollectGarbage() const { return true; }
         bool IsTypedArrayEnabled() const { return true; }
-        bool BindDeferredPidRefs() const { return IsLetAndConstEnabled(); }
 
         void ForceNoNative() { this->NoNative = true; }
         void ForceNative() { this->NoNative = false; }
@@ -215,7 +214,6 @@ namespace Js
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ this->fCanOptimizeGlobalLookup = f;}
         BOOL CanOptimizeGlobalLookup() const { return this->fCanOptimizeGlobalLookup;}
         bool IsOptimizedForManyInstances() const { return isOptimizedForManyInstances; }
-        bool IsBlockScopeEnabled() const { return true; }
         void CopyFrom(ScriptConfiguration& other)
         {
             this->NoNative = other.NoNative;

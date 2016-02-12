@@ -220,7 +220,7 @@
     <default>
       <files>let_stackfunc.js</files>
       <baseline>let_stackfunc.baseline</baseline>
-      <compile-flags>-letconst -testtrace:stackfunc -off:simpleJit -off:deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -off:deferparse -on:stackfunc</compile-flags>
       <tags>exclude_fre</tags>
     </default>
   </test>
@@ -228,7 +228,7 @@
     <default>
       <files>let_blockescape.js</files>
       <baseline>let_blockescape.baseline</baseline>
-      <compile-flags>-letconst -testtrace:stackfunc -off:simpleJit -off:deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -off:deferparse -on:stackfunc</compile-flags>
       <tags>exclude_fre</tags>
     </default>
   </test>
@@ -423,7 +423,7 @@
     <default>
       <files>let_stackfunc.js</files>
       <baseline>let_stackfunc.deferparse.baseline</baseline>
-      <compile-flags>-letconst -testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>
@@ -431,7 +431,7 @@
     <default>
       <files>let_blockescape.js</files>
       <baseline>let_blockescape.deferparse.baseline</baseline>
-      <compile-flags>-letconst -testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
+      <compile-flags>-testtrace:stackfunc -off:simpleJit -Force:Deferparse -on:stackfunc</compile-flags>
       <tags>exclude_fre,exclude_dynapogo</tags>
     </default>
   </test>

@@ -449,7 +449,6 @@ namespace Js
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
-        static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptorsV11[2];
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
@@ -1132,6 +1131,8 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         static wchar_t const * const LibraryFunctionName[BuiltinFunction::Count + 1];
 #endif
+
+        JavascriptFunction* EnsureArrayPrototypeValuesFunction();
 
     public:
         virtual void Finalize(bool isShutdown) override

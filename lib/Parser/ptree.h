@@ -386,6 +386,15 @@ struct PnProg : PnFnc
     bool m_UsesArgumentsAtGlobal;
 };
 
+struct PnModule : PnProg
+{
+    ModuleExportEntryList* localExportEntries;
+    ModuleExportEntryList* indirectExportEntries;
+    ModuleExportEntryList* starExportEntries;
+    ModuleImportEntryList* importEntries;
+    IdentPtrList* requestedModules;
+};
+
 struct PnCall
 {
     ParseNodePtr pnodeNext;
@@ -591,6 +600,7 @@ struct ParseNode
         PnJump          sxJump;         // break and continue
         PnLabel         sxLabel;        // label nodes
         PnLoop          sxLoop;         // base for loop nodes
+        PnModule        sxModule;       // global module
         PnPid           sxPid;          // identifier or string
         PnProg          sxProg;         // global program
         PnReturn        sxReturn;       // return [expr]
@@ -725,6 +735,7 @@ const int kcbPnIf           = kcbPnNone + sizeof(PnIf);
 const int kcbPnInt          = kcbPnNone + sizeof(PnInt);
 const int kcbPnJump         = kcbPnNone + sizeof(PnJump);
 const int kcbPnLabel        = kcbPnNone + sizeof(PnLabel);
+const int kcbPnModule       = kcbPnNone + sizeof(PnModule);
 const int kcbPnPid          = kcbPnNone + sizeof(PnPid);
 const int kcbPnProg         = kcbPnNone + sizeof(PnProg);
 const int kcbPnReturn       = kcbPnNone + sizeof(PnReturn);

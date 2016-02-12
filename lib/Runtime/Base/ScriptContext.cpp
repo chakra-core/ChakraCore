@@ -1640,7 +1640,7 @@ namespace Js
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
-                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
+            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
         }
         else
         {
@@ -1681,6 +1681,12 @@ namespace Js
         if ((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
         {
             grfscr |= (fscrNoAsmJs | fscrNoPreJit);
+        }
+
+        if (((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
+            GetConfig()->IsES6ModuleEnabled())
+        {
+            grfscr |= fscrIsModuleCode;
         }
 
         if ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode)
@@ -1765,7 +1771,6 @@ namespace Js
             return nullptr;
         }
     }
-
 
     JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const wchar_t *rootDisplayName)
     {

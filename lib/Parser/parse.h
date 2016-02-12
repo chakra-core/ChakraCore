@@ -70,13 +70,6 @@ class HashTbl;
 typedef void (*ParseErrorCallback)(void *data, charcount_t position, charcount_t length, HRESULT hr);
 
 struct PidRefStack;
-struct CatchPidRef
-{
-    IdentPtr pid;
-    PidRefStack *ref;
-};
-
-typedef SListBase<CatchPidRef> CatchPidRefList;
 
 struct DeferredFunctionStub;
 
@@ -200,7 +193,6 @@ private:
     size_t      m_originalLength;             // source length in characters excluding comments and literals
     Js::LocalFunctionId * m_nextFunctionId;
     SourceContextInfo*    m_sourceContextInfo;
-    CatchPidRefList *m_catchPidRefList;
 
     ParseErrorCallback  m_errorCallback;
     void *              m_errorCallbackData;
@@ -241,14 +233,6 @@ private:
 
 
     void InitPids();
-
-    CatchPidRefList *GetCatchPidRefList() const { return m_catchPidRefList; }
-    void SetCatchPidRefList(CatchPidRefList *list) { m_catchPidRefList = list; }
-    CatchPidRefList *EnsureCatchPidRefList();
-
-    // True if we need to create PID's and bind names to decls in deferred functions.
-    // Do this if we need to support early let/const errors.
-    bool BindDeferredPidRefs() const;
 
     /***********************************************************************
     Members needed just for parsing.
@@ -364,6 +348,7 @@ private:
     template <OpCode nop> ParseNodePtr CreateNodeWithScanner(charcount_t ichMin);
     ParseNodePtr CreateStrNodeWithScanner(IdentPtr pid);
     ParseNodePtr CreateIntNodeWithScanner(long lw);
+    ParseNodePtr CreateProgNodeWithScanner(bool isModuleSource);
 
     static void InitNode(OpCode nop,ParseNodePtr pnode);
     static void InitBlockNode(ParseNodePtr pnode, int blockId, PnodeBlockType blockType);
@@ -390,12 +375,17 @@ private:
         IdentPtr eval; // m_pidEval;
         IdentPtr setter; // m_pidSetter;
         IdentPtr getter; // m_pidGetter;
-        IdentPtr let; //m_pidLet;
-        IdentPtr constructor; //m_pidConstructor;
-        IdentPtr prototype; //m_pidPrototype;
+        IdentPtr let; // m_pidLet;
+        IdentPtr constructor; // m_pidConstructor;
+        IdentPtr prototype; // m_pidPrototype;
         IdentPtr __proto__; // m_pid__proto__;
-        IdentPtr of; //m_pidOf;
+        IdentPtr of; // m_pidOf;
         IdentPtr target; // m_pidTarget;
+        IdentPtr from; // m_pidFrom;
+        IdentPtr as; // m_pidAs;
+        IdentPtr default; // m_pidDefault;
+        IdentPtr _star; // m_pidStar; // '*' identifier
+        IdentPtr _starDefaultStar; // m_pidStarDefaultStar; // '*default*' identifier
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
@@ -504,6 +494,26 @@ private:
             PushDynamicBlock();
         }
     }
+
+public:
+    IdentPtrList* GetRequestedModulesList();
+    ModuleImportEntryList* GetModuleImportEntryList();
+    ModuleExportEntryList* GetModuleLocalExportEntryList();
+    ModuleExportEntryList* GetModuleIndirectExportEntryList();
+    ModuleExportEntryList* GetModuleStarExportEntryList();
+
+protected:
+    IdentPtrList* EnsureRequestedModulesList();
+    ModuleImportEntryList* EnsureModuleImportEntryList();
+    ModuleExportEntryList* EnsureModuleLocalExportEntryList();
+    ModuleExportEntryList* EnsureModuleIndirectExportEntryList();
+    ModuleExportEntryList* EnsureModuleStarExportEntryList();
+
+    void AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode);
+    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
+
+    ParseNodePtr CreateModuleImportDeclNode(IdentPtr pid);
 
 public:
     WellKnownPropertyPids* names(){ return &wellKnownPropertyPids; }
@@ -618,7 +628,6 @@ private:
     void CheckArgumentsUse(IdentPtr pid, ParseNodePtr pnodeFnc);
 
     void CheckStrictModeEvalArgumentsUsage(IdentPtr pid, ParseNodePtr pnode = NULL);
-    void CheckStrictModeFncDeclNotSourceElement(const bool isSourceElement, const BOOL isDeclaration);
 
     // environments on which the strict mode is set, if found
     enum StrictModeEnvironment
@@ -631,7 +640,7 @@ private:
 
     template<bool buildAST> ParseNodePtr ParseArrayLiteral();
 
-    template<bool buildAST> ParseNodePtr ParseStatement(bool isSourceElement = false);
+    template<bool buildAST> ParseNodePtr ParseStatement();
     template<bool buildAST> ParseNodePtr ParseVariableDeclaration(
         tokens declarationType,
         charcount_t ichMin,
@@ -701,7 +710,7 @@ private:
 
     template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, ulong *pNameLength = nullptr, ulong *pShortNameOffset = nullptr);
     template<bool buildAST> ParseNodePtr ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
-    template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool isSourceElement = false, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
+    template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
     template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags);
     template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly);
@@ -779,6 +788,16 @@ private:
         tokens metaParentKeyword,
         charcount_t ichMin,
         _Out_opt_ BOOL* pfCanAssign = nullptr);
+
+    bool IsImportOrExportStatementValidHere();
+
+    template<bool buildAST> ParseNodePtr ParseImportDeclaration();
+    template<bool buildAST> void ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma = false);
+
+    template<bool buildAST> ParseNodePtr ParseExportDeclaration();
+
+    template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause);
+    template<bool buildAST> IdentPtr ParseImportOrExportFromClause(bool throwIfNotFound);
 
     BOOL NodeIsIdent(ParseNodePtr pnode, IdentPtr pid);
     BOOL NodeIsEvalName(ParseNodePtr pnode);

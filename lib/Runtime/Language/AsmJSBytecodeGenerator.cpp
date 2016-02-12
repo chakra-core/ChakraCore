@@ -117,7 +117,7 @@ namespace Js
 
         FunctionBody *funcBody = mFunction->GetFuncBody();
         funcBody->CreateConstantTable();
-        Var* table = (Var*)funcBody->GetConstTable();
+        Var* table = funcBody->GetConstTable();
         table += AsmJsFunctionMemory::RequiredVarConstants - 1; // we do -1 here as the VarConstant count is zero-based calculation
 
         int* intTable = (int*)table;
@@ -174,7 +174,7 @@ namespace Js
             {
                 JsUtil::BaseDictionary<AsmJsSIMDValue, RegSlot, ArenaAllocator, PowerOf2SizePolicy, AsmJsComparer>::EntryType &entry = it.Current();
                 RegSlot regSlot = entry.Value();
-                Assert((Var*)simdTable + regSlot < (Var*)funcBody->GetConstTable() + funcBody->GetConstantCount());
+                Assert((Var*)simdTable + regSlot < funcBody->GetConstTable() + funcBody->GetConstantCount());
                 // we cannot do sequential copy since registers are assigned to constants in the order they appear in the code, not per dictionary order.
                 simdTable[entry.Value()] = entry.Key();
             }
@@ -557,6 +557,10 @@ namespace Js
             else if (ParserWrapper::IsUnsigned(pnode))
             {
                 return EmitExpressionInfo(mFunction->GetConstRegister<int>((uint32)pnode->sxFlt.dbl), AsmJsType::Unsigned);
+            }
+            else if (pnode->sxFlt.maybeInt)
+            {
+                throw AsmJsCompilationException(L"Int literal must be in the range [-2^31, 2^32)");
             }
             else
             {

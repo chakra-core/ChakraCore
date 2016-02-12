@@ -897,8 +897,8 @@ namespace Js
         Assert(scriptContext);
 
         // Always check __proto__ entry, now that object literals always honor __proto__
-        const bool check__proto__ = propIds->has__proto__ && scriptContext->GetConfig()->Is__proto__Enabled();
-        if(check__proto__Ref)
+        const bool check__proto__ = propIds->has__proto__;
+        if (check__proto__Ref)
         {
             *check__proto__Ref = check__proto__;
         }

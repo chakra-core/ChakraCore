@@ -75,7 +75,7 @@ bool BlockHasOwnScope(ParseNode* pnodeBlock, ByteCodeGenerator *byteCodeGenerato
     return pnodeBlock->sxBlock.scope != nullptr &&
         (!(pnodeBlock->grfpn & fpnSyntheticNode) ||
             (pnodeBlock->sxBlock.blockType == Parameter && !pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope()) ||
-            (pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo()));
+            (pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithNoParentScopeInfo()));
 }
 
 void BeginVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
@@ -2558,7 +2558,6 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                     !functionScopeVarSym->GetIsGlobal() &&
                     !functionScopeVarSym->IsInSlot(sym->GetScope()->GetFunc()))
                 {
-                    Assert(byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
                     byteCodeGenerator->AssignRegister(functionScopeVarSym);
                 }
             }
@@ -2828,7 +2827,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     // If we have any deferred child, we need to instantiate the fake global block scope if it is not empty
     if (parentFunc->IsGlobalFunction())
     {
-        if (hasAnyDeferredChild && byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo())
+        if (hasAnyDeferredChild && byteCodeGenerator->IsEvalWithNoParentScopeInfo())
         {
             Scope * globalEvalBlockScope = parentFunc->GetGlobalEvalBlockScope();
             if (globalEvalBlockScope->Count() != 0 || parentFunc->isThisLexicallyCaptured)
@@ -3037,9 +3036,8 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
                 func->SetHasGlobalRef(true);
             }
 
-            if (byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled()
-                && sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope()
-                && sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
+            if (sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope() &&
+                sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
                 sym->SetIsBlockVar(true);
             }
@@ -3256,7 +3254,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     FuncInfo *func = byteCodeGenerator->TopFuncInfo();
     if (func->IsGlobalFunction() &&
         func->root->sxFnc.pnodeScopes == pnodeBlock &&
-        byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo())
+        byteCodeGenerator->IsEvalWithNoParentScopeInfo())
     {
         isGlobalEvalBlockScope = true;
     }
@@ -3267,7 +3265,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     ArenaAllocator *alloc = byteCodeGenerator->GetAllocator();
     Scope *scope;
 
-    if ((pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo()) || pnodeBlock->sxBlock.blockType == PnodeBlockType::Function)
+    if ((pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithNoParentScopeInfo()) || pnodeBlock->sxBlock.blockType == PnodeBlockType::Function)
     {
         scope = byteCodeGenerator->GetCurrentScope();
 
@@ -3285,7 +3283,6 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     }
     else if (!(pnodeBlock->grfpn & fpnSyntheticNode) || isGlobalEvalBlockScope)
     {
-        Assert(byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
         scope = pnodeBlock->sxBlock.scope;
         if (!scope || !byteCodeGenerator->UseParserBindings())
         {
@@ -4996,7 +4993,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     if (!sym->GetIsCatch())
                     {
                         // Catch cannot be at function scope and let and var at function scope is redeclaration error.
-                        Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
+                        Assert(funcInfo->bodyScope != sym->GetScope());
                     }
 #endif
                     auto symName = sym->GetName();

@@ -11,6 +11,7 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
+    JsExperimentalApiRunModule
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue
