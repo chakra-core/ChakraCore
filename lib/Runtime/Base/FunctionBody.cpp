@@ -78,7 +78,8 @@ namespace Js
     }
     inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
-        return auxPtrs->SetAuxPtr(this, e, ptr, m_scriptContext->GetRecycler());
+        return auxPtrs->SetAuxPtr(this, e, ptr, 
+            ptr == nullptr ? nullptr : m_scriptContext->GetRecycler());// when setting ptr to null we never need to promote
     }
 
     uint FunctionProxy::GetSourceContextId() const

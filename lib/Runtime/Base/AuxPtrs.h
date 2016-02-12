@@ -167,6 +167,7 @@ namespace Js
     template<class T, typename FieldsEnum>
     void AuxPtrs<T, FieldsEnum>::AllocAuxPtrFix(T* _this, uint8 size, Recycler* recycler)
     {
+        Assert(recycler != nullptr);
         if (size == 16)
         {
             _this->auxPtrs = (AuxPtrs<T, FieldsEnum>*)RecyclerNewWithBarrierStructZ(recycler, AuxPtrs16);
