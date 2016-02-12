@@ -3,6 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 function asmModule(stdlib, imports, buffer) {
     "use asm";
     
@@ -52,7 +57,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     var f4reciprocal = f4.reciprocal;

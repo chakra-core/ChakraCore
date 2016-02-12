@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
@@ -43,7 +48,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     
@@ -199,6 +204,7 @@ function asmModule(stdlib, imports) {
     
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:func5, func6:func6};
 }
+try{
 SIMD.Float32x4 = function (a, b, c, d) { return a + b + c + d;}
 SIMD.Int32x4 = function (a, b, c, d) { return a + b + c + d;}
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
@@ -217,6 +223,9 @@ equalSimd([5033.2001953125, 3401, -665.3400268554687, -32234.099609375], ret3, S
 equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret4, SIMD.Float32x4, "Test SIMDLink2");
 equalSimd([90934.203125, 123.9000015258789, 419.3900146484375, 449], ret5, SIMD.Float32x4, "Test SIMDLink2");
 equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret6, SIMD.Float32x4, "Test SIMDLink2");
+}
+catch(e){
+print("PASS");    
+}
 
-print("PASS");
 

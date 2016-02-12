@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 //
@@ -288,14 +293,16 @@ enum Forms : BYTE
 #define OPBYTE_PSHUFD   {0x70}                  // special
 #define OPBYTE_PEXTRW   {0xc5}                  // special 
 #define OPBYTE_PINSRW   {0xc4}                  // special 
-#define OPBYTE_PSLLD    {0x72}                  // mmx lane shift
 #define OPBYTE_PSLLDQ   {0x73}                  // mmxshift
-#define OPBYTE_PSLLW    {0x71}                  // mmxshift
-#define OPBYTE_PSRAD    {0x72}                  // mmxshift
-#define OPBYTE_PSRAW    {0x71}                  // mmxshift
-#define OPBYTE_PSRLD    {0x72}                  // mmxshift
 #define OPBYTE_PSRLDQ   {0x73}                  // mmxshift
-#define OPBYTE_PSRLW    {0x71}                  // mmxshift
+
+#define OPBYTE_PSLLW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSLLD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSRAW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSRAD    {0x72}                  // mmx lane shift
+#define OPBYTE_PSRLW    {0x71}                  // mmx lane shift
+#define OPBYTE_PSRLD    {0x72}                  // mmx lane shift
+
 #define OPBYTE_PSUBB    {0xf8}                  // modrm
 #define OPBYTE_PSUBD    {0xfa}                  // modrm
 #define OPBYTE_PSUBW    {0xf9}                  // modrm

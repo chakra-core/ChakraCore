@@ -91,7 +91,7 @@ var i4 = stdlib.SIMD.Int32x4;
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
 

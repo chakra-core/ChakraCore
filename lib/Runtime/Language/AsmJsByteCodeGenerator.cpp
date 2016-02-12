@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -652,9 +657,6 @@ namespace Js
         case knopVarDecl:
             throw AsmJsCompilationException( L"Variable declaration must happen at the top of the function" );
             break;
-        case knopDot:
-            // To handle expr.signMask for now, until Bools are supported.
-            return EmitDotExpr(pnode);
         default:
             throw AsmJsCompilationException( L"Unhandled parse opcode for asm.js" );
             break;
@@ -1652,69 +1654,6 @@ namespace Js
             }
         }
         return argsInfo;
-    }
-
-    bool AsmJSByteCodeGenerator::ValidateSimdFieldAccess(PropertyName field, const AsmJsType& receiverType, OpCodeAsmJs &op)
-    {
-        PropertyId fieldId = field->GetPropertyId();
-        // Bind propertyId if not already.
-        if (fieldId == Js::Constants::NoProperty)
-        {
-            mByteCodeGenerator->AssignPropertyId(field);
-            fieldId = field->GetPropertyId();
-        }
-        if (receiverType.isSIMDType())
-        {
-            if (fieldId == PropertyIds::signMask)
-            {
-                switch (receiverType.GetWhich())
-                {
-                case AsmJsType::Int32x4:
-                    op = OpCodeAsmJs::Simd128_LdSignMask_I4;
-                    break;
-                case AsmJsType::Float32x4:
-                    op = OpCodeAsmJs::Simd128_LdSignMask_F4;
-                    break;
-#if 0
-                case AsmJsType::Float64x2:
-                    op = OpCodeAsmJs::Simd128_LdSignMask_D2;
-                    break;
-#endif // 0
-
-                default:
-                    Assert(UNREACHED);
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    EmitExpressionInfo AsmJSByteCodeGenerator::EmitDotExpr(ParseNode* pnode)
-    {
-        Assert(ParserWrapper::IsDotMember(pnode));
-        EmitExpressionInfo exprInfo(Constants::NoRegister, AsmJsType::Void);
-        OpCodeAsmJs opcode;
-        RegSlot dst = Constants::NoRegister;
-        ParseNode* base = ParserWrapper::DotBase(pnode);
-        PropertyName field = ParserWrapper::DotMember(pnode);
-        EmitExpressionInfo baseInfo = Emit(base);
-
-        if (!ValidateSimdFieldAccess(field, baseInfo.type, opcode))
-        {
-            throw AsmJsCompilationException(L"Expression does not support field access or invalid field name");
-        }
-
-        AssertMsg(baseInfo.type.isSIMDType(), "Expecting SIMD value");
-        mFunction->ReleaseLocation<AsmJsSIMDValue>(&baseInfo);
-
-        // sign mask
-        dst = mFunction->AcquireTmpRegister<int>();
-        mWriter.AsmReg2(opcode, dst, baseInfo.location);
-        exprInfo.type = AsmJsType::Signed;
-        exprInfo.location = dst;
-
-        return exprInfo;
     }
 
     EmitExpressionInfo AsmJSByteCodeGenerator::EmitSimdBuiltin(ParseNode* pnode, AsmJsSIMDFunction* simdFunction, AsmJsRetType expectedType)

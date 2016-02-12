@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 //
 // NOTE: This file is intended to be "#include" multiple times. The call site must define the macros
 // "LAYOUT_TYPE", etc., to be executed for each entry.
@@ -109,7 +114,6 @@ LAYOUT_TYPE_WMS     ( Float32x4_1Uint8x16_1             )
 LAYOUT_TYPE_WMS     ( Reg1Float32x4_1                   )
 LAYOUT_TYPE_WMS     ( Float1Float32x4_1Int1             )
 LAYOUT_TYPE_WMS     ( Float32x4_2Int1Float1             )
-LAYOUT_TYPE_WMS     ( Int1Float32x4_1                   )
 // Int32x4
 LAYOUT_TYPE_WMS     ( Int32x4_2                         )
 LAYOUT_TYPE_WMS     ( Int32x4_3                         )
@@ -128,7 +132,6 @@ LAYOUT_TYPE_WMS     ( Int32x4_1Int16x8_1                )
 LAYOUT_TYPE_WMS     ( Int32x4_1Uint16x8_1               )
 LAYOUT_TYPE_WMS     ( Int32x4_1Int8x16_1                )
 LAYOUT_TYPE_WMS     ( Int32x4_1Uint8x16_1               )
-LAYOUT_TYPE_WMS     ( Int1Int32x4_1                     )
 LAYOUT_TYPE_WMS     ( Int1Int32x4_1Int1                 )
 LAYOUT_TYPE_WMS     ( Int32x4_2Int2                     )
 
@@ -147,7 +150,6 @@ LAYOUT_TYPE_WMS     ( Float64x2_1Float32x4_1 )
 LAYOUT_TYPE_WMS     ( Float64x2_1Int32x4_1 )
 LAYOUT_TYPE_WMS     ( Float64x2_1Int32x4_1Float64x2_2 )
 LAYOUT_TYPE_WMS     ( Reg1Float64x2_1 )
-LAYOUT_TYPE_WMS     ( Int1Float64x2_1)
 
 #endif //0
 // Int16x8

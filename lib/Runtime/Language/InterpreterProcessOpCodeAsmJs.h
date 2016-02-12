@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #ifndef TEMP_DISABLE_ASMJS
 #define PROCESS_FALLTHROUGH_ASM(name, func) \
     case OpCodeAsmJs::name:
@@ -1640,35 +1645,6 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_U16_1I2toU16_1_1(name, func) PROCESS_SIMD_U16_1I2toU16_1_COMMON(name, func,)
-
-// signmask
-#define PROCESS_SIMD_F4_1toI1_COMMON(name, func, suffix) \
-    case OpCodeAsmJs::name: \
-    { \
-    PROCESS_READ_LAYOUT_ASMJS(name, Int1Float32x4_1, suffix); \
-    SetRegRawInt(playout->I0, func(GetRegRawSimd(playout->F4_1))); \
-    break; \
-    }
-#define PROCESS_SIMD_F4_1toI1(name, func) PROCESS_SIMD_F4_1toI1_COMMON(name, func,)
-
-#define PROCESS_SIMD_I4_1toI1_COMMON(name, func, suffix) \
-    case OpCodeAsmJs::name: \
-    { \
-    PROCESS_READ_LAYOUT_ASMJS(name, Int1Int32x4_1, suffix); \
-    SetRegRawInt(playout->I0, func(GetRegRawSimd(playout->I4_1))); \
-    break; \
-    }
-#define PROCESS_SIMD_I4_1toI1(name, func) PROCESS_SIMD_I4_1toI1_COMMON(name, func,)
-
-#define PROCESS_SIMD_D2_1toI1_COMMON(name, func, suffix) \
-    case OpCodeAsmJs::name: \
-    { \
-    PROCESS_READ_LAYOUT_ASMJS(name, Int1Float64x2_1, suffix); \
-    SetRegRawInt(playout->I0, func(GetRegRawSimd(playout->D2_1))); \
-    break; \
-    }
-#define PROCESS_SIMD_D2_1toI1(name, func) PROCESS_SIMD_D2_1toI1_COMMON(name, func,)
-
 
 // f4swizzle
 #define PROCESS_SIMD_F4_1I4toF4_1_COMMON(name, func, suffix) \

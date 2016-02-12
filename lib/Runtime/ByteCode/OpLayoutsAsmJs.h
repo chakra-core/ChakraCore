@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -590,13 +595,6 @@ namespace Js
         typename SizePolicy::RegSlotType     F4_1;
     };
 
-    template <typename SizePolicy>
-    struct OpLayoutT_Int1Float32x4_1
-    {
-        typename SizePolicy::RegSlotType    I0;
-        typename SizePolicy::RegSlotType    F4_1;
-    };
-
     /* Int32x4 layouts */
     //--------------------
     template <typename SizePolicy>
@@ -767,13 +765,6 @@ namespace Js
     {
         typename SizePolicy::RegSlotType    I4_0;
         typename SizePolicy::RegSlotType    U16_1;
-    };
-
-    template <typename SizePolicy>
-    struct OpLayoutT_Int1Int32x4_1
-    {
-        typename SizePolicy::RegSlotType    I0;
-        typename SizePolicy::RegSlotType    I4_1;
     };
 
     /* Bool32x4 layouts */
@@ -1225,13 +1216,6 @@ namespace Js
     {
         typename SizePolicy::RegSlotType     R0;
         typename SizePolicy::RegSlotType     D2_1;
-    };
-
-    template <typename SizePolicy>
-    struct OpLayoutT_Int1Float64x2_1
-    {
-        typename SizePolicy::RegSlotType    I0;
-        typename SizePolicy::RegSlotType    D2_1;
     };
 
     /* Int16x8 layouts */

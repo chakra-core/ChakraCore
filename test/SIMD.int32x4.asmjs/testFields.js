@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
@@ -44,7 +49,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -87,89 +92,6 @@ function asmModule(stdlib, imports) {
     var si = i4(20, -1, 10, 2000);
     var loopCOUNT = 3;
 
-    //function func1(a)
-    //{
-    //    a = a|0;
-    //    var b = i4(5033,-3401,665,-32234);
-    //    var c = i4(-34183, 212344, -569437, 65534);
-    //    var d = i4(0, 0, 0, 0);
-
-
-    //    var loopIndex = 0;
-    //    while ( (loopIndex|0) < (loopCOUNT|0)) {
-
-    //        b = i4(b.w, -b.z, b.y, -b.x);
-
-
-    //        loopIndex = (loopIndex + 1) | 0;
-    //    }
-
-    //    return i4check(b);
-    //}
-
-    //function func2(a)
-    //{
-    //    a = a|0;
-    //    var b = i4(5033,-3401,665,-32234);
-    //    var c = i4(-34183, 212344, -569437, 65534);
-    //    var d = i4(0, 0, 0, 0);
-    //    var loopIndex = 0;
-
-    //    for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
-    //    {
-
-    //        b = i4(i4g1.w, i4g1.w+i4g2.z, i4g1.y - i4g2.x, i4g2.x);
-
-
-    //    }
-
-    //    return i4check(b);
-    //}
-
-    //function func3(a)
-    //{
-    //    a = a|0;
-    //    var b = i4(5033,-3401,665,-32234);
-    //    var c = i4(-34183, 212344, -569437, 65534);
-    //    var d = i4(0, 0, 0, 0);
-    //    var loopIndex = 0;
-
-
-    //    loopIndex = loopCOUNT | 0;
-    //    do {
-
-    //        globImportI4 = i4(globImportI4.x * globImportI4.y, 1 + globImportI4.y, i4g2.z / i4g2.w, i4g2.w);
-
-
-    //        loopIndex = (loopIndex - 1) | 0;
-    //    }
-    //    while ( (loopIndex | 0) > 0);
-
-    //    return i4check(globImportI4);
-    //}
-
-    //function func4(a)
-    //{
-    //    a = a|0;
-    //    var b = i4(5033,-3401,665,-32234);
-    //    var c = i4(-34183, 212344, -569437, 65534);
-    //    var d = i4(0, 0, 0, 0);
-
-
-
-    //    var loopIndex = 0;
-    //    while ( (loopIndex|0) < (loopCOUNT|0)) {
-
-    //        b = i4(b.w, b.z >> 2, b.y == b.x, b.x);
-    //        a = b.signMask;
-
-
-    //        loopIndex = (loopIndex + 1) | 0;
-    //    }
-
-    //    return a | 0;
-    //}
-
     function func5(a)
     {
         a = a|0;
@@ -186,27 +108,7 @@ function asmModule(stdlib, imports) {
         return i4check(b);
     }
 
-    function func6(a) {
-        a = a | 0;
-        var b = i4(5033, -3401, 665, -32234);
-        var c = i4(-34183, 212344, -569437, 65534);
-        var d = i4(0, 0, 0, 0);
-
-        var loopIndex = 0;
-
-        loopIndex = loopCOUNT | 0;
-        do {
-
-            globImportI4 = i4(-i4extractLane(globImportI4, 0)|0, i4extractLane(globImportI4, 1)|0, -i4extractLane(globImportI4, 2)|0, i4extractLane(globImportI4, 3)|0);
-            a = globImportI4.signMask;
-
-            loopIndex = (loopIndex - 1) | 0;
-        }
-        while ((loopIndex | 0) > 0);
-
-        return a | 0;
-    }
-
+    
     function func7() {
 
         var a = 0;
@@ -228,7 +130,7 @@ function asmModule(stdlib, imports) {
         return i4check(si);
     }
 
-    return {/*func1:func1, func2:func2, func3:func3, func4:func4,*/ func5:func5, func6: func6, func7: func7 };
+    return { func5:func5, func7: func7 };
 }
 
 var m = asmModule(this, { g1: SIMD.Float32x4(90934.2, 123.9, 419.39, 449.0), g2: SIMD.Int32x4(-1065353216, -1073741824, -1077936128, -1082130432) });
@@ -237,9 +139,6 @@ var ret;
 
 ret = m.func5();
 equalSimd([-2130706432, -18048, 1073741824, 1065353216],ret, SIMD.Int32x4, "Func5");
-
-ret = m.func6();
-equal(10, ret);
 
 ret = m.func7();
 equalSimd([33, 10, -1, 20], ret, SIMD.Int32x4, "Func7");

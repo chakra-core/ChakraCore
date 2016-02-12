@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "Language/JavascriptFunctionArgIndex.h"
 
@@ -1685,23 +1690,19 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::PSRLDQ:
         case Js::OpCode::PSLLDQ:
         case Js::OpCode::PSRLW:
+        case Js::OpCode::PSRLD:
+        case Js::OpCode::PSRAW:
+        case Js::OpCode::PSRAD:
         case Js::OpCode::PSLLW:
+        case Js::OpCode::PSLLD:
+
             Assert(AutoSystemInfo::Data.SSE2Available());
             MakeDstEquSrc1<verify>(instr);
             LegalizeOpnds<verify>(
                 instr,
                 L_Reg,
                 L_Reg,
-                L_Imm32);
-            break;
-
-        case Js::OpCode::PMOVMSKB:
-            MakeDstEquSrc1<verify>(instr);
-            LegalizeOpnds<verify>(
-                instr,
-                L_Reg,
-                L_Reg,
-                L_None);
+                L_Reg | L_Imm32);
             break;
 
         case Js::OpCode::ROUNDSD:

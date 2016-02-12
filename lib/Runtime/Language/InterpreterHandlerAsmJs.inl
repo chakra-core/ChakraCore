@@ -3,6 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 #ifndef TEMP_DISABLE_ASMJS
 // See  Lib\Runtime\Language\InterpreterProcessOpCodeAsmJs.h  for Handler Process
 //         (   HandlerProcess , OpCodeAsmJs ,        HandlerFunction       , LayoutAsmJs , Type  )
@@ -278,10 +283,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Operation::OpSelect         )
   EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
 
-
-  DEF2_WMS( SIMD_F4_1toI1        , Simd128_LdSignMask_F4   , Js::SIMDFloat32x4Operation::OpGetSignMask   )
-  DEF2_WMS( SIMD_I4_1toI1        , Simd128_LdSignMask_I4   , Js::SIMDInt32x4Operation::OpGetSignMask     )
-
   // args out, copy value to outParams
   DEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
@@ -366,9 +367,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_LdArr_I4        , OP_SimdLdArrGeneric , AsmSimdTypedArr       )
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_StArr_F4        , OP_SimdStArrGeneric , AsmSimdTypedArr       )
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_StArr_I4        , OP_SimdStArrGeneric , AsmSimdTypedArr       )
-
-
-
 
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_LdArrConst_F4        , OP_SimdLdArrConstIndex  , AsmSimdTypedArr       )
   EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_LdArrConst_I4        , OP_SimdLdArrConstIndex  , AsmSimdTypedArr       )
@@ -491,14 +489,18 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
 
   EXDEF2_WMS(SIMD_I8_1I1toI8_1   , Simd128_ShLtByScalar_I8     , Js::SIMDInt16x8Operation::OpShiftLeftByScalar  )
   EXDEF2_WMS(SIMD_I8_1I1toI8_1   , Simd128_ShRtByScalar_I8     , Js::SIMDInt16x8Operation::OpShiftRightByScalar )
+
   DEF2_WMS(SIMD_I16_1I1toI16_1 , Simd128_ShLtByScalar_I16    , Js::SIMDInt8x16Operation::OpShiftLeftByScalar    )
   DEF2_WMS(SIMD_I16_1I1toI16_1 , Simd128_ShRtByScalar_I16    , Js::SIMDInt8x16Operation::OpShiftRightByScalar   )
+
   EXDEF2_WMS(SIMD_U4_1I1toU4_1   , Simd128_ShLtByScalar_U4     , Js::SIMDInt32x4Operation::OpShiftLeftByScalar  )
-  EXDEF2_WMS(SIMD_U4_1I1toU4_1   , Simd128_ShRtByScalar_U4     , Js::SIMDInt32x4Operation::OpShiftRightByScalar )
+  EXDEF2_WMS(SIMD_U4_1I1toU4_1   , Simd128_ShRtByScalar_U4     , Js::SIMDUint32x4Operation::OpShiftRightByScalar )
+
   EXDEF2_WMS(SIMD_U8_1I1toU8_1   , Simd128_ShLtByScalar_U8     , Js::SIMDInt16x8Operation::OpShiftLeftByScalar  )
-  EXDEF2_WMS(SIMD_U8_1I1toU8_1   , Simd128_ShRtByScalar_U8     , Js::SIMDInt16x8Operation::OpShiftRightByScalar )
+  EXDEF2_WMS(SIMD_U8_1I1toU8_1   , Simd128_ShRtByScalar_U8     , Js::SIMDUint16x8Operation::OpShiftRightByScalar )
+
   EXDEF2_WMS(SIMD_U16_1I1toU16_1 , Simd128_ShLtByScalar_U16    , Js::SIMDInt8x16Operation::OpShiftLeftByScalar  )
-  EXDEF2_WMS(SIMD_U16_1I1toU16_1 , Simd128_ShRtByScalar_U16    , Js::SIMDInt8x16Operation::OpShiftRightByScalar )
+  EXDEF2_WMS(SIMD_U16_1I1toU16_1 , Simd128_ShRtByScalar_U16    , Js::SIMDUint8x16Operation::OpShiftRightByScalar )
 
   EXDEF2_WMS( SIMD_I8_2toI8_1    , Simd128_AddSaturate_I8      , Js::SIMDInt16x8Operation::OpAddSaturate        )
   EXDEF2_WMS( SIMD_I8_2toI8_1    , Simd128_SubSaturate_I8      , Js::SIMDInt16x8Operation::OpSubSaturate        )

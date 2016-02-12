@@ -116,8 +116,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-
-  <!-- Enable with lowerer support
   <test>
     <default>
       <files>testLinearSearch.js</files>
@@ -134,7 +132,6 @@
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>testLinearSearch.js</files>
@@ -160,8 +157,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-  
-
   <test>
     <default>
       <files>test2DMatrixAddition.js</files>

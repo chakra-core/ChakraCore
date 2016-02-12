@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 /*
 SIMD.js opcodes
 - All opcodes are typed.
@@ -84,7 +89,6 @@ MACRO_SIMD_WMS              ( Simd128_ShLtByScalar_I4           , Int32x4_2Int1 
 MACRO_SIMD_WMS              ( Simd128_ShRtByScalar_I4           , Int32x4_2Int1                     , None           ,        OpCanCSE         ,       0)
 MACRO_SIMD_WMS              ( Simd128_Swizzle_I4                , Int32x4_2Int4                     , None           ,        OpCanCSE         ,       7,   &Js::SIMDInt32x4Lib::EntryInfo::Swizzle,   T_I4, T_I4, T_INT, T_INT, T_INT, T_INT)
 MACRO_SIMD_WMS              ( Simd128_Shuffle_I4                , Int32x4_3Int4                     , None           ,        OpCanCSE         ,       8,   &Js::SIMDInt32x4Lib::EntryInfo::Shuffle,   T_I4, T_I4, T_I4, T_INT, T_INT, T_INT, T_INT)
-MACRO_SIMD_WMS              ( Simd128_LdSignMask_I4             , Int1Int32x4_1                     , None           ,        OpCanCSE         ,       0)
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_Ld_I4                     , Int32x4_2                         , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_LdSlot_I4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_StSlot_I4                 , ElementSlot                       , None           ,        None                      )
@@ -124,7 +128,6 @@ MACRO_SIMD_WMS              ( Simd128_And_F4                    , Float32x4_3   
 MACRO_SIMD_WMS              ( Simd128_Or_F4                     , Float32x4_3                       , None           ,        OpCanCSE          ,      0)
 MACRO_SIMD_WMS              ( Simd128_Xor_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      0)
 MACRO_SIMD_WMS              ( Simd128_Not_F4                    , Float32x4_2                       , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_LdSignMask_F4             , Int1Float32x4_1                   , None           ,        OpCanCSE          ,      0)
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_Ld_F4                     , Float32x4_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_LdSlot_F4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_StSlot_F4                 , ElementSlot                       , None           ,        None                      )
@@ -165,6 +168,38 @@ MACRO_SIMD_ASMJS_ONLY_WMS(Simd128_I_ArgOut_D2, Reg1Float64x2_1, None, None)
 MACRO_SIMD_ASMJS_ONLY_WMS(Simd128_I_Conv_VTD2, Float64x2_2, None, None)
 
 #endif // 0 //Disabling this type until the specification decides to include or not. 
+//Int8x16
+MACRO_SIMD_WMS     (Simd128_IntsToI16                 , Int8x16_1Int16                       , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Splat_I16                 , Int8x16_1Int1                        , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_ExtractLane_I16           , Int1Int8x16_1Int1                    , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_ReplaceLane_I16           , Int8x16_2Int2                        , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Swizzle_I16               , Int8x16_2Int16                       , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Shuffle_I16               , Int8x16_3Int16                       , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Neg_I16                   , Int8x16_2                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Add_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Sub_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Mul_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Lt_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_LtEq_I16                  , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Gt_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_GtEq_I16                  , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Eq_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Neq_I16                   , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Select_I16                , Int8x16_1Bool8x16_1Int8x16_2         , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_And_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Or_I16                    , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Xor_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Not_I16                   , Int8x16_2                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Min_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_Max_I16                   , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_ShLtByScalar_I16          , Int8x16_2Int1                        , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_ShRtByScalar_I16          , Int8x16_2Int1                        , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_AddSaturate_I16           , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_SubSaturate_I16           , Int8x16_3                            , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_LdArr_I16                 , AsmSimdTypedArr                      , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_LdArrConst_I16            , AsmSimdTypedArr                      , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_StArr_I16                 , AsmSimdTypedArr                      , None         ,           None        ,      0)
+MACRO_SIMD_WMS     (Simd128_StArrConst_I16            , AsmSimdTypedArr                      , None         ,           None        ,      0)
 
 MACRO_SIMD_BACKEND_ONLY     ( Simd128_LdC                       , Empty                             , None           ,        OpCanCSE                  )   // Load Simd128 const stack slot
 MACRO_SIMD                  ( Simd128_End                       , Empty                             , None           ,        None                      )   // Just a marker to indicate SIMD opcodes region
@@ -310,37 +345,6 @@ MACRO_SIMD_EXTEND_WMS     ( Simd128_FromUint16x8Bits_I8         , Int16x8_1Uint1
 MACRO_SIMD_EXTEND_WMS     ( Simd128_FromUint8x16Bits_I8         , Int16x8_1Uint8x16_1              , None           ,        None         ,       0)
 
 // int8x16
-MACRO_SIMD_WMS     (Simd128_IntsToI16                 , Int8x16_1Int16                       , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Splat_I16                 , Int8x16_1Int1                        , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_ExtractLane_I16           , Int1Int8x16_1Int1                    , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_ReplaceLane_I16           , Int8x16_2Int2                        , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Swizzle_I16               , Int8x16_2Int16                       , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Shuffle_I16               , Int8x16_3Int16                       , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Neg_I16                   , Int8x16_2                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Add_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Sub_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Mul_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Lt_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_LtEq_I16                  , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Gt_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_GtEq_I16                  , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Eq_I16                    , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Neq_I16                   , Bool8x16_1Int8x16_2                  , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Select_I16                , Int8x16_1Bool8x16_1Int8x16_2         , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_And_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Or_I16                    , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Xor_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Not_I16                   , Int8x16_2                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Min_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_Max_I16                   , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_ShLtByScalar_I16          , Int8x16_2Int1                        , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_ShRtByScalar_I16          , Int8x16_2Int1                        , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_AddSaturate_I16           , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_SubSaturate_I16           , Int8x16_3                            , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_LdArr_I16                 , AsmSimdTypedArr                      , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_LdArrConst_I16            , AsmSimdTypedArr                      , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_StArr_I16                 , AsmSimdTypedArr                      , None         ,           None        ,      0)
-MACRO_SIMD_WMS     (Simd128_StArrConst_I16            , AsmSimdTypedArr                      , None         ,           None        ,      0)
 MACRO_SIMD_EXTEND_WMS     (Simd128_FromFloat32x4Bits_I16     , Int8x16_1Float32x4_1                 , None         ,          None         ,      0)
 MACRO_SIMD_EXTEND_WMS     (Simd128_FromInt32x4Bits_I16       , Int8x16_1Int32x4_1                   , None         ,          None         ,      0)
 MACRO_SIMD_EXTEND_WMS     (Simd128_FromInt16x8Bits_I16       , Int8x16_1Int16x8_1                   , None         ,          None         ,      0)
@@ -381,9 +385,9 @@ MACRO_SIMD_EXTEND_WMS     ( Simd128_GtEq_U4                     , Bool32x4_1Uint
 MACRO_SIMD_EXTEND_WMS     ( Simd128_ShLtByScalar_U4             , Uint32x4_2Int1                   , None           ,        None          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_ShRtByScalar_U4             , Uint32x4_2Int1                   , None           ,        None          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_Select_U4                   , Uint32x4_1Bool32x4_1Uint32x4_2   , None           ,        None          ,      0)
-MACRO_SIMD_EXTEND_WMS     (Simd128_LdArr_U4                     , AsmSimdTypedArr                  , None           ,        None          ,      0)
-MACRO_SIMD_EXTEND_WMS     (Simd128_LdArrConst_U4                , AsmSimdTypedArr                  , None           ,        None          ,      0)
-MACRO_SIMD_EXTEND_WMS     (Simd128_StArr_U4                     , AsmSimdTypedArr                  , None           ,        None          ,      0)
+MACRO_SIMD_EXTEND_WMS     ( Simd128_LdArr_U4                    , AsmSimdTypedArr                  , None           ,        None          ,      0)
+MACRO_SIMD_EXTEND_WMS     ( Simd128_LdArrConst_U4               , AsmSimdTypedArr                  , None           ,        None          ,      0)
+MACRO_SIMD_EXTEND_WMS     ( Simd128_StArr_U4                    , AsmSimdTypedArr                  , None           ,        None          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_StArrConst_U4               , AsmSimdTypedArr                  , None           ,        None          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_FromFloat32x4_U4            , Uint32x4_1Float32x4_1            , None           ,        None          ,      0)
 MACRO_SIMD_EXTEND_WMS     ( Simd128_FromFloat32x4Bits_U4        , Uint32x4_1Float32x4_1            , None           ,        None          ,      0)

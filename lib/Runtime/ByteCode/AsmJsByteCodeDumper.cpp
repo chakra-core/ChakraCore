@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -1023,13 +1028,6 @@ namespace Js
         DumpFloat32x4Reg(data->F4_1);
     }
 
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Float32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpFloat32x4Reg(data->F4_1);
-    }
-
     // Int32x4
     template <class T>
     void AsmJsByteCodeDumper::DumpInt32x4_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -1199,13 +1197,6 @@ namespace Js
     {
         DumpInt32x4Reg(data->I4_0);
         DumpFloat64x2Reg(data->D2_1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Int32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
-        DumpFloat64x2Reg(data->I4_1);
     }
 
     // Bool32x4
@@ -1622,13 +1613,6 @@ namespace Js
     void AsmJsByteCodeDumper::DumpReg1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpReg(data->R0);
-        DumpFloat64x2Reg(data->D2_1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpIntReg(data->I0);
         DumpFloat64x2Reg(data->D2_1);
     }
 

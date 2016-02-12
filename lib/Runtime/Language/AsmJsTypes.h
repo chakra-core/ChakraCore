@@ -5,6 +5,11 @@
 //-------------------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
 // Copyright 2014 Mozilla Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1140,7 +1145,7 @@ namespace Js
     // !! Note: keep these grouped by SIMD type
     enum AsmJsSIMDBuiltinFunction
     {
-#define ASMJS_SIMD_NAMES(name, propertyName) AsmJsSIMDBuiltin_##name,
+#define ASMJS_SIMD_NAMES(name, propertyName, libName, entryPoint) AsmJsSIMDBuiltin_##name,
 #define ASMJS_SIMD_MARKERS(name) AsmJsSIMDBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJsSIMDBuiltin_COUNT

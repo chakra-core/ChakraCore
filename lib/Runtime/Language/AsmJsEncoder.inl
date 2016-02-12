@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 #define PROCESS_ENCODE_READ_LAYOUT_ASMJS(name, layout, suffix) \
@@ -960,22 +965,6 @@ namespace Js
     {
         AsmJsJitTemplate::Simd128_ReplaceLane_F4::ApplyTemplate(this, mPc, CalculateOffset<AsmJsSIMDValue>(playout->F4_0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1), CalculateOffset<int>(playout->I2), CalculateOffset<float>(playout->F3));
     }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskF4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_F4::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->F4_1));
-    }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskI4(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_I4::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->I4_1));
-    }
-    template <class T>
-    void Js::AsmJsEncoder::OP_Simd128_LdSignMaskD2(const unaligned T* playout)
-    {
-        AsmJsJitTemplate::Simd128_LdSignMask_D2::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I0), CalculateOffset<AsmJsSIMDValue>(playout->D2_1));
-    }
-
     template <class T>
     void Js::AsmJsEncoder::OP_Simd128_I_ArgOutF4(const unaligned T* playout)
     {

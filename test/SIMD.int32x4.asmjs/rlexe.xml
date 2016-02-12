@@ -116,7 +116,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-<!-- Enable with lowerer support
   <test>
     <default>
       <files>testComparison.js</files>
@@ -133,7 +132,6 @@
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>testComparison.js</files>
@@ -235,7 +233,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-
   <test>
     <default>
       <files>testMul.js</files>
@@ -274,7 +271,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-
   <test>
     <default>
       <files>testNeg.js</files>
@@ -338,7 +334,6 @@
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:AsmJsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
   </test>
-  <!--
   <test>
     <default>
       <files>testSelect.js</files>
@@ -353,7 +348,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
--->
   <test>
     <default>
       <files>testSplat.js</files>
@@ -655,7 +649,6 @@
           <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
       </default>
   </test>
-  <!-- Enable with lowerer support
   <test>
       <default>
           <files>testMisc.js</files>
@@ -672,7 +665,6 @@
           <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -lic:1</compile-flags>
       </default>
   </test>
-  -->
   <test>
       <default>
       <files>testMisc.js</files>
@@ -695,7 +687,6 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
       </default>
   </test>
-    <!-- Enable with lowerer support
   <test>
       <default>
           <files>testBool.js</files>
@@ -712,8 +703,6 @@
           <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -lic:1</compile-flags>
       </default>
   </test>
-  -->
-  <!-- temprorily disable this test, failure appears to be in front end, need investigate after merge>
   <test>
       <default>
       <files>testBool.js</files>
@@ -776,5 +765,4 @@
       <compile-flags>-bgjit- -simdjs -simd128typespec -off:simplejit -mic:1</compile-flags>
       </default>
   </test>
-  -->
 </regress-exe>

@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "ByteCode/OpCodeUtilAsmJs.h"
 
@@ -3907,29 +3912,6 @@ void IRBuilderAsmJs::BuildReg1Float32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offs
     }
 }
 
-template <typename SizePolicy>
-void IRBuilderAsmJs::BuildInt1Float32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offset)
-{
-    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Int1Float32x4_1<SizePolicy>>();
-
-    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(layout->I0);
-    Js::RegSlot src1RegSlot = GetRegSlotFromSimd128Reg(layout->F4_1);
-
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128F4);
-    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-    dstOpnd->SetValueType(ValueType::GetInt(false));
-
-    Js::OpCode opcode = GetSimdOpcode(newOpcode);
-
-    AssertMsg(opcode == Js::OpCode::Simd128_LdSignMask_F4, "Unexpected opcode for this format.");
-
-    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
-    AddInstr(instr, offset);
-}
-
 /* Int32x4 */
 template <typename SizePolicy>
 void
@@ -4396,29 +4378,6 @@ void IRBuilderAsmJs::BuildReg1Int32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offset
     {
         Assert(UNREACHED);
     }
-}
-
-template <typename SizePolicy>
-void IRBuilderAsmJs::BuildInt1Int32x4_1(Js::OpCodeAsmJs newOpcode, uint32 offset)
-{
-    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Int1Int32x4_1<SizePolicy>>();
-
-    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(layout->I0);
-    Js::RegSlot src1RegSlot = GetRegSlotFromSimd128Reg(layout->I4_1);
-
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128I4);
-    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int32x4));
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-    dstOpnd->SetValueType(ValueType::GetInt(false));
-
-    Js::OpCode opcode = GetSimdOpcode(newOpcode);
-
-    AssertMsg(opcode == Js::OpCode::Simd128_LdSignMask_I4, "Unexpected opcode for this format.");
-
-    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
-    AddInstr(instr, offset);
 }
 
 //Int8x16
@@ -5213,30 +5172,6 @@ void IRBuilderAsmJs::BuildReg1Float64x2_1(Js::OpCodeAsmJs newOpcode, uint32 offs
     {
         Assert(UNREACHED);
     }
-}
-
-template <typename SizePolicy>
-void IRBuilderAsmJs::BuildInt1Float64x2_1(Js::OpCodeAsmJs newOpcode, uint32 offset)
-{
-    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Int1Float64x2_1<SizePolicy>>();
-
-    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(layout->I0);
-    Js::RegSlot src1RegSlot = GetRegSlotFromSimd128Reg(layout->D2_1);
-
-    IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128D2);
-    src1Opnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
-    dstOpnd->SetValueType(ValueType::GetInt(false));
-
-
-    Js::OpCode opcode = GetSimdOpcode(newOpcode);
-
-    AssertMsg(opcode == Js::OpCode::Simd128_LdSignMask_D2, "Unexpected opcode for this format.");
-
-    IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, m_func);
-    AddInstr(instr, offset);
 }
 #endif // 0
 /* Int16x8 */

@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 
 #include "RegexCommon.h"
@@ -880,7 +885,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float32x4_1);
                 //Int32x4
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_3);
@@ -898,7 +902,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Int32x4_1);
                 // Float64x2
 #if 0
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_2);
@@ -913,7 +916,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Int32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float64x2_1Int32x4_1Float64x2_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float64x2_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Float64x2_1);
 #endif // 0
 
                 // Int16x8

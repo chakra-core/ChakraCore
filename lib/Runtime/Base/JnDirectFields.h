@@ -1,6 +1,10 @@
-
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 //
@@ -83,7 +87,6 @@ ENTRY(fround)
 
 // SIMD
 ENTRY(check)
-ENTRY(signMask)
 ENTRY(Float32x4)
 ENTRY(Float64x2)
 ENTRY(Int32x4)
@@ -95,9 +98,7 @@ ENTRY(Bool8x16)
 ENTRY(Uint32x4)
 ENTRY(Uint16x8)
 ENTRY(Uint8x16)
-ENTRY(zero)
 ENTRY(splat)
-ENTRY2(bool_, L"bool") // "bool" cannot be an identifier in C++ so using "bool_" instead
 ENTRY(fromFloat32x4)
 ENTRY(fromInt32x4)
 ENTRY(fromUint32x4)
@@ -110,16 +111,7 @@ ENTRY(fromInt8x16Bits)
 ENTRY(fromUint32x4Bits)
 ENTRY(fromUint16x8Bits)
 ENTRY(fromUint8x16Bits)
-
 // keep these contiguous
-ENTRY(withFlagX)
-ENTRY(withFlagY)
-ENTRY(withFlagZ)
-ENTRY(withFlagW)
-ENTRY(flagX)
-ENTRY(flagY)
-ENTRY(flagZ)
-ENTRY(flagW)
 ENTRY(extractLane)
 ENTRY(replaceLane)
 //
@@ -140,11 +132,9 @@ ENTRY(neg)
 ENTRY(not)
 ENTRY(swizzle)
 ENTRY(shuffle)
-ENTRY(clamp)
 ENTRY(select)
 ENTRY(reciprocalApproximation)
 ENTRY(reciprocalSqrtApproximation)
-ENTRY(scale)
 ENTRY(lessThan)
 ENTRY(lessThanOrEqual)
 ENTRY(equal)
@@ -156,13 +146,10 @@ ENTRY(maxNum)
 ENTRY(shiftLeft)
 ENTRY(shiftLeftByScalar)
 ENTRY(shiftRightByScalar)
-
 ENTRY(allTrue)
 ENTRY(anyTrue)
 ENTRY(addSaturate)
 ENTRY(subSaturate)
-ENTRY(extractLaneAsBool)
-ENTRY(selectBits)
 // End SIMD
 
 

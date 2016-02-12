@@ -3,6 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 
@@ -49,7 +54,6 @@ namespace Js
     private:
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
         Var  GetLaneAsNumber(uint index, ScriptContext* requestContext);
-        Var  GetLaneAsFlag(uint index, ScriptContext* requestContext);
     };
 }
 

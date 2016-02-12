@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
 #if ENABLE_NATIVE_CODEGEN
@@ -4744,51 +4749,6 @@ namespace Js
             X86TemplateData* templateData = GetTemplateData(context);
             AssertMsg(laneIndex >= 0 && laneIndex < 4, "Invalid lane index");
             return EncodingHelpers::SIMDSetLaneOperation<int, PSHUFD>(buffer, templateData, targetOffsetI4_0, srcOffsetI4_1, srcOffsetI2, laneIndex);
-        }
-
-        int Simd128_LdSignMask_F4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffsetI0, int srcOffsetF4_1)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            targetOffsetI0 -= templateData->GetBaseOffSet();
-            srcOffsetF4_1 -= templateData->GetBaseOffSet();
-
-            int size = 0;
-            RegNum srcReg, dstReg;
-            srcReg = EncodingHelpers::GetStackReg<AsmJsSIMDValue>(buffer, templateData, srcOffsetF4_1, size);
-            dstReg = templateData->GetReg<int>();
-            size += MOVMSKPS::EncodeInstruction<AsmJsSIMDValue>(buffer, InstrParams2Reg(dstReg, srcReg));
-            size += EncodingHelpers::SetStackReg<int>(buffer, templateData, targetOffsetI0, dstReg);
-            return size;
-        }
-
-        int Simd128_LdSignMask_I4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffsetI0, int srcOffsetI4_1)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            targetOffsetI0 -= templateData->GetBaseOffSet();
-            srcOffsetI4_1 -= templateData->GetBaseOffSet();
-
-            int size = 0;
-            RegNum srcReg, dstReg;
-            srcReg = EncodingHelpers::GetStackReg<AsmJsSIMDValue>(buffer, templateData, srcOffsetI4_1, size);
-            dstReg = templateData->GetReg<int>();
-            size += MOVMSKPS::EncodeInstruction<AsmJsSIMDValue>(buffer, InstrParams2Reg(dstReg, srcReg));
-            size += EncodingHelpers::SetStackReg<int>(buffer, templateData, targetOffsetI0, dstReg);
-            return size;
-        }
-
-        int Simd128_LdSignMask_D2::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffsetI0, int srcOffsetD2_1)
-        {
-            X86TemplateData* templateData = GetTemplateData(context);
-            targetOffsetI0 -= templateData->GetBaseOffSet();
-            srcOffsetD2_1 -= templateData->GetBaseOffSet();
-
-            int size = 0;
-            RegNum srcReg, dstReg;
-            srcReg = EncodingHelpers::GetStackReg<AsmJsSIMDValue>(buffer, templateData, srcOffsetD2_1, size);
-            dstReg = templateData->GetReg<int>();
-            size += MOVMSKPD::EncodeInstruction<AsmJsSIMDValue>(buffer, InstrParams2Reg(dstReg, srcReg));
-            size += EncodingHelpers::SetStackReg<int>(buffer, templateData, targetOffsetI0, dstReg);
-            return size;
         }
 
         int Simd128_I_ArgOut_F4::ApplyTemplate(TemplateContext context, BYTE*& buffer, int argIndex, int offset)

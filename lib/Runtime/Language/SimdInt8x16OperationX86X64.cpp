@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
@@ -227,19 +232,16 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         X86SIMDValue x86tmp1;
 
-        const _x86_SIMDValue X86_LOWBYTE_MASK  = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
-        const _x86_SIMDValue X86_HIGHBYTE_MASK = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
-
         if (count < 0 || count > 8)
         {
             count = 8;
         }
 
-        x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTES_MASK.m128i_value);
         x86tmp1.m128i_value = _mm_slli_epi16(x86tmp1.m128i_value, count);
 
         tmpaValue.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, count);
-        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTES_MASK.m128i_value);
 
         x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 
@@ -252,9 +254,6 @@ namespace Js
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         X86SIMDValue x86tmp1;
 
-        const _x86_SIMDValue X86_LOWBYTE_MASK  = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
-        const _x86_SIMDValue X86_HIGHBYTE_MASK = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
-
         if (count < 0 || count > 8)
         {
             count = 8;
@@ -263,10 +262,10 @@ namespace Js
         x86tmp1.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, 8);
         x86tmp1.m128i_value = _mm_srai_epi16(x86tmp1.m128i_value, count + 8);
 
-        x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTES_MASK.m128i_value);
 
         tmpaValue.m128i_value = _mm_srai_epi16(tmpaValue.m128i_value, count);
-        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTES_MASK.m128i_value);
 
         x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 

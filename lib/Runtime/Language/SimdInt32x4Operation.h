@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 namespace Js {
@@ -18,7 +23,6 @@ namespace Js {
         static SIMDValue OpBool(const SIMDValue& v);
 
         // conversion
-        static SIMDValue OpFromBool(const SIMDValue& value);
         static SIMDValue OpFromFloat32x4(const SIMDValue& value, bool &throws);
         static SIMDValue OpFromFloat64x2(const SIMDValue& value);
 
@@ -47,9 +51,6 @@ namespace Js {
         static SIMDValue OpShiftRightByScalar(const SIMDValue& value, int count);
 
         static SIMDValue OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV);
-
-        // Get SignMask
-        static int OpGetSignMask(const SIMDValue& mV);
     };
 
 } // namespace Js

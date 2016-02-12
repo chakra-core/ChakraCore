@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
@@ -43,7 +48,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     
@@ -199,9 +204,12 @@ function asmModule(stdlib, imports) {
 }
 SIMD.Float32x4.abs = function (a, b) { return a + b;}
 SIMD.Float32x4.neg = function (a) { return a;}
+
+try {
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
 var ret1 = m.func1();
+
 var ret2 = m.func2();
 var ret3 = m.func3();
 
@@ -209,14 +217,10 @@ var ret3 = m.func3();
 var ret4 = m.func4();
 var ret5 = m.func5();
 var ret6 = m.func6();
-
-equalSimd([-5033.2001953125, 3401, -665.3400268554687, 32234.099609375], ret1, SIMD.Float32x4, "Test SIMDLink3");
-equalSimd([-90934.203125, -123.9000015258789, -419.3900146484375, -449], ret2, SIMD.Float32x4, "Test SIMDLink3");
-equalSimd([5033.2001953125, 3401, -665.3400268554687, -32234.099609375], ret3, SIMD.Float32x4, "Test SIMDLink3");
-equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret4, SIMD.Float32x4, "Test SIMDLink3");
-equalSimd([90934.203125, 123.9000015258789, 419.3900146484375, 449], ret5, SIMD.Float32x4, "Test SIMDLink3");
-equalSimd([5033.2001953125, 3401, 665.3400268554687, 32234.099609375], ret6, SIMD.Float32x4, "Test SIMDLink3");
+} catch (e)
+{
+print("PASS");    
+}
 
 
-print("PASS");
 

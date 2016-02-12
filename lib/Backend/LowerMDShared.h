@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 class Lowerer;
@@ -323,10 +328,9 @@ public:
     IR::Instr*          Simd128LowerSqrt(IR::Instr *instr);
     IR::Instr*          Simd128LowerRcpSqrt(IR::Instr *instr);
     IR::Instr*          Simd128LowerSelect(IR::Instr *instr);
-    IR::Instr*          Simd128LowerNegI4(IR::Instr *instr);
+    IR::Instr*          Simd128LowerNeg(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI4(IR::Instr *instr);
     IR::Instr*          Simd128LowerShift(IR::Instr *instr);
-    IR::Instr*          Simd128LowerNegI16(IR::Instr *instr);
     IR::Instr*          Simd128LowerMulI16(IR::Instr *instr);
     IR::Instr*          Simd128LowerInt32x4FromFloat32x4(IR::Instr *instr);
     IR::Instr*          Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr);
@@ -346,6 +350,7 @@ public:
     IR::Instr*          Simd128LowerLessThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerGreaterThanOrEqual(IR::Instr* instr);
     IR::Instr*          Simd128LowerMinMax(IR::Instr* instr);
+    IR::Instr*          Simd128LowerMinMaxNum(IR::Instr* instr);
     IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
     IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);

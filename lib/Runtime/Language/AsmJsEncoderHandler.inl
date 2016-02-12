@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 // Default all macro to nothing
 #ifndef DEF2
 #define DEF2(process, op, func)
@@ -309,10 +314,6 @@ EXDEF3    ( CUSTOM     , NopEx             , OP_Empty                , Empty    
   DEF3_WMS( CUSTOM                              , Simd128_Select_F4             , OP_Simd128_SelectF4               , Float32x4_1Bool32x4_1Float32x4_2)
   DEF3_WMS( CUSTOM                              , Simd128_Select_I4             , OP_Simd128_SelectI4               , Int32x4_1Bool32x4_1Int32x4_2    )
   //DEF3_WMS( CUSTOM                              , Simd128_Select_D2             , OP_Simd128_SelectD2               , Float64x2_1Int32x4_1Float64x2_2 )
-
-  DEF3_WMS( CUSTOM                              , Simd128_LdSignMask_F4         , OP_Simd128_LdSignMaskF4           , Int1Float32x4_1      )
-  DEF3_WMS( CUSTOM                              , Simd128_LdSignMask_I4         , OP_Simd128_LdSignMaskI4           , Int1Int32x4_1        )
-  //DEF3_WMS( CUSTOM                              , Simd128_LdSignMask_D2         , OP_Simd128_LdSignMaskD2           , Int1Float64x2_1      )
 
   DEF3_WMS( CUSTOM                              , Simd128_I_ArgOut_F4           , OP_Simd128_I_ArgOutF4             , Reg1Float32x4_1      )
   DEF3_WMS( CUSTOM                              , Simd128_I_ArgOut_I4           , OP_Simd128_I_ArgOutI4             , Reg1Int32x4_1        )

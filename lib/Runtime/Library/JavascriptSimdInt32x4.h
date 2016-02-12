@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) 2016 Intel Corporation.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 #pragma once
 
 namespace Js
@@ -51,11 +56,8 @@ namespace Js
         // End Entry Points
 
         Var  Copy(ScriptContext* requestContext);
-        Var  CopyAndSetLaneFlag(uint index, BOOL value, ScriptContext* requestContext);
 
     private:
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
-        Var  GetLaneAsFlag(uint index, ScriptContext* requestContext);
-        Var  GetSignMask();
     };
 }
