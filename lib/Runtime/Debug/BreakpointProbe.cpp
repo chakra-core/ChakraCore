@@ -73,6 +73,11 @@ namespace Js
         return (this->GetCharacterOffset() == statement.statement.begin) && (this->byteOffset == statement.bytecodeSpan.begin);
     }
 
+    bool BreakpointProbe::Matches(FunctionBody* _pBody, DebugDocument* debugDocument, int byteOffset)
+    {
+        return (this->functionBody == _pBody) && (this->debugDocument == debugDocument) && (this->byteOffset == byteOffset);
+    }
+
     void BreakpointProbe::GetStatementLocation(StatementLocation * statement)
     {
         statement->bytecodeSpan.begin = this->byteOffset;

@@ -41,6 +41,7 @@ public:
 #endif
 
     void EnsureDebugObject();
+    void ClearDebugObject();
     JsrtDebug * GetDebugObject();
 
 private:

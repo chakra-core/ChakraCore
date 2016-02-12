@@ -115,14 +115,11 @@ public:
     ArenaAllocator* GetDebugObjectArena();
     uint GetNextHandle() { return ++handleId; }
 
-    bool TryGetDebuggerObjectFromHandle(uint handle, DebuggerObjectBase** debuggerObject) { return this->GetDebuggerObjectsDictionary()->TryGetValue(handle, debuggerObject); }
-    bool TryGetScriptObjectFromScriptId(uint scriptId, DebuggerObjectBase** debuggerObject) { return this->GetScriptIdToObjectDictionary()->TryGetValue(scriptId, debuggerObject); }
-    bool TryGetFunctionObjectFromFunctionNumber(uint functionNumber, DebuggerObjectBase** debuggerObject) { return this->GetFunctionNumberToObjectDictionary()->TryGetValue(functionNumber, debuggerObject); }
+    bool TryGetDebuggerObjectFromHandle(uint handle, DebuggerObjectBase** debuggerObject);
     bool TryGetFrameObjectFromFrameIndex(uint frameIndex, DebuggerObjectBase** debuggerObject);
 
-    void AddToDebuggerObjectsDictionary(DebuggerObjectBase* debuggerObject);
-    void AddToScriptIdDebuggerObjectsDictionary(uint scriptId, DebuggerObjectBase* debuggerObject);
-    void AddToFunctionNumberDebuggerObjectsDictionary(uint functionNumber, DebuggerObjectBase* debuggerObject);
+    void AddToDataToDebuggerObjectsDictionary(void* data, DebuggerObjectBase* debuggerObject);
+    bool TryGetDataFromDataToDebuggerObjectsDictionary(void* data, DebuggerObjectBase** debuggerObject);
 
 private:
     uint handleId;
@@ -130,12 +127,11 @@ private:
 
     typedef JsUtil::BaseDictionary<uint, DebuggerObjectBase*, ArenaAllocator> DebuggerObjectsDictionary;
     DebuggerObjectsDictionary* handleToDebuggerObjectsDictionary;
-    DebuggerObjectsDictionary* scriptIdToDebuggerObjectsDictionary;
-    DebuggerObjectsDictionary* functionNumberToDebuggerObjectsDictionary;
 
-    DebuggerObjectsDictionary* GetDebuggerObjectsDictionary();
-    DebuggerObjectsDictionary* GetScriptIdToObjectDictionary();
-    DebuggerObjectsDictionary* GetFunctionNumberToObjectDictionary();
+    typedef JsUtil::BaseDictionary<void*, DebuggerObjectBase*, ArenaAllocator> DataToDebuggerObjectsDictionary;
+    DataToDebuggerObjectsDictionary* dataToDebuggerObjectsDictionary;
+
+    void AddToDebuggerObjectsDictionary(DebuggerObjectBase* debuggerObject);
 };
 
 class DebuggerObjectFunction : public DebuggerObjectBase
@@ -231,4 +227,21 @@ private:
     WeakArenaReference<Js::IDiagObjectModelWalkerBase>* pObjectModelWalker;
     Js::DynamicObject* stackTraceObject;
     Js::DynamicObject* propertiesObject;
+};
+
+class JsrtDebugStackFrames
+{
+public:
+    JsrtDebugStackFrames(JsrtDebug* debugObject);
+    ~JsrtDebugStackFrames();
+    Js::JavascriptArray* StackFrames(Js::ScriptContext* scriptContext);
+    bool TryGetFrameObjectFromFrameIndex(uint frameIndex, DebuggerObjectBase ** debuggerObject);
+private:
+    Js::DynamicObject* GetStackFrame(Js::DiagStackFrame * stackFrame, uint frameIndex);
+    Js::JavascriptArray* stackTraceArray;
+    JsrtDebug* debugObject;
+
+    typedef JsUtil::BaseDictionary<uint, DebuggerObjectBase*, ArenaAllocator> FramesDictionary;
+    FramesDictionary* framesDictionary;
+
 };

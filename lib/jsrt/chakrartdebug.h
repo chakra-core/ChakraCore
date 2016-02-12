@@ -24,25 +24,33 @@
     typedef enum _JsDiagDebugEvent
     {
         /// <summary>
-        ///     Indicates a break due to a breakpoint or debugger statement.
+        ///     Indicates a new script being compiled, this includes script, eval, new function.
         /// </summary>
-        JsDiagDebugEventBreak = 0,
-        /// <summary>
-        ///     Indicates a new script being compiled, this includes new source, eval, new function.
-        /// </summary>
-        JsDiagDebugEventSourceCompilation = 1,
+        JsDiagDebugEventSourceCompile= 0,
         /// <summary>
         ///     Indicates compile error for a script.
         /// </summary>
-        JsDiagDebugEventCompileError = 2,
+        JsDiagDebugEventCompileError = 1,
         /// <summary>
-        ///     Indicates a sync break.
+        ///     Indicates a break due to a breakpoint.
         /// </summary>
-        JsDiagDebugEventAsyncBreak = 3,
+        JsDiagDebugEventBreak = 2,
         /// <summary>
-        ///     Indicates a runtime script exception.
+        ///     Indicates a break after completion of step action.
         /// </summary>
-        JsDiagDebugEventRuntimeException = 4,
+        JsDiagDebugEventStepComplete = 3,
+        /// <summary>
+        ///     Indicates a break due to debugger statement.
+        /// </summary>
+        JsDiagDebugEventDebuggerStatement = 4,
+        /// <summary>
+        ///     Indicates break due to async break.
+        /// </summary>
+        JsDiagDebugEventAsyncBreak = 5,
+        /// <summary>
+        ///     Indicates break due to a runtime script exception.
+        /// </summary>
+        JsDiagDebugEventRuntimeException = 6
     } JsDiagDebugEvent;
 
 
@@ -87,7 +95,7 @@
 
 
     /// <summary>
-    ///     List all active breakpoint in the runtime
+    ///     List all active breakpoint in the current runtime
     /// </summary>
     /// <param name="breakPoints">Array of breakpoints</param>
     /// <remarks>
@@ -113,7 +121,16 @@
     /// <param name="scriptId">Id of script from JsDiagGetScripts or JsDiagGetSource to but breakpoint</param>
     /// <param name="lineNumber">0 based line number to put breakpoint</param>
     /// <param name="columnNumber">0 based column number to put breakpoint</param>
-    /// <param name="breakpointId">Breakpoint id if success</param>
+    /// <param name="breakPoint">Breakpoint object with id, line and column if success</param>
+    /// <remarks>
+    ///     <para>
+    ///     {
+    ///         "breakpointId" : 1,
+    ///         "line" : 2,
+    ///         "column" : 4
+    ///     }
+    ///     </para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
@@ -122,7 +139,7 @@
             _In_ unsigned int scriptId,
             _In_ unsigned int lineNumber,
             _In_ unsigned int columnNumber,
-            _Out_opt_ unsigned int *breakpointId);
+            _Out_ JsValueRef *breakPoint);
 
 
     /// <summary>
@@ -160,6 +177,11 @@
     ///     Sets break on exception handling
     /// </summary>
     /// <param name="exceptionType">Type of JsDiagBreakOnExceptionType to set</param>
+    /// <remarks>
+    ///     <para>
+    ///         If this API is not called the default value is set to JsDiagBreakOnExceptionTypeUncaught in the engine
+    ///     </para>
+    /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
@@ -180,7 +202,7 @@
             _Out_ JsDiagBreakOnExceptionType* exceptionType);
 
     /// <summary>
-    ///     Steping types
+    ///     Stepping types
     /// </summary>
     typedef enum _JsDiagResumeType
     {
@@ -265,8 +287,8 @@
     /// <summary>
     ///     Gets the source information for a function object
     /// </summary>
-    /// <param name="value">JavaScript function.</param>
-    /// <param name="funcInfo">Function info, scriptId, start line, start column, line numnber of first statement, column number of first statement</param>
+    /// <param name="func">JavaScript function.</param>
+    /// <param name="funcInfo">Function info, scriptId, start line, start column, line number of first statement, column number of first statement</param>
     /// <remarks>
     ///     <para>
     ///     {
@@ -284,7 +306,7 @@
     /// </returns>
     STDAPI_(JsErrorCode)
       JsDiagGetFunctionPosition(
-        _In_ JsValueRef value,
+        _In_ JsValueRef func,
         _Out_ JsValueRef *funcInfo);
 
 
@@ -318,7 +340,7 @@
     /// <summary>
     ///     Gets the list of properties corresponding to the frame
     /// </summary>
-    /// <param name="stackFrameHandle">Handle of stack frame from JsDiagGetStacktrace</param>
+    /// <param name="stackFrameIndex">Index of stack frame from JsDiagGetStacktrace</param>
     /// <param name="properties">Object of properties array (properties, scopes and globals)</param>
     /// <remarks>
     ///     <para>
@@ -370,7 +392,7 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsDiagGetStackProperties(
-            _In_ unsigned int stackFrameHandle,
+            _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *properties);
 
 

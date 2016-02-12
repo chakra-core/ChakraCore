@@ -26,7 +26,8 @@ Js::DynamicObject* JsrtDebugEventObject::GetEventDataObject()
     return this->eventDataObject;
 }
 
-DebugDocumentManager::DebugDocumentManager(JsrtDebug* debugObject)
+DebugDocumentManager::DebugDocumentManager(JsrtDebug* debugObject) :
+    breakpointDebugDocumentDictionary(nullptr)
 {
     Assert(debugObject != nullptr);
     this->debugObject = debugObject;
@@ -38,7 +39,8 @@ DebugDocumentManager::~DebugDocumentManager()
     {
         AssertMsg(this->breakpointDebugDocumentDictionary->Count() == 0, "Should have cleared all entries by now?");
 
-        HeapDelete(this->breakpointDebugDocumentDictionary);
+        Adelete(this->debugObject->GetDebugObjectArena(), this->breakpointDebugDocumentDictionary);
+
         this->breakpointDebugDocumentDictionary = nullptr;
     }
     this->debugObject = nullptr;
@@ -55,21 +57,30 @@ void DebugDocumentManager::AddDocument(UINT bpId, Js::DebugDocument * debugDocum
 
 void DebugDocumentManager::ClearDebugDocument(Js::ScriptContext * scriptContext)
 {
-    if (scriptContext != nullptr && this->breakpointDebugDocumentDictionary != nullptr)
+    if (scriptContext != nullptr)
     {
         scriptContext->MapScript([&](Js::Utf8SourceInfo* sourceInfo)
         {
             if (sourceInfo->HasDebugDocument())
             {
                 Js::DebugDocument* debugDocument = sourceInfo->GetDebugDocument();
-                this->breakpointDebugDocumentDictionary->MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<UINT, Js::DebugDocument *> keyValue)
+
+                // Remove the debugdocument from breakpoint dictionary
+                if (this->breakpointDebugDocumentDictionary != nullptr)
                 {
-                    if (keyValue.Value() != nullptr && keyValue.Value() == debugDocument)
+                    this->breakpointDebugDocumentDictionary->MapAndRemoveIf([&](JsUtil::SimpleDictionaryEntry<UINT, Js::DebugDocument *> keyValue)
                     {
-                        return true;
-                    }
-                    return false;
-                });
+                        if (keyValue.Value() != nullptr && keyValue.Value() == debugDocument)
+                        {
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+
+                debugDocument->GetUtf8SourceInfo()->ClearDebugDocument();
+                HeapDelete(debugDocument);
+                debugDocument = nullptr;
             }
         });
     }

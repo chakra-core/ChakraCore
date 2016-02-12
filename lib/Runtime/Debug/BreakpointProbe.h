@@ -25,6 +25,7 @@ namespace Js
 
         bool Matches(FunctionBody* _pBody, int characterPosition);
         bool Matches(StatementLocation statement);
+        bool Matches(FunctionBody* _pBody, DebugDocument* debugDocument, int byteOffset);
 
         UINT GetId() const { return this->breakPointId; }
         void GetStatementLocation(StatementLocation * statement);

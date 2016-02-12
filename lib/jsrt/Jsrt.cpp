@@ -276,6 +276,8 @@ STDAPI_(JsErrorCode) JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
 
+        runtime->ClearDebugObject();
+
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         bool doFinalGC = false;
 

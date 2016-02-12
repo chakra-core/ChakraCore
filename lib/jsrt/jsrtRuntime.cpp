@@ -126,6 +126,15 @@ void JsrtRuntime::EnsureDebugObject()
     Assert(this->debugObject != nullptr);
 }
 
+void JsrtRuntime::ClearDebugObject()
+{
+    if (this->debugObject != nullptr)
+    {
+        HeapDelete(this->debugObject);
+        this->debugObject = nullptr;
+    }
+}
+
 JsrtDebug * JsrtRuntime::GetDebugObject()
 {
     return this->debugObject;

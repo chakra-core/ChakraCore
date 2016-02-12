@@ -31,9 +31,9 @@ public:
     Js::DynamicObject * GetSource(uint scriptId);
 
     Js::JavascriptArray * GetStackFrames(Js::ScriptContext* scriptContext);
-    Js::DynamicObject * GetStackFrame(Js::DiagStackFrame* stackFrame, uint frameIndex);
+    bool TryGetFrameObjectFromFrameIndex(Js::ScriptContext *scriptContext, uint frameIndex, DebuggerObjectBase ** debuggerObject);
 
-    HRESULT SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, UINT *breakpointId);
+    Js::DynamicObject* SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber);
     void GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext* scriptContext);
 
     DebuggerObjectsManager* GetDebuggerObjectsManager();
@@ -48,6 +48,8 @@ public:
     void SetBreakOnException(JsDiagBreakOnExceptionType breakOnExceptionType);
     JsDiagBreakOnExceptionType GetBreakOnException();
 
+    JsDiagDebugEvent GetDebugEventFromStopType(Js::StopType stopType);
+
 private:
     ThreadContext* threadContext;
     JsDiagDebugEventCallback debugEventCallback;
@@ -57,6 +59,7 @@ private:
     DebuggerObjectsManager* debuggerObjectsManager;
     uint callBackDepth;
     DebugDocumentManager* debugDocumentManager;
+    JsrtDebugStackFrames* stackFrames;
 
     JsDiagBreakOnExceptionType breakOnExceptionType;
 

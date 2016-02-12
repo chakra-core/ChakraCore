@@ -108,6 +108,12 @@ namespace Js
             this->diagProbeList->Map(map);
         }
 
+        template<class TMapFunction>
+        void MapProbesUntil(TMapFunction map)
+        {
+            this->diagProbeList->MapUntil(map);
+        }
+
         void RemoveAllProbes();
 
         bool CanDispatchHalt(InterpreterHaltState* pHaltState);

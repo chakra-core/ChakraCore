@@ -22,6 +22,12 @@ void JsrtDebugUtils::AddFileNameToObject(Js::DynamicObject* object, Js::Utf8Sour
 {
     const wchar_t* url = utf8SourceInfo->GetSourceContextInfo()->url == nullptr ? L"" : utf8SourceInfo->GetSourceContextInfo()->url;
 
+    if (utf8SourceInfo->IsDynamic())
+    {
+        Js::FunctionBody* anyFunctionBody = utf8SourceInfo->GetAnyParsedFunction();
+        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::scriptType, anyFunctionBody->GetSourceName(), utf8SourceInfo->GetScriptContext());
+    }
+
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::fileName, url, utf8SourceInfo->GetScriptContext());
 }
 

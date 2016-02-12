@@ -65,7 +65,7 @@ namespace Js
         return BreakpointProbeList::New(arena);
     }
 
-    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState, UINT *bpId)
+    HRESULT DebugDocument::SetBreakPoint(long ibos, BREAKPOINT_STATE breakpointState)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
@@ -80,19 +80,22 @@ namespace Js
             return E_FAIL;
         }
 
-        return this->SetBreakPoint(statement, breakpointState, bpId);
+        if (this->SetBreakPoint(statement, breakpointState) == nullptr)
+        {
+            return E_FAIL;
+        }
+
+        return S_OK;
     }
 
-    HRESULT DebugDocument::SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps, UINT * bpId)
+    BreakpointProbe* DebugDocument::SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps)
     {
         ScriptContext* scriptContext = this->utf8SourceInfo->GetScriptContext();
 
         if (scriptContext == nullptr || scriptContext->IsClosed())
         {
-            return E_UNEXPECTED;
+            return nullptr;
         }
-
-        HRESULT hr = NOERROR;
 
         switch (bps)
         {
@@ -132,14 +135,11 @@ namespace Js
                 scriptContext->GetDebugContext()->GetProbeContainer()->AddProbe(pProbe);
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 pBreakpointList->Add(pProbe);
-                if (bpId != nullptr)
-                {
-                    *bpId = pProbe->GetId();
-                }
+                return pProbe;
                 break;
             }
         }
-        return hr;
+        return nullptr;
     }
 
     void DebugDocument::RemoveBreakpointProbe(BreakpointProbe *probe)
@@ -160,9 +160,9 @@ namespace Js
         }
     }
 
-    UINT DebugDocument::FindBreakpointId(StatementLocation statement)
+    Js::BreakpointProbe* DebugDocument::FindBreakpointId(StatementLocation statement)
     {
-        UINT bpId = 0;
+        Js::BreakpointProbe* probe = nullptr;
         if (m_breakpointList != nullptr)
         {
             BreakpointProbeList* breakpointProbeList = this->GetBreakpointList();
@@ -172,7 +172,7 @@ namespace Js
                 {
                     if (bpProbe->Matches(statement))
                     {
-                        bpId = bpProbe->GetId();
+                        probe = bpProbe;
                         return true;
                     }
                 }
@@ -180,7 +180,7 @@ namespace Js
             });
         }
 
-        return bpId;
+        return probe;
     }
 
     bool DebugDocument::FindBPStatementLocation(UINT bpId, StatementLocation * statement)

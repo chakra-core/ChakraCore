@@ -19,6 +19,7 @@ JsrtDebug::JsrtDebug(ThreadContext* threadContext) :
     debuggerObjectsManager(nullptr),
     callBackDepth(0),
     debugDocumentManager(nullptr),
+    stackFrames(nullptr),
     breakOnExceptionType(JsDiagBreakOnExceptionTypeUncaught)
 {
     // ToDo (SaAgarwa): Confirm the default value of breakOnExceptionType
@@ -75,16 +76,16 @@ void JsrtDebug::DispatchHalt(Js::InterpreterHaltState* haltState)
 {
     switch (haltState->stopType)
     {
-    case Js::STOP_BREAKPOINT:
-    case Js::STOP_INLINEBREAKPOINT:
-    case Js::STOP_ASYNCBREAK:
+    case Js::STOP_BREAKPOINT: /*JsDiagDebugEventBreak*/
+    case Js::STOP_INLINEBREAKPOINT: /*JsDiagDebugEventDebuggerStatement*/
+    case Js::STOP_ASYNCBREAK: /*JsDiagDebugEventAsyncBreak*/
         this->ReportBreak(haltState);
         break;
-    case Js::STOP_STEPCOMPLETE:
+    case Js::STOP_STEPCOMPLETE: /*JsDiagDebugEventStepComplete*/
         this->SetResumeType(BREAKRESUMEACTION_CONTINUE);
         this->ReportBreak(haltState);
         break;
-    case Js::STOP_EXCEPTIONTHROW:
+    case Js::STOP_EXCEPTIONTHROW: /*JsDiagDebugEventRuntimeException*/
         this->ReportExceptionBreak(haltState);
         break;
     case Js::STOP_MUTATIONBREAKPOINT:
@@ -145,13 +146,16 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
         }
         else
         {
-            // Create DebugDocument and then report JsDiagDebugEventSourceCompilation event
+            DebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
+            Assert(debugDocumentManager != nullptr);
+
+            // Create DebugDocument and then report JsDiagDebugEventSourceCompile event
             Js::DebugDocument* debugDocument = HeapNewNoThrow(Js::DebugDocument, utf8SourceInfo, scriptFunction->GetFunctionBody());
             if (debugDocument != nullptr)
             {
                 utf8SourceInfo->SetDebugDocument(debugDocument);
             }
-            jsDiagDebugEvent = JsDiagDebugEventSourceCompilation;
+            jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
         }
         
         this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext);
@@ -162,22 +166,40 @@ void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
 {
     if (this->debugEventCallback != nullptr)
     {
-        Js::Utf8SourceInfo* utf8SourceInfo = haltState->GetFunction()->GetUtf8SourceInfo();
+        Js::FunctionBody* functionBody = haltState->GetFunction();
+        Assert(functionBody != nullptr);
+
+        Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+        int currentByteCodeOffset = haltState->GetCurrentOffset();
         Js::ScriptContext* scriptContext = utf8SourceInfo->GetScriptContext();
 
-        JsDiagDebugEvent jsDiagDebugEvent = haltState->stopType == Js::STOP_ASYNCBREAK ? JsDiagDebugEventAsyncBreak : JsDiagDebugEventBreak;
+        JsDiagDebugEvent jsDiagDebugEvent = this->GetDebugEventFromStopType(haltState->stopType);
 
         JsrtDebugEventObject debugEventObject(scriptContext);
 
         Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
 
+        Js::ProbeContainer* probeContainer = scriptContext->GetDebugContext()->GetProbeContainer();
+
+        if (jsDiagDebugEvent == JsDiagDebugEventBreak)
+        {
+            UINT bpId = 0;
+            probeContainer->MapProbesUntil([&](int i, Js::Probe* pProbe) {
+                Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
+                if (bp->Matches(functionBody, utf8SourceInfo->GetDebugDocument(), currentByteCodeOffset))
+                {
+                    bpId = bp->GetId();
+                    return true;
+                }
+                return false;
+            });
+
+            AssertMsg(bpId != 0, "How come we don't have a breakpoint id for JsDiagDebugEventBreak");
+
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::breakpointId, bpId, scriptContext);
+        }
+
         JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
-
-        Js::FunctionBody* functionBody = haltState->topFrame->GetFunction();
-
-        Assert(functionBody != nullptr);
-
-        int currentByteCodeOffset = haltState->topFrame->GetByteCodeOffset();
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
         JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
 
@@ -189,6 +211,8 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
 {
     if (this->debugEventCallback != nullptr)
     {
+        Assert(haltState->stopType == Js::STOP_EXCEPTIONTHROW);
+
         Js::Utf8SourceInfo* utf8SourceInfo = haltState->GetFunction()->GetUtf8SourceInfo();
         Js::ScriptContext* scriptContext = utf8SourceInfo->GetScriptContext();
 
@@ -221,7 +245,7 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
             resolvedObject.obj = resolvedObject.scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(this->debuggerObjectsManager, resolvedObject, scriptContext, [&](Js::Var marshaledObj)
+        DebuggerObjectBase::CreateDebuggerObject<DebuggerObjectProperty>(this->GetDebuggerObjectsManager(), resolvedObject, scriptContext, [&](Js::Var marshaledObj)
         {
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
         });
@@ -279,6 +303,11 @@ void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicO
         if (this->callBackDepth == 0)
         {
             this->GetDebuggerObjectsManager()->ClearAll();
+            if (this->stackFrames != nullptr)
+            {
+                Adelete(this->GetDebugObjectArena(), this->stackFrames);
+                this->stackFrames = nullptr;
+            }
         }
     };
 
@@ -318,7 +347,6 @@ void JsrtDebug::CallDebugEventCallbackForBreak(JsDiagDebugEvent debugEvent, Js::
     }
 }
 
-
 Js::DynamicObject * JsrtDebug::GetScript(Js::Utf8SourceInfo * utf8SourceInfo)
 {
     DebuggerObjectBase* debuggerObject = DebuggerObjectScript::Make(this->GetDebuggerObjectsManager(), utf8SourceInfo);
@@ -329,22 +357,43 @@ Js::JavascriptArray * JsrtDebug::GetScripts(Js::ScriptContext* scriptContext)
 {
     Js::JavascriptArray* scriptsArray = scriptContext->GetLibrary()->CreateArray();
 
+    int index = 0;
+
     for (Js::ScriptContext *tempScriptContext = scriptContext->GetThreadContext()->GetScriptContextList();
     tempScriptContext != nullptr && !tempScriptContext->IsClosed();
         tempScriptContext = tempScriptContext->next)
     {
-        int index = 0;
-        tempScriptContext->GetSourceList()->Map([&](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef)
+        tempScriptContext->GetSourceList()->Map([&](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* utf8SourceInfoWeakRef)
         {
-            Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-            if (sourceInfo != nullptr)
+            Js::Utf8SourceInfo* utf8SourceInfo = utf8SourceInfoWeakRef->Get();
+            if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
             {
-                Js::DynamicObject* sourceObj = this->GetScript(sourceInfo);
-                if (sourceObj != nullptr)
+                bool isCallerLibraryCode = false;
+
+                bool isDynamic = utf8SourceInfo->IsDynamic();
+
+                if (isDynamic)
                 {
-                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, sourceObj);
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)scriptsArray, Js::JavascriptNumber::ToVar(index, scriptContext), marshaledObj, scriptContext);
-                    index++;
+                    // If the code is dynamic (eval or new Function) only return the script if parent is non-library
+                    Js::Utf8SourceInfo* callerUtf8SourceInfo = utf8SourceInfo->GetCallerUtf8SourceInfo();
+
+                    while (callerUtf8SourceInfo != nullptr && !isCallerLibraryCode)
+                    {
+                        isCallerLibraryCode = callerUtf8SourceInfo->GetIsLibraryCode();
+                        callerUtf8SourceInfo = callerUtf8SourceInfo->GetCallerUtf8SourceInfo();
+                    }
+                }
+
+                if (!isCallerLibraryCode)
+                {
+                    Js::DynamicObject* sourceObj = this->GetScript(utf8SourceInfo);
+
+                    if (sourceObj != nullptr)
+                    {
+                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, sourceObj);
+                        Js::JavascriptOperators::OP_SetElementI((Js::Var)scriptsArray, Js::JavascriptNumber::ToVar(index, scriptContext), marshaledObj, scriptContext);
+                        index++;
+                    }
                 }
             }
         });
@@ -391,47 +440,32 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
 
 Js::JavascriptArray * JsrtDebug::GetStackFrames(Js::ScriptContext* scriptContext)
 {
-    Js::JavascriptArray* stackTraceArray = scriptContext->GetLibrary()->CreateArray();
-
-    uint frameCount = 0;
-
-    for (Js::ScriptContext *tempScriptContext = this->threadContext->GetScriptContextList();
-    tempScriptContext != nullptr && tempScriptContext->IsInDebugMode();
-        tempScriptContext = tempScriptContext->next)
+    if (this->stackFrames != nullptr)
     {
-        Js::WeakDiagStack * framePointers = tempScriptContext->GetDebugContext()->GetProbeContainer()->GetFramePointers();
-        if (framePointers != nullptr)
-        {
-            Js::DiagStack* stackFrames = framePointers->GetStrongReference();
-            if (stackFrames != nullptr)
-            {
-                int count = stackFrames->Count();
-                for (int frameIndex = 0; frameIndex < count; ++frameIndex)
-                {
-                    Js::DiagStackFrame* stackFrame = stackFrames->Peek(frameIndex);
-                    Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, frameCount);
-
-                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)stackTraceArray, Js::JavascriptNumber::ToVar(frameCount++, scriptContext), marshaledObj, scriptContext);
-                }
-            }
-            framePointers->ReleaseStrongReference();
-        }
+        return this->stackFrames->StackFrames(scriptContext);
     }
 
-    return stackTraceArray;
+    this->stackFrames = Anew(this->GetDebugObjectArena(), JsrtDebugStackFrames, this);
+
+    return this->stackFrames->StackFrames(scriptContext);
 }
 
-Js::DynamicObject * JsrtDebug::GetStackFrame(Js::DiagStackFrame * stackFrame, uint frameIndex)
+bool JsrtDebug::TryGetFrameObjectFromFrameIndex(Js::ScriptContext *scriptContext, uint frameIndex, DebuggerObjectBase ** debuggerObject)
 {
-    DebuggerObjectBase* debuggerObject = DebuggerObjectStackFrame::Make(this->GetDebuggerObjectsManager(), stackFrame, frameIndex);
-    return debuggerObject->GetJSONObject(stackFrame->GetScriptContext());
+    if (this->stackFrames == nullptr)
+    {
+        this->GetStackFrames(scriptContext);
+    }
+
+    Assert(this->stackFrames != nullptr);
+
+    return this->stackFrames->TryGetFrameObjectFromFrameIndex(frameIndex, debuggerObject);
 }
 
-HRESULT JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, UINT *breakpointId)
+Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber)
 {
     Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
-    if (SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()))
+    if (debugDocument != nullptr && SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()) && lineNumber < utf8SourceInfo->GetLineCount())
     {
         charcount_t charPosition;
         charcount_t byteOffset;
@@ -441,25 +475,37 @@ HRESULT JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNu
         Js::StatementLocation statement;
         if (!debugDocument->GetStatementLocation(ibos, &statement))
         {
-            return E_FAIL;
+            return nullptr;
         }
 
-        // Find if a breakpoint already exists, if so just return the id of it
-        UINT bpId = debugDocument->FindBreakpointId(statement);
-        if (bpId > 0)
+        // Don't see a use case for supporting multiple breakpoints at same location.
+        // If a breakpoint already exists, just return that
+        Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
+        if (probe == nullptr)
         {
-            *breakpointId = bpId;
-            return S_OK;
+            probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+
+            if(probe == nullptr)
+            {
+                return nullptr;
+            }
+
+            this->GetDebugDocumentManager()->AddDocument(probe->GetId(), debugDocument);
         }
 
-        if (SUCCEEDED(debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED, breakpointId)))
-        {
-            this->GetDebugDocumentManager()->AddDocument(*breakpointId, debugDocument);
-            return S_OK;
-        }
+        probe->GetStatementLocation(&statement);
+
+        Js::ScriptContext* scriptContext = debugDocument->GetUtf8SourceInfo()->GetScriptContext();
+
+        Js::DynamicObject* bpObject = scriptContext->GetLibrary()->CreateObject();
+
+        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, probe->GetId(), scriptContext);
+        JsrtDebugUtils::AddLineColumnToObject(bpObject, statement.function, statement.bytecodeSpan.begin);
+
+        return bpObject;
     }
 
-    return E_FAIL;
+    return nullptr;
 }
 
 void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext * scriptContext)
@@ -473,7 +519,7 @@ void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext
 
         Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
 
-        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, (double)bp->GetId(), scriptContext);
+        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, bp->GetId(), scriptContext);
 
         JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
 
@@ -503,7 +549,8 @@ ArenaAllocator * JsrtDebug::GetDebugObjectArena()
 {
     if (this->debugObjectArena == nullptr)
     {
-        this->debugObjectArena = HeapNew(ArenaAllocator, L"DebugObjectArena", this->threadContext->GetDebugManager()->GetDiagnosticPageAllocator(), Js::Throw::OutOfMemory);
+        this->debugObjectArena = HeapNew(ArenaAllocator, L"DebugObjectArena", this->threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
+
         this->threadContext->GetRecycler()->RegisterExternalGuestArena(this->debugObjectArena);
     }
 
@@ -543,4 +590,23 @@ void JsrtDebug::SetBreakOnException(JsDiagBreakOnExceptionType breakOnExceptionT
 JsDiagBreakOnExceptionType JsrtDebug::GetBreakOnException()
 {
     return this->breakOnExceptionType;
+}
+
+JsDiagDebugEvent JsrtDebug::GetDebugEventFromStopType(Js::StopType stopType)
+{
+    switch (stopType)
+    {
+    case Js::STOP_BREAKPOINT: return JsDiagDebugEventBreak;
+    case Js::STOP_INLINEBREAKPOINT: return JsDiagDebugEventDebuggerStatement;
+    case Js::STOP_STEPCOMPLETE: return JsDiagDebugEventStepComplete;
+    case Js::STOP_EXCEPTIONTHROW: return JsDiagDebugEventRuntimeException;
+    case Js::STOP_ASYNCBREAK: return JsDiagDebugEventAsyncBreak;
+
+    case Js::STOP_MUTATIONBREAKPOINT:
+    default:
+        Assert("Unhandled stoptype");
+        break;
+    }
+
+    return JsDiagDebugEventBreak;
 }

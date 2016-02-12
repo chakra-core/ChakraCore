@@ -22,12 +22,12 @@ namespace Js
         ~DebugDocument();
         virtual void CloseDocument();
 
-        HRESULT SetBreakPoint(long ibos, BREAKPOINT_STATE bps, UINT *bpId = nullptr);
-        HRESULT SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps, UINT *bpId = nullptr);
+        HRESULT SetBreakPoint(long ibos, BREAKPOINT_STATE bps);
+        BreakpointProbe* SetBreakPoint(StatementLocation statement, BREAKPOINT_STATE bps);
         void RemoveBreakpointProbe(BreakpointProbe *probe);
         void ClearAllBreakPoints(void);
 
-        UINT FindBreakpointId(StatementLocation statement);
+        BreakpointProbe* FindBreakpointId(StatementLocation statement);
         bool FindBPStatementLocation(UINT bpId, StatementLocation * statement);
 
         BOOL GetStatementSpan(long ibos, StatementSpan* pBos);
