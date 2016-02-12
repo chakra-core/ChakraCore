@@ -37,8 +37,9 @@ public:
     void Decommit();
     void Clear();
 
-    EmitBufferAllocation* AllocateBuffer(__in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, bool readWrite = false, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
+    EmitBufferAllocation* AllocateBuffer(__in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
     bool CommitBuffer(EmitBufferAllocation* allocation, __out_bcount(bytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad = 0);
+    bool ProtectBufferWithExecuteReadWriteForInterpreter(EmitBufferAllocation* allocation);
     bool CommitReadWriteBufferForInterpreter(EmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
     void CompletePreviousAllocation(EmitBufferAllocation* allocation);
     bool FreeAllocation(void* address);
@@ -119,7 +120,7 @@ private:
     Js::ScriptContext * scriptContext;
 
     EmitBufferAllocation * NewAllocation(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode);
-    EmitBufferAllocation* GetBuffer(EmitBufferAllocation *allocation, __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, bool readWrite);
+    EmitBufferAllocation* GetBuffer(EmitBufferAllocation *allocation, __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer);
 
     bool FinalizeAllocation(EmitBufferAllocation *allocation);
     CustomHeap::Heap allocationHeap;

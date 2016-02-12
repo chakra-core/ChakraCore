@@ -100,6 +100,7 @@ bool Heap::Free(__in Allocation* object)
     {
         return true;
     }
+
     return FreeAllocation(object);
 }
 
@@ -141,6 +142,7 @@ bool Heap::Decommit(__in Allocation* object)
     // Skip asserting here- multiple objects could be on the same page
     // Review: should we really decommit here or decommit only when all objects
     // on the page have been decommitted?
+
     if (!object->page->isDecommitted)
     {
 #if PDATA_ENABLED
@@ -194,7 +196,13 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
 
     if (bucket == BucketId::LargeObjectList)
     {
-        return AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
+        allocation = AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
+#if defined(DBG)
+        MEMORY_BASIC_INFORMATION memBasicInfo;
+        size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+        Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+#endif
+        return allocation;
     }
 
     VerboseHeapTrace(L"Bucket is %d\n", bucket);
@@ -221,46 +229,58 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         return nullptr;
     }
 
+#if defined(DBG)
+    MEMORY_BASIC_INFORMATION memBasicInfo;
+    size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
+    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+#endif
+
     allocation = AllocInPage(page, bytesToAllocate, pdataCount, xdataSize);
     return allocation;
 }
 
-BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag)
+BOOL Heap::ProtectAllocationWithExecuteReadWrite(Allocation *allocation, char* addressInPage)
 {
-    Assert(allocation != nullptr);
-    Assert(allocation->isAllocationUsed);
+    DWORD protectFlags = 0;
 
-    return ProtectAllocationInternal(allocation, nullptr, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+    if (AutoSystemInfo::Data.IsCFGEnabled())
+    {
+        protectFlags = PAGE_EXECUTE_RW_TARGETS_NO_UPDATE;
+    }
+    else
+    {
+        protectFlags = PAGE_EXECUTE_READWRITE;
+    }
+    return this->ProtectAllocation(allocation, protectFlags, PAGE_EXECUTE, addressInPage);
 }
 
-BOOL Heap::ProtectAllocationPage(__in Allocation* allocation, __in char* addressInPage, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag)
+BOOL Heap::ProtectAllocationWithExecuteReadOnly(Allocation *allocation, char* addressInPage)
 {
-    Assert(addressInPage != nullptr);
-    Assert(allocation != nullptr);
-    Assert(addressInPage >= allocation->address);
-    Assert(allocation->isAllocationUsed);
-
-    return ProtectAllocationInternal(allocation, addressInPage, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+    DWORD protectFlags = 0;
+    if (AutoSystemInfo::Data.IsCFGEnabled())
+    {
+        protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
+    }
+    else
+    {
+        protectFlags = PAGE_EXECUTE;
+    }
+    return this->ProtectAllocation(allocation, protectFlags, PAGE_EXECUTE_READWRITE, addressInPage);
 }
 
-BOOL Heap::ProtectAllocationInternal(__in Allocation* allocation, __in_opt char* addressInPage, DWORD dwVirtualProtectFlags, __out DWORD* dwOldVirtualProtectFlags, DWORD desiredOldProtectFlag)
+BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag, __in_opt char* addressInPage)
 {
     // Allocate at the page level so that our protections don't
     // transcend allocation page boundaries. Here, allocation->address is page
     // aligned if the object is a large object allocation. If it isn't, in the else
     // branch of the following if statement, we set it to the allocation's page's
     // address. This ensures that the address being protected is always page aligned
-    char* address = allocation->address;
 
-#ifdef _CONTROL_FLOW_GUARD
-    if (AutoSystemInfo::Data.IsCFGEnabled() &&
-        (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)))
-    {
-        AssertMsg(!(dwVirtualProtectFlags & PAGE_EXECUTE_WRITECOPY), "PAGE_EXECUTE_WRITECOPY is not used today. Remove this precondition \
-            and add to the if condition above, if this flag is used.");
-        dwVirtualProtectFlags |= PAGE_TARGETS_NO_UPDATE;
-    }
-#endif
+    Assert(allocation != nullptr);
+    Assert(allocation->isAllocationUsed);
+    Assert(addressInPage == nullptr || (addressInPage >= allocation->address && addressInPage < (allocation->address + allocation->size)));
+
+    char* address = allocation->address;
 
     size_t pageCount;
     void * segment;
@@ -273,7 +293,6 @@ BOOL Heap::ProtectAllocationInternal(__in Allocation* allocation, __in_opt char*
         }
 #endif
         segment = allocation->largeObjectAllocation.segment;
-        allocation->largeObjectAllocation.isReadWrite = ((dwVirtualProtectFlags & PAGE_READWRITE) == PAGE_READWRITE);
 
         if (addressInPage != nullptr)
         {
@@ -291,7 +310,7 @@ BOOL Heap::ProtectAllocationInternal(__in Allocation* allocation, __in_opt char*
         }
 
         VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
-        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
     else
     {
@@ -303,11 +322,10 @@ BOOL Heap::ProtectAllocationInternal(__in Allocation* allocation, __in_opt char*
 #endif
         segment = allocation->page->segment;
         address = allocation->page->address;
-        allocation->page->isReadWrite = ((dwVirtualProtectFlags & PAGE_READWRITE) == PAGE_READWRITE);
         pageCount = 1;
 
         VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
-        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, dwOldVirtualProtectFlags, desiredOldProtectFlag);
+        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
 }
 
@@ -353,6 +371,16 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
         }
 
         FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize);
+        DWORD protectFlags = 0;
+        if (AutoSystemInfo::Data.IsCFGEnabled())
+        {
+            protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
+        }
+        else
+        {
+            protectFlags = PAGE_EXECUTE;
+        }
+        this->ProtectPages(address, pages, segment, protectFlags /*dwVirtualProtectFlags*/, PAGE_READWRITE /*desiredOldProtectFlags*/);
 
 #if PDATA_ENABLED
         if(pdataCount > 0)
@@ -386,7 +414,6 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
     allocation->address = address;
     allocation->largeObjectAllocation.segment = segment;
     allocation->largeObjectAllocation.isDecommitted = false;
-    allocation->largeObjectAllocation.isReadWrite = true;
     allocation->size = pages * AutoSystemInfo::PageSize;
 
 #if PDATA_ENABLED
@@ -422,6 +449,31 @@ void Heap::FreeDecommittedLargeObjects()
         largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
+}
+
+//Called during Free (while shutting down)
+DWORD Heap::EnsurePageWriteable(Page* page)
+{
+    return EnsurePageReadWrite<PAGE_READWRITE>(page);
+}
+
+// this get called when freeing the whole page
+DWORD Heap::EnsureAllocationWriteable(Allocation* allocation)
+{
+    return EnsureAllocationReadWrite<PAGE_READWRITE>(allocation);
+}
+
+// this get called when only freeing a part in the page
+DWORD Heap::EnsureAllocationExecuteWriteable(Allocation* allocation)
+{
+    if (AutoSystemInfo::Data.IsCFGEnabled())
+    {
+        return EnsureAllocationReadWrite<PAGE_EXECUTE_RW_TARGETS_NO_UPDATE>(allocation);
+    }
+    else
+    {
+        return EnsureAllocationReadWrite<PAGE_EXECUTE_READWRITE>(allocation);
+    }   
 }
 
 template <bool freeAll>
@@ -601,6 +653,20 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
     }
 
     FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize);
+
+    DWORD protectFlags = 0;
+
+    if (AutoSystemInfo::Data.IsCFGEnabled())
+    {
+        protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
+    }
+    else
+    {
+        protectFlags = PAGE_EXECUTE;
+    }
+
+    //Change the protection of the page to Read-Only Execute, before adding it to the bucket list.
+    ProtectPages(address, 1, pageSegment, protectFlags, PAGE_READWRITE);
 
     // Switch to allocating on a list of pages so we can do leak tracking later
     VerboseHeapTrace(L"Allocing new page in bucket %d\n", bucket);
@@ -830,15 +896,19 @@ bool Heap::FreeAllocation(Allocation* object)
 
         return false;
     }
-    else // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE
+    else // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
     {
-        DWORD dwExpectedFlags = 0;
+        DWORD protectFlags = 0;
 
-        this->ProtectPages(page->address, 1, segment, PAGE_EXECUTE, &dwExpectedFlags, PAGE_EXECUTE_READWRITE);
-
-        Assert(!object->isAllocationUsed || dwExpectedFlags == PAGE_EXECUTE_READWRITE);
-        page->isReadWrite = false;
-
+        if (AutoSystemInfo::Data.IsCFGEnabled())
+        {
+            protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
+        }
+        else
+        {
+            protectFlags = PAGE_EXECUTE;
+        }
+        this->ProtectPages(page->address, 1, segment, protectFlags, PAGE_EXECUTE_READWRITE);
         return true;
     }
 }

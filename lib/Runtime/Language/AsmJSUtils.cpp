@@ -327,11 +327,11 @@ namespace Js
             break;
         }
         case AsmJsRetType::Double:{
-            returnValue = JavascriptNumber::New(doubleRetVal, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck(doubleRetVal, func->GetScriptContext());
             break;
         }
         case AsmJsRetType::Float:{
-            returnValue = JavascriptNumber::New(floatRetVal, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck(floatRetVal, func->GetScriptContext());
             break;
         }
         case AsmJsRetType::Float32x4:
@@ -515,7 +515,7 @@ namespace Js
                 call ecx
                 movsd dval, xmm0
             }
-            returnValue = JavascriptNumber::New(dval, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck(dval, func->GetScriptContext());
             break;
         }
         case AsmJsRetType::Float:{
@@ -530,7 +530,7 @@ namespace Js
                 call ecx
                 movss fval, xmm0
             }
-            returnValue = JavascriptNumber::New((double)fval, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck((double)fval, func->GetScriptContext());
             break;
         }
         case AsmJsRetType::Int32x4:
