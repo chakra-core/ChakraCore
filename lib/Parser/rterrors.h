@@ -336,3 +336,5 @@ RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5640, "%s: first argume
 RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_ProxyTrapReturnedFalse, 5642, "Proxy trap `%s` returned false", "Proxy trap returned false", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ModuleResolveExport, 5643, "module export %s cannot be resolved", "Module export cannot be resolved", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_TooManyImportExprots, 5644, "module has too many import/export definitions", "module has too many import/export definitions", kjstRangeError, 0)

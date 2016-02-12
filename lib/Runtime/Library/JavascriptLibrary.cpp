@@ -6179,6 +6179,25 @@ namespace Js
         return type;
     }
 
+    ModuleRecordList* JavascriptLibrary::EnsureModuleRecordList()
+    {
+        if (moduleRecordList == nullptr)
+        {
+            moduleRecordList = RecyclerNew(recycler, ModuleRecordList, recycler);
+        }
+        return moduleRecordList;
+    }
+
+    SourceTextModuleRecord* JavascriptLibrary::GetModuleRecord(uint moduleId)
+    {
+        Assert((moduleRecordList->Count() >= 0) && (moduleId < (uint)moduleRecordList->Count()));
+        if (moduleId >= (uint)moduleRecordList->Count())
+        {
+            Js::Throw::FatalInternalError();
+        }
+        return moduleRecordList->Item(moduleId);
+    }
+
     // Register for profiler
 #define DEFINE_OBJECT_NAME(object) const wchar_t *pwszObjectName = L#object;
 

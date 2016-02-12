@@ -2521,7 +2521,8 @@ ParseVarDecl:
         {
             pnode = ParseStatement<buildAST>();
 
-            if (buildAST)
+            // TODO: fix binding for anonymous function/class 
+            if (buildAST && pnode->sxFnc.isNameIdentifierRef)
             {
                 IdentPtr localName = pnode->sxFnc.pid;
 
