@@ -186,6 +186,16 @@ var tests = [
             assert.throws(function () { "use strict"; eval("async function af(a, b, a) { }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that is already in strict mode (when there are other names)", "Duplicate formal parameter names not allowed in strict mode");
         }
     },
+    {
+        name: "local variables with same names as formal parameters have proper redeclaration semantics",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(x) { var x; }"); }, "var with same name as formal is not an error");
+            assert.throws(function () { eval("async function af(x) { let x; }"); }, SyntaxError, "let with same name as formal is an error", "Let/Const redeclaration");
+            assert.throws(function () { eval("async function af(x) { const x = 1; }"); }, SyntaxError, "const with same name as formal is an error", "Let/Const redeclaration");
+            assert.doesNotThrow(function () { eval("async function af(x) { function x() { } }"); }, "local function with same name as formal is not an error");
+            assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
