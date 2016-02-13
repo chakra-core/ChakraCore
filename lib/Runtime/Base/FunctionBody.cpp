@@ -2633,7 +2633,7 @@ namespace Js
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
     {
-        if (this->GetModuleID() == kmodGlobal)
+        if ((this->GetGrfscr() & fscrIsModuleCode) == fscrIsModuleCode || this->GetModuleID() == kmodGlobal)
         {
             return JavascriptOperators::OP_LdRoot(this->GetScriptContext());
         }

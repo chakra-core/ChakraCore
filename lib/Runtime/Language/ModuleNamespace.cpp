@@ -51,7 +51,7 @@ namespace Js
             {
 #if DBG
                 ModuleNameRecord tempNameRecord;
-                Assert(moduleRecord->GetLocalExportSlotIndex(localExportIndexList->Item(i)) == i);
+                Assert(moduleRecord->GetLocalExportSlotIndexByLocalName(localExportIndexList->Item(i)) == i);
                 Assert(resolvedExportMap->TryGetValue(localExportIndexList->Item(i), &tempNameRecord) && tempNameRecord.module == moduleRecord);
 #endif
                 nsObject->SetPropertyWithAttributes(localExportIndexList->Item(i), nullValue, PropertyModuleNamespaceDefault, nullptr);

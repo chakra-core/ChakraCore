@@ -1398,13 +1398,34 @@ ParseNodePtr Parser::AddVarDeclNode(IdentPtr pid, ParseNodePtr pnodeFnc)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr pid)
+Js::PropertyId Parser::EnsurePropertyId(IdentPtr pid)
 {
-    ParseNodePtr declNode = CreateBlockScopedDeclNode(pid, knopConstDecl);
+    Js::PropertyId propertyId = pid->GetPropertyId();
+    if (propertyId == Js::Constants::NoProperty)
+    {
+        propertyId = m_scriptContext->GetOrAddPropertyIdTracked(pid->Psz(), pid->Cch());
+        pid->SetPropertyId(propertyId);
+    }
+    return propertyId;
+}
 
-    declNode->sxVar.sym->SetIsModuleExportStorage(true);
+ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
+{
+    ParseNodePtr declNode = CreateBlockScopedDeclNode(localName, knopConstDecl);
+    Symbol* sym = declNode->sxVar.sym;
+    
+    sym->SetIsModuleExportStorage(true);
 
     return declNode;
+}
+
+void Parser::MarkIdentifierReferenceIsModuleExport(IdentPtr localName)
+{
+    PidRefStack* pidRef = this->PushPidRef(localName);
+
+    Assert(pidRef != nullptr);
+
+    pidRef->SetModuleExport();
 }
 
 ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
@@ -1745,6 +1766,11 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
+        }
+        if (ref->IsModuleExport())
+        {
+            Assert(sym->GetIsGlobal());
+            sym->SetIsModuleExportStorage(true);
         }
 
         if (ref->GetScopeId() == blockId)
@@ -2157,6 +2183,8 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryLi
                     }
                     else
                     {
+                        MarkIdentifierReferenceIsModuleExport(identifierName);
+
                         AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
                     }
                 }
@@ -2240,6 +2268,16 @@ ModuleExportEntryList* Parser::EnsureModuleStarExportEntryList()
     return m_currentNodeProg->sxModule.starExportEntries;
 }
 
+void Parser::AddModuleSpecifier(IdentPtr moduleRequest)
+{
+    IdentPtrList* requestedModulesList = EnsureRequestedModulesList();
+
+    if (!requestedModulesList->Has(moduleRequest))
+    {
+        requestedModulesList->Prepend(moduleRequest);
+    }
+}
+
 void Parser::AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode)
 {
     ModuleImportEntry* importEntry = Anew(&m_nodeAllocator, ModuleImportEntry);
@@ -2252,6 +2290,23 @@ void Parser::AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentP
     importEntryList->Prepend(*importEntry);
 }
 
+void Parser::CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName)
+{
+    ModuleExportEntry* findResult = exportEntryList->Find([&](ModuleExportEntry exportEntry)
+    {
+        if (exportName == exportEntry.exportName)
+        {
+            return true;
+        }
+        return false;
+    });
+
+    if (findResult != nullptr)
+    {
+        Error(ERRsyntax);
+    }
+}
+
 void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
 {
     ModuleExportEntry* exportEntry = Anew(&m_nodeAllocator, ModuleExportEntry);
@@ -2260,6 +2315,13 @@ void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentP
     exportEntry->localName = localName;
     exportEntry->exportName = exportName;
     exportEntry->moduleRequest = moduleRequest;
+
+    return AddModuleExportEntry(exportEntryList, exportEntry);
+}
+
+void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry)
+{
+    CheckForDuplicateExportEntry(exportEntryList, exportEntry->exportName);
 
     exportEntryList->Prepend(*exportEntry);
 }
@@ -2373,7 +2435,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
 
     if (!IsImportOrExportStatementValidHere())
     {
-        Error(ERRsyntax);
+        Error(ERRInvalidModuleImportOrExport);
     }
 
     // We just parsed an import token. Next valid token is *, {, string constant, or binding identifier.
@@ -2385,7 +2447,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
         // "import ModuleSpecifier;"
         if (buildAST)
         {
-            EnsureRequestedModulesList()->Prepend(m_token.GetStr());
+            AddModuleSpecifier(m_token.GetStr());
         }
 
         // Scan past the module identifier.
@@ -2405,7 +2467,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
         {
             Assert(moduleSpecifier != nullptr);
 
-            EnsureRequestedModulesList()->Prepend(moduleSpecifier);
+            AddModuleSpecifier(moduleSpecifier);
 
             importEntryList.Map([this, moduleSpecifier](ModuleImportEntry& importEntry) {
                 importEntry.moduleRequest = moduleSpecifier;
@@ -2447,6 +2509,146 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     return moduleSpecifier;
 }
 
+template<bool buildAST> 
+ParseNodePtr Parser::ParseDefaultExportClause()
+{
+    Assert(m_token.tk == tkDEFAULT);
+
+    m_pscan->Scan();
+    ParseNodePtr pnode = nullptr;
+    ushort flags = fFncNoFlgs;
+    
+    switch (m_token.tk)
+    {
+    case tkCLASS:
+        {
+            if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+            {
+                goto LDefault;
+            }
+
+            // Before we parse the class itself we need to know if the class has an identifier name.
+            // If it does, we'll treat this class as an ordinary class declaration which will bind 
+            // it to that name. Otherwise the class should parse as a nameless class expression and 
+            // bind only to the export binding.
+            BOOL classHasName = false;
+            RestorePoint parsedClass;
+            m_pscan->Capture(&parsedClass);
+            m_pscan->Scan();
+
+            if (m_token.tk == tkID)
+            {
+                classHasName = true;
+            }
+
+            m_pscan->SeekTo(parsedClass);
+            pnode = ParseClassDecl<buildAST>(classHasName, nullptr, nullptr, nullptr);
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnode != nullptr);
+                Assert(pnode->nop == knopClassDecl);
+
+                pnode->sxClass.SetIsDefaultModuleExport(true);
+            }
+
+            break;
+        }
+    case tkID:
+        // If we parsed an async token, it could either modify the next token (if it is a 
+        // function token) or it could be an identifier (let async = 0; export default async;).
+        // To handle both cases, when we parse an async token we need to keep the parser state
+        // and rewind if the next token is not function.
+        if (wellKnownPropertyPids.async == m_token.GetIdentifier(m_phtbl))
+        {
+            RestorePoint parsedAsync;
+            m_pscan->Capture(&parsedAsync);
+            m_pscan->Scan();
+            if (m_token.tk == tkFUNCTION)
+            {
+                // Token after async is function, consume the async token and continue to parse the 
+                // function as an async function.
+                flags |= fFncAsync;
+                goto LFunction;
+            }
+            // Token after async is not function, no idea what the async token is supposed to mean 
+            // so rewind and let the default case handle it.
+            m_pscan->SeekTo(parsedAsync);
+        }
+        goto LDefault;
+        break;
+    case tkFUNCTION:
+        {
+LFunction:
+            // We just parsed a function token but we need to figure out if the function 
+            // has an identifier name or not before we call the helper. 
+            RestorePoint parsedFunction;
+            m_pscan->Capture(&parsedFunction);
+            m_pscan->Scan();
+
+            if (m_token.tk == tkStar)
+            {
+                // If we saw 'function*' that indicates we are going to parse a generator,
+                // but doesn't tell us if the generator has an identifier or not.
+                // Skip the '*' token for now as it doesn't matter yet.
+                m_pscan->Scan();
+            }
+
+            // We say that if the function has an identifier name, it is a 'normal' declaration
+            // and should create a binding to that identifier as well as one for our default export.
+            if (m_token.tk == tkID)
+            {
+                flags |= fFncDeclaration;
+            }
+            else
+            {
+                flags |= fFncNoName;
+            }
+
+            // Rewind back to the function token and let the helper handle the parsing.
+            m_pscan->SeekTo(parsedFunction);
+            pnode = ParseFncDecl<buildAST>(flags);
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnode != nullptr);
+                Assert(pnode->nop == knopFncDecl);
+
+                pnode->sxFnc.SetIsDefaultModuleExport(true);
+            }
+            break;
+        }
+    default:
+LDefault:
+        {
+            ParseNodePtr pnodeExpression = ParseExpr<buildAST>();
+
+            // Consider: Can we detect this syntax error earlier?
+            if (pnodeExpression && pnodeExpression->nop == knopComma)
+            {
+                Error(ERRsyntax);
+            }
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnodeExpression != nullptr);
+
+                // Mark this node as the default module export. We need to make sure it is put into the correct
+                // module export slot when we emit the node.
+                pnode = CreateNode(knopExportDefault);
+                pnode->sxExportDefault.pnodeExpr = pnodeExpression;
+            }
+            break;
+        }
+    }
+
+    IdentPtr exportName = wellKnownPropertyPids.default;
+    IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
+    AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
+
+    return pnode;
+}
+
 template<bool buildAST>
 ParseNodePtr Parser::ParseExportDeclaration()
 {
@@ -2455,14 +2657,14 @@ ParseNodePtr Parser::ParseExportDeclaration()
 
     if (!IsImportOrExportStatementValidHere())
     {
-        Error(ERRsyntax);
+        Error(ERRInvalidModuleImportOrExport);
     }
 
     ParseNodePtr pnode = nullptr;
     IdentPtr moduleIdentifier = nullptr;
     tokens declarationType;
 
-    // We just parsed an export token. Next valid tokens are *, {, var, let, const, function, class, default.
+    // We just parsed an export token. Next valid tokens are *, {, var, let, const, async, function, class, default.
     m_pscan->Scan();
 
     switch (m_token.tk)
@@ -2477,8 +2679,8 @@ ParseNodePtr Parser::ParseExportDeclaration()
         {
             Assert(moduleIdentifier != nullptr);
 
-            EnsureRequestedModulesList()->Prepend(moduleIdentifier);
-            IdentPtr importName = CreatePid(_u("*"), sizeof("*") - 1);
+            AddModuleSpecifier(moduleIdentifier);
+            IdentPtr importName = wellKnownPropertyPids._star;
 
             AddModuleExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
         }
@@ -2500,7 +2702,7 @@ ParseNodePtr Parser::ParseExportDeclaration()
             {
                 if (moduleIdentifier != nullptr)
                 {
-                    EnsureRequestedModulesList()->Prepend(moduleIdentifier);
+                    AddModuleSpecifier(moduleIdentifier);
                 }
 
                 exportEntryList.Map([this, moduleIdentifier](ModuleExportEntry& exportEntry) {
@@ -2512,11 +2714,11 @@ ParseNodePtr Parser::ParseExportDeclaration()
                         exportEntry.importName = exportEntry.localName;
                         exportEntry.localName = nullptr;
 
-                        EnsureModuleIndirectExportEntryList()->Prepend(exportEntry);
+                        AddModuleExportEntry(EnsureModuleIndirectExportEntryList(), &exportEntry);
                     }
                     else
                     {
-                        EnsureModuleLocalExportEntryList()->Prepend(exportEntry);
+                        AddModuleExportEntry(EnsureModuleLocalExportEntryList(), &exportEntry);
                     }
                 });
 
@@ -2526,13 +2728,31 @@ ParseNodePtr Parser::ParseExportDeclaration()
         break;
 
     case tkID:
-        if (wellKnownPropertyPids.let == m_token.GetIdentifier(m_phtbl))
         {
-            declarationType = tkLET;
-            goto ParseVarDecl;
-        }
-        goto ErrorToken;
+            IdentPtr pid = m_token.GetIdentifier(m_phtbl);
 
+            if (wellKnownPropertyPids.let == pid)
+            {
+                declarationType = tkLET;
+                goto ParseVarDecl;
+            }
+            if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            {
+                // In module export statements, async token is only valid if it's followed by function. 
+                // We need to check here because ParseStatement would think 'async = 20' is a var decl.
+                RestorePoint parsedAsync;
+                m_pscan->Capture(&parsedAsync);
+                m_pscan->Scan();
+                if (m_token.tk == tkFUNCTION)
+                {
+                    // Token after async is function, rewind to the async token and let ParseStatement handle it.
+                    m_pscan->SeekTo(parsedAsync);
+                    goto ParseFunctionDecl;
+                }
+                // Token after async is not function, it's a syntax error.
+            }
+            goto ErrorToken;
+        }
     case tkVAR:
     case tkLET:
     case tkCONST:
@@ -2562,19 +2782,23 @@ ParseVarDecl:
     case tkFUNCTION:
     case tkCLASS:
         {
+ParseFunctionDecl:
             pnode = ParseStatement<buildAST>();
 
-            // TODO: fix binding for anonymous function/class 
             if (buildAST)
             {
                 IdentPtr localName;
                 if (pnode->nop == knopClassDecl)
                 {
+                    pnode->sxClass.pnodeName->sxVar.sym->SetIsModuleExportStorage(true);
+                    pnode->sxClass.pnodeDeclName->sxVar.sym->SetIsModuleExportStorage(true);
                     localName = pnode->sxClass.pnodeName->sxVar.pid;
                 }
                 else
                 {
                     Assert(pnode->nop == knopFncDecl);
+
+                    pnode->sxFnc.GetFuncSymbol()->SetIsModuleExportStorage(true);
                     localName = pnode->sxFnc.pid;
                 }
                 Assert(localName != nullptr);
@@ -2586,50 +2810,7 @@ ParseVarDecl:
         
     case tkDEFAULT:
         {
-            m_pscan->Scan();
-
-            switch (m_token.tk)
-            {
-                case tkCLASS:
-                case tkFUNCTION:
-                    pnode = ParseTerm<buildAST>(FALSE, nullptr, nullptr, nullptr, nullptr, false, nullptr, nullptr);
-                    break;
-
-                default:
-                    pnode = ParseExpr<buildAST>();
-
-                    // Consider: Can we detect this syntax error earlier?
-                    if (pnode && pnode->nop == knopComma)
-                    {
-                        Error(ERRsyntax);
-                    }
-
-                    break;
-            }
-
-            if (buildAST)
-            {
-                AnalysisAssert(pnode != nullptr);
-
-                IdentPtr exportName = wellKnownPropertyPids.default;
-                IdentPtr localName;
-
-                if (pnode->nop == knopFncDecl && pnode->sxFnc.pid != nullptr)
-                {
-                    localName = pnode->sxFnc.pid;
-                }
-                else if (pnode->nop == knopClassDecl && pnode->sxClass.pnodeName != nullptr)
-                {
-                    localName = pnode->sxClass.pnodeName->sxVar.pid;
-                }
-                else
-                {
-                    // Consider: Is this observable? Can we get away with leaving localName null in this case?
-                    localName = wellKnownPropertyPids._starDefaultStar;
-                }
-
-                AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
-            }
+            pnode = ParseDefaultExportClause<buildAST>();
         }
         break;
 
@@ -6997,6 +7178,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         pnodeClass->sxClass.pnodeExtends = pnodeExtends;
         pnodeClass->sxClass.pnodeMembers = pnodeMembers;
         pnodeClass->sxClass.pnodeStaticMembers = pnodeStaticMembers;
+        pnodeClass->sxClass.isDefaultModuleExport = false;
     }
     FinishParseBlock(pnodeBlock);
 
@@ -12934,6 +13116,11 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       Indent(indentAmt);
       Output::Print(_u("await\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
+      break;
+  case knopExportDefault:
+      Indent(indentAmt);
+      Output::Print(L"export default\n");
+      PrintPnodeListWIndent(pnode->sxExportDefault.pnodeExpr, indentAmt + INDENT_SIZE);
       break;
   default:
       Output::Print(_u("unhandled pnode op %d\n"),pnode->nop);
