@@ -253,7 +253,12 @@ void InterpreterThunkEmitter::NewThunkBlock()
     DWORD bufferSize = BlockSize;
     DWORD thunkCount = 0;
 
-    allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer, /*readWrite*/ true);
+    allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);
+    if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+    {
+        Js::Throw::OutOfMemory();
+    }
+
     currentBuffer = buffer;
 
 #ifdef _M_X64
