@@ -1123,7 +1123,8 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-  
+
+<!--  
 <test>
     <default>
         <files>module-syntax.js</files>
@@ -1138,4 +1139,5 @@
         <tags>exclude_dynapogo</tags>
     </default>
 </test>
+!-->
 </regress-exe>
