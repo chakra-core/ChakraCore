@@ -160,8 +160,8 @@ namespace TTD
             LargeSlabBlock* Previous;
             LargeSlabBlock* Next;
 
-            //Place well known meta-data ptr here (nullptr) so we know it is a large block (not a regular slab alloc).
-            int32 MetaDataSential;
+            //Place well known meta-data ptr distance here (0) so we know it is a large block (not a regular slab alloc).
+            ptrdiff_t MetaDataSential;
         };
 
         //We inline the fields for the current/end of the block that we currently are allocating from a
@@ -576,6 +576,14 @@ namespace TTD
                 {
                     largeBlock->Previous->Next = largeBlock->Next;
                 }
+
+                if(largeBlock == this->m_largeBlockList)
+                {
+                    AssertMsg(this->m_largeBlockList->Next == nullptr && this->m_largeBlockList->Previous == nullptr, "We should be de-allocating in order so this should all be don if we reach the head.");
+
+                    this->m_largeBlockList = nullptr;
+                }
+
 
                 HeapDeleteArray(largeBlock->TotalBlockSize, (byte*)largeBlock);
             }

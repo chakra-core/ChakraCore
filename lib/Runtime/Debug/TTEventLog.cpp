@@ -294,11 +294,9 @@ namespace TTD
 
     void TTEventList::Iterator::MoveNext()
     {
-        if(this->m_currIdx != this->m_currLink->CurrPos)
-        {
-            this->m_currIdx++;
-        }
-        else
+        this->m_currIdx++;
+
+        if(this->m_currIdx == this->m_currLink->CurrPos)
         {
             this->m_currLink = this->m_currLink->Next;
             this->m_currIdx = (this->m_currLink != nullptr) ? this->m_currLink->StartPos : 0;

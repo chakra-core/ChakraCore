@@ -2274,7 +2274,7 @@ STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) 
             ThreadContext * threadContext = scriptContext->GetThreadContext();
             if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
             {
-                if(wcscmp(jsFunction->GetDisplayName()->GetSz(), L"listOnTimeout") == 0)
+                if(wcscmp(jsFunction->GetDisplayName()->GetSz(), L"listOnTimeout") == 0 || wcscmp(jsFunction->GetDisplayName()->GetSz(), L"onconnection") == 0)
                 {
                     threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
 
