@@ -140,7 +140,6 @@ namespace Js
         return tempAllocatorObject;
     }
 
-
     bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord* exportRecord)
     {
         return false;
@@ -200,6 +199,7 @@ namespace Js
         childrenModuleSet = nullptr;
         parentModuleList = nullptr;
         AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
+        parser = nullptr;
         GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
         tempAllocatorObject = nullptr;
     }

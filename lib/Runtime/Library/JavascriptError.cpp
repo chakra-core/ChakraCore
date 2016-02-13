@@ -868,9 +868,13 @@ namespace Js
         HRESULT hr = cse->ei.scode;
         Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
         const Js::PropertyRecord *record;
+        Var value;
 
-        Var value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
-        JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
+        if (cse->ei.bstrDescription)
+        {
+            value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
+        }
 
         if (cse->hasLineNumberInfo)
         {
