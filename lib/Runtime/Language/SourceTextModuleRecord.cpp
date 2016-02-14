@@ -50,11 +50,11 @@ namespace Js
         HRESULT hr = NOERROR;
         ScriptContext* scriptContext = GetScriptContext();
         CompileScriptException se;
+        TempArenaAllocatorObject* allocatorObject = EnsureTempAllocator();
+        ArenaAllocator* allocator = allocatorObject->GetAllocator();
         try
         {
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-            TempArenaAllocatorObject* allocatorObject = EnsureTempAllocator();
-            ArenaAllocator* allocator = allocatorObject->GetAllocator();
             this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
             LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                 (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
@@ -82,6 +82,12 @@ namespace Js
         if (FAILED(hr))
         {
             *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            if (this->parser)
+            {
+                this->parseTree = nullptr;
+                AllocatorDelete(ArenaAllocator, allocator, this->parser);
+                this->parser = nullptr;
+            }
         }
         return hr;
     }
