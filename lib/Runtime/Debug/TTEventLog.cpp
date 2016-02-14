@@ -294,9 +294,11 @@ namespace TTD
 
     void TTEventList::Iterator::MoveNext()
     {
-        this->m_currIdx++;
-
-        if(this->m_currIdx == this->m_currLink->CurrPos)
+        if(this->m_currIdx < (this->m_currLink->CurrPos - 1))
+        {
+            this->m_currIdx++;
+        }
+        else
         {
             this->m_currLink = this->m_currLink->Next;
             this->m_currIdx = (this->m_currLink != nullptr) ? this->m_currLink->StartPos : 0;
@@ -305,14 +307,14 @@ namespace TTD
 
     void TTEventList::Iterator::MovePrevious()
     {
-        if(this->m_currIdx != this->m_currLink->StartPos)
+        if(this->m_currIdx > this->m_currLink->StartPos)
         {
             this->m_currIdx--;
         }
         else
         {
             this->m_currLink = this->m_currLink->Previous;
-            this->m_currIdx = (this->m_currLink != nullptr) ? (TTD_EVENTLOG_LIST_BLOCK_SIZE - 1) : 0;
+            this->m_currIdx = (this->m_currLink != nullptr) ? (this->m_currLink->CurrPos - 1) : 0;
         }
     }
 

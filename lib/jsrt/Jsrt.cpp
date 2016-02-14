@@ -3248,6 +3248,10 @@ STDAPI_(JsErrorCode) JsTTDSetBP(UINT64 rootEventTime, UINT64 ftime, UINT64 ltime
 
     if(!Js::Configuration::Global.flags.TTDFreeRun)
     {
+        //Make sure any step BP's are disabled 
+        elog->ClearBreakpointOnNextStatement();
+
+        //Set the TT BP
         elog->BPIsSet = true;
 
         elog->BPRootEventTime = rootEventTime;

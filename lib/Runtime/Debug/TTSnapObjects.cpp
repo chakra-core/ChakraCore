@@ -117,13 +117,21 @@ namespace TTD
 
             ////
 
+            BOOL hasInternalProperty = false;
             for(int32 i = 0; i < dynObj->GetPropertyCount(); i++)
             {
                 Js::PropertyId pid = dynObj->GetPropertyId((Js::PropertyIndex)i);
-                if(!Js::IsInternalPropertyId(pid))
-                {
-                    propertyReset.AddNew(pid);
-                }
+                propertyReset.AddNew(pid);
+
+                hasInternalProperty |= Js::IsInternalPropertyId(pid);
+            }
+
+            //We don't want to deal with internal property ids and their semantics so clean up and create a new object instead of trying to reuse
+            if(hasInternalProperty)
+            {
+                propertyReset.Clear();
+
+                return nullptr;
             }
 
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
