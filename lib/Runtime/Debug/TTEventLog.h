@@ -522,7 +522,7 @@ namespace TTD
         ////////////////////////////////
         //Emit code and support
 
-        void EmitLog();
+        void EmitLogIfNeeded();
         void ParseLogInto();
     };
 }

@@ -829,9 +829,6 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsRunScript(
-#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
-            _In_ INT64 hostCallbackId,
-#endif
             _In_z_ const wchar_t *script,
             _In_ JsSourceContext sourceContext,
             _In_z_ const wchar_t *sourceUrl,
@@ -2207,9 +2204,6 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsCallFunction(
-#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
-            _In_ INT64 hostCallbackId,
-#endif
             _In_ JsValueRef function,
             _In_reads_(argumentCount) JsValueRef *arguments,
             _In_ unsigned short argumentCount,
@@ -2568,6 +2562,42 @@
 
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
 
+    STDAPI_(JsErrorCode)
+        JsTTDCreateRecordRuntime(
+            _In_ JsRuntimeAttributes attributes,
+            _In_ wchar_t* infoUri,
+            _In_opt_ JsThreadServiceCallback threadService,
+            _Out_ JsRuntimeHandle *runtime);
+
+    STDAPI_(JsErrorCode)
+        JsTTDCreateDebugRuntime(
+            _In_ JsRuntimeAttributes attributes,
+            _In_ wchar_t* infoUri,
+            _In_opt_ JsThreadServiceCallback threadService,
+            _Out_ JsRuntimeHandle *runtime);
+
+    STDAPI_(JsErrorCode)
+        JsTTDCreateContext(
+            _In_ JsRuntimeHandle runtime,
+            _In_ bool createUnderTT,
+            _Out_ JsContextRef *newContext);
+
+    STDAPI_(JsErrorCode)
+        JsTTDRunScript(
+            _In_ INT64 hostCallbackId,
+            _In_z_ const wchar_t *script,
+            _In_ JsSourceContext sourceContext,
+            _In_z_ const wchar_t *sourceUrl,
+            _Out_ JsValueRef *result);
+
+    STDAPI_(JsErrorCode)
+        JsTTDCallFunction(
+            _In_ INT64 hostCallbackId,
+            _In_ JsValueRef function,
+            _In_reads_(argumentCount) JsValueRef *arguments,
+            _In_ unsigned short argumentCount,
+            _Out_opt_ JsValueRef *result);
+
     /// <summary>
     ///     Set the function that is called when the debugger hits a breakpoint.
     /// </summary>
@@ -2589,6 +2619,42 @@
             _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
             _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
+
+    /// <summary>
+    ///     Start Time-Travel Recording.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDStartTimeTravelRecording();
+
+    /// <summary>
+    ///     Stop Time-Travel Recording.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDStopTimeTravelRecording();
+
+    /// <summary>
+    ///     Emit Time-Travel Recording.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDEmitTimeTravelRecording();
+
+    /// <summary>
+    ///     Start Time-Travel Debugging.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDStartTimeTravelDebugging();
+
+    /// <summary>
+    ///     Pause Time-Travel recording gefor executing code on behalf of debugger or other diagnostic/telemetry.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDPauseTimeTravelBeforeRuntimeOperation();
+
+    /// <summary>
+    ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry.
+    /// </summary>
+    STDAPI_(JsErrorCode)
+        JsTTDReStartTimeTravelAfterRuntimeOperation();
 
     /// <summary>
     ///     Print a variable.
@@ -2690,12 +2756,6 @@
     /// </summary>
     STDAPI_(JsErrorCode)
         JsTTDReplayExecution(INT64* rootEventTime);
-
-    /// <summary>
-    ///     If we are running a test case replay then this is used to compare the record/replay logs and any other artifacts we care about.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDTestingCompareArtifacts();
 
 #endif //ENABLE_TTD
 

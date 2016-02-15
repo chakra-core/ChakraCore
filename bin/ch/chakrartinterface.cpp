@@ -84,11 +84,26 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtSerializeScript = (JsAPIHooks::JsrtSerializeScriptPtr)GetProcAddress(library, "JsSerializeScript");
     m_jsApiHooks.pfJsrtRunSerializedScript = (JsAPIHooks::JsrtRunSerializedScriptPtr)GetProcAddress(library, "JsRunSerializedScript");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
-    m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObject)GetProcAddress(library, "JsGetContextOfObject");
+    m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObjectPtr)GetProcAddress(library, "JsGetContextOfObject");
 
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+    m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetProcAddress(library, "JsTTDCreateRecordRuntime");
+    m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = (JsAPIHooks::JsrtTTDCreateDebugRuntimePtr)GetProcAddress(library, "JsTTDCreateDebugRuntime");
+    m_jsApiHooks.pfJsrtTTDCreateContext = (JsAPIHooks::JsrtTTDCreateContextPtr)GetProcAddress(library, "JsTTDCreateContext");
+    m_jsApiHooks.pfJsrtTTDRunScript = (JsAPIHooks::JsrtTTDRunScriptPtr)GetProcAddress(library, "JsTTDRunScript");
+    m_jsApiHooks.pfJsrtTTDCallFunction = (JsAPIHooks::JsrtTTDCallFunctionPtr)GetProcAddress(library, "JsTTDCallFunction");
+
     m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = (JsAPIHooks::JsrtTTDSetDebuggerCallbackPtr)GetProcAddress(library, "JsTTDSetDebuggerCallback");
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = (JsAPIHooks::JsrtTTDStartTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStartTimeTravelRecording");
+    m_jsApiHooks.pfJsrtTTDStopTimeTravelRecording = (JsAPIHooks::JsrtTTDStopTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStopTimeTravelRecording");
+    m_jsApiHooks.pfJsrtTTDEmitTimeTravelRecording = (JsAPIHooks::JsrtTTDEmitTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDEmitTimeTravelRecording");
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelDebugging = (JsAPIHooks::JsrtTTDStartTimeTravelDebuggingPtr)GetProcAddress(library, "JsTTDStartTimeTravelDebugging");
+    m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation = (JsAPIHooks::JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)GetProcAddress(library, "JsTTDPauseTimeTravelBeforeRuntimeOperation");
+    m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation = (JsAPIHooks::JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)GetProcAddress(library, "JsTTDReStartTimeTravelAfterRuntimeOperation");
+
     m_jsApiHooks.pfJsrtTTDPrintVariable = (JsAPIHooks::JsrtTTDPrintVariablePtr)GetProcAddress(library, "JsTTDPrintVariable");
 
     m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo = (JsAPIHooks::JsrtTTDGetExecutionTimeInfoPtr)GetProcAddress(library, "JsTTDGetExecutionTimeInfo");

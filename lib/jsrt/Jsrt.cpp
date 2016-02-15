@@ -102,14 +102,17 @@ bool CallbackWrapper(Fn fn)
     return CallbackWrapper(fn, false);
 }
 
-STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
+/////////////////////
+
+//A create runtime function that we can funnel to for regular and record or debug aware creation
+JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wchar_t* optRecordUri, _In_opt_ wchar_t* optDebugUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
-    return GlobalAPIWrapper([&] () -> JsErrorCode {
+    return GlobalAPIWrapper([&]() -> JsErrorCode {
         PARAM_NOT_NULL(runtimeHandle);
         *runtimeHandle = nullptr;
 
 #if ENABLE_TTD
-        if(Js::Configuration::Global.flags.TTRecord != nullptr || Js::Configuration::Global.flags.TTDebug != nullptr)
+        if(optRecordUri != nullptr || optDebugUri != nullptr)
         {
             attributes = static_cast<JsRuntimeAttributes>(attributes | JsRuntimeAttributeEnableExperimentalFeatures);
         }
@@ -117,20 +120,20 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
 
         const JsRuntimeAttributes JsRuntimeAttributesAll =
             (JsRuntimeAttributes)(
-            JsRuntimeAttributeDisableBackgroundWork |
-            JsRuntimeAttributeAllowScriptInterrupt |
-            JsRuntimeAttributeEnableIdleProcessing |
-            JsRuntimeAttributeDisableEval |
-            JsRuntimeAttributeDisableNativeCodeGeneration |
-            JsRuntimeAttributeEnableExperimentalFeatures |
-            JsRuntimeAttributeDispatchSetExceptionsToDebugger
+                JsRuntimeAttributeDisableBackgroundWork |
+                JsRuntimeAttributeAllowScriptInterrupt |
+                JsRuntimeAttributeEnableIdleProcessing |
+                JsRuntimeAttributeDisableEval |
+                JsRuntimeAttributeDisableNativeCodeGeneration |
+                JsRuntimeAttributeEnableExperimentalFeatures |
+                JsRuntimeAttributeDispatchSetExceptionsToDebugger
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            | JsRuntimeAttributeSerializeLibraryByteCode
+                | JsRuntimeAttributeSerializeLibraryByteCode
 #endif
-        );
+                );
 
         Assert((attributes & ~JsRuntimeAttributesAll) == 0);
-        if ((attributes & ~JsRuntimeAttributesAll) != 0)
+        if((attributes & ~JsRuntimeAttributesAll) != 0)
         {
             return JsErrorInvalidArgument;
         }
@@ -139,7 +142,7 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
         bool enableExperimentalFeatures = (attributes & JsRuntimeAttributeEnableExperimentalFeatures) != 0;
         ThreadContext * threadContext = HeapNew(ThreadContext, policyManager, threadService, enableExperimentalFeatures);
 
-        if (((attributes & JsRuntimeAttributeDisableBackgroundWork) != 0)
+        if(((attributes & JsRuntimeAttributeDisableBackgroundWork) != 0)
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             && !Js::Configuration::Global.flags.ConcurrentRuntime
 #endif
@@ -151,7 +154,7 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
 #endif
         }
 
-        if (!threadContext->IsRentalThreadingEnabledInJSRT()
+        if(!threadContext->IsRentalThreadingEnabledInJSRT()
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             || Js::Configuration::Global.flags.DisableRentalThreading
 #endif
@@ -160,25 +163,44 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
             threadContext->SetIsThreadBound();
         }
 
-        if (attributes & JsRuntimeAttributeAllowScriptInterrupt)
+        if(attributes & JsRuntimeAttributeAllowScriptInterrupt)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagCanDisableExecution);
         }
 
-        if (attributes & JsRuntimeAttributeDisableEval)
+        if(attributes & JsRuntimeAttributeDisableEval)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagEvalDisabled);
         }
 
-        if (attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
+        if(attributes & JsRuntimeAttributeDisableNativeCodeGeneration)
         {
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (Js::Configuration::Global.flags.PrimeRecycler)
+        if(Js::Configuration::Global.flags.PrimeRecycler)
         {
             threadContext->EnsureRecycler()->Prime();
+        }
+#endif
+
+#if ENABLE_TTD
+        if(optRecordUri != nullptr || optDebugUri != nullptr)
+        {
+            AssertMsg(optRecordUri == nullptr || optDebugUri == nullptr, "We should only have 1 but we fail on context create if both are set");
+
+            threadContext->IsTTRequested = true;
+            threadContext->IsTTRecordRequested = (optRecordUri != nullptr);
+            threadContext->IsTTDebugRequested = (optDebugUri != nullptr);
+
+            wchar_t* uriOrig = (optRecordUri != nullptr) ? optRecordUri : optDebugUri;
+            size_t uriOrigLength = wcslen(uriOrig) + 1;
+            size_t uriOrigLengthBytes = uriOrigLength * sizeof(wchar_t);
+            wchar_t* uriCopy = HeapNewArrayZ(wchar_t, uriOrigLength);
+            js_memcpy_s(uriCopy, uriOrigLengthBytes, uriOrig, uriOrigLengthBytes);
+
+            threadContext->TTDUri = uriCopy;
         }
 #endif
 
@@ -194,6 +216,191 @@ STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_op
 
         return JsNoError;
     });
+}
+
+//A create context function that we can funnel to for regular and record or debug aware creation
+JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool createUnderTT, _Out_ JsContextRef *newContext)
+{
+    return GlobalAPIWrapper([&]() -> JsErrorCode {
+        PARAM_NOT_NULL(newContext);
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
+
+        JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
+        ThreadContext * threadContext = runtime->GetThreadContext();
+
+        if(threadContext->GetRecycler() && threadContext->GetRecycler()->IsHeapEnumInProgress())
+        {
+            return JsErrorHeapEnumInProgress;
+        }
+        else if(threadContext->IsInThreadServiceCallback())
+        {
+            return JsErrorInThreadServiceCallback;
+        }
+
+        ThreadContextScope scope(threadContext);
+
+        if(!scope.IsValid())
+        {
+            return JsErrorWrongThread;
+        }
+
+#if ENABLE_TTD
+        if(createUnderTT & !threadContext->IsTTRequested)
+        {
+            AssertMsg(false, "Can't create a context under TT if runtime is not set to support TT!!!");
+            return JsErrorCategoryUsage;
+        }
+
+        if(createUnderTT & (threadContext->IsTTRecordRequested & threadContext->IsTTDebugRequested))
+        {
+            AssertMsg(false, "Can't set both of these at the same time!!!");
+            return JsErrorCategoryUsage;
+        }
+#endif
+
+        JsrtContext * context = JsrtContext::New(runtime);
+
+#if ENABLE_TTD
+        if(threadContext->IsTTRequested && !threadContext->IsTTDInitialized())
+        {
+#if ENABLE_TTD_DEBUGGING
+            threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
+#endif
+
+#if ENABLE_TTD_FORCE_RECORD_NODE
+            threadContext->TTDInitializeTTDUriFunction = NodeSupportDefaultImpl::GetTTDDirectory;
+            threadContext->TTDWriteInitializeFunction = NodeSupportDefaultImpl::TTInitializeForWriteLogStreamCallback;
+            threadContext->TTDStreamFunctions.pfGetLogStream = NodeSupportDefaultImpl::TTGetLogStreamCallback;
+            threadContext->TTDStreamFunctions.pfGetSnapshotStream = NodeSupportDefaultImpl::TTGetSnapshotStreamCallback;
+            threadContext->TTDStreamFunctions.pfGetSrcCodeStream = NodeSupportDefaultImpl::TTGetSrcCodeStreamCallback;
+            threadContext->TTDStreamFunctions.pfReadBytesFromStream = NodeSupportDefaultImpl::TTReadBytesFromStreamCallback;
+            threadContext->TTDStreamFunctions.pfWriteBytesToStream = NodeSupportDefaultImpl::TTWriteBytesToStreamCallback;
+            threadContext->TTDStreamFunctions.pfFlushAndCloseStream = NodeSupportDefaultImpl::TTFlushAndCloseStreamCallback;
+#endif
+
+            wchar_t* ttdlogStr = nullptr;
+            threadContext->TTDInitializeTTDUriFunction(threadContext->TTDUri, &ttdlogStr);
+
+            threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested);
+
+            CoTaskMemFree(ttdlogStr);
+
+            if(threadContext->IsTTDebugRequested && Js::Configuration::Global.flags.TTDCmdsFromFile != nullptr)
+            {
+                uint32 cmdFileLen = (uint32)wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
+                char* cmdFile = HeapNewArrayZ(char, cmdFileLen);
+
+                for(uint32 i = 0; i < cmdFileLen; ++i)
+                {
+                    cmdFile[i] = (char)Js::Configuration::Global.flags.TTDCmdsFromFile[i];
+                }
+
+                FILE* stream;
+                freopen_s(&stream, cmdFile, "r", stdin);
+
+                HeapDeleteArray(cmdFileLen, cmdFile);
+            }
+        }
+
+        if(createUnderTT)
+        {
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+            context->GetScriptContext()->InitializeCoreImage_TTD();
+        }
+#endif
+
+        *newContext = (JsContextRef)context;
+        return JsNoError;
+    });
+}
+
+//A call function method that we can funnel to for regular and causal aware invokes
+JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
+{
+    if(result != nullptr)
+    {
+        *result = nullptr;
+    }
+
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        VALIDATE_INCOMING_FUNCTION(function, scriptContext);
+
+        if(cargs == 0 || args == nullptr) {
+            return JsErrorInvalidArgument;
+        }
+
+        for(int index = 0; index < cargs; index++)
+        {
+            VALIDATE_INCOMING_REFERENCE(args[index], scriptContext);
+        }
+
+        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(function);
+        Js::CallInfo callInfo(cargs);
+        Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
+
+#if ENABLE_TTD
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
+            TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
+            actionPopper.SetCallAction(callAction);
+
+            if(scriptContext->TTDRootNestingCount == 0)
+            {
+                threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
+            }
+
+            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
+            if(result != nullptr)
+            {
+                *result = varResult;
+                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+            }
+
+            actionPopper.NormalReturn();
+        }
+        else
+        {
+            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
+            if(result != nullptr)
+            {
+                *result = varResult;
+                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+            }
+        }
+
+        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+
+        //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
+        //May want to look into more sophisticated means for making this decision later
+        if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
+        {
+            if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+            {
+                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+                threadContext->TTDLog->DoSnapshotExtract(false);
+                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+            }
+        }
+#else
+        Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
+        if(result != nullptr)
+        {
+            *result = varResult;
+            Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
+        }
+#endif
+
+        return JsNoError;
+    });
+}
+
+/////////////////////
+
+STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
+{
+    return CreateRuntimeCore(attributes, nullptr, nullptr, threadService, runtimeHandle);
 }
 
 template <CollectionFlags flags>
@@ -452,103 +659,7 @@ STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ v
 
 STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRef *newContext)
 {
-    return GlobalAPIWrapper([&]() -> JsErrorCode {
-        PARAM_NOT_NULL(newContext);
-        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
-
-        JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
-        ThreadContext * threadContext = runtime->GetThreadContext();
-
-        if (threadContext->GetRecycler() && threadContext->GetRecycler()->IsHeapEnumInProgress())
-        {
-            return JsErrorHeapEnumInProgress;
-        }
-        else if (threadContext->IsInThreadServiceCallback())
-        {
-            return JsErrorInThreadServiceCallback;
-        }
-
-        ThreadContextScope scope(threadContext);
-
-        if (!scope.IsValid())
-        {
-            return JsErrorWrongThread;
-        }
-
-        JsrtContext * context = JsrtContext::New(runtime);
-
-#if ENABLE_TTD
-        if(!threadContext->IsTTDInitialized())
-        {
-            if(Js::Configuration::Global.flags.TTRecord != nullptr || Js::Configuration::Global.flags.TTDebug != nullptr)
-            {
-                LPCWSTR optRecordDir = Js::Configuration::Global.flags.TTRecord;
-                LPCWSTR optReplayDir = Js::Configuration::Global.flags.TTDebug;
-
-                AssertMsg(optRecordDir == nullptr || optReplayDir == nullptr, "Can't set both of these at the same time!!!");
-
-#if ENABLE_TTD_DEBUGGING
-                threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
-#endif
-
-                if(optRecordDir != nullptr)
-                {
-#if ENABLE_TTD_FORCE_RECORD_NODE
-                    threadContext->TTDInitializeTTDUriFunction = NodeSupportDefaultImpl::GetTTDDirectory;
-                    threadContext->TTDWriteInitializeFunction = NodeSupportDefaultImpl::TTInitializeForWriteLogStreamCallback;
-                    threadContext->TTDStreamFunctions.pfGetLogStream = NodeSupportDefaultImpl::TTGetLogStreamCallback;
-                    threadContext->TTDStreamFunctions.pfGetSnapshotStream = NodeSupportDefaultImpl::TTGetSnapshotStreamCallback;
-                    threadContext->TTDStreamFunctions.pfGetSrcCodeStream = NodeSupportDefaultImpl::TTGetSrcCodeStreamCallback;
-                    threadContext->TTDStreamFunctions.pfReadBytesFromStream = NodeSupportDefaultImpl::TTReadBytesFromStreamCallback;
-                    threadContext->TTDStreamFunctions.pfWriteBytesToStream = NodeSupportDefaultImpl::TTWriteBytesToStreamCallback;
-                    threadContext->TTDStreamFunctions.pfFlushAndCloseStream = NodeSupportDefaultImpl::TTFlushAndCloseStreamCallback;
-#endif
-                    wchar* ttdlogStr = nullptr;
-                    threadContext->TTDInitializeTTDUriFunction(optRecordDir, &ttdlogStr);
-
-                    threadContext->InitTimeTravel(ttdlogStr, true, false);
-
-                    CoTaskMemFree(ttdlogStr);
-                }
-
-                if(optReplayDir != nullptr)
-                {
-                    wchar* ttdlogStr = nullptr;
-                    threadContext->TTDInitializeTTDUriFunction(optReplayDir, &ttdlogStr);
-
-                    threadContext->InitTimeTravel(ttdlogStr, false, true);
-
-                    CoTaskMemFree(ttdlogStr);
-                }
-            }
-
-            if(Js::Configuration::Global.flags.TTDebug != nullptr && Js::Configuration::Global.flags.TTDCmdsFromFile != nullptr)
-            {
-                uint32 cmdFileLen = (uint32)wcslen(Js::Configuration::Global.flags.TTDCmdsFromFile) + 1;
-                char* cmdFile = HeapNewArrayZ(char, cmdFileLen);
-
-                for(uint32 i = 0; i < cmdFileLen; ++i)
-                {
-                    cmdFile[i] = (char)Js::Configuration::Global.flags.TTDCmdsFromFile[i];
-                }
-
-                FILE* stream;
-                freopen_s(&stream, cmdFile, "r", stdin);
-
-                HeapDeleteArray(cmdFileLen, cmdFile);
-            }
-        }
-
-        if(threadContext->TTDLog != nullptr)
-        {
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
-            context->GetScriptContext()->InitializeCoreImage_TTD();
-        }
-#endif
-
-        *newContext = (JsContextRef)context;
-        return JsNoError;
-    });
+    return CreateContextCore(runtimeHandle, false, newContext);
 }
 
 STDAPI_(JsErrorCode) JsGetCurrentContext(_Out_ JsContextRef *currentContext)
@@ -2234,114 +2345,9 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
     END_JSRT_NO_EXCEPTION
 }
 
-
-#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
-STDAPI_(JsErrorCode) JsCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
-#else
 STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
-#endif
 {
-    if (result != nullptr)
-    {
-        *result = nullptr;
-    }
-
-#if (ENABLE_TTD && !ENABLE_TTD_CAUSALITY_TRACKING)
-    INT64 hostCallbackId = -1;
-#endif
-
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext) -> JsErrorCode {
-        VALIDATE_INCOMING_FUNCTION(function, scriptContext);
-
-        if (cargs == 0 || args == nullptr) {
-          return JsErrorInvalidArgument;
-        }
-
-        for (int index = 0; index < cargs; index++)
-        {
-            VALIDATE_INCOMING_REFERENCE(args[index], scriptContext);
-        }
-
-        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(function);
-        Js::CallInfo callInfo(cargs);
-        Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
-
-        //This is a work-around until we add explicit start/stop calls from the host
-        //Use this location for our Node host and the callback to "listOnTimeout" (at least initially)
-#if ENABLE_TTD & ENABLE_TTD_FORCE_RECORD_NODE
-        if(Js::Configuration::Global.flags.TTRecord != nullptr)
-        {
-            ThreadContext * threadContext = scriptContext->GetThreadContext();
-            if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
-            {
-                if(wcscmp(jsFunction->GetDisplayName()->GetSz(), L"listOnTimeout") == 0 || wcscmp(jsFunction->GetDisplayName()->GetSz(), L"onconnection") == 0)
-                {
-                    threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
-
-                    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                    threadContext->TTDLog->DoSnapshotExtract(true);
-                    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
-                }
-            }
-        }
-#endif
-
-#if ENABLE_TTD
-        ThreadContext* threadContext = scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            TTD::TTDRecordJsRTFunctionCallActionPopper actionPopper(threadContext->TTDLog, scriptContext);
-            TTD::JsRTCallFunctionBeginAction* callAction = threadContext->TTDLog->RecordJsRTCallFunctionBegin(scriptContext, scriptContext->TTDRootNestingCount, hostCallbackId, actionPopper.GetStartTime(), jsFunction, cargs, jsArgs.Values);
-            actionPopper.SetCallAction(callAction);
-
-            if(scriptContext->TTDRootNestingCount == 0)
-            {
-                threadContext->TTDLog->ResetCallStackForTopLevelCall(callAction->GetEventTime(), hostCallbackId);
-            }
-
-            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-            if(result != nullptr)
-            {
-                *result = varResult;
-                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
-            }
-
-            actionPopper.NormalReturn();
-        }
-        else
-        {
-            Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-            if(result != nullptr)
-            {
-                *result = varResult;
-                Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
-            }
-        }
-
-        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
-
-        //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
-        //May want to look into more sophisticated means for making this decision later
-        if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
-        {
-            if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
-            {
-                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                threadContext->TTDLog->DoSnapshotExtract(false);
-                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
-            }
-        }
-#else
-        Js::Var varResult = jsFunction->CallRootFunction(jsArgs, scriptContext, true);
-        if (result != nullptr)
-        {
-            *result = varResult;
-            Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
-        }
-#endif
-
-        return JsNoError;
-    });
+    return CallFunctionCore(-1, function, args, cargs, result);
 }
 
 STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_ JsValueRef *result)
@@ -3068,398 +3074,6 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
-/////////////////////
-
-#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
-
-STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    scriptContext->GetThreadContext()->TTDLog->SetIntoDebuggingMode();
-    scriptContext->GetThreadContext()->TTDLog->BPDbgCallback = debuggerCallback;
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeTTDUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
-{
-#if !ENABLE_TTD
-    return JsErrorCategoryUsage;
-#else
-    ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
-
-    threadContext->TTDInitializeTTDUriFunction = ttdInitializeUriFunction;
-    threadContext->TTDWriteInitializeFunction = writeInitializeFunction;
-    threadContext->TTDStreamFunctions.pfGetLogStream = getLogStreamInfo;
-    threadContext->TTDStreamFunctions.pfGetSnapshotStream = getSnapshotStreamInfo;
-    threadContext->TTDStreamFunctions.pfGetSrcCodeStream = getSrcCodeStreamInfo;
-    threadContext->TTDStreamFunctions.pfReadBytesFromStream = readBytesFromStream;
-    threadContext->TTDStreamFunctions.pfWriteBytesToStream = writeBytesToStream;
-    threadContext->TTDStreamFunctions.pfFlushAndCloseStream = flushAndCloseStream;
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDPrintVariable(wchar_t* varName)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    scriptContext->GetThreadContext()->TTDLog->BPPrintVariable(scriptContext, varName);
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDGetExecutionTimeInfo(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
-
-    if(!previousTime)
-    {
-        *noPrevious = false;
-
-        threadContext->TTDLog->GetTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
-    }
-    else
-    {
-        AssertMsg(noPrevious != nullptr, "Must always have this when checking for previous.");
-
-        *noPrevious = threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
-    }
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDGetLastExceptionThrowTimeInfo(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
-
-    *hasException = threadContext->TTDLog->GetExceptionTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDGetLastFunctionReturnTimeInfo(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
-
-    *isImmediateReturn = threadContext->TTDLog->GetImmediateReturnTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-
-    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
-    {
-        Js::JavascriptFunction *jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
-
-        threadContext->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, createdCallbackId);
-    }
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDGetCurrentCallbackOperationTimeInfo(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    ThreadContext* threadContext = scriptContext->GetThreadContext();
-    AssertMsg(threadContext->TTDLog != nullptr, "Should only happen in TT debugging mode.");
-
-    //Get the current top-level host id and find the registration event
-    TTD::JsRTCallbackAction* callbackEvent = threadContext->TTDLog->GetEventForHostCallbackId(wantRegisterOp, threadContext->TTDLog->GetCurrentHostCallbackId());
-
-    //if it is null then we don't know when this event was registered/canceled or it was called directly by the host
-    if(callbackEvent == nullptr)
-    {
-        *hasEvent = false;
-        *eventHasTimeInfo = false;
-
-        *rootEventTime = -1;
-        *ftime = 0;
-        *ltime = 0;
-        *line = 0;
-        *column = 0;
-        *sourceId = 0;
-
-        return JsNoError;
-    }
-
-    *hasEvent = true;
-    *eventHasTimeInfo = callbackEvent->GetActionTimeInfoForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDSetBP(UINT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-    if(!Js::Configuration::Global.flags.TTDFreeRun)
-    {
-        //Make sure any step BP's are disabled 
-        elog->ClearBreakpointOnNextStatement();
-
-        //Set the TT BP
-        elog->BPIsSet = true;
-
-        elog->BPRootEventTime = rootEventTime;
-        elog->BPFunctionTime = ftime;
-        elog->BPLoopTime = ltime;
-
-        elog->BPLine = line;
-        elog->BPColumn = column;
-        elog->BPSourceContextId = sourceId;
-    }
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDSetStepBP(bool into)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-    if(!Js::Configuration::Global.flags.TTDFreeRun)
-    {
-        elog->BPIsSet = true;
-        elog->SetBreakpointOnNextStatement(into);
-    }
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDSetContinueBP()
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-
-    elog->ClearBreakpointOnNextStatement();
-
-    return JsNoError;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    //Make sure we don't have any pending recorded exceptions
-    if(scriptContext->HasRecordedException())
-    {
-        scriptContext->GetAndClearRecordedException(nullptr);
-    }
-
-    //a special indicator to use the time from the argument flag
-    if(targetEventTime == -2)
-    {
-        targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
-    }
-
-    bool createFreshCtxs = false;
-    *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
-
-    if(createFreshCtxs)
-    {
-        try
-        {
-            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-            JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
-            ThreadContext * threadContext = runtime->GetThreadContext();
-
-            ThreadContextScope scope(threadContext);
-            AssertMsg(scope.IsValid(), "Hmm not cool");
-
-            JsrtContext* context = JsrtContext::New(runtime);
-            JsrtContext::TrySetCurrent(context);
-
-            threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
-
-            //initialize the core image but we need to disable debugging while this happens
-            threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-            context->GetScriptContext()->InitializeCoreImage_TTD();
-            threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
-
-            context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
-        }
-        catch(...)
-        {
-            //something went horribly wrong
-
-            *targetStartSnapTime = -1;
-        }
-    }
-
-    return (*targetStartSnapTime != -1) ? JsNoError : JsErrorFatal;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-    JsErrorCode res = JsNoError;
-
-    //a special indicator to use the time from the argument flag
-    if(eventTime == -2)
-    {
-        eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
-    }
-
-    try
-    {
-        elog->PushMode(TTD::TTDMode::ExcludedExecution);
-        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
-        {
-            elog->DoSnapshotInflate(snapshotTime);
-        }
-        END_JS_RUNTIME_CALL(scriptContext);
-        elog->PopMode(TTD::TTDMode::ExcludedExecution);
-
-        elog->ReplayToTime(eventTime);
-
-        elog->PushMode(TTD::TTDMode::ExcludedExecution);
-        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
-        {
-            elog->DoRtrSnapIfNeeded();
-        }
-        END_JS_RUNTIME_CALL(scriptContext);
-        elog->PopMode(TTD::TTDMode::ExcludedExecution);
-    }
-    catch(...) //we are replaying something that should be known to execute successfully so encountering any error is very bad
-    {
-        res = JsErrorFatal;
-        AssertMsg(false, "Unexpected fatal Error");
-    }
-
-    return res;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
-{
-#if !ENABLE_TTD_DEBUGGING
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-
-    JsErrorCode res = JsNoError;
-    try
-    {
-        scriptContext->GetThreadContext()->TTDLog->ReplayFullTrace();
-    }
-    catch(TTD::TTDebuggerAbortException abortException)
-    {
-        //if the debugger bails out with a move time request set info on the requested event time here
-        //rest of breakpoint info should have been set by the debugger callback before aborting
-        if(abortException.IsEventTimeMove() || abortException.IsTopLevelException())
-        {
-            *rootEventTime = abortException.GetTargetEventTime();
-        }
-        else
-        {
-            *rootEventTime = -1;
-        }
-
-        res = abortException.IsTopLevelException() ? JsErrorCategoryScript : JsNoError;
-    }
-    catch(...)
-    {
-        res = JsErrorFatal;
-        AssertMsg(false, "Unexpected fatal Error");
-    }
-
-    return res;
-#endif
-}
-
-STDAPI_(JsErrorCode) JsTTDTestingCompareArtifacts()
-{
-    //
-    //TODO: add code here to compare snapshots, traces, etc.
-    //
-    return JsNoError;
-}
-
-#endif //ENABLE_TTD
-
-/////////////////////
-
 JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
@@ -3469,27 +3083,6 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(script);
         PARAM_NOT_NULL(sourceUrl);
-
-        //This is a work-around until we add explicit start/stop calls from the host
-        //Use this location for our CH host and the callback to "listOnTimeout" for node (at least initially)
-#if ENABLE_TTD & !ENABLE_TTD_FORCE_RECORD_NODE
-        if(Js::Configuration::Global.flags.TTRecord != nullptr)
-        {
-            ThreadContext * threadContext = scriptContext->GetThreadContext();
-            if(threadContext->TTDLog != nullptr && !threadContext->TTDLog->HasDoneFirstSnapshot())
-            {
-                threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
-
-                threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
-                {
-                    threadContext->TTDLog->DoSnapshotExtract(true);
-                }
-                END_JS_RUNTIME_CALL(scriptContext);
-                threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
-            }
-        }
-#endif
 
         SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
 
@@ -3627,17 +3220,10 @@ STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceC
     return RunScriptCore(-1, script, sourceContext, sourceUrl, true, result);
 }
 
-#if ENABLE_TTD && ENABLE_TTD_CAUSALITY_TRACKING
-STDAPI_(JsErrorCode) JsRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
-{
-    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, result);
-}
-#else
 STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunScriptCore(-1, script, sourceContext, sourceUrl, false, result);
 }
-#endif
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
 {
@@ -3869,3 +3455,623 @@ STDAPI_(JsErrorCode) JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLo
 {
     return RunSerializedScriptCore(nullptr, scriptLoadCallback, scriptUnloadCallback, buffer, sourceContext, sourceUrl, false, result);
 }
+
+/////////////////////
+
+#if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
+
+STDAPI_(JsErrorCode) JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+{
+    return CreateRuntimeCore(attributes, infoUri, nullptr, threadService, runtime);
+}
+
+STDAPI_(JsErrorCode) JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+{
+    return CreateRuntimeCore(attributes, nullptr, infoUri, threadService, runtime);
+}
+
+STDAPI_(JsErrorCode) JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _In_ bool createUnderTT, _Out_ JsContextRef *newContext)
+{
+    return CreateContextCore(runtime, createUnderTT, newContext);
+}
+
+STDAPI_(JsErrorCode) JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
+{
+    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, result);
+}
+
+STDAPI_(JsErrorCode) JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(argumentCount) JsValueRef *arguments, _In_ unsigned short argumentCount, _Out_opt_ JsValueRef *result)
+{
+    return CallFunctionCore(hostCallbackId, function, arguments, argumentCount, result);
+}
+
+STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    currentContext->GetRuntime()->GetThreadContext()->TTDLog->BPDbgCallback = debuggerCallback;
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetIOCallbacks(_In_ JsRuntimeHandle runtime, _In_ JsTTDInitializeTTDUriCallback ttdInitializeUriFunction, _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ JsTTDGetLogStreamCallback getLogStreamInfo, _In_ JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, _In_ JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    ThreadContext* threadContext = JsrtRuntime::FromHandle(runtime)->GetThreadContext();
+
+    threadContext->TTDInitializeTTDUriFunction = ttdInitializeUriFunction;
+    threadContext->TTDWriteInitializeFunction = writeInitializeFunction;
+    threadContext->TTDStreamFunctions.pfGetLogStream = getLogStreamInfo;
+    threadContext->TTDStreamFunctions.pfGetSnapshotStream = getSnapshotStreamInfo;
+    threadContext->TTDStreamFunctions.pfGetSrcCodeStream = getSrcCodeStreamInfo;
+    threadContext->TTDStreamFunctions.pfReadBytesFromStream = readBytesFromStream;
+    threadContext->TTDStreamFunctions.pfWriteBytesToStream = writeBytesToStream;
+    threadContext->TTDStreamFunctions.pfFlushAndCloseStream = flushAndCloseStream;
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDStartTimeTravelRecording()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDDetached())
+    {
+        AssertMsg(false, "Cannot re-start TTD after detach.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDActive())
+    {
+        AssertMsg(false, "Already started TTD.");
+        return JsErrorCategoryUsage;
+    }
+
+    threadContext->TTDLog->SetGlobalMode(TTD::TTDMode::RecordEnabled);
+
+    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+    BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+    {
+        threadContext->TTDLog->DoSnapshotExtract(true);
+    }
+    END_JS_RUNTIME_CALL(scriptContext);
+    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDStopTimeTravelRecording()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDDetached())
+    {
+        AssertMsg(false, "Already stopped TTD.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(!threadContext->TTDLog->IsTTDActive())
+    {
+        AssertMsg(false, "TTD was never started.");
+        return JsErrorCategoryUsage;
+    }
+
+    threadContext->EmitTTDLogIfNeeded();
+    threadContext->EndCtxTimeTravel(scriptContext);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDEmitTimeTravelRecording()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDDetached())
+    {
+        AssertMsg(false, "Already stopped TTD.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(!threadContext->TTDLog->IsTTDActive())
+    {
+        AssertMsg(false, "TTD was never started.");
+        return JsErrorCategoryUsage;
+    }
+
+    threadContext->EmitTTDLogIfNeeded();
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDStartTimeTravelDebugging()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDDetached())
+    {
+        AssertMsg(false, "Cannot re-start TTD after detach.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(threadContext->TTDLog->IsTTDActive())
+    {
+        AssertMsg(false, "Already started TTD.");
+        return JsErrorCategoryUsage;
+    }
+
+    scriptContext->GetThreadContext()->TTDLog->SetIntoDebuggingMode();
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDPauseTimeTravelBeforeRuntimeOperation()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    currentContext->GetRuntime()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDReStartTimeTravelAfterRuntimeOperation()
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Need to create in TTD mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    currentContext->GetRuntime()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDPrintVariable(wchar_t* varName)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    scriptContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+    scriptContext->GetThreadContext()->TTDLog->BPPrintVariable(scriptContext, varName);
+    scriptContext->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetExecutionTimeInfo(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    if(!previousTime)
+    {
+        *noPrevious = false;
+
+        threadContext->TTDLog->GetTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+    }
+    else
+    {
+        if(noPrevious == nullptr)
+        {
+            AssertMsg(false, "Must always have this when checking for previous.");
+            return JsErrorCategoryUsage;
+        }
+
+        *noPrevious = threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetLastExceptionThrowTimeInfo(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    *hasException = threadContext->TTDLog->GetExceptionTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetLastFunctionReturnTimeInfo(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    *isImmediateReturn = threadContext->TTDLog->GetImmediateReturnTimeAndPositionForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+    if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
+    {
+        Js::JavascriptFunction *jsFunction = (function != nullptr) ? Js::JavascriptFunction::FromVar(function) : nullptr;
+
+        threadContext->TTDLog->RecordJsRTCallbackOperation(scriptContext, isCancel, isRepeating, jsFunction, createdCallbackId);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDGetCurrentCallbackOperationTimeInfo(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+    if(threadContext->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    //Get the current top-level host id and find the registration event
+    TTD::JsRTCallbackAction* callbackEvent = threadContext->TTDLog->GetEventForHostCallbackId(wantRegisterOp, threadContext->TTDLog->GetCurrentHostCallbackId());
+
+    //if it is null then we don't know when this event was registered/canceled or it was called directly by the host
+    if(callbackEvent == nullptr)
+    {
+        *hasEvent = false;
+        *eventHasTimeInfo = false;
+
+        *rootEventTime = -1;
+        *ftime = 0;
+        *ltime = 0;
+        *line = 0;
+        *column = 0;
+        *sourceId = 0;
+
+        return JsNoError;
+    }
+
+    *hasEvent = true;
+    *eventHasTimeInfo = callbackEvent->GetActionTimeInfoForDebugger(rootEventTime, ftime, ltime, line, column, sourceId);
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetBP(UINT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    if(!Js::Configuration::Global.flags.TTDFreeRun)
+    {
+        //Make sure any step BP's are disabled 
+        elog->ClearBreakpointOnNextStatement();
+
+        //Set the TT BP
+        elog->BPIsSet = true;
+
+        elog->BPRootEventTime = rootEventTime;
+        elog->BPFunctionTime = ftime;
+        elog->BPLoopTime = ltime;
+
+        elog->BPLine = line;
+        elog->BPColumn = column;
+        elog->BPSourceContextId = sourceId;
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetStepBP(bool into)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    if(!Js::Configuration::Global.flags.TTDFreeRun)
+    {
+        elog->BPIsSet = true;
+        elog->SetBreakpointOnNextStatement(into);
+    }
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDSetContinueBP()
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+    elog->ClearBreakpointOnNextStatement();
+
+    return JsNoError;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    //Make sure we don't have any pending recorded exceptions
+    if(scriptContext->HasRecordedException())
+    {
+        scriptContext->GetAndClearRecordedException(nullptr);
+    }
+
+    //a special indicator to use the time from the argument flag
+    if(targetEventTime == -2)
+    {
+        targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+    }
+
+    bool createFreshCtxs = false;
+    *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
+
+    if(createFreshCtxs)
+    {
+        try
+        {
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+
+            JsrtRuntime * runtime = JsrtRuntime::FromHandle(runtimeHandle);
+            ThreadContext * threadContext = runtime->GetThreadContext();
+
+            ThreadContextScope scope(threadContext);
+            AssertMsg(scope.IsValid(), "Hmm not cool");
+
+            JsrtContext* context = JsrtContext::New(runtime);
+            JsrtContext::TrySetCurrent(context);
+
+            threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+
+            //initialize the core image but we need to disable debugging while this happens
+            threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+            context->GetScriptContext()->InitializeCoreImage_TTD();
+            threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+            context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
+        }
+        catch(...)
+        {
+            //something went horribly wrong
+
+            *targetStartSnapTime = -1;
+        }
+    }
+
+    return (*targetStartSnapTime != -1) ? JsNoError : JsErrorFatal;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTime)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+    JsErrorCode res = JsNoError;
+
+    //a special indicator to use the time from the argument flag
+    if(eventTime == -2)
+    {
+        eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+    }
+
+    try
+    {
+        elog->PushMode(TTD::TTDMode::ExcludedExecution);
+        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+        {
+            elog->DoSnapshotInflate(snapshotTime);
+        }
+        END_JS_RUNTIME_CALL(scriptContext);
+        elog->PopMode(TTD::TTDMode::ExcludedExecution);
+
+        elog->ReplayToTime(eventTime);
+
+        elog->PushMode(TTD::TTDMode::ExcludedExecution);
+        BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+        {
+            elog->DoRtrSnapIfNeeded();
+        }
+        END_JS_RUNTIME_CALL(scriptContext);
+        elog->PopMode(TTD::TTDMode::ExcludedExecution);
+    }
+    catch(...) //we are replaying something that should be known to execute successfully so encountering any error is very bad
+    {
+        res = JsErrorFatal;
+        AssertMsg(false, "Unexpected fatal Error");
+    }
+
+    return res;
+#endif
+}
+
+STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
+{
+#if !ENABLE_TTD_DEBUGGING
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    if(scriptContext->GetThreadContext()->TTDLog == nullptr)
+    {
+        AssertMsg(false, "Should only happen in TT debugging mode.");
+        return JsErrorCategoryUsage;
+    }
+
+    JsErrorCode res = JsNoError;
+    try
+    {
+        scriptContext->GetThreadContext()->TTDLog->ReplayFullTrace();
+    }
+    catch(TTD::TTDebuggerAbortException abortException)
+    {
+        //if the debugger bails out with a move time request set info on the requested event time here
+        //rest of breakpoint info should have been set by the debugger callback before aborting
+        if(abortException.IsEventTimeMove() || abortException.IsTopLevelException())
+        {
+            *rootEventTime = abortException.GetTargetEventTime();
+        }
+        else
+        {
+            *rootEventTime = -1;
+        }
+
+        res = abortException.IsTopLevelException() ? JsErrorCategoryScript : JsNoError;
+    }
+    catch(...)
+    {
+        res = JsErrorFatal;
+        AssertMsg(false, "Unexpected fatal Error");
+    }
+
+    return res;
+#endif
+}
+
+#endif //ENABLE_TTD

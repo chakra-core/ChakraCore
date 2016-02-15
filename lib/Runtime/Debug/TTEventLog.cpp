@@ -2160,8 +2160,14 @@ namespace TTD
         } while(nextActionValid & !nextActionRootCall);
     }
 
-    void EventLog::EmitLog()
+    void EventLog::EmitLogIfNeeded()
     {
+        //See if we have been running record mode (even if we are suspended for runtime execution) -- if we aren't then we don't want to emit anything
+        if((this->m_currentMode & TTDMode::RecordEnabled) != TTDMode::RecordEnabled)
+        {
+            return;
+        }
+
 #if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
 
         HANDLE logHandle = this->m_threadContext->TTDStreamFunctions.pfGetLogStream(this->m_logInfoRootDir.Contents, false, true);

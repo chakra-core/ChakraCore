@@ -1098,15 +1098,7 @@ FLAGR (Boolean, NoNative              , "Disable native codegen", false)
 #endif
 
 #if ENABLE_TTD
-#if ENABLE_TTD_FORCE_RECORD_NODE
-FLAGR(String,  TTRecord                , "Start in time-travel record mode - write to the given log directory", L"nodeDefault")
 FLAGR(Number,  TTSnapInterval          , "The approximate interval between snapshots", 0)
-#else
-FLAGR(String, TTRecord, "Start in time-travel record mode - write to the given log directory", nullptr)
-FLAGR(Number, TTSnapInterval, "The approximate interval between snapshots", 2000)
-#endif
-
-FLAGR(String,  TTDebug                 , "Start in time-travel debug mode - load from the given log directory", nullptr)
 FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 1)
 
 FLAGR(Boolean, TTDFreeRun              , "If we just want to re-run the execution (for testing)", false)

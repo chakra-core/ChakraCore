@@ -277,13 +277,6 @@
 //A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
 #define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
 
-//A temp way to disable the causality tracking feature of the JsRT API (e.g., the API doesn't get changed)
-#if ENABLE_TTD_FORCE_RECORD_NODE
-#define ENABLE_TTD_CAUSALITY_TRACKING 0
-#else
-#define ENABLE_TTD_CAUSALITY_TRACKING 1
-#endif
-
 //Flags to control special features turned on for debugging
 #if ENABLE_TTD_FORCE_RECORD_NODE
 #define ENABLE_TTD_DEBUGGING 0

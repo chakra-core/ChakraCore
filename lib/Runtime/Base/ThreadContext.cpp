@@ -180,6 +180,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     tridentLoadAddress(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
+    , IsTTRequested(false)
+    , IsTTRecordRequested(false)
+    , IsTTDebugRequested(false)
+    , TTDUri(nullptr)
     , TTDGeneralAllocator(L"TTDGeneralAllocator", &this->pageAllocator, nullptr)
     , TTDBulkAllocator(L"TTDBulkAllocator", &this->pageAllocator, nullptr)
     , TTDTaggingAllocator(L"TTDTaggingAllocator", &this->pageAllocator, nullptr)
@@ -347,6 +351,11 @@ ThreadContext::~ThreadContext()
     }
 
 #if ENABLE_TTD
+    if(this->TTDUri != nullptr)
+    {
+        HeapDeleteArray(wcslen(this->TTDUri) + 1, this->TTDUri);
+    }
+
     if(this->TTDLog != nullptr)
     {
         HeapDelete(this->TTDLog);
@@ -1903,12 +1912,9 @@ void ThreadContext::MarkLoggedObjects_TTD(TTD::MarkTable& marks) const
     this->TTDInfo->MarkLoggedObjects(marks);
 }
 
-void ThreadContext::EmitTTDLog()
+void ThreadContext::EmitTTDLogIfNeeded()
 {
-    if(this->TTDLog != nullptr)
-    {
-        this->TTDLog->EmitLog();
-    }
+    this->TTDLog->EmitLogIfNeeded();
 }
 #endif
 

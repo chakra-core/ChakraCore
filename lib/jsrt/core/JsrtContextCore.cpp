@@ -45,12 +45,7 @@ void JsrtContextCore::Dispose(bool isShutdown)
         ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
         {
-            //Don't need to emit if we are doing replay
-            if(Js::Configuration::Global.flags.TTRecord != nullptr)
-            {
-                threadContext->EmitTTDLog();
-            }
-
+            threadContext->EmitTTDLogIfNeeded();
             threadContext->EndCtxTimeTravel(this->GetScriptContext());
         }
 #endif

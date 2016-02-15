@@ -927,6 +927,11 @@ public:
 #endif
 
 #if ENABLE_TTD
+    bool IsTTRequested;
+    bool IsTTRecordRequested;
+    bool IsTTDebugRequested;
+    LPCWSTR TTDUri;
+
     ArenaAllocator TTDGeneralAllocator;
     ArenaAllocator TTDBulkAllocator;
     ArenaAllocator TTDTaggingAllocator;
@@ -947,7 +952,7 @@ public:
     void MarkLoggedObjects_TTD(TTD::MarkTable& marks) const;
 
     //Emit the TT Log
-    void EmitTTDLog();
+    void EmitTTDLogIfNeeded();
 
     //
     //Callback functions provided by the host for writing info to some type of storage location

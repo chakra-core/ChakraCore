@@ -10,6 +10,10 @@ unsigned int MessageBase::s_messageCount = 0;
 LPCWSTR hostName = L"ch.exe";
 JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
+BOOL doTTRecord = false;
+BOOL doTTDebug = false;
+wchar_t* ttUri = nullptr;
+
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 {
@@ -372,20 +376,7 @@ static bool TTDebuggerHandleReverseStep(wchar_t* buff, INT64* optEventTimeReques
         UINT32 column = 0;
         UINT32 sourceId = 0;
 
-        //first see if we have an exception
-        bool hasException = false;
-        ChakraRTInterface::JsTTDGetLastExceptionThrowTimeInfo(&hasException, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-        if(hasException)
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse to exception source (from breakpoint).";
-
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
-        }
-
-        //next see if we just returned from a call
+        //first see if we just returned from a call (we may have an exception as well but be in a finally)
         bool hasReturn = false;
         ChakraRTInterface::JsTTDGetLastFunctionReturnTimeInfo(&hasReturn, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
 
@@ -393,6 +384,19 @@ static bool TTDebuggerHandleReverseStep(wchar_t* buff, INT64* optEventTimeReques
         {
             *optEventTimeRequest = rootEventTime;
             *optStaticRequestMessage = L"Reverse to callee return.";
+
+            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
+            return true;
+        }
+
+        //next see if we have an exception
+        bool hasException = false;
+        ChakraRTInterface::JsTTDGetLastExceptionThrowTimeInfo(&hasException, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
+
+        if(hasException)
+        {
+            *optEventTimeRequest = rootEventTime;
+            *optStaticRequestMessage = L"Reverse to exception source (from breakpoint).";
 
             ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
             return true;
@@ -855,6 +859,18 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
 
     if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
     {
+#if !ENABLE_TTD
+        wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+        return E_FAIL;
+#else
+        if(!doTTDebug)
+        {
+            wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+            return E_FAIL;
+        }
+
+        ChakraRTInterface::JsTTDStartTimeTravelDebugging();
+
         ChakraRTInterface::JsTTDSetDebuggerCallback(&TTDebuggerCallback);
         ChakraRTInterface::JsTTDSetStepBP(true); //ignored if we set the free-run flag
 
@@ -894,7 +910,7 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
                         std::fgetws(input, 16, stdin);
                         if(input[0] == 'y' || input[0] == 'Y')
                         {
-                            wprintf(L"Time-travel to throwing line initiated...");
+                            wprintf(L"Time-travel to throwing line initiated...\n");
 
                             nextEventTime = rootEventTime;
                             ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
@@ -917,6 +933,7 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
         {
             wprintf(L"Exception.");
         }
+#endif
     }
     else
     {
@@ -928,7 +945,16 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
         }
         else
         {
-            runScript = ChakraRTInterface::JsRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#if ENABLE_TTD
+            if(doTTRecord)
+            {
+                ChakraRTInterface::JsTTDStartTimeTravelRecording();
+            }
+
+            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#else
+            runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#endif
         }
 
         if(runScript != JsNoError)
@@ -1006,12 +1032,23 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 
     if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
     {
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+#if !ENABLE_TTD
+        wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+        return E_FAIL;
+#else
+        if(!doTTDebug)
+        {
+            wprintf(L"Sential js file is only ok when in TTDebug mode!!!\n");
+            return E_FAIL;
+        }
+
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
         ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
+
         chRuntime = runtime;
 
         JsContextRef context = JS_INVALID_REFERENCE;
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         if(!WScriptJsrt::Initialize())
@@ -1020,6 +1057,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
+#endif
     }
     else
     {
@@ -1034,15 +1072,36 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         {
             jsrtAttributes = (JsRuntimeAttributes)(jsrtAttributes | JsRuntimeAttributeSerializeLibraryByteCode);
         }
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+
 #if ENABLE_TTD
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
-#endif
+        if(doTTRecord)
+        {
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
+            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
+
+            chRuntime = runtime;
+
+            JsContextRef context = JS_INVALID_REFERENCE;
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        }
+        else
+        {
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
+            chRuntime = runtime;
+
+            JsContextRef context = JS_INVALID_REFERENCE;
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+        }
+#else
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
         chRuntime = runtime;
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+#endif
 
         if(!WScriptJsrt::Initialize())
         {
@@ -1163,10 +1222,34 @@ unsigned int WINAPI StaticThreadProc(void *lpParam)
 
 int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 {
-    if(argc < 1)
+    if(argc < 2)
     {
         PrintUsage();
         return EXIT_FAILURE;
+    }
+
+    LPWSTR* nargv = argv;
+    int nargc = argc;
+
+    if(wcsstr(argv[1], L"-TTRecord:") == argv[1])
+    {
+        doTTRecord = true;
+        ttUri = argv[1] + wcslen(L"-TTRecord:");
+
+        nargv[1] = nargv[0];
+        nargc--;
+    }
+    else if(wcsstr(argv[1], L"-TTDebug:") == argv[1])
+    {
+        doTTDebug = true;
+        ttUri = argv[1] + wcslen(L"-TTDebug:");
+
+        nargv[1] = nargv[0];
+        nargc--;
+    }
+    else
+    {
+        ;
     }
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
@@ -1174,15 +1257,15 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     ATOM lock = ::AddAtom(szChakraCoreLock);
     AssertMsg(lock, "failed to lock chakracore.dll");
 
-    HostConfigFlags::HandleArgsFlag(argc, argv);
+    HostConfigFlags::HandleArgsFlag(nargc, nargv);
 
     CComBSTR fileName;
 
-    ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
+    ChakraRTInterface::ArgInfo argInfo = { nargc, nargv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
 
     if (fileName.m_str == nullptr) {
-        fileName = CComBSTR(argv[1]);
+        fileName = CComBSTR(nargv[1]);
     }
 
     if (chakraLibrary != nullptr)
