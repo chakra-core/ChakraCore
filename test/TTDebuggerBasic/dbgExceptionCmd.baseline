@@ -5,7 +5,8 @@ var hello = undefined;
 
 TTDebug>An unhandled script exception occoured!!!
 Time-Travel to throwing line y/n?
-Time-travel to throwing line initiated...doIt
+Time-travel to throwing line initiated...
+doIt
 ----
 foo @ line: 7, column: 4, ftime: 2, ltime: 0
 

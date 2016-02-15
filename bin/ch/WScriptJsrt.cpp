@@ -241,7 +241,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCWSTR fileName, size_t f
 #if ENABLE_TTD
         errorCode = ChakraRTInterface::JsTTDRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
 #else
-        errorCode = ChakraRTInterface::JsRunScript(-1, fileContent, GetNextSourceContext(), fullPath, &returnValue);
+        errorCode = ChakraRTInterface::JsRunScript(fileContent, GetNextSourceContext(), fullPath, &returnValue);
 #endif
 
         if (errorCode == JsNoError)

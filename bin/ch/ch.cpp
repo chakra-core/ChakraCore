@@ -1228,28 +1228,51 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         return EXIT_FAILURE;
     }
 
-    LPWSTR* nargv = argv;
-    int nargc = argc;
-
-    if(wcsstr(argv[1], L"-TTRecord:") == argv[1])
+    bool move = false;
+    for(int i = 0; i < argc; ++i)
     {
-        doTTRecord = true;
-        ttUri = argv[1] + wcslen(L"-TTRecord:");
+        if(wcsstr(argv[i], L"-TTRecord:") == argv[i])
+        {
+            if(move)
+            {
+                printf("We should only see one  -TTxxx flag\n");
+                return 1;
+            }
 
-        nargv[1] = nargv[0];
-        nargc--;
+            doTTRecord = true;
+            ttUri = argv[i] + wcslen(L"-TTRecord:");
+
+            move = true;
+            i++;
+        }
+        else if(wcsstr(argv[i], L"-TTDebug:") == argv[i])
+        {
+            if(move)
+            {
+                printf("We should only see one  -TTxxx flag\n");
+                return 1;
+            }
+
+            doTTDebug = true;
+            ttUri = argv[i] + wcslen(L"-TTDebug:");
+
+            move = true;
+            i++;
+        }
+        else
+        {
+            ;
+        }
+
+        if(move)
+        {
+            argv[i - 1] = argv[i];
+        }
     }
-    else if(wcsstr(argv[1], L"-TTDebug:") == argv[1])
-    {
-        doTTDebug = true;
-        ttUri = argv[1] + wcslen(L"-TTDebug:");
 
-        nargv[1] = nargv[0];
-        nargc--;
-    }
-    else
+    if(move)
     {
-        ;
+        argc--;
     }
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
@@ -1257,15 +1280,15 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     ATOM lock = ::AddAtom(szChakraCoreLock);
     AssertMsg(lock, "failed to lock chakracore.dll");
 
-    HostConfigFlags::HandleArgsFlag(nargc, nargv);
+    HostConfigFlags::HandleArgsFlag(argc, argv);
 
     CComBSTR fileName;
 
-    ChakraRTInterface::ArgInfo argInfo = { nargc, nargv, PrintUsage, &fileName.m_str };
+    ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
 
     if (fileName.m_str == nullptr) {
-        fileName = CComBSTR(nargv[1]);
+        fileName = CComBSTR(argv[1]);
     }
 
     if (chakraLibrary != nullptr)
