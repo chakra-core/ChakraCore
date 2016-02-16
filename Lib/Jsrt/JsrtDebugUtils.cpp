@@ -67,7 +67,7 @@ void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8So
 {
     utf8SourceInfo->EnsureLineOffsetCache();
 
-    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, (ULONG)utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
@@ -88,7 +88,7 @@ void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const wc
 {
     const Js::PropertyRecord* propertyRecord;
 
-    scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
+    scriptContext->GetOrAddPropertyRecord(propertyName, static_cast<int>(wcslen(propertyName)), &propertyRecord);
 
     Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, value);
 
@@ -138,12 +138,12 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
         case Js::TypeIds_Int64Number:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (LONG)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_UInt64Number:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (LONG)Js::JavascriptUInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::JavascriptUInt64Number::FromVar(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_String:
@@ -310,7 +310,7 @@ void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPr
 
 void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, const wchar_t * value, Js::ScriptContext * scriptContext)
 {
-    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptString::NewCopyBuffer(value, wcslen(value), scriptContext), scriptContext);
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptString::NewCopyBuffer(value, static_cast<charcount_t>(wcslen(value)), scriptContext), scriptContext);
 }
 
 void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext * scriptContext)
