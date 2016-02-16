@@ -17913,6 +17913,38 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     return saveLenInstr->GetDst()->AsRegOpnd();
 }
 
+void
+Lowerer::GenerateLoadStackArgumentByIndex(IR::Opnd *dst, IR::RegOpnd *indexOpnd, IR::Instr *instr, int32 offset, Func *func)
+{
+    // Load argument set dst = [ebp + index].
+
+    IR::RegOpnd *ebpOpnd = IR::Opnd::CreateFramePointerOpnd(func);
+    IR::IndirOpnd *argIndirOpnd = nullptr;
+
+    // The stack looks like this:
+    //       [new.target or FrameDisplay] <== EBP + formalParamOffset (4) + callInfo.Count - 1
+    //       arguments[n]                 <== EBP + formalParamOffset (4) + n
+    //       ...
+    //       arguments[1]                 <== EBP + formalParamOffset (4) + 2
+    //       arguments[0]                 <== EBP + formalParamOffset (4) + 1
+    //       this or new.target           <== EBP + formalParamOffset (4)
+    //       callinfo
+    //       function object
+    //       return addr
+    // EBP-> EBP chain
+
+    //actual arguments offset is LowererMD::GetFormalParamOffset() + 1 (this)
+
+    int32 actualOffset = GetFormalParamOffset() + offset;
+    Assert(GetFormalParamOffset() == 4);
+    const BYTE indirScale = this->m_lowererMD.GetDefaultIndirScale();
+
+    argIndirOpnd = IR::IndirOpnd::New(ebpOpnd, indexOpnd, indirScale, TyMachReg, this->m_func);
+    argIndirOpnd->SetOffset(actualOffset << indirScale);
+
+    LowererMD::CreateAssign(dst, argIndirOpnd, instr);
+}
+
 //This function assumes there is stackargs bailout and index is always on the range.
 bool
 Lowerer::GenerateFastStackArgumentsLdElemI(IR::Instr* ldElem)
@@ -17933,33 +17965,9 @@ Lowerer::GenerateFastStackArgumentsLdElemI(IR::Instr* ldElem)
     }
     else
     {
-        // Load argument set dst = [ebp + index].
-        IR::RegOpnd *ebpOpnd = IR::Opnd::CreateFramePointerOpnd(m_func);
-        IR::IndirOpnd *argIndirOpnd = nullptr;
-
-        // The stack looks like this:
-        //       ...
-        //       arguments[1]
-        //       arguments[0]
-        //       this
-        //       callinfo
-        //       function object
-        //       return addr
-        // EBP-> EBP chain
-
-        //actual arguments offset is LowererMD::GetFormalParamOffset() + 1 (this)
-
-        int32 actualOffset = GetFormalParamOffset() + 1 + indirOpnd->GetOffset();
-        Assert(GetFormalParamOffset() + 1 == 5);
-        const BYTE indirScale = this->m_lowererMD.GetDefaultIndirScale();
-        argIndirOpnd = IR::IndirOpnd::New(ebpOpnd->AsRegOpnd(), indexOpnd->AsRegOpnd(), indirScale, TyMachReg, this->m_func);
-
-        // Need to offset valueOpnd by 5. Instead of changing valueOpnd, we can just add an offset to the indir. Changing
-        // valueOpnd requires creation of a temp sym (if it's not already a temp) so that the value of the sym that
-        // valueOpnd represents is not changed.
-        argIndirOpnd->SetOffset(actualOffset << indirScale);
-        LowererMD::CreateAssign(ldElem->GetDst(), argIndirOpnd, ldElem);
+        GenerateLoadStackArgumentByIndex(ldElem->GetDst(), indexOpnd, ldElem, indirOpnd->GetOffset() + 1, m_func); // +1 to offset 'this'
     }
+
     ldElem->Remove();
     return false;
 }
@@ -20046,35 +20054,31 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
     }
 
     // MOV dst, undefined                       // dst = undefined
-    // MOV s1, [ebp + 4]                        // s1 = call info
-    // AND s2, s1, Js::CallFlags_NewTarget      // s2 = s1 & Js::CallFlags_NewTarget
-    // CMP s2, 0
-    // JNE $LoadLastArgument
-    // AND s2, s1, Js::CallFlags_New            // s2 = s1 & Js::CallFlags_New
-    // CMP s2, 0
-    // JE $Done
-    // MOV dst, [ebp + 8]                       // dst = function object
-    // JMP $Done
+    // MOV s1, callInfo                         // s1 = callInfo
+    // TEST s1, Js::CallFlags_NewTarget << 24   // if (callInfo.Flags & Js::CallFlags_NewTarget)
+    // JNE $LoadLastArgument                    //     goto $LoadLastArgument
+    // TEST s1, Js::CallFlags_New << 24         // if (!(callInfo.Flags & Js::CallFlags_New))
+    // JE $Done                                 //     goto $Done
+    // MOV dst, functionObject                  // dst = functionObject
+    // JMP $Done                                // goto $Done
     // $LoadLastArgument
-    // AND s2, s1, (0x00FFFFFF)
-    // MOV s3, ebp
-    // MOV dst, [s3 + 5 * sizeof(Var) + s2]     // s3 = last argument
+    // AND s1, s1, (0x00FFFFFF)                 // s2 = callInfo.Count == arguments.length + 2
+    // MOV dst, [ebp + (s1 - 1) * sizeof(Var) + formalParamOffset * sizeof(Var) ] // points to new.target
     // $Done
 
-    IR::Opnd * dstOpnd = instrInsert->GetDst();
+    IR::Opnd *dstOpnd = instrInsert->GetDst();
     Assert(dstOpnd->IsRegOpnd());
     LowererMD::CreateAssign(dstOpnd, opndUndefAddress, instrInsert);
 
-    IR::SymOpnd* callInfoOpnd = Lowerer::LoadCallInfo(instrInsert);
+    IR::SymOpnd *callInfoOpnd = Lowerer::LoadCallInfo(instrInsert);
     Assert(Js::CallInfo::ksizeofCount == 24);
 
-    IR::RegOpnd* isNewFlagSetRegOpnd = IR::RegOpnd::New(TyUint32, func);
+    IR::RegOpnd *s1 = IR::RegOpnd::New(TyUint32, func);
+    LowererMD::CreateAssign(s1, callInfoOpnd, instrInsert);
 
-    InsertAnd(isNewFlagSetRegOpnd, callInfoOpnd, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_NewTarget << Js::CallInfo::ksizeofCount, TyUint32, func, true), instrInsert);
-    InsertTestBranch(isNewFlagSetRegOpnd, isNewFlagSetRegOpnd, Js::OpCode::BrNeq_A, labelLoadArgNewTarget, instrInsert);
+    InsertTestBranch(s1, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_NewTarget << Js::CallInfo::ksizeofCount, TyUint32, func, true), Js::OpCode::BrNeq_A, labelLoadArgNewTarget, instrInsert);
 
-    InsertAnd(isNewFlagSetRegOpnd, callInfoOpnd, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_New << Js::CallInfo::ksizeofCount, TyUint32, func, true), instrInsert);
-    GenerateNotZeroTest(isNewFlagSetRegOpnd, labelDone, instrInsert);
+    InsertTestBranch(s1, IR::IntConstOpnd::New((IntConstType)Js::CallFlags_New << Js::CallInfo::ksizeofCount, TyUint32, func, true), Js::OpCode::BrEq_A, labelDone, instrInsert);
 
     IR::Instr* loadFuncInstr = IR::Instr::New(Js::OpCode::AND, func);
     loadFuncInstr->SetDst(instrInsert->GetDst());
@@ -20085,22 +20089,11 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
 
     instrInsert->InsertBefore(labelLoadArgNewTarget);
 
-    IR::RegOpnd* argCountOpnd = isNewFlagSetRegOpnd;
-    InsertAnd(argCountOpnd, callInfoOpnd, IR::IntConstOpnd::New(0x00FFFFFF, TyUint32, func, true), instrInsert);
+    InsertAnd(s1, s1, IR::IntConstOpnd::New(0x00FFFFFF, TyUint32, func, true), instrInsert); // callInfo.Count
 
-    IR::RegOpnd *baseOpnd = IR::RegOpnd::New(TyMachReg, func);
-    StackSym *paramSym = StackSym::New(TyMachReg, this->m_func);
-    instrInsert->InsertBefore(this->m_lowererMD.LoadStackAddress(paramSym, baseOpnd));
+    // [formalOffset (4) + callInfo.Count -1] points to 'new.target' - see diagram in GenerateLoadStackArgumentByIndex()
+    GenerateLoadStackArgumentByIndex(dstOpnd, s1, instrInsert, -1, m_func);
 
-    const BYTE indirScale = this->m_lowererMD.GetDefaultIndirScale();
-    IR::IndirOpnd* argIndirOpnd = IR::IndirOpnd::New(baseOpnd->AsRegOpnd(), argCountOpnd, indirScale, TyMachReg, this->m_func);
-
-    // Need to offset valueOpnd by 5. Instead of changing valueOpnd, we can just add an offset to the indir. Changing
-    // valueOpnd requires creation of a temp sym (if it's not already a temp) so that the value of the sym that
-    // valueOpnd represents is not changed.
-    uint16 actualOffset = GetFormalParamOffset() + 1; //5
-    argIndirOpnd->SetOffset(actualOffset << indirScale);
-    LowererMD::CreateAssign(dstOpnd, argIndirOpnd, instrInsert);
     instrInsert->InsertBefore(labelDone);
     instrInsert->Remove();
 }
