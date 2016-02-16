@@ -2178,13 +2178,13 @@ namespace TTD
 
         TTString archString;
 #if defined(_M_IX86)
-        this->m_miscSlabAllocator(L"x86", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(L"x86", archString);
 #elif defined(_M_X64)
         this->m_miscSlabAllocator.CopyNullTermStringInto(L"x64", archString);
 #elif defined(_M_ARM)
-        this->m_miscSlabAllocator(L"arm64", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(L"arm64", archString);
 #else
-        this->m_miscSlabAllocator(L"unknown", archString);
+        this->m_miscSlabAllocator.CopyNullTermStringInto(L"unknown", archString);
 #endif
 
         writer.WriteString(NSTokens::Key::arch, archString);
