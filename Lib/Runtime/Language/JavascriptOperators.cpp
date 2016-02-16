@@ -708,6 +708,9 @@ Redo:
             dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
             break;
         case TypeIds_Boolean:
+        case TypeIds_Null:
+        case TypeIds_Undefined:
+        case TypeIds_Symbol:
             dblLeft = JavascriptConversion::ToNumber(aLeft, scriptContext);
             dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
             break;
