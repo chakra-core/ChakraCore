@@ -567,38 +567,7 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
         Js::Throw::OutOfMemory();
     }
 
-    Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
-    const Js::PropertyRecord *record;
-
-    Js::Var value = Js::JavascriptString::NewCopySz(se->ei.bstrDescription, scriptContext);
-    Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::message, value, scriptContext);
-
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->line, scriptContext);
-        scriptContext->GetOrAddPropertyRecord(L"line", &record);
-        Js::JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
-    }
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->ichMin - se->ichMinLine, scriptContext);
-        scriptContext->GetOrAddPropertyRecord(L"column", &record);
-        Js::JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
-    }
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->ichLim - se->ichMin, scriptContext);
-        Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::length, value, scriptContext);
-    }
-
-    if (se->bstrLine != nullptr)
-    {
-        value = Js::JavascriptString::NewCopySz(se->bstrLine, scriptContext);
-        Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::source, value, scriptContext);
-    }
+    Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se);
 
     Js::JavascriptExceptionObject * exceptionObject = RecyclerNew(scriptContext->GetRecycler(),
         Js::JavascriptExceptionObject, error, scriptContext, nullptr);
@@ -2437,17 +2406,22 @@ JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext, 
             /* grfsi               */ 0
         };
 
+        Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
+        LoadScriptFlag loadScriptFlag = LoadScriptFlag_None;
+        if (result != nullptr)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
+        }
         bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
-
-        Js::Utf8SourceInfo* utf8SourceInfo;
-
-        scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr,
-            false /*disableDeferredParse*/,
-            false /*isByteCodeBufferForLibrary*/,
-            &utf8SourceInfo, Js::Constants::GlobalCode,
-            isLibraryCode,
-            false /*disableAsmJs*/,
-            isSourceModule);
+        if (isLibraryCode)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_LibraryCode);
+        }
+        if (isSourceModule)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Module);
+        }
+        scriptFunction = scriptContext->LoadScript((const byte*)script, wcslen(script)* sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, loadScriptFlag);
 
         JsrtContext * context = JsrtContext::GetCurrent();
         context->OnScriptLoad(scriptFunction, utf8SourceInfo);
@@ -2559,14 +2533,17 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         isSerializeByteCodeForLibrary = JsrtContext::GetCurrent()->GetRuntime()->IsSerializeByteCodeForLibrary();
 #endif
 
-        Js::Utf8SourceInfo* sourceInfo;
-        function = scriptContext->LoadScript(script, &si, &se,
-            !isSerializeByteCodeForLibrary /*isExpression*/,
-            true /*disableDeferredParse*/,
-            isSerializeByteCodeForLibrary, &sourceInfo, Js::Constants::GlobalCode,
-            false /*isLibraryCode*/,
-            false /*disableAsmJs*/);
-
+        Js::Utf8SourceInfo* sourceInfo = nullptr;
+        LoadScriptFlag loadScriptFlag = LoadScriptFlag_disableDeferredParse;
+        if (isSerializeByteCodeForLibrary)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_isByteCodeBufferForLibrary);
+        }
+        else
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
+        }
+        function = scriptContext->LoadScript((const byte*)script, wcslen(script)* sizeof(wchar_t), &si, &se, &sourceInfo, Js::Constants::GlobalCode, loadScriptFlag);
         return JsNoError;
     });
 

@@ -27,6 +27,7 @@ namespace Js
     class DebugContext;
     struct HaltCallback;
     struct DebuggerOptionsCallback;
+    class ModuleRecordBase;
 }
 
 // Created for every source buffer passed by host.
@@ -68,6 +69,19 @@ enum ExternalJitData
     ExternalJitData_CustomExternalObjectOperations
 };
 
+enum LoadScriptFlag
+{
+    LoadScriptFlag_None         = 0x0,
+    LoadScriptFlag_Expression   = 0x1,                  // the script returns a value.
+    LoadScriptFlag_disableDeferredParse = 0x2,          // do not defer-parse the code.
+    LoadScriptFlag_isByteCodeBufferForLibrary = 0x4,    // for bytecode buffer
+    LoadScriptFlag_disableAsmJs = 0x8,                  // disable parse as asmjs. The code is not conform to asmjs requirement.
+    LoadScriptFlag_Module = 0x10,                       // input script is module code.
+    LoadScriptFlag_isFunction = 0x20,                   // input script is in a function scope, not global code.
+    LoadScriptFlag_Utf8Source = 0x40,                   // input buffer is utf8 encoded.
+    LoadScriptFlag_LibraryCode = 0x80                   // for debugger, indicating 'not my code'
+};
+
 class HostScriptContext
 {
 public:
@@ -97,6 +111,9 @@ public:
         __out Js::ArrayBuffer **ppArrayBuffer) = 0;
     virtual Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) = 0;
     virtual Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() = 0;
+
+    virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, Js::JavascriptString* specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
+    virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
 
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
 
@@ -335,6 +352,7 @@ namespace Js
     {
         friend class LowererMD;
         friend class RemoteScriptContext;
+        friend class SourceTextModuleRecord; // for module bytecode gen.
     public:
         static DWORD GetThreadContextOffset() { return offsetof(ScriptContext, threadContext); }
         static DWORD GetOptimizationOverridesOffset() { return offsetof(ScriptContext, optimizationOverrides); }
@@ -1072,8 +1090,10 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        JavascriptFunction* LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule = false);
-        JavascriptFunction* LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule = false);
+        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag, uint* sourceIndex);
+        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+            CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
 

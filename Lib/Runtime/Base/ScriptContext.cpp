@@ -1589,37 +1589,44 @@ namespace Js
         Js::JavascriptError::MapAndThrowError(this, E_FAIL);
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
+    ParseNode* ScriptContext::ParseScript(Parser* parser,
+        const byte* script,
+        size_t cb,
+        SRCINFO const * pSrcInfo,
+        CompileScriptException * pse,
+        Utf8SourceInfo** ppSourceInfo,
+        const wchar_t *rootDisplayName,
+        LoadScriptFlag loadScriptFlag,
+        uint* sourceIndex)
     {
         if (pSrcInfo == nullptr)
         {
             pSrcInfo = this->cache->noContextGlobalSourceInfo;
         }
 
-        Assert(!this->threadContext->IsScriptActive());
-        Assert(pse != nullptr);
-        try
+        LPUTF8 utf8Script = nullptr;
+        size_t length = cb;
+        size_t cbNeeded = 0;
+        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
-            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-            Js::AutoDynamicCodeReference dynamicFunctionReference(this);
-
             // Convert to UTF8 and then load that
-            size_t length = wcslen(script);
+            length = cb / sizeof(wchar_t);
             if (!IsValidCharCount(length))
             {
                 Js::Throw::OutOfMemory();
             }
+            Assert(length < MAXLONG);
 
             // Allocate memory for the UTF8 output buffer.
             // We need at most 3 bytes for each Unicode code point.
             // The + 1 is to include the terminating NUL.
             // Nit:  Technically, we know that the NUL only needs 1 byte instead of
             // 3, but that's difficult to express in a SAL annotation for "EncodeInto".
-            size_t cbUtf8Buffer = AllocSizeMath::Mul(AllocSizeMath::Add(length , 1), 3);
+            size_t cbUtf8Buffer = AllocSizeMath::Mul(AllocSizeMath::Add(length, 1), 3);
 
-            LPUTF8 utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
+            utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
 
-            size_t cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, script, static_cast<charcount_t>(length));
+            cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const wchar_t*)script, static_cast<charcount_t>(length));
 
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
@@ -1627,191 +1634,124 @@ namespace Js
                 Output::Print(L"Loading script.\n"
                     L"  Unicode (in bytes)    %u\n"
                     L"  UTF-8 size (in bytes) %u\n"
-                    L"  Expected savings      %d\n", length * sizeof(wchar_t), cbNeeded, length * sizeof(wchar_t)-cbNeeded);
+                    L"  Expected savings      %d\n", length * sizeof(wchar_t), cbNeeded, length * sizeof(wchar_t) - cbNeeded);
             }
 #endif
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
             *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
-
-            //
-            // Parse and execute the JavaScript file.
-            //
-            HRESULT hr;
-            Parser parser(this);
-
-            SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
-
-            // Invoke the parser, passing in the global function name, which we will then run to execute
-            // the script.
-            // This is global function called from jc or scriptengine::parse, in both case we can return the value to the caller.
-            ULONG grfscr = fscrGlobalCode | (isExpression ? fscrReturnExpression : 0);
-            if (!disableDeferredParse && (length > Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded())))
+        }
+        else
+        {
+            // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
+            if (*ppSourceInfo == nullptr)
             {
-                grfscr |= fscrDeferFncParse;
+                *ppSourceInfo = Utf8SourceInfo::New(this, script, parser->GetSourceIchLim(), cb, pSrcInfo);
             }
+        }
+        //
+        // Parse and the JavaScript code
+        //
+        HRESULT hr;
 
-            if (disableAsmJs)
-            {
-                grfscr |= fscrNoAsmJs;
-            }
+        SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
 
-            if (PHASE_FORCE1(Js::EvalCompilePhase))
-            {
-                // pretend it is eval
-                grfscr |= (fscrEval | fscrEvalCode);
-            }
+        // Invoke the parser, passing in the global function name, which we will then run to execute
+        // the script.
+        // TODO: yongqu handle non-global code.
+        ULONG grfscr = fscrGlobalCode | ((loadScriptFlag & LoadScriptFlag_Expression) == LoadScriptFlag_Expression ? fscrReturnExpression : 0);
+        if (((loadScriptFlag & LoadScriptFlag_disableDeferredParse) != LoadScriptFlag_disableDeferredParse) &&
+            (length > Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded())))
+        {
+            grfscr |= fscrDeferFncParse;
+        }
 
-            if (isByteCodeBufferForLibrary)
-            {
-                grfscr |= (fscrNoAsmJs | fscrNoPreJit);
-            }
-            
-            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
-            {
-                grfscr |= fscrIsModuleCode;
-            }
+        if ((loadScriptFlag & LoadScriptFlag_disableAsmJs) == LoadScriptFlag_disableAsmJs)
+        {
+            grfscr |= fscrNoAsmJs;
+        }
 
-            if (isLibraryCode)
-            {
-                grfscr |= fscrIsLibraryCode;
-                (*ppSourceInfo)->SetIsLibraryCode();
-            }
+        if (PHASE_FORCE1(Js::EvalCompilePhase))
+        {
+            // pretend it is eval
+            grfscr |= (fscrEval | fscrEvalCode);
+        }
 
-            ParseNodePtr parseTree;
-            hr = parser.ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
+        if ((loadScriptFlag & LoadScriptFlag_isByteCodeBufferForLibrary) == LoadScriptFlag_isByteCodeBufferForLibrary)
+        {
+            grfscr |= (fscrNoAsmJs | fscrNoPreJit);
+        }
+
+        if (((loadScriptFlag & LoadScriptFlag_Module) == LoadScriptFlag_Module) &&
+            GetConfig()->IsES6ModuleEnabled())
+        {
+            grfscr |= fscrIsModuleCode;
+        }
+
+        if ((loadScriptFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode)
+        {
+            grfscr |= fscrIsLibraryCode;
+            (*ppSourceInfo)->SetIsLibraryCode();
+        }
+
+        ParseNodePtr parseTree;
+        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
+        {
+            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                 sourceContextInfo);
-
-            (*ppSourceInfo)->SetParseFlags(grfscr);
-
-            if (FAILED(hr) || parseTree == nullptr)
-            {
-                return nullptr;
-            }
-
-            Assert(length < MAXLONG);
-            uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, static_cast<charcount_t>(length), /*isCesu8*/ true);
-            JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
-
-            if (pse->ei.scode == JSERR_AsmJsCompileError)
-            {
-                Assert(!disableAsmJs);
-
-                pse->Clear();
-                return LoadScript(script, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
-            }
-
-            if (pFunction != nullptr && this->IsProfiling())
-            {
-                RegisterScript(pFunction->GetFunctionProxy());
-            }
-            return pFunction;
         }
-        catch (Js::OutOfMemoryException)
+        else
         {
-            pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
+            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
+                sourceContextInfo);
+        }
+
+        if (FAILED(hr) || parseTree == nullptr)
+        {
             return nullptr;
         }
-        catch (Js::StackOverflowException)
+
+        (*ppSourceInfo)->SetParseFlags(grfscr);
+        if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
-            pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
-            return nullptr;
+            *sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, static_cast<charcount_t>((*ppSourceInfo)->GetCchLength()), /*isCesu8*/ true);
         }
+        else
+        {
+            *sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser->GetSourceIchLim(), /* isCesu8*/ false);
+        }
+
+        return parseTree;
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(LPCUTF8 script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isByteCodeBufferForLibrary, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, bool isLibraryCode, bool disableAsmJs, bool isSourceModule)
+    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag)
     {
-        if (pSrcInfo == nullptr)
-        {
-            pSrcInfo = this->cache->noContextGlobalSourceInfo;
-        }
-
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
         try
         {
-            AUTO_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
             Js::AutoDynamicCodeReference dynamicFunctionReference(this);
-
-            //
-            // Parse and execute the JavaScript file.
-            //
-            HRESULT hr;
             Parser parser(this);
-            SourceContextInfo * sourceContextInfo = pSrcInfo->sourceContextInfo;
-            // Invoke the parser, passing in the global function name, which we will then run to execute
-            // the script.
-            ULONG grfscr = fscrGlobalCode | (isExpression ? fscrReturnExpression : 0);
-            if (!disableDeferredParse && (cb > Parser::GetDeferralThreshold(sourceContextInfo->IsSourceProfileLoaded())))
+            uint sourceIndex;
+            JavascriptFunction * pFunction = nullptr;
+
+            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag, &sourceIndex);
+
+            if (parseTree != nullptr)
             {
-                grfscr |= fscrDeferFncParse;
+                pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, (*ppSourceInfo)->GetParseFlags(), pse, rootDisplayName);
             }
-
-            if (disableAsmJs)
-            {
-                grfscr |= fscrNoAsmJs;
-            }
-
-            if (PHASE_FORCE1(Js::EvalCompilePhase))
-            {
-                // pretend it is eval
-                grfscr |= (fscrEval | fscrEvalCode);
-            }
-
-            if (isByteCodeBufferForLibrary)
-            {
-                grfscr |= (fscrNoAsmJs | fscrNoPreJit);
-            }
-
-            if (isLibraryCode)
-            {
-                grfscr |= fscrIsLibraryCode;
-            }
-
-            if (isSourceModule && GetConfig()->IsES6ModuleEnabled())
-            {
-                grfscr |= fscrIsModuleCode;
-            }
-
-#if DBG_DUMP
-            if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
-            {
-                size_t length = utf8::ByteIndexIntoCharacterIndex(script, cb, utf8::doAllowThreeByteSurrogates);
-                Output::Print(L"Direct UTF-8 parsing.\n"
-                    L"  Would have expanded into:   %u (in bytes)\n"
-                    L"  UTF-8 size (in bytes):      %u (in bytes)\n"
-                    L"  Expected savings:           %d (in bytes)\n", length * sizeof(wchar_t), cb, length * sizeof(wchar_t)-cb);
-            }
-#endif
-            ParseNodePtr parseTree;
-            hr = parser.ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
-                sourceContextInfo);
-
-            if (FAILED(hr) || parseTree == nullptr)
-            {
-                return nullptr;
-            }
-
-            // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
-            *ppSourceInfo = Utf8SourceInfo::New(this, script, parser.GetSourceIchLim(), cb, pSrcInfo);
-            (*ppSourceInfo)->SetParseFlags(grfscr);
-
-            if (isLibraryCode)
-            {
-                (*ppSourceInfo)->SetIsLibraryCode();
-            }
-
-            uint sourceIndex = this->SaveSourceNoCopy(*ppSourceInfo, parser.GetSourceIchLim(), /* isCesu8*/ false);
-
-            JavascriptFunction * pFunction = GenerateRootFunction(parseTree, sourceIndex, &parser, grfscr, pse, rootDisplayName);
 
             if (pse->ei.scode == JSERR_AsmJsCompileError)
             {
-                Assert(!disableAsmJs);
+                Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
                 pse->Clear();
-                return LoadScript(script, cb, pSrcInfo, pse, isExpression, disableDeferredParse, isByteCodeBufferForLibrary, ppSourceInfo, rootDisplayName, isLibraryCode, true);
+
+                loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
+                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
             }
 
             if (pFunction != nullptr && this->IsProfiling())

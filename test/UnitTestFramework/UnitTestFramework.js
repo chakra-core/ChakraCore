@@ -33,6 +33,11 @@ var helpers = function helpers() {
     //private
     var undefinedAsString = "undefined";
     var isWScriptAvailable = this.WScript;
+    if (isWScriptAvailable && !this.WScript.LoadModuleFile) {
+        WScript.LoadModuleFile = function (fileName) {
+            WScript.LoadScriptFile(fileName, "module");
+        }
+    }
 
     return {
         isInBrowser: function isInBrowser() {

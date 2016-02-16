@@ -862,4 +862,45 @@ namespace Js
             ThrowTypeError(scriptContext, hCode, varName);
         }
     }
+
+    JavascriptError* JavascriptError::CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse)
+    {
+        HRESULT hr = cse->ei.scode;
+        Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
+        const Js::PropertyRecord *record;
+        Var value;
+
+        if (cse->ei.bstrDescription)
+        {
+            value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
+        }
+
+        if (cse->hasLineNumberInfo)
+        {
+            value = JavascriptNumber::New(cse->line, scriptContext);
+            scriptContext->GetOrAddPropertyRecord(L"line", &record);
+            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+        }
+
+        if (cse->hasLineNumberInfo)
+        {
+            value = JavascriptNumber::New(cse->ichMin - cse->ichMinLine, scriptContext);
+            scriptContext->GetOrAddPropertyRecord(L"column", &record);
+            JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
+        }
+
+        if (cse->hasLineNumberInfo)
+        {
+            value = JavascriptNumber::New(cse->ichLim - cse->ichMin, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::length, value, scriptContext);
+        }
+
+        if (cse->bstrLine != nullptr)
+        {
+            value = JavascriptString::NewCopySz(cse->bstrLine, scriptContext);
+            JavascriptOperators::OP_SetProperty(error, PropertyIds::source, value, scriptContext);
+        }
+        return error;
+    }
 }
