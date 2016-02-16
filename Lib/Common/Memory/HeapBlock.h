@@ -402,11 +402,6 @@ class SmallHeapBlockT : public HeapBlock
     template <typename TBlockType>
     friend class SmallNormalHeapBucketBase;
 
-#ifdef JD_PRIVATE
-    friend class HeapBlockHelper;
-    friend class EXT_CLASS;
-#endif
-
 public:
     static const ushort InvalidAddressBit = 0xFFFF;
 

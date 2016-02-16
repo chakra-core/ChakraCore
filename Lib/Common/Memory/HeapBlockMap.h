@@ -5,6 +5,10 @@
 #pragma once
 #include "CommonDefines.h"
 
+#ifdef JD_PRIVATE
+class HeapBlockHelper;
+#endif
+
 namespace Memory
 {
 class HeapBlockMap32
@@ -88,7 +92,6 @@ private:
     friend class PageSegmentBase<VirtualAllocWrapper>;
 
 #ifdef JD_PRIVATE
-    friend class EXT_CLASS;
     friend class HeapBlockHelper;
 #endif
 
