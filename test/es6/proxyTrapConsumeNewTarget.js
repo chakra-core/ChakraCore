@@ -39,7 +39,7 @@ var tests = [{
         assert.areEqual("BproxyObjectA", result, "Test indeed ran the code I expect it to");
     }
 }, {
-    name: "Proxy construct trap consumes overriden new.target",
+    name: "Proxy construct trap consumes overridden new.target",
     body: function() {
 
         let testCompleted = false;

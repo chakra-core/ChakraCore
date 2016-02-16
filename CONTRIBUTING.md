@@ -50,5 +50,16 @@ For full coverage, please run unit tests against debug and test for both x86 and
 `runtests.cmd` looks for the build output in the default build output folder `Build\VcBuild\bin`. If the build output path is changed from this default then use the `-bindir` switch to specify that path.
 
 ### Code Flow into Microsoft Edge
+
 Changes that make it into our ChakraCore GitHub master branch have a short journey to Chakra.dll. Code flows daily from GitHub to the internal repository from which builds of Chakra.dll are produced and then it flows into Windows and Microsoft Edge. While code flows quickly on this first leg of the journey, code flow from our internal branch to a Windows flighting branch is subject to any number of delays. So it is difficult to predict when your change in our GitHub repo will make it into a particular Windows flight.
-#
+
+### Issue Labels
+
+ - [`Accepting PRs`](https://github.com/Microsoft/ChakraCore/labels/Accepting%20PRs): these issues are specifically well suited for outside contributors.
+ - [`Your first PR`](https://github.com/Microsoft/ChakraCore/labels/Your%20first%20PR): these issues are small and appropriate for people who wish to familiarize themselves with GitHub pull requests and/or ChakraCore's contributor guidelines, build process, and running tests.  We're here to help you get started in open source.
+
+You are welcome to work on issues that are not tagged with these labels. However, issues without these labels are often deeply involved with the requirements of the various components of ChakraCore. Therefore, please be sure to touch base with a maintainer via comments on the issue before attempting to solve it.
+
+Remember, for all issues you choose to work on please communicate on the issue that you are claiming it to avoid duplicated work.
+
+To learn more about our GitHub labels see the [Label Glossary](https://github.com/Microsoft/ChakraCore/wiki/Label-Glossary) on our wiki page.

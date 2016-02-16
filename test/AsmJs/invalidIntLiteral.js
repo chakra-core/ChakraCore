@@ -18,4 +18,13 @@ var stdlib = {}
 var env = {}
 var buffer = new ArrayBuffer(1<<20);
 var asmModule = AsmModule(stdlib,env,buffer);
-WScript.Echo(asmModule.f1());
+print(asmModule.f1());
+
+var m = function (stdlib, foreign, heap) {
+  'use asm';
+  function f() {
+    return +-137438953473;
+  }
+  return f;
+}(stdlib,env, buffer);
+print(m());

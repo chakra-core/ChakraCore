@@ -1,3 +1,8 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
 . "$PSScriptRoot\util.ps1"
 
 function UseValueOrDefault($value, $defaultvalue, $defaultvalue2) {
@@ -28,7 +33,7 @@ function GetGitPath()
     return $gitExe;
 }
 
-$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OutterScriptRoot\..\..");
+$srcpath = UseValueOrDefault $srcpath "$env:TF_BUILD_SOURCESDIRECTORY" (Resolve-Path "$OuterScriptRoot\..\..");
 $binpath = UseValueOrDefault $binpath "$env:TF_BUILD_BINARIESDIRECTORY" "$srcpath\Build\VcBuild\bin\$arch_$flavor";
 $objpath = UseValueOrDefault $objpath "$env:TF_BUILD_BUILDDIRECTORY" "$srcpath\Build\VcBuild\obj\$arch_$flavor";
 

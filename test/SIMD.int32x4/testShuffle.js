@@ -17,8 +17,9 @@ function equal(a, b) {
 function testSwizzle() {
     print("Int32x4 Shuffle");
     var a = SIMD.Int32x4(1, 2, 3, 4);
-    var xyxy = SIMD.Int32x4.swizzle(a, 0, 1, 0, 1);
-    var zwzw = SIMD.Int32x4.swizzle(a, 2, 3, 2, 3);
+    var  k = true;
+    var xyxy = SIMD.Int32x4.swizzle(a, 0, ["1"], false, true);
+    var zwzw = SIMD.Int32x4.swizzle(a, 2, "3", 2, [3]);
     var xxxx = SIMD.Int32x4.swizzle(a, 0, 0, 0, 0);
     equal(1, SIMD.Int32x4.extractLane(xyxy, 0));
     equal(2, SIMD.Int32x4.extractLane(xyxy, 1));
@@ -38,7 +39,7 @@ function testShuffle() {
     print("Int32x4 ShuffleMix");
     var a = SIMD.Int32x4(1, 2, 3, 4);
     var b = SIMD.Int32x4(5, 6, 7, 8);
-    var xyxy = SIMD.Int32x4.shuffle(a, b, 0, 1, 4, 5);
+    var xyxy = SIMD.Int32x4.shuffle(a, b, false, true, "4", [5]);
     var zwzw = SIMD.Int32x4.shuffle(a, b, 2, 3, 6, 7);
     var xxxx = SIMD.Int32x4.shuffle(a, b, 0, 0, 4, 4);
     equal(1, SIMD.Int32x4.extractLane(xyxy, 0));

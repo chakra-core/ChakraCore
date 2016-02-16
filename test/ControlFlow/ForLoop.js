@@ -28,7 +28,7 @@ WScript.Echo(cat)
 WScript.Echo(rat)
 WScript.Echo(dragon);
 
-function MatchCollectionLocalColllection(collection, value)
+function MatchCollectionLocalCollection(collection, value)
 {
     for (var i = 0; i < collection.length; i++)
     {
@@ -38,12 +38,12 @@ function MatchCollectionLocalColllection(collection, value)
     return false;
 }
   
-WScript.Echo(MatchCollectionLocalColllection(["car", "truck"] , "car"));
+WScript.Echo(MatchCollectionLocalCollection(["car", "truck"] , "car"));
 
-WScript.Echo(MatchCollectionLocalColllection(["car", "truck"] , "foo"));
+WScript.Echo(MatchCollectionLocalCollection(["car", "truck"] , "foo"));
 
 var gCollection = ["car", "truck"];
-function MatchCollectionGlobalColllection(value)
+function MatchCollectionGlobalCollection(value)
 {
     for (var i = 0; i < gCollection.length; i++)
     {
@@ -52,10 +52,10 @@ function MatchCollectionGlobalColllection(value)
     }
     return false;
 }
-WScript.Echo(MatchCollectionGlobalColllection("car"));
-WScript.Echo(MatchCollectionGlobalColllection("foo"));
+WScript.Echo(MatchCollectionGlobalCollection("car"));
+WScript.Echo(MatchCollectionGlobalCollection("foo"));
 
-function MatchCollectionGlobalColllectionandValue()
+function MatchCollectionGlobalCollectionandValue()
 {
     for (var i = 0; i < gCollection.length; i++)
     {
@@ -66,7 +66,7 @@ function MatchCollectionGlobalColllectionandValue()
 }
 
 var gValue = "car";
-WScript.Echo(MatchCollectionGlobalColllectionandValue());
+WScript.Echo(MatchCollectionGlobalCollectionandValue());
 
 gValue = "foo";
-WScript.Echo(MatchCollectionGlobalColllectionandValue());
+WScript.Echo(MatchCollectionGlobalCollectionandValue());

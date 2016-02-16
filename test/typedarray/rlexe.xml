@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -302,6 +302,12 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
       <files>memset.js</files>
       <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>memset_neg.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit- -mmoc:0</compile-flags>
     </default>
   </test>
   <test>

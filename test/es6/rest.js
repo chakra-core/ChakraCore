@@ -11,7 +11,13 @@ var tests = [
     body: function () {
       assert.throws(function () { eval("function foo(...a, ...b) {}")},          SyntaxError,    "More than one rest parameter throws", "The rest parameter must be the last parameter in a formals list.");
       assert.throws(function () { eval("function foo(a, ...b, c) => {}")},       SyntaxError,    "Rest parameter not in the last position throws", "The rest parameter must be the last parameter in a formals list.");
-      assert.throws(function () { eval("var obj = class { method(a, b = 1, ...c = [2,3]) {} };")}, SyntaxError, "Rest parameter cannot have a default value");
+      assert.throws(function () { eval("var obj = class { method(a, b = 1, ...c = [2,3]) {} };")},         SyntaxError, "Rest parameter cannot have a default value");
+      assert.throws(function () { eval("function f(c, a, ...a) { }")},           SyntaxError,    "Duplicate parameters are not allowed for non-simple parameter list with only rest", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(c = 10, a, ...a) { }")},      SyntaxError,    "Duplicate parameters are not allowed for non-simple parameter list with both rest and default", "Duplicate formal parameter names not allowed in this context");
+      assert.throws(function () { eval("function f(a, ...b) { \"use strict\"; }")},                        SyntaxError, "Cannot apply strict mode to functions with rest parameter", "Cannot apply strict mode on functions with non-simple parameter list");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, c, ...a) { } }")}, SyntaxError, "Cannot have duplicate parameters for a function with non-simple parameter list, which is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
+      assert.throws(function () { eval("function f() { \"use strict\"; function g(a, b, a, ...c) { } }")}, SyntaxError, "Cannot have duplicate parameters for a function with non-simple parameter list with rest, which is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
+
       assert.throws(function () { eval("function foo(a = b, ...b) {}; foo();")}, ReferenceError, "Rest parameters cannot be referenced in default expressions (use before declaration)", "Use before declaration");
 
       // Redeclaration errors - non-simple in this case means any parameter list with a rest parameter
@@ -74,7 +80,7 @@ var tests = [
       assert.throws(function () { eval("(...rest = ...NaN) => {};"); },
                     SyntaxError,
                     "Invalid rest with invalid spread initializer throws on the invalid rest",
-                    "The rest parameter cannot have a default intializer.");
+                    "The rest parameter cannot have a default initializer.");
 
       assert.throws(function () { eval("var x = { set setter(...x) {} }"); },
                     SyntaxError,

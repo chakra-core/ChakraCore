@@ -15,7 +15,7 @@ sdafa */ a+b;
 }
 
 write(foo())
-//full suport for >LS><PS>
+//full support for <LS><PS>
 eval("function foo(){if(true) return \/*afsdf \u2028 sdafa *\/ a+b;} write(foo());")
 
 var x= "str const Left \u000A str const right"

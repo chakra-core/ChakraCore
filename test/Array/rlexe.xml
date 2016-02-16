@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -220,7 +220,7 @@
   <test>
     <default>
       <files>push3.js</files>
-      <compile-flags>-off:nativearray -forcees5array</compile-flags>
+      <compile-flags>-off:nativearray -ForceES5Array</compile-flags>
       <baseline>push3.baseline</baseline>
     </default>
   </test>
@@ -427,7 +427,7 @@
       <files>nativearray_gen1.js</files>
       <compile-flags>-sse:0 -forceserialized</compile-flags>
       <baseline>nativearray_gen1.baseline</baseline>
-      <!-- Exclude the serialized variants because we're useding -forceserialized here. -->
+      <!-- Exclude the serialized variants because we're using -forceserialized here. -->
       <tags>exclude_serialized</tags>
     </default>
   </test>
@@ -600,7 +600,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_bugs.js</files>
-      <tags>BugFix</tags>
+      <tags>BugFix,require_backend</tags>
       <compile-flags>-force:copyonaccessarray</compile-flags>
       <baseline>CopyOnAccessArray_bugs.baseline</baseline>
     </default>
@@ -608,7 +608,7 @@
   <test>
     <default>
       <files>CopyOnAccessArray_cache_index_overflow.js</files>
-      <tags>BugFix</tags>
+      <tags>BugFix,require_backend</tags>
       <compile-flags>-force:copyonaccessarray -testtrace:CopyOnAccessArray</compile-flags>
       <baseline>CopyOnAccessArray_cache_index_overflow.baseline</baseline>
     </default>
@@ -623,6 +623,19 @@
      <default>
         <files>memset.js</files>
         <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -off:inline -mmoc:0</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
+        <files>memset_invariant.js</files>
+        <tags>Slow</tags>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
+        <files>memset_simd.js</files>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody -simdjs -simd128typespec</compile-flags>
      </default>
   </test>
   <test>

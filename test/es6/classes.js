@@ -5,10 +5,6 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function p(x) {
-  WScript.Echo(x);
-}
-
 function verifyClassMember(obj, name, expectedReturnValue, isGet, isSet, isGenerator) {
     let p = Object.getOwnPropertyDescriptor(obj, name);
     let strMethodSignature = `obj[${name}](${isGet},${isSet},${isGenerator})`;
@@ -185,8 +181,9 @@ var tests = [
   {
     name: "Class basic sanity tests",
     body: function () {
+      var m;
       function p(x) {
-        WScript.Echo(x);
+        m = x;
       }
 
       class Empty { }
@@ -201,7 +198,10 @@ var tests = [
 
       let empty = new Empty();
       let emptySemi = new EmptySemi();
+
       let onlyCtor = new OnlyCtor();
+      assert.areEqual('ctor', m, "constructing OnlyCtor class calls the constructor method");
+
       let onlyMethod = new OnlyMethod();
       let onlyStaticMethod = new OnlyStaticMethod();
       let onlyGetter = new OnlyGetter();
@@ -209,46 +209,71 @@ var tests = [
       let onlySetter = new OnlySetter();
       let onlyStaticSetter = new OnlyStaticSetter();
 
-      onlyMethod.method()
-      OnlyStaticMethod.method()
+      onlyMethod.method();
+      assert.areEqual('method', m, "method calls function correctly");
+
+      OnlyStaticMethod.method();
+      assert.areEqual('smethod', m, "static method calls function correctly");
+
       onlyGetter.getter;
+      assert.areEqual('getter', m, "getter calls function correctly");
+
       OnlyStaticGetter.getter;
+      assert.areEqual('sgetter', m, "static getter calls function correctly");
+
       onlySetter.setter = null;
+      assert.areEqual('setter null', m, "setter calls function correctly");
+
       OnlyStaticSetter.setter = null;
+      assert.areEqual('ssetter null', m, "static setter calls function correctly");
 
 
       class InheritMethod extends OnlyMethod { method2() { p('sub method') } }
-      class OverrideMethod extends OnlyMethod { method() { p('sub method') } }
+      class OverrideMethod extends OnlyMethod { method() { p('override method') } }
 
-      let inheritMethod = new InheritMethod()
-      let overrideMethod = new OverrideMethod()
+      let inheritMethod = new InheritMethod();
+      let overrideMethod = new OverrideMethod();
 
-      inheritMethod.method()
-      inheritMethod.method2()
+      inheritMethod.method();
+      assert.areEqual('method', m, "derived class inherits base class method");
 
-      overrideMethod.method()
+      inheritMethod.method2();
+      assert.areEqual('sub method', m, "derived class adds new method correctly");
+
+      overrideMethod.method();
+      assert.areEqual('override method', m, "derived class overrides method correctly");
 
 
-      let OnlyMethodExpr = class OnlyMethodExpr { method() { p('method') } }
-      let OnlyMethodExprNameless = class { method() { p('method') } }
+      let OnlyMethodExpr = class OnlyMethodExpr { method() { p('class expr method') } }
+      let OnlyMethodExprNameless = class { method() { p('class expr no name method') } }
 
       let onlyMethodExpr = new OnlyMethodExpr();
       let onlyMethodExprNameless = new OnlyMethodExprNameless();
 
       onlyMethodExpr.method();
+      assert.areEqual('class expr method', m, "method call on class expression works correctly");
+
       onlyMethodExprNameless.method();
+      assert.areEqual('class expr no name method', m, "method call on class expression with no name works correctly");
 
 
       class InternalNameUse { static method() { p(InternalNameUse.method.toString()) } }
       let InternalNameUseExpr_ = class InternalNameUseExpr { static method() { p(InternalNameUseExpr.method.toString()) } }
 
       InternalNameUse.method();
+      assert.areEqual('method() { p(InternalNameUse.method.toString()) }', m, "Use of class declaration's name inside method works correctly");
+
       InternalNameUseExpr_.method();
+      assert.areEqual('method() { p(InternalNameUseExpr.method.toString()) }', m, "Use of class expression's name inside method works correctly");
     }
   },
   {
     name: "Class basic sanity tests in closures",
     body: function () {
+      var m;
+      function p(x) {
+        m = x;
+      }
 
       function f1() {
         class Empty { }
@@ -270,7 +295,10 @@ var tests = [
         function f2() {
           let empty = new Empty();
           let emptySemi = new EmptySemi();
+
           let onlyCtor = new OnlyCtor();
+          assert.areEqual('ctor', m, "constructing OnlyCtor class calls the constructor method");
+
           let onlyMethod = new OnlyMethod();
           let onlyStaticMethod = new OnlyStaticMethod();
           let onlyGetter = new OnlyGetter();
@@ -281,18 +309,41 @@ var tests = [
           let onlyComputedGetter = new OnlyComputedGetter();
           let onlyComputedSetter = new OnlyComputedSetter();
 
-          onlyMethod.method()
-          OnlyStaticMethod.method()
+          onlyMethod.method();
+          assert.areEqual('method', m, "method calls function correctly");
+
+          OnlyStaticMethod.method();
+          assert.areEqual('smethod', m, "static method calls function correctly");
+
           onlyGetter.getter;
+          assert.areEqual('getter', m, "getter calls function correctly");
+
           OnlyStaticGetter.getter;
+          assert.areEqual('sgetter', m, "static getter calls function correctly");
+
           onlySetter.setter = null;
+          assert.areEqual('setter null', m, "setter calls function correctly");
+
           OnlyStaticSetter.setter = null;
+          assert.areEqual('ssetter null', m, "static setter calls function correctly");
+
           onlyComputedMethod.cmethod()
+          assert.areEqual('cmethod', m, "computed name method calls function correctly");
+
           OnlyStaticComputedMethod.cmethod()
+          assert.areEqual('scmethod', m, "static computed name method calls function correctly");
+
           onlyComputedGetter.cgetter;
+          assert.areEqual('cgetter', m, "computed name getter calls function correctly");
+
           OnlyStaticComputedGetter.cgetter;
+          assert.areEqual('scgetter', m, "static computed name getter calls function correctly");
+
           onlyComputedSetter.csetter = null;
+          assert.areEqual('csetter null', m, "computed name setter calls function correctly");
+
           OnlyStaticComputedSetter.csetter = null;
+          assert.areEqual('scsetter null', m, "static computed name setter calls function correctly");
         }
 
         f2();
@@ -302,16 +353,20 @@ var tests = [
       function f3() {
         class OnlyMethod { method() { p('method') } }
         class InheritMethod extends OnlyMethod { method2() { p('sub method') } }
-        class OverrideMethod extends OnlyMethod { method() { p('sub method') } }
+        class OverrideMethod extends OnlyMethod { method() { p('override method') } }
 
         function f4() {
           let inheritMethod = new InheritMethod()
           let overrideMethod = new OverrideMethod()
 
-          inheritMethod.method()
-          inheritMethod.method2()
+          inheritMethod.method();
+          assert.areEqual('method', m, "derived class inherits base class method");
 
-          overrideMethod.method()
+          inheritMethod.method2();
+          assert.areEqual('sub method', m, "derived class adds new method correctly");
+
+          overrideMethod.method();
+          assert.areEqual('override method', m, "derived class overrides method correctly");
         }
 
         f4();
@@ -319,14 +374,18 @@ var tests = [
       f3();
 
       function f5() {
-        let OnlyMethodExpr = class OnlyMethodExpr { method() { p('method') } }
-        let OnlyMethodExprNameless = class { method() { p('method') } }
+        let OnlyMethodExpr = class OnlyMethodExpr { method() { p('class expr method') } }
+        let OnlyMethodExprNameless = class { method() { p('class expr no name method') } }
 
         function f6() {
           let onlyMethodExpr = new OnlyMethodExpr();
           let onlyMethodExprNameless = new OnlyMethodExprNameless();
+
           onlyMethodExpr.method();
+          assert.areEqual('class expr method', m, "method call on class expression works correctly");
+
           onlyMethodExprNameless.method();
+          assert.areEqual('class expr no name method', m, "method call on class expression with no name works correctly");
         }
 
         f6()
@@ -339,7 +398,10 @@ var tests = [
 
         function f8() {
           InternalNameUse.method();
+          assert.areEqual('method() { p(InternalNameUse.method.toString()) }', m, "Use of class declaration's name inside method works correctly");
+
           InternalNameUseExpr_.method();
+          assert.areEqual('method() { p(InternalNameUseExpr.method.toString()) }', m, "Use of class expression's name inside method works correctly");
         }
 
         f8()
@@ -367,8 +429,10 @@ var tests = [
   {
     name: "Basic uses of super",
     body: function () {
+      var ctorCalls = [];
+
       class A {
-        constructor() { this._initialized = true; p('constructor A'); }
+        constructor() { this._initialized = true; ctorCalls.push('A'); }
         method()      { return 'method A'; }
         set initialized(v) { this._initialized = v; }
         get initialized() { return this._initialized; }
@@ -376,8 +440,9 @@ var tests = [
 
       class B extends A {
         constructor() {
+          ctorCalls.push('B pre-super');
           super();
-          p('constructor B');
+          ctorCalls.push('B post-super');
         }
         superMethod()      { return super.method() }
         superMethodIndex() { return super['method'](); }
@@ -392,7 +457,16 @@ var tests = [
       }
 
       let classA = new A();
+      assert.areEqual(1, ctorCalls.length, "new A calls A's constructor once");
+      assert.areEqual('A', ctorCalls[0], "new A calls A's constructor");
+      ctorCalls = [];
+
       let classB = new B();
+      assert.areEqual(3, ctorCalls.length, "new B calls B and A constructors once each");
+      assert.areEqual('B pre-super', ctorCalls[0], "new B calls B's constructor first");
+      assert.areEqual('A', ctorCalls[1], "super within B's constructor calls A's constructor");
+      assert.areEqual('B post-super', ctorCalls[2], "A's constructor returns to B's constructor after super call");
+
 
       // Sanity checks
       assert.isTrue(classA.method() === 'method A', "classA.method() === 'method A'");
@@ -568,8 +642,8 @@ var tests = [
       class a { };
       class b extends a { };
 
-      assert.areEqual("constructor() {}", a.prototype.constructor.toString());
-      assert.areEqual("constructor(...args) { super(...args); }", b.prototype.constructor.toString());
+      assert.areEqual("class a { }", a.prototype.constructor.toString());
+      assert.areEqual("class b extends a { }", b.prototype.constructor.toString());
 
       var result = [];
       var test = [];
@@ -736,10 +810,10 @@ var tests = [
                 static get ['method4']() {
                     return 'jkl';
                 }
-                static set method5() {
+                static set method5(x) {
                     return 'mno';
                 }
-                static set ['method6']() {
+                static set ['method6'](x) {
                     return 'pqr';
                 }
                 static *method7() {
@@ -776,10 +850,10 @@ var tests = [
                 get ['method4']() {
                     return 'jkl';
                 }
-                set method5() {
+                set method5(x) {
                     return 'mno';
                 }
-                set ['method6']() {
+                set ['method6'](x) {
                     return 'pqr';
                 }
                 *method7() {
@@ -869,12 +943,12 @@ var tests = [
         body: function() {
             assert.throws(function() { eval(`class A { static ['prototype']() {} };`); }, TypeError, "Ordinary static member cannot have computed name 'prototype'", "Class static member cannot be named 'prototype'");
             assert.throws(function() { eval(`class A { static get ['prototype']() {} };`); }, TypeError, "Static get member cannot have computed name 'prototype'", "Class static member cannot be named 'prototype'");
-            assert.throws(function() { eval(`class A { static set ['prototype']() {} };`); }, TypeError, "Static set member cannot have computed name 'prototype'", "Class static member cannot be named 'prototype'");
+            assert.throws(function() { eval(`class A { static set ['prototype'](x) {} };`); }, TypeError, "Static set member cannot have computed name 'prototype'", "Class static member cannot be named 'prototype'");
             assert.throws(function() { eval(`class A { static *['prototype']() {} };`); }, TypeError, "Static generator member cannot have computed name 'prototype'", "Class static member cannot be named 'prototype'");
 
             assert.doesNotThrow(function() { eval(`class A { ['prototype']() {} };`); }, "Class member with computed name 'prototype' is fine");
             assert.doesNotThrow(function() { eval(`class A { get ['prototype']() {} };`); }, "Class get member with computed name 'prototype' is fine");
-            assert.doesNotThrow(function() { eval(`class A { set ['prototype']() {} };`); }, "Class set member with computed name 'prototype' is fine");
+            assert.doesNotThrow(function() { eval(`class A { set ['prototype'](x) {} };`); }, "Class set member with computed name 'prototype' is fine");
             assert.doesNotThrow(function() { eval(`class A { *['prototype']() {} };`); }, "Class generator member with computed name 'prototype' is fine");
         }
     },
@@ -1021,10 +1095,41 @@ var tests = [
             for (s of new ClassWithArgumentsAndCallerComputedNameGeneratorMethods().caller()) {}
             assert.areEqual('456', s, "s of new ClassWithArgumentsAndCallerComputedNameGeneratorMethods().caller() === '456'");
         }
-    }
+    },
+    {
+        name: "toString on constructor should return class declaration or expression",
+        body: function () {
+            var B = class { };
+            var A = class A extends B { constructor (...args) { super(...args); }  set x(a) { this._x = a; } set y(a) { this._y = a; } };
+            class C {
+                set x(a) { this._x = a; }
+                set y(a) { this._y = a; }
+            };
+            class D { constructor() {}  get x() { return 0; } };
+            var E = D;
+
+            assert.areEqual("class A extends B { constructor (...args) { super(...args); }  set x(a) { this._x = a; } set y(a) { this._y = a; } }", A.prototype.constructor.toString());
+            assert.areEqual("class { }", B.prototype.constructor.toString());
+            assert.areEqual("class C {\r\n                set x(a) { this._x = a; }\r\n                set y(a) { this._y = a; }\r\n            }", C.prototype.constructor.toString());
+            assert.areEqual("class D { constructor() {}  get x() { return 0; } }", D.prototype.constructor.toString());
+            assert.areEqual("class D { constructor() {}  get x() { return 0; } }", E.prototype.constructor.toString());
+        }
+    },
+    {
+        name: "class getters and setters must take exactly zero and one parameters respectively",
+        body: function () {
+            assert.doesNotThrow(function () { eval("class C { get foo() { } }"); }, "Class getter with zero parameters is valid syntax", "asdf");
+            assert.throws(function () { eval("class C { get foo(x) { } }"); }, SyntaxError, "Class getter with one parameter is invalid syntax", "Getter functions must have no parameters");
+            assert.throws(function () { eval("class C { get foo(x, y, z) { } }"); }, SyntaxError, "Class getter with more than one parameter is invalid syntax", "Getter functions must have no parameters");
+
+            assert.doesNotThrow(function () { eval("class C { set foo(x) { } }"); }, "Class setter with exactly one parameter is valid syntax", "asdf");
+            assert.throws(function () { eval("class C { set foo() { } }"); }, SyntaxError, "Class setter with zero parameters is invalid syntax", "Setter functions must have exactly one parameter");
+            assert.throws(function () { eval("class C { set foo(x, y, z) { } }"); }, SyntaxError, "Class setter with more than one parameter is invalid syntax", "Setter functions must have exactly one parameter");
+        }
+    },
 ];
 
-testRunner.runTests(tests);
+testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
 
 // Bug 516429 at global scope
 class a {};

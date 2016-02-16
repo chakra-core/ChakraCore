@@ -38,7 +38,7 @@ guarded_call(function() {
     noncallable.apply({}, [1, 2, 3]);
 });
 
-// 2. If argArray is null or undefined, call func with an emply list of arguments
+// 2. If argArray is null or undefined, call func with an empty list of arguments
 var o = {};
 echo("\n--- f.apply(x) ---");
 guarded_call(function() {

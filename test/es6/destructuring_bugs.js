@@ -19,6 +19,16 @@ var tests = [
       assert.throws(function () { eval("let a = [a] = [10]"); }, ReferenceError, "A let variable is used in the array pattern in the same statement where it is declared", "Use before declaration");
       assert.throws(function () { eval("let a = {a:a} = {}"); }, ReferenceError, "A let variable is used in object pattern in the same statement where it is declared", "Use before declaration");
       assert.throws(function () { eval("var a = 1; (delete [a] = [2]);"); }, ReferenceError, "Array literal in unary expression should not be converted to array pattern", "Invalid left-hand side in assignment");
+      assert.throws(function () { eval("var x, b; for ([x] = [((b) = 1)] of ' ') { }"); }, ReferenceError, "Initializer in for..in is not valid but no assert should be thrown", "Invalid left-hand side in assignment");
+      assert.throws(function () { eval("for (let []; ;) { }"); }, SyntaxError, "Native for loop's head has one destructuring pattern without initializer", "Destructuring declarations must have an initializer");
+      assert.throws(function () { eval("for (let a = 1, []; ;) { }"); }, SyntaxError, "Native for loop's head has second param as destructuring pattern without initializer", "Destructuring declarations must have an initializer");
+      assert.throws(function () { eval("for (let [] = [], a = 1, {}; ;) { }"); }, SyntaxError, "Native for loop's head has third param as object destructuring pattern without initializer", "Destructuring declarations must have an initializer");
+      assert.throws(function () { eval("for (let [[a] = []]; ;) { }"); }, SyntaxError, "Native for loop's head as destructuring pattern without initializer", "Destructuring declarations must have an initializer");
+      assert.doesNotThrow(function () { eval("for ([]; ;) { break; }"); }, "Native for loop's head is an expression without initializer is valid syntax");
+      assert.doesNotThrow(function () { eval("try { y; } catch({}) { }"); }, "Catching exception to empty pattern should not assert and is a valid syntax");
+      assert.doesNotThrow(function () { eval("for({} = function (...a) { } in '' ) { }"); }, "Having a function with rest parameter as initializer should not assert and is a valid syntax");
+      assert.doesNotThrow(function () { eval("for([] = ((...a) => {}) in '' ) { }"); }, "Having a lambda function with rest parameter as initializer should not assert and is a valid syntax");
+      assert.doesNotThrow(function () { eval("[[[] = [function () { }] ] = []]"); }, "Nested array has array pattern which has function expression is a valid syntax");
     }
   },
   {
@@ -30,6 +40,27 @@ var tests = [
         [ a [ function () { }, b ] ] = [2] ;
       }
       f();
+    }
+  },
+  {
+    name: "Destructuring bug fix - rest operator in for loop",
+    body: function () {
+      assert.throws(function () { eval("for (var {a: ...a1} = {}; ; ) { } "); }, SyntaxError, "Native for loop - usage of '...' in object destructuring pattern in not valid", "Unexpected ... operator");
+      assert.throws(function () { eval("for (var {a: ...[]} = {}; ; ) { } "); }, SyntaxError, "Native for loop - usage of '...' before an array in object destructuring pattern in not valid", "Unexpected ... operator");
+      assert.throws(function () { eval("for (var {a: ...[]} of '' ) { } "); }, SyntaxError, "for.of loop - usage of '...' before an array in object destructuring pattern in not valid", "Unexpected ... operator");
+    }
+  },
+  {
+    name: "Destructuring bug fix - call expression instead of reference node",
+    body: function () {
+      assert.throws(function () { eval("for (var a of {b: foo()} = {}) { }"); }, SyntaxError, "for.of loop has destructuring pattern which has call expression instead of a reference node", "Invalid destructuring assignment target");
+      assert.throws(function () { eval("for ([{b: foo()} = {}] of {}) { }"); }, SyntaxError, "for.of loop has destructuring pattern on head which has call expression instead of a reference node", "Invalid destructuring assignment target");
+      function foo() {
+          return { bar : function() {} };
+      }
+
+      assert.throws(function () { eval("for (var a in {b: foo().bar()} = {}) { }"); }, SyntaxError, "for.in loop has destructuring pattern which has linked call expression instead of a reference node", "Invalid destructuring assignment target");
+      assert.doesNotThrow(function () { eval("for (var a in {b: foo().bar} = {}) { }"); }, "for.in loop has destructuring pattern which has a reference node is valid syntax", );
     }
   }
 ];

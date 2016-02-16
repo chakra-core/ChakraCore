@@ -62,7 +62,7 @@ var tests = [
     },
 
     {
-        name: "WeakMap constructor populates the weakmap with key-values pairs from given optional iteratable argument",
+        name: "WeakMap constructor populates the weakmap with key-values pairs from given optional iterable argument",
         body: function () {
             var keys = [ { }, { }, { }, { } ];
             var wm = new WeakMap([ [keys[0], 1], [keys[1], 2], [keys[2], 3] ]);

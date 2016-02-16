@@ -1,8 +1,13 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
 param (
     [ValidateSet("x86", "x64", "arm", "*")]
     [string]$arch="*",
 
-    [ValidateSet("debug", "release", "test", "*")]
+    [ValidateSet("debug", "release", "test", "codecoverage", "*")]
     [string]$flavor = "*",
 
     [string]$srcpath = "",
@@ -23,7 +28,6 @@ param (
 
 $global:exitcode = 0
 
-
 if ($arch -eq "*") {
 
     . "$PSScriptRoot\util.ps1"
@@ -39,7 +43,7 @@ if ($arch -eq "*") {
     }
 
 } else {
-    $OutterScriptRoot = $PSScriptRoot;
+    $OuterScriptRoot = $PSScriptRoot;
     . "$PSScriptRoot\pre_post_util.ps1"
 
     if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {

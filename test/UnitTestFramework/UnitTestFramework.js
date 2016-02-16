@@ -33,6 +33,11 @@ var helpers = function helpers() {
     //private
     var undefinedAsString = "undefined";
     var isWScriptAvailable = this.WScript;
+    if (isWScriptAvailable && !this.WScript.LoadModuleFile) {
+        WScript.LoadModuleFile = function (fileName) {
+            WScript.LoadScriptFile(fileName, "module");
+        }
+    }
 
     return {
         isInBrowser: function isInBrowser() {
@@ -262,6 +267,14 @@ var assert = function assert() {
 
         isFalse: function isFalse(actual, message) {
             validate(compare(false, actual), "isFalse", message);
+        },
+
+        isUndefined: function isUndefined(actual, message) {
+            validate(compare(undefined, actual), "isUndefined", message);
+        },
+
+        isNotUndefined: function isUndefined(actual, message) {
+            validate(compare(undefined, actual) !== true, "isNotUndefined", message);
         },
 
         throws: function throws(testFunction, expectedException, message, expectedErrorMessage) {

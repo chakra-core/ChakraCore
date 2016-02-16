@@ -11,7 +11,7 @@ This is exposed if we WScript.LoadScriptFile() code with Math.Abs(NaN) in it.
 Causing an assertion failure in SmartFPUControl. The change special-handles NaN without calling fabs
 */
 
-function AsmModule(stdlib, foreigh, heap) {
+function AsmModule(stdlib, foreign, heap) {
     "use asm";
     var abs = stdlib.Math.abs;
     function testOp(av) {

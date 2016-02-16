@@ -6,6 +6,7 @@
 *.user
 *.i
 Build/VCBuild/
+Build/VCBuild.NoJIT/
 Build/ipch/
 Build/.vs/
 build_*.log

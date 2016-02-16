@@ -121,8 +121,13 @@ void __stdcall PrintUsageFormat()
 
 void __stdcall PrintUsage()
 {
+#ifndef DEBUG
+    wprintf(L"\nUsage: ch.exe filename"
+            L"\n[flaglist] is not supported for Release mode\n");
+#else
     PrintUsageFormat();
     wprintf(L"Try 'ch.exe -?' for help\n");
+#endif
 }
 
 // On success the param byteCodeBuffer will be allocated in the function.
@@ -504,6 +509,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
+
+    if (fileName.m_str == nullptr) {
+        fileName = CComBSTR(argv[1]);
+    }
 
     if (chakraLibrary != nullptr)
     {

@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
     var i4 = stdlib.SIMD.Int32x4;
@@ -47,8 +47,8 @@ function asmModule(stdlib, imports) {
     var f4clamp = f4.clamp;
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+
+
     var f4sqrt = f4.sqrt;
     //var f4swizzle = f4.swizzle;
     //var f4shuffle = f4.shuffle;
@@ -81,8 +81,8 @@ function asmModule(stdlib, imports) {
     var d2clamp = d2.clamp;
     var d2min = d2.min;
     var d2max = d2.max;
-    var d2reciprocal = d2.reciprocal;
-    var d2reciprocalSqrt = d2.reciprocalSqrt;
+
+
     var d2sqrt = d2.sqrt;
     //var d2swizzle = d2.swizzle;
     //var d2shuffle = d2.shuffle;
@@ -243,21 +243,10 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
 
-
-print("Func1");
-print(m.func1().toString());
-
-print("Func2");
-print(m.func2().toString());
-
-print("Func3");
-print(m.func3().toString());
-
-print("Func4");
-print(m.func4().toString());
-
-print("Func5");
-print(m.func5().toString());
-
-print("Func6");
-print(m.func6().toString());
+equalSimd([-205098, 1274064, -3416622, 393204], m.func1(), SIMD.Int32x4, "Func1");
+equalSimd([260733, 137701, -1708109, 133219], m.func2(), SIMD.Int32x4, "Func2");
+equalSimd([1045597, -1278847, -570161, -60147], m.func3(), SIMD.Int32x4, "Func3");
+equalSimd([0, 0, 0, 0], m.func4(), SIMD.Int32x4, "Func4");
+equalSimd([-319033, 280185, 570565, -66619], m.func5(), SIMD.Int32x4, "Func5");
+equalSimd([-1035531, 1272045, 571491, -4321], m.func6(), SIMD.Int32x4, "Func6");
+print("PASS");

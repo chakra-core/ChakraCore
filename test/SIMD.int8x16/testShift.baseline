@@ -1,4 +1,4 @@
-Int8x16 shiftLeft
+Int8x16 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -31,7 +31,7 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftLeft
+Int8x16 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -64,7 +64,7 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftLeft
+Int8x16 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -97,7 +97,7 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftLeft
+Int8x16 shiftLeftByScalar
 Correct
 Correct
 Correct
@@ -130,7 +130,7 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftRightLogical
+Int8x16 shiftRightByScalar
 Correct
 Correct
 Correct
@@ -163,7 +163,6 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftRightLogical
 Correct
 Correct
 Correct
@@ -180,6 +179,7 @@ Correct
 Correct
 Correct
 Correct
+Int8x16 shiftRightByScalar
 Correct
 Correct
 Correct
@@ -196,7 +196,6 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftRightLogical
 Correct
 Correct
 Correct
@@ -229,7 +228,7 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftRightLogical
+Int8x16 shiftRightByScalar
 Correct
 Correct
 Correct
@@ -262,7 +261,6 @@ Correct
 Correct
 Correct
 Correct
-Int8x16 shiftRightArithmetic
 Correct
 Correct
 Correct
@@ -279,137 +277,7 @@ Correct
 Correct
 Correct
 Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int8x16 shiftRightArithmetic
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int8x16 shiftRightArithmetic
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Correct
-Int8x16 shiftRightArithmetic
+Int8x16 shiftRightByScalar
 Correct
 Correct
 Correct

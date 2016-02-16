@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 //Baseline switches:
 //Switches: -mic:1 -off:simplejit
 var Float64ArrayView = new Float64Array();
@@ -24,4 +29,3 @@ if (Float64ArrayView[4] === val && Int32ArrayView[4] === (val | 0)) {
   print(Int32ArrayView[4]);
   print("FAILED");
 }
-

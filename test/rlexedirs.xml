@@ -104,6 +104,7 @@
 <dir>
   <default>
     <files>Optimizer</files>
+    <tags>require_backend</tags>
   </default>
 </dir>
 <dir>
@@ -189,6 +190,7 @@
 <dir>
   <default>
     <files>bailout</files>
+    <tags>require_backend</tags>
   </default>
 </dir>
 <dir>
@@ -214,11 +216,13 @@
 <dir>
   <default>
     <files>FixedFields</files>
+    <tags>require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>inlining</files>
+    <tags>require_backend</tags>
   </default>
 </dir>
 <dir>
@@ -233,37 +237,42 @@
 </dir>
 <dir>
   <default>
+    <files>es7</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>switchStatement</files>
   </default>
 </dir>
 <dir>
   <default>
     <files>stackfunc</files>
-    <tags>exclude_serialized</tags>
+    <tags>exclude_serialized,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>PerfHint</files>
-    <tags>exclude_serialized,exclude_snap</tags>
+    <tags>exclude_serialized,exclude_snap,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>AsmJs</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>AsmJsFloat</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>AsmJsParser</files>
-    <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
@@ -287,18 +296,24 @@
 <dir>
   <default>
     <files>SIMD.float32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.int32x4.asmjs</files>
-    <tags>exclude_arm,exclude_arm64</tags>
+    <tags>exclude_arm,exclude_arm64,require_backend</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>SIMD.workloads.asmjs</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>SIMD.TypeSpec</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
   </default>
 </dir>

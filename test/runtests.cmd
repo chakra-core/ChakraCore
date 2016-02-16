@@ -48,6 +48,7 @@ goto :main
   echo.
   echo   -debug         Build type of binaries is debug
   echo   -test          Build type of binaries is test
+  echo   -codecoverage  Build type of binaries is codecoverage
   echo.
   echo   Shorthand combinations can be used, e.g. -x64debug
   echo.
@@ -134,6 +135,7 @@ goto :main
   if /i "%1" == "-arm"              set _BuildArch=arm&                                         goto :ArgOk
   if /i "%1" == "-debug"            set _BuildType=debug&                                       goto :ArgOk
   if /i "%1" == "-test"             set _BuildType=test&                                        goto :ArgOk
+  if /i "%1" == "-codecoverage"     set _BuildType=codecoverage&                                goto :ArgOk
 
   if /i "%1" == "-x86debug"         set _BuildArch=x86&set _BuildType=debug&                    goto :ArgOk
   if /i "%1" == "-x64debug"         set _BuildArch=x64&set _BuildType=debug&                    goto :ArgOk
@@ -141,6 +143,9 @@ goto :main
   if /i "%1" == "-x86test"          set _BuildArch=x86&set _BuildType=test&                     goto :ArgOk
   if /i "%1" == "-x64test"          set _BuildArch=x64&set _BuildType=test&                     goto :ArgOk
   if /i "%1" == "-armtest"          set _BuildArch=arm&set _BuildType=test&                     goto :ArgOk
+  if /i "%1" == "-x86codecoverage"  set _BuildArch=x86&set _BuildType=codecoverage&             goto :ArgOk
+  if /i "%1" == "-x64codecoverage"  set _BuildArch=x64&set _BuildType=codecoverage&             goto :ArgOk
+  if /i "%1" == "-armcodecoverage"  set _BuildArch=arm&set _BuildType=codecoverage&             goto :ArgOk
 
   if /i "%1" == "-binary"           set _Binary=-binary:%2&                                     goto :ArgOkShift2
   if /i "%1" == "-bindir"           set _BinDir=%~f2&                                           goto :ArgOkShift2
@@ -195,6 +200,11 @@ goto :main
     ) else (
       set _ExtraVariants=%_ExtraVariants%,bytecodeserialized,forceserialized
     )
+    goto :ArgOk
+  )
+  if /i "%1" == "-disablejit" (
+    set _DisableJit=1
+    set _Variants=disable_jit
     goto :ArgOk
   )
 
@@ -313,7 +323,12 @@ goto :main
   if "%_BuildArchMapped%" == "x64" set _BuildArchMapped=amd64
   if "%_BuildTypeMapped%" == "debug" set _BuildTypeMapped=chk
   if "%_BuildTypeMapped%" == "test" set _BuildTypeMapped=fre
+  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=fre
 
+  if "%Disable_JIT%" == "1" (
+      set _dynamicprofilecache=
+      set _dynamicprofileinput=
+  )
   goto :eof
 
 :: ============================================================================
@@ -340,6 +355,15 @@ goto :main
   if "%_TESTCONFIG%"=="nonative" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted
+  )
+  :: DisableJit is different from NoNative in that NoNative can be used 
+  :: with builds which include backend code, whereas DisableJit doesn't have
+  :: backend code linked in, and also disables other features that incidentally
+  :: depends on the backend like dynamic profile, asmjs, simdjs, background parsing etc.
+  :: TODO: Re-enable interpreter mode asmjs and simdjs
+  if "%_TESTCONFIG%"=="disable_jit" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
+    set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted -nottags:require_backend
   )
   if "%_TESTCONFIG%"=="dynapogo"    (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -forceNative -off:simpleJit -bgJitDelay:0 %_dynamicprofileinput%
