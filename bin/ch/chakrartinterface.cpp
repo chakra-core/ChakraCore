@@ -67,6 +67,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtGetProperty = (JsAPIHooks::JsrtGetPropertyPtr)GetProcAddress(library, "JsGetProperty");
     m_jsApiHooks.pfJsrtHasProperty = (JsAPIHooks::JsrtHasPropertyPtr)GetProcAddress(library, "JsHasProperty");
     m_jsApiHooks.pfJsrtRunScript = (JsAPIHooks::JsrtRunScriptPtr)GetProcAddress(library, "JsRunScript");
+    m_jsApiHooks.pfJsrtRunModule = (JsAPIHooks::JsrtRunModulePtr)GetProcAddress(library, "JsExperimentalApiRunModule");
 #ifdef ENABLE_WASM
     m_jsApiHooks.pfJsrtRunWasmScript = (JsAPIHooks::JsrtRunWasmScriptPtr)GetProcAddress(library, "JsRunWasmScript");
 #endif

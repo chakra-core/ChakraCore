@@ -13,6 +13,7 @@ Executing test #7 - Await keyword with a lambda expressions
 Executing test #8 - Async function with default arguments's value
 Executing test #9 - Promise in an Async function
 Executing test #10 - %AsyncFunction% constructor creates async functions analogous to Function constructor
+Executing test #11 - local variables with same names as formal parameters have proper redeclaration semantics (non-error cases, var and function)
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
@@ -38,6 +39,8 @@ Test #5 - Success async in a class #10 called with result = '10'
 Test #8 - Success async function with default arguments's value overwritten #1 called with result = 'true'
 Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #8 - Success async function with default arguments's value #3 called with result = 'true'
+Test #11 - Success inner var x overwrote formal parameter x only after the declaration statement
+Test #11 - Success inner function x() overwrote formal parameter x
 Test #6 - Success await in an async function #1 called with result = '-4'
 Test #6 - Success await in an async function #2 called with result = '2'
 Test #6 - Success await in an async function catch a rejected Promise in 'err'. Error = 'Error: My Error'

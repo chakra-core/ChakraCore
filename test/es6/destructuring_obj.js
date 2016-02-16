@@ -63,7 +63,7 @@ var tests = [
     name: "Object destructuring syntax with identifier reference",
     body: function () {
       assert.throws(function () { eval("function foo() { return {}; }; let {x:foo()} = {};"); }, SyntaxError,  "Object declaration pattern with a call expression is not valid syntax", "Let/Const redeclaration");
-      assert.throws(function () { eval("function foo() { return {}; }; ({x:foo()} = {});"); }, SyntaxError,  "Object expression pattern with a call expression is not valid syntax", "Unexpected operator in destructuring expression");
+      assert.throws(function () { eval("function foo() { return {}; }; ({x:foo()} = {});"); }, SyntaxError,  "Object expression pattern with a call expression is not valid syntax", "Invalid destructuring assignment target");
       assert.throws(function () { eval("function foo() { return {}; }; var {x:foo().x} = {};"); }, SyntaxError,  "Object declaration pattern with property reference on call is not valid syntax", "Syntax error");
 
       assert.doesNotThrow(function () { eval("var a = {}; ({x:a.x} = {});"); }, "Object expresion pattern with a property reference is valid syntax");
