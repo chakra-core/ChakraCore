@@ -144,6 +144,8 @@ CompileAssert(sizeof(SIMDValue) == 16);
 class ValueType;
 
 namespace Js {
+
+    bool IsSimdType(Var aVar);
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index);
     int32 SIMDCheckLaneIndex(ScriptContext* scriptContext, Var lane, const int32 range = 4);
 

@@ -7,37 +7,26 @@
 
 namespace Js
 {
-    class JavascriptSIMDUint16x8 sealed : public RecyclableObject
+    class JavascriptSIMDUint16x8 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-        DEFINE_VTABLE_CTOR(JavascriptSIMDUint16x8, RecyclableObject);
+        DEFINE_VTABLE_CTOR(JavascriptSIMDUint16x8, JavascriptSIMDType);
     public:
         class EntryInfo
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
         };
 
         JavascriptSIMDUint16x8(SIMDValue *val, StaticType *type);
         static JavascriptSIMDUint16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDUint16x8* FromVar(Var aValue);
-
-        __inline SIMDValue GetValue() { return value; }
-
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-
-        // Entry Points
-        /*
-        There is one toString per SIMD type. The code is entrant from value objects explicitly (e.g. a.toString()) or on overloaded operations.
-        It will also be a property of SIMD.int32x4.prototype for SIMD dynamic objects.
-        */
-        static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        // End Entry Points
+        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
@@ -45,9 +34,9 @@ namespace Js
                 value.u16[0], value.u16[1], value.u16[2], value.u16[3], value.u16[4], value.u16[5], value.u16[6], value.u16[7]);
         }
 
-        Var  Copy(ScriptContext* requestContext);
+        __inline SIMDValue GetValue() { return value; }
+        virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
-    private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
+        Var  Copy(ScriptContext* requestContext);
     };
 }

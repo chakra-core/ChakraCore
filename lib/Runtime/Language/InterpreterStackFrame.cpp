@@ -2437,16 +2437,15 @@ namespace Js
                 {
                     case AsmJsVarType::Int32x4:
                         valid = JavascriptSIMDInt32x4::Is(value);
-                        val = ((JavascriptSIMDInt32x4*)value)->GetValue();
-
+                        val = (valid) ? ((JavascriptSIMDInt32x4*)value)->GetValue() : val;
                         break;
                     case AsmJsVarType::Float32x4:
                         valid = JavascriptSIMDFloat32x4::Is(value);
-                        val = ((JavascriptSIMDFloat32x4*)value)->GetValue();
+                        val = (valid) ? ((JavascriptSIMDFloat32x4*)value)->GetValue() : val;
                         break;
                     case AsmJsVarType::Float64x2:
                         valid = JavascriptSIMDFloat64x2::Is(value);
-                        val = ((JavascriptSIMDFloat64x2*)value)->GetValue();
+                        val = (valid) ? ((JavascriptSIMDFloat64x2*)value)->GetValue() : val;
                         break;
                     default:
                         Assert(UNREACHED);
