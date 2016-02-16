@@ -78,9 +78,11 @@ namespace TTD
                 int64 u_int64Value;
                 uint64 u_uint64Value;
                 double u_doubleValue;
-                TTString u_stringValue;
-                Js::PropertyId u_propertyIdValue; //for a symbol
+                Js::PropertyId u_propertyIdValue; //for a symbol or propertyString pid
             };
+
+            //If this is a string then a ptr to the actual string contents
+            TTString* m_optStringValue;
         };
 
         void ExtractSnapPrimitiveValue(SnapPrimitiveValue* snapValue, Js::RecyclableObject* jsValue, bool isWellKnown, bool isLogged, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc);

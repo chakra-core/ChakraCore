@@ -255,7 +255,9 @@ namespace TTD
                     snapValue->u_uint64Value = Js::JavascriptUInt64Number::FromVar(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_String:
-                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), snapValue->u_stringValue);
+                    snapValue->u_propertyIdValue = Js::JavascriptString::FromVar(jsValue)->TryGetAssociatedPropertyId();
+                    snapValue->m_optStringValue = alloc.SlabAllocateStruct<TTString>();
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->m_optStringValue));
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
@@ -307,8 +309,17 @@ namespace TTD
                         res = Js::JavascriptUInt64Number::ToVar(snapValue->u_uint64Value, ctx);
                         break;
                     case Js::TypeIds_String:
-                        res = Js::JavascriptString::NewCopyBuffer(snapValue->u_stringValue.Contents, snapValue->u_stringValue.Length, ctx);
+                    {
+                        if(snapValue->u_propertyIdValue != Js::PropertyIds::_none)
+                        {
+                            res = ctx->GetPropertyString(snapValue->u_propertyIdValue);
+                        }
+                        else
+                        {
+                            res = Js::JavascriptString::NewCopyBuffer(snapValue->m_optStringValue->Contents, snapValue->m_optStringValue->Length, ctx);
+                        }
                         break;
+                    }
                     case Js::TypeIds_Symbol:
                         res = jslib->CreatePrimitveSymbol_TTD(snapValue->u_propertyIdValue);
                         break;
@@ -358,7 +369,8 @@ namespace TTD
                     writer->WriteUInt64(NSTokens::Key::u64Val, snapValue->u_uint64Value, NSTokens::Separator::CommaSeparator);
                     break;
                 case Js::TypeIds_String:
-                    writer->WriteString(NSTokens::Key::stringVal, snapValue->u_stringValue, NSTokens::Separator::CommaSeparator);
+                    writer->WriteUInt32(NSTokens::Key::pid, snapValue->u_propertyIdValue, NSTokens::Separator::CommaSeparator);
+                    writer->WriteString(NSTokens::Key::stringVal, *(snapValue->m_optStringValue), NSTokens::Separator::CommaSeparator);
                     break;
                 case Js::TypeIds_Symbol:
                     writer->WriteInt32(NSTokens::Key::propertyId, snapValue->u_propertyIdValue, NSTokens::Separator::CommaSeparator);
@@ -411,7 +423,9 @@ namespace TTD
                     snapValue->u_uint64Value = reader->ReadUInt64(NSTokens::Key::u64Val, true);
                     break;
                 case Js::TypeIds_String:
-                    reader->ReadString(NSTokens::Key::stringVal, alloc, snapValue->u_stringValue, true);
+                    snapValue->u_propertyIdValue = reader->ReadUInt32(NSTokens::Key::pid, true);
+                    snapValue->m_optStringValue = alloc.SlabAllocateStruct<TTString>();
+                    reader->ReadString(NSTokens::Key::stringVal, alloc, *(snapValue->m_optStringValue), true);
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = reader->ReadInt32(NSTokens::Key::propertyId, true);
