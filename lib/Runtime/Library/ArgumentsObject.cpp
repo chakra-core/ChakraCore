@@ -113,7 +113,7 @@ namespace Js
     {
     }
 
-    HeapArgumentsObject::HeapArgumentsObject(Recycler *recyler, ActivationObject* obj, uint32 formalCount, DynamicType * type)
+    HeapArgumentsObject::HeapArgumentsObject(Recycler *recycler, ActivationObject* obj, uint32 formalCount, DynamicType * type)
         : ArgumentsObject(type), frameObject(obj), formalCount(formalCount), numOfArguments(0), callerDeleted(false), deletedArgs(nullptr)
     {
     }
@@ -233,8 +233,8 @@ namespace Js
         {
             if (this->deletedArgs == nullptr)
             {
-                Recycler *recyler = GetScriptContext()->GetRecycler();
-                deletedArgs = RecyclerNew(recyler, BVSparse<Recycler>, recyler);
+                Recycler *recycler = GetScriptContext()->GetRecycler();
+                deletedArgs = RecyclerNew(recycler, BVSparse<Recycler>, recycler);
             }
 
             if (!this->deletedArgs->Test(index))

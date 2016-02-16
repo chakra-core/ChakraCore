@@ -220,7 +220,7 @@
   <test>
     <default>
       <files>push3.js</files>
-      <compile-flags>-off:nativearray -forcees5array</compile-flags>
+      <compile-flags>-off:nativearray -ForceES5Array</compile-flags>
       <baseline>push3.baseline</baseline>
     </default>
   </test>
@@ -427,7 +427,7 @@
       <files>nativearray_gen1.js</files>
       <compile-flags>-sse:0 -forceserialized</compile-flags>
       <baseline>nativearray_gen1.baseline</baseline>
-      <!-- Exclude the serialized variants because we're useding -forceserialized here. -->
+      <!-- Exclude the serialized variants because we're using -forceserialized here. -->
       <tags>exclude_serialized</tags>
     </default>
   </test>
@@ -628,7 +628,14 @@
   <test>
      <default>
         <files>memset_invariant.js</files>
+        <tags>Slow</tags>
         <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
+     </default>
+  </test>
+  <test>
+     <default>
+        <files>memset_simd.js</files>
+        <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody -simdjs -simd128typespec</compile-flags>
      </default>
   </test>
   <test>

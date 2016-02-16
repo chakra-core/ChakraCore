@@ -25,7 +25,7 @@ namespace utf8
 {
 
     // Terminology -
-    //   Code point      - A ordinal value mapped to an standard ideograph as defined by ISO/IEC 10646-1. Here
+    //   Code point      - A ordinal value mapped to a standard ideograph as defined by ISO/IEC 10646-1. Here
     //                     also referred to as a UCS code point but can also be often be referred to as a UNICODE
     //                     code point.
     //   UTF-8           - An encoding of UCS code points as defined by RFC-3629.
@@ -109,7 +109,7 @@ namespace utf8
         return ch >= 0xC0;
     }
 
-    // Return true if ch is a byte that starts a well-formed UTF8 sequence (i.e. is a ASCII character or a valid UTF8 lead byte)
+    // Return true if ch is a byte that starts a well-formed UTF8 sequence (i.e. is an ASCII character or a valid UTF8 lead byte)
     inline bool IsStartByte(utf8char_t ch)
     {
         return ch < 0x80 || ch >= 0xC0;

@@ -1593,7 +1593,7 @@ namespace Js
             // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
             Assert(!instance->IsExternal() || (flags & PropertyOperation_NonFixedValue) != 0);
 
-            // Even if one (or both?) accessors are the default functions obtained through cannonicalization,
+            // Even if one (or both?) accessors are the default functions obtained through canonicalization,
             // they are still legitimate functions, so it's ok to mark the whole property as fixed.
             newDescriptor.IsFixed = (flags & PropertyOperation_NonFixedValue) == 0 && ShouldFixAccessorProperties();
             if (!isGetterSet || !isSetterSet)
@@ -2086,7 +2086,7 @@ namespace Js
     void DictionaryTypeHandlerBase<T>::SetAllPropertiesToUndefined(DynamicObject* instance, bool invalidateFixedFields)
     {
         // The Var for window is reused across navigation. we shouldn't preserve the IsExtensibleFlag when we don't keep
-        // the expandoes. Reset the IsExtensibleFlag in cleanup scenario should be good enough
+        // the expandos. Reset the IsExtensibleFlag in cleanup scenario should be good enough
         // to cover all the preventExtension/Freeze/Seal scenarios.
         // Note that we don't change the flag for keepProperties scenario: the flags should be preserved and that's consistent
         // with other browsers.

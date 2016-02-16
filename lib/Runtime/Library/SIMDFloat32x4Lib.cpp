@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#if ENABLE_NATIVE_CODEGEN
 namespace Js
 {
     Var SIMDFloat32x4Lib::EntryFloat32x4(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1107,7 +1106,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 4 * TySize[TyFloat32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 4 * FLOAT32_SIZE, scriptContext);
     }
 
     Var SIMDFloat32x4Lib::EntryLoad1(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1120,7 +1119,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 1 * TySize[TyFloat32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 1 * FLOAT32_SIZE, scriptContext);
     }
 
     Var SIMDFloat32x4Lib::EntryLoad2(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1133,7 +1132,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 2 * TySize[TyFloat32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 2 * FLOAT32_SIZE, scriptContext);
     }
 
     Var SIMDFloat32x4Lib::EntryLoad3(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1146,7 +1145,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 3 * TySize[TyFloat32], scriptContext);
+        return SIMD128TypedArrayLoad<JavascriptSIMDFloat32x4>(args[1], args[2], 3 * FLOAT32_SIZE, scriptContext);
     }
 
     Var SIMDFloat32x4Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1161,7 +1160,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 4 * TySize[TyFloat32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 4 * FLOAT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float32x4.store");
@@ -1179,7 +1178,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 1 * TySize[TyFloat32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 1 * FLOAT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float32x4.store");
@@ -1197,7 +1196,7 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 2 * TySize[TyFloat32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 2 * FLOAT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float32x4.store");
@@ -1215,10 +1214,9 @@ namespace Js
 
         if (args.Info.Count >= 4 && JavascriptSIMDFloat32x4::Is(args[3]))
         {
-            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 3 * TySize[TyFloat32], scriptContext);
+            SIMD128TypedArrayStore<JavascriptSIMDFloat32x4>(args[1], args[2], args[3], 3 * FLOAT32_SIZE, scriptContext);
             return NULL;
         }
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Float32x4.store");
     }
 }
-#endif

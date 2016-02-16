@@ -1425,7 +1425,7 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
                 // And if we're probing the stack dynamically, we need an extra reg to do the frame size calculation.
                 //
                 // Note that it's possible that we now no longer need a dynamic stack probe because
-                // m_localStackHeight may be encodeable in Mod12. However, this is a chicken-and-egg
+                // m_localStackHeight may be encodable in Mod12. However, this is a chicken-and-egg
                 // problem, so we're going to stick with saving R4 even though it's possible it
                 // won't get modified.
                 usedRegs.Set(RegEncode[SP_ALLOC_SCRATCH_REG]);
@@ -2380,13 +2380,15 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject)
+        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
+            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            bailOutInstr->m_opcode = Js::OpCode::BailOnNotObject;
+            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
+            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndInstance);
         }
         else
@@ -2413,6 +2415,10 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
         if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
         {
             this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
+        }
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        {
+            this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
         else
         {
@@ -3509,7 +3515,7 @@ IR::Instr * LowererMD::GenerateConvBool(IR::Instr *instr)
 /// LowererMD::GenerateFastAdd
 ///
 /// NOTE: We assume that only the sum of two Int31's will have 0x2 set. This
-/// is only true until we have an var type with tag == 0x2.
+/// is only true until we have a var type with tag == 0x2.
 ///
 ///----------------------------------------------------------------------------
 
@@ -6086,7 +6092,7 @@ LowererMD::LoadCheckedFloat(
     IR::Instr *instrInsert,
     const bool checkForNullInLoopBody)
 {
-    // Load one floating-point var into an VFP register, inserting checks to see if it's really a float:
+    // Load one floating-point var into a VFP register, inserting checks to see if it's really a float:
     // Rx = ASRS src, 1
     //      BCC $non-int
     // Dx = VMOV Rx
@@ -6466,7 +6472,7 @@ LowererMD::GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInse
     // arg1 = allocator
     this->LoadHelperArgument(instrInsert, m_lowerer->LoadScriptContextValueOpnd(instrInsert, ScriptContextValue::ScriptContextNumberAllocator));
 
-    // dst = Call AllocUninitalizedNumber
+    // dst = Call AllocUninitializedNumber
     IR::Instr * instrCall = IR::Instr::New(Js::OpCode::Call, opndDst,
         IR::HelperCallOpnd::New(IR::HelperAllocUninitializedNumber, this->m_func), this->m_func);
     instrInsert->InsertBefore(instrCall);
@@ -7515,7 +7521,7 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
 }
 
 bool
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad)
+LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {
     // isInt:
     //   dst = ASR r1, AtomTag
@@ -7617,7 +7623,14 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad)
             return true;
         }
 
-        this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        if (conversionFromObjectAllowed)
+        {
+            this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
+        }
+        else
+        {
+            this->m_lowerer->LowerUnaryHelperMemWithBoolReference(instrLoad, IR::HelperConv_ToInt32_NoObjects, true /*useBoolForBailout*/);
+        }
     }
 
     return false;

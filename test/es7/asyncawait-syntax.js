@@ -44,7 +44,7 @@ var tests = [
         name: "Async keyword as generator",
         body: function () {
             assert.throws(function () { eval("async function* badFunction() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in a statement", "Syntax error");
-            assert.throws(function () { eval("var badVaribale = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Syntax error");
+            assert.throws(function () { eval("var badVariable = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Syntax error");
             assert.throws(function () { eval("var o { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a object literal member", "Expected ';'");
             assert.throws(function () { eval("class C { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a class member", "Syntax error");
         }
@@ -155,6 +155,45 @@ var tests = [
             assert.throws(function () { eval("var o = { async\nam() { } };"); }, SyntaxError, "AsyncMethod in object literal", "Expected ':'");
             assert.throws(function () { eval("class C { async\nam() { } };"); }, SyntaxError, "AsyncMethod in class", "Expected '('");
             assert.throws(function () { eval("var aaf = async\n(x, y) => { };"); }, SyntaxError, "AsyncArrowFunction", "Syntax error");
+        }
+    },
+    {
+        name: "'arguments' and 'eval' are not allowed as formal parameter names in strict mode",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(arguments) { }"); }, "'arguments' can be the name of a parameter in a non-strict mode async function");
+            assert.doesNotThrow(function () { eval("async function af(eval) { }"); }, "'eval' can be the name of a parameter in a non-strict mode async function");
+
+            assert.throws(function () { eval("async function af(arguments) { 'use strict'; }"); }, SyntaxError, "'arguments' cannot be the name of a parameter in an async function that turns on strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { eval("async function af(eval) { 'use strict'; }"); }, SyntaxError, "'eval' cannot be the name of a parameter in an async function that turns on strict mode", "Invalid usage of 'eval' in strict mode");
+
+            assert.throws(function () { "use strict"; eval("async function af(arguments) { }"); }, SyntaxError, "'arguments' cannot be the name of a parameter in an async function that is already in strict mode", "Invalid usage of 'arguments' in strict mode");
+            assert.throws(function () { "use strict"; eval("async function af(eval) { }"); }, SyntaxError, "'eval' cannot be the name of a parameter in an async function that is already in strict mode", "Invalid usage of 'eval' in strict mode");
+        }
+    },
+    {
+        name: "duplicate formal parameter names are not allowed in strict mode",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(x, x) { }"); }, "duplicate parameter names are allowed in a non-strict mode async function");
+            assert.doesNotThrow(function () { eval("async function af(a, b, a) { }"); }, "duplicate parameter names are allowed in a non-strict mode async function (when there are other names)");
+
+            assert.throws(function () { eval("async (x, x) => { }"); }, SyntaxError, "duplicate parameter names are not allowed in a non-strict mode async arrow function due to arrow function static semantics", "Duplicate formal parameter names not allowed in this context");
+            assert.throws(function () { eval("async (a, b, a) => { }"); }, SyntaxError, "duplicate parameter names are not allowed in a non-strict mode async arrow function due to arrow function static semantics (when there are other names)", "Duplicate formal parameter names not allowed in this context");
+
+            assert.throws(function () { eval("async function af(x, x) { 'use strict'; }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that turns on strict mode", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { eval("async function af(a, b, a) { 'use strict'; }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that turns on strict mode (when there are other names)", "Duplicate formal parameter names not allowed in strict mode");
+
+            assert.throws(function () { "use strict"; eval("async function af(x, x) { }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that is already in strict mode", "Duplicate formal parameter names not allowed in strict mode");
+            assert.throws(function () { "use strict"; eval("async function af(a, b, a) { }"); }, SyntaxError, "duplicate parameter names are not allowed in an async function that is already in strict mode (when there are other names)", "Duplicate formal parameter names not allowed in strict mode");
+        }
+    },
+    {
+        name: "local variables with same names as formal parameters have proper redeclaration semantics",
+        body: function () {
+            assert.doesNotThrow(function () { eval("async function af(x) { var x; }"); }, "var with same name as formal is not an error");
+            assert.throws(function () { eval("async function af(x) { let x; }"); }, SyntaxError, "let with same name as formal is an error", "Let/Const redeclaration");
+            assert.throws(function () { eval("async function af(x) { const x = 1; }"); }, SyntaxError, "const with same name as formal is an error", "Let/Const redeclaration");
+            assert.doesNotThrow(function () { eval("async function af(x) { function x() { } }"); }, "local function with same name as formal is not an error");
+            assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
         }
     },
 ];

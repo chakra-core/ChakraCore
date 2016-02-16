@@ -28,6 +28,7 @@
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Language;
         %(AdditionalIncludeDirectories)

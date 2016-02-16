@@ -339,7 +339,7 @@ function test18()
     var Obj = { a: 'foo', m: function () { } };
     var p = new Proxy(Obj, handler);
     p.m = Obj.m;
-    // Here p.m should not be copy-proped from Obj.m
+    // Here p.m should not be copy-prop'd from Obj.m
     p.m();
 }
 

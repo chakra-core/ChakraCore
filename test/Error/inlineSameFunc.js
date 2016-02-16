@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// -maxInterpertCount:1 -off:SimpleJit
+// -maxInterpretCount:1 -off:SimpleJit
 
 function f(x) 
 { 

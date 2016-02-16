@@ -76,7 +76,7 @@ namespace Js
         Assert(ThreadContext::IsOnStack(stackScriptFunction));
         Assert(stackScriptFunction->boxedScriptFunction == nullptr);
 
-        FunctionBody * functionParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParent();
+        FunctionBody * functionParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
         Assert(functionParent != nullptr);
 
         ScriptContext * scriptContext = stackScriptFunction->GetScriptContext();
@@ -676,7 +676,7 @@ namespace Js
             FunctionProxy* functionProxy = (*proxyRef);
             AssertMsg(functionProxy != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
             Assert(stackFunction->GetFunctionInfo()->GetFunctionProxy() == functionProxy);
-            Assert(!functionProxy->IsFunctionBody() || functionProxy->GetFunctionBody()->GetStackNestedFuncParent() != nullptr);
+            Assert(!functionProxy->IsFunctionBody() || functionProxy->GetFunctionBody()->GetStackNestedFuncParentStrongRef() != nullptr);
             stackFunction->SetEnvironment(environment);
 
 

@@ -2259,7 +2259,7 @@ var tests = [
             var buf = new ArrayBuffer(10);
             var view = new DataView(buf);
 
-            assert.isTrue(buf === view.buffer, "buffer returns the same ArrayBuffer object passed to DataView construtor");
+            assert.isTrue(buf === view.buffer, "buffer returns the same ArrayBuffer object passed to DataView constructor");
 
             // Assignment has no effect since view.buffer does not have a setter
             view.buffer = undefined;
@@ -2305,7 +2305,7 @@ var tests = [
             var buf = new ArrayBuffer(10);
             var view = new DataView(buf);
 
-            assert.areEqual(0, view.byteOffset, "byteOffset returns the same value passed to DataView construtor");
+            assert.areEqual(0, view.byteOffset, "byteOffset returns the same value passed to DataView constructor");
 
             // Assignment has no effect since view.byteOffset does not have a setter
             view.byteOffset = -1;
@@ -2451,7 +2451,7 @@ var tests = [
         body: function() {
             var buf = new ArrayBuffer(10);
 
-            assert.areEqual(10, buf.byteLength, "byteLength returns the same value passed to ArrayBuffer construtor");
+            assert.areEqual(10, buf.byteLength, "byteLength returns the same value passed to ArrayBuffer constructor");
 
             // Assignment has no effect since buf.byteLength does not have a setter
             buf.byteLength = -1;

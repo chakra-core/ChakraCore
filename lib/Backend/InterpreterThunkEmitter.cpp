@@ -253,7 +253,12 @@ void InterpreterThunkEmitter::NewThunkBlock()
     DWORD bufferSize = BlockSize;
     DWORD thunkCount = 0;
 
-    allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer, /*readWrite*/ true);
+    allocation = emitBufferManager.AllocateBuffer(bufferSize, &buffer);
+    if (!emitBufferManager.ProtectBufferWithExecuteReadWriteForInterpreter(allocation))
+    {
+        Js::Throw::OutOfMemory();
+    }
+
     currentBuffer = buffer;
 
 #ifdef _M_X64
@@ -549,12 +554,12 @@ DWORD InterpreterThunkEmitter::CopyWithAlignment(
 void InterpreterThunkEmitter::Close()
 {
 #if PDATA_ENABLED
-    auto unregiserPdata = ([&] (const ThunkBlock& block)
+    auto unregisterPdata = ([&] (const ThunkBlock& block)
     {
         PDataManager::UnregisterPdata((PRUNTIME_FUNCTION) block.GetPdata());
     });
-    thunkBlocks.Iterate(unregiserPdata);
-    freeListedThunkBlocks.Iterate(unregiserPdata);
+    thunkBlocks.Iterate(unregisterPdata);
+    freeListedThunkBlocks.Iterate(unregisterPdata);
 #endif
     this->thunkBlocks.Clear(allocator);
     this->freeListedThunkBlocks.Clear(allocator);

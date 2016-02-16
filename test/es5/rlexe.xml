@@ -73,8 +73,8 @@
   </test>
   <test>
     <default>
-      <files>SemiCollonAfterBlockEs5.js</files>
-      <baseline>SemiCollonAfterBlockEs5.baseline</baseline>
+      <files>SemicolonAfterBlockEs5.js</files>
+      <baseline>SemicolonAfterBlockEs5.baseline</baseline>
     </default>
   </test>
   <test>

@@ -24,6 +24,7 @@
         $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\Backend;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
@@ -69,6 +70,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RuntimeBasePch.h" />
+    <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />
     <ClInclude Include="CharStringCache.h" />
     <ClInclude Include="Constants.h" />
@@ -100,6 +102,7 @@
     <ClInclude Include="TempArenaAllocatorObject.h" />
     <ClInclude Include="TestEtwEventSink.h" />
     <ClInclude Include="ThreadBoundThreadContextManager.h" />
+    <ClInclude Include="ThreadConfigFlagsList.h" />
     <ClInclude Include="ThreadContext.h" />
     <ClInclude Include="ThreadContextTLSEntry.h" />
     <ClInclude Include="ThreadServiceWrapper.h" />

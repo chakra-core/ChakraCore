@@ -302,7 +302,7 @@ enum ScanFlag
 {
     ScanFlagNone = 0,
     ScanFlagSuppressStrPid = 1,   // Force strings to always have pid
-    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid
+    ScanFlagSuppressIdPid = 2     // Force identifiers to always have pid (currently unused)
 };
 
 typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR secondChar, bool containTypeDef, charcount_t min, charcount_t lim, bool adjacent, bool multiline, charcount_t startLine, charcount_t endLine);
@@ -413,21 +413,12 @@ public:
 
     IdentPtr GetSecondaryBufferAsPid();
 
-    bool BindDeferredPidRefs() const
-    {
-        return m_scriptContext->GetConfig()->BindDeferredPidRefs();
-    }
-
     BYTE SetDeferredParse(BOOL defer)
     {
         BYTE fOld = m_DeferredParseFlags;
         if (defer)
         {
             m_DeferredParseFlags |= ScanFlagSuppressStrPid;
-            if (!this->BindDeferredPidRefs())
-            {
-                m_DeferredParseFlags |= ScanFlagSuppressIdPid;
-            }
         }
         else
         {
@@ -647,6 +638,7 @@ public:
 
     void Capture(_Out_ RestorePoint* restorePoint);
     void SeekTo(const RestorePoint& restorePoint);
+    void SeekToForcingPid(const RestorePoint& restorePoint);
 
     void Capture(_Out_ RestorePoint* restorePoint, uint functionIdIncrement, size_t lengthDecr);
     void SeekTo(const RestorePoint& restorePoint, uint *nextFunctionId);
@@ -704,6 +696,9 @@ private:
 
     Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext);
     ~Scanner(void);
+
+    template <bool forcePid>
+    void SeekAndScan(const RestorePoint& restorePoint);
 
     tokens ScanCore(bool identifyKwds);
     tokens ScanAhead();

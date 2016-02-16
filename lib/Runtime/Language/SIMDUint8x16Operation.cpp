@@ -97,7 +97,7 @@ namespace Js
     {
         SIMDValue result;
 
-        if (count > 8)   //Similar to polifyll, maximum shift will happen if the shift amounts and invalid
+        if (count > 8)   //Similar to polyfill, maximum shift will happen if the shift amounts and invalid
         {
             count = 8;
         }

@@ -7,7 +7,7 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function VerfiyToPropertyKey(key) {
+function VerifyToPropertyKey(key) {
     var obj = {};
 
     assert.isFalse(obj.hasOwnProperty(key), "Object#hasOwnProperty uses ToPropertyKey. Initially we don't have the property.");
@@ -172,6 +172,7 @@ var tests = [
             verifySymbol("unscopables");
             verifySymbol("species");
             verifySymbol("search");
+            verifySymbol("match");
         }
     },
     {
@@ -545,9 +546,9 @@ var tests = [
             Object.defineProperty(o, sym, { value: 'some value' } );
 
             assert.areEqual('some value', o[sym], "Property keyed off symbol and set via Object.defineProperty should be reachable by the same symbol");
-            assert.areEqual(undefined, o['sym'], "defineProperty does not create a propery based on symbol name");
-            assert.areEqual(undefined, o[''], "defineProperty does not create a propery based on symbol description");
-            assert.areEqual(undefined, o[sym.toString()], "defineProperty does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o['sym'], "defineProperty does not create a property based on symbol name");
+            assert.areEqual(undefined, o[''], "defineProperty does not create a property based on symbol description");
+            assert.areEqual(undefined, o[sym.toString()], "defineProperty does not create a property based on symbol toString() value");
         }
     },
     {
@@ -573,8 +574,8 @@ var tests = [
             assert.areEqual(undefined, o['s2'], "defineProperties does not create a property based on symbol name");
             assert.areEqual(undefined, o['symbol 1'], "defineProperties does not create a property based on symbol description");
             assert.areEqual(undefined, o['symbol 2'], "defineProperties does not create a property based on symbol description");
-            assert.areEqual(undefined, o[s1.toString()], "defineProperty does not create a propery based on symbol toString() value");
-            assert.areEqual(undefined, o[s2.toString()], "defineProperty does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o[s1.toString()], "defineProperty does not create a property based on symbol toString() value");
+            assert.areEqual(undefined, o[s2.toString()], "defineProperty does not create a property based on symbol toString() value");
         }
     },
     {
@@ -599,8 +600,8 @@ var tests = [
             assert.areEqual(undefined, o['s2'], "Object.create does not create a property based on symbol name");
             assert.areEqual(undefined, o['symbol 1'], "Object.create does not create a property based on symbol description");
             assert.areEqual(undefined, o['symbol 2'], "Object.create does not create a property based on symbol description");
-            assert.areEqual(undefined, o[s1.toString()], "Object.create does not create a propery based on symbol toString() value");
-            assert.areEqual(undefined, o[s2.toString()], "Object.create does not create a propery based on symbol toString() value");
+            assert.areEqual(undefined, o[s1.toString()], "Object.create does not create a property based on symbol toString() value");
+            assert.areEqual(undefined, o[s2.toString()], "Object.create does not create a property based on symbol toString() value");
         }
     },
     {
@@ -843,7 +844,7 @@ var tests = [
             var sym = Symbol('sym');
             var symbol_object = Object(sym);
 
-            VerfiyToPropertyKey(symbol_object);
+            VerifyToPropertyKey(symbol_object);
         }
     },
     {
@@ -859,7 +860,7 @@ var tests = [
                 }
             };
 
-            VerfiyToPropertyKey(tostring_object);
+            VerifyToPropertyKey(tostring_object);
         }
     },
     {
@@ -874,7 +875,7 @@ var tests = [
                 }
             };
 
-            VerfiyToPropertyKey(valueof_object);
+            VerifyToPropertyKey(valueof_object);
         }
     },
     {

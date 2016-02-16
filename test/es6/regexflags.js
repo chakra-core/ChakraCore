@@ -136,7 +136,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/y;
             var text = "hello1 hello2 hello3";
-            // should replace 1st occurance because global is false and last index should be at 7.
+            // should replace 1st occurrence because global is false and last index should be at 7.
             assert.areEqual("world hello2 hello3", text.replace(pattern, "world "), "result");
             assert.areEqual(7, pattern.lastIndex, "lastIndex");
         }
@@ -146,7 +146,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/g;
             var text = "hello1 hello2 hello3";
-            // should replace all occurances because global is true and last index should be at 0.
+            // should replace all occurrences because global is true and last index should be at 0.
             assert.areEqual("world world world ", text.replace(pattern, "world "), "result");
             assert.areEqual(0, pattern.lastIndex, "lastIndex");
         }
@@ -156,7 +156,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/gy;
             var text = "hello1 hello2 hello3";
-            // should replace all occurances because global is true irrespective of sticky bit and last index should be at 0.
+            // should replace all occurrences because global is true irrespective of sticky bit and last index should be at 0.
             assert.areEqual("world world world ", text.replace(pattern, "world "), "result");
             assert.areEqual(0, pattern.lastIndex, "lastIndex");
         }
@@ -166,7 +166,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/y;
             var text = "hello1 hello2 hello3";
-            // should match 1st occurance because global is false and last index should be at 7.
+            // should match 1st occurrence because global is false and last index should be at 7.
             var result = text.match(pattern);
             assert.areEqual(1, result.length, "result length");
             assert.areEqual("hello1 ", result[0], "result[0]");
@@ -178,7 +178,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/g;
             var text = "hello1 hello2 hello3";
-            // should match all occurance because global is true and last index should be at 0.
+            // should match all occurrence because global is true and last index should be at 0.
             var result = text.match(pattern);
             assert.areEqual(3, result.length, "result length");
             assert.areEqual("hello1 ", result[0], "result[0]");
@@ -192,7 +192,7 @@ var tests = [
         body: function () {
             var pattern = /hello\d\s?/gy;
             var text = "hello1 hello2 hello3";
-            // should match all occurance because global is true and last index should be at 0 irrespective of sticky bit flag.
+            // should match all occurrence because global is true and last index should be at 0 irrespective of sticky bit flag.
             var result = text.match(pattern);
             assert.areEqual(3, result.length, "result length");
             assert.areEqual("hello1 ", result[0], "result[0]");
@@ -236,7 +236,7 @@ var tests = [
         }
     },
     {
-        name: "RegExp.prototyp.flags should return the flags in the correct order",
+        name: "RegExp.prototype.flags should return the flags in the correct order",
         body: function () {
             var object = {
                 ignoreCase: true,

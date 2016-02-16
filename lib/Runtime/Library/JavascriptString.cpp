@@ -250,7 +250,7 @@ namespace Js
             Js::Throw::OutOfMemory();
         }
 #else
-        // There shouldn't be enought mamory to have UINT_MAX character.
+        // There shouldn't be enough memory to have UINT_MAX character.
         // INT_MAX is the upper bound for 32-bit;
         Assert(IsValidCharCount(cchActual));
 #endif
@@ -1307,23 +1307,23 @@ case_2:
             EngineInterfaceObject* nativeEngineInterfaceObj = scriptContext->GetLibrary()->GetEngineInterfaceObject();
             if (nativeEngineInterfaceObj)
             {
-                IntlEngineInterfaceExtensionObject* intlExtenionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
+                IntlEngineInterfaceExtensionObject* intlExtensionObject = static_cast<IntlEngineInterfaceExtensionObject*>(nativeEngineInterfaceObj->GetEngineExtension(EngineInterfaceExtensionKind_Intl));
                 if (args.Info.Count == 2)
                 {
                     auto undefined = scriptContext->GetLibrary()->GetUndefined();
                     CallInfo toPass(callInfo.Flags, 7);
-                    return intlExtenionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
+                    return intlExtensionObject->EntryIntl_CompareString(function, toPass, undefined, pThis, pThat, undefined, undefined, undefined, undefined);
                 }
                 else
                 {
-                    JavascriptFunction* func = intlExtenionObject->GetStringLocaleCompare();
+                    JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
                     }
                     // Initialize String.prototype.toLocaleCompare
                     scriptContext->GetLibrary()->InitializeIntlForStringPrototype();
-                    func = intlExtenionObject->GetStringLocaleCompare();
+                    func = intlExtensionObject->GetStringLocaleCompare();
                     if (func)
                     {
                         return func->CallFunction(args);
@@ -1361,31 +1361,19 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        //
-        // TODO: Move argument processing into DirectCall with proper handling.
-        //
+        PCWSTR const varName = L"String.prototype.match";
 
-        JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, L"String.prototype.match", &pThis);
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
-        JavascriptRegExp * pRegEx;
-        if (args.Info.Count == 1)
+        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
         {
-            //Use an empty regex to match against, if no argument was supplied into "match"
-            pRegEx = scriptContext->GetLibrary()->CreateEmptyRegExp();
-        }
-        else if (JavascriptRegExp::Is(args[1]))
-        {
-            pRegEx = JavascriptRegExp::FromVar(args[1]);
-        }
-        else
-        {
-            Var aCompiledRegex = NULL;
-            Var thisRegex = JavascriptRegExp::OP_NewRegEx(aCompiledRegex, scriptContext);
-            pRegEx = JavascriptRegExp::FromVar(JavascriptRegExp::NewInstance(function, 2, thisRegex, args[1]));
-        }
-
-        return RegexHelper::RegexMatch(scriptContext, pRegEx, pThis, RegexHelper::IsResultNotUsed(callInfo.Flags));
+            return RegexHelper::RegexMatch(
+                scriptContext,
+                regExObj,
+                stringObj,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
+        };
+        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolMatch, fallback, varName, scriptContext);
     }
 
     Var JavascriptString::EntryNormalize(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1651,6 +1639,18 @@ case_2:
 
         PCWSTR const varName = L"String.prototype.search";
 
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
+
+        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
+        {
+            return RegexHelper::RegexSearch(scriptContext, regExObj, stringObj);
+        };
+        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolSearch, fallback, varName, scriptContext);
+    }
+
+    template<typename FallbackFn>
+    Var JavascriptString::DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext)
+    {
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             if (args.Info.Count == 0 || !JavascriptConversion::CheckObjectCoercible(args[0], scriptContext))
@@ -1661,10 +1661,10 @@ case_2:
             if (args.Info.Count >= 2 && !JavascriptOperators::IsUndefinedOrNull(args[1]))
             {
                 Var regExp = args[1];
-                Var searcher = GetRegExSymbolSearch(regExp, scriptContext);
-                if (!JavascriptOperators::IsUndefinedOrNull(searcher))
+                Var symbolFn = GetRegExSymbolFunction(regExp, symbolPropertyId, scriptContext);
+                if (!JavascriptOperators::IsUndefinedOrNull(symbolFn))
                 {
-                    return CallRegExSymbolSearch(searcher, regExp, args[0], varName, scriptContext);
+                    return CallRegExSymbolFunction(symbolFn, regExp, args[0], varName, scriptContext);
                 }
             }
         }
@@ -1677,33 +1677,33 @@ case_2:
         if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
-            return RegexHelper::RegexSearch(scriptContext, regExObj, pThis);
+            return fallback(regExObj, pThis);
         }
         else
         {
             JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
-            Var searcher = GetRegExSymbolSearch(regExObj, scriptContext);
-            return CallRegExSymbolSearch(searcher, regExObj, args[0], varName, scriptContext);
+            Var symbolFn = GetRegExSymbolFunction(regExObj, symbolPropertyId, scriptContext);
+            return CallRegExSymbolFunction(symbolFn, regExObj, args[0], varName, scriptContext);
         }
     }
 
-    Var JavascriptString::GetRegExSymbolSearch(Var regExp, ScriptContext* scriptContext)
+    Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
         return JavascriptOperators::GetProperty(
             RecyclableObject::FromVar(JavascriptOperators::ToObject(regExp, scriptContext)),
-            PropertyIds::_symbolSearch,
+            propertyId,
             scriptContext);
     }
 
-    Var JavascriptString::CallRegExSymbolSearch(Var search, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
+    Var JavascriptString::CallRegExSymbolFunction(Var fn, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
     {
-        if (!JavascriptConversion::IsCallable(search))
+        if (!JavascriptConversion::IsCallable(fn))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
         }
 
-        RecyclableObject* searchFn = RecyclableObject::FromVar(search);
-        return searchFn->GetEntryPoint()(searchFn, CallInfo(CallFlags_Value, 2), regExp, string);
+        RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
+        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 2), regExp, string);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2054,7 +2054,13 @@ case_2:
         if (pThis->GetLength() == 1)
         {
             wchar_t inChar = pThis->GetString()[0];
-            wchar_t outChar = CharToLowerCase(inChar);
+            wchar_t outChar = inChar;
+#if DBG
+            DWORD converted =
+#endif
+                CharLowerBuffW(&outChar, 1);
+
+            Assert(converted == 1);
 
             return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
         }
@@ -2111,7 +2117,13 @@ case_2:
         if (pThis->GetLength() == 1)
         {
             wchar_t inChar = pThis->GetString()[0];
-            wchar_t outChar = CharToUpperCase(inChar);
+            wchar_t outChar = inChar;
+#if DBG
+            DWORD converted =
+#endif
+                CharUpperBuffW(&outChar, 1);
+
+            Assert(converted == 1);
 
             return (inChar == outChar) ? pThis : scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(outChar);
         }
@@ -2128,23 +2140,31 @@ case_2:
         wchar_t *outStr = builder.DangerousGetWritableBuffer();
 
         wchar_t* outStrLim = outStr + count;
+        wchar_t *o = outStr;
 
-        //TODO the mapping based on unicode tables needs review for ES5.
-        // mapping is not always 1.1
+        while (o < outStrLim)
+        {
+            *o++ = *inStr++;
+        }
+
         if(toCase == ToUpper)
         {
-            while (outStr < outStrLim)
-            {
-                *outStr++ = CharToUpperCase(*inStr++);
-            }
+#if DBG
+            DWORD converted =
+#endif
+                CharUpperBuffW(outStr, count);
+
+            Assert(converted == count);
         }
         else
         {
             Assert(toCase == ToLower);
-            while(outStr < outStrLim)
-            {
-                *outStr++ = CharToLowerCase(*inStr++);
-            }
+#if DBG
+            DWORD converted =
+#endif
+                CharLowerBuffW(outStr, count);
+
+            Assert(converted == count);
         }
 
         return builder.ToString();
@@ -2755,7 +2775,7 @@ case_2:
             }
             if (!bi.FMulAdd(radix, ch))
             {
-                //Mimic IE8 which threw a OutOfMemory exception in this case.
+                //Mimic IE8 which threw an OutOfMemory exception in this case.
                 JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
             }
             // If we ever have more than 32 ulongs, the result must be infinite.
@@ -2785,10 +2805,8 @@ case_2:
 
     bool JavascriptString::ToDouble(double * result)
     {
-
         const wchar_t* pch;
         long len = this->m_charLength;
-        ScriptContext *scriptContext = this->GetScriptContext();
         if (0 == len)
         {
             *result = 0;
@@ -2824,19 +2842,11 @@ case_2:
                 break;
             case 'o':
             case 'O':
-                if (!scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-                {
-                    break;
-                }
                 *result = NumberUtilities::DblFromOctal(pchT, &pch);
                 isNumericLiteral = true;
                 break;
             case 'b':
             case 'B':
-                if (!scriptContext->GetConfig()->IsES6NumericLiteralEnabled())
-                {
-                    break;
-                }
                 *result = NumberUtilities::DblFromBinary(pchT, &pch);
                 isNumericLiteral = true;
                 break;
@@ -3306,7 +3316,7 @@ case_2:
         const wchar_t * p2 = searchStr + searchLen - 1;
         const wchar_t * const begin = searchStr;
 
-        // Determine if we can do an partial ASCII Boyer-Moore
+        // Determine if we can do a partial ASCII Boyer-Moore
         while (p2 >= begin)
         {
             WCHAR c = *p2;
@@ -3335,7 +3345,7 @@ case_2:
         const wchar_t * p2 = searchStr;
         const wchar_t * const end = searchStr + searchLen;
 
-        // Determine if we can do an partial ASCII Boyer-Moore
+        // Determine if we can do a partial ASCII Boyer-Moore
         while (p2 < end)
         {
             WCHAR c = *p2;

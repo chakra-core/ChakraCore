@@ -359,7 +359,7 @@ namespace Js
         RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Match, regularExpression, input);
 #endif
 
-        UnifiedRegex::GroupInfo lastSuccessfullMatch; // initially undefined
+        UnifiedRegex::GroupInfo lastSuccessfulMatch; // initially undefined
         UnifiedRegex::GroupInfo lastActualMatch; // initially undefined
 
 #ifdef REGEX_TRIGRAMS
@@ -374,8 +374,8 @@ namespace Js
             {
                 if (trigramInfo->resultCount > 0)
                 {
-                    lastSuccessfullMatch.offset=trigramInfo->offsets[trigramInfo->resultCount-1];
-                    lastSuccessfullMatch.length=UnifiedRegex::TrigramInfo::PatternLength;
+                    lastSuccessfulMatch.offset=trigramInfo->offsets[trigramInfo->resultCount-1];
+                    lastSuccessfulMatch.length=UnifiedRegex::TrigramInfo::PatternLength;
                 }
                 // else: leave lastMatch undefined
 
@@ -384,12 +384,12 @@ namespace Js
                 Assert(pattern->rep.unified.program != 0);
                 if (pattern->rep.unified.matcher == 0)
                     pattern->rep.unified.matcher = UnifiedRegex::Matcher::New(scriptContext, pattern);
-                *pattern->rep.unified.matcher->GroupIdToGroupInfo(0) = lastSuccessfullMatch;
+                *pattern->rep.unified.matcher->GroupIdToGroupInfo(0) = lastSuccessfulMatch;
 
                 Assert(pattern->IsGlobal());
 
                 JavascriptArray* arrayResult = CreateMatchResult(stackAllocationPointer, scriptContext, /* isGlobal */ true, pattern->NumGroups(), input);
-                FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfullMatch);
+                FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfulMatch);
 
                 if (trigramInfo->resultCount > 0)
                 {
@@ -414,10 +414,10 @@ namespace Js
 
                 if (updateHistory)
                 {
-                    PropagateLastMatch(scriptContext, /* isGlobal */ true, pattern->IsSticky(), regularExpression, input, lastSuccessfullMatch, lastActualMatch, true, true);
+                    PropagateLastMatch(scriptContext, /* isGlobal */ true, pattern->IsSticky(), regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
                 }
 
-                return lastSuccessfullMatch.IsUndefined() ? scriptContext->GetLibrary()->GetNull() : arrayResult;
+                return lastSuccessfulMatch.IsUndefined() ? scriptContext->GetLibrary()->GetNull() : arrayResult;
             }
         }
 #endif
@@ -451,7 +451,7 @@ namespace Js
 
             if (lastActualMatch.IsUndefined())
                 break;
-            lastSuccessfullMatch = lastActualMatch;
+            lastSuccessfulMatch = lastActualMatch;
             if (!noResult)
             {
                 if (arrayResult == 0)
@@ -473,7 +473,7 @@ namespace Js
         PrimEndMatch(state, scriptContext, pattern);
         if(updateHistory)
         {
-            PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfullMatch, lastActualMatch, true, true);
+            PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
         }
 
         if (arrayResult == 0)
@@ -495,11 +495,11 @@ namespace Js
                     elements[groupId] = GetGroup(scriptContext, pattern, input, nonMatchValue, groupId);
                 }
             }
-            FinalizeMatchResult(scriptContext, /* isGlobal */ false, arrayResult, lastSuccessfullMatch);
+            FinalizeMatchResult(scriptContext, /* isGlobal */ false, arrayResult, lastSuccessfulMatch);
         }
         else
         {
-            FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfullMatch);
+            FinalizeMatchResult(scriptContext, /* isGlobal */ true, arrayResult, lastSuccessfulMatch);
         }
 
         return arrayResult;
@@ -720,7 +720,7 @@ namespace Js
         PrimBeginMatch(state, scriptContext, pattern, inputStr, inputLength, true);
 
         UnifiedRegex::GroupInfo lastActualMatch;
-        UnifiedRegex::GroupInfo lastSuccessfullMatch;
+        UnifiedRegex::GroupInfo lastSuccessfulMatch;
         const bool isGlobal = pattern->IsGlobal();
         const bool isSticky = pattern->IsSticky();
 
@@ -759,7 +759,7 @@ namespace Js
                 if (lastActualMatch.IsUndefined())
                     break;
 
-                lastSuccessfullMatch = lastActualMatch;
+                lastSuccessfulMatch = lastActualMatch;
                 concatenated.Append(input, offset, lastActualMatch.offset - offset);
                 if (substitutionOffsets != 0)
                 {
@@ -813,7 +813,7 @@ namespace Js
                 if (lastActualMatch.IsUndefined())
                     break;
 
-                lastSuccessfullMatch = lastActualMatch;
+                lastSuccessfulMatch = lastActualMatch;
                 offset = lastActualMatch.length == 0? lastActualMatch.offset + 1 : lastActualMatch.EndOffset();
             }
             while (isGlobal);
@@ -821,7 +821,7 @@ namespace Js
         }
 
         PrimEndMatch(state, scriptContext, pattern);
-        PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfullMatch, lastActualMatch, true, true);
+        PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
         return newString;
     }
 
@@ -862,7 +862,7 @@ namespace Js
 
         CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)> concatenated(scriptContext);
         UnifiedRegex::GroupInfo lastActualMatch;
-        UnifiedRegex::GroupInfo lastSuccessfullMatch;
+        UnifiedRegex::GroupInfo lastSuccessfulMatch;
 
         // Replace function must be called with arguments (<function's this>, group0, ..., groupn, offset, input)
         // The garbage collector must know about this array since it is being passed back into script land
@@ -890,7 +890,7 @@ namespace Js
             if (lastActualMatch.IsUndefined())
                 break;
 
-            lastSuccessfullMatch = lastActualMatch;
+            lastSuccessfulMatch = lastActualMatch;
             for (int groupId = 0;  groupId < numGroups; groupId++)
                 replaceArgs[groupId + 1] = GetGroup(scriptContext, pattern, input, nonMatchValue, groupId);
 #pragma prefast(suppress:6386, "The write index numGroups + 1 is in the bound")
@@ -936,7 +936,7 @@ namespace Js
             newString = concatenated.ToString();
         }
 
-        PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfullMatch, lastActualMatch, true, true);
+        PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, lastSuccessfulMatch, lastActualMatch, true, true);
         return newString;
     }
 
@@ -1141,7 +1141,7 @@ namespace Js
         CharCount inputLength = input->GetLength(); // s in spec
         const int numGroups = splitPattern->NumGroups();
         Var nonMatchValue = NonMatchValue(scriptContext, false);
-        UnifiedRegex::GroupInfo lastSuccessfullMatch; // initially undefined
+        UnifiedRegex::GroupInfo lastSuccessfulMatch; // initially undefined
 
         RegexMatchState state;
         PrimBeginMatch(state, scriptContext, splitPattern, inputStr, inputLength, false);
@@ -1153,7 +1153,7 @@ namespace Js
             if (match.IsUndefined())
                 ary->DirectSetItemAt(0, input);
             else
-                lastSuccessfullMatch = match;
+                lastSuccessfulMatch = match;
         }
         else
         {
@@ -1170,7 +1170,7 @@ namespace Js
                 if (match.IsUndefined())
                     break;
 
-                lastSuccessfullMatch = match;
+                lastSuccessfulMatch = match;
 
                 if (match.offset >= inputLimit)
                     break;
@@ -1209,7 +1209,7 @@ namespace Js
             , /* isSticky */ false
             , regularExpression
             , input
-            , lastSuccessfullMatch
+            , lastSuccessfulMatch
             , UnifiedRegex::GroupInfo()
             , /* updateRegex */ true
             , /* updateCtor */ true
@@ -1435,7 +1435,7 @@ namespace Js
         , bool isSticky
         , JavascriptRegExp* regularExpression
         , JavascriptString* lastInput
-        , UnifiedRegex::GroupInfo lastSuccessfullMatch
+        , UnifiedRegex::GroupInfo lastSuccessfulMatch
         , UnifiedRegex::GroupInfo lastActualMatch
         , bool updateRegex
         , bool updateCtor
@@ -1443,11 +1443,11 @@ namespace Js
     {
         if (updateRegex)
         {
-            PropagateLastMatchToRegex(scriptContext, isGlobal, isSticky, regularExpression, lastSuccessfullMatch, lastActualMatch);
+            PropagateLastMatchToRegex(scriptContext, isGlobal, isSticky, regularExpression, lastSuccessfulMatch, lastActualMatch);
         }
         if (updateCtor)
         {
-            PropagateLastMatchToCtor(scriptContext, regularExpression, lastInput, lastSuccessfullMatch, useSplitPattern);
+            PropagateLastMatchToCtor(scriptContext, regularExpression, lastInput, lastSuccessfulMatch, useSplitPattern);
         }
     }
 
@@ -1456,7 +1456,7 @@ namespace Js
         , bool isGlobal
         , bool isSticky
         , JavascriptRegExp* regularExpression
-        , UnifiedRegex::GroupInfo lastSuccessfullMatch
+        , UnifiedRegex::GroupInfo lastSuccessfulMatch
         , UnifiedRegex::GroupInfo lastActualMatch )
     {
         if (lastActualMatch.IsUndefined())
@@ -1475,12 +1475,12 @@ namespace Js
         ( ScriptContext* scriptContext
         , JavascriptRegExp* regularExpression
         , JavascriptString* lastInput
-        , UnifiedRegex::GroupInfo lastSuccessfullMatch
+        , UnifiedRegex::GroupInfo lastSuccessfulMatch
         , bool useSplitPattern )
     {
         Assert(lastInput);
 
-        if (!lastSuccessfullMatch.IsUndefined())
+        if (!lastSuccessfulMatch.IsUndefined())
         {
             // Notes:
             // - SPEC DEVIATION: The RegExp ctor holds some details of the last successful match on any regular expression.
@@ -1492,7 +1492,7 @@ namespace Js
             UnifiedRegex::RegexPattern* pattern = useSplitPattern
                 ? regularExpression->GetSplitPattern()
                 : regularExpression->GetPattern();
-            scriptContext->GetLibrary()->GetRegExpConstructor()->SetLastMatch(pattern, lastInput, lastSuccessfullMatch);
+            scriptContext->GetLibrary()->GetRegExpConstructor()->SetLastMatch(pattern, lastInput, lastSuccessfulMatch);
         }
     }
 

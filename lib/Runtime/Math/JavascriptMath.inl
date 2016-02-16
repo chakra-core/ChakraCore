@@ -327,6 +327,18 @@ namespace Js
             return Js::NumberUtilities::TryToInt64(T1);
         }
 
+        __inline int32 JavascriptMath::ToInt32_NoObjects(Var aValue, ScriptContext* scriptContext, bool& isObject)
+        {
+            if (JavascriptOperators::IsObject(aValue))
+            {
+                isObject = true; // jitted code should bailout
+                return 0;
+            }
+
+            isObject = false;
+            return ToInt32(aValue, scriptContext);
+        }
+
         __inline int32 JavascriptMath::ToInt32(Var aValue, ScriptContext* scriptContext)
         {
             return

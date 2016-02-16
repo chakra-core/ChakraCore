@@ -186,7 +186,7 @@ function test7_value() {}
 
 // With cases
 
-// Delete local variabale, not in with
+// Delete local variable, not in with
 (function Test18(){
     var test18_value = 10;
     var o = {};
@@ -199,7 +199,7 @@ function test7_value() {}
     write("test18_value : " + test18_value);
 }) ();
 
-// Delete varibale in with
+// Delete variable in with
 (function Test19(){
     var test19_value = 10;
     var o = { test19_value : 20 };
@@ -213,7 +213,7 @@ function test7_value() {}
     write("o.test19_value : " + o.test19_value);
 }) ();
 
-// Delete local variabale, not in with inside eval
+// Delete local variable, not in with inside eval
 (function Test20(){
     var test20_value = 10;
     var o = {};
@@ -226,7 +226,7 @@ function test7_value() {}
     write("test20_value : " + test20_value);
 }) ();
 
-// Delete variabale in with, inside eval
+// Delete variable in with, inside eval
 (function Test21(){
     var test21_value = 10;
     var o = { test21_value : 20 };

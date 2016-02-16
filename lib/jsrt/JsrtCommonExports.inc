@@ -11,6 +11,7 @@
     JsGetContextData
     JsSetContextData
     JsRunScript
+    JsExperimentalApiRunModule
     JsGetUndefinedValue
     JsGetNullValue
     JsGetTrueValue
@@ -90,6 +91,7 @@
     JsParseSerializedScriptWithCallback
     JsRunSerializedScriptWithCallback
     JsParseScript
+    JsParseScriptWithFlags
     JsConstructObject
     JsGetPropertyIdFromName
     JsGetPropertyNameFromId

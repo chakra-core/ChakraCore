@@ -6,7 +6,7 @@
 template <class Fn, bool mapRest>
 void MapFormalsImpl(ParseNode *pnodeFunc, Fn fn)
 {
-    for (ParseNode *pnode = pnodeFunc->sxFnc.pnodeArgs; pnode != nullptr; pnode = pnode->GetFormalNext())
+    for (ParseNode *pnode = pnodeFunc->sxFnc.pnodeParams; pnode != nullptr; pnode = pnode->GetFormalNext())
     {
         fn(pnode);
     }
@@ -31,7 +31,7 @@ void MapFormals(ParseNode *pnodeFunc, Fn fn)
 template <class Fn>
 void MapFormalsFromPattern(ParseNode *pnodeFunc, Fn fn)
 {
-    for (ParseNode *pnode = pnodeFunc->sxFnc.pnodeArgs; pnode != nullptr; pnode = pnode->GetFormalNext())
+    for (ParseNode *pnode = pnodeFunc->sxFnc.pnodeParams; pnode != nullptr; pnode = pnode->GetFormalNext())
     {
         if (pnode->nop == knopParamPattern)
         {

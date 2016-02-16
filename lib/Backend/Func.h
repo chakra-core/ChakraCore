@@ -195,7 +195,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 #elif defined(_M_X64) || defined(_M_ARM64)
     static const unsigned __int64 c_debugFillPattern = c_debugFillPattern8;
 #else
-#error unsuported platform
+#error unsupported platform
 #endif
 
 #endif
@@ -502,6 +502,7 @@ public:
     unsigned int        m_labelCount;
     BitVector           m_regsUsed;
     StackSym *          tempSymDouble;
+    StackSym *          tempSymBool;
     uint32              loopCount;
     Js::ProfileId       callSiteIdInParentFunc;
     bool                m_isLeaf: 1;  // This is set in the IRBuilder and might be inaccurate after inlining

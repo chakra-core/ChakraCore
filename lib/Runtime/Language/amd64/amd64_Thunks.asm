@@ -373,10 +373,10 @@ endif
         push rdi
         push rax
         push rcx
-        sub rsp, 20h
+        sub rsp, 28h
         call ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z
         mov rdi, rax
-        add rsp, 20h
+        add rsp, 28h
         pop rcx
         pop rax
 

@@ -74,7 +74,8 @@ bool BlockHasOwnScope(ParseNode* pnodeBlock, ByteCodeGenerator *byteCodeGenerato
     Assert(pnodeBlock->nop == knopBlock);
     return pnodeBlock->sxBlock.scope != nullptr &&
         (!(pnodeBlock->grfpn & fpnSyntheticNode) ||
-            (pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo()));
+            (pnodeBlock->sxBlock.blockType == Parameter && !pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope()) ||
+            (pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && byteCodeGenerator->IsEvalWithNoParentScopeInfo()));
 }
 
 void BeginVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
@@ -967,6 +968,10 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
             {
                 paramScope = Anew(alloc, Scope, alloc, ScopeType_Parameter, true);
             }
+            if (!paramScopeInfo->GetCanMergeWithBodyScope())
+            {
+                paramScope->SetCannotMergeWithBodyScope();
+            }
             // We need the funcInfo before continuing the restoration of the param scope, so wait for the funcInfo to be created.
         }
 
@@ -984,12 +989,16 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
                 bodyScope = Anew(alloc, Scope, alloc, ScopeType_FunctionBody, true);
             }
         }
+
         FuncInfo* func = Anew(alloc, FuncInfo, functionBody->GetDisplayName(), alloc, paramScope, bodyScope, nullptr, functionBody);
 
         if (paramScope != nullptr)
         {
             paramScope->SetFunc(func);
-            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
+            if (paramScope->GetCanMergeWithBodyScope())
+            {
+                paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
+            }
         }
 
         if (bodyScope->GetScopeType() == ScopeType_GlobalEvalBlock)
@@ -1018,6 +1027,11 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::FunctionBody* functionBody)
         }
 
         scopeInfo->GetScopeInfo(nullptr, this, func, bodyScope);
+        if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+        {
+            // If the param and body scopes are not merged the param scope needs to be treated like an inner scope
+            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
+        }
     }
     else
     {
@@ -1395,7 +1409,12 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const wchar_t *name, uint nameLe
     }
 
     PushFuncInfo(L"StartBindFunction", funcInfo);
-    PushScope(paramScope);
+    if (paramScope->GetCanMergeWithBodyScope())
+    {
+        // When param scope is not merged with body scope we don't have to push the param scope here.
+        // Symbols in both scopes are separate and can't reference each other.
+        PushScope(paramScope);
+    }
     PushScope(bodyScope);
 
     if (funcExprScope)
@@ -1416,6 +1435,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const wchar_t *name, uint nameLe
 void ByteCodeGenerator::EndBindFunction(bool funcExprWithName)
 {
     bool isGlobalScope = currentScope->GetScopeType() == ScopeType_Global;
+    Scope* bodyScope = currentScope;
 
     Assert(currentScope->GetScopeType() == ScopeType_FunctionBody || isGlobalScope);
     PopScope(); // function body
@@ -1426,8 +1446,12 @@ void ByteCodeGenerator::EndBindFunction(bool funcExprWithName)
     }
     else
     {
-        Assert(currentScope->GetScopeType() == ScopeType_Parameter);
-        PopScope(); // parameter scope
+        Scope* paramScope = bodyScope->GetFunc()->GetParamScope();
+        if (paramScope->GetCanMergeWithBodyScope())
+        {
+            Assert(currentScope->GetScopeType() == ScopeType_Parameter);
+            PopScope(); // parameter scope
+        }
     }
 
     if (funcExprWithName)
@@ -1462,16 +1486,41 @@ void ByteCodeGenerator::PushScope(Scope *innerScope)
 {
     Assert(innerScope != nullptr);
 
-    if (isBinding
-        && currentScope != nullptr
-        && currentScope->GetScopeType() == ScopeType_FunctionBody
-        && innerScope->GetMustInstantiate())
+    if (isBinding && currentScope != nullptr && innerScope->GetMustInstantiate())
     {
-        // If the current scope is a function body, we don't expect another function body
-        // without going through a function expression or parameter scope first. This may
-        // not be the case in the emit phase, where we can merge the two scopes. This also
-        // does not apply to incoming scopes marked as !mustInstantiate.
-        Assert(innerScope->GetScopeType() != ScopeType_FunctionBody);
+        if (currentScope->GetScopeType() == ScopeType_FunctionBody)
+        {
+            // If the current scope is a function body, we don't expect another function body without going through a function expression or parameter
+            // scope (which is not merged with body scope) first. This also does not apply to incoming scopes marked as !mustInstantiate.
+            Assert(innerScope->GetScopeType() != ScopeType_FunctionBody || !innerScope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope());
+        }
+
+        if (currentScope->GetScopeType() == ScopeType_Parameter)
+        {
+            if (innerScope->GetScopeType() == ScopeType_FunctionBody)
+            {
+                // The current scope is a parameter scope and we are pushing in a function body scope then,
+                if (currentScope->GetFunc() == innerScope->GetFunc())
+                {
+                    // If both the param scope and the body scope belongs to the same function then both can be merged together.
+                    Assert(currentScope->GetCanMergeWithBodyScope());
+                }
+                else
+                {
+                    // If both the scopes belong to a different function then both functions have split scope.
+                    Assert(!innerScope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope()
+                            && !currentScope->GetCanMergeWithBodyScope());
+                }
+            }
+            else if (innerScope->GetScopeType() == ScopeType_Parameter)
+            {
+                // If we are pushing a parameter scope on top of another parameter scope then,
+                // Both of them cannot belong to the same function.
+                Assert(currentScope->GetFunc() != innerScope->GetFunc());
+                // Current function should have split scope.
+                Assert(!currentScope->GetCanMergeWithBodyScope());
+            }
+        }
     }
 
     innerScope->SetEnclosingScope(currentScope);
@@ -1751,6 +1800,19 @@ FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
     return nullptr;
 }
 
+FuncInfo* GetParentFuncInfo(FuncInfo* child)
+{
+    for (Scope* scope = child->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
+    {
+        if (scope->GetFunc() != child)
+        {
+            return scope->GetFunc();
+        }
+    }
+    Assert(0);
+    return nullptr;
+}
+
 bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1819,6 +1881,13 @@ Scope * ByteCodeGenerator::FindScopeForSym(Scope *symScope, Scope *scope, Js::Pr
         }
         if (scope == symScope || scope->GetIsDynamic())
         {
+            break;
+        }
+        else if (symScope->GetScopeType() == ScopeType_Parameter && scope->GetFunc() == symScope->GetFunc())
+        {
+            // During VisitNestedScope the param scope will not be on the stack for the unmerged scope case.
+            // So if the symbol's scope is a param scope, check whether it is the current function or not.
+            scope = symScope;
             break;
         }
     }
@@ -1929,7 +1998,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, ulong grfscr, __in ByteC
 
 #ifdef PERF_COUNTERS
     PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, L"TestTrace: deferparse - # of func: %d # deferparsed: %d\n",
-        PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferedFunctionCounter().GetValue());
+        PerfCounter::CodeCounterSet::GetTotalFunctionCounter().GetValue(), PerfCounter::CodeCounterSet::GetDeferredFunctionCounter().GetValue());
 #endif
 }
 
@@ -2158,7 +2227,7 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
 {
     Assert(byteCodeGenerator->TopFuncInfo()->varRegsCount == 0);
     Js::ArgSlot pos = 1;
-    bool isSimpleParameterList = pnode->sxFnc.IsSimpleParameterList();
+    bool isNonSimpleParameterList = pnode->sxFnc.HasNonSimpleParameterList();
 
     auto addArgToScope = [&](ParseNode *arg)
     {
@@ -2176,13 +2245,13 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
             }
 #endif
 
-            if (!isSimpleParameterList)
+            if (isNonSimpleParameterList)
             {
                 formal->SetIsNonSimpleParameter(true);
             }
 
             arg->sxVar.sym = formal;
-            MarkFormal(byteCodeGenerator, formal, assignLocation || !isSimpleParameterList, !isSimpleParameterList);
+            MarkFormal(byteCodeGenerator, formal, assignLocation || isNonSimpleParameterList, isNonSimpleParameterList);
         }
         else if (arg->nop == knopParamPattern)
         {
@@ -2474,13 +2543,21 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
                 byteCodeGenerator->AssignRegister(sym);
                 pnode->location = sym->GetLocation();
 
-                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
+                Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc() ||
+                    sym->GetScope()->GetFunc()->root->sxFnc.IsAsync());
+                if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
+                {
+                    Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
+                    sym->GetScope()->SetMustInstantiate(true);
+                    sym->SetHasNonLocalReference(true, byteCodeGenerator);
+                    sym->GetScope()->GetFunc()->SetHasLocalInClosure(true);
+                }
+
                 Symbol * functionScopeVarSym = sym->GetFuncScopeVarSym();
                 if (functionScopeVarSym &&
                     !functionScopeVarSym->GetIsGlobal() &&
                     !functionScopeVarSym->IsInSlot(sym->GetScope()->GetFunc()))
                 {
-                    Assert(byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
                     byteCodeGenerator->AssignRegister(functionScopeVarSym);
                 }
             }
@@ -2576,7 +2653,12 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         if (!top->IsGlobalFunction())
         {
             PostVisitBlock(pnode->sxFnc.pnodeBodyScope, byteCodeGenerator);
-            PostVisitBlock(pnode->sxFnc.pnodeScopes, byteCodeGenerator);
+            if (pnode->sxFnc.pnodeScopes->nop != knopBlock
+                || pnode->sxFnc.pnodeBodyScope->sxBlock.scope->GetScopeType() != ScopeType_Parameter
+                || pnode->sxFnc.pnodeBodyScope->sxBlock.scope->GetCanMergeWithBodyScope())
+            {
+                PostVisitBlock(pnode->sxFnc.pnodeScopes, byteCodeGenerator);
+            }
         }
 
         if ((byteCodeGenerator->GetFlags() & fscrEvalCode) && top->GetCallsEval())
@@ -2619,7 +2701,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             if (top->GetCallsEval() ||
                 top->GetChildCallsEval() ||
-                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeArgs != nullptr) ||
+                (top->GetHasArguments() && ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode) && pnode->sxFnc.pnodeParams != nullptr) ||
                 top->GetHasLocalInClosure() ||
                 top->funcExprScope && top->funcExprScope->GetMustInstantiate())
             {
@@ -2642,7 +2724,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (top->GetCallsEval() ||
                     pnode->sxFnc.nestedCount != 0
                     || (top->GetHasArguments()
-                        && (pnode->sxFnc.pnodeArgs != nullptr)
+                        && (pnode->sxFnc.pnodeParams != nullptr)
                         && byteCodeGenerator->IsInDebugMode()))
                 {
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
@@ -2690,7 +2772,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
                     Assert(top->GetHasHeapArguments());
                     if (ByteCodeGenerator::NeedScopeObjectForArguments(top, pnode)
-                        && pnode->sxFnc.IsSimpleParameterList())
+                        && !pnode->sxFnc.HasNonSimpleParameterList())
                     {
                         top->byteCodeFunction->SetHasImplicitArgIns(false);
                     }
@@ -2745,7 +2827,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     // If we have any deferred child, we need to instantiate the fake global block scope if it is not empty
     if (parentFunc->IsGlobalFunction())
     {
-        if (hasAnyDeferredChild && byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo())
+        if (hasAnyDeferredChild && byteCodeGenerator->IsEvalWithNoParentScopeInfo())
         {
             Scope * globalEvalBlockScope = parentFunc->GetGlobalEvalBlockScope();
             if (globalEvalBlockScope->Count() != 0 || parentFunc->isThisLexicallyCaptured)
@@ -2954,9 +3036,8 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
                 func->SetHasGlobalRef(true);
             }
 
-            if (byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled()
-                && sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope()
-                && sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
+            if (sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope() &&
+                sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
                 sym->SetIsBlockVar(true);
             }
@@ -3043,7 +3124,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
                 MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
 
-                if (!pnodeScope->sxFnc.IsSimpleParameterList())
+                if (pnodeScope->sxFnc.HasNonSimpleParameterList())
                 {
                     byteCodeGenerator->AssignUndefinedConstRegister();
                 }
@@ -3073,7 +3154,12 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 Visit(pnode, byteCodeGenerator, prefix, postfix);
 
                 EndVisitBlock(pnodeScope->sxFnc.pnodeBodyScope, byteCodeGenerator);
-                EndVisitBlock(pnodeScope->sxFnc.pnodeScopes, byteCodeGenerator);
+                if (containerScope->nop != knopBlock || containerScope->sxBlock.blockType != Parameter
+                    || containerScope->sxBlock.scope->GetCanMergeWithBodyScope())
+                {
+                    // When the param scope has own scope, the scope stack handling for it is done separate.
+                    EndVisitBlock(pnodeScope->sxFnc.pnodeScopes, byteCodeGenerator);
+                }
             }
             else if (pnodeScope->sxFnc.nestedCount)
             {
@@ -3098,7 +3184,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             // Merge parameter and body scopes, unless we are deferring the function.
             // If we are deferring the function, we will need both scopes to do the proper binding when
             // the function is undeferred. After the function is undeferred, it is safe to merge the scopes.
-            if (pnodeScope->sxFnc.funcInfo->paramScope != nullptr && pnodeScope->sxFnc.pnodeBody != nullptr)
+            if (pnodeScope->sxFnc.funcInfo->paramScope != nullptr && pnodeScope->sxFnc.pnodeBody != nullptr && pnodeScope->sxFnc.funcInfo->paramScope->GetCanMergeWithBodyScope())
             {
                 Scope::MergeParamAndBodyScopes(pnodeScope, byteCodeGenerator);
             }
@@ -3168,7 +3254,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     FuncInfo *func = byteCodeGenerator->TopFuncInfo();
     if (func->IsGlobalFunction() &&
         func->root->sxFnc.pnodeScopes == pnodeBlock &&
-        byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo())
+        byteCodeGenerator->IsEvalWithNoParentScopeInfo())
     {
         isGlobalEvalBlockScope = true;
     }
@@ -3179,7 +3265,7 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     ArenaAllocator *alloc = byteCodeGenerator->GetAllocator();
     Scope *scope;
 
-    if ((pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithBlockScopingNoParentScopeInfo()) || pnodeBlock->sxBlock.blockType == PnodeBlockType::Function)
+    if ((pnodeBlock->sxBlock.blockType == PnodeBlockType::Global && !byteCodeGenerator->IsEvalWithNoParentScopeInfo()) || pnodeBlock->sxBlock.blockType == PnodeBlockType::Function)
     {
         scope = byteCodeGenerator->GetCurrentScope();
 
@@ -3197,7 +3283,6 @@ void PreVisitBlock(ParseNode *pnodeBlock, ByteCodeGenerator *byteCodeGenerator)
     }
     else if (!(pnodeBlock->grfpn & fpnSyntheticNode) || isGlobalEvalBlockScope)
     {
-        Assert(byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
         scope = pnodeBlock->sxBlock.scope;
         if (!scope || !byteCodeGenerator->UseParserBindings())
         {
@@ -4387,7 +4472,7 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
 
             // Need to always detect interleaving dynamic scope ('with') for assignments
             // as those may end up escaping into the 'with' scope.
-                // TODO: the with scope is marked as MustInstaniate late during byte code emit
+                // TODO: the with scope is marked as MustInstantiate late during byte code emit
                 // We could detect this using the loop above as well, by marking the with
             // scope as must instantiate early, this is just less risky of a fix for RTM.
 
@@ -4547,7 +4632,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
                 if (pnodeName->nop == knopVarDecl && pnodeName->sxVar.sym != nullptr)
                 {
-                    // Unlike in CheckFuncAssignemnt, we don't have check if there is a interleaving
+                    // Unlike in CheckFuncAssignment, we don't check for interleaving
                     // dynamic scope ('with') here, because we also generate direct assignment for
                     // function decl's names
 
@@ -4674,7 +4759,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
         if (nonLambdaFunc != func || (func->IsGlobalFunction() && (byteCodeGenerator->GetFlags() & fscrEval)))
         {
-            nonLambdaFunc->root->sxFnc.SetHasNewTargetReferene();
+            nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
             nonLambdaFunc->AssignNewTargetRegister();
             nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
             nonLambdaFunc->GetBodyScope()->SetHasLocalInClosure(true);
@@ -4705,7 +4790,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             {
                 func->AssignNewTargetRegister();
 
-                nonLambdaFunc->root->sxFnc.SetHasNewTargetReferene();
+                nonLambdaFunc->root->sxFnc.SetHasNewTargetReference();
                 nonLambdaFunc->AssignNewTargetRegister();
                 nonLambdaFunc->SetIsNewTargetLexicallyCaptured();
                 nonLambdaFunc->AssignUndefinedConstRegister();
@@ -4871,6 +4956,19 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         {
             sym = pnode->sxVar.sym;
             Assert(sym != nullptr);
+
+            if (sym->GetScope()->GetEnclosingFunc() != byteCodeGenerator->TopFuncInfo())
+            {
+                FuncInfo* parentFunc = GetParentFuncInfo(byteCodeGenerator->TopFuncInfo());
+                Assert(parentFunc == sym->GetScope()->GetEnclosingFunc());
+                if (parentFunc->root->sxFnc.IsAsync())
+                {
+                    // async functions produce a situation where a var decl can have a symbol
+                    // declared from an enclosing function.  In this case just no-op the vardecl.
+                    return;
+                }
+            }
+
             Assert(sym->GetScope()->GetEnclosingFunc() == byteCodeGenerator->TopFuncInfo());
 
             if (pnode->sxVar.isBlockScopeFncDeclVar && sym->GetIsBlockVar())
@@ -4888,14 +4986,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
                 if (sym->GetIsCatch() || (pnode->nop == knopVarDecl && sym->GetIsBlockVar() && !pnode->sxVar.isBlockScopeFncDeclVar))
                 {
-                // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
+                    // The LHS of the var decl really binds to the local symbol, not the catch or let symbol.
                     // But the assignment will go to the catch or let symbol. Just assign a register to the local
                     // so that it can get initialized to undefined.
 #if DBG
                     if (!sym->GetIsCatch())
                     {
-                    // Catch cannot be at function scope and let and var at function scope is redeclaration error.
-                    Assert(funcInfo->bodyScope != sym->GetScope() || !byteCodeGenerator->GetScriptContext()->GetConfig()->IsBlockScopeEnabled());
+                        // Catch cannot be at function scope and let and var at function scope is redeclaration error.
+                        Assert(funcInfo->bodyScope != sym->GetScope());
                     }
 #endif
                     auto symName = sym->GetName();
@@ -4907,12 +5005,12 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     Assert((sym && !sym->GetIsCatch() && !sym->GetIsBlockVar()));
                 }
                 // Don't give the declared var a register if it's in a closure, because the closure slot
-            // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
+                // is its true "home". (Need to check IsGlobal again as the sym may have changed above.)
                 if (!sym->GetIsGlobal() && !sym->IsInSlot(funcInfo))
                 {
-                if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
+                    if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                    if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
+                        if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
                         {
                             Output::Print(L"--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n", sym->GetName());
                             Output::Flush();
@@ -5058,7 +5156,7 @@ bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
     }
 
     if (!fncDecl->HasVarArguments()
-        && fncDecl->sxFnc.pnodeArgs == nullptr
+        && fncDecl->sxFnc.pnodeParams == nullptr
         && fncDecl->sxFnc.pnodeRest == nullptr
         && fncDecl->sxFnc.nestedCount == 0)
     {
@@ -5120,14 +5218,14 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
         funcInfo->GetHasHeapArguments()
         // Either we are in strict mode, or have strict mode formal semantics from a non-simple parameter list, and
         && (funcInfo->GetIsStrictMode()
-            || !pnodeFnc->sxFnc.IsSimpleParameterList())
+            || pnodeFnc->sxFnc.HasNonSimpleParameterList())
         // Neither of the scopes are objects
         && !funcInfo->paramScope->GetIsObject()
         && !funcInfo->bodyScope->GetIsObject();
 
     return funcInfo->GetHasHeapArguments()
         // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
-        && (pnodeFnc->sxFnc.pnodeArgs != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
+        && (pnodeFnc->sxFnc.pnodeParams != nullptr || pnodeFnc->sxFnc.pnodeRest != nullptr)
         && !dontNeedScopeObject;
 }
 

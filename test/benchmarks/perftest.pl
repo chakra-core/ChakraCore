@@ -10,6 +10,7 @@
 
 use strict;
 use File::Basename;
+use File::Spec;
 
 my $defaultIter = 35;
 my $iter = $defaultIter;
@@ -509,7 +510,8 @@ sub runtest
     }
     else
     {
-        system("$binary $switches{$variant} $other_switches $dir\\$testcasename.js > _time.txt");
+        my $testpath = File::Spec->catfile($dir, $testcasename);
+        system("$binary $switches{$variant} $other_switches $testpath.js > _time.txt");
     }
 
     open(my $IN, '<', "_time.txt") or die;

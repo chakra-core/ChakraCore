@@ -167,7 +167,7 @@ HeapBucketT<TBlockType>::PrepareSweep()
     // CONCURRENT-TODO: Technically, We don't really need to invalidate allocators here,
     // but currently invalidating may update the unallocateCount which is
     // used to calculate the partial heuristics, so it needs to be done
-    // before sweep.   When the partial heuristic changes, we can remove this
+    // before sweep. When the partial heuristic changes, we can remove this
     // (And remove rescan from leaf bucket, so this function doesn't need to exist)
     ClearAllocators();
 }

@@ -140,7 +140,7 @@ WScript.Echo("test3: " + test3());
 //   sym of 'a' will also be made to be available as an int.
 // - In the optimization pass, due to constant propagation, 'a = 1' appears as 'a.var = 0x3'. Since the loop prepass made the
 //   hoisted stack sym for 'a' available as an int, the optimization pass should do so as well (prepass must be equally or less
-//   aggressive than the optimziation pass).
+//   aggressive than the optimization pass).
 // - By the end, the int version of the hoisted stack sym of 'a' should be live through the inner loop and compensation should
 //   not be necessary
 function test4() {

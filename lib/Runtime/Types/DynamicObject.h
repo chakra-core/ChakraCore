@@ -48,7 +48,7 @@ namespace Js
         friend class CrossSite;
         friend class DynamicTypeHandler;
         template <typename T> friend class DynamicObjectEnumeratorBase;
-        template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSementics> friend class DynamicObjectEnumerator;
+        template <typename T, bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
         friend class RecyclableObject;
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator

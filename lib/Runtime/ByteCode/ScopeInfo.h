@@ -40,6 +40,7 @@ namespace Js {
         BYTE isCached : 1;              // indicates that local vars and functions are cached across invocations
         BYTE isGlobalEval : 1;
         BYTE areNamesCached : 1;
+        BYTE canMergeWithBodyScope : 1;
 
         Scope *scope;
         int scopeId;
@@ -48,7 +49,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionBody * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true)
         {
         }
 
@@ -185,6 +186,11 @@ namespace Js {
         bool IsGlobalEval() const
         {
             return isGlobalEval;
+        }
+
+        bool GetCanMergeWithBodyScope() const
+        {
+            return canMergeWithBodyScope;
         }
 
         static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);

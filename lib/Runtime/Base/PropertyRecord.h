@@ -125,7 +125,7 @@ namespace Js
     {
     public:
 #define INTERNALPROPERTY(n) const static BuiltInPropertyRecord<1> n;
-#include "..\InternalPropertyList.h"
+#include "InternalPropertyList.h"
 
         static const PropertyRecord* GetInternalPropertyName(PropertyId propertyId);
     };

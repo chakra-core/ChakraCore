@@ -153,7 +153,7 @@ namespace Js {
     }
 
 #ifdef GENERATE_DUMP
-    CriticalSection Throw::csGenereateDump;
+    CriticalSection Throw::csGenerateDump;
     void Throw::GenerateDump(LPCWSTR filePath, bool terminate, bool needLock)
     {
         __try
@@ -234,7 +234,7 @@ namespace Js {
             {
                 // the critical section might have been destructed at process shutdown time. At that time we don't need
                 // to lock.
-                AutoCriticalSection autocs(&csGenereateDump);
+                AutoCriticalSection autocs(&csGenerateDump);
 
                 dumpGenerated = MiniDumpWriteDump(GetCurrentProcess(),
                     GetCurrentProcessId(),

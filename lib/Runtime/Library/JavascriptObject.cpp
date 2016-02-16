@@ -1678,7 +1678,7 @@ namespace Js
             // Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
             JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
             propertyId = propertyRecord->GetPropertyId();
-            AssertMsg(propertyId != Constants::NoProperty, "AssignForProxyObjects - OwnPropertyKeys returned a propertyId with value NoPrpoerty.");
+            AssertMsg(propertyId != Constants::NoProperty, "AssignForProxyObjects - OwnPropertyKeys returned a propertyId with value NoProperty.");
             if (JavascriptOperators::GetOwnPropertyDescriptor(from, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
             {
                 if (propertyDescriptor.IsEnumerable())
@@ -1906,7 +1906,7 @@ namespace Js
             AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
             JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord);
             propertyId = propertyRecord->GetPropertyId();
-            AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoPrpoerty.");
+            AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoProperty.");
 
             if (JavascriptOperators::GetOwnPropertyDescriptor(props, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
             {

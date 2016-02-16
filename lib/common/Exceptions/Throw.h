@@ -31,7 +31,7 @@ namespace Js {
         static void GenerateDump(LPCWSTR filePath, bool terminate = false, bool needLock = false);
         static void GenerateDumpForAssert(LPCWSTR filePath);
     private:
-        static CriticalSection csGenereateDump;
+        static CriticalSection csGenerateDump;
         __declspec(thread) static  StackBackTrace * stackBackTrace;
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 40;

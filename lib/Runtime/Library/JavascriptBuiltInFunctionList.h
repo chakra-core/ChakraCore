@@ -190,6 +190,7 @@ BUILTIN(JavascriptRegExp, NewInstance, NewInstance, FunctionInfo::SkipDefaultNew
 BUILTIN(JavascriptRegExp, Exec, EntryExec, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Test, EntryTest, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptRegExp, SymbolMatch, EntrySymbolMatch, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, SymbolSearch, EntrySymbolSearch, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptRegExp, Compile, EntryCompile, FunctionInfo::None)
@@ -293,7 +294,6 @@ BUILTIN(Math, Cbrt, Cbrt, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
-#if ENABLE_NATIVE_CODEGEN
 // SIMDFloat32x4Lib entry points
 BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Check, EntryCheck, FunctionInfo::None)
@@ -778,7 +778,6 @@ BUILTIN(JavascriptSIMDBool8x16, ToString, EntryToString, FunctionInfo::None)
 BUILTIN(JavascriptSIMDUint32x4, ToString, EntryToString, FunctionInfo::None)
 BUILTIN(JavascriptSIMDUint16x8, ToString, EntryToString, FunctionInfo::None)
 BUILTIN(JavascriptSIMDUint8x16, ToString, EntryToString, FunctionInfo::None)
-#endif
 
 BUILTIN(Math, Fround, Fround, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

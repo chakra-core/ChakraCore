@@ -25,6 +25,7 @@
         $(ChakraCoreRootDirectory)Lib\Common;
         $(ChakraCoreRootDirectory)Lib\Parser;
         $(ChakraCoreRootDirectory)Lib\Runtime;
+        $(ChakraCoreRootDirectory)Lib\Runtime\ByteCode;
         $(ChakraCoreRootDirectory)Lib\Jsrt;
         $(IntDir);
         %(AdditionalIncludeDirectories);

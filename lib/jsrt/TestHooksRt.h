@@ -6,7 +6,7 @@
 
 // This flag will be used in conjunction with JsRuntimeAttributes (defined in chakrart.h)
 // However this flag is separately defined in this file since it is only required for ch.exe and we
-// don't want to polute the chakrart.h
+// don't want to pollute the chakrart.h
 
 
 // Summary : Runtime will generate bytecode buffer by treating current file as library file.

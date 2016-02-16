@@ -21,7 +21,7 @@ namespace Js
 
     SIMDValue SIMDBool32x4Operation::OpBool32x4(const SIMDValue& v)
     {
-        // overload function with input paramter as SIMDValue for completeness
+        // overload function with input parameter as SIMDValue for completeness
         SIMDValue result;
         result = v;
         return result;

@@ -8,7 +8,7 @@ namespace Js
 {
     ObjectPrototypeObject::ObjectPrototypeObject(DynamicType* type) : DynamicObject(type)
     {
-        __proto__Enabled = GetScriptContext()->GetConfig()->Is__proto__Enabled();
+        __proto__Enabled = true; // TODO[ianhall]: Does this still apply if __proto__ is now always enabled? Check with JC
     }
 
     ObjectPrototypeObject * ObjectPrototypeObject::New(Recycler * recycler, DynamicType * type)
@@ -105,9 +105,9 @@ namespace Js
 
     void ObjectPrototypeObject::PostDefineOwnProperty__proto__(RecyclableObject* obj)
     {
-        ScriptContext* scriptContext = this->GetScriptContext();
-        if (obj == this && scriptContext->GetConfig()->Is__proto__Enabled())
+        if (obj == this)
         {
+            ScriptContext* scriptContext = this->GetScriptContext();
             Var getter, setter;
 
             // __proto__Enabled is now only used by diagnostics to decide displaying __proto__ or [prototype].

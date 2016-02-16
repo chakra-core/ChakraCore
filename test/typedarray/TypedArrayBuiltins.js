@@ -44,6 +44,46 @@ var tests = [
             assert.throws(function() { Array.prototype.push.call(u8, 100); }, TypeError, "Array.prototype.push tries to set the length property of the TypedArray object which will throw", "Cannot define property: object is not extensible");
             assert.areEqual([0,1,2,3,1,2,3,4,5,7], u8, "Array.prototype.push doesn't modify the TypedArray");
         }
+    },
+    {
+        name: "TypedArray constructed out of an iterable object",
+        body: function () {
+            function getIterableObj (array)
+            {
+                return {
+                    [Symbol.iterator]: ()=> {
+                        return {
+                            next: () => {
+                                return {
+                                    value: array.shift(),
+                                    done: array.length == 0
+                                };
+                            }
+                        };
+                    }
+                };
+            }
+
+            var TypedArray = [
+                'Int8Array',
+                'Uint8Array',
+                'Uint8ClampedArray',
+                'Int16Array',
+                'Uint16Array',
+                'Int32Array',
+                'Uint32Array',
+                'Float32Array',
+                'Float64Array'
+            ];
+
+            for(var t of TypedArray) {
+                var arr = new this[t](getIterableObj([1,2,3,4]));
+                assert.areEqual(3, arr.length, "TypedArray " + t + " created from iterable has length == 3");
+                assert.areEqual(1, arr[0], "TypedArray " + t + " created from iterable has element #0 == 1");
+                assert.areEqual(2, arr[1], "TypedArray " + t + " created from iterable has element #1 == 2");
+                assert.areEqual(3, arr[2], "TypedArray " + t + " created from iterable has element #2 == 3");
+            }
+        }
     }
 ];
 
