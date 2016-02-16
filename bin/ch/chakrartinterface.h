@@ -49,7 +49,7 @@ struct JsAPIHooks
 
     typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode(WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
-    typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, bool createUnderTT, JsContextRef *newContext);
+    typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
     typedef JsErrorCode(WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
     typedef JsErrorCode(WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
 
@@ -267,7 +267,7 @@ public:
 
     static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, threadService, runtime); }
     static JsErrorCode WINAPI JsTTDCreateDebugRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateDebugRuntime(attributes, infoUri, threadService, runtime); }
-    static JsErrorCode WINAPI JsTTDCreateContext(JsRuntimeHandle runtime, bool createUnderTT, JsContextRef *newContext) { return m_jsApiHooks.pfJsrtTTDCreateContext(runtime, createUnderTT, newContext); }
+    static JsErrorCode WINAPI JsTTDCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return m_jsApiHooks.pfJsrtTTDCreateContext(runtime, newContext); }
     static JsErrorCode WINAPI JsTTDRunScript(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtTTDRunScript(hostCallbackId, script, sourceContext, sourceUrl, result); }
     static JsErrorCode WINAPI JsTTDCallFunction(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtTTDCallFunction(hostCallbackId, function, arguments, argumentCount, result); }
 

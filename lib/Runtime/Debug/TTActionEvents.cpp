@@ -1129,7 +1129,7 @@ namespace TTD
         Js::RecyclableObject* fobj = execContext->GetThreadContext()->TTDInfo->LookupObjectForTag(this->m_functionTagId);
         Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(fobj);
 
-        Js::CallInfo callInfo((ushort)this->m_argCount);
+        Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)this->m_argCount);
         for(uint32 i = 0; i < this->m_argCount; ++i)
         {
             const NSLogValue::ArgRetValue& aval = this->m_argArray[i];

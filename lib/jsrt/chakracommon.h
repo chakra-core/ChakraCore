@@ -2579,7 +2579,6 @@
     STDAPI_(JsErrorCode)
         JsTTDCreateContext(
             _In_ JsRuntimeHandle runtime,
-            _In_ bool createUnderTT,
             _Out_ JsContextRef *newContext);
 
     STDAPI_(JsErrorCode)

@@ -3470,9 +3470,9 @@ STDAPI_(JsErrorCode) JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes
     return CreateRuntimeCore(attributes, nullptr, infoUri, threadService, runtime);
 }
 
-STDAPI_(JsErrorCode) JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _In_ bool createUnderTT, _Out_ JsContextRef *newContext)
+STDAPI_(JsErrorCode) JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *newContext)
 {
-    return CreateContextCore(runtime, createUnderTT, newContext);
+    return CreateContextCore(runtime, true, newContext);
 }
 
 STDAPI_(JsErrorCode) JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
@@ -3589,8 +3589,14 @@ STDAPI_(JsErrorCode) JsTTDStopTimeTravelRecording()
         return JsErrorCategoryUsage;
     }
 
-    threadContext->EmitTTDLogIfNeeded();
-    threadContext->EndCtxTimeTravel(scriptContext);
+    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+    BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+    {
+        threadContext->EmitTTDLogIfNeeded();
+        threadContext->EndCtxTimeTravel(scriptContext);
+    }
+    END_JS_RUNTIME_CALL(scriptContext);
+    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
 
     return JsNoError;
 #endif
@@ -3622,7 +3628,13 @@ STDAPI_(JsErrorCode) JsTTDEmitTimeTravelRecording()
         return JsErrorCategoryUsage;
     }
 
-    threadContext->EmitTTDLogIfNeeded();
+    threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+    BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+    {
+        threadContext->EmitTTDLogIfNeeded();
+    }
+    END_JS_RUNTIME_CALL(scriptContext);
+    threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
 
     return JsNoError;
 #endif

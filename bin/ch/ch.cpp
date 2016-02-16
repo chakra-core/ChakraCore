@@ -1048,7 +1048,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         chRuntime = runtime;
 
         JsContextRef context = JS_INVALID_REFERENCE;
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         if(!WScriptJsrt::Initialize())
@@ -1082,7 +1082,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             chRuntime = runtime;
 
             JsContextRef context = JS_INVALID_REFERENCE;
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
         else
