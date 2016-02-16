@@ -4,15 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-
 namespace Js
 {
-    JavascriptSIMDBool32x4::JavascriptSIMDBool32x4(StaticType *type) : RecyclableObject(type)
+
+    JavascriptSIMDBool32x4::JavascriptSIMDBool32x4(StaticType *type) : JavascriptSIMDType(type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDBool32x4);
     }
 
-    JavascriptSIMDBool32x4::JavascriptSIMDBool32x4(SIMDValue *val, StaticType *type) : RecyclableObject(type), value(*val)
+    JavascriptSIMDBool32x4::JavascriptSIMDBool32x4(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDBool32x4);
     }
@@ -40,77 +40,20 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDBool32x4 *>(aValue);
     }
 
-    RecyclableObject * JavascriptSIMDBool32x4::CloneToScriptContext(ScriptContext* requestContext)
+    const wchar_t* JavascriptSIMDBool32x4::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
     {
-        return JavascriptSIMDBool32x4::New(&value, requestContext);
+        Assert(aBuffer && *aBuffer);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Bool32x4.%s", name);
+        return *aBuffer;
     }
-
-    BOOL JavascriptSIMDBool32x4::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
-    }
-
-    BOOL JavascriptSIMDBool32x4::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    BOOL JavascriptSIMDBool32x4::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDBool32x4::GetProperty(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    bool JavascriptSIMDBool32x4::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
-    {
-        if (propertyId == PropertyIds::toString)
-        {
-            *value = requestContext->GetLibrary()->GetSIMDBool32x4ToStringFunction();
-            return true;
-        }
-        return false;
-    }
-
-    // Entry Points
-
-    Var JavascriptSIMDBool32x4::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count == 0 || !JavascriptSIMDBool32x4::Is(args[0]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDBool32x4.toString");
-        }
-
-        JavascriptSIMDBool32x4 *instance = JavascriptSIMDBool32x4::FromVar(args[0]);
-        Assert(instance);
-
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
-        SIMDValue value = instance->GetValue();
-
-        JavascriptSIMDBool32x4::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
-
-        JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
-
-        return string;
-    }
-
-    // End Entry Points
 
     Var JavascriptSIMDBool32x4::Copy(ScriptContext* requestContext)
     {
         return JavascriptSIMDBool32x4::New(&this->value, requestContext);
+    }
+
+    RecyclableObject * JavascriptSIMDBool32x4::CloneToScriptContext(ScriptContext* requestContext)
+    {
+        return JavascriptSIMDBool32x4::New(&value, requestContext);
     }
 }

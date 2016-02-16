@@ -6,6 +6,12 @@
 
 namespace Js
 {
+    bool IsSimdType(Var aVar)
+    {
+        TypeId tid = JavascriptOperators::GetTypeId(aVar); //Depends on contiguous SIMD TypeIds
+        return (TypeIds_SIMDFloat32x4 <= tid && tid <= TypeIds_SIMDBool8x16) ? true : false;
+    }
+
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index)
     {
         int32 int32Value;

@@ -144,6 +144,7 @@ namespace Js
     class NullEnumerator;
 //SIMD_JS
     // SIMD
+    class JavascriptSIMDObject;
     class SIMDFloat32x4Lib;
     class JavascriptSIMDFloat32x4;
     class SIMDFloat64x2Lib;

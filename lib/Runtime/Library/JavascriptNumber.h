@@ -126,6 +126,8 @@ namespace Js
         // when radix is 10, ToStringRadix10 should be used instead
         static JavascriptString* ToStringRadixHelper(double value, int radix, ScriptContext* scriptContext);
         static JavascriptString* ToLocaleString(double dValue, ScriptContext* scriptContext);
+        static JavascriptString* ToLocaleStringIntl(ArgumentReader& args, CallInfo callInfo, ScriptContext* scriptContext);
+        static JavascriptString* ToLocaleStringIntl(Var* values, CallInfo callInfo, ScriptContext* scriptContext);
         static Var CloneToScriptContext(Var aValue, ScriptContext* requestContext);
 
 #if !FLOATVAR

@@ -291,7 +291,7 @@ BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
 // SIMDFloat32x4Lib entry points
-BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::None)
+BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDFloat32x4Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Zero, EntryZero, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Splat, EntrySplat, FunctionInfo::None)
@@ -353,7 +353,7 @@ BUILTIN(SIMDFloat32x4Lib, Store2, EntryStore2, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Store3, EntryStore3, FunctionInfo::None)
 
 // SIMDInt32x4Lib entry points
-BUILTIN(SIMDInt32x4Lib, Int32x4, EntryInt32x4, FunctionInfo::None)
+BUILTIN(SIMDInt32x4Lib, Int32x4, EntryInt32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDInt32x4Lib, Check,   EntryCheck,   FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, Splat,   EntrySplat,   FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, Bool,    EntryBool,    FunctionInfo::None)
@@ -414,7 +414,7 @@ BUILTIN(SIMDInt32x4Lib, Store2, EntryStore2, FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, Store3, EntryStore3, FunctionInfo::None)
 
 // SIMDInt8x16Lib entry points
-BUILTIN(SIMDInt8x16Lib, Int8x16     , EntryInt8x16      , FunctionInfo::None)
+BUILTIN(SIMDInt8x16Lib, Int8x16     , EntryInt8x16      , FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDInt8x16Lib, Check       , EntryCheck        , FunctionInfo::None)
 BUILTIN(SIMDInt8x16Lib, Splat       , EntrySplat        , FunctionInfo::None)
 
@@ -466,7 +466,7 @@ BUILTIN(SIMDInt8x16Lib, ExtractLane, EntryExtractLane, FunctionInfo::None)
 BUILTIN(SIMDInt8x16Lib, ReplaceLane, EntryReplaceLane, FunctionInfo::None)
 
 // SIMDFloat64x2Lib entry points
-BUILTIN(SIMDFloat64x2Lib, Float64x2, EntryFloat64x2, FunctionInfo::None)
+BUILTIN(SIMDFloat64x2Lib, Float64x2, EntryFloat64x2, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDFloat64x2Lib, Check,     EntryCheck,     FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Zero, EntryZero, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Splat, EntrySplat, FunctionInfo::None)
@@ -507,7 +507,7 @@ BUILTIN(SIMDFloat64x2Lib, Clamp,    EntryClamp, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Select,   EntrySelect, FunctionInfo::None)
 
 // SIMDInt16x8Lib entry points
-BUILTIN(SIMDInt16x8Lib, Int16x8, EntryInt16x8, FunctionInfo::None)
+BUILTIN(SIMDInt16x8Lib, Int16x8, EntryInt16x8, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDInt16x8Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDInt16x8Lib, Splat, EntrySplat, FunctionInfo::None)
 
@@ -560,7 +560,7 @@ BUILTIN(SIMDFloat64x2Lib, Store,  EntryStore,  FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Store1, EntryStore1, FunctionInfo::None)
 
 // SIMDBool32x4Lib entry points
-BUILTIN(SIMDBool32x4Lib, Bool32x4, EntryBool32x4, FunctionInfo::None)
+BUILTIN(SIMDBool32x4Lib, Bool32x4, EntryBool32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDBool32x4Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDBool32x4Lib, Splat, EntrySplat, FunctionInfo::None)
 
@@ -578,7 +578,7 @@ BUILTIN(SIMDBool32x4Lib, Or, EntryOr, FunctionInfo::None)
 BUILTIN(SIMDBool32x4Lib, Xor, EntryXor, FunctionInfo::None)
 
 // SIMDBool16x8Lib entry points
-BUILTIN(SIMDBool16x8Lib, Bool16x8, EntryBool16x8, FunctionInfo::None)
+BUILTIN(SIMDBool16x8Lib, Bool16x8, EntryBool16x8, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDBool16x8Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDBool16x8Lib, Splat, EntrySplat, FunctionInfo::None)
 
@@ -596,7 +596,7 @@ BUILTIN(SIMDBool16x8Lib, Or, EntryOr, FunctionInfo::None)
 BUILTIN(SIMDBool16x8Lib, Xor, EntryXor, FunctionInfo::None)
 
 // SIMDBool8x16Lib entry points
-BUILTIN(SIMDBool8x16Lib, Bool8x16, EntryBool8x16, FunctionInfo::None)
+BUILTIN(SIMDBool8x16Lib, Bool8x16, EntryBool8x16, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDBool8x16Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDBool8x16Lib, Splat, EntrySplat, FunctionInfo::None)
 
@@ -614,7 +614,7 @@ BUILTIN(SIMDBool8x16Lib, Or, EntryOr, FunctionInfo::None)
 BUILTIN(SIMDBool8x16Lib, Xor, EntryXor, FunctionInfo::None)
 
 // SIMDUint8x16Lib entry points
-BUILTIN(SIMDUint8x16Lib, Uint8x16, EntryUint8x16, FunctionInfo::None)
+BUILTIN(SIMDUint8x16Lib, Uint8x16, EntryUint8x16, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDUint8x16Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDUint8x16Lib, Splat, EntrySplat, FunctionInfo::None)
 // Conversions
@@ -659,7 +659,7 @@ BUILTIN(SIMDUint8x16Lib, Shuffle, EntryShuffle, FunctionInfo::None)
 BUILTIN(SIMDUint8x16Lib, Select, EntrySelect, FunctionInfo::None)
 
 // SIMDUint16x8Lib entry points
-BUILTIN(SIMDUint16x8Lib, Uint16x8, EntryUint16x8, FunctionInfo::None)
+BUILTIN(SIMDUint16x8Lib, Uint16x8, EntryUint16x8, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDUint16x8Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDUint16x8Lib, Splat, EntrySplat, FunctionInfo::None)
 // Conversions
@@ -705,7 +705,7 @@ BUILTIN(SIMDUint16x8Lib, Shuffle, EntryShuffle, FunctionInfo::None)
 BUILTIN(SIMDUint16x8Lib, Select, EntrySelect, FunctionInfo::None)
 
 // Uint32x4
-BUILTIN(SIMDUint32x4Lib, Uint32x4, EntryUint32x4, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, Uint32x4, EntryUint32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDUint32x4Lib, Check, EntryCheck, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, Splat, EntrySplat, FunctionInfo::None)
 
@@ -713,8 +713,8 @@ BUILTIN(SIMDUint32x4Lib, FromFloat32x4, EntryFromFloat32x4, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, FromFloat32x4Bits, EntryFromFloat32x4Bits, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, FromInt32x4Bits, EntryFromInt32x4Bits, FunctionInfo::None)
 
-BUILTIN(SIMDUint32x4Lib, FromInt16x8Bits,  EntryFromInt16x8Bits, FunctionInfo::None)
-BUILTIN(SIMDUint32x4Lib, FromInt8x16Bits,  EntryFromInt8x16Bits, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, FromInt16x8Bits, EntryFromInt16x8Bits, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, FromInt8x16Bits, EntryFromInt8x16Bits, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, FromUint16x8Bits, EntryFromUint16x8Bits, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, FromUint8x16Bits, EntryFromUint8x16Bits, FunctionInfo::None)
 
@@ -740,8 +740,8 @@ BUILTIN(SIMDUint32x4Lib, Equal, EntryEqual, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, NotEqual, EntryNotEqual, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, GreaterThan, EntryGreaterThan, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, GreaterThanOrEqual, EntryGreaterThanOrEqual, FunctionInfo::None)
-BUILTIN(SIMDUint32x4Lib, Min,EntryMin, FunctionInfo::None)
-BUILTIN(SIMDUint32x4Lib, Max,EntryMax, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, Min, EntryMin, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, Max, EntryMax, FunctionInfo::None)
 
 // ShiftOps
 BUILTIN(SIMDUint32x4Lib, ShiftLeftByScalar, EntryShiftLeftByScalar, FunctionInfo::None)
@@ -762,18 +762,56 @@ BUILTIN(SIMDUint32x4Lib, Store1, EntryStore1, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, Store2, EntryStore2, FunctionInfo::None)
 BUILTIN(SIMDUint32x4Lib, Store3, EntryStore3, FunctionInfo::None)
 
-// SIMD ToString entry point
-BUILTIN(JavascriptSIMDFloat32x4, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDFloat64x2, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDInt32x4, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDInt16x8, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDInt8x16, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDBool32x4, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDBool16x8, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDBool8x16, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDUint32x4, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDUint16x8, ToString, EntryToString, FunctionInfo::None)
-BUILTIN(JavascriptSIMDUint8x16, ToString, EntryToString, FunctionInfo::None)
+// SIMD object prototypes entry point
+BUILTIN(JavascriptSIMDBool8x16, ToLocaleString, EntryToLocaleString<JavascriptSIMDBool8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool8x16, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDBool8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool8x16, ToString, EntryToString<JavascriptSIMDBool8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDBool8x16, ValueOf, EntryValueOf<JavascriptSIMDBool8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDBool16x8, ToLocaleString, EntryToLocaleString<JavascriptSIMDBool16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool16x8, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDBool16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool16x8, ToString, EntryToString<JavascriptSIMDBool16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDBool16x8, ValueOf, EntryValueOf<JavascriptSIMDBool16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDBool32x4, ToLocaleString, EntryToLocaleString<JavascriptSIMDBool32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool32x4, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDBool32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDBool32x4, ToString, EntryToString<JavascriptSIMDBool32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDBool32x4, ValueOf, EntryValueOf<JavascriptSIMDBool32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDInt8x16, ToLocaleString, EntryToLocaleString<JavascriptSIMDInt8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt8x16, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDInt8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt8x16, ToString, EntryToString<JavascriptSIMDInt8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDInt8x16, ValueOf, EntryValueOf<JavascriptSIMDInt8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDInt16x8, ToLocaleString, EntryToLocaleString<JavascriptSIMDInt16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt16x8, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDInt16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt16x8, ToString, EntryToString<JavascriptSIMDInt16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDInt16x8, ValueOf, EntryValueOf<JavascriptSIMDInt16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDInt32x4, ToLocaleString, EntryToLocaleString<JavascriptSIMDInt32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt32x4, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDInt32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDInt32x4, ToString, EntryToString<JavascriptSIMDInt32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDInt32x4, ValueOf, EntryValueOf<JavascriptSIMDInt32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDUint8x16, ToLocaleString, EntryToLocaleString<JavascriptSIMDUint8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint8x16, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDUint8x16>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint8x16, ToString, EntryToString<JavascriptSIMDUint8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDUint8x16, ValueOf, EntryValueOf<JavascriptSIMDUint8x16>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDUint16x8, ToLocaleString, EntryToLocaleString<JavascriptSIMDUint16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint16x8, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDUint16x8>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint16x8, ToString, EntryToString<JavascriptSIMDUint16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDUint16x8, ValueOf, EntryValueOf<JavascriptSIMDUint16x8>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDUint32x4, ToLocaleString, EntryToLocaleString<JavascriptSIMDUint32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint32x4, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDUint32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDUint32x4, ToString, EntryToString<JavascriptSIMDUint32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDUint32x4, ValueOf, EntryValueOf<JavascriptSIMDUint32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
+
+BUILTIN(JavascriptSIMDFloat32x4, ToLocaleString, EntryToLocaleString<JavascriptSIMDFloat32x4> , FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDFloat32x4, SymbolToPrimitive, EntrySymbolToPrimitive<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSIMDFloat32x4, ToString, EntryToString<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptSIMDFloat32x4, ValueOf, EntryValueOf<JavascriptSIMDFloat32x4>, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
 
 BUILTIN(Math, Fround, Fround, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
