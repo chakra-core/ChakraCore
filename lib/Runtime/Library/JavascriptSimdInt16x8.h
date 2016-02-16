@@ -11,19 +11,19 @@ class JavascriptSIMDFloat64x2;
 
 namespace Js
 {
-    class JavascriptSIMDInt16x8 sealed : public RecyclableObject
+    class JavascriptSIMDInt16x8 sealed : public JavascriptSIMDType
     {
     private:
-        SIMDValue value;
-
-        DEFINE_VTABLE_CTOR(JavascriptSIMDInt16x8, RecyclableObject);
-
+        DEFINE_VTABLE_CTOR(JavascriptSIMDInt16x8, JavascriptSIMDType);
 
     public:
         class EntryInfo
         {
         public:
             static FunctionInfo ToString;
+            static FunctionInfo ToLocaleString;
+            static FunctionInfo ValueOf;
+            static FunctionInfo SymbolToPrimitive;
             static FunctionInfo Bool;
         };
 
@@ -31,17 +31,12 @@ namespace Js
         static JavascriptSIMDInt16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt16x8* FromVar(Var aValue);
+        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
-        __inline SIMDValue GetValue() { return value; }
-
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
-        // Entry Points
-        static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        // End Entry Points
+        __inline SIMDValue GetValue() { return value; }
 
         static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
@@ -49,13 +44,11 @@ namespace Js
                 value.i16[4], value.i16[5], value.i16[6], value.i16[7]);
         }
 
-        Var  Copy(ScriptContext* requestContext);
-        Var  CopyAndSetLane(uint index, int value, ScriptContext* requestContext);
+        Var Copy(ScriptContext* requestContext);
+        Var CopyAndSetLane(uint index, int value, ScriptContext* requestContext);
 
     private:
-        bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
-        Var  GetLaneAsNumber(uint index, ScriptContext* requestContext);
-        Var  GetLaneAsFlag(uint index, ScriptContext* requestContext);
+        Var GetLaneAsNumber(uint index, ScriptContext* requestContext);
+        Var GetLaneAsFlag(uint index, ScriptContext* requestContext);
     };
 }
-

@@ -342,3 +342,4 @@ RT_ERROR_MSG(JSERR_CannotResolveModule, 5645, "HostResolveImportedModule failed 
 RT_ERROR_MSG(JSERR_ResolveExportFailed, 5646, "Resolve export %s failed due to circular reference or resolved exports", "Resolve export failed due to circular reference or resolved exports", kjstSyntaxError, 0)
 
 RT_ERROR_MSG(JSERR_ObjectCoercible, 5647, "", "Cannot convert null or undefined to object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_SIMDConversion, 5648, "%s: cannot be converted to a number", "Cannot be converted to a number", kjstTypeError, 0)

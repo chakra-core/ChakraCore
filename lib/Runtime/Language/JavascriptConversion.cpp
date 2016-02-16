@@ -5,6 +5,7 @@
 #include "RuntimeLanguagePch.h"
 #include "Library/JavascriptNumberObject.h"
 #include "Library/JavascriptStringObject.h"
+#include "Library/JavascriptSimdObject.h"
 #include "Library/DateImplementation.h"
 #include "Library/JavascriptDate.h"
 
@@ -264,6 +265,7 @@ CommonNumber:
     BOOL JavascriptConversion::ToObject(Var aValue, ScriptContext* scriptContext, RecyclableObject** object)
     {
         Assert(object);
+
         switch (JavascriptOperators::GetTypeId(aValue))
         {
             case TypeIds_Undefined:
@@ -277,7 +279,14 @@ CommonNumber:
 
             default:
             {
-                *object = RecyclableObject::FromVar(aValue)->ToObject(scriptContext);
+                if (IsSimdType(aValue))
+                {
+                    *object = scriptContext->GetLibrary()->CreateSIMDObject(aValue, JavascriptOperators::GetTypeId(aValue));
+                }
+                else
+                {
+                    *object = RecyclableObject::FromVar(aValue)->ToObject(scriptContext);
+                }
                 return TRUE;
             }
         }
@@ -419,9 +428,16 @@ CommonNumber:
             return JavascriptUInt64Number::FromVar(aValue)->ToJavascriptNumber();
 
         default:
-            // if no Method exists this function falls back to OrdinaryToPrimitive
-            // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
-            return MethodCallToPrimitive(aValue, hint, requestContext);
+            if (IsSimdType(aValue))
+            {
+                return aValue;
+            }
+            else
+            {
+                // if no Method exists this function falls back to OrdinaryToPrimitive
+                // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
+                return MethodCallToPrimitive(aValue, hint, requestContext);
+            }
         }
     }
 
@@ -650,6 +666,26 @@ CommonNumber:
 
             case TypeIds_Symbol:
                 return JavascriptSymbol::FromVar(aValue)->ToString(scriptContext);
+            case TypeIds_SIMDBool8x16:
+            case TypeIds_SIMDBool16x8:
+            case TypeIds_SIMDBool32x4:
+            case TypeIds_SIMDInt8x16:
+            case TypeIds_SIMDInt16x8:
+            case TypeIds_SIMDInt32x4:
+            case TypeIds_SIMDUint8x16:
+            case TypeIds_SIMDUint16x8:
+            case TypeIds_SIMDUint32x4:
+            case TypeIds_SIMDFloat32x4:
+            {
+                Assert(aValue);
+                RecyclableObject *obj = nullptr;
+                if (!JavascriptConversion::ToObject(aValue, scriptContext, &obj))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDType.toString");
+                }
+                JavascriptSIMDObject* simdObject = static_cast<JavascriptSIMDObject*>(obj);
+                return JavascriptString::FromVar(simdObject->ToString(scriptContext));
+            }
 
             case TypeIds_GlobalObject:
                 aValue = static_cast<Js::GlobalObject*>(aValue)->ToThis();
