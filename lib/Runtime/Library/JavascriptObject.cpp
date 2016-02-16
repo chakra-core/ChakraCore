@@ -38,6 +38,7 @@ namespace Js
             case TypeIds_ES5Array:
             case TypeIds_RegEx:
             case TypeIds_NumberObject:
+            case TypeIds_SIMDObject:
             case TypeIds_Date:
             case TypeIds_BooleanObject:
             case TypeIds_Error:
@@ -405,6 +406,12 @@ namespace Js
                     return library->CreateStringFromCppLiteral(L"[object Number]");
                 }
                 break;
+            case TypeIds_SIMDObject:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"SIMD") == 0)
+                {
+                    return library->CreateStringFromCppLiteral(L"[object SIMD]");
+                }
+                break;
 
             case TypeIds_RegEx:
                 if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"RegExp") == 0)
@@ -574,6 +581,7 @@ namespace Js
         case TypeIds_UInt64Number:
         case TypeIds_Integer:
         case TypeIds_NumberObject:
+        case TypeIds_SIMDObject:
         case TypeIds_RegEx:
         case TypeIds_Array:
         case TypeIds_ES5Array:

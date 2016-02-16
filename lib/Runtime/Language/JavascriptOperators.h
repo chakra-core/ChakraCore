@@ -141,6 +141,7 @@ namespace Js
         static BOOL StrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
         static BOOL StrictEqualString(Var aLeft, Var aRight);
         static BOOL StrictEqualEmptyString(Var aLeft);
+        static BOOL StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext);
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
         static BOOL HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext * requestContext);

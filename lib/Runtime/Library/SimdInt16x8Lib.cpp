@@ -7,8 +7,6 @@
 
 namespace Js
 {
-
-    // Q: Are we allowed to call this as a constructor ?
     Var SIMDInt16x8Lib::EntryInt16x8(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -16,15 +14,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        //Assert(!(callInfo.Flags & CallFlags_New));    //comment out due to -ls -stress run
-        if (args.Info.Count == 2)
-        {
-            if (JavascriptSIMDInt16x8::Is(args[1]))
-            {
-                return args[1];
-            }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"int16x8");
-        }
+        Assert(!(callInfo.Flags & CallFlags_New));
 
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
 

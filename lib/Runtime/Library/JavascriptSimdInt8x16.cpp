@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type) : RecyclableObject(type), value(*val)
+    JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type) : JavascriptSIMDType(type), value(*val)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDInt8x16);
     }
@@ -29,68 +29,24 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDInt8x16 *>(aValue);
     }
 
+    Var JavascriptSIMDInt8x16::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
+        const Var* args, uint numArgs, CallInfo callInfo)
+    {
+        wchar_t *typeString = L"SIMD.Int8x16(";
+        return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<int8, 16>(args, numArgs, typeString,
+            simdValue.i8, &callInfo, &requestContext);
+    }
+
     RecyclableObject * JavascriptSIMDInt8x16::CloneToScriptContext(ScriptContext* requestContext)
     {
         return JavascriptSIMDInt8x16::New(&value, requestContext);
     }
 
-    BOOL JavascriptSIMDInt8x16::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    const wchar_t* JavascriptSIMDInt8x16::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
     {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
-    }
-
-    BOOL JavascriptSIMDInt8x16::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    BOOL JavascriptSIMDInt8x16::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return JavascriptSIMDInt8x16::GetProperty(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    bool JavascriptSIMDInt8x16::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
-    {
-        if (propertyId == PropertyIds::toString)
-        {
-            *value = requestContext->GetLibrary()->GetSIMDInt8x16ToStringFunction();
-            return true;
-        }
-        return false;
-    }
-
-    Var JavascriptSIMDInt8x16::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-        if (args.Info.Count == 0 || JavascriptOperators::GetTypeId(args[0]) != TypeIds_SIMDInt8x16)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDInt8x16.toString");
-        }
-
-        JavascriptSIMDInt8x16* instance = JavascriptSIMDInt8x16::FromVar(args[0]);
-        Assert(instance);
-
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
-        SIMDValue value = instance->GetValue();
-
-        JavascriptSIMDInt8x16::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
-
-        JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
-
-        return string;
+        Assert(aBuffer && *aBuffer);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Int8x16.%s", name);
+        return *aBuffer;
     }
 
     Var JavascriptSIMDInt8x16::Copy(ScriptContext* requestContext)
