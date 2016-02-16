@@ -12,10 +12,10 @@ if [ $? -ne 0 ]; then
     PATH=/bin:/usr/bin:$PATH
 fi
 
-ERRFILE=jenkins.check_eol.sh.err
+ERRFILE=check_eol.sh.err
 rm -f $ERRFILE
 
-git diff --name-only `git merge-base origin/master HEAD` HEAD | grep -v -E "(test/.*\\.js|\\.cmd|\\.baseline)" | xargs -I % ./jenkins.check_file_eol.sh %
+git diff --name-only `git merge-base origin/master HEAD` HEAD | grep -v -E "(test/.*\\.js|\\.cmd|\\.baseline)" | xargs -I % ./jenkins/check_file_eol.sh %
 
 if [ -e $ERRFILE ]; then # if error file exists then there were errors
     >&2 echo "--------------" # leading >&2 means echo to stderr

@@ -24,7 +24,7 @@ if "%2"=="" (
 :main
 
     set JENKINS_BUILD=True
-    call test\jenkins.testone.cmd %*
+    call %~dp0..\test\jenkins.testone.cmd %*
 
     goto :end
 

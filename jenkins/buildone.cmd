@@ -32,7 +32,7 @@ if "%2"=="" (
 :main
 
     set JENKINS_BUILD=True
-    call test\jenkins.buildone.cmd %*
+    call %~dp0..\test\jenkins.buildone.cmd %*
 
     goto :end
 
