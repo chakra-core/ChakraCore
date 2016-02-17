@@ -8,7 +8,7 @@
 #include "JsrtDebuggerObject.h"
 #include "JsrtDebugEventObject.h"
 
-class JsrtDebug : public Js::HaltCallback, public Js::DebuggerOptionsCallback
+class JsrtDebug : public Js::HaltCallback, public Js::DebuggerOptionsCallback, public HostDebugContext
 {
 public:
     JsrtDebug(ThreadContext* threadContext);
@@ -60,7 +60,6 @@ private:
     uint callBackDepth;
     DebugDocumentManager* debugDocumentManager;
     JsrtDebugStackFrames* stackFrames;
-
     JsDiagBreakOnExceptionType breakOnExceptionType;
 
     // Js::HaltCallback overrides
@@ -73,4 +72,12 @@ private:
     // Js::DebuggerOptionsCallback overrides
     virtual bool IsExceptionReportingEnabled();
     virtual bool IsFirstChanceExceptionEnabled();
+
+    // HostDebugContext overrides
+    virtual void Delete() {}
+    DWORD_PTR GetHostSourceContext(Js::Utf8SourceInfo * sourceInfo) { return Js::Constants::NoHostSourceContext; }
+    HRESULT SetThreadDescription(__in LPCWSTR url) { return S_OK; }
+    HRESULT DbgRegisterFunction(Js::ScriptContext * scriptContext, Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title);
+    void ReParentToCaller(Js::Utf8SourceInfo* sourceInfo) {}
 };
+

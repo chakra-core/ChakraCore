@@ -472,11 +472,20 @@ STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ J
 
         JsrtContext * context = JsrtContext::New(runtime);
 
-        if (runtime->GetDebugObject() != nullptr)
+        JsrtDebug* debugObject = runtime->GetDebugObject();
+
+        if (debugObject != nullptr)
         {
-            context->GetScriptContext()->InitializeDebugging();
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
-            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            Js::ScriptContext* scriptContext = context->GetScriptContext();
+            scriptContext->InitializeDebugging();
+
+            Js::DebugContext* debugContext = scriptContext->GetDebugContext();
+            debugContext->SetHostDebugContext(debugObject);
+
+            Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+            probeContainer->InitializeInlineBreakEngine(debugObject);
+            probeContainer->InitializeDebuggerScriptOptionCallback(debugObject);
+
             threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
         }
 

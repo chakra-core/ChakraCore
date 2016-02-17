@@ -61,6 +61,8 @@ namespace Js
 
         ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
 
+        HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
+
     private:
         ScriptContext * scriptContext;
         HostDebugContext* hostDebugContext;
@@ -72,7 +74,6 @@ namespace Js
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);
         bool CanRegisterFunction() const;
         void RegisterFunction(Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title);
-        HostDebugContext * GetHostDebugContext() const { return hostDebugContext; }
 
         template<class TMapFunction>
         void MapUTF8SourceInfoUntil(TMapFunction map);

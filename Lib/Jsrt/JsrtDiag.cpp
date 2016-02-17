@@ -62,7 +62,9 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
         // Create the debug object to save callback function and data
         runtime->EnsureDebugObject();
 
-        runtime->GetDebugObject()->SetDebugEventCallback(debugEventCallback, callbackState);
+        JsrtDebug* debugObject = runtime->GetDebugObject();
+
+        debugObject->SetDebugEventCallback(debugEventCallback, callbackState);
 
         if (threadContext->GetDebugManager() != nullptr)
         {
@@ -75,13 +77,22 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
             {
                 Assert(!scriptContext->IsInDebugOrSourceRundownMode());
 
+                Js::DebugContext* debugContext = scriptContext->GetDebugContext();
+
+                if (debugContext->GetHostDebugContext() == nullptr)
+                {
+                    debugContext->SetHostDebugContext(debugObject);
+                }
+
                 if (FAILED(scriptContext->OnDebuggerAttached()))
                 {
                     AssertMsg(false, "Failed to start debugging");
                     return JsErrorFatal; // Inconsistent state, we can't continue from here?
                 }
-                scriptContext->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
-                scriptContext->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+
+                Js::ProbeContainer* probeContainer = debugContext->GetProbeContainer();
+                probeContainer->InitializeInlineBreakEngine(debugObject);
+                probeContainer->InitializeDebuggerScriptOptionCallback(debugObject);
             }
         }
 

@@ -11,6 +11,7 @@
 #include "screrror.h"   // For CompileScriptException
 
 JsrtDebug::JsrtDebug(ThreadContext* threadContext) :
+    HostDebugContext(nullptr),
     threadContext(threadContext),
     debugEventCallback(nullptr),
     callbackState(nullptr),
@@ -120,6 +121,27 @@ bool JsrtDebug::IsExceptionReportingEnabled()
 bool JsrtDebug::IsFirstChanceExceptionEnabled()
 {
     return this->breakOnExceptionType == JsDiagBreakOnExceptionTypeAll;
+}
+
+HRESULT JsrtDebug::DbgRegisterFunction(Js::ScriptContext * scriptContext, Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
+{
+    Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
+
+    Assert(!utf8SourceInfo->HasDebugDocument());
+
+    if (!utf8SourceInfo->GetIsLibraryCode())
+    {
+        DebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
+        Assert(debugDocumentManager != nullptr);
+
+        Js::DebugDocument* debugDocument = HeapNewNoThrow(Js::DebugDocument, utf8SourceInfo, functionBody);
+        if (debugDocument != nullptr)
+        {
+            utf8SourceInfo->SetDebugDocument(debugDocument);
+        }
+    }
+
+    return S_OK;
 }
 
 void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
@@ -294,21 +316,43 @@ bool JsrtDebug::EnableAsyncBreak(Js::ScriptContext* scriptContext)
 
 void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicObject * eventDataObject, Js::ScriptContext* scriptContext)
 {
+    class AutoClear
+    {
+    public:
+        AutoClear(JsrtDebug* jsrtDebug)
+        {
+            this->jsrtDebug = jsrtDebug;
+            jsrtDebug->callBackDepth++;
+        }
+
+        ~AutoClear()
+        {
+            jsrtDebug->callBackDepth--;
+
+            if (jsrtDebug->callBackDepth == 0)
+            {
+                if (jsrtDebug->debuggerObjectsManager != nullptr)
+                {
+                    jsrtDebug->GetDebuggerObjectsManager()->ClearAll();
+                }
+
+                if (jsrtDebug->stackFrames != nullptr)
+                {
+                    Adelete(jsrtDebug->GetDebugObjectArena(), jsrtDebug->stackFrames);
+                    jsrtDebug->stackFrames = nullptr;
+                }
+            }
+
+            this->jsrtDebug = nullptr;
+        }
+    private:
+        JsrtDebug* jsrtDebug;
+    };
+
     auto funcPtr = [&]()
     {
-        this->callBackDepth++;
+        AutoClear autoClear(this);
         this->debugEventCallback(debugEvent, eventDataObject, this->callbackState);
-        this->callBackDepth--;
-
-        if (this->callBackDepth == 0)
-        {
-            this->GetDebuggerObjectsManager()->ClearAll();
-            if (this->stackFrames != nullptr)
-            {
-                Adelete(this->GetDebugObjectArena(), this->stackFrames);
-                this->stackFrames = nullptr;
-            }
-        }
     };
 
     if (scriptContext->GetThreadContext()->IsScriptActive())
@@ -610,3 +654,4 @@ JsDiagDebugEvent JsrtDebug::GetDebugEventFromStopType(Js::StopType stopType)
 
     return JsDiagDebugEventBreak;
 }
+
