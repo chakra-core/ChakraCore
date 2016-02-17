@@ -478,6 +478,9 @@ namespace TTD
         //True if the body has expression semantics
         const bool m_isExpression;
 
+        //True if this is loaded as library code
+        const bool m_isLibraryCodeLoad;
+
         //The actual source code
         const TTString m_sourceCode;
 
@@ -490,7 +493,7 @@ namespace TTD
         const TTString m_srcDir;
 
     public:
-        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile);
+        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, bool isLibraryCodeLoad, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;

@@ -1285,8 +1285,8 @@ namespace TTD
         return alloc.SlabNew<JsRTCallbackAction>(eTime, ctxTag, isCancel, isRepeating, currentCallbackId, callbackFunctionTag, createdCallbackId);
     }
 
-    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_isExpression(isExpression), m_sourceCode(sourceCode), m_sourceUri(sourceUri), m_documentID(documentId), m_srcDir(srcDir), m_sourceFile(sourceFile)
+    JsRTCodeParseAction::JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, bool isLibraryCodeLoad, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CodeParse), m_isExpression(isExpression), m_isLibraryCodeLoad(isLibraryCodeLoad), m_sourceCode(sourceCode), m_sourceUri(sourceUri), m_documentID(documentId), m_srcDir(srcDir), m_sourceFile(sourceFile)
     {
         ;
     }
@@ -1340,7 +1340,7 @@ namespace TTD
         CompileScriptException se;
         BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(execContext)
         {
-            function = execContext->LoadScript(this->m_sourceCode.Contents, &si, &se, this->m_isExpression /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+            function = execContext->LoadScript(this->m_sourceCode.Contents, &si, &se, this->m_isExpression /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode, this->m_isLibraryCodeLoad /*isLibraryCode*/, false /*AsmJS is not supported*/);
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(execContext);
         AssertMsg(function != nullptr, "Something went wrong");
@@ -1355,6 +1355,7 @@ namespace TTD
         this->JsRTBaseEmit(writer);
 
         writer->WriteBool(NSTokens::Key::isExpression, this->m_isExpression, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::isLibraryCode, this->m_isLibraryCodeLoad, NSTokens::Separator::CommaSeparator);
         writer->WriteUInt64(NSTokens::Key::documentId, (uint64)this->m_documentID, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::logDir, this->m_srcDir, NSTokens::Separator::CommaSeparator);
         writer->WriteString(NSTokens::Key::src, this->m_sourceFile, NSTokens::Separator::CommaSeparator);
@@ -1371,6 +1372,7 @@ namespace TTD
     JsRTCodeParseAction* JsRTCodeParseAction::CompleteParse(ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
         bool isExpression = reader->ReadBool(NSTokens::Key::isExpression, true);
+        bool isLibraryCode = reader->ReadBool(NSTokens::Key::isLibraryCode, true);
         DWORD_PTR documentId = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
 
         TTString srcDir;
@@ -1389,7 +1391,7 @@ namespace TTD
         LPCWSTR docId = reader->FormatNumber(documentId);
         JsSupport::ReadCodeFromFile(threadContext->TTDStreamFunctions, srcDir.Contents, docId, srcUri.Contents, sourceCode.Contents, sourceCode.Length);
 
-        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, sourceCode, documentId, srcUri, srcDir, sourceFile);
+        return alloc.SlabNew<JsRTCodeParseAction>(eTime, ctxTag, isExpression, isLibraryCode, sourceCode, documentId, srcUri, srcDir, sourceFile);
     }
 
     JsRTCallFunctionBeginAction::JsRTCallFunctionBeginAction(int64 eTime, TTD_LOG_TAG ctxTag, int32 callbackDepth, int64 hostCallbackId, double beginTime, TTD_LOG_TAG functionTagId, uint32 argCount, NSLogValue::ArgRetValue* argArray, Js::Var* execArgs)

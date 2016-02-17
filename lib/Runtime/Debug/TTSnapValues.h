@@ -215,7 +215,7 @@ namespace TTD
         };
 
         //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots
-        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen);
+        void ExtractTopLevelCommonBodyResolveInfo_InScriptContext(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, bool isLibraryCodeLoad, LPCWSTR source, uint32 sourceLen);
         void UnloadTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelCommonBodyResolveInfo_InShapshot(TopLevelCommonBodyResolveInfo* fbInfoDest, const TopLevelCommonBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);
@@ -227,9 +227,12 @@ namespace TTD
         {
             //The base information for the top-level resolve info
             TopLevelCommonBodyResolveInfo TopLevelBase;
+
+            //True if this code was loaded as library code (not shown in the debugger)
+            bool IsLibraryCodeLoad;
         };
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen);
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, bool isLibraryCodeLoad, LPCWSTR source, uint32 sourceLen);
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);

@@ -260,13 +260,6 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCWSTR fileName, size_t f
 
         if (isSourceModule)
         {
-#if ENABLE_TTD
-            //
-            //TODO: Not Implemented in TTD
-            //
-            AssertMsg(false, "Modules not implemented in TTD yet!!!");
-#endif
-
             errorCode = ChakraRTInterface::JsRunModule(fileContent, GetNextSourceContext(), fullPath, &returnValue);
         }
         else
@@ -299,13 +292,6 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCWSTR fileName, size_t f
 
         if (isSourceModule)
         {
-#if ENABLE_TTD
-            //
-            //TODO: Not Implemented in TTD
-            //
-            AssertMsg(false, "Modules not implemented in TTD yet!!!");
-#endif
-
             errorCode = ChakraRTInterface::JsRunModule(fileContent, GetNextSourceContext(), fullPath, &returnValue);
         }
         else

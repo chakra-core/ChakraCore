@@ -1070,7 +1070,11 @@ FLAGR (Boolean, NoNative              , "Disable native codegen", false)
 #endif
 
 #if ENABLE_TTD
+#if ENABLE_TTD_FORCE_RECORD_NODE
+FLAGR(Number, TTSnapInterval, "The approximate interval between snapshots", 10)
+#else
 FLAGR(Number,  TTSnapInterval          , "The approximate interval between snapshots", 2000)
+#endif
 FLAGR(Number,  TTDStartEvent           , "Start event time in time-travel debug mode", 1)
 
 FLAGR(Boolean, TTDFreeRun              , "If we just want to re-run the execution (for testing)", false)

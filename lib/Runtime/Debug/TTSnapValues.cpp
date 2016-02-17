@@ -834,9 +834,11 @@ namespace TTD
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen)
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, bool isLibraryCodeLoad, LPCWSTR source, uint32 sourceLen)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source, sourceLen);
+
+            fbInfo->IsLibraryCodeLoad = isLibraryCodeLoad;
         }
 
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo)
@@ -847,6 +849,8 @@ namespace TTD
         void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
+
+            fbInfoDest->IsLibraryCodeLoad = fbInfoSrc->IsLibraryCodeLoad;
         }
 
         Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
@@ -873,7 +877,7 @@ namespace TTD
             Js::JavascriptFunction* scriptFunction = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode.Contents, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode.Contents, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->IsLibraryCodeLoad, false /*AsmJS NOT SUPPORTED*/);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(scriptFunction != nullptr, "Something went wrong");
@@ -885,12 +889,16 @@ namespace TTD
         {
             NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, false, sourceDir, streamFunctions, writer, separator);
 
+            writer->WriteBool(NSTokens::Key::isLibraryCode, fbInfo->IsLibraryCodeLoad, NSTokens::Separator::CommaSeparator);
+
             writer->WriteRecordEnd();
         }
 
         void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeperator, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileReader* reader, SlabAllocator& alloc)
         {
             NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
+
+            fbInfo->IsLibraryCodeLoad = reader->ReadBool(NSTokens::Key::isLibraryCode, true);
 
             reader->ReadRecordEnd();
         }

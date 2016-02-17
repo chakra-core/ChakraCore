@@ -376,7 +376,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         //May want to look into more sophisticated means for making this decision later
         if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+            if(threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
             {
                 threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                 threadContext->TTDLog->DoSnapshotExtract(false);
@@ -3074,7 +3074,7 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
-JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsValueRef *result)
+JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes, bool isModule, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
@@ -3103,8 +3103,10 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             /* grfsi               */ 0
         };
 
+        bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
+
         Js::Utf8SourceInfo* utf8SourceInfo;
-        scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode);
+        scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode, isLibraryCode, false /*disableAsmJs*/, isModule);
 
 #if ENABLE_TTD
         TTD::RuntimeThreadInfo::JsRTTagObject(scriptContext->GetThreadContext(), scriptFunction);
@@ -3132,7 +3134,14 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, result != nullptr, scriptFunction, script, sourceUrl);
+            bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
+
+            //
+            //TODO: Module support not implemented yet
+            //
+            AssertMsg(!isModule, "Modules not implemented in TTD yet!!!");
+
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, result != nullptr, isLibraryCode, scriptFunction, script, sourceUrl);
         }
 #endif
 
@@ -3196,7 +3205,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //May want to look into more sophisticated means for making this decision later
             if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
             {
-                if(Js::Configuration::Global.flags.TTSnapInterval != -1 && threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+                if(threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                     threadContext->TTDLog->DoSnapshotExtract(false);
@@ -3217,12 +3226,22 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
 STDAPI_(JsErrorCode) JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(-1, script, sourceContext, sourceUrl, true, result);
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, true, JsParseScriptAttributeNone, false /*isModule*/, result);
+}
+
+STDAPI_(JsErrorCode) JsParseScriptWithFlags(_In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ JsParseScriptAttributes parseAttributes, _Out_ JsValueRef *result)
+{
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, true, parseAttributes, false /*isModule*/, result);
 }
 
 STDAPI_(JsErrorCode) JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
 {
-    return RunScriptCore(-1, script, sourceContext, sourceUrl, false, result);
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, false /*isModule*/, result);
+}
+
+STDAPI_(JsErrorCode) JsExperimentalApiRunModule(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+{
+    return RunScriptCore(-1, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
 }
 
 JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, int functionTableSize, unsigned char *buffer, unsigned long *bufferSize)
@@ -3265,7 +3284,8 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
 #endif
 
         Js::Utf8SourceInfo* sourceInfo;
-        function = scriptContext->LoadScript(script, &si, &se, !isSerializeByteCodeForLibrary, true, isSerializeByteCodeForLibrary, &sourceInfo, Js::Constants::GlobalCode);
+        function = scriptContext->LoadScript(script, &si, &se, !isSerializeByteCodeForLibrary /*isExpression*/, true /*disableDeferredParse*/, isSerializeByteCodeForLibrary, &sourceInfo, Js::Constants::GlobalCode, false /*isLibraryCode*/, false /*disableAsmJs*/);
+
         return JsNoError;
     });
 
@@ -3477,7 +3497,7 @@ STDAPI_(JsErrorCode) JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsCo
 
 STDAPI_(JsErrorCode) JsTTDRunScript(_In_ INT64 hostCallbackId, _In_z_ const wchar_t *script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef *result)
 {
-    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, result);
+    return RunScriptCore(hostCallbackId, script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, false /*isModule*/, result);
 }
 
 STDAPI_(JsErrorCode) JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRef function, _In_reads_(argumentCount) JsValueRef *arguments, _In_ unsigned short argumentCount, _Out_opt_ JsValueRef *result)
