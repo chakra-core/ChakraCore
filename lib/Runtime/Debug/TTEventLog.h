@@ -510,7 +510,7 @@ namespace TTD
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 createdCallbackId);
 
         //Record code parse
-        void RecordJsRTCodeParse(Js::ScriptContext* ctx, bool isExpression, bool isLibraryLoad, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
+        void RecordJsRTCodeParse(Js::ScriptContext* ctx, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri);
 
         //Record callback of an existing function
         JsRTCallFunctionBeginAction* RecordJsRTCallFunctionBegin(Js::ScriptContext* ctx, int32 rootDepth, int64 hostCallbackId, double beginTime, Js::JavascriptFunction* func, uint32 argCount, Js::Var* args);

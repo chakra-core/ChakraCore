@@ -429,6 +429,7 @@ private:
     IR::Opnd*       GenerateArgOutForInlineeStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);
     IR::Opnd*       GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);
 
+    void            GenerateLoadStackArgumentByIndex(IR::Opnd *dst, IR::RegOpnd *indexOpnd, IR::Instr *instr, int32 offset, Func *func);
     bool            GenerateFastStackArgumentsLdElemI(IR::Instr* ldElem);
     IR::IndirOpnd*  GetArgsIndirOpndForInlinee(IR::Instr* ldElem, IR::Opnd* valueOpnd);
     IR::IndirOpnd*  GetArgsIndirOpndForTopFunction(IR::Instr* ldElem, IR::Opnd* valueOpnd);

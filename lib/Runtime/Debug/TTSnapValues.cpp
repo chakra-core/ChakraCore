@@ -834,11 +834,11 @@ namespace TTD
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, bool isLibraryCodeLoad, LPCWSTR source, uint32 sourceLen)
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, LoadScriptFlag loadFlag)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InScriptContext(&fbInfo->TopLevelBase, fb, moduleId, documentID, source, sourceLen);
 
-            fbInfo->IsLibraryCodeLoad = isLibraryCodeLoad;
+            fbInfo->LoadFlag = loadFlag;
         }
 
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo)
@@ -850,23 +850,25 @@ namespace TTD
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo_InShapshot(&fbInfoDest->TopLevelBase, &fbInfoSrc->TopLevelBase, alloc);
 
-            fbInfoDest->IsLibraryCodeLoad = fbInfoSrc->IsLibraryCodeLoad;
+            fbInfoDest->LoadFlag = fbInfoSrc->LoadFlag;
         }
 
         Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
         {
+            LPCWSTR script = fbInfo->TopLevelBase.SourceCode.Contents;
+            uint32 scriptLength = fbInfo->TopLevelBase.SourceCode.Length;
             DWORD_PTR sourceContext = fbInfo->TopLevelBase.DocumentID;
+
             AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
 
             SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri.Contents, fbInfo->TopLevelBase.SourceUri.Length, nullptr);
-
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
                 /* dlnHost             */ 0,
                 /* ulColumnHost        */ 0,
                 /* lnMinHost           */ 0,
                 /* ichMinHost          */ 0,
-                /* ichLimHost          */ static_cast<ULONG>(fbInfo->TopLevelBase.SourceCode.Length), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
+                /* ichLimHost          */ static_cast<ULONG>(scriptLength), // OK to truncate since this is used to limit sourceText in debugDocument/compilation errors.
                 /* ulCharOffset        */ 0,
                 /* mod                 */ fbInfo->TopLevelBase.ModuleId,
                 /* grfsi               */ 0
@@ -877,19 +879,31 @@ namespace TTD
             Js::JavascriptFunction* scriptFunction = nullptr;
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
             {
-                scriptFunction = ctx->LoadScript(fbInfo->TopLevelBase.SourceCode.Contents, &si, &se, false /*isExpression*/, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->IsLibraryCodeLoad, false /*AsmJS NOT SUPPORTED*/);
+                scriptFunction = ctx->LoadScript((const byte*)script, scriptLength * sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
             AssertMsg(scriptFunction != nullptr, "Something went wrong");
 
-            return JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+            Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+
+            ////
+            //We don't do this automatically in the eval helper so do it here
+            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
+            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, fbInfo->TopLevelBase.ModuleId, fbInfo->TopLevelBase.DocumentID, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length, fbInfo->LoadFlag);
+            ctx->m_ttdTopLevelScriptLoad.Add(tbfi);
+
+            //walk global body to (1) add functions to pin set (2) build parent map
+            ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            ////
+
+            return globalBody;
         }
 
         void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, LPCWSTR sourceDir, IOStreamFunctions& streamFunctions, FileWriter* writer, NSTokens::Separator separator)
         {
             NSSnapValues::EmitTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, false, sourceDir, streamFunctions, writer, separator);
 
-            writer->WriteBool(NSTokens::Key::isLibraryCode, fbInfo->IsLibraryCodeLoad, NSTokens::Separator::CommaSeparator);
+            writer->WriteTag<LoadScriptFlag>(NSTokens::Key::loadFlag, fbInfo->LoadFlag, NSTokens::Separator::CommaSeparator);
 
             writer->WriteRecordEnd();
         }
@@ -898,7 +912,7 @@ namespace TTD
         {
             NSSnapValues::ParseTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, readSeperator, false, sourceDir, streamFunctions, reader, alloc);
 
-            fbInfo->IsLibraryCodeLoad = reader->ReadBool(NSTokens::Key::isLibraryCode, true);
+            fbInfo->LoadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
 
             reader->ReadRecordEnd();
         }
@@ -942,7 +956,7 @@ namespace TTD
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 
             ////
-            //We don't do this automatically ing the eval helper so do it here
+            //We don't do this automatically in the eval helper so do it here
             TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo);
             TTD::NSSnapValues::ExtractTopLevelNewFunctionBodyInfo_InScriptContext(tbfi, fb, moduleID, fbInfo->TopLevelBase.SourceCode.Contents, fbInfo->TopLevelBase.SourceCode.Length);
             ctx->m_ttdTopLevelNewFunction.Add(tbfi);

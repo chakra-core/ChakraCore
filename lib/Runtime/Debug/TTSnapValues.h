@@ -228,11 +228,11 @@ namespace TTD
             //The base information for the top-level resolve info
             TopLevelCommonBodyResolveInfo TopLevelBase;
 
-            //True if this code was loaded as library code (not shown in the debugger)
-            bool IsLibraryCodeLoad;
+            //The script flag this was loaded with
+            LoadScriptFlag LoadFlag;
         };
 
-        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, bool isLibraryCodeLoad, LPCWSTR source, uint32 sourceLen);
+        void ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, LPCWSTR source, uint32 sourceLen, LoadScriptFlag loadFlag);
         void UnloadTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo);
 
         void ExtractTopLevelLoadedFunctionBodyInfo_InShapshot(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoDest, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfoSrc, SlabAllocator& alloc);

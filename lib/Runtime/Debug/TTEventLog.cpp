@@ -2062,7 +2062,7 @@ namespace TTD
         this->InsertEventAtHead(createAction);
     }
 
-    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, bool isExpression, bool isLibraryLoad, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
+    void EventLog::RecordJsRTCodeParse(Js::ScriptContext* ctx, LoadScriptFlag loadFlag, Js::JavascriptFunction* func, LPCWSTR srcCode, LPCWSTR sourceUri)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
@@ -2083,7 +2083,7 @@ namespace TTD
         TTString ssUri;
         this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, ssUri);
 
-        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, isExpression, isLibraryLoad, sourceCode, optDocumentID, optSrcUri, dir, ssUri);
+        JsRTCodeParseAction* parseEvent = this->m_eventSlabAllocator.SlabNew<JsRTCodeParseAction>(etime, ctxTag, sourceCode, loadFlag, optDocumentID, optSrcUri, dir, ssUri);
 
         this->InsertEventAtHead(parseEvent);
     }

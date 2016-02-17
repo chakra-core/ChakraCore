@@ -475,12 +475,6 @@ namespace TTD
     class JsRTCodeParseAction : public JsRTActionLogEntry
     {
     private:
-        //True if the body has expression semantics
-        const bool m_isExpression;
-
-        //True if this is loaded as library code
-        const bool m_isLibraryCodeLoad;
-
         //The actual source code
         const TTString m_sourceCode;
 
@@ -488,12 +482,15 @@ namespace TTD
         const TTString m_sourceUri;
         const DWORD_PTR m_documentID;
 
+        //The flags for loading this script
+        const LoadScriptFlag m_loadFlag;
+
         //The directory to write the source files out to (if needed)
         const TTString m_sourceFile;
         const TTString m_srcDir;
 
     public:
-        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isExpression, bool isLibraryCodeLoad, const TTString& sourceCode, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile);
+        JsRTCodeParseAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& sourceCode, LoadScriptFlag loadFlag, DWORD_PTR documentId, const TTString& sourceUri, const TTString& srcDir, const TTString& sourceFile);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;

@@ -168,6 +168,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
+    <ClCompile Include="SourceTextModuleRecord.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="amd64\stackframe.h">
@@ -213,8 +214,9 @@
     <ClInclude Include="ProfilingHelpers.h" />
     <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
+    <ClInclude Include="ModuleRecordBase.h" />
+    <ClInclude Include="SourceTextModuleRecord.h" />
     <ClInclude Include="StackTraceArguments.h" />
-
     <ClInclude Include="ValueType.h" />
     <ClInclude Include="Arguments.h" />
     <ClInclude Include="InterpreterStackFrame.h" />
@@ -275,7 +277,7 @@
     <None Include="JavascriptOperators.inl" />
     <None Include="TaggedInt.inl" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />

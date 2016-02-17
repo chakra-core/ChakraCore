@@ -120,17 +120,17 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
 
         const JsRuntimeAttributes JsRuntimeAttributesAll =
             (JsRuntimeAttributes)(
-                JsRuntimeAttributeDisableBackgroundWork |
-                JsRuntimeAttributeAllowScriptInterrupt |
-                JsRuntimeAttributeEnableIdleProcessing |
-                JsRuntimeAttributeDisableEval |
-                JsRuntimeAttributeDisableNativeCodeGeneration |
-                JsRuntimeAttributeEnableExperimentalFeatures |
-                JsRuntimeAttributeDispatchSetExceptionsToDebugger
+            JsRuntimeAttributeDisableBackgroundWork |
+            JsRuntimeAttributeAllowScriptInterrupt |
+            JsRuntimeAttributeEnableIdleProcessing |
+            JsRuntimeAttributeDisableEval |
+            JsRuntimeAttributeDisableNativeCodeGeneration |
+            JsRuntimeAttributeEnableExperimentalFeatures |
+            JsRuntimeAttributeDispatchSetExceptionsToDebugger
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-                | JsRuntimeAttributeSerializeLibraryByteCode
+            | JsRuntimeAttributeSerializeLibraryByteCode
 #endif
-                );
+        );
 
         Assert((attributes & ~JsRuntimeAttributesAll) == 0);
         if((attributes & ~JsRuntimeAttributesAll) != 0)
@@ -660,7 +660,7 @@ STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ v
 STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRef *newContext)
 {
     return CreateContextCore(runtimeHandle, false, newContext);
-}
+        }
 
 STDAPI_(JsErrorCode) JsGetCurrentContext(_Out_ JsContextRef *currentContext)
 {
@@ -762,38 +762,7 @@ void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptEx
     }
 #endif
 
-    Js::JavascriptError * error = Js::JavascriptError::MapParseError(scriptContext, hr);
-    const Js::PropertyRecord *record;
-
-    Js::Var value = Js::JavascriptString::NewCopySz(se->ei.bstrDescription, scriptContext);
-    Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::message, value, scriptContext);
-
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->line, scriptContext);
-        scriptContext->GetOrAddPropertyRecord(L"line", &record);
-        Js::JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
-    }
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->ichMin - se->ichMinLine, scriptContext);
-        scriptContext->GetOrAddPropertyRecord(L"column", &record);
-        Js::JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
-    }
-
-    if (se->hasLineNumberInfo)
-    {
-        value = Js::JavascriptNumber::New(se->ichLim - se->ichMin, scriptContext);
-        Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::length, value, scriptContext);
-    }
-
-    if (se->bstrLine != nullptr)
-    {
-        value = Js::JavascriptString::NewCopySz(se->bstrLine, scriptContext);
-        Js::JavascriptOperators::OP_SetProperty(error, Js::PropertyIds::source, value, scriptContext);
-    }
+    Js::JavascriptError* error = Js::JavascriptError::CreateFromCompileScriptException(scriptContext, se);
 
     Js::JavascriptExceptionObject * exceptionObject = RecyclerNew(scriptContext->GetRecycler(),
         Js::JavascriptExceptionObject, error, scriptContext, nullptr);
@@ -2348,7 +2317,7 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
 STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     return CallFunctionCore(-1, function, args, cargs, result);
-}
+        }
 
 STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_ JsValueRef *result)
 {
@@ -3074,10 +3043,11 @@ STDAPI_(JsErrorCode) JsSetPromiseContinuationCallback(_In_ JsPromiseContinuation
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
-JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes, bool isModule, JsValueRef *result)
+JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceContext sourceContext, const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes, bool isSourceModule, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
     CompileScriptException se;
+    LoadScriptFlag loadScriptFlag = LoadScriptFlag_None;
 
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
         [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
@@ -3103,12 +3073,44 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             /* grfsi               */ 0
         };
 
+        Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
+        if (result != nullptr)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
+        }
         bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
+        if (isLibraryCode)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_LibraryCode);
+        }
+        if (isSourceModule)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Module);
+        }
 
-        Js::Utf8SourceInfo* utf8SourceInfo;
-        scriptFunction = scriptContext->LoadScript(script, &si, &se, result != nullptr, false /*disableDeferredParse*/, false /*isByteCodeBufferForLibrary*/, &utf8SourceInfo, Js::Constants::GlobalCode, isLibraryCode, false /*disableAsmJs*/, isModule);
+        scriptFunction = scriptContext->LoadScript((const byte*)script, wcslen(script)* sizeof(wchar_t), &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, loadScriptFlag);
 
 #if ENABLE_TTD
+        //
+        //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
+        //
+        if(scriptContext->GetThreadContext()->TTDLog != nullptr)
+        {
+            //Make sure we have the body and text information available
+            Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
+
+            TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
+            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, kmodGlobal, sourceContext, script, (uint32)wcslen(script), loadScriptFlag);
+            scriptContext->m_ttdTopLevelScriptLoad.Add(tbfi);
+
+            //walk global body to (1) add functions to pin set (2) build parent map
+            BEGIN_JS_RUNTIME_CALL(scriptContext);
+            {
+                scriptContext->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+            }
+            END_JS_RUNTIME_CALL(scriptContext);
+        }
+
         TTD::RuntimeThreadInfo::JsRTTagObject(scriptContext->GetThreadContext(), scriptFunction);
 #endif
 
@@ -3134,14 +3136,12 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
-
             //
             //TODO: Module support not implemented yet
             //
-            AssertMsg(!isModule, "Modules not implemented in TTD yet!!!");
+            AssertMsg(!isSourceModule, "Modules not implemented in TTD yet!!!");
 
-            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, result != nullptr, isLibraryCode, scriptFunction, script, sourceUrl);
+            threadContext->TTDLog->RecordJsRTCodeParse(scriptContext, loadScriptFlag, scriptFunction, script, sourceUrl);
         }
 #endif
 
@@ -3187,7 +3187,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             }
             else
             {
-                Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
+            Js::Var varResult = scriptFunction->CallRootFunction(args, scriptContext, true);
                 if(result != nullptr)
                 {
                     *result = varResult;
@@ -3283,9 +3283,17 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
         isSerializeByteCodeForLibrary = JsrtContext::GetCurrent()->GetRuntime()->IsSerializeByteCodeForLibrary();
 #endif
 
-        Js::Utf8SourceInfo* sourceInfo;
-        function = scriptContext->LoadScript(script, &si, &se, !isSerializeByteCodeForLibrary /*isExpression*/, true /*disableDeferredParse*/, isSerializeByteCodeForLibrary, &sourceInfo, Js::Constants::GlobalCode, false /*isLibraryCode*/, false /*disableAsmJs*/);
-
+        Js::Utf8SourceInfo* sourceInfo = nullptr;
+        LoadScriptFlag loadScriptFlag = LoadScriptFlag_disableDeferredParse;
+        if (isSerializeByteCodeForLibrary)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_isByteCodeBufferForLibrary);
+        }
+        else
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
+        }
+        function = scriptContext->LoadScript((const byte*)script, wcslen(script)* sizeof(wchar_t), &si, &se, &sourceInfo, Js::Constants::GlobalCode, loadScriptFlag);
         return JsNoError;
     });
 
