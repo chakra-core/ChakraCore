@@ -7259,6 +7259,10 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
     {
         GetCurrentFunctionNode()->sxFnc.SetStrictMode();
     }
+    if (pnodeFncGenerator->sxFnc.UsesArguments())
+    {
+        GetCurrentFunctionNode()->sxFnc.SetUsesArguments();
+    }
     lastNodeRef = NULL;
 }
 
@@ -7277,6 +7281,7 @@ ParseNodePtr Parser::CreateAsyncSpawnGenerator()
     pnodeFncGenerator->sxFnc.SetStrictMode(IsStrictMode());
 
     pnodeFncGenerator->sxFnc.SetIsGenerator();
+    pnodeFncGenerator->sxFnc.SetIsLambda();
     pnodeFncGenerator->sxFnc.scope = nullptr;
 
     AppendFunctionToScopeList(false, pnodeFncGenerator);
