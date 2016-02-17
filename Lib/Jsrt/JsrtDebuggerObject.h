@@ -83,7 +83,7 @@ public:
                         ::_ui64tow_s(debuggerObject->GetHandle(), propertyName, sizeof(propertyName) / sizeof(wchar_t), 10);
 
                         const Js::PropertyRecord* propertyRecord;
-                        scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
+                        scriptContext->GetOrAddPropertyRecord(propertyName, (int)wcslen(propertyName), &propertyRecord);
 
                         Assert(propertyRecord != nullptr);
 

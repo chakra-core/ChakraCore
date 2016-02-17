@@ -67,7 +67,7 @@ void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8So
 {
     utf8SourceInfo->EnsureLineOffsetCache();
 
-    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::lineCount, (UINT)utf8SourceInfo->GetLineCount(), utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
@@ -88,7 +88,7 @@ void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const wc
 {
     const Js::PropertyRecord* propertyRecord;
 
-    scriptContext->GetOrAddPropertyRecord(propertyName, wcslen(propertyName), &propertyRecord);
+    scriptContext->GetOrAddPropertyRecord(propertyName, (int)wcslen(propertyName), &propertyRecord);
 
     Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, value);
 
@@ -310,7 +310,7 @@ void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPr
 
 void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, const wchar_t * value, Js::ScriptContext * scriptContext)
 {
-    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptString::NewCopyBuffer(value, wcslen(value), scriptContext), scriptContext);
+    JsrtDebugUtils::AddVarPropertyToObject(object, propertyId, Js::JavascriptString::NewCopyBuffer(value, (charcount_t)wcslen(value), scriptContext), scriptContext);
 }
 
 void JsrtDebugUtils::AddPropertyToObject(Js::DynamicObject * object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext * scriptContext)

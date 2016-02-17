@@ -209,7 +209,7 @@ namespace Js
         {
             grfscr |= fscrIsLibraryCode;
         }
-        return scriptContext->GetGlobalObject()->EvalHelper(scriptContext, pszSrc, wcslen(pszSrc), kmodGlobal, grfscr, Js::Constants::EvalCode, FALSE, FALSE, isStrictMode);
+        return scriptContext->GetGlobalObject()->EvalHelper(scriptContext, pszSrc, (int)wcslen(pszSrc), kmodGlobal, grfscr, Js::Constants::EvalCode, FALSE, FALSE, isStrictMode);
     }
 
     void DiagStackFrame::EvaluateImmediate(LPCOLESTR pszSrc, BOOL isLibraryCode, Js::ResolvedObject * resolvedObject)
