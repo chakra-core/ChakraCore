@@ -712,7 +712,7 @@ bool ByteCodeGenerator::IsFalse(ParseNode* node)
 
 bool ByteCodeGenerator::UseParserBindings() const
 {
-    return IsInNonDebugMode() && !PHASE_OFF1(Js::ParserBindPhase);
+    return !PHASE_OFF1(Js::ParserBindPhase);
 }
 
 bool ByteCodeGenerator::IsES6DestructuringEnabled() const
