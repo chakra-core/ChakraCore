@@ -46,13 +46,19 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     // We page in the card table sections for the current threads stack reservation
     // So any writes to stack allocated vars can also have the write barrier set
 
+    // xplat-dodo: Replace this on Windows too with GetCurrentThreadStackBounds
+#ifdef _WIN32
     NT_TIB* teb = (NT_TIB*) ::NtCurrentTeb();
 
     char* stackBase = (char*) teb->StackBase;
     char* stackEnd  = (char*) teb->StackLimit;
-
+#else
+    char* stackBase = nullptr;
+    char* stackEnd = nullptr;
+    ::GetCurrentThreadStackBounds(&stackBase, &stackEnd);
+#endif
+    
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
-
     // stackEnd is the lower boundary
     return OnSegmentAlloc(stackEnd, numPages);
 }
@@ -224,11 +230,6 @@ X64WriteBarrierCardTableManager::Initialize()
         _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize, AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
-
-        if (cardTableSpace == nullptr)
-        {
-            return false;
-        }
 
         _cardTable = (BYTE*) cardTableSpace;
     }

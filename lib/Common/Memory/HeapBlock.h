@@ -285,13 +285,18 @@ protected:
     PageHeapMode pageHeapMode;
     DWORD guardPageOldProtectFlags;
     char* guardPageAddress;
+
+#ifdef STACK_BACK_TRACE
     StackBackTrace* pageHeapAllocStack;
     StackBackTrace* pageHeapFreeStack;
-
+#endif
+    
 public:
     __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
+#ifdef STACK_BACK_TRACE
     void CapturePageHeapAllocStack();
     void CapturePageHeapFreeStack();
+#endif
 #endif
 
 public:
@@ -303,7 +308,9 @@ public:
         heapBlockType(heapBlockType),
         needOOMRescan(false)
 #ifdef RECYCLER_PAGE_HEAP
+#ifdef STACK_BACK_TRACE
         , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
+#endif
 #endif
     {
         Assert(GetHeapBlockType() <= HeapBlock::HeapBlockType::BlockTypeCount);
@@ -719,6 +726,14 @@ private:
     void ** GetTrackerDataArray();
 #endif
 };
+
+// Forward declare specializations
+template<>
+SmallHeapBlockT<MediumAllocationBlockAttributes>::SmallHeapBlockT(HeapBucket * bucket, ushort objectSize, ushort objectCount, HeapBlockType heapBlockType);
+
+template <>
+uint
+SmallHeapBlockT<MediumAllocationBlockAttributes>::GetObjectBitDeltaForBucketIndex(uint bucketIndex);
 
 // Declare the class templates
 typedef SmallHeapBlockT<SmallAllocationBlockAttributes>  SmallHeapBlock;

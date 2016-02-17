@@ -445,7 +445,7 @@ Recycler::NotifyFree(T * heapBlock)
         this->isForceSweeping = true;
         heapBlock->isForceSweeping = true;
 #endif
-        heapBlock->SweepObjects<pageheap, SweepMode_InThread>(this);
+        heapBlock->template SweepObjects<pageheap, SweepMode_InThread>(this);
 #if DBG || defined(RECYCLER_STATS)
         heapBlock->isForceSweeping = false;
         this->isForceSweeping = false;

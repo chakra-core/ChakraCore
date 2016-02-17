@@ -100,8 +100,19 @@
 #define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES          // *** TODO: Won't build if disabled currently
 
 // GC features
+
+// Concurrent and Partial GC are disabled on non-Windows builds
+// xplat-todo: re-enable this in the future
+// These are disabled because these GC features depend on hardware
+// write-watch support that the Windows Memory Manager provides.
+#ifdef _WIN32
 #define ENABLE_CONCURRENT_GC 1
-#define ENABLE_PARTIAL_GC 1  
+#define ENABLE_PARTIAL_GC 1
+#else
+#define ENABLE_CONCURRENT_GC 0
+#define ENABLE_PARTIAL_GC 0
+#endif
+
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
 #define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
 #define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
@@ -462,8 +473,9 @@
 #define ENABLE_TRACE
 #endif
 
-#if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
+// xplat-todo: Capture stack backtrace on non-win32 platforms
 #ifdef _WIN32
+#if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
 #endif
 #endif

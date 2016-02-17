@@ -1,45 +1,37 @@
 add_library (Chakra.Common.Memory
+    # xplat-todo: Include platform\XDataAllocator.cpp
+    # Needed on windows, need a replacement for linux to do
+    # amd64 stack walking
     Allocator.cpp
     ArenaAllocator.cpp
+
+    # xplat-todo: This is needed for allocating jitted code memory
+    # CustomHeap.cpp
+
     CommonMemoryPch.cpp
     EtwMemoryTracking.cpp
     ForcedMemoryConstraints.cpp
     HeapAllocator.cpp
     HeapAllocatorOperators.cpp
-
-    # xplat-todo: Fix me
-    #HeapBlock.cpp
-
+    HeapBlock.cpp
     HeapBlockMap.cpp
     HeapBucket.cpp
-
-    # xplat-todo: Fix me
-    #HeapInfo.cpp
-
+    HeapInfo.cpp
     IdleDecommitPageAllocator.cpp
-
-    # xplat-todo: Fix me
-    #LargeHeapBlock.cpp
-
+    LargeHeapBlock.cpp
     LargeHeapBucket.cpp
     LeakReport.cpp
     MarkContext.cpp
     MemoryLogger.cpp
     MemoryTracking.cpp
     PageAllocator.cpp
-
-    # xplat-todo: Fix me
-    #Recycler.cpp
-
+    Recycler.cpp
     RecyclerHeuristic.cpp
     RecyclerObjectDumper.cpp
     RecyclerObjectGraphDumper.cpp
     RecyclerPageAllocator.cpp
-    RecyclerSweep.cpp
-
-    # xplat-todo: Fix me
-    #RecyclerWriteBarrierManager.cpp
-
+    RecyclerSweep.cpp    
+    RecyclerWriteBarrierManager.cpp
     SmallFinalizableHeapBlock.cpp
     SmallFinalizableHeapBucket.cpp
     SmallHeapBlockAllocator.cpp
@@ -47,10 +39,7 @@ add_library (Chakra.Common.Memory
     SmallLeafHeapBucket.cpp
     SmallNormalHeapBlock.cpp
     SmallNormalHeapBucket.cpp
-
-    # xplat-todo: Are all the APIs used here ported?
-    # StressTest.cpp
-
+    StressTest.cpp
     VirtualAllocWrapper.cpp
     )
 

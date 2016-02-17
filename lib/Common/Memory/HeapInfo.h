@@ -277,7 +277,14 @@ private:
     template <typename TBlockAttributes>
     class ValidPointersMap
     {
+        // xplat-todo: fix up vpm.64b.h generation to generate correctly 
+        // templatized code
+#ifdef _WIN32
 #define USE_STATIC_VPM 1 // Disable to force generation at runtime
+#else
+#define USE_STATIC_VPM 0
+#endif
+        
     private:
         static const uint rowSize = TBlockAttributes::MaxSmallObjectCount * 2;
         typedef ushort ValidPointersMapRow[rowSize];
@@ -547,6 +554,13 @@ HeapInfo::SmallAllocatorAlloc(Recycler * recycler, SmallHeapBlockAllocatorType *
     return bucket.SnailAlloc(recycler, allocator, sizeCat, attributes, /* nothrow = */ false);
 }
 
+// Forward declaration of explicit specialization before instantiation
+template <>
+HRESULT HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
+template <>
+HRESULT HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>::GenerateValidPointersMapForBlockType(FILE* file);
+
+// Template instantiation
 extern template class HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>;
 extern template class HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes>;
 

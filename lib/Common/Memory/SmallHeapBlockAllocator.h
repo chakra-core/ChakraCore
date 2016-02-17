@@ -166,7 +166,9 @@ SmallHeapBlockAllocator<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t s
 
         if (recycler->ShouldCapturePageHeapAllocStack())
         {
+#ifdef STACK_BACK_TRACE
             smallBlock->CapturePageHeapAllocStack();
+#endif
         }
     }
 

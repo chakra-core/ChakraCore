@@ -29,7 +29,7 @@ typedef wchar_t wchar16;
 
 #else // !_WIN32
 
-#include "inc/pal.h"
+#include "pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 
@@ -191,8 +191,6 @@ PALIMPORT VOID PALAPI InitializeSListHead(IN OUT PSLIST_HEADER ListHead);
 PALIMPORT PSLIST_ENTRY PALAPI InterlockedPushEntrySList(IN OUT PSLIST_HEADER ListHead, IN OUT PSLIST_ENTRY  ListEntry);
 PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER ListHead);
 
-#define WRITE_WATCH_FLAG_RESET 1
-
 // xplat-todo: implement these for JIT and Concurrent/Partial GC
 uintptr_t _beginthreadex(
    void *security,
@@ -206,6 +204,12 @@ BOOL WINAPI GetModuleHandleEx(
   _In_opt_ LPCTSTR lpModuleName,
   _Out_    HMODULE *phModule
 );
+
+// xplat-todo: implement this function to get the stack bounds of the current
+// thread
+// For Linux, we could use pthread_getattr_np to get the stack limit (end)
+// and then use the stack size to calculate the stack base
+int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
 
 // xplat-todo: cryptographically secure PRNG?
 errno_t rand_s(unsigned int* randomValue);
@@ -238,4 +242,12 @@ errno_t rand_s(unsigned int* randomValue);
 #define _NOEXCEPT
 #else
 #define _NOEXCEPT noexcept
+#endif
+
+// xplat-todo: can we get rid of this for clang?
+// Including xmmintrin.h right now creates a ton of
+// compile errors, so temporarily defining this for clang
+// to avoid including that header
+#ifndef _MSC_VER
+#define _MM_HINT_T0 3
 #endif

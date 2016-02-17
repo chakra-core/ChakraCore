@@ -19,9 +19,9 @@
 #include "arm64.h"
 #endif
 
-#include "core\BinaryFeatureControl.h"
-#include "Common\ThreadService.h"
-#include "Memory\AutoAllocatorObjectPtr.h"
+#include "Core/BinaryFeatureControl.h"
+#include "Common/ThreadService.h"
+#include "Memory/AutoAllocatorObjectPtr.h"
 
 DEFINE_RECYCLER_TRACKER_PERF_COUNTER(RecyclerWeakReferenceBase);
 
@@ -570,6 +570,7 @@ Recycler::SetIsThreadBound()
     Assert(mainThreadHandle == nullptr);
     ::DuplicateHandle(::GetCurrentProcess(), ::GetCurrentThread(), ::GetCurrentProcess(),  &mainThreadHandle,
         0, FALSE, DUPLICATE_SAME_ACCESS);
+
     stackBase = GetStackBase();
 }
 
@@ -1093,8 +1094,10 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 #ifdef RECYCLER_PAGE_HEAP
     if (this->IsPageHeapEnabled() && this->ShouldCapturePageHeapFreeStack())
     {
+#ifdef STACK_BACK_TRACE
         heapBlock->CapturePageHeapFreeStack();
-
+#endif
+        
         // Don't do actual explicit free in page heap mode
         return false;
     }
@@ -1321,11 +1324,20 @@ void Recycler::TrackNativeAllocatedMemoryBlock(Recycler * recycler, void * memBl
  * FindRoots
  *------------------------------------------------------------------------------------------------*/
 
-
+// xplat-todo: Unify these two variants of GetStackBase
+#ifdef _WIN32
 static void* GetStackBase()
 {
     return ((NT_TIB *)NtCurrentTeb())->StackBase;
 }
+#else
+static void* GetStackBase()
+{
+    char *stackBase, *stackTop;
+    ::GetCurrentThreadStackBounds(&stackBase, &stackTop);
+    return (void*) stackBase;
+}
+#endif
 
 #if _M_IX86
 // REVIEW: For x86, do we care about scanning esp/ebp?
@@ -1467,7 +1479,7 @@ Recycler::ScanStack()
     SAVE_THREAD_CONTEXT();
     void * stackTop = this->savedThreadContext.GetStackTop();
 
-    void * stackStart = GetStackBase();
+    void * stackStart = GetStackBase(); 
     Assert(stackStart > stackTop);
     size_t stackScanned = (size_t)((char *)stackStart - (char *)stackTop);
 
@@ -7648,7 +7660,7 @@ Recycler::VerifyMark(void * candidate)
 #endif
 
 ArenaAllocator *
-Recycler::CreateGuestArena(wchar_t const * name, void (*outOfMemoryFunc)())
+Recycler::CreateGuestArena(wchar16 const * name, void (*outOfMemoryFunc)())
 {
     // Note, guest arenas use the large block allocator.
     return guestArenaList.PrependNode(&HeapAllocator::Instance, name, &recyclerLargeBlockPageAllocator, outOfMemoryFunc);

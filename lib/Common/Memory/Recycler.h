@@ -728,7 +728,7 @@ private:
 
     struct GuestArenaAllocator : public ArenaAllocator
     {
-        GuestArenaAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
+        GuestArenaAllocator(__in wchar16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
             : ArenaAllocator(name, pageAllocator, outOfMemoryFunc), pendingDelete(false)
         {
         }
@@ -1189,7 +1189,7 @@ public:
     HeapInfo* CreateHeap();
     void DestroyHeap(HeapInfo* heapInfo);
 
-    ArenaAllocator * CreateGuestArena(wchar_t const * name, void (*outOfMemoryFunc)());
+    ArenaAllocator * CreateGuestArena(wchar16 const * name, void (*outOfMemoryFunc)());
     void DeleteGuestArena(ArenaAllocator * arenaAllocator);
 
     ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena)
@@ -2080,7 +2080,9 @@ public:
         {
             Assert(recycler->IsPageHeapEnabled());
 
+#ifdef STACK_BACK_TRACE
             this->m_heapBlock->CapturePageHeapFreeStack();
+#endif
         }
 #endif
 
