@@ -2654,8 +2654,8 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             PostVisitBlock(pnode->sxFnc.pnodeBodyScope, byteCodeGenerator);
             if (pnode->sxFnc.pnodeScopes->nop != knopBlock
-                || pnode->sxFnc.pnodeBodyScope->sxBlock.scope->GetScopeType() != ScopeType_Parameter
-                || pnode->sxFnc.pnodeBodyScope->sxBlock.scope->GetCanMergeWithBodyScope())
+                || pnode->sxFnc.pnodeScopes->sxBlock.scope->GetScopeType() != ScopeType_Parameter
+                || pnode->sxFnc.pnodeScopes->sxBlock.scope->GetCanMergeWithBodyScope())
             {
                 PostVisitBlock(pnode->sxFnc.pnodeScopes, byteCodeGenerator);
             }
@@ -3019,27 +3019,37 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
             }
             // In ES6, functions are scoped to the block, which will be the current scope.
             // Pre-ES6, function declarations are scoped to the function body, so get that scope.
-            Symbol *sym;
-            if (!byteCodeGenerator->GetCurrentScope()->IsGlobalEvalBlockScope())
+            Symbol *sym = nullptr;
+            Scope* currentScope = byteCodeGenerator->GetCurrentScope();
+            if (!currentScope->IsGlobalEvalBlockScope())
             {
-                sym = byteCodeGenerator->AddSymbolToScope(byteCodeGenerator->GetCurrentScope(), fnName, pnodeName->sxVar.pid->Cch(), pnodeName, STFunction);
+                if (currentScope->GetScopeType() != ScopeType_Parameter
+                    || pnodeName->sxVar.sym->GetScope()->GetScopeType() != ScopeType_FunctionBody
+                    || pnodeName->sxVar.sym->GetScope() != currentScope->GetFunc()->GetBodyScope())
+                {
+                    sym = byteCodeGenerator->AddSymbolToScope(currentScope, fnName, pnodeName->sxVar.pid->Cch(), pnodeName, STFunction);
+                }
             }
             else
             {
                 sym = byteCodeGenerator->AddSymbolToFunctionScope(fnName, pnodeName->sxVar.pid->Cch(), pnodeName, STFunction);
             }
-            pnodeName->sxVar.sym = sym;
 
-            if (sym->GetIsGlobal())
+            if (sym)
             {
-                FuncInfo* func = byteCodeGenerator->TopFuncInfo();
-                func->SetHasGlobalRef(true);
-            }
+                pnodeName->sxVar.sym = sym;
 
-            if (sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope() &&
-                sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
-            {
-                sym->SetIsBlockVar(true);
+                if (sym->GetIsGlobal())
+                {
+                    FuncInfo* func = byteCodeGenerator->TopFuncInfo();
+                    func->SetHasGlobalRef(true);
+                }
+
+                if (sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope() &&
+                    sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
+                {
+                    sym->SetIsBlockVar(true);
+                }
             }
         }
     });

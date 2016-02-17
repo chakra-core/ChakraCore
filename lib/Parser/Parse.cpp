@@ -4589,21 +4589,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
-    // Function definition is inside the parent function's parameter scope
+    // Function definition is inside the parent function's parameter scope  
     bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
 
     if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr)
     {
-        // Or this is a function expression enclosed in a parameter scope
+        // Or this is a function expression enclosed in a parameter scope  
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
-    }
-    // Check whether we are in a parameter scope. If we are then we have to mark the parent scope to indicate the same.
-    // If there is a method def in the default param scope then we can't merge the param and body scope of that function.
-    // Note: Lambdas and async functions will be addressed later.
-    if (isEnclosedInParamScope && pnodeFncParent && pnodeFncParent->sxFnc.HasNonSimpleParameterList() && !fLambda && !fAsync)
-    {
-        Assert(pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope != nullptr);
-        pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->SetCannotMergeWithBodyScope();
     }
 
     RestorePoint beginFormals;
@@ -4619,7 +4611,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
     if ((!fDeclaration && m_ppnodeExprScope) ||
         fFunctionInBlock ||
-        (isEnclosedInParamScope && pnodeFncParent && pnodeFncParent->sxFnc.pnodeScopes && !pnodeFncParent->sxFnc.pnodeScopes->sxBlock.scope->GetCanMergeWithBodyScope()) ||
+        isEnclosedInParamScope ||
         (flags & (fFncNoName | fFncLambda)))
     {
         // NOTE: Don't defer if this is a function expression inside a construct that induces
@@ -4740,6 +4732,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
         // Create function body scope
         ParseNodePtr pnodeInnerBlock = StartParseBlock<buildAST>(PnodeBlockType::Function, ScopeType_FunctionBody);
         // Set the parameter block's child to the function body block.
+        // The pnodeFnc->sxFnc.pnodeScopes list is constructed in such a way that it includes all the scopes in this list.
+        // For example if the param scope has one function and body scope has one function then the list will look like below,
+        // param scope block -> function decl from param scope -> body socpe block -> function decl from body scope.
         *m_ppnodeScope = pnodeInnerBlock;
         pnodeFnc->sxFnc.pnodeBodyScope = pnodeInnerBlock;
 
@@ -4839,16 +4834,45 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
 
             // We can't merge the param scope and body scope any more as the nested methods may be capturing params.
-            Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
-            if (!paramScope->GetCanMergeWithBodyScope())
+            if (pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
             {
-                Assert(pnodeFnc->sxFnc.HasNonSimpleParameterList());
-                OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
-                // Now add a new symbol reference for each formal in the param scope to the body scope.
-                paramScope->ForEachSymbol([this](Symbol* param) {
-                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
-                    this->CreateVarDeclNode(param->GetPid(), param->GetSymbolType(), false, nullptr, false);
+                Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
+
+                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                    {
+                        if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+                        {
+                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                            paramScope->SetCannotMergeWithBodyScope();
+                            return true;
+                        }
+                        else
+                        {
+                            Error(ERRFuncRefFormalNotSupportedInParamScope);
+                        }
+                    }
+                    else
+                    {
+                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
+                    }
+                    return false;
                 });
+
+                if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled() && (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval()))
+                {
+                    Error(ERREvalNotSupportedInParamScope);
+                }
+
+                if (!paramScope->GetCanMergeWithBodyScope())
+                {
+                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
+                    // Now add a new symbol reference for each formal in the param scope to the body scope.
+                    paramScope->ForEachSymbol([this](Symbol* param) {
+                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
+                        this->CreateVarDeclNode(param->GetPid(), param->GetSymbolType(), false, nullptr, false);
+                    });
+                }
             }
 
             // Keep nested function declarations and expressions in the same list at function scope.

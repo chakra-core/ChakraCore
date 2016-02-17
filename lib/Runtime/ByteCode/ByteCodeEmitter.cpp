@@ -3184,7 +3184,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             // We have to do this after the rest param is marked as false for need declaration.
             paramScope->ForEachSymbol([this, funcInfo](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
-                if (varSym && param->GetLocation() != Js::Constants::NoRegister && varSym->GetLocation() != Js::Constants::NoRegister)
+                Assert(varSym || param->GetIsArguments());
+                Assert(param->GetIsArguments() || param->IsInSlot(funcInfo));
+                if (varSym && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
                 {
                     Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
                     this->EmitPropLoad(tempReg, param, param->GetPid(), funcInfo);
