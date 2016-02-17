@@ -299,6 +299,21 @@ var tests = [
         var bar = new B();
     }
   },
+  {
+    name: "OS6135311: Incorrect base register assignment in inlined LdNewTarget",
+    body: function () {
+        function func5 () {
+            assert.areEqual(class0, new.target, "new.target should return subclass constructor for super constructor call");
+            function v0() {};
+        }
+        class class0 extends func5 {  }
+
+        new class0();
+        new class0(-1);
+        new class0([2,3], NaN);
+        new class0("cat", 100, {});
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

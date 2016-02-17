@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="$(MsBuildThisFileDirectory)..\StdAfx.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJS.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJSBytecodeGenerator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJSCodeGenerator.cpp" />
@@ -10,9 +9,7 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJSModule.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJSTypes.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)AsmJSUtils.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ByteCodeSerializer.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)CacheOperators.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)CallInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)CodeGenRecyclableData.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileMutator.cpp" />
@@ -24,21 +21,14 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExceptionOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ProfilingHelpers.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)PropertyRecord.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ReadOnlyDynamicProfileInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)SourceHolder.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)StackTraceArguments.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)Utf8SourceInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ValueType.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ScriptContextOptimizationOverrideInfo.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)DiagHelperMethodWrapper.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)InterpreterStackFrame.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptConversion.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptStackWalker.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ScriptContext.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ScriptContextProfiler.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)amd64\AsmJSJitTemplate.cpp">
       <Filter>amd64</Filter>
     </ClCompile>
@@ -57,7 +47,20 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\stackframe.cpp">
       <Filter>arm</Filter>
     </ClCompile>
-    <ClCompile Include="JavascriptNativeOperators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDfloat32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat64x2Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDfloat64x2OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUtils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TaggedInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLanguagePch.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
+    <ClCompile Include="SourceTextModuleRecord.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJS.h" />
@@ -68,7 +71,6 @@
     <ClInclude Include="AsmJSLink.h" />
     <ClInclude Include="AsmJSModule.h" />
     <ClInclude Include="AsmJSUtils.h" />
-    <ClInclude Include="byteCodeCacheReleaseFileVersion.h" />
     <ClInclude Include="CacheOperators.h" />
     <ClInclude Include="InterpreterProcessOpCodeAsmJs.h" />
     <ClInclude Include="CodeGenRecyclableData.h" />
@@ -84,26 +86,17 @@
     <ClInclude Include="InlineCachePointerArray.h" />
     <ClInclude Include="JavascriptExceptionOperators.h" />
     <ClInclude Include="JavascriptMathOperators.h" />
-    <ClInclude Include="LeaveScriptObject.h" />
     <ClInclude Include="ProfilingHelpers.h" />
-    <ClInclude Include="PropertyRecord.h" />
     <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
-    <ClInclude Include="SourceHolder.h" />
     <ClInclude Include="StackTraceArguments.h" />
-    <ClInclude Include="Utf8SourceInfo.h" />
     <ClInclude Include="ValueType.h" />
-    <ClInclude Include="ScriptContextOptimizationOverrideInfo.h" />
     <ClInclude Include="Arguments.h" />
-    <ClInclude Include="CallInfo.h" />
-    <ClInclude Include="DiagHelperMethodWrapper.h" />
     <ClInclude Include="InterpreterStackFrame.h" />
     <ClInclude Include="JavascriptConversion.h" />
     <ClInclude Include="JavascriptOperators.h" />
     <ClInclude Include="JavascriptFunctionArgIndex.h" />
     <ClInclude Include="JavascriptStackWalker.h" />
-    <ClInclude Include="ScriptContext.h" />
-    <ClInclude Include="ScriptContextProfiler.h" />
     <ClInclude Include="i386\AsmJsInstructionTemplate.h">
       <Filter>i386</Filter>
     </ClInclude>
@@ -116,11 +109,21 @@
     <ClInclude Include="arm\stackframe.h">
       <Filter>arm</Filter>
     </ClInclude>
-    <ClInclude Include="ByteCodeSerializeFlags.h" />
-    <ClInclude Include="ScriptContextBase.h" />
     <ClInclude Include="AsmJSTypes.h" />
     <ClInclude Include="AsmJsBuiltinNames.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
+    <ClInclude Include="JavascriptExceptionContext.h" />
+    <ClInclude Include="JavascriptExceptionObject.h" />
+    <ClInclude Include="SIMDFloat32x4Operation.h" />
+    <ClInclude Include="SIMDFloat64x2Operation.h" />
+    <ClInclude Include="SIMDInt32x4Operation.h" />
+    <ClInclude Include="SIMDInt8x16Operation.h" />
+    <ClInclude Include="SimdOps.h" />
+    <ClInclude Include="SIMDUtils.h" />
+    <ClInclude Include="TaggedInt.h" />
+    <ClInclude Include="RuntimeLanguagePch.h" />
+    <ClInclude Include="SourceTextModuleRecord.h" />
+    <ClInclude Include="ModuleRecordBase.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">
@@ -139,20 +142,16 @@
     <None Include="InterpreterHandler.inl" />
     <None Include="InterpreterHandlerAsmJs.inl" />
     <None Include="InterpreterLoop.inl" />
-    <None Include="JavascriptExceptionOperators.inl" />
     <None Include="JavascriptMathOperators.inl" />
-    <None Include="JavascriptObject.inl" />
-    <None Include="InterpreterStackFrame.inl" />
     <None Include="JavascriptConversion.inl" />
     <None Include="JavascriptOperators.inl" />
-    <None Include="ScriptContext.inl" />
-    <None Include="DiagHelperMethodWrapper.inl" />
     <None Include="amd64\stackframe.inl">
       <Filter>amd64</Filter>
     </None>
     <None Include="i386\AsmJsInstructionTemplate.inl">
       <Filter>i386</Filter>
     </None>
+    <None Include="TaggedInt.inl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="amd64">

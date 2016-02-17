@@ -4875,7 +4875,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             if (buildAST)
             {
                 DeferredFunctionStub *saveCurrentStub = m_currDeferredStub;
-                if (pnodeFncParent && m_currDeferredStub)
+                if (isEnclosedInParamScope)
+                {
+                    // if the enclosed scope is the param scope we would not have created the deferred stub.
+                    m_currDeferredStub = nullptr;
+                }
+                else if (pnodeFncParent && m_currDeferredStub)
                 {
                     m_currDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1))->deferredStubs;
                 }
@@ -5779,6 +5784,11 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
             if (!isBindingPattern)
             {
+                IdentPtr pid = m_token.GetIdentifier(m_phtbl);
+                LPCOLESTR pNameHint = pid->Psz();
+                ulong nameHintLength = pid->Cch();
+                ulong nameHintOffset = 0;
+
                 if (seenRestParameter)
                 {
                     if (flags & fFncOneArg)
@@ -5786,7 +5796,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                         // The parameter of a setter cannot be a rest parameter.
                         Error(ERRUnexpectedEllipsis);
                     }
-                    pnodeT = CreateDeclNode(knopVarDecl, m_token.GetIdentifier(m_phtbl), STFormal, false);
+                    pnodeT = CreateDeclNode(knopVarDecl, pid, STFormal, false);
                     pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
                     if (buildAST)
                     {
@@ -5805,14 +5815,14 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                 }
                 else
                 {
-                    pnodeT = CreateVarDeclNode(m_token.GetIdentifier(m_phtbl), STFormal, false, nullptr, false);
+                    pnodeT = CreateVarDeclNode(pid, STFormal, false, nullptr, false);
                     if (isNonSimpleParameterList)
                     {
                         pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
                     }
                 }
 
-                if (buildAST && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.arguments)
+                if (buildAST && pid == wellKnownPropertyPids.arguments)
                 {
                     // This formal parameter overrides the built-in 'arguments' object
                     m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
@@ -5820,7 +5830,6 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
                 if (fStrictFormals)
                 {
-                    IdentPtr pid = m_token.GetIdentifier(m_phtbl);
                     UpdateOrCheckForDuplicateInFormals(pid, &formals);
                 }
 
@@ -5859,7 +5868,15 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     }
 
                     m_pscan->Scan();
-                    ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma);
+                    ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, pNameHint, &nameHintLength, &nameHintOffset);
+
+                    if (buildAST && pnodeInit->nop == knopFncDecl)
+                    {
+                        Assert(nameHintLength >= nameHintOffset);
+                        pnodeInit->sxFnc.hint = pNameHint;
+                        pnodeInit->sxFnc.hintLength = nameHintLength;
+                        pnodeInit->sxFnc.hintOffset = nameHintOffset;
+                    }
 
                     AnalysisAssert(pnodeT);
                     pnodeT->sxVar.sym->SetIsNonSimpleParameter(true);
