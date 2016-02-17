@@ -278,7 +278,7 @@
 //A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
 #define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
 
-//Flags to control special features turned on for debugging support
+//Flags to control special features turned on for debugging
 #if ENABLE_TTD_FORCE_RECORD_NODE
 #define ENABLE_TTD_DEBUGGING 0
 #define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 0
