@@ -3100,7 +3100,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             Js::FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
 
             TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* tbfi = HeapNewStruct(TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo);
-            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, kmodGlobal, sourceContext, script, (uint32)wcslen(script), loadScriptFlag);
+            TTD::NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo_InScriptContext(tbfi, globalBody, kmodGlobal, globalBody->GetSourceContextId(), script, (uint32)wcslen(script), loadScriptFlag);
             scriptContext->m_ttdTopLevelScriptLoad.Add(tbfi);
 
             //walk global body to (1) add functions to pin set (2) build parent map
