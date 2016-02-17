@@ -69,12 +69,12 @@ public:
 
     void ResetMarks();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
     void ResetWriteWatch(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
+#endif
     void MakeAllPagesReadOnly(Recycler* recycler);
     void MakeAllPagesReadWrite(Recycler* recycler);
-#endif
 
     void Cleanup(bool concurrentFindImplicitRoot);
 
@@ -257,16 +257,15 @@ public:
 
     void ResetMarks();
 
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
     void ResetWriteWatch(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
+#endif
     void MakeAllPagesReadOnly(Recycler* recycler);
     void MakeAllPagesReadWrite(Recycler* recycler);
-#endif
+    bool OOMRescan(Recycler * recycler);
 
     void Cleanup(bool concurrentFindImplicitRoot);
-
-    bool OOMRescan(Recycler * recycler);
 
 #ifdef RECYCLER_STRESS
     void InduceFalsePositives(Recycler * recycler);

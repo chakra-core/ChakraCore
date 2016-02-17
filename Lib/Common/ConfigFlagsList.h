@@ -1127,19 +1127,19 @@ FLAGNR(Boolean, LibraryStackFrame           , "Display library stack frame", DEF
 FLAGNR(Boolean, LibraryStackFrameDebugger   , "Assume debugger support for library stack frame", DEFAULT_CONFIG_LibraryStackFrameDebugger)
 #ifdef RECYCLER_STRESS
 FLAGNR(Boolean, RecyclerStress        , "Stress the recycler by collect on every allocation call", false)
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 FLAGNR(Boolean, RecyclerBackgroundStress        , "Stress the recycler by collect in the background thread on every allocation call", false)
 FLAGNR(Boolean, RecyclerConcurrentStress        , "Stress the concurrent recycler by concurrent collect on every allocation call", false)
 FLAGNR(Boolean, RecyclerConcurrentRepeatStress  , "Stress the concurrent recycler by concurrent collect on every allocation call and repeat mark and rescan in the background thread", false)
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 FLAGNR(Boolean, RecyclerPartialStress , "Stress the partial recycler by partial collect on every allocation call", false)
 #endif
 FLAGNR(Boolean, RecyclerTrackStress, "Stress tracked object handling by simulating tracked objects for regular allocations", false)
 FLAGNR(Boolean, RecyclerInduceFalsePositives, "Stress recycler by forcing false positive object marks", false)
 #endif // RECYCLER_STRESS
 FLAGNR(Boolean, RecyclerForceMarkInterior, "Force all the mark as interior", DEFAULT_CONFIG_RecyclerForceMarkInterior)
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 FLAGNR(Number,  RecyclerPriorityBoostTimeout, "Adjust priority boost timeout", 5000)
 FLAGNR(Number,  RecyclerThreadCollectTimeout, "Adjust thread collect timeout", 1000)
 #endif
@@ -1269,12 +1269,12 @@ FLAGNR(Boolean, MemProtectHeap, "Use the mem protect heap as the default heap", 
 #endif
 #ifdef RECYCLER_STRESS
 FLAGNR(Boolean, MemProtectHeapStress, "Stress the recycler by collect on every allocation call", false)
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 FLAGNR(Boolean, MemProtectHeapBackgroundStress, "Stress the recycler by collect in the background thread on every allocation call", false)
 FLAGNR(Boolean, MemProtectHeapConcurrentStress, "Stress the concurrent recycler by concurrent collect on every allocation call", false)
 FLAGNR(Boolean, MemProtectHeapConcurrentRepeatStress, "Stress the concurrent recycler by concurrent collect on every allocation call and repeat mark and rescan in the background thread", false)
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 FLAGNR(Boolean, MemProtectHeapPartialStress, "Stress the partial recycler by partial collect on every allocation call", false)
 #endif
 #endif

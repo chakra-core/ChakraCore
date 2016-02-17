@@ -120,10 +120,8 @@ public:
 
     ~LargeHeapBlock();
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     size_t Rescan(Recycler* recycler, bool isPartialSwept, RescanFlags flags);
-#endif
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
     void PartialTransferSweptObjects();
     void FinishPartialCollect(Recycler * recycler);
 #endif
@@ -189,7 +187,7 @@ private:
     {
         Assert(index < this->allocCount);
         LargeObjectHeader * header = this->HeaderList()[index];
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
         if (IsPartialSweptHeader(header))
         {
             return nullptr;
@@ -204,9 +202,12 @@ private:
     static size_t GetAllocPlusSize(uint objectCount);
     char * AllocFreeListEntry(size_t size, ObjectInfoBits attributes, LargeHeapBlockFreeListEntry* entry);
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_CONCURRENT_GC
     bool RescanOnePage(Recycler * recycler, DWORD const writeWatchFlags);
     size_t RescanMultiPage(Recycler * recycler, DWORD const writeWatchFlags);
+#else
+    bool RescanOnePage(Recycler * recycler);
+    size_t RescanMultiPage(Recycler * recycler);
 #endif
 
     template <SweepMode>
@@ -217,7 +218,7 @@ private:
     void FinalizeObject(Recycler* recycler, LargeObjectHeader* header);
 
     void FillFreeMemory(Recycler * recycler, __in_bcount(size) void * address, size_t size);
-#if defined(PARTIAL_GC_ENABLED) && defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_PARTIAL_GC && ENABLE_CONCURRENT_GC
     bool IsPartialSweptHeader(LargeObjectHeader * header) const
     {
         Assert(this->hasPartialFreeObjects || (((size_t)header & PartialFreeBit) != PartialFreeBit));

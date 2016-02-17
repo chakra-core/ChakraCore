@@ -32,18 +32,18 @@ protected:
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     static bool RescanObjectsOnPage(TBlockType * block, char * address, char * blockStartAddress, BVStatic<TBlockAttributes::BitVectorCount>* markBits, const uint localObjectSize, uint bucketIndex, __out_opt bool* anyObjectRescanned, Recycler* recycler);
 
+#if ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
     template <SweepMode mode>
     static TBlockType * SweepPendingObjects(Recycler * recycler, TBlockType * list);
 #endif
-#ifdef PARTIAL_GC_ENABLED
-    ~SmallNormalHeapBucketBase();
-
     template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
+#if ENABLE_PARTIAL_GC
+    ~SmallNormalHeapBucketBase();
+
     template <class Fn>
     static void SweepPartialReusePages(RecyclerSweep& recyclerSweep, TBlockType * heapBlockList,
         TBlockType *& reuseBlocklist, TBlockType *&unusedBlockList, Fn callBack);
@@ -75,7 +75,7 @@ protected:
                                             // are not full but don't have a large amount of free space
                                             // where allocating from it causing a write watch to be triggered
                                             // is not worth the effort
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     TBlockType * partialSweptHeapBlockList; // list of blocks that is partially swept
 #endif
 #endif

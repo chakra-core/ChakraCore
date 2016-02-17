@@ -143,6 +143,7 @@
     <None Include="LargeHeapBucket.inl" />
     <None Include="MarkContext.inl" />
     <None Include="Recycler.inl" />
+    <None Include="SmallBlockDeclarations.inl" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_SAVE_REGISTERS.asm">

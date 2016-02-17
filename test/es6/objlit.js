@@ -15,15 +15,58 @@ var tests = [
         }
     },
     {
-        name: "Method shorthand",
+        name: "Shorthand names `get` and `set` parse without error (they are not keywords in these cases)",
+        body: function () {
+            var a = 0;
+            var get = 1;
+            var set = 2;
+            var z = 3;
+
+            var o = { get };
+            var p = { set };
+            var q = { get, set };
+            var r = { set, get };
+            var s = { get, z };
+            var t = { a, set };
+            var u = { a, get, z };
+
+            assert.areEqual(1, o.get, "o.get = 1");
+            assert.areEqual(2, p.set, "p.set = 2");
+            assert.areEqual(1, q.get, "q.get = 1");
+            assert.areEqual(2, q.set, "q.set = 2");
+            assert.areEqual(2, r.set, "r.set = 2");
+            assert.areEqual(1, r.get, "r.get = 1");
+            assert.areEqual(1, s.get, "s.get = 1");
+            assert.areEqual(3, s.z, "s.z = 3");
+            assert.areEqual(0, t.a, "t.a = 0");
+            assert.areEqual(2, t.set, "t.set = 2");
+            assert.areEqual(0, u.a, "u.a = 0");
+            assert.areEqual(1, u.get, "u.get = 1");
+            assert.areEqual(3, u.z, "u.z = 3");
+        }
+    },
+    {
+        name: "Concise method shorthand",
         body: function() {
             var obj = {
-            foo() { return "foo"; }
+                foo() { return "foo"; }
             };
 
-            assert.areEqual(obj.foo(), "foo");
-            assert.areEqual(({ foo: function() { }, foo() { return "foo"; } }).foo(), "foo");
-            assert.areEqual(({ foo(x) { }, foo() { return "foo"; } }).foo(), "foo");
+            assert.areEqual("foo", obj.foo());
+            assert.areEqual("foo", ({ foo: function() { }, foo() { return "foo"; } }).foo());
+            assert.areEqual("foo", ({ foo(x) { }, foo() { return "foo"; } }).foo());
+        }
+    },
+    {
+        name: "Concise method shorthand with `get` and `set` names",
+        body: function () {
+            var o = {
+                get() { return "g"; },
+                set() { return "s"; }
+            };
+
+            assert.areEqual('g', o.get(), "o.get returns 'g'");
+            assert.areEqual('s', o.set(), "o.set returns 's'");
         }
     },
     {

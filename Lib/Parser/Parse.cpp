@@ -4000,53 +4000,36 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
         else if (nullptr != pidHint) //Its either tkID/tkStrCon/tkFloatCon/tkIntCon
         {
             Assert(pidHint->Psz() != nullptr);
-            if (pidHint == wellKnownPropertyPids.getter && tkHint.tk == tkID)
+
+            if ((pidHint == wellKnownPropertyPids.get || pidHint == wellKnownPropertyPids.set) &&
+                // get/set are only pseudo keywords when they are identifiers (i.e. not strings)
+                tkHint.tk == tkID && NextTokenIsPropertyNameStart())
             {
                 if (isObjectPattern)
                 {
                     Error(ERRInvalidAssignmentTarget);
                 }
 
-                LPCOLESTR pNameGet = nullptr;
-                pnodeArg = ParseMemberGetSet<buildAST>(knopGetMember, &pNameGet);
-                if (CONFIG_FLAG(UseFullName) && buildAST && pnodeArg->sxBin.pnode2->nop == knopFncDecl)
-                {
-                    if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
-                    {
-                        // displays as get object.funcname
-                        ulong getOffset = 0;
-                        pFullNameHint = AppendNameHints(wellKnownPropertyPids.getter, AppendNameHints(pNameHint, pNameGet, &fullNameHintLength, &shortNameOffset), &fullNameHintLength, &getOffset, true);
-                        shortNameOffset += getOffset;
-                    }
-                    else
-                    {
-                        // displays as object.funcname.get
-                        pFullNameHint = AppendNameHints(pNameHint, AppendNameHints(pNameGet, wellKnownPropertyPids.getter, &fullNameHintLength, &shortNameOffset), &fullNameHintLength, &shortNameOffset);
-                    }
-                }
-            }
-            else if (pidHint == wellKnownPropertyPids.setter && tkHint.tk == tkID)
-            {
-                if (isObjectPattern)
-                {
-                    Error(ERRInvalidAssignmentTarget);
-                }
+                LPCOLESTR pNameGetOrSet = nullptr;
+                OpCode op = pidHint == wellKnownPropertyPids.get ? knopGetMember : knopSetMember;
 
-                LPCOLESTR pNameSet = nullptr;
-                pnodeArg = ParseMemberGetSet<buildAST>(knopSetMember, &pNameSet);
+                pnodeArg = ParseMemberGetSet<buildAST>(op, &pNameGetOrSet);
+
                 if (CONFIG_FLAG(UseFullName) && buildAST && pnodeArg->sxBin.pnode2->nop == knopFncDecl)
                 {
                     if (m_scriptContext->GetConfig()->IsES6FunctionNameEnabled())
                     {
-                        // displays as set object.funcname
-                        ulong setOffset = 0;
-                        pFullNameHint = AppendNameHints(wellKnownPropertyPids.setter, AppendNameHints(pNameHint, pNameSet, &fullNameHintLength, &shortNameOffset), &fullNameHintLength, &setOffset, true);
-                        shortNameOffset += setOffset;
+                        // displays as "get object.funcname" or "set object.funcname"
+                        ulong getOrSetOffset = 0;
+                        LPCOLESTR intermediateHint = AppendNameHints(pNameHint, pNameGetOrSet, &fullNameHintLength, &shortNameOffset);
+                        pFullNameHint = AppendNameHints(pidHint, intermediateHint, &fullNameHintLength, &getOrSetOffset, true);
+                        shortNameOffset += getOrSetOffset;
                     }
                     else
                     {
-                        // displays as object.funcname.set
-                        pFullNameHint = AppendNameHints(pNameHint, AppendNameHints(pNameSet, wellKnownPropertyPids.setter, &fullNameHintLength, &shortNameOffset), &fullNameHintLength, &shortNameOffset);
+                        // displays as "object.funcname.get" or "object.funcname.set"
+                        LPCOLESTR intermediateHint = AppendNameHints(pNameGetOrSet, pidHint, &fullNameHintLength, &shortNameOffset);
+                        pFullNameHint = AppendNameHints(pNameHint, intermediateHint, &fullNameHintLength, &shortNameOffset);
                     }
                 }
             }
@@ -6760,7 +6743,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
             bool isMemberNamedGetOrSet = false;
             RestorePoint beginMethodName;
             m_pscan->Capture(&beginMethodName);
-            if (memberPid == wellKnownPropertyPids.getter || memberPid == wellKnownPropertyPids.setter)
+            if (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set)
             {
                 m_pscan->ScanForcingPid();
             }
@@ -6770,9 +6753,9 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                 isMemberNamedGetOrSet = true;
             }
 
-            if ((memberPid == wellKnownPropertyPids.getter || memberPid == wellKnownPropertyPids.setter) && !isMemberNamedGetOrSet)
+            if ((memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set) && !isMemberNamedGetOrSet)
             {
-                bool isGetter = (memberPid == wellKnownPropertyPids.getter);
+                bool isGetter = (memberPid == wellKnownPropertyPids.get);
 
                 if (m_token.tk == tkLBrack && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
                 {
@@ -6811,7 +6794,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
                     pnodeFnc->sxFnc.SetIsAccessor();
                     pnodeMember = CreateBinNode(isGetter ? knopGetMember : knopSetMember, pnodeMemberName, pnodeFnc);
                     pMemberNameHint = ConstructFinalHintNode(pClassNamePid, pidHint,
-                        isGetter ? wellKnownPropertyPids.getter : wellKnownPropertyPids.setter, isStatic,
+                        isGetter ? wellKnownPropertyPids.get : wellKnownPropertyPids.set, isStatic,
                         &memberNameHintLength, &memberNameOffset, isComputedName, pMemberNameHint);
                 }
             }
@@ -10212,8 +10195,8 @@ void Parser::InitPids()
     wellKnownPropertyPids.arguments = m_phtbl->PidHashNameLen(g_ssym_arguments.sz, g_ssym_arguments.cch);
     wellKnownPropertyPids.async = m_phtbl->PidHashNameLen(g_ssym_async.sz, g_ssym_async.cch);
     wellKnownPropertyPids.eval = m_phtbl->PidHashNameLen(g_ssym_eval.sz, g_ssym_eval.cch);
-    wellKnownPropertyPids.getter = m_phtbl->PidHashNameLen(g_ssym_get.sz, g_ssym_get.cch);
-    wellKnownPropertyPids.setter = m_phtbl->PidHashNameLen(g_ssym_set.sz, g_ssym_set.cch);
+    wellKnownPropertyPids.get = m_phtbl->PidHashNameLen(g_ssym_get.sz, g_ssym_get.cch);
+    wellKnownPropertyPids.set = m_phtbl->PidHashNameLen(g_ssym_set.sz, g_ssym_set.cch);
     wellKnownPropertyPids.let = m_phtbl->PidHashNameLen(g_ssym_let.sz, g_ssym_let.cch);
     wellKnownPropertyPids.constructor = m_phtbl->PidHashNameLen(g_ssym_constructor.sz, g_ssym_constructor.cch);
     wellKnownPropertyPids.prototype = m_phtbl->PidHashNameLen(g_ssym_prototype.sz, g_ssym_prototype.cch);

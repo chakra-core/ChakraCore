@@ -163,6 +163,7 @@ HeapBucketT<TBlockType>::ClearAllocators()
     this->explicitFreeList = nullptr;
 }
 
+#if ENABLE_CONCURRENT_GC
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::PrepareSweep()
@@ -174,6 +175,7 @@ HeapBucketT<TBlockType>::PrepareSweep()
     // (And remove rescan from leaf bucket, so this function doesn't need to exist)
     ClearAllocators();
 }
+#endif
 
 template <typename TBlockType>
 void
@@ -298,7 +300,7 @@ HeapBucketT<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount) const
 {
     size_t currentHeapBlockCount = HeapBlockList::Count(fullBlockList);
     currentHeapBlockCount += HeapBlockList::Count(heapBlockList);
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     // Recycler can be null if we have OOM in the ctor
     if (this->GetRecycler() && this->GetRecycler()->recyclerSweep != nullptr)
     {
@@ -493,9 +495,13 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         return memBlock;
     }
 
+#if ENABLE_CONCURRENT_GC
     // No free memory, try to collect with allocated bytes and time heuristic, and concurrently
     BOOL collected = recycler->disableCollectOnAllocationHeuristics ? recycler->FinishConcurrent<FinishConcurrentOnAllocation>() :
         recycler->CollectNow<CollectOnAllocation>();
+#else
+    BOOL collected = recycler->disableCollectOnAllocationHeuristics ? FALSE : recycler->CollectNow<CollectOnAllocation>();
+#endif
 
     AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TryAlloc failed, forced collection on allocation [Collected: %d]\n", collected);
     if (!collected)
@@ -600,7 +606,7 @@ HeapBucketT<TBlockType>::CreateHeapBlock(Recycler * recycler)
     // Add it to head of heap block list so we will keep track of the block
     recycler->autoHeap.AppendNewHeapBlock(heapBlock, this);
 #ifdef RECYCLER_SLOW_CHECK_ENABLED
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     ::InterlockedIncrement(&this->newHeapBlockCount);
 #else
     this->heapBlockCount++;
@@ -625,7 +631,7 @@ HeapBucketT<TBlockType>::ResetMarks(ResetMarkFlags flags)
 {
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount((flags & ResetMarkFlags_Background) != 0));
 
-#ifndef CONCURRENT_GC_ENABLED
+#if !ENABLE_CONCURRENT_GC
     Assert((flags & ResetMarkFlags_Background) == 0);
 #endif
 
@@ -782,7 +788,7 @@ HeapBucketT<TBlockType>::VerifyBlockConsistencyInList(TBlockType * heapBlock, Re
 }
 #endif // DBG
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 template <typename TBlockType>
 bool
 HeapBucketT<TBlockType>::DoQueuePendingSweep(Recycler * recycler)
@@ -841,7 +847,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
     // only if we are doing partial GC so we can calculate the heuristics before
     // determinate we want to fully sweep the block or partially sweep the block
 
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     // CONCURRENT-TODO: Add a mode where we can do in thread sweep, and concurrent partial sweep?
     bool const queuePendingSweep = this->DoQueuePendingSweep(recycler);
 #else
@@ -860,7 +866,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
 
         switch (state)
         {
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_CONCURRENT_GC
         case SweepStatePendingSweep:
         {
             Assert(IsNormalBucket);
@@ -869,7 +875,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             TBlockType *& pendingSweepList = recyclerSweep.GetPendingSweepBlockList(this);
             heapBlock->SetNextBlock(pendingSweepList);
             pendingSweepList = heapBlock;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
             recyclerSweep.NotifyAllocableObjects(heapBlock);
 #endif
             break;
@@ -905,7 +911,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             Assert(heapBlock->HasFreeObject());
             heapBlock->SetNextBlock(this->heapBlockList);
             this->heapBlockList = heapBlock;
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
             recyclerSweep.NotifyAllocableObjects(heapBlock);
 #endif
             break;
@@ -930,6 +936,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
 
             RECYCLER_STATS_INC(recycler, numEmptySmallBlocks[heapBlock->GetHeapBlockType()]);
 
+#if ENABLE_CONCURRENT_GC
             // CONCURRENT-TODO: Finalizable block never have background == true and always be processed
             // in thread, so it will not queue up the pages even if we are doing concurrent GC
             if (recyclerSweep.IsBackground())
@@ -945,6 +952,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
                 RECYCLER_STATS_INC(recycler, numZeroedOutSmallBlocks);
             }
             else
+#endif
             {
                 // Just free the page in thread (and zero the page)
                 heapBlock->template ReleasePagesSweep<pageheap>(recycler);
@@ -965,6 +973,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
 {
     DebugOnly(TBlockType * savedNextAllocableBlockHead);
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
+#if ENABLE_CONCURRENT_GC
     if (recyclerSweep.HasSetupBackgroundSweep())
     {
         // SetupBackgroundSweep set nextAllocableBlockHead to null already
@@ -972,6 +981,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
         DebugOnly(savedNextAllocableBlockHead = recyclerSweep.GetSavedNextAllocableBlockHead(this));
     }
     else
+#endif
     {
         Assert(AllocatorsAreEmpty());
         DebugOnly(savedNextAllocableBlockHead = this->nextAllocableBlockHead);
@@ -979,7 +989,7 @@ HeapBucketT<TBlockType>::SweepBucket(RecyclerSweep& recyclerSweep)
     }
 
     // We just started sweeping.  These pending lists should be empty
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     Assert(recyclerSweep.GetPendingSweepBlockList(this) == nullptr);
 #else
     Assert(!recyclerSweep.IsBackground());
@@ -1061,12 +1071,17 @@ HeapBucketT<TBlockType>::IsAllocationStopped() const
 }
 #endif
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
 template <typename TBlockType>
 uint
 HeapBucketT<TBlockType>::Rescan(Recycler * recycler, RescanFlags flags)
 {
+#if ENABLE_CONCURRENT_GC
     RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(!!recycler->IsConcurrentMarkState()));
+#else
+    RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(false /* background */));
+#endif
+
+#if ENABLE_CONCURRENT_GC
     // If we do the final rescan concurrently, the main thread will prepare for sweep concurrently
     // If we do rescan in thread, we will need to prepare sweep here.
     // However, if we are in the rescan for OOM, we have already done it, so no need to do it again
@@ -1074,14 +1089,13 @@ HeapBucketT<TBlockType>::Rescan(Recycler * recycler, RescanFlags flags)
     {
         this->PrepareSweep();
     }
+#endif
 
     // By default heap bucket doesn't rescan anything
     return 0;
 }
 
-#endif
-
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
 template <typename TBlockType>
 void
 HeapBucketT<TBlockType>::MergeNewHeapBlock(TBlockType * heapBlock)
@@ -1108,6 +1122,7 @@ HeapBucketT<TBlockType>::SetupBackgroundSweep(RecyclerSweep& recyclerSweep)
 
     this->StopAllocationBeforeSweep();
 }
+#endif
 
 #ifdef RECYCLER_PAGE_HEAP
 template <typename TBlockType>
@@ -1124,10 +1139,12 @@ HeapBucketT<TBlockType>::PageHeapCheckSweepLists(RecyclerSweep& recyclerSweep)
         {
             Assert(!heapBlock->InPageHeapMode());
         });
+#if ENABLE_CONCURRENT_GC
         HeapBlockList::ForEach(recyclerSweep.GetPendingSweepBlockList(this), [](TBlockType * heapBlock)
         {
             Assert(!heapBlock->InPageHeapMode());
         });
+#endif
     }
 #endif
 }
@@ -1160,7 +1177,6 @@ HeapBucketT<TBlockType>::AppendAllocableHeapBlockList(TBlockType * list)
         }
     }
 }
-#endif
 
 template <typename TBlockType>
 void
@@ -1447,7 +1463,6 @@ HeapBucketGroup<TBlockAttributes>::FinalizeAllObjects()
 #endif
 }
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
 template <class TBlockAttributes>
 uint
 HeapBucketGroup<TBlockAttributes>::Rescan(Recycler * recycler, RescanFlags flags)
@@ -1460,8 +1475,8 @@ HeapBucketGroup<TBlockAttributes>::Rescan(Recycler * recycler, RescanFlags flags
 #endif
         finalizableHeapBucket.Rescan(recycler, flags);
 }
-#endif
-#ifdef CONCURRENT_GC_ENABLED
+
+#if ENABLE_CONCURRENT_GC
 template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::PrepareSweep()
@@ -1486,7 +1501,7 @@ HeapBucketGroup<TBlockAttributes>::SetupBackgroundSweep(RecyclerSweep& recyclerS
 #endif
 }
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
 template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::SweepPartialReusePages(RecyclerSweep& recyclerSweep)
@@ -1529,7 +1544,7 @@ HeapBucketGroup<TBlockAttributes>::FinishPartialCollect(RecyclerSweep * recycler
 }
 #endif
 
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
+#if ENABLE_CONCURRENT_GC
 template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::SweepPendingObjects(RecyclerSweep& recyclerSweep)
@@ -1547,9 +1562,7 @@ HeapBucketGroup<TBlockAttributes>::SweepPendingObjects(RecyclerSweep& recyclerSw
 
     finalizableHeapBucket.SweepPendingObjects(recyclerSweep);
 }
-#endif
 
-#ifdef CONCURRENT_GC_ENABLED
 template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::TransferPendingEmptyHeapBlocks(RecyclerSweep& recyclerSweep)

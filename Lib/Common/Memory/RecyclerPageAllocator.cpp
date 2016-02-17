@@ -25,6 +25,7 @@ bool RecyclerPageAllocator::IsMemProtectMode()
     return recycler->IsMemProtectMode();
 }
 
+#if ENABLE_CONCURRENT_GC
 void
 RecyclerPageAllocator::EnableWriteWatch()
 {
@@ -222,4 +223,5 @@ RecyclerPageAllocator::GetAllWriteWatchPageCount(DListBase<T> * segmentList)
     }
     return totalCount;
 }
+#endif
 #endif

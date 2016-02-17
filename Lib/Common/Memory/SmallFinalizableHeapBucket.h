@@ -208,15 +208,15 @@ public:
 
     template<bool pageheap>
     void Sweep(RecyclerSweep& recyclerSweep);
-#if defined(PARTIAL_GC_ENABLED) || defined(CONCURRENT_GC_ENABLED)
     uint Rescan(Recycler * recycler, RescanFlags flags);
+#if ENABLE_CONCURRENT_GC
     void SweepPendingObjects(RecyclerSweep& recyclerSweep);
 #endif
-#ifdef PARTIAL_GC_ENABLED
+#if ENABLE_PARTIAL_GC
     void SweepPartialReusePages(RecyclerSweep& recyclerSweep);
     void FinishPartialCollect(RecyclerSweep * recyclerSweep);
 #endif
-#ifdef CONCURRENT_GC_ENABLED
+#if ENABLE_CONCURRENT_GC
     void PrepareSweep();
     void SetupBackgroundSweep(RecyclerSweep& recyclerSweep);
     void TransferPendingEmptyHeapBlocks(RecyclerSweep& recyclerSweep);
