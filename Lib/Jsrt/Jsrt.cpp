@@ -309,6 +309,14 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
         }
 #endif
 
+        if(runtime->GetDebugObject() != nullptr)
+        {
+            context->GetScriptContext()->InitializeDebugging();
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
+        }
+
         *newContext = (JsContextRef)context;
         return JsNoError;
     });
@@ -489,6 +497,8 @@ STDAPI_(JsErrorCode) JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
         // Close any open Contexts.
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
+
+        runtime->ClearDebugObject();
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         bool doFinalGC = false;
@@ -3115,7 +3125,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 #endif
 
         JsrtContext * context = JsrtContext::GetCurrent();
-        context->OnScriptLoad(scriptFunction, utf8SourceInfo);
+        context->OnScriptLoad(scriptFunction, utf8SourceInfo, &se);
 
         return JsNoError;
     });
@@ -3434,7 +3444,7 @@ JsErrorCode RunSerializedScriptCore(const wchar_t *script, JsSerializedScriptLoa
         function = scriptContext->GetLibrary()->CreateScriptFunction(functionBody);
 
         JsrtContext * context = JsrtContext::GetCurrent();
-        context->OnScriptLoad(function, functionBody->GetUtf8SourceInfo());
+        context->OnScriptLoad(function, functionBody->GetUtf8SourceInfo(), nullptr);
 
         return JsNoError;
     });

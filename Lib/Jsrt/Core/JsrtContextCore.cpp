@@ -17,9 +17,9 @@ bool JsrtContext::Is(void * ref)
     return VirtualTableInfo<JsrtContextCore>::HasVirtualTable(ref);
 }
 
-void JsrtContext::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtContext::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
-    ((JsrtContextCore *)this)->OnScriptLoad(scriptFunction, utf8SourceInfo);
+    ((JsrtContextCore *)this)->OnScriptLoad(scriptFunction, utf8SourceInfo, compileException);
 }
 
 JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
@@ -50,6 +50,13 @@ void JsrtContextCore::Dispose(bool isShutdown)
         }
 #endif
 
+        if (this->GetRuntime()->GetDebugObject())
+        {
+            this->GetRuntime()->GetDebugObject()->ClearDebugDocument(this->GetScriptContext());
+        }
+        this->GetScriptContext()->EnsureClearDebugDocument();
+        this->GetScriptContext()->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+        this->GetScriptContext()->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
         this->GetScriptContext()->MarkForClose();
         this->SetScriptContext(nullptr);
         Unlink();
@@ -80,7 +87,11 @@ Js::ScriptContext* JsrtContextCore::EnsureScriptContext()
     return this->GetScriptContext();
 }
 
-void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo)
+void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
-    // Do nothing
+    JsrtDebug* debugObject = this->GetRuntime()->GetDebugObject();
+    if (debugObject != nullptr)
+{
+        debugObject->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
+    }
 }

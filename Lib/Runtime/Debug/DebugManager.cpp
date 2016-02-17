@@ -19,7 +19,9 @@ namespace Js
         evalCodeRegistrationCount(0),
         anonymousCodeRegistrationCount(0),
         jscriptBlockRegistrationCount(0),
-        isDebuggerAttaching(false)
+        isDebuggerAttaching(false),
+        nextBreakPointId(0),
+        localsDisplayFlags(LocalsDisplayFlags_None)
     {
         Assert(_pThreadContext != nullptr);
 #if DBG
@@ -198,4 +200,26 @@ namespace Js
         }
     }
 #endif
+}
+
+AutoSetDispatchHaltFlag::AutoSetDispatchHaltFlag(Js::ScriptContext *scriptContext, ThreadContext *threadContext) :
+    m_scriptContext(scriptContext),
+    m_threadContext(threadContext)
+{
+    Assert(m_scriptContext != nullptr);
+    Assert(m_threadContext != nullptr);
+
+    Assert(!m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(true);
+
+    Assert(!m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(true);
+}
+AutoSetDispatchHaltFlag::~AutoSetDispatchHaltFlag()
+{
+    Assert(m_threadContext->GetDebugManager()->IsAtDispatchHalt());
+    m_threadContext->GetDebugManager()->SetDispatchHalt(false);
+
+    Assert(m_scriptContext->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext());
+    m_scriptContext->GetDebugContext()->GetProbeContainer()->SetIsPrimaryBrokenToDebuggerContext(false);
 }

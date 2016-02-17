@@ -25,4 +25,6 @@
 
 #include "chakracommon.h"
 
+#include "chakrartdebug.h"
+
 #endif // _CHAKRACORE_H_
