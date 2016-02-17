@@ -166,8 +166,25 @@ var tests = [
     }
   },
   {
+    name: "Object destructuring with `get` and `set` identifiers",
+    body: function () {
+        var { get } = { get: 1 };
+        let { set } = { set: 2 };
+        assert.areEqual(1, get, "`get` is a valid object destructuring name");
+        assert.areEqual(2, set, "`set` is a valid object destructuring name");
+
+        assert.throws(function () { eval("var { get foo() { } } = { get: 1 };"); }, SyntaxError, "getter accessor is not a valid object destructuring name", "Invalid destructuring assignment target");
+        assert.throws(function () { eval("var { set bar(x) { } } = { set: 2 };"); }, SyntaxError, "setter accessor is not a valid object destructuring name", "Invalid destructuring assignment target");
+
+        const { get: x } = { get: 3 };
+        var { set: y } = { set: 4 };
+        assert.areEqual(3, x, "`get` is a valid object destructuring name mapping");
+        assert.areEqual(4, y, "`set` is a valid object destructuring name mapping");
+    }
+  },
+  {
     name: "Object destructuring basic functionality",
-    body : function () {
+    body: function () {
         {
            var x3, x4;
            let {x:x1} = {x:20};

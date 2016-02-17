@@ -173,6 +173,8 @@ function Test5()
 
     WScript.Echo("" + fooDescriptor.get);
     WScript.Echo("" + fooDescriptor.set);
+
+    return true;
 }
 
 // Note: test for Object literal duplicate set\get property is in the file ObjLitGetSetDuplicate.js.

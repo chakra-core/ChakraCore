@@ -385,17 +385,17 @@ private:
 
     struct WellKnownPropertyPids
     {
-        IdentPtr arguments; // m_pidArguments; // 'arguments' identifier
-        IdentPtr async; // m_pidAsync;
-        IdentPtr eval; // m_pidEval;
-        IdentPtr setter; // m_pidSetter;
-        IdentPtr getter; // m_pidGetter;
-        IdentPtr let; //m_pidLet;
-        IdentPtr constructor; //m_pidConstructor;
-        IdentPtr prototype; //m_pidPrototype;
-        IdentPtr __proto__; // m_pid__proto__;
-        IdentPtr of; //m_pidOf;
-        IdentPtr target; // m_pidTarget;
+        IdentPtr arguments;
+        IdentPtr async;
+        IdentPtr eval;
+        IdentPtr set;
+        IdentPtr get;
+        IdentPtr let;
+        IdentPtr constructor;
+        IdentPtr prototype;
+        IdentPtr __proto__;
+        IdentPtr of;
+        IdentPtr target;
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
@@ -453,6 +453,7 @@ private:
     bool IsNodeAllowedForDeferParse(OpCode op) {return !this->m_deferringAST ||
         (op == knopBlock || op == knopVarDecl || op == knopConstDecl || op == knopLetDecl || op == knopFncDecl); }
     bool NextTokenConfirmsLetDecl() const { return m_token.tk == tkID || m_token.tk == tkLBrack || m_token.tk == tkLCurly || m_token.IsReservedWord(); }
+    bool NextTokenIsPropertyNameStart() const { return m_token.tk == tkID || m_token.tk == tkStrCon || m_token.tk == tkIntCon || m_token.tk == tkFltCon || m_token.tk == tkLBrack || m_token.IsReservedWord(); }
 
     template<bool buildAST>
     void PushStmt(StmtNest *pStmt, ParseNodePtr pnode, OpCode op, ParseNodePtr pnodeLab, LabelId* pLabelIdList)
