@@ -4,4 +4,4 @@
 //-------------------------------------------------------------------------------------------------------
 
 var a = WScript.LoadWasmFile('basic.wast', {foo: function(a){print(a); return 2;}});
-print(a(11));
+print(a.a(11));

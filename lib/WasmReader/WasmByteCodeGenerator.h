@@ -57,7 +57,7 @@ namespace Wasm
     };
 
     typedef JsUtil::GrowingArray<WasmFunction*, ArenaAllocator> WasmFunctionArray;
-    typedef JsUtil::BaseDictionary<LPCUTF8, uint, ArenaAllocator> WasmExportDictionary;
+    typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
 
     struct WasmModule
     {
