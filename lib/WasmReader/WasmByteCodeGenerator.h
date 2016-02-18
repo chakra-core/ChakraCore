@@ -54,7 +54,6 @@ namespace Wasm
         }
         Js::FunctionBody * body;
         WasmFunctionInfo * wasmInfo;
-        bool imported;
     };
 
     typedef JsUtil::GrowingArray<WasmFunction*, ArenaAllocator> WasmFunctionArray;
