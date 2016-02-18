@@ -166,6 +166,8 @@ WASM_LOCALTYPE(I64,    i64)
 WASM_LOCALTYPE(F32,    f32)
 WASM_LOCALTYPE(F64,    f64)
 
+WASM_KEYWORD(CALL, call)
+
 // control flow ops
 WASM_KEYWORD(NOP,        nop)
 WASM_KEYWORD(BLOCK,      block)
@@ -175,10 +177,7 @@ WASM_KEYWORD(LOOP,       loop)
 WASM_KEYWORD(LABEL,      label)
 WASM_KEYWORD(BREAK,      break)
 WASM_KEYWORD(SWITCH,     switch)
-WASM_KEYWORD(CALL,       call)
-WASM_KEYWORD(DISPATCH,   dispatch)
 WASM_KEYWORD(RETURN,     return)
-WASM_KEYWORD(DESTRUCT,   destruct)
 WASM_KEYWORD_FDI(CONST,      const)
 
 // structures
@@ -189,6 +188,7 @@ WASM_KEYWORD(LOCAL,      local)
 WASM_KEYWORD(MODULE,     module)
 WASM_KEYWORD(GLOBAL,     global)
 WASM_KEYWORD(EXPORT,     export)
+WASM_KEYWORD(IMPORT,     import)
 WASM_KEYWORD(TABLE,      table)
 WASM_KEYWORD(MEMORY,     memory)
 WASM_KEYWORD(DATA,       data)

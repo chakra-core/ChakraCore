@@ -2494,7 +2494,7 @@ STDAPI_(JsErrorCode) JsExperimentalApiRunModule(_In_z_ const wchar_t * script, _
     return RunScriptCore(script, sourceContext, sourceUrl, false, JsParseScriptAttributeNone, true, result);
 }
 
-STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ const bool isBinary, _In_ const uint lengthBytes, _Out_ JsValueRef * result)
+STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ const bool isBinary, _In_ const uint lengthBytes, _In_opt_ JsValueRef ffi, _Out_ JsValueRef * result)
 {
 #ifdef ENABLE_WASM
     Js::JavascriptFunction *scriptFunction;
@@ -2505,6 +2505,11 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
         PARAM_NOT_NULL(script);
         PARAM_NOT_NULL(sourceUrl);
 
+        // FFI is optional
+        if (ffi != JS_INVALID_REFERENCE)
+        {
+            VALIDATE_INCOMING_OBJECT(ffi, scriptContext);
+        }
 
         SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, NULL);
 
@@ -2526,7 +2531,7 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
         };
 
         Js::Utf8SourceInfo* utf8SourceInfo;
-        scriptFunction = scriptContext->LoadWasmScript(script, &si, &se, result != NULL, false, false, &utf8SourceInfo, isBinary, lengthBytes, Js::Constants::GlobalCode);
+        scriptFunction = scriptContext->LoadWasmScript(script, &si, &se, result != NULL, false, false, &utf8SourceInfo, isBinary, lengthBytes, Js::Constants::GlobalCode, (Js::Var)ffi);
 
         JsrtContext * context = JsrtContext::GetCurrent();
         context->OnScriptLoad(scriptFunction, utf8SourceInfo);

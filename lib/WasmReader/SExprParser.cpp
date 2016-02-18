@@ -54,9 +54,11 @@ SExprParser::ReadFromModule()
     switch(tok)
     {
     case wtkFUNC:
-        return ParseFunctionHeader();
+        return ParseFunctionHeader<false>();
     case wtkEXPORT:
         return ParseExport();
+    case wtkIMPORT:
+        return ParseFunctionHeader<true>();
     case wtkMEMORY:
         return ParseMemory();
     // TODO: implement the following
@@ -166,7 +168,7 @@ SExprParser::ReadExprCore(SExprTokenType tok)
     case wtkBLOCK:
         return ParseBlock();
     case wtkCALL:
-        return ParseCall();
+        return ParseCall();;
     case wtkLOOP:
         return wnLOOP;
     case wtkLABEL:
@@ -207,32 +209,38 @@ ParseVarCommon:
     // TODO: implement enumerated ops
     case wtkBREAK:
     case wtkSWITCH:
-    case wtkDISPATCH:
-    case wtkDESTRUCT:
     default:
         ThrowSyntaxError();
     }
 }
 
+template <bool imported>
 WasmOp
 SExprParser::ParseFunctionHeader()
 {
-    m_currentNode.op = wnFUNC;
+    m_currentNode.op = imported ? wnIMPORT : wnFUNC;
 
     SExprTokenType tok = m_scanner->Scan();
 
+    m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
+
+    if (imported)
+    {
+        m_funcInfo->SetImported(true);
+    }
+
     if (tok == wtkSTRINGLIT)
     {
-        if (!m_nameToFuncMap->AddNew(m_token.u.m_sz, m_funcNumber))
+        if (imported)
         {
-            ThrowSyntaxError();
+            m_funcInfo->SetName(m_token.u.m_sz);
         }
+        m_nameToFuncMap->AddNew(m_token.u.m_sz, m_funcNumber);
+
         tok = m_scanner->Scan();
     }
 
-    m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
     m_currentNode.func.info = m_funcInfo;
-
     m_funcNumber++;
 
     if (IsEndOfExpr(tok))
@@ -270,6 +278,12 @@ SExprParser::ParseFunctionHeader()
         }
 
         tok = m_scanner->Scan();
+    }
+
+    // import should not have locals or a function body
+    if (imported)
+    {
+        ThrowSyntaxError();
     }
 
     while (tok == wtkLOCAL)
@@ -347,10 +361,7 @@ SExprParser::ParseParam()
     SExprTokenType tok = m_scanner->Scan();
     if (tok == wtkID)
     {
-        if (!m_nameToLocalMap->AddNew(m_token.u.m_sz, m_funcInfo->GetLocalCount()))
-        {
-            ThrowSyntaxError();
-        }
+        m_nameToLocalMap->AddNew(m_token.u.m_sz, m_funcInfo->GetLocalCount());
         tok = m_scanner->Scan();
         m_funcInfo->AddParam(GetWasmType(tok));
         m_scanner->ScanToken(wtkRPAREN);
@@ -379,10 +390,7 @@ SExprParser::ParseLocal()
     SExprTokenType tok = m_scanner->Scan();
     if (tok == wtkID)
     {
-        if (!m_nameToLocalMap->AddNew(m_token.u.m_sz, m_funcInfo->GetLocalCount()))
-        {
-            ThrowSyntaxError();
-        }
+        m_nameToLocalMap->AddNew(m_token.u.m_sz, m_funcInfo->GetLocalCount());
         tok = m_scanner->Scan();
         m_funcInfo->AddLocal(GetWasmType(tok));
         m_scanner->ScanToken(wtkRPAREN);
@@ -464,11 +472,11 @@ WasmOp SExprParser::ParseBlock()
 
 WasmOp SExprParser::ParseCall()
 {
+    m_currentNode.op = wnCALL;
     m_blockNesting->Push(SExpr::Call);
 
     ParseFuncVar();
-
-    return wnCALL;
+    return m_currentNode.op;
 }
 
 WasmOp
