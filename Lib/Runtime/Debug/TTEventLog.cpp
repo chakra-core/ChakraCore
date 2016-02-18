@@ -891,12 +891,13 @@ namespace TTD
         this->AdvanceTimeAndPositionForReplay();
 
         //replay anything that happens when we are out of the call
-        if(this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
+        if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
         {
             this->ReplayActionLoopStep();
         }
 
-        if(this->m_currentReplayEventIterator.Current() == nullptr)
+        //May have exited inside the external call without anything else
+        if(!this->m_currentReplayEventIterator.IsValid())
         {
             this->AbortReplayReturnToHost();
         }

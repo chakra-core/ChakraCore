@@ -326,7 +326,6 @@ namespace TTD
             if(TTD::JsSupport::IsVarPtrValued(objVal))
             {
                 threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(objVal));
-
             }
         }
         else
@@ -1139,7 +1138,10 @@ namespace TTD
         }
         Js::Arguments jsArgs(callInfo, this->m_execArgs);
 
-        AssertMsg(!Js::ScriptFunction::Is(jsFunction), "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
+        //
+        //TODO: we will want to look at this at some point -- either treat as "top-level" call or maybe constructors are fast so we can just jump back to previous "real" code
+        //
+        AssertMsg(!Js::ScriptFunction::Is(jsFunction) || execContext->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
 
         Js::Var value = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, execContext);
 
