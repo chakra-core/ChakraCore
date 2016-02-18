@@ -2135,7 +2135,6 @@ case_2:
     {
         charcount_t count = pThis->GetLength();
 
-        BufferStringBuilder builder(count, pThis->type->GetScriptContext());
         const wchar_t* inStr = pThis->GetString();
         wchar_t* i = inStr; 
         wchar_t* iLim = i + count;
@@ -2168,6 +2167,7 @@ case_2:
         charcount_t countToConvert = count - countToSkip; 
 
         // start by copying the whole string in a new buffer
+        BufferStringBuilder builder(count, pThis->type->GetScriptContext());
         wchar_t* outStr = builder.DangerousGetWritableBuffer();
         wchar_t* outStrLim = outStr + count;
         wchar_t* o = outStr;
