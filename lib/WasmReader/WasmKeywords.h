@@ -83,7 +83,18 @@
 #endif
 
 #ifndef WASM_KEYWORD_UNARY
-#define WASM_KEYWORD_UNARY(token, name) WASM_KEYWORD(token, name)
+#define WASM_KEYWORD_UNARY(token, name, op, resultType, inputType) WASM_KEYWORD(token, name)
+#endif
+
+#ifndef WASM_KEYWORD_UNARY_I
+#define WASM_KEYWORD_UNARY_I(token, name, opPrefix) \
+    WASM_KEYWORD_UNARY(token##_I32, name, opPrefix##_Int, I32, I32)
+#endif
+
+#ifndef WASM_KEYWORD_UNARY_FD
+#define WASM_KEYWORD_UNARY_FD(token, name, opPrefix) \
+    WASM_KEYWORD_UNARY(token##_F32, name, opPrefix##_Flt, F32, F32) \
+    WASM_KEYWORD_UNARY(token##_F64, name, opPrefix##_Db, F64, F64)
 #endif
 
 #ifndef WASM_MEMTYPE
@@ -156,15 +167,35 @@ WASM_KEYWORD(MEMORY,     memory)
 WASM_KEYWORD(DATA,       data)
 
 // unary ops
-WASM_KEYWORD_UNARY(NOT,    not)
-WASM_KEYWORD_UNARY(CLZ,    clz)
-WASM_KEYWORD_UNARY(CTZ,    ctz)
-WASM_KEYWORD_UNARY(NEG,    neg)
-WASM_KEYWORD_UNARY(ABS,    abs)
-WASM_KEYWORD_UNARY(CEIL,   ceil)
-WASM_KEYWORD_UNARY(FLOOR,  floor)
-WASM_KEYWORD_UNARY(TRUNC,  trunc)
-WASM_KEYWORD_UNARY(ROUND,  round)
+WASM_KEYWORD_UNARY_I(NOT,    not, Not)
+WASM_KEYWORD_UNARY_I(CLZ,    clz, Clz32)
+WASM_KEYWORD_UNARY_FD(NEG,    neg, Neg)
+WASM_KEYWORD_UNARY_FD(ABS,    abs, Abs)
+WASM_KEYWORD_UNARY_FD(CEIL,   ceil, Ceil)
+WASM_KEYWORD_UNARY_FD(FLOOR,  floor, Floor)
+
+// TODO: michhol, new ops
+// WASM_KEYWORD_UNARY_FD(TRUNC, trunc, Trunc)
+// WASM_KEYWORD_UNARY_I(CTZ,    ctz, Ctz)
+// WASM_KEYWORD_UNARY_I(POPCNT, popcnt, PopCnt)
+// WASM_KEYWORD_UNARY_FD(ROUND,  round, Round)
+
+// conversion ops
+WASM_KEYWORD_UNARY(TRUNC_S_F32_I32, trunc_s, Conv_FTI, I32, F32)
+WASM_KEYWORD_UNARY(TRUNC_S_F64_I32, trunc_s, Conv_DTI, I32, F64)
+WASM_KEYWORD_UNARY(CONVERT_S_I32_F32, convert_s, Fround_Int, F32, I32)
+WASM_KEYWORD_UNARY(CONVERT_S_I32_F64, convert_s, Conv_ITD, F64, I32)
+WASM_KEYWORD_UNARY(CONVERT_U_I32_F64, convert_u, Conv_UTD, F64, I32)
+WASM_KEYWORD_UNARY(PROMOTE_F32_F64, promote, Conv_ITD, F64, F32)
+WASM_KEYWORD_UNARY(DEMOTE_F64_F32, demote, Fround_Db, F32, F64)
+
+// TODO: new conversions
+// i32.trunc_u/f32
+// i32.trunc_u/f64
+// i32.reinterpret/f32
+// f32.convert_u/i32
+// f32.reinterpret/i32
+
 
 // binary ops
 WASM_KEYWORD_BIN_MATH_FDI(ADD, add, Add)
@@ -218,6 +249,8 @@ WASM_KEYWORD(ASSERTEQ,   asserteq)
 #undef WASM_KEYWORD_COMPARE_D
 #undef WASM_KEYWORD_COMPARE_F
 #undef WASM_KEYWORD_COMPARE
+#undef WASM_KEYWORD_UNARY_I
+#undef WASM_KEYWORD_UNARY_FD
 #undef WASM_KEYWORD_UNARY
 #undef WASM_KEYWORD_BIN_MATH_FDI
 #undef WASM_KEYWORD_BIN_MATH_FD

@@ -7,7 +7,7 @@
   (func (result i32)
     (return (i32.const 2))
   )
-  (func (param i32) (result i32)
+  (func (param i32) (result i32) (local f32)
     (if (i32.ges (i32.const 26) (i32.const 25)) (setlocal 0 (i32.add (getlocal 0) (i32.const 4))))
 
     (if_else
@@ -16,9 +16,14 @@
         (setlocal 0 (i32.sub (getlocal 0) (i32.const 5)))
     )
     (block
-    (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
-    (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
-    (setlocal 0 (i32.add (getlocal 0) (call 0))))
+        (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
+        (setlocal 0 (i32.add (getlocal 0) (i32.clz (getlocal 0))))
+        (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
+        (setlocal 0 (i32.add (getlocal 0) (call 0)))
+    )
+    (setlocal 1 (f32.convert_s/i32 (getlocal 0)))
+    (setlocal 1 (f32.add (getlocal 1) (getlocal 1)))
+    (setlocal 0 (i32.trunc_s/f32 (getlocal 1)))
     (return (i32.add (getlocal 0) (i32.const 42)))
   )
 

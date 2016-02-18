@@ -118,6 +118,9 @@ namespace Wasm
         template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType lhsType, WasmTypes::WasmType rhsType>
         EmitInfo EmitBinExpr();
 
+        template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType inputType>
+        EmitInfo EmitUnaryExpr();
+
         template<WasmTypes::WasmType type>
         EmitInfo EmitConst();
 

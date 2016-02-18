@@ -31,9 +31,7 @@ namespace Wasm
         wnSetNearU,
         wnSetNearUnalignedS,
         wnSetNearUnalignedU,
-#define WASM_KEYWORD_BIN(token, name) wn##token,
 #define WASM_KEYWORD(token, name) wn##token,
-#define WASM_KEYWORD_UNARY(token, name) wn##token,
 #include "WasmKeywords.h"
         wnLIMIT
     };
