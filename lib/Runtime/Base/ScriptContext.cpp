@@ -1880,7 +1880,11 @@ namespace Js
                     utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
 
                     GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
-
+                    if (!ffi)
+                    {
+                        // TODO: michhol give error message
+                        Js::Throw::InternalError();
+                    }
                     Var prop = JavascriptOperators::OP_GetProperty(ffi, propertyRecord->GetPropertyId(), this);
                     if (!JavascriptFunction::Is(prop))
                     {
