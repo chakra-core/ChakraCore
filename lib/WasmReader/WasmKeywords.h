@@ -105,24 +105,51 @@
 #define WASM_LOCALTYPE(token, name) WASM_MEMTYPE(token, name)
 #endif
 
-// memory
-WASM_KEYWORD(GET_NEAR_UNALIGNED_S,   getnearunaligneds)
-WASM_KEYWORD(GET_FAR_UNALIGNED_S,    getfarunaligneds)
-WASM_KEYWORD(GET_NEAR_S,             getnears)
-WASM_KEYWORD(GET_FAR_S,              getfars)
-WASM_KEYWORD(SET_NEAR_UNALIGNED_S,   setnearunaligneds)
-WASM_KEYWORD(SET_FAR_UNALIGNED_S,    setfarunaligneds)
-WASM_KEYWORD(SET_NEAR_S,             setnears)
-WASM_KEYWORD(SET_FAR_S,              setfars)
+#ifndef WASM_MEMOP
+#define WASM_MEMOP(token, name, type) WASM_KEYWORD(token, name)
+#endif
 
-WASM_KEYWORD(GET_NEAR_UNALIGNED_U,   getnearunalignedu)
-WASM_KEYWORD(GET_FAR_UNALIGNED_U,    getfarunalignedu)
-WASM_KEYWORD(GET_NEAR_U,             getnearu)
-WASM_KEYWORD(GET_FAR_U,              getfaru)
-WASM_KEYWORD(SET_NEAR_UNALIGNED_U,   setnearunalignedu)
-WASM_KEYWORD(SET_FAR_UNALIGNED_U,    setfarunalignedu)
-WASM_KEYWORD(SET_NEAR_U,             setnearu)
-WASM_KEYWORD(SET_FAR_U,              setfaru)
+#ifndef WASM_MEMREAD
+#define WASM_MEMREAD(token, name, type) WASM_MEMOP(token, name, type)
+#endif
+
+#ifndef WASM_MEMREAD_I
+#define WASM_MEMREAD_I(token, name) \
+    WASM_MEMREAD(token##_I32, name, I32)
+#endif
+
+#ifndef WASM_MEMREAD_FDI
+#define WASM_MEMREAD_FDI(token, name) \
+    WASM_MEMREAD(token##_F32, name, F32) \
+    WASM_MEMREAD(token##_F64, name, F64) \
+    WASM_MEMREAD_I(token, name)
+#endif
+
+#ifndef WASM_MEMSTORE
+#define WASM_MEMSTORE(token, name, type) WASM_MEMOP(token, name, type)
+#endif
+
+#ifndef WASM_MEMSTORE_I
+#define WASM_MEMSTORE_I(token, name) \
+    WASM_MEMSTORE(token##_I32, name, I32)
+#endif
+
+#ifndef WASM_MEMSTORE_FDI
+#define WASM_MEMSTORE_FDI(token, name) \
+    WASM_MEMSTORE(token##_F32, name, F32) \
+    WASM_MEMSTORE(token##_F64, name, F64) \
+    WASM_MEMSTORE_I(token, name)
+#endif
+
+// memory
+WASM_MEMREAD_FDI(LOAD,    load)
+WASM_MEMREAD_I(LOAD8S,     load8_s)
+WASM_MEMREAD_I(LOAD16S,    load16_s)
+WASM_MEMREAD_I(LOAD8U,     load8_u)
+WASM_MEMREAD_I(LOAD16U,    load16_u)
+WASM_MEMSTORE_FDI(STORE,   store)
+WASM_MEMSTORE_I(STORE8,    store8)
+WASM_MEMSTORE_I(STORE16,   store16)
 
 WASM_KEYWORD(GETPARAM,               getparam)
 WASM_KEYWORD(GETLOCAL,               getlocal)
@@ -239,10 +266,13 @@ WASM_KEYWORD(CONVERTU,   convertu)
 WASM_KEYWORD(CONVERT,    convert)
 WASM_KEYWORD(CAST,       cast)
 
-// process actions
-WASM_KEYWORD(INVOKE,     invoke)
-WASM_KEYWORD(ASSERTEQ,   asserteq)
-
+#undef WASM_MEMSTORE_FDI
+#undef WASM_MEMSTORE_I
+#undef WASM_MEMSTORE
+#undef WASM_MEMREAD_FDI
+#undef WASM_MEMREAD_I
+#undef WASM_MEMREAD
+#undef WASM_MEMOP
 #undef WASM_KEYWORD_COMPARE_FDI
 #undef WASM_KEYWORD_COMPARE_FD
 #undef WASM_KEYWORD_COMPARE_I

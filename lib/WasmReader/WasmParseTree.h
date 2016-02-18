@@ -21,16 +21,6 @@ namespace Wasm
 
     enum WasmOp
     {
-        wnGetGlobal,
-        wnSetGlobal,
-        wnGetNearS,
-        wnGetNearU,
-        wnGetNearUnalignedS,
-        wnGetNearUnalignedU,
-        wnSetNearS,
-        wnSetNearU,
-        wnSetNearUnalignedS,
-        wnSetNearUnalignedU,
 #define WASM_KEYWORD(token, name) wn##token,
 #include "WasmKeywords.h"
         wnLIMIT
@@ -81,6 +71,12 @@ namespace Wasm
         UINT8 count;
     };
 
+    struct WasmMemOpNode
+    {
+        uint32 offset;
+        uint8 alignment;
+    };
+
     struct WasmBrNode
     {
         UINT8 depth;
@@ -106,6 +102,7 @@ namespace Wasm
             WasmBlockNode block;
             WasmBrNode br;
             WasmTableSwitchNode tableswitch;
+            WasmMemOpNode mem;
         };
     };
 }

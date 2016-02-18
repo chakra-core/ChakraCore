@@ -1788,7 +1788,7 @@ namespace Js
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
             Js::AutoDynamicCodeReference dynamicFunctionReference(this);
             *ppSourceInfo = nullptr;
-            Wasm::WasmScript * wasmScript = nullptr;
+            Wasm::WasmModule * wasmModule = nullptr;
             Wasm::BaseWasmReader *reader = nullptr;
             Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
 
@@ -1840,26 +1840,29 @@ namespace Js
                 reader = HeapNew(Wasm::Binary::WasmBinaryReader, threadContext->GetPageAllocator(), (byte*)script, lengthBytes);
             }
             bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
-            wasmScript = bytecodeGen->GenerateWasmScript();
+            wasmModule = bytecodeGen->GenerateModule();
 
+            Wasm::WasmFunction ** functionArray = wasmModule->functions->GetBuffer();
 
-            /*
-            ScriptFunction * rootFunction = javascriptLibrary->CreateScriptFunction(wasmScript->globalBody);
+            Var* moduleMemoryPtr = RecyclerNewArray(GetRecycler(), Var, wasmModule->memSize);
 
-            rootFunction->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-            */
+            Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
+            if (wasmModule->info->GetMemory()->minSize != 0)
+            {
+                // TODO: create new type array buffer that is non detachable
+                *heap = JavascriptArrayBuffer::Create((uint32)wasmModule->info->GetMemory()->maxSize, GetLibrary()->arrayBufferType);
+            }
+            else
+            {
+                *heap = nullptr;
+            }
 
-            Wasm::WasmFunction ** functionArray = wasmScript->module->functions->GetBuffer();
-
-            Var* moduleMemoryPtr = RecyclerNewArray(GetRecycler(), Var, wasmScript->module->memSize);
-            Var* localModuleFunctions = moduleMemoryPtr + wasmScript->module->funcOffset;
-
-
+            Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
 
             FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
             frameDisplay->SetItem(0, moduleMemoryPtr);
             AsmJsScriptFunction * funcObj = nullptr;
-            for (uint i = 0; i < wasmScript->module->functions->Count(); ++i)
+            for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
                 funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
                 funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);

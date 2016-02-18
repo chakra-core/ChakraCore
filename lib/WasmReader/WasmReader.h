@@ -22,6 +22,7 @@ namespace Wasm
 #include "ByteCode\ByteCodeWriter.h"
 #include "ByteCode\AsmJsByteCodeWriter.h"
 
+#include "ModuleInfo.h"
 #include "WasmParseTree.h"
 #include "WasmFunctionInfo.h"
 

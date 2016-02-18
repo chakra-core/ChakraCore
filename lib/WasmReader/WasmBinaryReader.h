@@ -92,7 +92,6 @@ namespace Wasm
             static void Init(Js::ScriptContext *scriptContext);
 
             virtual bool IsBinaryReader() override;
-            virtual WasmOp ReadFromScript() override;
             virtual WasmOp ReadFromModule() override;
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
@@ -116,9 +115,11 @@ namespace Wasm
             void BlockNode();
             void BrNode();
             void TableSwitchNode();
+            WasmOp MemNode(WasmBinOp op);
             void VarNode();
             template <WasmTypes::LocalType type> void ConstNode();
             // readers
+            void ReadMemorySection();
             void Signature();
             void FunctionHeader();
             const char* Name(UINT32 offset, UINT &length);
@@ -144,8 +145,6 @@ namespace Wasm
             BVFixed * m_visitedSections;
             ReaderState m_moduleState; // module-level
             ReaderState m_funcState;   // func AST level
-            WasmFunctionInfo *  m_funcInfo;
-
 
         private:
 
