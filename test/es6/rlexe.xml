@@ -1141,7 +1141,12 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-
+<test>
+    <default>
+        <files>HTMLComments.js</files>
+        <baseline>HTMLComments.baseline</baseline>
+    </default>
+</test>
 <test>
     <default>
         <files>module-syntax.js</files>
