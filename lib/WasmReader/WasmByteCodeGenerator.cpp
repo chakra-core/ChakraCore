@@ -7,6 +7,12 @@
 
 #ifdef ENABLE_WASM
 
+// TODO (michhol): cleanup includes
+#include "Bytecode\AsmJsByteCodeWriter.h"
+#include "Bytecode\ByteCodeDumper.h"
+#include "Bytecode\AsmJsByteCodeDumper.h"
+#include "Language\AsmJSTypes.h"
+
 namespace Wasm
 {
 WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader) :
@@ -31,59 +37,17 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     Binary::WasmBinaryReader::Init(scriptContext);
 }
 
-WasmScript *
-WasmBytecodeGenerator::GenerateWasmScript()
-{
-    // TODO: can this be in a better place?
-     m_sourceInfo->EnsureInitialized(0);
-     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
-
-    // TODO: should scripts support multiple modules?
-
-    m_wasmScript = Anew(&m_alloc, WasmScript);
-    m_wasmScript->globalBody = Js::FunctionBody::NewFromRecycler(
-        m_scriptContext,
-        L"[Global WebAssembly Code]",
-        19,
-        0,
-        0,
-        m_sourceInfo,
-        m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
-        0,
-        nullptr,
-        Js::FunctionInfo::Attributes::None
-#ifdef PERF_COUNTERS
-        , false /* is function from deferred deserialized proxy */
-#endif
-        );
-
-    // TODO (michhol): numbering
-    m_wasmScript->globalBody->SetSourceInfo(0);
-    WasmOp op;
-    while ((op = m_reader->ReadFromScript()) != wnLIMIT)
-    {
-        switch (op)
-        {
-        case wnMODULE:
-            m_wasmScript->module = GenerateModule();
-            break;
-        case wnINVOKE:
-            GenerateInvoke();
-            break;
-        default:
-            Assert(UNREACHED);
-        }
-    }
-    return m_wasmScript;
-}
-
 WasmModule *
 WasmBytecodeGenerator::GenerateModule()
 {
+    // TODO: can this be in a better place?
+    m_sourceInfo->EnsureInitialized(0);
+    m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
+
     m_module = Anew(&m_alloc, WasmModule);
     m_module->functions = Anew(&m_alloc, WasmFunctionArray, &m_alloc, 0);
     m_module->exports = Anew(&m_alloc, WasmExportDictionary, &m_alloc);
-
+    m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->funcOffset = m_module->heapOffset + 1;
 
@@ -109,10 +73,11 @@ WasmBytecodeGenerator::GenerateModule()
         case wnEXPORT:
             AddExport();
             break;
+        case wnMEMORY:
+            break;
         // TODO: implement below ops
         case wnGLOBAL:
         case wnTABLE:
-        case wnMEMORY:
         case wnDATA:
         default:
             Assert(UNREACHED);
@@ -326,6 +291,12 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return EmitSwitch();
     case wnNOP:
         return EmitInfo();
+#define WASM_MEMREAD(token, name, type) \
+    case wn##token: \
+        return EmitMemRead<wn##token, WasmTypes::##type>();
+#define WASM_MEMSTORE(token, name, type) \
+    case wn##token: \
+        return EmitMemStore<wn##token, WasmTypes::##type>();
 #define WASM_KEYWORD_BIN_TYPED(token, name, op, resultType, lhsType, rhsType) \
     case wn##token: \
         return EmitBinExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##lhsType, WasmTypes::##rhsType>();
@@ -833,6 +804,61 @@ WasmBytecodeGenerator::EmitBinExpr()
     return EmitInfo(resultReg, resultType);
 }
 
+template<WasmOp wasmOp, WasmTypes::WasmType type>
+EmitInfo
+WasmBytecodeGenerator::EmitMemRead()
+{
+    Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
+    // TODO: emit less bytecode with expr + 0
+    m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, m_reader->m_currentNode.mem.offset);
+
+    EmitInfo exprInfo = EmitExpr(m_reader->ReadExpr());
+
+    if (exprInfo.type != WasmTypes::I32)
+    {
+        throw WasmCompilationException(L"Index expression must be of type I32");
+    }
+
+    m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, indexReg, exprInfo.location, indexReg);
+    GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&exprInfo);
+
+    GetRegisterSpace(WasmTypes::I32)->ReleaseTmpRegister(indexReg);
+    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+
+    m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArr, resultReg, indexReg, GetViewType(wasmOp));
+
+    return EmitInfo(resultReg, type);
+}
+
+template<WasmOp wasmOp, WasmTypes::WasmType type>
+EmitInfo
+WasmBytecodeGenerator::EmitMemStore()
+{
+    // TODO (michhol): combine with MemRead
+    Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
+    // TODO: emit less bytecode with expr + 0
+    m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, m_reader->m_currentNode.mem.offset);
+
+    EmitInfo exprInfo = EmitExpr(m_reader->ReadExpr());
+
+    if (exprInfo.type != WasmTypes::I32)
+    {
+        throw WasmCompilationException(L"Index expression must be of type I32");
+    }
+
+    m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, indexReg, exprInfo.location, indexReg);
+    GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&exprInfo);
+
+    EmitInfo rhsInfo = EmitExpr(m_reader->ReadExpr());
+
+    m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, indexReg, GetViewType(wasmOp));
+
+    GetRegisterSpace(rhsInfo.type)->ReleaseLocation(&rhsInfo);
+    GetRegisterSpace(WasmTypes::I32)->ReleaseTmpRegister(indexReg);
+
+    return EmitInfo();
+}
+
 template<typename T>
 Js::RegSlot
 WasmBytecodeGenerator::GetConstReg(T constVal)
@@ -917,8 +943,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitBreak()
 {
     uint8 depth = m_reader->m_currentNode.br.depth;
-    if (depth >= m_labels->Count())
-        Assert(UNREACHED);
+    Assert(depth < m_labels->Count());
 
     // TODO: Handle value that Break is supposed to "throw".
     WasmOp op = m_reader->ReadFromBlock();
@@ -980,6 +1005,44 @@ WasmBytecodeGenerator::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     return asmType;
 }
 
+/* static */
+Js::ArrayBufferView::ViewType
+WasmBytecodeGenerator::GetViewType(WasmOp op)
+{
+    switch (op)
+    {
+    case wnLOAD8S_I32:
+    case wnSTORE8_I32:
+        return Js::ArrayBufferView::TYPE_INT8;
+        break;
+    case wnLOAD8U_I32:
+        return Js::ArrayBufferView::TYPE_UINT8;
+        break;
+    case wnLOAD16S_I32:
+    case wnSTORE16_I32:
+        return Js::ArrayBufferView::TYPE_INT16;
+        break;
+    case wnLOAD16U_I32:
+        return Js::ArrayBufferView::TYPE_UINT16;
+        break;
+    case wnLOAD_F32:
+    case wnSTORE_F32:
+        return Js::ArrayBufferView::TYPE_FLOAT32;
+        break;
+    case wnLOAD_F64:
+    case wnSTORE_F64:
+        return Js::ArrayBufferView::TYPE_FLOAT64;
+        break;
+    case wnLOAD_I32:
+    case wnSTORE_I32:
+        return Js::ArrayBufferView::TYPE_INT32;
+        break;
+    default:
+        Assert(UNREACHED);
+        return Js::ArrayBufferView::ViewType::TYPE_INVALID;
+    }
+}
+
 void
 WasmBytecodeGenerator::GenerateInvoke()
 {
@@ -1002,7 +1065,8 @@ WasmBytecodeGenerator::GenerateInvoke()
     */
 }
 
-void WasmBytecodeGenerator::AddExport()
+void
+WasmBytecodeGenerator::AddExport()
 {
     if (m_reader->m_currentNode.var.num > m_module->functions->Count())
     {

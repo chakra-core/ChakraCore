@@ -19,8 +19,13 @@ SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_context.offset = 0;
     m_context.source = source;
     m_context.length = length;
-
     m_scanner->Init(&m_context, &m_token);
+
+    m_moduleInfo = Anew(&m_alloc, ModuleInfo);
+
+    m_funcNumber = 0;
+    m_nameToFuncMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
+    m_nameToLocalMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
 }
 
 bool
@@ -30,7 +35,7 @@ SExprParser::IsBinaryReader()
 }
 
 WasmOp
-SExprParser::ReadFromScript()
+SExprParser::ReadFromModule()
 {
     SExprTokenType tok = m_scanner->Scan();
 
@@ -38,34 +43,6 @@ SExprParser::ReadFromScript()
     {
         return wnLIMIT;
     }
-
-    if (tok != wtkLPAREN)
-    {
-        ThrowSyntaxError();
-    }
-    tok = m_scanner->Scan();
-
-    switch (tok)
-    {
-    case wtkMODULE:
-        // reset per-module data
-        m_funcNumber = 0;
-        m_nameToFuncMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
-        m_nameToLocalMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
-        return wnMODULE;
-    case wtkINVOKE:
-        return wnINVOKE;
-    case wtkASSERTEQ:
-        return wnASSERTEQ;
-    default:
-        ThrowSyntaxError();
-    }
-}
-
-WasmOp
-SExprParser::ReadFromModule()
-{
-    SExprTokenType tok = m_scanner->Scan();
 
     if (IsEndOfExpr(tok))
     {
@@ -80,9 +57,10 @@ SExprParser::ReadFromModule()
         return ParseFunctionHeader();
     case wtkEXPORT:
         return ParseExport();
+    case wtkMEMORY:
+        return ParseMemory();
     // TODO: implement the following
     case wtkTABLE:
-    case wtkMEMORY:
     case wtkDATA:
     case wtkGLOBAL:
     default:
@@ -204,17 +182,15 @@ SExprParser::ReadExprCore(SExprTokenType tok)
     case wtkSETLOCAL:
         op = wnSETLOCAL;
         goto ParseVarCommon;
-    case wtkGETGLOBAL:
-        op = wnGetGlobal;
-        goto ParseVarCommon;
-    case wtkSETGLOBAL:
-        op = wnSetGlobal;
-        goto ParseVarCommon;
     case wtkCONST_I32:
     case wtkCONST_F32:
     case wtkCONST_F64:
         return ParseConstLitExpr(tok);
         break;
+#define WASM_MEMOP(token, name, ...) \
+        case wtk##token: \
+            ParseMemOpExpr(wn##token); \
+            return wn##token;
 
 #define WASM_KEYWORD_BIN(token, name) \
         case wtk##token: \
@@ -229,14 +205,6 @@ ParseVarCommon:
         return op;
 
     // TODO: implement enumerated ops
-    case wtkGET_NEAR_S:
-    case wtkGET_NEAR_U:
-    case wtkGET_NEAR_UNALIGNED_S:
-    case wtkGET_NEAR_UNALIGNED_U:
-    case wtkSET_NEAR_S:
-    case wtkSET_NEAR_U:
-    case wtkSET_NEAR_UNALIGNED_S:
-    case wtkSET_NEAR_UNALIGNED_U:
     case wtkBREAK:
     case wtkSWITCH:
     case wtkDISPATCH:
@@ -340,6 +308,39 @@ SExprParser::ParseExport()
     return m_currentNode.op;
 }
 
+WasmOp
+SExprParser::ParseMemory()
+{
+    m_currentNode.op = wnMEMORY;
+
+    m_scanner->ScanToken(wtkINTLIT);
+    if (m_token.u.lng < 0 || m_token.u.lng > INT_MAX)
+    {
+        ThrowSyntaxError(); // wasm64 not yet supported
+    }
+
+    int minSize = (int)m_token.u.lng;
+    
+    m_scanner->ScanToken(wtkINTLIT);
+    if (m_token.u.lng < 0 || m_token.u.lng > INT_MAX)
+    {
+        ThrowSyntaxError(); // wasm64 not yet supported
+    }
+    int maxSize = (int)m_token.u.lng;
+
+    m_scanner->ScanToken(wtkINTLIT);
+    bool exported = m_token.u.lng != FALSE;
+
+    m_scanner->ScanToken(wtkRPAREN);
+
+    if (!m_moduleInfo->InitializeMemory(minSize, maxSize, exported))
+    {
+        ThrowSyntaxError();
+    }
+
+    return m_currentNode.op;
+}
+
 void
 SExprParser::ParseParam()
 {
@@ -396,6 +397,28 @@ SExprParser::ParseLocal()
     }
 }
 
+void
+SExprParser::ParseMemOpExpr(WasmOp op)
+{
+    m_currentNode.op = op;
+
+    m_scanner->ScanToken(wtkINTLIT);
+
+    if (m_scanner->m_token->u.lng > UINT8_MAX)
+    {
+        ThrowSyntaxError();
+    }
+    m_currentNode.mem.alignment = (uint8)m_scanner->m_token->u.lng;
+
+    m_scanner->ScanToken(wtkINTLIT);
+    if (m_scanner->m_token->u.lng > UINT32_MAX)
+    {
+        ThrowSyntaxError();
+    }
+    m_currentNode.mem.offset = (uint32)m_scanner->m_token->u.lng;
+
+    m_blockNesting->Push(SExpr::Expr);
+}
 
 WasmOp
 SExprParser::ParseReturnExpr()
@@ -486,36 +509,6 @@ SExprParser::ParseGeneralExpr(WasmOp opcode)
     m_blockNesting->Push(SExpr::Expr);
 }
 
-WasmNode *
-SExprParser::ParseInvoke()
-{
-    SExprTokenType tok = m_scanner->Scan();
-    if (tok != wtkSTRINGLIT)
-    {
-        ThrowSyntaxError();
-    }
-
-    WasmNode * invokeNode = Anew(&m_alloc, WasmNode);
-    invokeNode->op = wnINVOKE;
-    invokeNode->invk.name = m_token.u.m_sz;
-
-    return invokeNode;
-}
-
-WasmNode *
-SExprParser::ParseAssertEq()
-{
-    m_scanner->ScanToken(wtkLPAREN);
-    m_scanner->ScanToken(wtkINVOKE);
-
-    WasmNode * assertNode = Anew(&m_alloc, WasmNode);
-    assertNode->op = wnASSERTEQ;
-
-    m_scanner->ScanToken(wtkRPAREN);
-
-    return assertNode;
-}
-
 void
 SExprParser::ParseVarNode(WasmOp opcode)
 {
@@ -523,7 +516,7 @@ SExprParser::ParseVarNode(WasmOp opcode)
 
     m_currentNode.op = opcode;
 
-    if (opcode == wnSETLOCAL || opcode == wnSetGlobal)
+    if (opcode == wnSETLOCAL)
     {
         m_blockNesting->Push(SExpr::Expr);
     }

@@ -175,5 +175,6 @@ UINT32 WasmFunctionInfo::GetNumber()
 {
     return m_number;
 }
+
 } // namespace Wasm
 #endif // ENABLE_WASM

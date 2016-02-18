@@ -154,13 +154,6 @@ namespace Js
         typename SizePolicy::RegSlotType     R5;
         typename SizePolicy::RegSlotType     R6;
     };
-    template <typename SizePolicy>
-    struct OpLayoutT_AsmReg2IntConst1
-    {
-        typename SizePolicy::RegSlotType     R0;
-        typename SizePolicy::RegSlotType     R1;
-        typename int                         C2;
-    };
 
     template <typename SizePolicy>
     struct OpLayoutT_Int1Double1

@@ -64,28 +64,16 @@ WasmBinaryReader::IsBinaryReader()
 }
 
 WasmOp
-WasmBinaryReader::ReadFromScript()
-{
-    if (m_pc < m_end)
-    {
-        return wnMODULE;
-    }
-    return wnLIMIT;
-}
-
-WasmOp
 WasmBinaryReader::ReadFromModule()
 {
     TRACE_WASM_DECODER(L"Decoding Module");
+
+    m_moduleInfo = Anew(&m_alloc, ModuleInfo);
+
     SectionCode sectionId;
     UINT length = 0;
-    while (1)
+    while (!EndOfModule())
     {
-        if (EndOfModule())
-        {
-            return wnLIMIT;
-        }
-
         if (m_moduleState.secId > bSectSignatures && m_moduleState.count < m_moduleState.size)
         {
             // still reading from a valid section
@@ -113,13 +101,11 @@ WasmBinaryReader::ReadFromModule()
         switch (sectionId)
         {
         case bSectMemory:
-            // TODO: Populate Memory entry info
-            ReadConst<UINT8>(); // min mem zie
-            ReadConst<UINT8>(); // max mem size
-            ReadConst<UINT8>(); // exported ?
+        {
+            ReadMemorySection();
             m_moduleState.count += m_moduleState.size;
             break; // This section is not used by bytecode generator for now, stay in decoder
-
+        }
         case bSectSignatures:
             // signatures table
             for (UINT i = 0; i < m_moduleState.size; i++)
@@ -132,7 +118,7 @@ WasmBinaryReader::ReadFromModule()
             break; // This section is not used by bytecode generator, stay in decoder
 
         case bSectGlobals:
-            // TODO: Populate Global entry info
+            // TODO: global section should be removed
             ReadConst<UINT32>();  // index to string in module
             ReadConst<UINT8>();   // memory type
             ReadConst<UINT8>();   // exported
@@ -270,6 +256,10 @@ WasmBinaryReader::ASTNode()
         break;
     case wbNop:
         break;
+#define WASM_MEM_OPCODE(opname, opcode, token, sig) \
+    case wb##opname: \
+    m_currentNode.op = MemNode(op); \
+    break;
 #define WASM_SIMPLE_OPCODE(opname, opcode, token, sig) \
     case wb##opname: \
     m_currentNode.op = GetWasmToken(op); \
@@ -327,6 +317,20 @@ WasmBinaryReader::TableSwitchNode()
     }
 }
 
+WasmOp
+WasmBinaryReader::MemNode(WasmBinOp op)
+{
+    UINT length;
+
+    m_currentNode.mem.alignment = ReadConst<UINT8>();
+    m_funcState.count++;
+
+    m_currentNode.mem.offset = LEB128(length);
+    m_funcState.count += length;
+
+    return GetWasmToken(op);
+}
+
 // Locals/Globals
 void
 WasmBinaryReader::VarNode()
@@ -334,7 +338,6 @@ WasmBinaryReader::VarNode()
     UINT length;
     m_currentNode.var.num = LEB128(length);
     m_funcState.count += length;
-
 }
 
 // Const
@@ -361,7 +364,6 @@ void WasmBinaryReader::ConstNode()
 void
 WasmBinaryReader::ResetModuleData()
 {
-
     m_visitedSections = BVFixed::New<ArenaAllocator>(bSectLimit + 1, &m_alloc);
     m_funcSignatureTable = Anew(&m_alloc, FuncSignatureTable, &m_alloc, 0);
     m_moduleState.count = 0;
@@ -393,7 +395,18 @@ WasmBinaryReader::EndOfModule()
 {
     return (m_pc == m_end);
 }
+
 // readers
+void
+WasmBinaryReader::ReadMemorySection()
+{
+    // TODO: change to use multiple of page size
+    uint32 minSize = 1 << ReadConst<UINT8>();
+    uint32 maxSize = 1 << ReadConst<UINT8>();
+    bool exported = ReadConst<UINT8>() != FALSE;
+    m_moduleInfo->InitializeMemory(minSize, maxSize, exported);
+}
+
 void
 WasmBinaryReader::Signature()
 {

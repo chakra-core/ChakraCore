@@ -579,13 +579,6 @@ namespace Js
     }
 
     template <class T>
-    void AsmJsByteCodeDumper::DumpAsmReg2IntConst1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->R0);
-        DumpReg(data->R1);
-        DumpI4(data->C2);
-    }
-    template <class T>
     void AsmJsByteCodeDumper::DumpInt1Double1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpIntReg(data->I0);
