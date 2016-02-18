@@ -330,6 +330,10 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wn##token: \
         return EmitBinExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##lhsType, WasmTypes::##rhsType>();
 
+#define WASM_KEYWORD_UNARY(token, name, op, resultType, inputType) \
+    case wn##token: \
+        return EmitUnaryExpr<Js::OpCodeAsmJs::##op, WasmTypes::##resultType, WasmTypes::##inputType>();
+
 #include "WasmKeywords.h"
 
     default:
@@ -824,11 +828,32 @@ WasmBytecodeGenerator::EmitBinExpr()
         throw WasmCompilationException(L"Invalid type for RHS");
     }
 
-    WasmRegisterSpace * regSpace = GetRegisterSpace(resultType);
+    GetRegisterSpace(rhsType)->ReleaseLocation(&rhs);
+    GetRegisterSpace(lhsType)->ReleaseLocation(&lhs);
 
-    Js::RegSlot resultReg = regSpace->AcquireRegisterAndReleaseLocations(&lhs, &rhs);
+    Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
 
     m_writer.AsmReg3(op, resultReg, lhs.location, rhs.location);
+
+    return EmitInfo(resultReg, resultType);
+}
+
+template<Js::OpCodeAsmJs op, WasmTypes::WasmType resultType, WasmTypes::WasmType inputType>
+EmitInfo
+WasmBytecodeGenerator::EmitUnaryExpr()
+{
+    EmitInfo info = EmitExpr(m_reader->ReadExpr());
+
+    if (inputType != info.type)
+    {
+        throw WasmCompilationException(L"Invalid input type");
+    }
+
+    GetRegisterSpace(inputType)->ReleaseLocation(&info);
+
+    Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
+
+    m_writer.AsmReg2(op, resultReg, info.location);
 
     return EmitInfo(resultReg, resultType);
 }
