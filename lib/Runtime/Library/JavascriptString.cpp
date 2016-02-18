@@ -2158,7 +2158,8 @@ case_2:
         }
         
         // if we reached the end of the string and didn't need recasing, we can return immediately
-        if(i == iLim) { 
+        if(i == iLim)
+        { 
             return pThis;
         }
         
