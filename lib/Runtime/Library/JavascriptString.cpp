@@ -2166,9 +2166,9 @@ case_2:
         // if not, we have to copy the first part of the string, then case the rest
         charcount_t countToSkip = i - inStr;
         charcount_t countToConvert = count - countToSkip; 
-        wchar_t* outStr = builder.DangerousGetWritableBuffer();
 
         // start by copying the whole string in a new buffer
+        wchar_t* outStr = builder.DangerousGetWritableBuffer();
         wchar_t* outStrLim = outStr + count;
         wchar_t* o = outStr;
 
