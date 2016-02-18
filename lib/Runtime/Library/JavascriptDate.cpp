@@ -1325,7 +1325,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleDateString method.");
             }
         }
 #endif
@@ -1375,7 +1374,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleString method.");
             }
         }
 #endif
@@ -1434,7 +1432,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleTimeString method.");
             }
         }
 #endif

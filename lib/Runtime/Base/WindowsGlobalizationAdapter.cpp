@@ -425,18 +425,67 @@ namespace Js
         return hr;
     }
 
-    void WindowsGlobalizationAdapter::ClearTimeZoneCalendars()
-    {
-        if (this->timeZoneCalendar)
-        {
-            this->timeZoneCalendar.Detach()->Release();
-        }
+#define DetachAndReleaseFactoryObjects(object) \
+if (this->object) \
+{ \
+    this->object.Detach()->Release(); \
+}
 
-        if (this->defaultTimeZoneCalendar)
+    void WindowsGlobalizationAdapter::ResetCommonFactoryObjects()
+    {
+        // Reset only if its not initialized completely.
+        if (!this->initializedCommonGlobObjects)
         {
-            this->defaultTimeZoneCalendar.Detach()->Release();
+            this->hrForCommonGlobObjectsInit = S_OK;
+            DetachAndReleaseFactoryObjects(languageFactory);
+            DetachAndReleaseFactoryObjects(languageStatics);
+            DetachAndReleaseFactoryObjects(dateTimeFormatterFactory);
         }
     }
+
+    void WindowsGlobalizationAdapter::ResetTimeZoneFactoryObjects()
+    {
+        DetachAndReleaseFactoryObjects(timeZoneCalendar);
+        DetachAndReleaseFactoryObjects(defaultTimeZoneCalendar);
+    }
+
+    void WindowsGlobalizationAdapter::ResetDateTimeFormatFactoryObjects()
+    {
+        // Reset only if its not initialized completely.
+        if (!this->initializedDateTimeFormatObjects)
+        {
+            this->hrForDateTimeFormatObjectsInit = S_OK;
+            DetachAndReleaseFactoryObjects(calendarFactory);
+            DetachAndReleaseFactoryObjects(timeZoneCalendar);
+            DetachAndReleaseFactoryObjects(defaultTimeZoneCalendar);
+        }
+    }
+
+    void WindowsGlobalizationAdapter::ResetNumberFormatFactoryObjects()
+    {
+        // Reset only if its not initialized completely.
+        if (!this->initializedNumberFormatObjects)
+        {
+            this->hrForNumberFormatObjectsInit = S_OK;
+            DetachAndReleaseFactoryObjects(currencyFormatterFactory);
+            DetachAndReleaseFactoryObjects(decimalFormatterFactory);
+            DetachAndReleaseFactoryObjects(percentFormatterFactory);
+            DetachAndReleaseFactoryObjects(incrementNumberRounderActivationFactory);
+            DetachAndReleaseFactoryObjects(significantDigitsRounderActivationFactory);
+        }
+    }
+
+    void WindowsGlobalizationAdapter::ResetCharClassifierFactoryObjects()
+    {
+        // Reset only if its not initialized completely.
+        if (!this->initializedCharClassifierObjects)
+        {
+            this->hrForCharClassifierObjectsInit = S_OK;
+            DetachAndReleaseFactoryObjects(unicodeStatics);
+        }
+    }
+
+#undef DetachAndReleaseFactoryObjects
 
     HRESULT WindowsGlobalizationAdapter::CreateCurrencyFormatterCode(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR currencyCode, NumberFormatting::ICurrencyFormatter** currencyFormatter)
     {

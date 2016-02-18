@@ -131,7 +131,7 @@ JsErrorCode ContextAPIWrapper(Fn fn)
     Js::ScriptContext *scriptContext = currentContext->GetScriptContext();
     try
     {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)ExceptionType_JavascriptException);
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
         // Enter script
         BEGIN_ENTER_SCRIPT(scriptContext, true, true, true)
@@ -149,6 +149,10 @@ JsErrorCode ContextAPIWrapper(Fn fn)
             errCode != JsErrorOutOfMemory &&
             errCode != JsErrorScriptException &&
             errCode != JsErrorScriptTerminated);
+    }
+    catch (Js::OutOfMemoryException)
+    {
+      return JsErrorOutOfMemory;
     }
     catch (Js::JavascriptExceptionObject *  exceptionObject)
     {
