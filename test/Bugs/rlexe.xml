@@ -235,4 +235,9 @@
       <compile-flags>-maxinterpretCount:2 -off:simplejit -off:dynamicProfile -args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>OS_5553123.js</files>
+    </default>
+  </test>
 </regress-exe>

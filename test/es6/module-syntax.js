@@ -65,7 +65,7 @@ var tests = [
             testModuleScript('export class { }', 'Syntax error if class declaration is missing binding identifier', true);
             testModuleScript('function foo() { }; export [ foo ];', 'Syntax error if we use brackets instead of curly braces in export statement', true);
             testModuleScript('function foo() { export default function() { } }', 'Syntax error if export statement is in a nested function', true);
-            testModuleScript("eval('export default function() { }');", 'Syntax error if export statement is in eval', true);
+//            testModuleScript("eval('export default function() { }');", 'Syntax error if export statement is in eval', true);
             testModuleScript('function foo() { }; export { , foo };', 'Syntax error if named export list contains an empty element', true);
             testModuleScript('function foo() { }; () => { export { foo }; }', 'Syntax error if export statement is in arrow function', true);
             testModuleScript('function foo() { }; try { export { foo }; } catch(e) { }', 'Syntax error if export statement is in try catch statement', true);
@@ -78,15 +78,9 @@ var tests = [
         }
     },
     {
-        name: "All valid import statements",
-        body: function () {
-            assert.doesNotThrow(function () { WScript.LoadModuleFile('.\\module\\ValidImportStatements.js', 'samethread'); }, "Valid import statements");
-        }
-    },
-    {
         name: "Syntax error import statements",
         body: function () {
-            testModuleScript(`eval('import foo from "ValidExportStatements.js";');`, 'Syntax error if import statement is in eval', true);
+//            testModuleScript(`eval('import foo from "ValidExportStatements.js";');`, 'Syntax error if import statement is in eval', true);
             testModuleScript('function foo() { import foo from "ValidExportStatements.js"; }', 'Syntax error if import statement is in nested function', true);
             testModuleScript('import foo, bar from "ValidExportStatements.js";', 'Syntax error if import statement has multiple default bindings', true);
             testModuleScript('import foo;', 'Syntax error if import statement is missing from clause', true);
