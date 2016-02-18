@@ -2136,8 +2136,8 @@ case_2:
         charcount_t count = pThis->GetLength();
 
         const wchar_t* inStr = pThis->GetString();
-        wchar_t* i = inStr; 
-        wchar_t* iLim = i + count;
+        const wchar_t* i = inStr; 
+        const wchar_t* iLim = i + count;
         
         // first, try to see if the string needs recasing at all
         while(i < iLim)
