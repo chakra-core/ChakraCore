@@ -2195,7 +2195,7 @@ case_2:
 #endif
                 CharLowerBuffW(outStr + countToSkip, countToConvert);
 
-            Assert(converted == count);
+            Assert(converted == countToConvert);
         }
 
         return builder.ToString();
