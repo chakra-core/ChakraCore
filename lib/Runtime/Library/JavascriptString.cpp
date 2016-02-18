@@ -2136,38 +2136,68 @@ case_2:
         charcount_t count = pThis->GetLength();
 
         BufferStringBuilder builder(count, pThis->type->GetScriptContext());
-        const wchar_t *inStr = pThis->GetString();
-        wchar_t *outStr = builder.DangerousGetWritableBuffer();
+        const wchar_t* inStr = pThis->GetString();
+		wchar_t* i = inStr; 
+		wchar_t* iLim = i + count;
+		
+		// first, try to see if the string needs recasing at all
+		while(i < iLim)
+		{
+			
+			// copy the current char into a temporary variable, then case it
+			wchar_t inChar = *i;
+			wchar_t outChar = *i;
+			CharUpperBuffW(&outChar, 1);
+			
+			// if the output is different from the input, the string needs recasing from here
+			if(outChar != inChar) { break; }
+			
+			// otherwise, we can keep going on
+			i++;
+			
+		}
+		
+		// if we reached the end of the string and didn't need recasing, we can return immediately
+		if(i == iLim) { 
+			return pThis;
+		}
+		
+		// if not, we have to copy the first part of the string, then case the rest
+		charcount_t countToSkip = i - inStr;
+		charcount_t countToConvert = count - countToSkip; 
+		wchar_t* outStr = builder.DangerousGetWritableBuffer();
 
-        wchar_t* outStrLim = outStr + count;
-        wchar_t *o = outStr;
+		// start by copying the whole string in a new buffer
+		wchar_t* outStrLim = outStr + count;
+		wchar_t* o = outStr;
 
-        while (o < outStrLim)
-        {
-            *o++ = *inStr++;
-        }
-
-        if(toCase == ToUpper)
-        {
+		while (o < outStrLim)
+		{
+			*o++ = *inStr++;
+		}
+		
+		// then recase it
+		if(toCase == ToUpper)
+		{
 #if DBG
-            DWORD converted =
+			DWORD converted =
 #endif
-                CharUpperBuffW(outStr, count);
+				CharUpperBuffW(outStr + countToSkip, countToConvert);
 
-            Assert(converted == count);
-        }
-        else
-        {
-            Assert(toCase == ToLower);
+			Assert(converted == countToConvert);
+		}
+		else
+		{
+			Assert(toCase == ToLower);
 #if DBG
-            DWORD converted =
+			DWORD converted =
 #endif
-                CharLowerBuffW(outStr, count);
+				CharLowerBuffW(outStr + countToSkip, countToConvert);
 
-            Assert(converted == count);
-        }
+			Assert(converted == count);
+		}
 
-        return builder.ToString();
+		return builder.ToString();
     }
 
     Var JavascriptString::EntryTrim(RecyclableObject* function, CallInfo callInfo, ...)
@@ -3741,3 +3771,4 @@ case_2:
         return requestContext->GetLibrary()->GetStringTypeDisplayString();
     }
 }
+
