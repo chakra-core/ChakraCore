@@ -54,4 +54,19 @@
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
+
+  <!-- Link dependencies for projects that link with Chakra libraries -->
+  <PropertyGroup>
+    <ChakraCommonLinkDependencies>
+        oleaut32.lib;
+        version.lib
+    </ChakraCommonLinkDependencies>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(OptimizedBuild)'!='true'">
+    <ChakraCommonLinkDependencies>
+        $(ChakraCommonLinkDependencies);
+        dbghelp.lib;
+        user32.lib
+    </ChakraCommonLinkDependencies>
+  </PropertyGroup>
 </Project>
