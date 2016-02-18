@@ -469,6 +469,11 @@ WasmBinaryReader::FunctionHeader()
 
     m_funcInfo->SetExported(flags & bFuncDeclExport ? true : false);
 
+    if ((m_funcInfo->Exported() || m_funcInfo->Imported()) && m_funcInfo->GetName() == nullptr)
+    {
+        ThrowDecodingError(L"Imports and exports must be named!");
+    }
+
     // params
     sig = m_funcSignatureTable->GetBuffer()[sigId];
     for (UINT i = 0; i < sig.argCount; i++)

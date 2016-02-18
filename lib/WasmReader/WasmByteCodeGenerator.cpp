@@ -40,7 +40,6 @@ WasmBytecodeGenerator::GenerateModule()
 
     m_module = Anew(&m_alloc, WasmModule);
     m_module->functions = Anew(&m_alloc, WasmFunctionArray, &m_alloc, 0);
-    m_module->exports = Anew(&m_alloc, WasmExportDictionary, &m_alloc);
     m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->funcOffset = m_module->heapOffset + 1;
@@ -51,17 +50,6 @@ WasmBytecodeGenerator::GenerateModule()
         switch (op)
         {
         case wnFUNC:
-            if (m_reader->IsBinaryReader())
-            {
-                // export is part of function declaration for binary format
-                if (m_reader->m_currentNode.func.info->Exported())
-                {
-                    if (m_module->exports->AddNew(m_reader->m_currentNode.func.info->GetNumber(), m_reader->m_currentNode.func.info->GetName()) == -1)
-                    {
-                        throw WasmCompilationException(L"Unable to export function");
-                    }
-                }
-            }
             m_module->functions->Add(GenerateFunction());
             break;
         case wnIMPORT:
@@ -1135,15 +1123,16 @@ WasmBytecodeGenerator::GenerateInvoke()
 void
 WasmBytecodeGenerator::AddExport()
 {
-    if (m_reader->m_currentNode.var.num >= m_module->functions->Count())
+    const uint exportId = m_reader->m_currentNode.var.num;
+    WasmFunction ** funcs = m_module->functions->GetBuffer();
+
+    if (exportId >= m_module->functions->Count())
     {
         throw WasmCompilationException(L"Invalid index for export");
     }
-    if (m_module->exports->AddNew(m_reader->m_currentNode.var.num, m_reader->m_currentNode.var.exportName) == -1)
-    {
-        throw WasmCompilationException(L"Unable to export function");
-    }
-    m_module->functions->GetBuffer()[m_reader->m_currentNode.var.num]->wasmInfo->SetExported(true);
+
+    funcs[exportId]->wasmInfo->SetExported(true);
+    funcs[exportId]->wasmInfo->SetName(m_reader->m_currentNode.var.exportName);
 }
 
 WasmRegisterSpace *

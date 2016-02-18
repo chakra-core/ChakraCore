@@ -1909,13 +1909,9 @@ namespace Js
                     if (functionArray[i]->wasmInfo->Exported())
                     {
                         PropertyRecord const * propertyRecord = nullptr;
-                        LPCUTF8 name = wasmScript->module->exports->Lookup(i, nullptr);
-                        if (!name)
-                        {
-                            // TODO: can this happen?
-                            Assert(UNREACHED);
-                        }
-                        utf8::DecodeOptions decodeOptions = utf8::doAllowInvalidWCHARs;
+                        LPCUTF8 name = functionArray[i]->wasmInfo->GetName();
+                        AnalysisAssertMsg(name, "export function is guaranteed to have name.");
+                        utf8::DecodeOptions decodeOptions = utf8::doDefault;
                         UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
                         LPCWSTR contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (utf16Len + 1) * sizeof(WCHAR));
                         if (contents == nullptr)
@@ -1940,7 +1936,6 @@ namespace Js
             {
                 HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
             }
-
 
             return exportObj;
         }

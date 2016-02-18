@@ -61,12 +61,11 @@ namespace Wasm
 
     struct WasmModule
     {
-        WasmModule() : functions(nullptr), exports(nullptr)
+        WasmModule() : functions(nullptr)
         {
         }
         // TODO (michhol): use normal array, and get info from parser
         WasmFunctionArray * functions;
-        WasmExportDictionary * exports;
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;
