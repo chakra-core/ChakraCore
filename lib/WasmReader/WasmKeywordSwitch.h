@@ -289,6 +289,58 @@
             break;
         }
         goto LError;
+    case 'c':
+        switch(p[0])
+        {
+        case 'a':
+            switch(p[1])
+            {
+            case 'l':
+                if (p[2] == 'l')
+                {
+                p += 3;
+                token = wtkCALL;
+                goto LKeyword;
+                }
+                break;
+            case 's':
+                if (p[2] == 't')
+                {
+                p += 3;
+                token = wtkCAST;
+                goto LKeyword;
+                }
+                break;
+            }
+            break;
+        case 'o':
+            if (p[1] == 'n' && p[2] == 'v' && p[3] == 'e' && p[4] == 'r')
+            {
+                switch(p[5])
+                {
+                case 't':
+                    switch(p[6])
+                    {
+                    case 's':
+                        p += 7;
+                        token = wtkCONVERTS;
+                        goto LKeyword;
+                        break;
+                    case 'u':
+                        p += 7;
+                        token = wtkCONVERTU;
+                        goto LKeyword;
+                        break;
+                    }
+                    p += 6;
+                    token = wtkCONVERT;
+                    goto LKeyword;
+                    break;
+                }
+            }
+            break;
+        }
+        goto LError;
     case 'n':
         if (p[0] == 'o' && p[1] == 'p')
         {
@@ -336,6 +388,14 @@
             p += 1;
             token = wtkIF;
             goto LKeyword;
+            break;
+        case 'm':
+            if (p[1] == 'p' && p[2] == 'o' && p[3] == 'r' && p[4] == 't')
+            {
+            p += 5;
+            token = wtkIMPORT;
+            goto LKeyword;
+            }
             break;
         case 'n':
             if (p[1] == 'v' && p[2] == 'o' && p[3] == 'k' && p[4] == 'e')
@@ -630,87 +690,6 @@
             {
             p += 4;
             token = wtkLABEL;
-            goto LKeyword;
-            }
-            break;
-        }
-        goto LError;
-    case 'c':
-        switch(p[0])
-        {
-        case 'a':
-            switch(p[1])
-            {
-            case 'l':
-                if (p[2] == 'l')
-                {
-                p += 3;
-                token = wtkCALL;
-                goto LKeyword;
-                }
-                break;
-            case 's':
-                if (p[2] == 't')
-                {
-                p += 3;
-                token = wtkCAST;
-                goto LKeyword;
-                }
-                break;
-            }
-            break;
-        case 'o':
-            if (p[1] == 'n' && p[2] == 'v' && p[3] == 'e' && p[4] == 'r')
-            {
-                switch(p[5])
-                {
-                case 't':
-                    switch(p[6])
-                    {
-                    case 's':
-                        p += 7;
-                        token = wtkCONVERTS;
-                        goto LKeyword;
-                        break;
-                    case 'u':
-                        p += 7;
-                        token = wtkCONVERTU;
-                        goto LKeyword;
-                        break;
-                    }
-                    p += 6;
-                    token = wtkCONVERT;
-                    goto LKeyword;
-                    break;
-                }
-            }
-            break;
-        }
-        goto LError;
-    case 'd':
-        switch(p[0])
-        {
-        case 'i':
-            if (p[1] == 's' && p[2] == 'p' && p[3] == 'a' && p[4] == 't' && p[5] == 'c' && p[6] == 'h')
-            {
-            p += 7;
-            token = wtkDISPATCH;
-            goto LKeyword;
-            }
-            break;
-        case 'e':
-            if (p[1] == 's' && p[2] == 't' && p[3] == 'r' && p[4] == 'u' && p[5] == 'c' && p[6] == 't')
-            {
-            p += 7;
-            token = wtkDESTRUCT;
-            goto LKeyword;
-            }
-            break;
-        case 'a':
-            if (p[1] == 't' && p[2] == 'a')
-            {
-            p += 3;
-            token = wtkDATA;
             goto LKeyword;
             }
             break;
@@ -1018,6 +997,14 @@
         {
         p += 4;
         token = wtkTABLE;
+        goto LKeyword;
+        }
+        goto LError;
+    case 'd':
+        if (p[0] == 'a' && p[1] == 't' && p[2] == 'a')
+        {
+        p += 3;
+        token = wtkDATA;
         goto LKeyword;
         }
         goto LError;

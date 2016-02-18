@@ -84,7 +84,7 @@ WASM_MISC_OPCODE(SetLocal,       0x0f,        SETLOCAL,          Limit)
 WASM_MISC_OPCODE(GetGlobal,      0x10,        GETGLOBAL,         Limit)
 WASM_MISC_OPCODE(SetGlobal,      0x11,        SETGLOBAL,         Limit)
 WASM_MISC_OPCODE(Call,           0x12,        CALL,              Limit)
-WASM_MISC_OPCODE(CallIndirect,   0x13,        DISPATCH,          Limit)
+WASM_MISC_OPCODE(CallIndirect,   0x13,        LIMIT,             Limit)
 
 // Load memory expressions.
 // TODO: Map to node ops

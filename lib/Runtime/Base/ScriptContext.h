@@ -1096,7 +1096,7 @@ private:
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag);
 
 #ifdef ENABLE_WASM
-        JavascriptFunction* LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName);
+        JavascriptFunction* LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName, Js::Var ffi);
 #endif
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }

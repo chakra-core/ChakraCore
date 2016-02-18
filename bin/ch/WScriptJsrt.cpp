@@ -438,10 +438,11 @@ bool WScriptJsrt::CreateNamedFunction(const wchar_t* nameString, JsNativeFunctio
 JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     HRESULT hr = E_FAIL;
+    JsValueRef ffi = JS_INVALID_REFERENCE;
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode errorCode = JsNoError;
 
-    if (argumentCount < 2 || argumentCount > 4)
+    if (argumentCount < 2 || argumentCount > 5)
     {
         fwprintf(stderr, L"Too many or too few arguments.\n");
     }
@@ -458,13 +459,18 @@ JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isCon
 
         if (argumentCount > 2)
         {
-            IfJsrtErrorSetGo(ChakraRTInterface::JsBooleanToBool(arguments[2], &isBinaryFormat));
+            ffi = arguments[2];
         }
-
 
         if (argumentCount > 3)
         {
-            IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[3], &scriptInjectType, &scriptInjectTypeLength));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsBooleanToBool(arguments[3], &isBinaryFormat));
+        }
+
+
+        if (argumentCount > 4)
+        {
+            IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[4], &scriptInjectType, &scriptInjectTypeLength));
         }
 
 
@@ -487,7 +493,7 @@ JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isCon
             }
             else
             {
-                returnValue = LoadWasm(fileName, fileNameLength, fileContent, isBinaryFormat, lengthBytes, scriptInjectType);
+                returnValue = LoadWasm(fileName, fileNameLength, fileContent, isBinaryFormat, lengthBytes, scriptInjectType, ffi);
             }
         }
     }
@@ -496,7 +502,7 @@ Error:
     return returnValue;
 }
 
-JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType)
+JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi)
 {
     HRESULT hr = E_FAIL;
     JsErrorCode errorCode = JsNoError;
@@ -519,7 +525,7 @@ JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWST
 
     if (wcscmp(scriptInjectType, L"self") == 0)
     {
-        errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, &returnValue);
+        errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, ffi, &returnValue);
         if (errorCode != JsNoError)
         {
             PrintException(fileName, errorCode);

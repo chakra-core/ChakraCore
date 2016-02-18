@@ -45,6 +45,7 @@ namespace Wasm
 
     private:
         WasmOp ReadExprCore(SExprTokenType tok);
+        template <bool imported>
         WasmOp ParseFunctionHeader();
         WasmOp ParseExport();
         void ParseParam();
