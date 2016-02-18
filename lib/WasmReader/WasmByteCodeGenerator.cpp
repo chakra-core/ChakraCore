@@ -98,7 +98,7 @@ WasmBytecodeGenerator::GenerateModule()
                 // export is part of function declaration for binary format
                 if (m_reader->m_currentNode.func.info->Exported())
                 {
-                    if (m_module->exports->AddNew(m_reader->m_currentNode.func.info->GetName(), m_reader->m_currentNode.func.info->GetNumber()) == -1)
+                    if (m_module->exports->AddNew(m_reader->m_currentNode.func.info->GetNumber(), m_reader->m_currentNode.func.info->GetName()) == -1)
                     {
                         throw WasmCompilationException(L"Unable to export function");
                     }
@@ -1004,14 +1004,15 @@ WasmBytecodeGenerator::GenerateInvoke()
 
 void WasmBytecodeGenerator::AddExport()
 {
-    if (m_reader->m_currentNode.var.num > m_module->functions->Count())
+    if (m_reader->m_currentNode.var.num >= m_module->functions->Count())
     {
         throw WasmCompilationException(L"Invalid index for export");
     }
-    if (m_module->exports->AddNew(m_reader->m_currentNode.var.exportName, m_reader->m_currentNode.var.num) == -1)
+    if (m_module->exports->AddNew(m_reader->m_currentNode.var.num, m_reader->m_currentNode.var.exportName) == -1)
     {
         throw WasmCompilationException(L"Unable to export function");
     }
+    m_module->functions->GetBuffer()[m_reader->m_currentNode.var.num]->wasmInfo->SetExported(true);
 }
 
 WasmRegisterSpace *

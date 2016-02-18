@@ -22,5 +22,5 @@
     (return (i32.add (getlocal 0) (i32.const 42)))
   )
 
-  (export "a" 0)
+  (export "a" 1)
 )
