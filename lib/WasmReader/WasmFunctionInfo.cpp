@@ -11,7 +11,11 @@ namespace Wasm
 {
 
 WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
-	: m_alloc(alloc), m_resultType(WasmTypes::Void), m_exported(false), m_imported(false)
+    : m_alloc(alloc),
+    m_resultType(WasmTypes::Void),
+    m_exported(false),
+    m_imported(false),
+    m_name(nullptr)
 {
     m_i32Consts = Anew(m_alloc, ConstMap<int32>, m_alloc);
     m_i64Consts = Anew(m_alloc, ConstMap<int64>, m_alloc);
@@ -127,51 +131,62 @@ WasmFunctionInfo::GetResultType() const
     return m_resultType;
 }
 
-uint32 WasmFunctionInfo::GetLocalCount() const
+uint32
+WasmFunctionInfo::GetLocalCount() const
 {
     return m_locals->Count();
 }
 
-uint32 WasmFunctionInfo::GetParamCount() const
+uint32 
+WasmFunctionInfo::GetParamCount() const
 {
     return m_params->Count();
 }
 
-void WasmFunctionInfo::SetImported(const bool imported)
+void 
+WasmFunctionInfo::SetImported(const bool imported)
 {
     m_imported = imported;
 }
 
-void WasmFunctionInfo::SetExported(const bool exported)
+void 
+WasmFunctionInfo::SetExported(const bool exported)
 {
     m_exported = exported;
 }
 
-
-bool WasmFunctionInfo::Imported() const
+bool 
+WasmFunctionInfo::Imported() const
 {
     return m_imported;
 }
 
-bool WasmFunctionInfo::Exported() const
+bool 
+WasmFunctionInfo::Exported() const
 {
     return m_exported;
 }
 
-void WasmFunctionInfo::SetName(LPCUTF8 name)
+void 
+WasmFunctionInfo::SetName(LPCUTF8 name)
 {
     m_name = name;
 }
-LPCUTF8 WasmFunctionInfo::GetName()
+
+LPCUTF8 
+WasmFunctionInfo::GetName() const
 {
     return m_name;
 }
 
-void WasmFunctionInfo::SetNumber(UINT32 number)
+void 
+WasmFunctionInfo::SetNumber(UINT32 number)
 {
     m_number = number;
 }
-UINT32 WasmFunctionInfo::GetNumber()
+
+UINT32 
+WasmFunctionInfo::GetNumber()
 {
     return m_number;
 }

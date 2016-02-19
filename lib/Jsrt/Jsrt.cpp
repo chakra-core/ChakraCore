@@ -2497,7 +2497,7 @@ STDAPI_(JsErrorCode) JsExperimentalApiRunModule(_In_z_ const wchar_t * script, _
 STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl, _In_ const bool isBinary, _In_ const uint lengthBytes, _In_opt_ JsValueRef ffi, _Out_ JsValueRef * result)
 {
 #ifdef ENABLE_WASM
-    Js::JavascriptFunction *scriptFunction;
+    Js::Var exportObject;
     CompileScriptException se;
 
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
@@ -2531,10 +2531,7 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
         };
 
         Js::Utf8SourceInfo* utf8SourceInfo;
-        scriptFunction = scriptContext->LoadWasmScript(script, &si, &se, result != NULL, false, false, &utf8SourceInfo, isBinary, lengthBytes, Js::Constants::GlobalCode, (Js::Var)ffi);
-
-        JsrtContext * context = JsrtContext::GetCurrent();
-        context->OnScriptLoad(scriptFunction, utf8SourceInfo);
+        exportObject = scriptContext->LoadWasmScript(script, &si, &se, result != NULL, false, false, &utf8SourceInfo, isBinary, lengthBytes, Js::Constants::GlobalCode, (Js::Var)ffi);
 
         return JsNoError;
     });
@@ -2545,14 +2542,14 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
     }
 
     return ContextAPIWrapper<false>([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
-        if (scriptFunction == NULL)
+        if (exportObject == NULL)
         {
             HandleScriptCompileError(scriptContext, &se);
             return JsErrorScriptCompile;
         }
 
         PARAM_NOT_NULL(result);
-        *result = scriptFunction;
+        *result = exportObject;
         return JsNoError;
     });
 #else

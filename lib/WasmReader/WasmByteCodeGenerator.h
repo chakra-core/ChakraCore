@@ -57,16 +57,15 @@ namespace Wasm
     };
 
     typedef JsUtil::GrowingArray<WasmFunction*, ArenaAllocator> WasmFunctionArray;
-    typedef JsUtil::BaseDictionary<LPCUTF8, uint, ArenaAllocator> WasmExportDictionary;
+    typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
 
     struct WasmModule
     {
-        WasmModule() : functions(nullptr), exports(nullptr)
+        WasmModule() : functions(nullptr)
         {
         }
         // TODO (michhol): use normal array, and get info from parser
         WasmFunctionArray * functions;
-        WasmExportDictionary * exports;
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;

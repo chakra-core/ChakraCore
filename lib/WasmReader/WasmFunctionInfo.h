@@ -30,7 +30,7 @@ namespace Wasm
         bool Imported() const;
         bool Exported() const;
         void SetName(LPCUTF8 name);
-        LPCUTF8 GetName();
+        LPCUTF8 GetName() const;
 
         void SetNumber(UINT32 number);
         UINT32 GetNumber();

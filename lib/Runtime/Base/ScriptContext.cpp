@@ -1774,7 +1774,7 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
-    JavascriptFunction* ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName, Js::Var ffi)
+    Var ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName, Js::Var ffi)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1861,7 +1861,9 @@ namespace Js
 
             FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
             frameDisplay->SetItem(0, moduleMemoryPtr);
-            AsmJsScriptFunction * funcObj = nullptr;
+
+            Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
+
             for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
                 if (functionArray[i]->wasmInfo->Imported())
@@ -1895,7 +1897,7 @@ namespace Js
                 }
                 else
                 {
-                    funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
+                    AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
                     funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                     funcObj->SetModuleMemory(moduleMemoryPtr);
                     FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
@@ -1904,6 +1906,24 @@ namespace Js
                     entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
                     funcObj->SetEnvironment(frameDisplay);
                     localModuleFunctions[i] = funcObj;
+                    if (functionArray[i]->wasmInfo->Exported())
+                    {
+                        PropertyRecord const * propertyRecord = nullptr;
+                        LPCUTF8 name = functionArray[i]->wasmInfo->GetName();
+                        AnalysisAssertMsg(name, "export function is guaranteed to have name.");
+                        utf8::DecodeOptions decodeOptions = utf8::doDefault;
+                        UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
+                        LPCWSTR contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (utf16Len + 1) * sizeof(WCHAR));
+                        if (contents == nullptr)
+                        {
+                            Js::Throw::OutOfMemory();
+                        }
+                        utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
+
+                        GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
+    
+                        JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), funcObj, this);
+					}	
                 }
             }
 
@@ -1917,8 +1937,7 @@ namespace Js
                 HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
             }
 
-
-            return funcObj;
+            return exportObj;
         }
         catch (Js::OutOfMemoryException)
         {
