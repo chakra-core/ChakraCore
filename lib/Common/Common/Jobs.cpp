@@ -6,23 +6,23 @@
 #include <process.h>
 
 
-#include "core\EtwTraceCore.h"
+#include "Core/EtwTraceCore.h"
 
-#include "Exceptions\ExceptionBase.h"
-#include "Exceptions\OperationAbortedException.h"
-#include "Exceptions\OutOfMemoryException.h"
-#include "Exceptions\StackOverflowException.h"
+#include "Exceptions/ExceptionBase.h"
+#include "Exceptions/OperationAbortedException.h"
+#include "Exceptions/OutOfMemoryException.h"
+#include "Exceptions/StackOverflowException.h"
 
 #include "TemplateParameter.h"
-#include "DataStructures\DoublyLinkedListElement.h"
-#include "DataStructures\DoublyLinkedList.h"
-#include "DataStructures\DoublyLinkedListElement.inl"
-#include "DataStructures\DoublyLinkedList.inl"
+#include "DataStructures/DoublyLinkedListElement.h"
+#include "DataStructures/DoublyLinkedList.h"
+#include "DataStructures/DoublyLinkedListElement.inl"
+#include "DataStructures/DoublyLinkedList.inl"
 
-#include "Common\Event.h"
-#include "Common\ThreadService.h"
-#include "Common\Jobs.h"
-#include "Common\Jobs.inl"
+#include "Common/Event.h"
+#include "Common/ThreadService.h"
+#include "Common/Jobs.h"
+#include "Common/Jobs.inl"
 
 namespace Js
 {

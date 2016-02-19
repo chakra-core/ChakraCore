@@ -7,11 +7,11 @@
 #include <fcntl.h>
 #include <share.h>
 #include <strsafe.h>
-#include "Memory\MemoryLogger.h"
-#include "Memory\ForcedMemoryConstraints.h"
-#include "core\ICustomConfigFlags.h"
-#include "core\CmdParser.h"
-#include "core\ConfigParser.h"
+#include "Memory/MemoryLogger.h"
+#include "Memory/ForcedMemoryConstraints.h"
+#include "Core/ICustomConfigFlags.h"
+#include "Core/CmdParser.h"
+#include "Core/ConfigParser.h"
 
 ConfigParser ConfigParser::s_moduleConfigParser(Js::Configuration::Global.flags);
 

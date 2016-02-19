@@ -5,26 +5,26 @@
 #include "RuntimeLibraryPch.h"
 #include "EngineInterfaceObject.h"
 #include "IntlEngineInterfaceExtensionObject.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Types/DeferredTypeHandler.h"
 
 #ifdef ENABLE_INTL_OBJECT
-#include "ByteCode\ByteCodeSerializer.h"
+#include "ByteCode/ByteCodeSerializer.h"
 #include "errstr.h"
-#include "ByteCode\ByteCodeDumper.h"
+#include "ByteCode/ByteCodeDumper.h"
 using namespace Windows::Globalization;
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
 #if DISABLE_JIT
 #if _M_AMD64
-#include "InJavascript\Intl.js.nojit.bc.64b.h"
+#include "InJavascript/Intl.js.nojit.bc.64b.h"
 #else
-#include "InJavascript\Intl.js.nojit.bc.32b.h"
+#include "InJavascript/Intl.js.nojit.bc.32b.h"
 #endif
 #else
 #if _M_AMD64
-#include "InJavascript\Intl.js.bc.64b.h"
+#include "InJavascript/Intl.js.bc.64b.h"
 #else
-#include "InJavascript\Intl.js.bc.32b.h"
+#include "InJavascript/Intl.js.bc.32b.h"
 #endif
 #endif
 

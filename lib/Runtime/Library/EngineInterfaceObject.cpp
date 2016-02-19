@@ -7,8 +7,8 @@
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
 
 #include "errstr.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Types/DeferredTypeHandler.h"
 
 #define IfFailThrowHr(op) \
     if (FAILED(hr=(op))) \

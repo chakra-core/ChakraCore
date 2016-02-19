@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "DataStructures\BigInt.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Library\IntlEngineInterfaceExtensionObject.h"
+#include "DataStructures/BigInt.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Library/IntlEngineInterfaceExtensionObject.h"
 
 namespace Js
 {

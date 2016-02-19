@@ -2,8 +2,8 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "ByteCode\OpCodeUtilAsmJs.h"
+#include "Backend.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
 
 void
 IRBuilderAsmJs::Build()
@@ -61,7 +61,7 @@ IRBuilderAsmJs::Build()
 
 #define MACRO_SIMD_EXTEND_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_EXTEND(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr)
 
-#include "ByteCode\OpCodesSimd.h"
+#include "ByteCode/OpCodesSimd.h"
 
     }
 
@@ -163,7 +163,7 @@ IRBuilderAsmJs::Build()
             Build##layout<Js::LargeLayoutSizePolicy>(newOpcode, offset); \
             break;
 #define EXCLUDE_FRONTEND_LAYOUT
-#include "ByteCode\LayoutTypesAsmJs.h"
+#include "ByteCode/LayoutTypesAsmJs.h"
 
         default:
             AssertMsg(UNREACHED, "Unimplemented layout");

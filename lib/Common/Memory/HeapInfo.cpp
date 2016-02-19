@@ -3,11 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#include "Memory\PageHeapBlockTypeFilter.h"
+#include "Memory/PageHeapBlockTypeFilter.h"
 #if defined(_M_IX86_OR_ARM32)
-#include "ValidPointersMap\vpm.32b.h"
+#include "ValidPointersMap/vpm.32b.h"
 #elif defined(_M_X64_OR_ARM64)
-#include "ValidPointersMap\vpm.64b.h"
+#include "ValidPointersMap/vpm.64b.h"
 #else
 #error "Platform is not handled"
 #endif

@@ -137,19 +137,19 @@
       <ObjectFileName Condition="'$(Platform)'!='ARM64'">$(IntDir)\Arm64</ObjectFileName>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)IRBuilderAsmJs.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEndOpcodeAttrAsmJs.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttrAsmJs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CaseNode.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenWorkItem.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CodegenAllocators.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CodegenNumberAllocator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenAllocators.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CodeGenNumberAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DbCheckPostLower.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailout.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptBailOut.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptExpr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptFields.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptIntBounds.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEnd.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)Backend.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BackwardPass.cpp" />
@@ -180,7 +180,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)PreLowerPeeps.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)QueuedFullJitWorkItem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Region.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SCCLiveness.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SccLiveness.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Security.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimpleJitProfilingHelpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimpleLayout.cpp" />
@@ -208,7 +208,7 @@
     <ClInclude Include="arm64\md.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="arm64\MdOpcodes.h">
+    <ClInclude Include="arm64\MdOpCodes.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="arm64\PeepsMD.h">
@@ -228,8 +228,8 @@
     </ClInclude>
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
-    <ClInclude Include="BackEndOpcodeAttrAsmJs.h" />
-    <ClInclude Include="BackEndOpCodeList.h" />
+    <ClInclude Include="BackendOpCodeAttrAsmJs.h" />
+    <ClInclude Include="BackendOpCodeList.h" />
     <ClInclude Include="GlobOptIntBounds.h" />
     <ClInclude Include="i386\EncoderMD.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
@@ -243,7 +243,7 @@
     <ClInclude Include="i386\md.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="i386\MdOpcodes.h">
+    <ClInclude Include="i386\MdOpCodes.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="i386\PeepsMD.h">
@@ -270,7 +270,7 @@
     <ClInclude Include="amd64\md.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="amd64\MdOpcodes.h">
+    <ClInclude Include="amd64\MdOpCodes.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="amd64\PeepsMD.h">
@@ -309,7 +309,7 @@
     <ClInclude Include="arm\md.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='arm'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="arm\MdOpcodes.h">
+    <ClInclude Include="arm\MdOpCodes.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='arm'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="arm\PeepsMD.h">
@@ -327,7 +327,7 @@
     <ClInclude Include="arm\UnwindInfoManager.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='arm'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="BackEnd.h" />
+    <ClInclude Include="Backend.h" />
     <ClInclude Include="BackwardPass.h" />
     <ClInclude Include="BailOut.h" />
     <ClInclude Include="BailOutKind.h" />
@@ -335,7 +335,7 @@
     <ClInclude Include="CodeGenAllocators.h" />
     <ClInclude Include="CodeGenNumberAllocator.h" />
     <ClInclude Include="CodeGenWorkItemType.h" />
-    <ClInclude Include="codegenworkitem.h" />
+    <ClInclude Include="CodeGenWorkItem.h" />
     <ClInclude Include="DbCheckPostLower.h" />
     <ClInclude Include="EmitBuffer.h" />
     <ClInclude Include="Encoder.h" />
@@ -374,7 +374,7 @@
     <ClInclude Include="Peeps.h" />
     <ClInclude Include="QueuedFullJitWorkItem.h" />
     <ClInclude Include="Region.h" />
-    <ClInclude Include="SCCLiveness.h" />
+    <ClInclude Include="SccLiveness.h" />
     <ClInclude Include="Security.h" />
     <ClInclude Include="SimpleJitProfilingHelpers.h" />
     <ClInclude Include="SimpleLayout.h" />

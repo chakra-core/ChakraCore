@@ -23,14 +23,14 @@
 #pragma warning(pop)
 
 // === Core Header Files ===
-#include "Core\api.h"
-#include "Core\CommonTypedefs.h"
-#include "core\CriticalSection.h"
-#include "core\Assertions.h"
+#include "Core/Api.h"
+#include "Core/CommonTypedefs.h"
+#include "Core/CriticalSection.h"
+#include "Core/Assertions.h"
 
 // === Exceptions Header Files ===
-#include "Exceptions\Throw.h"
-#include "Exceptions\ExceptionCheck.h"
-#include "Exceptions\reporterror.h"
+#include "Exceptions/Throw.h"
+#include "Exceptions/ExceptionCheck.h"
+#include "Exceptions/ReportError.h"
 
 

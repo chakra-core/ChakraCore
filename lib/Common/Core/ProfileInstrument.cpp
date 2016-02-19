@@ -5,7 +5,7 @@
 #include "CommonCorePch.h"
 
 #ifdef PROFILE_EXEC
-#include "core\ProfileInstrument.h"
+#include "Core/ProfileInstrument.h"
 
 #define HIRES_PROFILER
 namespace Js

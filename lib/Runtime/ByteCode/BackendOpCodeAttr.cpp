@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
-#include "BackEndOpcodeAttr.h"
+#include "BackendOpCodeAttr.h"
 
 namespace OpCodeAttr
 {
@@ -18,7 +18,7 @@ namespace OpCodeAttr
 enum OpCodeAttrEnum
 {
     None                        = 0x00000000,
-    OpSideEffect                = 0x00000001, // If dst is unused and src can’t call implicitcalls, it still can not be dead-stored (Could throw an exception, etc)
+    OpSideEffect                = 0x00000001, // If dst is unused and src can't call implicitcalls, it still can not be dead-stored (Could throw an exception, etc)
     OpUseAllFields              = 0x00000002,
 
     OpTempNumberSources         = 0x00000004, // OpCode does support temp values as source
@@ -60,14 +60,14 @@ enum OpCodeAttrEnum
 static const int OpcodeAttributes[] =
 {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\OpCodeList.h"
+#include "ByteCode/OpCodeList.h"
 #undef DEF_OP
 };
 
 static const int ExtendedOpcodeAttributes[] =
 {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\ExtendedOpCodeList.h"
+#include "ByteCode/ExtendedOpCodeList.h"
 #undef DEF_OP
 };
 

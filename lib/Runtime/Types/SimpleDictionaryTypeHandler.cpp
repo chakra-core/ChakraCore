@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Library\ForInObjectEnumerator.h"
+#include "Library/ForInObjectEnumerator.h"
 
 namespace Js
 {

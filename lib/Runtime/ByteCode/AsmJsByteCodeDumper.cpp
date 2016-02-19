@@ -6,8 +6,8 @@
 
 #ifndef TEMP_DISABLE_ASMJS
 #if DBG_DUMP
-#include "Language\AsmJsModule.h"
-#include "ByteCode\AsmJSByteCodeDumper.h"
+#include "Language/AsmJsModule.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
 
 namespace Js
 {

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "JsrtExceptionBase.h"
-#include "Exceptions\EvalDisabledException.h"
+#include "Exceptions/EvalDisabledException.h"
 
 #define PARAM_NOT_NULL(p) \
     if (p == nullptr) \

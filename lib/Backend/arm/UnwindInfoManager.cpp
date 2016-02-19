@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 //------------------------------------------------------------------------------
 // define the set of ARMNT unwind codes based on "unwindCodes.h"
@@ -15,7 +15,7 @@
 
 enum UnwindCode
 {
-#include "unwindCodes.h"
+#include "UnwindCodes.h"
 };
 
 #undef UNWIND_CODE
@@ -25,7 +25,7 @@ enum UnwindCode
 
 static const DWORD UnwindCodeTemplates[] =
 {
-#include "unwindCodes.h"
+#include "UnwindCodes.h"
 };
 
 #undef UNWIND_CODE
@@ -35,7 +35,7 @@ static const DWORD UnwindCodeTemplates[] =
 
 static const DWORD UnwindCodeLengths[] =
 {
-#include "unwindCodes.h"
+#include "UnwindCodes.h"
 };
 
 DWORD UnwindInfoManager::XdataTemplate(UnwindCode op) const

@@ -11,10 +11,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RejitReason.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Tick.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)vtinfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)cfglogger.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CfgLogger.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DaylightTimeHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NumberUtilities_strtod.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SmartFPUControl.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SmartFpuControl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonCommonPch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int64Math.cpp" />
   </ItemGroup>
@@ -31,16 +31,16 @@
     <ClInclude Include="UInt16Math.h" />
     <ClInclude Include="UInt32Math.h" />
     <ClInclude Include="vtinfo.h" />
-    <ClInclude Include="cfglogger.h" />
+    <ClInclude Include="CfgLogger.h" />
     <ClInclude Include="DaylightTimeHelper.h" />
     <ClInclude Include="vtregistry.h" />
-    <ClInclude Include="NumberUtilities.inc" />
+    <ClInclude Include="NumberUtilities.inl" />
     <ClInclude Include="ByteSwap.h" />
     <ClInclude Include="CommonCommonPch.h" />
-    <ClInclude Include="GetCurrentFrameID.h" />
+    <ClInclude Include="GetCurrentFrameId.h" />
     <ClInclude Include="NumberUtilitiesBase.h" />
-    <ClInclude Include="SmartFPUControl.h" />
-    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="SmartFpuControl.h" />
+    <ClInclude Include="stdafx.h" />
     <ClInclude Include="Int64Math.h" />
   </ItemGroup>
   <ItemGroup>

@@ -9,25 +9,25 @@
 #include "DebugWriter.h"
 #include "RegexStats.h"
 
-#include "ByteCode\ByteCodeAPI.h"
-#include "Library\ProfileString.h"
-#include "Debug\DiagHelperMethodWrapper.h"
-#include "BackEndAPI.h"
+#include "ByteCode/ByteCodeApi.h"
+#include "Library/ProfileString.h"
+#include "Debug/DiagHelperMethodWrapper.h"
+#include "BackendApi.h"
 #if PROFILE_DICTIONARY
 #include "DictionaryStats.h"
 #endif
 
-#include "Base\ScriptContextProfiler.h"
-#include "Base\EtwTrace.h"
+#include "Base/ScriptContextProfiler.h"
+#include "Base/EtwTrace.h"
 
-#include "Language\InterpreterStackFrame.h"
-#include "Language\SourceDynamicProfileManager.h"
-#include "Language\JavascriptStackWalker.h"
-#include "Language\AsmJsTypes.h"
-#include "Language\AsmJsModule.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Language/SourceDynamicProfileManager.h"
+#include "Language/JavascriptStackWalker.h"
+#include "Language/AsmJsTypes.h"
+#include "Language/AsmJsModule.h"
 #ifdef ASMJS_PLAT
-#include "Language\AsmJsEncoder.h"
-#include "Language\AsmJsCodeGenerator.h"
+#include "Language/AsmJsEncoder.h"
+#include "Language/AsmJsCodeGenerator.h"
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY

@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 #pragma prefast(push)
 #pragma prefast(disable:28652, "Prefast complains that the OR are causing the compiler to emit dynamic initializers and the variable to be allocated in read/write mem...")
@@ -718,7 +718,7 @@ IRBuilder::Build()
         case Js::LargeLayout * Js::OpLayoutType::Count + Js::OpLayoutType::layout: \
             this->Build##layout<Js::LargeLayoutSizePolicy>(newOpcode, offset); \
             break;
-#include "ByteCode\LayoutTypes.h"
+#include "ByteCode/LayoutTypes.h"
 
         default:
             AssertMsg(0, "Unimplemented layout");

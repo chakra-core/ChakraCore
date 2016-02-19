@@ -63,16 +63,16 @@ namespace Js
     enum AsmJSMathBuiltinFunction
     {
 #define ASMJS_MATH_FUNC_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltinFunction_COUNT,
 #define ASMJS_MATH_CONST_NAMES(name, propertyName) AsmJSMathBuiltin_##name,
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
         AsmJSMathBuiltin_COUNT
     };
     enum AsmJSTypedArrayBuiltinFunction
     {
 #define ASMJS_ARRAY_NAMES(name, propertyName) AsmJSTypedArrayBuiltin_##name,
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
         AsmJSTypedArrayBuiltin_COUNT
     };
     // Represents the type of a general asm.js expression.
@@ -1090,7 +1090,7 @@ namespace Js
     enum AsmJsSIMDBuiltinFunction
     {
 #define ASMJS_SIMD_NAMES(name, propertyName) AsmJsSIMDBuiltin_##name,
-#include "AsmJsBuiltinNames.h"
+#include "AsmJsBuiltInNames.h"
         AsmJsSIMDBuiltin_COUNT
     };
 

@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLibraryPch.h"
-#include "Types\PathTypeHandler.h"
-#include "Types\SpreadArgument.h"
+#include "Types/PathTypeHandler.h"
+#include "Types/SpreadArgument.h"
 
 namespace Js
 {

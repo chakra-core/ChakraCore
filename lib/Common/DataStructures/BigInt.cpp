@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonDataStructuresPch.h"
-#include "DataStructures\BigInt.h"
-#include "common\NumberUtilitiesBase.h"
-#include "common\NumberUtilities.h"
+#include "DataStructures/BigInt.h"
+#include "Common/NumberUtilitiesBase.h"
+#include "Common/NumberUtilities.h"
 
 namespace Js
 {

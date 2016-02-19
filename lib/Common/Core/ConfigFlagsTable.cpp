@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "Memory\PageHeapBlockTypeFilter.h"
+#include "Memory/PageHeapBlockTypeFilter.h"
 
 #include <initguid.h>
 // {17DC713D-8B3E-4434-9DC8-90C275C75194}

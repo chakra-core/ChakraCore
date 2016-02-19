@@ -6,7 +6,7 @@
 
 #if DBG_DUMP
 #include <strsafe.h>
-#include "Language\JavascriptStackWalker.h"
+#include "Language/JavascriptStackWalker.h"
 
 WCHAR* DumpCallStack(uint frameCount) { return DumpCallStackFull(frameCount, /*print*/ true); }
 

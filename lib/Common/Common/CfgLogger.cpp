@@ -5,8 +5,8 @@
 #include "CommonCommonPch.h"
 
 #ifdef CONTROL_FLOW_GUARD_LOGGER
-#include "common\CFGLogger.h"
-#include "core\DbgHelpSymbolManager.h"
+#include "Common/CfgLogger.h"
+#include "Core/DbgHelpSymbolManager.h"
 
 // Initialization order
 //  AB AutoSystemInfo

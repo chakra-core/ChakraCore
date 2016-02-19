@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Base\Exception.h"
-#include "Base\ThreadContextTLSEntry.h"
+#include "Base/Exception.h"
+#include "Base/ThreadContextTlsEntry.h"
 
 void JsUtil::ExternalApi::RecoverUnusedMemory()
 {

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "Base\threadservicewrapper.h"
+#include "Base/ThreadServiceWrapper.h"
 
 namespace JsStaticAPI
 {

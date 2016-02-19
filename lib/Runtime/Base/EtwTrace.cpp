@@ -5,8 +5,8 @@
 #include "RuntimeBasePch.h"
 
 #ifdef ENABLE_JS_ETW
-#include "core\EtwTraceCore.h"
-#include "Base\EtwTrace.h"
+#include "Core/EtwTraceCore.h"
+#include "Base/EtwTrace.h"
 
 #ifdef VTUNE_PROFILING
 #ifdef CDECL

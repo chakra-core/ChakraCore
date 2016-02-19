@@ -32,7 +32,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJSByteCodeDumper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsByteCodeDumper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsByteCodeWriter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ByteBlock.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeDumper.cpp" />
@@ -42,7 +42,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeWriter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeSerializer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FuncInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Opcodes.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)OpCodes.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)OpCodeUtil.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)OpCodeUtilAsmJs.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Scope.cpp" />
@@ -52,21 +52,21 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeByteCodePch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BackEndOpcodeAttr.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttr.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AsmJSByteCodeDumper.h" />
+    <ClInclude Include="AsmJsByteCodeDumper.h" />
     <ClInclude Include="AsmJsByteCodeWriter.h" />
-    <ClInclude Include="BackEndOpcodeAttr.h" />
+    <ClInclude Include="BackendOpCodeAttr.h" />
     <ClInclude Include="ByteBlock.h" />
-    <ClInclude Include="ByteCodeAPI.h" />
+    <ClInclude Include="ByteCodeApi.h" />
     <ClInclude Include="ByteCodeDumper.h" />
     <ClInclude Include="ByteCodeGenerator.h" />
     <ClInclude Include="ByteCodeReader.h" />
     <ClInclude Include="ByteCodeWriter.h" />
     <ClInclude Include="ByteCodeSerializeFlags.h" />
     <ClInclude Include="ByteCodeSerializer.h" />
-    <ClInclude Include="byteCodeCacheReleaseFileVersion.h" />
+    <ClInclude Include="ByteCodeCacheReleaseFileVersion.h" />
     <ClInclude Include="ExtendedOpCodeList.h" />
     <ClInclude Include="ExtendedOpCodeListAsmJs.h" />
     <ClInclude Include="FuncInfo.h" />

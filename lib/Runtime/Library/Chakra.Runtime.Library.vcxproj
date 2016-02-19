@@ -42,35 +42,35 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDFloat32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDFloat64x2.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDFloat64x2Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt8x16Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUInt32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool32x4.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool16x8.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Lib.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool8x16.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat64x2.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat64x2Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdInt8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdUint8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdBool8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Lib.cpp" />
 
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CompoundString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)dataview.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DataView.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IteratorObjectEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
@@ -93,7 +93,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSymbolObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakMap.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakSet.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)javascripttypednumber.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptTypedNumber.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONParser.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONScanner.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONString.cpp" />
@@ -106,7 +106,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)StringCopyInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThrowErrorObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TypedArray.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)typedArrayEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)TypedArrayEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObjectEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ConcatString.cpp" />
@@ -139,7 +139,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)LiteralString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStringObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MathLibrary.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)moduleroot.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ModuleRoot.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NullEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ObjectPrototypeObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyString.cpp" />
@@ -162,43 +162,43 @@
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptErrorDebug.h" />
-    <ClInclude Include="JavascriptSIMDFloat32x4.h" />
-    <ClInclude Include="JavascriptSIMDFloat64x2.h" />
-    <ClInclude Include="JavascriptSIMDInt32x4.h" />
-    <ClInclude Include="JavascriptSIMDInt16x8.h" />
-    <ClInclude Include="JavascriptSIMDInt8x16.h" />
-    <ClInclude Include="JavascriptSIMDUInt32x4.h" />
-    <ClInclude Include="JavascriptSIMDUint16x8.h" />
-    <ClInclude Include="JavascriptSIMDUint8x16.h" />
-    <ClInclude Include="JavascriptSIMDBool32x4.h" />
-    <ClInclude Include="JavascriptSIMDBool16x8.h" />
-    <ClInclude Include="JavascriptSIMDBool8x16.h" />
+    <ClInclude Include="JavascriptSimdFloat32x4.h" />
+    <ClInclude Include="JavascriptSimdFloat64x2.h" />
+    <ClInclude Include="JavascriptSimdInt32x4.h" />
+    <ClInclude Include="JavascriptSimdInt16x8.h" />
+    <ClInclude Include="JavascriptSimdInt8x16.h" />
+    <ClInclude Include="JavascriptSimdUint32x4.h" />
+    <ClInclude Include="JavascriptSimdUint16x8.h" />
+    <ClInclude Include="JavascriptSimdUint8x16.h" />
+    <ClInclude Include="JavascriptSimdBool32x4.h" />
+    <ClInclude Include="JavascriptSimdBool16x8.h" />
+    <ClInclude Include="JavascriptSimdBool8x16.h" />
 
-    <ClInclude Include="SIMDFloat32x4Lib.h" />
-    <ClInclude Include="SIMDFloat64x2Lib.h" />
-    <ClInclude Include="SIMDInt32x4Lib.h" />
-    <ClInclude Include="SIMDInt16x8Lib.h" />
-    <ClInclude Include="SIMDInt8x16Lib.h" />
-    <ClInclude Include="SIMDUInt32x4Lib.h" />
-    <ClInclude Include="SIMDUint16x8Lib.h" />
-    <ClInclude Include="SIMDUint8x16Lib.h" />
-    <ClInclude Include="SIMDBool32x4Lib.h" />
-    <ClInclude Include="SIMDBool16x8Lib.h" />
-    <ClInclude Include="SIMDBool8x16Lib.h" />
+    <ClInclude Include="SimdFloat32x4Lib.h" />
+    <ClInclude Include="SimdFloat64x2Lib.h" />
+    <ClInclude Include="SimdInt32x4Lib.h" />
+    <ClInclude Include="SimdInt16x8Lib.h" />
+    <ClInclude Include="SimdInt8x16Lib.h" />
+    <ClInclude Include="SimdUint32x4Lib.h" />
+    <ClInclude Include="SimdUint16x8Lib.h" />
+    <ClInclude Include="SimdUint8x16Lib.h" />
+    <ClInclude Include="SimdBool32x4Lib.h" />
+    <ClInclude Include="SimdBool16x8Lib.h" />
+    <ClInclude Include="SimdBool8x16Lib.h" />
 
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />
     <ClInclude Include="BuiltInFlags.h" />
     <ClInclude Include="CompoundString.h" />
-    <ClInclude Include="dataview.h" />
+    <ClInclude Include="DataView.h" />
     <ClInclude Include="DateImplementationData.h" />
     <ClInclude Include="EngineInterfaceObject.h" />
     <ClInclude Include="ES5ArrayIndexEnumerator.h" />
     <ClInclude Include="ES5ArrayNonIndexEnumerator.h" />
     <ClInclude Include="HostObjectBase.h" />
-    <ClInclude Include="InJavascript\intl.js.bc.32b.h" />
-    <ClInclude Include="InJavascript\intl.js.bc.64b.h" />
+    <ClInclude Include="InJavascript\Intl.js.bc.32b.h" />
+    <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
     <ClInclude Include="IteratorObjectEnumerator.h" />
     <ClInclude Include="JavascriptArrayEnumeratorBase.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
@@ -224,7 +224,7 @@
     <ClInclude Include="JavascriptStringTagEntries.h" />
     <ClInclude Include="JavascriptSymbol.h" />
     <ClInclude Include="JavascriptSymbolObject.h" />
-    <ClInclude Include="javascripttypednumber.h" />
+    <ClInclude Include="JavascriptTypedNumber.h" />
     <ClInclude Include="JavascriptWeakMap.h" />
     <ClInclude Include="JavascriptWeakSet.h" />
     <ClInclude Include="JSONParser.h" />
@@ -241,8 +241,8 @@
     <ClInclude Include="StackScriptFunction.h" />
     <ClInclude Include="StringCopyInfo.h" />
     <ClInclude Include="ThrowErrorObject.h" />
-    <ClInclude Include="typedarray.h" />
-    <ClInclude Include="typedArrayEnumerator.h" />
+    <ClInclude Include="TypedArray.h" />
+    <ClInclude Include="TypedArrayEnumerator.h" />
     <ClInclude Include="ArgumentsObject.h" />
     <ClInclude Include="ArgumentsObjectEnumerator.h" />
     <ClInclude Include="ConcatString.h" />
@@ -274,7 +274,7 @@
     <ClInclude Include="JSON.h" />
     <ClInclude Include="LiteralString.h" />
     <ClInclude Include="MathLibrary.h" />
-    <ClInclude Include="moduleroot.h" />
+    <ClInclude Include="ModuleRoot.h" />
     <ClInclude Include="NullEnumerator.h" />
     <ClInclude Include="ObjectPrototypeObject.h" />
     <ClInclude Include="PropertyString.h" />
@@ -285,7 +285,7 @@
     <ClInclude Include="UriHelper.h" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="$(MSBuildThisFileDirectory)amd64\javascriptfunctiona.asm">
+    <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptFunctionA.asm">
       <PreprocessorDefinitions Condition="'$(BuildJIT)'!='false'">%(PreprocessorDefinitions);_ENABLE_ASM_JS=1</PreprocessorDefinitions>
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>
@@ -307,10 +307,8 @@
     <ARMASM Include="$(MSBuildThisFileDirectory)arm64\arm64_DeferredParsingThunk.asm">
       <ExcludedFromBuild Condition="'$(Platform)'!='Arm64'">true</ExcludedFromBuild>
     </ARMASM>
-    <None Include="InJavascript\BuildGenByteCodeBin.cmd" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
-    <None Include="InJavascript\WarnGenByteCode.cmd" />
     <None Include="ConcatString.inl" />
     <None Include="SparseArraySegment.inl" />
     <None Include="JavascriptArray.inl" />

@@ -52,10 +52,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocSizeMath.h" />
-    <ClInclude Include="api.h" />
+    <ClInclude Include="Api.h" />
     <ClInclude Include="Assertions.h" />
     <ClInclude Include="AtomLockGuids.h" />
-    <ClInclude Include="AutoFILE.h" />
+    <ClInclude Include="AutoFile.h" />
     <ClInclude Include="BinaryFeatureControl.h" />
     <ClInclude Include="BasePtr.h" />
     <ClInclude Include="CmdParser.h" />
@@ -84,8 +84,8 @@
     <ClInclude Include="..\CommonMin.h" />
     <ClInclude Include="..\CommonMinMemory.h" />
     <ClInclude Include="..\Common.h" />
-    <ClInclude Include="..\BackEndAPI.h" />
-    <ClInclude Include="..\commoninl.h" />
+    <ClInclude Include="..\BackendApi.h" />
+    <ClInclude Include="..\CommonInl.h" />
     <ClInclude Include="..\DictionaryStats.h" />
     <ClInclude Include="..\EnumClassHelp.h" />
     <ClInclude Include="..\ConfigFlagsList.h" />

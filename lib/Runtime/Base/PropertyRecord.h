@@ -139,7 +139,7 @@ namespace Js
 #define ENTRY_SYMBOL(n, d) const static BuiltInPropertyRecord<ARRAYSIZE(d)> n;
 #define ENTRY(n) const static BuiltInPropertyRecord<ARRAYSIZE(L#n)> n;
 #define ENTRY2(n, s) const static BuiltInPropertyRecord<ARRAYSIZE(s)> n;
-#include "Base\JnDirectFields.h"
+#include "Base/JnDirectFields.h"
     };
 
     template <typename TChar>

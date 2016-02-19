@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "Base\ThreadContextTLSEntry.h"
+#include "Base/ThreadContextTlsEntry.h"
 
 ulong ThreadContextTLSEntry::s_tlsSlot = TLS_OUT_OF_INDEXES;
 

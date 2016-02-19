@@ -33,7 +33,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)alloc.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Alloc.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BackgroundParser.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CaseInsensitive.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CharClassifier.cpp" />
@@ -43,26 +43,26 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DebugWriter.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)errstr.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)globals.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)hash.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Hash.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)OctoquadIdentifier.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)parse.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Parse.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RegexCompileTime.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RegexParser.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RegexPattern.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)RegexRunTime.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RegexRuntime.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RegexStats.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)rterror.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)scan.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Scan.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)screrror.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)StandardChars.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ParserPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)TextbookBoyerMoore.cpp" />
-    <None Include="hashfunc.cpp" />
+    <None Include="HashFunc.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="alloc.h" />
+    <ClInclude Include="Alloc.h" />
     <ClInclude Include="BackgroundParser.h" />
     <ClInclude Include="CaseInsensitive.h" />
     <ClInclude Include="CharClassifier.h" />
@@ -73,9 +73,9 @@
     <ClInclude Include="cmperr.h" />
     <ClInclude Include="DebugWriter.h" />
     <ClInclude Include="errstr.h" />
-    <ClInclude Include="formalsutil.h" />
+    <ClInclude Include="FormalsUtil.h" />
     <ClInclude Include="globals.h" />
-    <ClInclude Include="hash.h" />
+    <ClInclude Include="Hash.h" />
     <ClInclude Include="idiom.h" />
     <ClInclude Include="keywords.h" />
     <ClInclude Include="kwd-lsc.h" />
@@ -83,7 +83,7 @@
     <ClInclude Include="kwds_sw.h" />
     <ClInclude Include="objnames.h" />
     <ClInclude Include="OctoquadIdentifier.h" />
-    <ClInclude Include="parse.h" />
+    <ClInclude Include="Parse.h" />
     <ClInclude Include="ParseFlags.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="ParserCommon.h" />
@@ -97,20 +97,20 @@
     <ClInclude Include="popcode.h" />
     <ClInclude Include="ptlist.h" />
     <ClInclude Include="ptree.h" />
-    <ClInclude Include="regcodes.h" />
+    <ClInclude Include="RegCodes.h" />
     <ClInclude Include="RegexCommon.h" />
     <ClInclude Include="RegexCompileTime.h" />
     <ClInclude Include="RegexContcodes.h" />
     <ClInclude Include="RegexFlags.h" />
-    <ClInclude Include="RegexOpcodes.h" />
+    <ClInclude Include="RegexOpCodes.h" />
     <ClInclude Include="RegexParser.h" />
     <ClInclude Include="RegexPattern.h" />
-    <ClInclude Include="RegexRunTime.h" />
+    <ClInclude Include="RegexRuntime.h" />
     <ClInclude Include="RegexStats.h" />
     <ClInclude Include="rterror.h" />
     <ClInclude Include="rterrors.h" />
     <ClInclude Include="rterrors_limits.h" />
-    <ClInclude Include="scan.h" />
+    <ClInclude Include="Scan.h" />
     <ClInclude Include="screrror.h" />
     <ClInclude Include="StandardChars.h" />
     <ClInclude Include="TextbookBoyerMoore.h" />
@@ -134,7 +134,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="jsscan.js" />
+    <None Include="JsScan.js" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

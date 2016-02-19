@@ -59,7 +59,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TempArenaAllocatorObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThreadBoundThreadContextManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThreadContext.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ThreadContextTLSEntry.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThreadContextTlsEntry.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ThreadServiceWrapperBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Utf8SourceInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WindowsFoundationAdapter.cpp" />
@@ -104,7 +104,7 @@
     <ClInclude Include="ThreadBoundThreadContextManager.h" />
     <ClInclude Include="ThreadConfigFlagsList.h" />
     <ClInclude Include="ThreadContext.h" />
-    <ClInclude Include="ThreadContextTLSEntry.h" />
+    <ClInclude Include="ThreadContextTlsEntry.h" />
     <ClInclude Include="ThreadServiceWrapper.h" />
     <ClInclude Include="ThreadServiceWrapperBase.h" />
     <ClInclude Include="Utf8SourceInfo.h" />

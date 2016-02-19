@@ -105,7 +105,7 @@ namespace Js
 #define ENTRY_SYMBOL(n, d) const BuiltInPropertyRecord<ARRAYSIZE(d)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(d) - 1) * sizeof(wchar_t), true), d };
 #define ENTRY2(n, s) const BuiltInPropertyRecord<ARRAYSIZE(s)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(s) - 1) * sizeof(wchar_t), false), s };
 #define ENTRY(n) ENTRY2(n, L#n)
-#include "Base\JnDirectFields.h"
+#include "Base/JnDirectFields.h"
 };
 
 namespace JsUtil

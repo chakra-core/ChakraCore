@@ -52,11 +52,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HeapAllocatorOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HeapBlock.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)HeapBlockMap.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)heapbucket.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)heapinfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HeapBucket.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HeapInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IdleDecommitPageAllocator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LargeHeapBlock.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)leakreport.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)LeakReport.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LargeHeapBucket.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MarkContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MemoryTracking.cpp" />
@@ -93,7 +93,7 @@
     </ClInclude>
     <ClInclude Include="AutoAllocatorObjectPtr.h" />
     <ClInclude Include="AutoPtr.h" />
-    <ClInclude Include="collectionstate.h" />
+    <ClInclude Include="CollectionState.h" />
     <ClInclude Include="CommonMemoryPch.h" />
     <ClInclude Include="CustomHeap.h" />
     <ClInclude Include="ForcedMemoryConstraints.h" />
@@ -101,12 +101,12 @@
     <ClInclude Include="HeapAllocator.h" />
     <ClInclude Include="HeapBlock.h" />
     <ClInclude Include="HeapBlockMap.h" />
-    <ClInclude Include="heapbucket.h" />
+    <ClInclude Include="HeapBucket.h" />
     <ClInclude Include="HeapConstants.h" />
-    <ClInclude Include="heapinfo.h" />
+    <ClInclude Include="HeapInfo.h" />
     <ClInclude Include="IdleDecommitPageAllocator.h" />
     <ClInclude Include="LargeHeapBlock.h" />
-    <ClInclude Include="leakreport.h" />
+    <ClInclude Include="LeakReport.h" />
     <ClInclude Include="LargeHeapBucket.h" />
     <ClInclude Include="MarkContext.h" />
     <ClInclude Include="MemoryTracking.h" />
@@ -138,8 +138,8 @@
     <ClInclude Include="XDataAllocator.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="heapblock.inl" />
-    <None Include="heapbucket.inl" />
+    <None Include="HeapBlock.inl" />
+    <None Include="HeapBucket.inl" />
     <None Include="LargeHeapBucket.inl" />
     <None Include="MarkContext.inl" />
     <None Include="Recycler.inl" />
