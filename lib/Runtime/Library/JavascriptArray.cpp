@@ -2136,7 +2136,7 @@ namespace Js
             }
 #endif
 
-            if(fArray->GetScriptContext()->IsInNonDebugMode())
+            if(fArray->GetScriptContext()->IsScriptContextInNonDebugMode())
             {
                 Assert(!arrayInfo->IsNativeIntArray());
             }

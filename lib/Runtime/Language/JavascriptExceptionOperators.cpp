@@ -49,7 +49,7 @@ namespace Js
         m_previousCatchHandlerExists = m_threadContext->HasCatchHandler();
         m_threadContext->SetHasCatchHandler(TRUE);
         m_previousCatchHandlerToUserCodeStatus = m_threadContext->IsUserCode();
-        if (scriptContext->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode())
         {
             FetchNonUserCodeStatus(scriptContext);
         }
@@ -872,7 +872,7 @@ namespace Js
         Assert(exceptionObject != NULL);
         Assert(scriptContext != NULL);
 
-        if (scriptContext->IsInDebugMode()
+        if (scriptContext->IsScriptContextInDebugMode()
             && scriptContext->GetDebugContext()->GetProbeContainer()->HasAllowedForException(exceptionObject))
         {
             InterpreterHaltState haltState(STOP_EXCEPTIONTHROW, /*executingFunction*/nullptr);

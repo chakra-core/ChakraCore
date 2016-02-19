@@ -921,7 +921,6 @@ FLAGNR(Boolean, ForceDecommitOnCollect, "Force decommit collect", DEFAULT_CONFIG
 FLAGNR(Boolean, ForceDeferParse       , "Defer parsing of all function bodies", DEFAULT_CONFIG_ForceDeferParse)
 FLAGNR(Boolean, ForceDiagnosticsMode  , "Enable diagnostics mode and debug interpreter loop", false)
 FLAGNR(Boolean, ForceGetWriteWatchOOM , "Force GetWriteWatch to go into OOM codepath in HeapBlockMap rescan", false)
-FLAGNR(Boolean, DumpDbgControllerBytecode, "Dump dbgcontroller.js bytecode when -dump:bytecode is specified (default false)", false)
 FLAGNR(Boolean, ForcePostLowerGlobOptInstrString, "Force tracking of globopt instr string post lower", DEFAULT_CONFIG_ForcePostLowerGlobOptInstrString)
 FLAGNR(Boolean, EnumerateSpecialPropertiesInDebugger, "Enable enumeration of special debug properties", DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger)
 FLAGNR(Boolean, EnableJitInDiagMode   , "Enable Fast F12 (only applicable with ForceDiagnosticsMode or while under debugger)", DEFAULT_CONFIG_EnableJitInDiagMode)

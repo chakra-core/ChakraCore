@@ -3296,14 +3296,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
 
-    byteCodeFunction->SetIsByteCodeDebugMode(this->IsInDebugMode());
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (byteCodeFunction->IsByteCodeDebugMode() != scriptContext->IsInDebugMode()) // debug mode mismatch
+    if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
     {
         if (m_utf8SourceInfo->GetIsLibraryCode())
         {
-            Assert(!byteCodeFunction->IsByteCodeDebugMode()); // Library script byteCode is never in debug mode
+            Assert(!byteCodeFunction->IsInDebugMode()); // Library script byteCode is never in debug mode
         }
         else
         {

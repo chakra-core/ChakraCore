@@ -1091,7 +1091,7 @@ namespace Js
             !this->executeFunction->GetScriptContext()->GetConfig()->IsNoNative() &&
             !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction) || this->executeFunction->GetHasFinally())) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
-            !this->executeFunction->GetScriptContext()->IsInDebugMode();
+            !this->executeFunction->IsInDebugMode();
 #else
         const bool doJITLoopBody = false;
 #endif
@@ -1203,7 +1203,7 @@ namespace Js
             memset(newInstance->m_localSlots, 0, sizeof(Js::Var) * localCount);
         }
 #else
-        if (newInstance->scriptContext->IsInDebugMode())
+        if (newInstance->m_functionBody->IsInDebugMode())
         {
             // In the debug mode zero out the local slot, so this could prevent locals being uninitialized in the case of setNextStatement.
             memset(newInstance->m_localSlots, 0, sizeof(Js::Var) * localCount);
@@ -1688,11 +1688,11 @@ namespace Js
 
         FunctionBody* executeFunction = JavascriptFunction::FromVar(function)->GetFunctionBody();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (!isAsmJs && executeFunction->IsByteCodeDebugMode() != functionScriptContext->IsInDebugMode()) // debug mode mismatch
+        if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {
             if (executeFunction->GetUtf8SourceInfo()->GetIsLibraryCode())
             {
-                Assert(!executeFunction->IsByteCodeDebugMode()); // Library script byteCode is never in debug mode
+                Assert(!executeFunction->IsInDebugMode()); // Library script byteCode is never in debug mode
             }
             else
             {
@@ -1733,7 +1733,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
         const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-                               functionScriptContext->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction);
+                               executeFunction->IsInDebugMode() && DynamicProfileInfo::IsEnabled(executeFunction);
         if (doProfile)
         {
 #if !DYNAMIC_INTERPRETER_THUNK
@@ -1878,7 +1878,7 @@ namespace Js
         Var aReturn = nullptr;
 
         {
-            if (!isAsmJs && functionScriptContext->IsInDebugMode())
+            if (!isAsmJs && executeFunction->IsInDebugMode())
             {
 #if DYNAMIC_INTERPRETER_THUNK
                 PushPopFrameHelper pushPopFrameHelper(newInstance, returnAddress, addressOfReturnAddress);
@@ -2593,7 +2593,7 @@ namespace Js
         ScriptFunction::ReparseAsmJsModule(&funcObj);
         const bool doProfile =
             funcObj->GetFunctionBody()->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
-            GetScriptContext()->IsInDebugMode() && DynamicProfileInfo::IsEnabled(funcObj->GetFunctionBody());
+            funcObj->GetFunctionBody()->IsInDebugMode() && DynamicProfileInfo::IsEnabled(funcObj->GetFunctionBody());
 
         DynamicProfileInfo * dynamicProfileInfo = nullptr;
         if (doProfile)
@@ -3603,7 +3603,7 @@ namespace Js
         Js::ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
 
 #if DBG
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             JavascriptFunction::CheckValidDebugThunk(scriptContext, function);
         }
@@ -6224,7 +6224,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
-            if (scriptContext->IsInDebugMode())
+            if (this->IsInDebugMode())
             {
                 this->ProcessWithDebugging();
                 this->TrySetRetOffset();
@@ -6298,7 +6298,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::ProcessCatch()
     {
-        if (this->scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
@@ -6315,7 +6315,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }
@@ -6352,7 +6352,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
 
-                if (scriptContext->IsInDebugMode())
+                if (this->IsInDebugMode())
                 {
                     this->ProcessWithDebugging();
                     this->TrySetRetOffset();
@@ -6466,7 +6466,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
 
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             this->DebugProcess();
         }
@@ -6498,7 +6498,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             // mark the stackFrame as 'in try block'
             this->m_flags |= InterpreterStackFrameFlags_WithinTryBlock;
 
-            if (scriptContext->IsInDebugMode())
+            if (this->IsInDebugMode())
             {
                 result = this->ProcessWithDebugging();
             }
@@ -6548,7 +6548,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
         }
 
-        if (pExceptionObject && scriptContext->IsInDebugMode() &&
+        if (pExceptionObject && this->IsInDebugMode() &&
             pExceptionObject != scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {
             // Swallowing an exception that has triggered a finally is not implemented
@@ -6599,7 +6599,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->m_flags |= InterpreterStackFrameFlags_WithinFinallyBlock;
 
         int newOffset = 0;
-        if (scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             newOffset = ::Math::PointerCastToIntegral<int>(this->DebugProcess());
         }

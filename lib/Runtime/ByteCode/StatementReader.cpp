@@ -25,7 +25,7 @@ namespace Js
         m_startLocation = pblkByteCode->GetBuffer();
 
         const byte * currentLocation = m_startLocation + startOffset;
-        const bool isInDebugMode = functionRead->IsByteCodeDebugMode();
+        const bool isInDebugMode = functionRead->IsInDebugMode();
 
         m_statementMap = functionRead->GetStatementMapSpanSequence();
         if (m_statementMap == nullptr && isInDebugMode)

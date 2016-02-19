@@ -27,12 +27,6 @@ namespace Js
     }
     void ByteCodeDumper::Dump(FunctionBody* dumpFunction)
     {
-        if (!CONFIG_FLAG(DumpDbgControllerBytecode) && dumpFunction->GetSourceContextInfo() &&
-            dumpFunction->GetSourceContextInfo()->url != nullptr &&
-            _wcsicmp(dumpFunction->GetSourceContextInfo()->url, L"dbgcontroller.js") == 0)
-        {
-            return;
-        }
         ByteCodeReader reader;
         reader.Create(dumpFunction);
         StatementReader statementReader;
@@ -51,7 +45,7 @@ namespace Js
         Output::Print(L") ");
         Output::Print(L"(size: %d [%d])\n", dumpFunction->GetByteCodeCount(), dumpFunction->GetByteCodeWithoutLDACount());
 #if defined(DBG) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-        if (dumpFunction->IsByteCodeDebugMode())
+        if (dumpFunction->IsInDebugMode())
         {
             Output::Print(L"[Bytecode was generated for debug mode]\n");
         }
