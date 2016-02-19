@@ -3,5 +3,5 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-var a = WScript.LoadWasmFile('test4.wasm', true);
+var a = WScript.LoadWasmFile('test4.wasm', {}, true);
 print(a(5));

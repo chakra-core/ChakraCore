@@ -7,6 +7,7 @@
 (func (result i32)
     (return (i32.const 2))
 )
+  (import "foo" (param i32) (result i32))
 (func (param i32) (result i32) (local f32)
     (if (i32.ges (i32.const 26) (i32.const 25)) (setlocal 0 (i32.add (getlocal 0) (i32.const 4))))
 
@@ -24,6 +25,7 @@
     (setlocal 1 (f32.convert_s/i32 (getlocal 0)))
     (setlocal 1 (f32.add (getlocal 1) (getlocal 1)))
     (setlocal 0 (i32.trunc_s/f32 (getlocal 1)))
+    (setlocal 0 (i32.add (getlocal 0) (call 1 (getlocal 0))))
     (i32.store 0 10000 (getlocal 0) (i32.add (getlocal 0) (i32.const 7)))
     (setlocal 0 (i32.load 0 10000 (getlocal 0)))
     (return (i32.add (getlocal 0) (i32.const 42)))

@@ -64,6 +64,9 @@ WasmBytecodeGenerator::GenerateModule()
             }
             m_module->functions->Add(GenerateFunction());
             break;
+        case wnIMPORT:
+            m_module->functions->Add(InitializeImport());
+            break;
         case wnEXPORT:
             AddExport();
             break;
@@ -80,6 +83,14 @@ WasmBytecodeGenerator::GenerateModule()
     m_module->memSize = m_module->funcOffset + m_module->functions->Count();
 
     return m_module;
+}
+
+WasmFunction *
+WasmBytecodeGenerator::InitializeImport()
+{
+    m_func = Anew(&m_alloc, WasmFunction);
+    m_func->wasmInfo = m_reader->m_currentNode.func.info;
+    return m_func;
 }
 
 WasmFunction *
@@ -205,7 +216,7 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetFloatVarCount(ReservedRegisterCount);
     info->SetDoubleVarCount(ReservedRegisterCount);
 
-    info->SetReturnType(GetAsmJsReturnType());
+    info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
 
     // REVIEW: overflow checks?
     info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
@@ -492,13 +503,21 @@ WasmBytecodeGenerator::EmitCall()
     WasmFunction * callee = m_module->functions->GetBuffer()[funcNum];
 
     // emit start call
-    Js::ArgSlot argSize = (Js::ArgSlot)callee->body->GetAsmJsFunctionInfo()->GetArgByteSize();
-    if (argSize != callee->body->GetAsmJsFunctionInfo()->GetArgByteSize())
+    Js::ArgSlot argSize;
+    Js::OpCodeAsmJs startCallOp;
+    if (callee->wasmInfo->Imported())
     {
-        throw WasmCompilationException(L"Arg size overflows");
+        // TODO: michhol set upper limit on param count to prevent overflow
+        argSize = (Js::ArgSlot)(callee->wasmInfo->GetParamCount() * sizeof(Js::Var));
+        startCallOp = Js::OpCodeAsmJs::StartCall;
+    }
+    else
+    {
+        argSize = callee->body->GetAsmJsFunctionInfo()->GetArgByteSize();
+        startCallOp = Js::OpCodeAsmJs::I_StartCall;
     }
 
-    m_writer.AsmStartCall(Js::OpCodeAsmJs::I_StartCall, argSize + sizeof(void*));
+    m_writer.AsmStartCall(startCallOp, argSize + sizeof(void*));
 
     WasmOp op;
     uint i = 0;
@@ -519,16 +538,26 @@ WasmBytecodeGenerator::EmitCall()
         switch (info.type)
         {
         case WasmTypes::F32:
+            // REVIEW: support FFI call with f32 params?
+            Assert(!callee->wasmInfo->Imported());
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             ++nextLoc;
             break;
         case WasmTypes::F64:
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Db;
-            // this indexes into physical stack, so on x86 we need double width
-            nextLoc += sizeof(double) / sizeof(Js::Var);
+            if (callee->wasmInfo->Imported())
+            {
+                argOp = Js::OpCodeAsmJs::ArgOut_Db;
+                ++nextLoc;
+            }
+            else
+            {
+                argOp = Js::OpCodeAsmJs::I_ArgOut_Db;
+                // this indexes into physical stack, so on x86 we need double width
+                nextLoc += sizeof(double) / sizeof(Js::Var);
+            }
             break;
         case WasmTypes::I32:
-            argOp = Js::OpCodeAsmJs::I_ArgOut_Int;
+            argOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             ++nextLoc;
             break;
         default:
@@ -563,28 +592,46 @@ WasmBytecodeGenerator::EmitCall()
     // emit call
 
     m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->funcOffset);
+
     // calculate number of RegSlots the arguments consume
-    Js::ArgSlot args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
-    m_writer.AsmCall(Js::OpCodeAsmJs::I_Call, 0, 0, args, callee->body->GetAsmJsFunctionInfo()->GetReturnType());
+    Js::ArgSlot args;
+    if (callee->wasmInfo->Imported())
+    {
+        args = (Js::ArgSlot)(callee->wasmInfo->GetParamCount() + 1);
+    }
+    else
+    {
+        args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
+    }
+    Js::OpCodeAsmJs callOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Call : Js::OpCodeAsmJs::I_Call;
+    m_writer.AsmCall(callOp, 0, 0, args, GetAsmJsReturnType(callee->wasmInfo->GetResultType()));
 
     // emit result coercion
     EmitInfo retInfo;
     retInfo.type = callee->wasmInfo->GetResultType();
+    Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
     switch (retInfo.type)
     {
     case WasmTypes::F32:
+        Assert(!callee->wasmInfo->Imported());
         retInfo.location = m_f32RegSlots->AcquireTmpRegister();
-        m_writer.AsmReg2(Js::OpCodeAsmJs::I_Conv_VTF, retInfo.location, 0);
+        convertOp = Js::OpCodeAsmJs::I_Conv_VTF;
         break;
     case WasmTypes::F64:
         retInfo.location = m_f64RegSlots->AcquireTmpRegister();
-        m_writer.AsmReg2(Js::OpCodeAsmJs::I_Conv_VTD, retInfo.location, 0);
+        convertOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
         break;
     case WasmTypes::I32:
         retInfo.location = m_i32RegSlots->AcquireTmpRegister();
-        m_writer.AsmReg2(Js::OpCodeAsmJs::I_Conv_VTI, retInfo.location, 0);
+        convertOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
         break;
+    case WasmTypes::I64:
+        Assert(UNREACHED);
+        break;
+    default:
+        Assume(UNREACHED);
     }
+    m_writer.AsmReg2(convertOp, retInfo.location, 0);
 
 
     // track stack requirements for out params
@@ -978,12 +1025,12 @@ WasmBytecodeGenerator::EmitBreak()
     return EmitInfo();
 }
 
-
+/* static */
 Js::AsmJsRetType
-WasmBytecodeGenerator::GetAsmJsReturnType() const
+WasmBytecodeGenerator::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
 {
     Js::AsmJsRetType asmType = Js::AsmJsRetType::Void;
-    switch (m_funcInfo->GetResultType())
+    switch (wasmType)
     {
     case WasmTypes::F32:
         asmType = Js::AsmJsRetType::Float;
@@ -1003,6 +1050,7 @@ WasmBytecodeGenerator::GetAsmJsReturnType() const
     return asmType;
 }
 
+/* static */
 Js::AsmJsVarType
 WasmBytecodeGenerator::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 {

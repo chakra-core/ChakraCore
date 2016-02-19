@@ -895,6 +895,7 @@
             _In_z_ const wchar_t *sourceUrl,
             _In_ const bool isBinary,
             _In_ const UINT lengthBytes,
+            _In_opt_ JsValueRef ffi,
             _Out_ JsValueRef *result);
 #endif
 

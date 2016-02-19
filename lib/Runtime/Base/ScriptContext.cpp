@@ -1774,7 +1774,7 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
-    JavascriptFunction* ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName)
+    JavascriptFunction* ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName, Js::Var ffi)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1864,15 +1864,47 @@ namespace Js
             AsmJsScriptFunction * funcObj = nullptr;
             for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
-                funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
-                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                funcObj->SetModuleMemory(moduleMemoryPtr);
-                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->address = AsmJsDefaultEntryThunk;
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
-                funcObj->SetEnvironment(frameDisplay);
-                localModuleFunctions[i] = funcObj;
+                if (functionArray[i]->wasmInfo->Imported())
+                {
+                    PropertyRecord const * propertyRecord = nullptr;
+                    LPCUTF8 name = functionArray[i]->wasmInfo->GetName();
+
+                    utf8::DecodeOptions decodeOptions = utf8::doAllowInvalidWCHARs;
+
+                    UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
+                    LPCWSTR contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (utf16Len + 1) * sizeof(WCHAR));
+                    if (contents == nullptr)
+                    {
+                        Js::Throw::OutOfMemory();
+                    }
+                    utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
+
+                    GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
+                    if (!ffi)
+                    {
+                        // TODO: michhol give error message
+                        Js::Throw::InternalError();
+                    }
+                    Var prop = JavascriptOperators::OP_GetProperty(ffi, propertyRecord->GetPropertyId(), this);
+                    if (!JavascriptFunction::Is(prop))
+                    {
+                        Assert(UNREACHED);
+                        // TODO: michhol figure out correct error path
+                    }
+                    localModuleFunctions[i] = prop;
+                }
+                else
+                {
+                    funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
+                    funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+                    funcObj->SetModuleMemory(moduleMemoryPtr);
+                    FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                    entypointInfo->SetIsAsmJSFunction(true);
+                    entypointInfo->address = AsmJsDefaultEntryThunk;
+                    entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                    funcObj->SetEnvironment(frameDisplay);
+                    localModuleFunctions[i] = funcObj;
+                }
             }
 
             HeapDelete(bytecodeGen);

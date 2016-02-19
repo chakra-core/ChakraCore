@@ -93,9 +93,13 @@ namespace Wasm
         WasmFunction * GenerateFunction();
 
     private:
+
+        WasmFunction * InitializeImport();
+
         EmitInfo EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
         EmitInfo EmitLoop();
+
         EmitInfo EmitCall();
         EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
@@ -130,7 +134,7 @@ namespace Wasm
         template <typename T>
         Js::RegSlot GetConstReg(T constVal);
 
-        Js::AsmJsRetType GetAsmJsReturnType() const;
+        static Js::AsmJsRetType GetAsmJsReturnType(WasmTypes::WasmType wasmType);
         static Js::AsmJsVarType GetAsmJsVarType(WasmTypes::WasmType wasmType);
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
         WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
