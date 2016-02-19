@@ -1670,15 +1670,15 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6UnscopablesEnabled())
         {
             DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, library->nullValue, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
-            DynamicObject* unscopables_blacklist = DynamicObject::New(library->GetRecycler(), dynamicType);
-            unscopables_blacklist->SetProperty(PropertyIds::find, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::findIndex, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::fill, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::entries, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::keys, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopables_blacklist->SetProperty(PropertyIds::values, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopables_blacklist, PropertyConfigurable);
+            DynamicObject* unscopablesList = DynamicObject::New(library->GetRecycler(), dynamicType);
+            unscopablesList->SetProperty(PropertyIds::find, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::findIndex, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::fill, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::entries, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::keys, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::values, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopablesList, PropertyConfigurable);
         }
 
         if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled()) // This is not a typo, Array.prototype.fill and .copyWithin are part of the ES6 TypedArray feature

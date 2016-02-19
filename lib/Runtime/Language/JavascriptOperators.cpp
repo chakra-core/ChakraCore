@@ -1281,10 +1281,10 @@ CommonNumber:
         Var unscopables = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolUnscopables, scriptContext);
         if (JavascriptOperators::IsObject(unscopables))
         {
-            DynamicObject *blackList = DynamicObject::FromVar(unscopables);
+            DynamicObject *unscopablesList = DynamicObject::FromVar(unscopables);
             Var value;
             //8.1.1.2.1.9.c If blocked is not undefined
-            if (JavascriptOperators::GetProperty(blackList, propertyId, &value, scriptContext))
+            if (JavascriptOperators::GetProperty(unscopablesList, propertyId, &value, scriptContext))
             {
                 return JavascriptConversion::ToBoolean(value, scriptContext);
             }
