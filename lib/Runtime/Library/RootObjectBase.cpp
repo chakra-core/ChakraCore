@@ -214,7 +214,9 @@ namespace Js
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
         bool isDeclared = false;
-        if (GetTypeHandler()->HasRootProperty(this, propertyId, nullptr, &isDeclared) && isDeclared)
+        bool isNonconfigurable = false;
+        if (GetTypeHandler()->HasRootProperty(this, propertyId, nullptr, &isDeclared, &isNonconfigurable) &&
+            (isDeclared || isNonconfigurable))
         {
             JavascriptError::ThrowReferenceError(this->GetScriptContext(), ERRRedeclaration);
         }
