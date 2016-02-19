@@ -281,7 +281,7 @@ namespace TTD
         //Use this to check specifically if we are in record AND this code is being run on behalf of the user application
         bool ShouldPerformRecordAction() const;
 
-        //Use this to check specifically if we are in debugging mode (which is a superset of replay mode) AND this code is being run on behalf of the user application
+        //Use this to check specifically if we are in debugging mode AND this code is being run on behalf of the user application
         bool ShouldPerformDebugAction() const;
 
         //Use this to check if we should tag values that are passing to/from the JsRT host
