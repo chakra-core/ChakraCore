@@ -1410,7 +1410,7 @@ namespace Js
         {
             if (!prototypeSetted && shouldThrow)
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, L"setPrototypeOf");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_ProxyTrapReturnedFalse, L"setPrototypeOf");
             }
             return prototypeSetted;
         }

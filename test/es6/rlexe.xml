@@ -942,6 +942,12 @@
   </test>
   <test>
     <default>
+      <files>ProxySetPrototypeOf.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>arraywithproxy.js</files>
       <baseline>arraywithproxy.baseline</baseline>
     </default>
