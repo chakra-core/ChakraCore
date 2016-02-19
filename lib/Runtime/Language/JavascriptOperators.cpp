@@ -4,20 +4,20 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
-#include "Types\PathTypeHandler.h"
-#include "Types\PropertyIndexRanges.h"
-#include "Types\WithScopeObject.h"
-#include "Types\SpreadArgument.h"
-#include "Library\JavascriptPromise.h"
-#include "Library\JavascriptRegularExpression.h"
-#include "Library\ThrowErrorObject.h"
-#include "Library\JavascriptGeneratorFunction.h"
+#include "Types/PathTypeHandler.h"
+#include "Types/PropertyIndexRanges.h"
+#include "Types/WithScopeObject.h"
+#include "Types/SpreadArgument.h"
+#include "Library/JavascriptPromise.h"
+#include "Library/JavascriptRegularExpression.h"
+#include "Library/ThrowErrorObject.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types\DynamicObjectEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library\ForInObjectEnumerator.h"
-#include "Library\ES5Array.h"
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/ForInObjectEnumerator.h"
+#include "Library/ES5Array.h"
 
 #ifndef SCRIPT_DIRECT_TYPE
 typedef enum JsNativeValueType

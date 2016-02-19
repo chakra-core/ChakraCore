@@ -4,13 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 #include "EHBailoutData.h"
-#include "Library\JavascriptRegularExpression.h"
+#include "Library/JavascriptRegularExpression.h"
 #if DBG_DUMP
-#include "ByteCode\OpCodeUtilAsmJs.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
 #endif
 
-#include "Language\InterpreterStackFrame.h"
-#include "Library\JavascriptGeneratorFunction.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
 
 ///----------------------------------------------------------------------------
@@ -2969,20 +2969,20 @@ namespace Js
 #if ENABLE_PROFILE_INFO
 #define INTERPRETERLOOPNAME ProcessProfiled
 #define PROVIDE_INTERPRETERPROFILE
-#include "Interpreterloop.inl"
+#include "InterpreterLoop.inl"
 #undef PROVIDE_INTERPRETERPROFILE
 #undef INTERPRETERLOOPNAME
 #endif
 
 #define INTERPRETERLOOPNAME ProcessUnprofiled
-#include "Interpreterloop.inl"
+#include "InterpreterLoop.inl"
 #undef INTERPRETERLOOPNAME
 
 #ifndef TEMP_DISABLE_ASMJS
 #define INTERPRETERLOOPNAME ProcessAsmJs
 #define INTERPRETER_ASMJS
 #include "InterpreterProcessOpCodeAsmJs.h"
-#include "Interpreterloop.inl"
+#include "InterpreterLoop.inl"
 #undef INTERPRETER_ASMJS
 #undef INTERPRETERLOOPNAME
 #endif
@@ -2995,7 +2995,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
 #define PROVIDE_INTERPRETERPROFILE
 #endif
-#include "Interpreterloop.inl"
+#include "InterpreterLoop.inl"
 #if ENABLE_PROFILE_INFO
 #undef PROVIDE_INTERPRETERPROFILE
 #endif

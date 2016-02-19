@@ -10,7 +10,7 @@ BVSparse<JitArenaAllocator>::QueueInFreeList(BVSparseNode *curNode)
     AllocatorDeleteInline(JitArenaAllocator, this->alloc, curNode);
 }
 
-#include "BackEnd.h"
+#include "Backend.h"
 
 #define INLINEEMETAARG_COUNT 3
 
@@ -6755,7 +6755,7 @@ BackwardPass::ReverseCopyProp(IR::Instr *instr)
     }
 
     // The fast-path for these doesn't handle dst == src.
-    // REVIEW: I believe the fast-path for LdElemI_A has been fixed... Nope, still broken for "i = A[i]" for –prejit
+    // REVIEW: I believe the fast-path for LdElemI_A has been fixed... Nope, still broken for "i = A[i]" for prejit
     switch (instrPrev->m_opcode)
     {
     case Js::OpCode::LdElemI_A:

@@ -2,11 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "Debug\DebuggingFlags.h"
-#include "Debug\DiagProbe.h"
-#include "Debug\DebugManager.h"
-#include "Language\JavascriptFunctionArgIndex.h"
+#include "Backend.h"
+#include "Debug/DebuggingFlags.h"
+#include "Debug/DiagProbe.h"
+#include "Debug/DebugManager.h"
+#include "Language/JavascriptFunctionArgIndex.h"
 
 extern const IRType RegTypes[RegNumCount];
 
@@ -937,7 +937,7 @@ Js::Var BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
     void * addressOfRetAddress = _AddressOfReturnAddress();
     if (bailOutRecord->ehBailoutData && (bailOutRecord->ehBailoutData->catchOffset != 0))
     {
-        // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper’s frame. So, the argouts are not at the offsets
+        // For a bailout in argument evaluation from an EH region, the esp is offset by the TryCatch helper's frame. So, the argouts are not at the offsets
         // stored in the bailout record, which are relative to ebp. Need to restore the argouts from the actual value of esp before calling the Bailout helper
         argoutRestoreAddr = (void *)((char*)addressOfRetAddress + ((1 + 1) * MachPtr)); // Account for the parameter and return address of this function
     }

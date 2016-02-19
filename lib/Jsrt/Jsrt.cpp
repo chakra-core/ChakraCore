@@ -3,16 +3,16 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
-#include "jsrtInternal.h"
+#include "JsrtInternal.h"
 #include "JsrtExternalObject.h"
 #include "JsrtExternalArrayBuffer.h"
 
 #include "JsrtSourceHolder.h"
-#include "ByteCode\ByteCodeSerializer.h"
-#include "common\ByteSwap.h"
-#include "Library\dataview.h"
-#include "Library\JavascriptSymbol.h"
-#include "Base\ThreadContextTLSEntry.h"
+#include "ByteCode/ByteCodeSerializer.h"
+#include "Common/ByteSwap.h"
+#include "Library/DataView.h"
+#include "Library/JavascriptSymbol.h"
+#include "Base/ThreadContextTlsEntry.h"
 
 // Parser Includes
 #include "cmperr.h"     // For ERRnoMemory

@@ -122,7 +122,7 @@ private:
     void                Build##layout(Js::OpCode newOpcode, uint32 offset);
 #define LAYOUT_TYPE_WMS(layout) \
     template <typename SizePolicy> void Build##layout(Js::OpCode newOpcode, uint32 offset);
-#include "ByteCode\LayoutTypes.h"
+#include "ByteCode/LayoutTypes.h"
 
     void                BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0);
     void                BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, uint32 nextOffset);

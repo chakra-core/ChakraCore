@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 #include "errstr.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Library\IntlEngineInterfaceExtensionObject.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Library/IntlEngineInterfaceExtensionObject.h"
 
 namespace Js
 {
@@ -670,7 +670,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Number.prototype.toLocaleString method.");
             }
         }
 #endif

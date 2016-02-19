@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Library\IntlEngineInterfaceExtensionObject.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Library/IntlEngineInterfaceExtensionObject.h"
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "ScriptContextTelemetry.h"
 #endif
@@ -1325,7 +1325,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleDateString method.");
             }
         }
 #endif
@@ -1375,7 +1374,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized Date.prototype.toLocaleString method.");
             }
         }
 #endif
@@ -1434,7 +1432,6 @@ namespace Js
                 {
                     return func->CallFunction(args);
                 }
-                AssertMsg(false, "Intl code didn't initialized String.prototype.toLocaleTimeString method.");
             }
         }
 #endif

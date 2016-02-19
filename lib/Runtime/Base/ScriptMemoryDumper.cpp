@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-#include "Base\ScriptMemoryDumper.h"
+#include "Base/ScriptMemoryDumper.h"
 
 ScriptMemoryDumper::ScriptMemoryDumper(Js::ScriptContext* scriptContext)
     :scriptContext(scriptContext)

@@ -23,6 +23,6 @@
 
 #include <windows.h>
 
-#include "chakracommon.h"
+#include "ChakraCommon.h"
 
 #endif // _CHAKRACORE_H_

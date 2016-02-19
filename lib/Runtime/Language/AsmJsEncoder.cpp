@@ -8,13 +8,13 @@
 
 #include "CodeGenAllocators.h"
 #ifdef DBG_DUMP
-#include "ByteCode\ByteCodeDumper.h"
-#include "ByteCode\AsmJSByteCodeDumper.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
 #endif
-#include "AsmJSEncoder.inl"
+#include "AsmJsEncoder.inl"
 
 #if DBG_DUMP
-#include "ByteCode\OpCodeUtilAsmJs.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
 #endif
 
 namespace Js
@@ -40,7 +40,7 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Small)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Small)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Small, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient
@@ -64,7 +64,7 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Medium)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Medium)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Medium, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient
@@ -88,7 +88,7 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Large)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Large)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Large, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient

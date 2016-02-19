@@ -2,9 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 #include "LowererMDArch.h"
-#include "Library\JavascriptGeneratorFunction.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
 const Js::OpCode LowererMD::MDExtend32Opcode = Js::OpCode::MOV;
 

@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
-#include "Library\StackScriptFunction.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Library/StackScriptFunction.h"
 
 namespace Js
 {

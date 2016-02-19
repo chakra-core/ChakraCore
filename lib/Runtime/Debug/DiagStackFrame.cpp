@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
 
 namespace Js
 {

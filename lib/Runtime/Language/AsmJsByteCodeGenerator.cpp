@@ -5,16 +5,16 @@
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode\Symbol.h"
-#include "ByteCode\FuncInfo.h"
+#include "ByteCode/Symbol.h"
+#include "ByteCode/FuncInfo.h"
 #ifdef DBG_DUMP
-#include "ByteCode\ByteCodeDumper.h"
-#include "ByteCode\AsmJSByteCodeDumper.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
 #endif
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\ByteCodeGenerator.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
-#include "Language\AsmJsByteCodeGenerator.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/ByteCodeGenerator.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "Language/AsmJsByteCodeGenerator.h"
 
 
 namespace Js

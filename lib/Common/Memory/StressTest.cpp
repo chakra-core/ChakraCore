@@ -5,9 +5,9 @@
 #include "CommonMemoryPch.h"
 
 #if DBG
-#include "common\Int32Math.h"
-#include "DataStructures\list.h"
-#include "Memory\StressTest.h"
+#include "Common/Int32Math.h"
+#include "DataStructures/List.h"
+#include "Memory/StressTest.h"
 #include <malloc.h>
 
 typedef JsUtil::BaseDictionary<TestObject*, bool, RecyclerNonLeafAllocator> ObjectTracker_t;

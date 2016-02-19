@@ -78,7 +78,11 @@ __inline LONG FatalExceptionFilter(
     }
     else
     {
-        Assert(IsDebuggerPresent());
+        // However, if debugger was not attached for some reason, terminate the process.
+        if (!IsDebuggerPresent())
+        {
+            TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
+        }
         DebugBreak();
     }
 

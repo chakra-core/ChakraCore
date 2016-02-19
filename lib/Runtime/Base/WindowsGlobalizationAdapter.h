@@ -105,7 +105,11 @@ namespace Js
         HRESULT CreateSignificantDigitsRounder(_In_ ScriptContext* scriptContext, Windows::Globalization::NumberFormatting::INumberRounder** numberRounder);
         boolean ValidateAndCanonicalizeTimeZone(_In_ ScriptContext* scriptContext, _In_z_ PCWSTR timeZoneId, HSTRING* result);
         void GetDefaultTimeZoneId(_In_ ScriptContext* scriptContext, HSTRING* result);
-        void ClearTimeZoneCalendars();
+        void ResetCommonFactoryObjects();
+        void ResetTimeZoneFactoryObjects();
+        void ResetDateTimeFormatFactoryObjects();
+        void ResetNumberFormatFactoryObjects();
+        void ResetCharClassifierFactoryObjects();
 #endif // ENABLE_INTL_OBJECT
         Windows::Data::Text::IUnicodeCharactersStatics* GetUnicodeStatics()
         {

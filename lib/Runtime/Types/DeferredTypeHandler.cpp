@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Types\DeferredTypeHandler.h"
+#include "Types/DeferredTypeHandler.h"
 
 namespace Js
 {

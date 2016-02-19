@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Debug\DiagHelperMethodWrapper.h"
-#include "Library\ThrowErrorObject.h"
+#include "Debug/DiagHelperMethodWrapper.h"
+#include "Library/ThrowErrorObject.h"
 
 namespace Js
 {

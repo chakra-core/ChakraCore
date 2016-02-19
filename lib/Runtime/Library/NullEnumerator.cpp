@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Library\NullEnumerator.h"
+#include "Library/NullEnumerator.h"
 
 namespace Js
 {
