@@ -74,7 +74,7 @@ namespace Js
         m_doJitLoopBodies = doJitLoopBodies;
         m_doInterruptProbe = functionWrite->GetScriptContext()->GetThreadContext()->DoInterruptProbe(functionWrite);
         m_hasLoop = hasLoop;
-        m_isInDebugMode = byteCodeGenerator->IsInDebugMode();
+        m_isInDebugMode = byteCodeGenerator->IsByteCodeGeneratorInDebugMode();
     }
 
     template <typename T>

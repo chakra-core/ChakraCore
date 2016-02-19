@@ -272,7 +272,6 @@ namespace Js
             autoCleanup.FinishCompilation();
 
             functionBody->SetInitialDefaultEntryPoint();
-            functionBody->SetIsByteCodeDebugMode( byteCodeGen->IsInDebugMode() );
 
 #if DBG_DUMP
             if( PHASE_DUMP( ByteCodePhase, mInfo->byteCodeFunction ) && Configuration::Global.flags.Verbose )

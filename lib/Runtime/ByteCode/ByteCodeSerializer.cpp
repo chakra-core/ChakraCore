@@ -4095,14 +4095,10 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
             sourceHolder = utf8Source == nullptr ? ISourceHolder::GetEmptySourceHolder() : RecyclerNew(scriptContext->GetRecycler(), SimpleSourceHolder, utf8Source, reader->sourceSize);
         }
 
-        sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder, reader->sourceCharLength, pinnedSrcInfo);
+        sourceInfo = Js::Utf8SourceInfo::NewWithHolder(scriptContext, sourceHolder, reader->sourceCharLength, pinnedSrcInfo, isLibraryCode);
 
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, reader->sourceCharLength, false);
-        if(isLibraryCode)
-        {
-            sourceInfo->SetIsLibraryCode();
-        }
 
         sourceInfo->CreateLineOffsetCache(reader->lineInfoCache, reader->lineInfoCacheCount);
     }

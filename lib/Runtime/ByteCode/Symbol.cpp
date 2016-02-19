@@ -128,7 +128,7 @@ void Symbol::SetHasNonLocalReference(bool b, ByteCodeGenerator *byteCodeGenerato
         funcHome->GetChildCallsEval() ||
         funcChild == nullptr ||
         this->GetScope() != funcHome->GetBodyScope() ||
-        byteCodeGenerator->IsInDebugMode() ||
+        byteCodeGenerator->IsByteCodeGeneratorInDebugMode() ||
         PHASE_OFF(Js::DelayCapturePhase, funcHome->byteCodeFunction))
     {
         this->SetIsCommittedToSlot();

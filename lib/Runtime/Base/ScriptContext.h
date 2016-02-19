@@ -412,10 +412,9 @@ namespace Js
         void SetIsDiagnosticsScriptContext(bool set) { this->isDiagnosticsScriptContext = set; }
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
 
-        bool IsInNonDebugMode() const;
-        bool IsInSourceRundownMode() const;
-        bool IsInDebugMode() const;
-        bool IsInDebugOrSourceRundownMode() const;
+        bool IsScriptContextInNonDebugMode() const;
+        bool IsScriptContextInDebugMode() const;
+        bool IsScriptContextInSourceRundownOrDebugMode() const;
         bool IsRunningScript() const { return this->threadContext->GetScriptEntryExit() != nullptr; }
 
         typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::WeakRefFreeListedRemovePolicy> CalleeSourceList;

@@ -49,15 +49,11 @@ namespace Js
         void Close();
         void SetHostDebugContext(HostDebugContext * hostDebugContext);
 
-        DebuggerMode GetDebuggerMode() const { return this->debuggerMode; }
         void SetDebuggerMode(DebuggerMode mode);
-        void SetInDebugMode() { this->SetDebuggerMode(DebuggerMode::Debugging); }
-        void SetInSourceRundownMode() { this->SetDebuggerMode(DebuggerMode::SourceRundown); }
-
-        bool IsInNonDebugMode() const { return this->GetDebuggerMode() == DebuggerMode::NotDebugging; }
-        bool IsInSourceRundownMode() const { return this->GetDebuggerMode() == DebuggerMode::SourceRundown; }
-        bool IsInDebugMode() const { return this->GetDebuggerMode() == DebuggerMode::Debugging; }
-        bool IsInDebugOrSourceRundownMode() const { return this->IsInDebugMode() || this->IsInSourceRundownMode(); }
+        bool IsDebugContextInNonDebugMode() const { return this->debuggerMode == DebuggerMode::NotDebugging; }
+        bool IsDebugContextInDebugMode() const { return this->debuggerMode == DebuggerMode::Debugging; }
+        bool IsDebugContextInSourceRundownMode() const { return this->debuggerMode == DebuggerMode::SourceRundown; }
+        bool IsDebugContextInSourceRundownOrDebugMode() const { return IsDebugContextInSourceRundownMode() || IsDebugContextInDebugMode(); }
 
         ProbeContainer* GetProbeContainer() const { return this->diagProbesContainer; }
 

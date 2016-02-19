@@ -220,7 +220,7 @@ namespace Js
                 Js::Configuration::Global.flags.ForceDynamicProfile ||
 #endif
                 !scriptContext->GetConfig()->IsNoNative() ||
-                scriptContext->IsInDebugMode()
+                functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode()
 #ifdef DYNAMIC_PROFILE_STORAGE
                 || DynamicProfileStorage::DoCollectInfo()
 #endif

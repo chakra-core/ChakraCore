@@ -401,7 +401,7 @@ namespace Js
         {
             return
                 !PHASE_OFF(NativeArrayPhase, m_functionWrite) &&
-                !m_functionWrite->GetScriptContext()->IsInDebugMode() &&
+                !m_functionWrite->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() &&
                 (op == OpCode::NewScObjArray || op == OpCode::NewScObjArraySpread);
         }
 
@@ -410,7 +410,7 @@ namespace Js
             return
                 !PHASE_OFF(NativeArrayPhase, m_functionWrite) &&
                 !PHASE_OFF(NativeNewScArrayPhase, m_functionWrite) &&
-                !m_functionWrite->GetScriptContext()->IsInDebugMode() &&
+                !m_functionWrite->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() &&
                 (op == OpCode::NewScIntArray || op == OpCode::NewScFltArray || op == OpCode::NewScArray);
         }
 

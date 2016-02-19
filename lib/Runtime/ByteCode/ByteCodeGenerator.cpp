@@ -104,7 +104,7 @@ void EndVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         Scope *scope = pnode->sxBlock.scope;
         FuncInfo *func = scope->GetFunc();
 
-        if (!byteCodeGenerator->IsInDebugMode() &&
+        if (!byteCodeGenerator->IsByteCodeGeneratorInDebugMode() &&
             scope->HasInnerScopeIndex())
         {
             // In debug mode, don't release the current index, as we're giving each scope a unique index, regardless
@@ -141,7 +141,7 @@ void EndVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     Scope *scope = pnode->sxCatch.scope;
 
-    if (scope->HasInnerScopeIndex() && !byteCodeGenerator->IsInDebugMode())
+    if (scope->HasInnerScopeIndex() && !byteCodeGenerator->IsByteCodeGeneratorInDebugMode())
     {
         // In debug mode, don't release the current index, as we're giving each scope a unique index,
         // regardless of nesting.
@@ -161,7 +161,7 @@ bool CreateNativeArrays(ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo
 
     return
         !PHASE_OFF_OPTFUNC(Js::NativeArrayPhase, functionBody) &&
-        !byteCodeGenerator->IsInDebugMode() &&
+        !byteCodeGenerator->IsByteCodeGeneratorInDebugMode() &&
         (
             functionBody
                 ? Js::DynamicProfileInfo::IsEnabled(Js::NativeArrayPhase, functionBody)
@@ -726,20 +726,20 @@ bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
 }
 
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
-bool ByteCodeGenerator::IsInDebugMode() const
+bool ByteCodeGenerator::IsByteCodeGeneratorInDebugMode() const
 {
-    return scriptContext->IsInDebugMode() && !m_utf8SourceInfo->GetIsLibraryCode();
+    return m_utf8SourceInfo->IsUtf8SourceInfoInDebugMode();
 }
 
 // ByteCodeGenerator non-debug mode means we are not debugging, or we are generating library code which is always in non-debug mode.
-bool ByteCodeGenerator::IsInNonDebugMode() const
+bool ByteCodeGenerator::IsByteCodeGeneratorInNonDebugMode() const
 {
-    return scriptContext->IsInNonDebugMode() || m_utf8SourceInfo->GetIsLibraryCode();
+    return scriptContext->IsScriptContextInNonDebugMode() || m_utf8SourceInfo->GetIsLibraryCode();
 }
 
 bool ByteCodeGenerator::ShouldTrackDebuggerMetadata() const
 {
-    return (IsInDebugMode())
+    return (IsByteCodeGeneratorInDebugMode())
 #if DBG_DUMP
         || (Js::Configuration::Global.flags.Debug)
 #endif
@@ -748,7 +748,7 @@ bool ByteCodeGenerator::ShouldTrackDebuggerMetadata() const
 
 void ByteCodeGenerator::SetRootFuncInfo(FuncInfo* func)
 {
-    Assert(pRootFunc == nullptr || pRootFunc == func->byteCodeFunction || !IsInNonDebugMode());
+    Assert(pRootFunc == nullptr || pRootFunc == func->byteCodeFunction || !IsByteCodeGeneratorInNonDebugMode());
 
     if (this->flags & (fscrImplicitThis | fscrImplicitParents))
     {
@@ -1071,7 +1071,7 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
 
     Js::FunctionBody * byteCodeFunction;
 
-    if (!IsInNonDebugMode() && this->pCurrentFunction != nullptr && this->pCurrentFunction->GetIsGlobalFunc() && !this->pCurrentFunction->IsFakeGlobalFunc(flags))
+    if (!IsByteCodeGeneratorInNonDebugMode() && this->pCurrentFunction != nullptr && this->pCurrentFunction->GetIsGlobalFunc() && !this->pCurrentFunction->IsFakeGlobalFunc(flags))
     {
         // we will re-use the global FunctionBody which was created before deferred parse.
         byteCodeFunction = this->pCurrentFunction;
@@ -1079,7 +1079,7 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
         byteCodeFunction->ResetByteCodeGenVisitState();
         if (byteCodeFunction->GetBoundPropertyRecords() == nullptr)
         {
-            Assert(!IsInNonDebugMode());
+            Assert(!IsByteCodeGeneratorInNonDebugMode());
 
             // This happens when we try to re-use the function body which was created due to serialized bytecode.
             byteCodeFunction->SetBoundPropertyRecords(EnsurePropertyRecordList());
@@ -1214,7 +1214,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const wchar_t *name, uint nameLe
             pnode->sxFnc.pnodeName->nop == knopVarDecl;
         *pfuncExprWithName = funcExprWithName;
 
-        Assert(parsedFunctionBody->GetLocalFunctionId() == pnode->sxFnc.functionId || !IsInNonDebugMode());
+        Assert(parsedFunctionBody->GetLocalFunctionId() == pnode->sxFnc.functionId || !IsByteCodeGeneratorInNonDebugMode());
 
         // Some state may be tracked on the function body during the visit pass. Since the previous visit pass may have failed,
         // we need to reset the state on the function body.
@@ -1819,7 +1819,7 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     Assert(!funcInfo->IsGlobalFunction());
-    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator();
+    bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsByteCodeGeneratorInDebugMode() && !funcInfo->byteCodeFunction->IsGenerator();
     if (!doStackNestedFunc)
     {
         return false;
@@ -2093,7 +2093,7 @@ void ByteCodeGenerator::Begin(
     this->flags = grfscr;
     this->pRootFunc = pRootFunc;
     this->pCurrentFunction = pRootFunc ? pRootFunc->GetFunctionBody() : nullptr;
-    if (this->pCurrentFunction && this->pCurrentFunction->GetIsGlobalFunc() && IsInNonDebugMode())
+    if (this->pCurrentFunction && this->pCurrentFunction->GetIsGlobalFunc() && IsByteCodeGeneratorInNonDebugMode())
     {
         // This is the deferred parse case (not due to debug mode), in which case the global function will not be marked to compiled again.
         this->pCurrentFunction = nullptr;
@@ -2725,7 +2725,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     pnode->sxFnc.nestedCount != 0
                     || (top->GetHasArguments()
                         && (pnode->sxFnc.pnodeParams != nullptr)
-                        && byteCodeGenerator->IsInDebugMode()))
+                        && byteCodeGenerator->IsByteCodeGeneratorInDebugMode()))
                 {
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
                     byteCodeGenerator->AssignFrameDisplayRegister();
@@ -3078,7 +3078,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
         case knopFncDecl:
             if (pLastReuseFunc)
             {
-                if (!byteCodeGenerator->IsInNonDebugMode())
+                if (!byteCodeGenerator->IsByteCodeGeneratorInNonDebugMode())
                 {
                     // Here we are trying to match the inner sub-tree as well with already created inner function.
 
@@ -3114,7 +3114,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
             if (pnodeScope->sxFnc.pnodeBody)
             {
-                if (!byteCodeGenerator->IsInNonDebugMode() && pLastReuseFunc != nullptr && byteCodeGenerator->pCurrentFunction == nullptr)
+                if (!byteCodeGenerator->IsByteCodeGeneratorInNonDebugMode() && pLastReuseFunc != nullptr && byteCodeGenerator->pCurrentFunction == nullptr)
                 {
                     // Patch current non-parsed function's FunctionBodyImpl with the new generated function body.
                     // So that the function object (pointing to the old function body) can able to get to the new one.
@@ -5041,7 +5041,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         if ((pnode->sxFor.pnodeBody != nullptr) && (pnode->sxFor.pnodeBody->nop == knopBlock) &&
             (pnode->sxFor.pnodeBody->sxBlock.pnodeStmt != nullptr) &&
             (pnode->sxFor.pnodeBody->sxBlock.pnodeStmt->nop == knopFor) &&
-            (!byteCodeGenerator->IsInDebugMode()))
+            (!byteCodeGenerator->IsByteCodeGeneratorInDebugMode()))
         {
                 FuncInfo *funcInfo = byteCodeGenerator->TopFuncInfo();
             pnode->sxFor.pnodeInverted = InvertLoop(pnode, byteCodeGenerator, funcInfo);
@@ -5159,7 +5159,7 @@ void PostCheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGen
 void CheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, ApplyCheck* applyCheck);
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
 {
-    if (byteCodeGenerator->IsInDebugMode())
+    if (byteCodeGenerator->IsByteCodeGeneratorInDebugMode())
     {
         // Inspection of the arguments object will be messed up if we do ApplyArgs.
         return false;

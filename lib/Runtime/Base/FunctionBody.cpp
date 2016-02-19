@@ -1119,12 +1119,11 @@ namespace Js
       m_displayShortNameOffset(0),
       scopeSlotArraySize(0),
       m_reparsed(false),
-      m_isAsmJsFunction(false),
+      m_isAsmJsFunction(false)
 #if DBG
-      m_wasEverAsmjsMode(false),
-      scopeObjectSize(0),
+      ,m_wasEverAsmjsMode(false)
+      ,scopeObjectSize(0)
 #endif
-      isByteCodeDebugMode(false)
     {
         SetBoundPropertyRecords(propertyRecords);
         if ((attributes & Js::FunctionInfo::DeferredParse) == 0)
@@ -1639,7 +1638,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
 
-        bool isDebugReparse = m_scriptContext->IsInDebugOrSourceRundownMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
+        bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
         bool isAsmJsReparse = false;
         bool isReparse = isDebugReparse;
 
@@ -1732,7 +1731,7 @@ namespace Js
     #if DBG
                 Assert(
                     funcBody->IsReparsed()
-                    || m_scriptContext->IsInDebugOrSourceRundownMode()
+                    || m_scriptContext->IsScriptContextInSourceRundownOrDebugMode()
                     || m_isAsmjsMode);
     #endif
                 OUTPUT_TRACE(Js::DebuggerPhase, L"Full nested reparse of function: %s (%s)\n", funcBody->GetDisplayName(), funcBody->GetDebugNumberSet(debugStringBuffer));
@@ -2571,7 +2570,7 @@ namespace Js
         Assert(statementIndex != nullptr);
         Assert(statementLength != nullptr);
 
-        Assert(m_scriptContext->IsInDebugMode());
+        Assert(this->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode());
 
         StatementMap * statement = GetEnclosingStatementMapFromByteCode(byteCodeOffset, false);
         Assert(statement != nullptr);
@@ -2981,7 +2980,7 @@ namespace Js
     bool FunctionProxy::HasValidEntryPoint() const
     {
         if (!m_scriptContext->HadProfiled() &&
-            !(m_scriptContext->IsInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled()))
+            !(this->m_scriptContext->IsScriptContextInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled()))
         {
             return this->HasValidNonProfileEntryPoint();
         }
@@ -3411,8 +3410,6 @@ namespace Js
         else
         {
             newFunctionBody->byteCodeBlock = this->byteCodeBlock->Clone(this->m_scriptContext->GetRecycler());
-
-            newFunctionBody->isByteCodeDebugMode = this->isByteCodeDebugMode;
             newFunctionBody->m_byteCodeCount = this->m_byteCodeCount;
             newFunctionBody->m_byteCodeWithoutLDACount = this->m_byteCodeWithoutLDACount;
             newFunctionBody->m_byteCodeInLoopCount = this->m_byteCodeInLoopCount;
@@ -4606,8 +4603,7 @@ namespace Js
 #if DBG
     void FunctionBody::MustBeInDebugMode()
     {
-        Assert(m_scriptContext->IsInDebugMode());
-        Assert(IsByteCodeDebugMode());
+        Assert(GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode());
         Assert(m_sourceInfo.pSpanSequence == nullptr);
         Assert(this->GetStatementMaps() != nullptr);
     }
@@ -6976,7 +6972,7 @@ namespace Js
         return
             !PHASE_OFF(Js::SimpleJitPhase, this) &&
             !GetScriptContext()->GetConfig()->IsNoNative() &&
-            !GetScriptContext()->IsInDebugMode() &&
+            !this->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() &&
             DoInterpreterProfile() &&
             (!IsNewSimpleJit() || DoInterpreterAutoProfile()) &&
             !IsGenerator(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
@@ -7010,7 +7006,7 @@ namespace Js
     {
         Assert(DoInterpreterProfile());
 
-        return !PHASE_OFF(InterpreterAutoProfilePhase, this) && !GetScriptContext()->IsInDebugMode();
+        return !PHASE_OFF(InterpreterAutoProfilePhase, this) && !this->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode();
     }
 
     bool FunctionBody::WasCalledFromLoop() const

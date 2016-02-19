@@ -192,13 +192,13 @@ extern Func *CurrentFunc;
 JsFunctionCodeGen *
 NativeCodeGenerator::NewFunctionCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info)
 {
-    return HeapNewNoThrow(JsFunctionCodeGen, this, functionBody, info, this->IsInDebugMode());
+    return HeapNewNoThrow(JsFunctionCodeGen, this, functionBody, info, functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode());
 }
 
 JsLoopBodyCodeGen *
 NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info)
 {
-    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, this->IsInDebugMode());
+    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode());
 }
 
 #ifdef ENABLE_PREJIT
@@ -228,7 +228,7 @@ NativeCodeGenerator::GenerateAllFunctions(Js::FunctionBody * fn)
 
     if (DoBackEnd(fn))
     {
-        if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !IsInDebugMode())
+        if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !fn->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode())
         {
             // Only jit the loop body with /force:JITLoopBody
 
@@ -443,7 +443,7 @@ NativeCodeGenerator::RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptConte
     AutoRestoreDefaultEntryPoint autoRestore(fn);
     Js::FunctionEntryPointInfo * entryPoint = fn->GetDefaultFunctionEntryPointInfo();
 
-    JsFunctionCodeGen workitem(this, fn, entryPoint, this->IsInDebugMode());
+    JsFunctionCodeGen workitem(this, fn, entryPoint, fn->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode());
     workitem.isRejitIRViewerFunction = true;
     workitem.irViewerRequestContext = scriptContext;
 
@@ -487,7 +487,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         return false;
     }
 
-    if (IsInDebugMode() && fn->GetHasTry())
+    if (fn->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() && fn->GetHasTry())
     {
         // Under debug mode disable JIT for functions that:
         // - have try
@@ -503,7 +503,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     }
 #endif
 
-    if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !IsInDebugMode())
+    if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !fn->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode())
     {
         // Don't code gen the function if the function has loop, ForceJITLoopBody is on,
         // unless we are in debug mode in which case JIT loop body is disabled, even if it's forced.
@@ -1456,12 +1456,6 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     }
 }
 
-bool
-NativeCodeGenerator::IsInDebugMode() const
-{
-    return this->scriptContext->IsInDebugMode();
-}
-
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
     Assert(IS_PREJIT_ON());
@@ -1905,7 +1899,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
                         // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
                         // which can result in using garbage object during bailout/restore values.
-                        if (!(IsInDebugMode() && inlineCache->GetType() &&
+                        if (!(functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
                             objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
@@ -2010,7 +2004,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
                         // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
                         // which can result in using garbage object during bailout/restore values.
-                        if (!(IsInDebugMode() && inlineCache->GetType() &&
+                        if (!(functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
                             objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
@@ -2512,7 +2506,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
     const auto recycler = scriptContext->GetRecycler();
     {
         const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);
-        InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, this->IsInDebugMode(), workItem->GetJitMode());
+        InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode(), workItem->GetJitMode());
 
         BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, L"GatherCodeGenData");
 
@@ -2603,7 +2597,7 @@ NativeCodeGenerator::EnterScriptStart()
     }
 
     // Don't need to do anything if we're in debug mode
-    if (this->IsInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
+    if (this->scriptContext->IsScriptContextInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
     {
         return;
     }

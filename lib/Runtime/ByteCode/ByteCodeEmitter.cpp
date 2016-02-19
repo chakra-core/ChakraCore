@@ -1693,7 +1693,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
         byteCodeFunction->SetLocalClosureReg(funcInfo->frameSlotsRegister);
     }
 
-    if (this->IsInDebugMode())
+    if (this->IsByteCodeGeneratorInDebugMode())
     {
         // Give permanent registers to the inner scopes in debug mode.
         uint innerScopeCount = funcInfo->InnerScopeCount();
@@ -1938,7 +1938,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         }
 
     }
-    else if (!funcInfo->IsGlobalFunction() && !IsInNonDebugMode())
+    else if (!funcInfo->IsGlobalFunction() && !IsByteCodeGeneratorInNonDebugMode())
     {
         uint count = funcInfo->inArgsCount + (funcInfo->root->sxFnc.pnodeRest != nullptr ? 1 : 0) - 1;
         if (count != 0)
@@ -2882,7 +2882,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         // Bug : 301517
         // In the debug mode the hasOnlyThis optimization needs to be disabled, since user can break in this function
         // and do operation on 'this' and its property, which may not be defined yet.
-        if (funcInfo->root->sxFnc.HasOnlyThisStmts() && !IsInDebugMode())
+        if (funcInfo->root->sxFnc.HasOnlyThisStmts() && !IsByteCodeGeneratorInDebugMode())
         {
             byteCodeFunction->SetHasOnlyThisStmts(true);
         }
@@ -2943,7 +2943,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         // Reserve temp registers for the inner scopes. We prefer temps because the JIT will then renumber them
         // and see different lifetimes. (Note that debug mode requires permanent registers. See FinalizeRegisters.)
         uint innerScopeCount = funcInfo->InnerScopeCount();
-        if (!this->IsInDebugMode())
+        if (!this->IsByteCodeGeneratorInDebugMode())
         {
             byteCodeFunction->SetInnerScopeCount(innerScopeCount);
             if (innerScopeCount)
@@ -3213,7 +3213,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         }
         ::EndEmitBlock(pnode->sxFnc.pnodeScopes, this, funcInfo);
 
-        if (!this->IsInDebugMode())
+        if (!this->IsByteCodeGeneratorInDebugMode())
         {
             // Release the temp registers that we reserved for inner scopes above.
             if (innerScopeCount)
@@ -3296,14 +3296,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
 
-    byteCodeFunction->SetIsByteCodeDebugMode(this->IsInDebugMode());
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (byteCodeFunction->IsByteCodeDebugMode() != scriptContext->IsInDebugMode()) // debug mode mismatch
+    if (byteCodeFunction->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
     {
         if (m_utf8SourceInfo->GetIsLibraryCode())
         {
-            Assert(!byteCodeFunction->IsByteCodeDebugMode()); // Library script byteCode is never in debug mode
+            Assert(!byteCodeFunction->GetUtf8SourceInfo()->IsUtf8SourceInfoInDebugMode()); // Library script byteCode is never in debug mode
         }
         else
         {
@@ -3591,7 +3589,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
                 !funcInfo->Escapes() &&
                 funcInfo->frameObjRegister != Js::Constants::NoRegister &&
                 !ApplyEnclosesArgs(pnodeFnc, this) &&
-                (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode()));
+                (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsByteCodeGeneratorInDebugMode()));
 
             if (funcInfo->GetHasCachedScope())
             {
@@ -8160,7 +8158,7 @@ void EmitLoop(
             byteCodeGenerator->Writer()->MarkLabel(loopNode->sxStmt.continueLabel);
         }
         if (!ByteCodeGenerator::IsFalse(cond) ||
-            byteCodeGenerator->IsInDebugMode())
+            byteCodeGenerator->IsByteCodeGeneratorInDebugMode())
         {
             EmitBooleanExpression(cond, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo);
         }

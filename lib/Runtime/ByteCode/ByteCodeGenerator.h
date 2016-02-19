@@ -351,8 +351,8 @@ public:
     bool IsES6ForLoopSemanticsEnabled() const;
 
     // Debugger methods.
-    bool IsInDebugMode() const;
-    bool IsInNonDebugMode() const;
+    bool IsByteCodeGeneratorInDebugMode() const;
+    bool IsByteCodeGeneratorInNonDebugMode() const;
     bool ShouldTrackDebuggerMetadata() const;
     void TrackRegisterPropertyForDebugger(Js::DebuggerScope *debuggerScope, Symbol *symbol, FuncInfo *funcInfo, Js::DebuggerScopePropertyFlags flags = Js::DebuggerScopePropertyFlags_None, bool isFunctionDeclaration = false);
     void TrackActivationObjectPropertyForDebugger(Js::DebuggerScope *debuggerScope, Symbol *symbol, Js::DebuggerScopePropertyFlags flags = Js::DebuggerScopePropertyFlags_None, bool isFunctionDeclaration = false);
