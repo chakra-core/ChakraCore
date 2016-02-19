@@ -136,8 +136,6 @@ namespace Wasm
             void ThrowDecodingError(const wchar_t* msg);
             void Trace(const wchar_t* msg);
 
-            typedef JsUtil::GrowingArray<WasmTypes::Signature, ArenaAllocator> FuncSignatureTable;
-            FuncSignatureTable * m_funcSignatureTable;
             ArenaAllocator      m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;

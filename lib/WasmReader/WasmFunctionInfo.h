@@ -13,9 +13,7 @@ namespace Wasm
         WasmFunctionInfo(ArenaAllocator * alloc);
 
         void AddLocal(WasmTypes::WasmType type);
-        void AddParam(WasmTypes::WasmType type);
         template <typename T> void AddConst(T constVal, Js::RegSlot reg);
-        void SetResultType(WasmTypes::WasmType type);
 
         WasmTypes::WasmType GetLocal(uint index) const;
         WasmTypes::WasmType GetParam(uint index) const;
@@ -34,6 +32,8 @@ namespace Wasm
 
         void SetNumber(UINT32 number);
         UINT32 GetNumber();
+        void SetSignature(WasmSignature * signature);
+        WasmSignature * GetSignature() const;
 
     private:
 
@@ -45,15 +45,11 @@ namespace Wasm
         ConstMap<float> * m_f32Consts;
         ConstMap<double> * m_f64Consts;
 
-        typedef JsUtil::GrowingArray<WasmTypes::WasmType, ArenaAllocator> WasmTypeArray;
         WasmTypeArray * m_locals;
-        WasmTypeArray * m_params;
-
-        WasmTypes::WasmType m_resultType;
 
         bool m_exported, m_imported;
         ArenaAllocator * m_alloc;
-
+        WasmSignature * m_signature;
         LPCUTF8 m_name;
         UINT32 m_number;
     };

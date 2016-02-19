@@ -154,8 +154,6 @@ WASM_MEMSTORE_I(STORE16,   store16)
 WASM_KEYWORD(GETPARAM,               getparam)
 WASM_KEYWORD(GETLOCAL,               getlocal)
 WASM_KEYWORD(SETLOCAL,               setlocal)
-WASM_KEYWORD(GETGLOBAL,              getglobal)
-WASM_KEYWORD(SETGLOBAL,              setglobal)
 
 // types
 WASM_MEMTYPE(I8,     i8)
@@ -166,7 +164,9 @@ WASM_LOCALTYPE(I64,    i64)
 WASM_LOCALTYPE(F32,    f32)
 WASM_LOCALTYPE(F64,    f64)
 
+// calls
 WASM_KEYWORD(CALL, call)
+WASM_KEYWORD(CALL_INDIRECT, call_indirect)
 
 // control flow ops
 WASM_KEYWORD(NOP,        nop)
@@ -186,12 +186,11 @@ WASM_KEYWORD(PARAM,      param)
 WASM_KEYWORD(RESULT,     result)
 WASM_KEYWORD(LOCAL,      local)
 WASM_KEYWORD(MODULE,     module)
-WASM_KEYWORD(GLOBAL,     global)
 WASM_KEYWORD(EXPORT,     export)
 WASM_KEYWORD(IMPORT,     import)
 WASM_KEYWORD(TABLE,      table)
 WASM_KEYWORD(MEMORY,     memory)
-WASM_KEYWORD(DATA,       data)
+WASM_KEYWORD(TYPE,       type)
 
 // unary ops
 WASM_KEYWORD_UNARY_I(NOT,    not, Not)
@@ -259,12 +258,6 @@ WASM_KEYWORD_COMPARE_FD(LT,     lt, CmLt)
 WASM_KEYWORD_COMPARE_FD(LE,     le, CmLe)
 WASM_KEYWORD_COMPARE_FD(GT,     gt, CmGt)
 WASM_KEYWORD_COMPARE_FD(GE,     ge, CmGe)
-
-// conversions
-WASM_KEYWORD(CONVERTS,   converts)
-WASM_KEYWORD(CONVERTU,   convertu)
-WASM_KEYWORD(CONVERT,    convert)
-WASM_KEYWORD(CAST,       cast)
 
 #undef WASM_MEMSTORE_FDI
 #undef WASM_MEMSTORE_I

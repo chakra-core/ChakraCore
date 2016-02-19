@@ -12,7 +12,8 @@ namespace Wasm
 
 SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_alloc(L"SExprParser", alloc, Js::Throw::OutOfMemory),
-    m_inExpr(false)
+    m_inExpr(false),
+    m_initialized(false)
 {
     m_scanner = Anew(&m_alloc, SExprScanner, &m_alloc);
     m_blockNesting = Anew(&m_alloc, JsUtil::Stack<SExpr::BlockType>, &m_alloc);
@@ -21,7 +22,7 @@ SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_context.length = length;
     m_scanner->Init(&m_context, &m_token);
 
-    m_moduleInfo = Anew(&m_alloc, ModuleInfo);
+    m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
     m_funcNumber = 0;
     m_nameToFuncMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
@@ -37,7 +38,33 @@ SExprParser::IsBinaryReader()
 WasmOp
 SExprParser::ReadFromModule()
 {
-    SExprTokenType tok = m_scanner->Scan();
+    SExprTokenType tok;
+    if (!m_initialized)
+    {
+        SExprParseContext origCtx;
+        origCtx.length = m_context.length;
+        origCtx.offset = m_context.offset;
+        origCtx.source = m_context.source;
+
+        uint funcCount = 0;
+        while ((tok = m_scanner->Scan()) != wtkEOF)
+        {
+            if (tok == wtkFUNC || tok == wtkIMPORT)
+            {
+                ++funcCount;
+            }
+        }
+
+        m_context.length = origCtx.length;
+        m_context.offset = origCtx.offset;
+        m_context.source = origCtx.source;
+        m_scanner->Init(&m_context, &m_token);
+
+        m_moduleInfo->SetFunctionCount(funcCount);
+        m_initialized = true;
+    }
+
+    tok = m_scanner->Scan();
 
     if (tok == wtkEOF)
     {
@@ -54,17 +81,17 @@ SExprParser::ReadFromModule()
     switch(tok)
     {
     case wtkFUNC:
-        return ParseFunctionHeader<false>();
+        return ParseFunctionHeader<funcFull>();
     case wtkEXPORT:
         return ParseExport();
     case wtkIMPORT:
-        return ParseFunctionHeader<true>();
+        return ParseFunctionHeader<funcImport>();
+    case wtkTYPE:
+        return ParseFunctionHeader<funcType>();
     case wtkMEMORY:
         return ParseMemory();
-    // TODO: implement the following
     case wtkTABLE:
-    case wtkDATA:
-    case wtkGLOBAL:
+        return ParseTable();
     default:
         ThrowSyntaxError();
     }
@@ -168,7 +195,9 @@ SExprParser::ReadExprCore(SExprTokenType tok)
     case wtkBLOCK:
         return ParseBlock();
     case wtkCALL:
-        return ParseCall();;
+        return ParseCall();
+    case wtkCALL_INDIRECT:
+        return ParseCallIndirect();
     case wtkLOOP:
         return wnLOOP;
     case wtkLABEL:
@@ -214,24 +243,35 @@ ParseVarCommon:
     }
 }
 
-template <bool imported>
+template <SExprParser::FuncHeaderType type>
 WasmOp
 SExprParser::ParseFunctionHeader()
 {
-    m_currentNode.op = imported ? wnIMPORT : wnFUNC;
+    switch (type)
+    {
+    case funcType:
+        m_currentNode.op = wnTYPE;
+        break;
+    case funcImport:
+        m_currentNode.op = wnIMPORT;
+        break;
+    case funcFull:
+        m_currentNode.op = wnFUNC;
+        break;
+    }
 
     SExprTokenType tok = m_scanner->Scan();
 
     m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
 
-    if (imported)
+    if (type == funcImport)
     {
         m_funcInfo->SetImported(true);
     }
 
     if (tok == wtkSTRINGLIT)
     {
-        if (imported)
+        if (type == funcImport)
         {
             m_funcInfo->SetName(m_token.u.m_sz);
         }
@@ -241,7 +281,10 @@ SExprParser::ParseFunctionHeader()
     }
 
     m_currentNode.func.info = m_funcInfo;
-    m_funcNumber++;
+    if (type != funcType)
+    {
+        m_funcNumber++;
+    }
 
     if (IsEndOfExpr(tok))
     {
@@ -250,26 +293,54 @@ SExprParser::ParseFunctionHeader()
 
     tok = m_scanner->Scan();
 
-    // TODO: support <type>? for indirect calls
-
-    while (tok == wtkPARAM)
+    if (type == funcType)
     {
-        ParseParam();
-
-        tok = m_scanner->Scan();
-
-        if (IsEndOfExpr(tok))
+        WasmSignature * signature = Anew(&m_alloc, WasmSignature, &m_alloc);
+        m_moduleInfo->AddSignature(signature);
+        while (tok == wtkPARAM)
         {
-            return m_currentNode.op;
+            ParseParam(signature);
+
+            tok = m_scanner->Scan();
+
+            if (IsEndOfExpr(tok))
+            {
+                return m_currentNode.op;
+            }
+
+            tok = m_scanner->Scan();
         }
 
-        tok = m_scanner->Scan();
+        if (tok == wtkRESULT)
+        {
+            ParseResult(signature);
+
+            tok = m_scanner->Scan();
+
+            if (IsEndOfExpr(tok))
+            {
+                return m_currentNode.op;
+            }
+
+            tok = m_scanner->Scan();
+        }
     }
-
-    if (tok == wtkRESULT)
+    else if (tok == wtkTYPE)
     {
-        ParseResult();
+        m_scanner->ScanToken(wtkINTLIT);
+        if (m_token.u.lng < 0 || m_token.u.lng >= UINT_MAX)
+        {
+            ThrowSyntaxError(); // can't have index that high
+        }
+        WasmSignature * signature = m_moduleInfo->GetSignature((uint32)m_token.u.lng);
+        if (signature == nullptr)
+        {
+            ThrowSyntaxError();
+        }
 
+        m_funcInfo->SetSignature(signature);
+
+        m_scanner->ScanToken(wtkRPAREN);
         tok = m_scanner->Scan();
 
         if (IsEndOfExpr(tok))
@@ -281,7 +352,7 @@ SExprParser::ParseFunctionHeader()
     }
 
     // import should not have locals or a function body
-    if (imported)
+    if (type != funcFull)
     {
         ThrowSyntaxError();
     }
@@ -323,6 +394,28 @@ SExprParser::ParseExport()
 }
 
 WasmOp
+SExprParser::ParseTable()
+{
+    m_currentNode.op = wnTABLE;
+
+    SExprTokenType tok;
+    while ((tok = m_scanner->Scan()) == wtkINTLIT)
+    {
+        if (m_token.u.lng < 0 || m_token.u.lng >= UINT_MAX)
+        {
+            ThrowSyntaxError();
+        }
+        m_moduleInfo->AddIndirectFunctionIndex((uint32)m_token.u.lng);
+    }
+    if (tok != wtkRPAREN)
+    {
+        ThrowSyntaxError();
+    }
+
+    return m_currentNode.op;
+}
+
+WasmOp
 SExprParser::ParseMemory()
 {
     m_currentNode.op = wnMEMORY;
@@ -356,31 +449,31 @@ SExprParser::ParseMemory()
 }
 
 void
-SExprParser::ParseParam()
+SExprParser::ParseParam(WasmSignature * signature)
 {
     SExprTokenType tok = m_scanner->Scan();
     if (tok == wtkID)
     {
         m_nameToLocalMap->AddNew(m_token.u.m_sz, m_funcInfo->GetLocalCount());
         tok = m_scanner->Scan();
-        m_funcInfo->AddParam(GetWasmType(tok));
+        signature->AddParam(GetWasmType(tok));
         m_scanner->ScanToken(wtkRPAREN);
     }
     else
     {
         while (tok != wtkRPAREN)
         {
-            m_funcInfo->AddParam(GetWasmType(tok));
+            signature->AddParam(GetWasmType(tok));
             tok = m_scanner->Scan();
         }
     }
 }
 
 void
-SExprParser::ParseResult()
+SExprParser::ParseResult(WasmSignature * signature)
 {
     SExprTokenType tok = m_scanner->Scan();
-    m_funcInfo->SetResultType(GetWasmType(tok));
+    signature->SetResultType(GetWasmType(tok));
     m_scanner->ScanToken(wtkRPAREN);
 }
 
@@ -464,18 +557,42 @@ SExprParser::ParseIfExpr()
     return m_currentNode.op;
 }
 
-WasmOp SExprParser::ParseBlock()
+WasmOp
+SExprParser::ParseBlock()
 {
     m_blockNesting->Push(SExpr::Block);
     return wnBLOCK;
 }
 
-WasmOp SExprParser::ParseCall()
+WasmOp
+SExprParser::ParseCall()
 {
     m_currentNode.op = wnCALL;
     m_blockNesting->Push(SExpr::Call);
 
     ParseFuncVar();
+    return m_currentNode.op;
+}
+
+WasmOp
+SExprParser::ParseCallIndirect()
+{
+    m_currentNode.op = wnCALL_INDIRECT;
+    m_blockNesting->Push(SExpr::Call);
+
+    // should have type
+    m_scanner->ScanToken(wtkLPAREN);
+    m_scanner->ScanToken(wtkTYPE);
+    m_scanner->ScanToken(wtkINTLIT);
+
+    if (m_token.u.lng < 0 || m_token.u.lng >= UINT_MAX)
+    {
+        ThrowSyntaxError(); // wasm64 not yet supported
+    }
+    m_currentNode.var.num = (uint)m_token.u.lng;
+
+    m_scanner->ScanToken(wtkRPAREN);
+
     return m_currentNode.op;
 }
 

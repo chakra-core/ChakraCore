@@ -44,8 +44,12 @@ WasmBytecodeGenerator::GenerateModule()
     m_module->heapOffset = 0;
     m_module->funcOffset = m_module->heapOffset + 1;
 
-    WasmOp op;
-    while ((op = m_reader->ReadFromModule()) != wnLIMIT)
+    // first read does some initialization info. record this before continuing
+    WasmOp op = m_reader->ReadFromModule();
+
+    m_module->indirFuncTableOffset = m_module->funcOffset + m_module->info->GetFunctionCount();
+
+    while (op != wnLIMIT)
     {
         switch (op)
         {
@@ -59,16 +63,16 @@ WasmBytecodeGenerator::GenerateModule()
             AddExport();
             break;
         case wnMEMORY:
-            break;
-        // TODO: implement below ops
-        case wnGLOBAL:
         case wnTABLE:
-        case wnDATA:
+        case wnTYPE:
+            break;
         default:
             Assert(UNREACHED);
         }
+        op = m_reader->ReadFromModule();
     }
-    m_module->memSize = m_module->funcOffset + m_module->functions->Count();
+    // reserve space for as many function tables as there are signatures, though we won't fill them all
+    m_module->memSize = m_module->indirFuncTableOffset + m_module->info->GetSignatureCount();
 
     return m_module;
 }
@@ -273,7 +277,9 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wnLOOP:
         return EmitLoop();
     case wnCALL:
-        return EmitCall();
+        return EmitCall<wnCALL>();
+    case wnCALL_INDIRECT:
+        return EmitCall<wnCALL_INDIRECT>();
     case wnIF:
         return EmitIfExpr();
     case wnIF_ELSE:
@@ -476,32 +482,63 @@ WasmBytecodeGenerator::EmitLoop()
     return EmitInfo();
 }
 
+template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitCall()
 {
     ++m_nestedCallDepth;
 
-    uint funcNum = m_reader->m_currentNode.var.num;
-    if (funcNum >= m_module->functions->Count())
+    uint funcNum = Js::Constants::UninitializedValue;
+    uint signatureId = Js::Constants::UninitializedValue;
+    bool imported;
+    WasmSignature * calleeSignature;
+    if (wasmOp == wnCALL)
     {
-        // TODO: implement forward calls
-        AssertMsg(UNREACHED, "Forward calls currently unsupported");
+        funcNum = m_reader->m_currentNode.var.num;
+        if (funcNum >= m_module->functions->Count())
+        {
+            // TODO: implement forward calls
+            AssertMsg(UNREACHED, "Forward calls currently unsupported");
+        }
+        WasmFunction * callee = m_module->functions->GetBuffer()[funcNum];
+        calleeSignature = callee->wasmInfo->GetSignature();
+        imported = callee->wasmInfo->Imported();
+    }
+    else
+    {
+        signatureId = m_reader->m_currentNode.var.num;
+        calleeSignature = m_module->info->GetSignature(signatureId);
+        imported = false;
     }
 
-    WasmFunction * callee = m_module->functions->GetBuffer()[funcNum];
+    EmitInfo indirectIndexInfo;
+    if (wasmOp == wnCALL_INDIRECT)
+    {
+        WasmOp indexOp = m_reader->ReadFromCall();
+        indirectIndexInfo = EmitExpr(indexOp);
+        if (indirectIndexInfo.type != WasmTypes::I32)
+        {
+            throw WasmCompilationException(L"Indirect call index must be int type");
+        }
+    }
 
     // emit start call
     Js::ArgSlot argSize;
     Js::OpCodeAsmJs startCallOp;
-    if (callee->wasmInfo->Imported())
+    if (imported)
     {
         // TODO: michhol set upper limit on param count to prevent overflow
-        argSize = (Js::ArgSlot)(callee->wasmInfo->GetParamCount() * sizeof(Js::Var));
+        argSize = (Js::ArgSlot)(calleeSignature->GetParamCount() * sizeof(Js::Var));
         startCallOp = Js::OpCodeAsmJs::StartCall;
     }
     else
     {
-        argSize = callee->body->GetAsmJsFunctionInfo()->GetArgByteSize();
+        if (calleeSignature->GetParamSize() >= UINT16_MAX)
+        {
+            throw WasmCompilationException(L"Argument size too big");
+        }
+        argSize = (Js::ArgSlot)calleeSignature->GetParamSize();
+
         startCallOp = Js::OpCodeAsmJs::I_StartCall;
     }
 
@@ -512,11 +549,11 @@ WasmBytecodeGenerator::EmitCall()
     Js::RegSlot nextLoc = 1;
 
     uint maxDepthForLevel = m_argOutDepth;
-    while (i < callee->wasmInfo->GetParamCount() && (op = m_reader->ReadFromCall()) != wnLIMIT)
+    while (i < calleeSignature->GetParamCount() && (op = m_reader->ReadFromCall()) != wnLIMIT)
     {
         // emit args
         EmitInfo info = EmitExpr(op);
-        if (callee->wasmInfo->GetParam(i) != info.type)
+        if (calleeSignature->GetParam(i) != info.type)
         {
             throw WasmCompilationException(L"Call argument does not match formal type");
         }
@@ -527,12 +564,12 @@ WasmBytecodeGenerator::EmitCall()
         {
         case WasmTypes::F32:
             // REVIEW: support FFI call with f32 params?
-            Assert(!callee->wasmInfo->Imported());
+            Assert(!imported);
             argOp = Js::OpCodeAsmJs::I_ArgOut_Flt;
             ++nextLoc;
             break;
         case WasmTypes::F64:
-            if (callee->wasmInfo->Imported())
+            if (imported)
             {
                 argOp = Js::OpCodeAsmJs::ArgOut_Db;
                 ++nextLoc;
@@ -545,7 +582,7 @@ WasmBytecodeGenerator::EmitCall()
             }
             break;
         case WasmTypes::I32:
-            argOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
+            argOp = imported ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             ++nextLoc;
             break;
         default:
@@ -572,46 +609,57 @@ WasmBytecodeGenerator::EmitCall()
         m_reader->ReadFromCall();
     }
 
-    if (i != callee->wasmInfo->GetParamCount())
+    if (i != calleeSignature->GetParamCount())
     {
         throw WasmCompilationException(L"Call has wrong number of arguments");
     }
 
     // emit call
-
-    m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->funcOffset);
+    if (wasmOp == wnCALL)
+    {
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, funcNum + m_module->funcOffset);
+    }
+    else
+    {
+        Assert(wasmOp == wnCALL_INDIRECT);
+        Js::RegSlot tmp = m_i32RegSlots->AcquireTmpRegister();
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, tmp, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, tmp, indirectIndexInfo.location);
+        m_i32RegSlots->ReleaseTmpRegister(tmp);
+        GetRegisterSpace(indirectIndexInfo.type)->ReleaseLocation(&indirectIndexInfo);
+    }
 
     // calculate number of RegSlots the arguments consume
     Js::ArgSlot args;
-    if (callee->wasmInfo->Imported())
+    if (imported)
     {
-        args = (Js::ArgSlot)(callee->wasmInfo->GetParamCount() + 1);
+        args = (Js::ArgSlot)(calleeSignature->GetParamCount() + 1);
     }
     else
     {
         args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
     }
-    Js::OpCodeAsmJs callOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Call : Js::OpCodeAsmJs::I_Call;
-    m_writer.AsmCall(callOp, 0, 0, args, GetAsmJsReturnType(callee->wasmInfo->GetResultType()));
+    Js::OpCodeAsmJs callOp = imported ? Js::OpCodeAsmJs::Call : Js::OpCodeAsmJs::I_Call;
+    m_writer.AsmCall(callOp, 0, 0, args, GetAsmJsReturnType(calleeSignature->GetResultType()));
 
     // emit result coercion
     EmitInfo retInfo;
-    retInfo.type = callee->wasmInfo->GetResultType();
+    retInfo.type = calleeSignature->GetResultType();
     Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
     switch (retInfo.type)
     {
     case WasmTypes::F32:
-        Assert(!callee->wasmInfo->Imported());
+        Assert(!imported);
         retInfo.location = m_f32RegSlots->AcquireTmpRegister();
         convertOp = Js::OpCodeAsmJs::I_Conv_VTF;
         break;
     case WasmTypes::F64:
         retInfo.location = m_f64RegSlots->AcquireTmpRegister();
-        convertOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
+        convertOp = imported ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
         break;
     case WasmTypes::I32:
         retInfo.location = m_i32RegSlots->AcquireTmpRegister();
-        convertOp = callee->wasmInfo->Imported() ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
+        convertOp = imported ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
         break;
     case WasmTypes::I64:
         Assert(UNREACHED);
@@ -1096,28 +1144,6 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
         Assert(UNREACHED);
         return Js::ArrayBufferView::ViewType::TYPE_INVALID;
     }
-}
-
-void
-WasmBytecodeGenerator::GenerateInvoke()
-{
-    /*
-    // TODO: this only works for single invoke
-
-    // TODO: fix these bools
-    m_writer.Begin(m_wasmScript->globalBody, &m_alloc, false, true, false);
-
-    // TODO: loop through all arguments, not just 1, get arg count from parser
-    EmitInfo argInfo = EmitExpr(invokeNode->invk.expr);
-
-    const Js::ArgSlot argByteSize = sizeof(int32) + sizeof(Js::Var);
-    m_writer.AsmStartCall(Js::OpCodeAsmJs::I_StartCall, argByteSize);
-    m_writer.AsmReg2(Js::OpCodeAsmJs::ArgOut_Int, 1, argInfo.location);
-    //m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlot, 0, 1, index + mCompiler->GetFuncOffset());
-    m_writer.AsmCall(Js::OpCodeAsmJs::I_Call, 0, 0, (Js::ArgSlot)(::ceil((double)(argByteSize / sizeof(Js::Var)))) + 1, Js::AsmJsRetType::Signed);
-
-    m_writer.End();
-    */
 }
 
 void

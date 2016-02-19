@@ -51,6 +51,8 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length, bool trace) :
     m_alloc(L"WasmBinaryDecoder", alloc, Js::Throw::OutOfMemory)
 {
+    m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
+
     m_start = m_pc = source;
     m_end = source + length;
     m_trace = trace;
@@ -67,8 +69,6 @@ WasmOp
 WasmBinaryReader::ReadFromModule()
 {
     TRACE_WASM_DECODER(L"Decoding Module");
-
-    m_moduleInfo = Anew(&m_alloc, ModuleInfo);
 
     SectionCode sectionId;
     UINT length = 0;
@@ -91,6 +91,10 @@ WasmBinaryReader::ReadFromModule()
             else
             {
                 m_moduleState.size = LEB128(length);
+                if (sectionId == bSectFunctions)
+                {
+                    m_moduleInfo->SetFunctionCount(m_moduleState.size);
+                }
             }
             // mark as visited
             m_visitedSections->Set(sectionId);
@@ -118,12 +122,7 @@ WasmBinaryReader::ReadFromModule()
             break; // This section is not used by bytecode generator, stay in decoder
 
         case bSectGlobals:
-            // TODO: global section should be removed
-            ReadConst<UINT32>();  // index to string in module
-            ReadConst<UINT8>();   // memory type
-            ReadConst<UINT8>();   // exported
-            m_moduleState.count++;
-            return wnGLOBAL;
+            ThrowDecodingError(L"Nonstandard global section not supported!");
 
         case bSectDataSegments:
             // TODO: Populate Data entry info
@@ -145,16 +144,17 @@ WasmBinaryReader::ReadFromModule()
             return wnFUNC;
 
         case bSectFunctionTable:
-            // TODO: Change to read one entry at a time, and return in bytecode gen in between.
             if (!m_visitedSections->Test(bSectFunctions))
             {
                 ThrowDecodingError(L"Function declarations section missing before function table");
             }
 
-            // TODO: Populate entry info
-            ReadConst<UINT16>();
-            m_moduleState.count++;
-            return wnTABLE;
+            for (UINT i = 0; i < m_moduleState.size; i++)
+            {
+                m_moduleInfo->AddIndirectFunctionIndex(ReadConst<UINT16>());
+            }
+            m_moduleState.count += m_moduleState.size;
+            break;
 
         case bSectEnd:
             // ResetModuleData();
@@ -281,7 +281,7 @@ WasmBinaryReader::CallNode()
     // are following that.
     UINT funcNum = LEB128(length);
     m_funcState.count += length;
-    if (funcNum >= m_funcSignatureTable->Count())
+    if (funcNum >= m_moduleInfo->GetSignatureCount())
     {
         ThrowDecodingError(L"Function signature is out of bound");
     }
@@ -365,7 +365,6 @@ void
 WasmBinaryReader::ResetModuleData()
 {
     m_visitedSections = BVFixed::New<ArenaAllocator>(bSectLimit + 1, &m_alloc);
-    m_funcSignatureTable = Anew(&m_alloc, FuncSignatureTable, &m_alloc, 0);
     m_moduleState.count = 0;
     m_moduleState.size = 0;
     m_moduleState.secId = bSectInvalid;
@@ -410,20 +409,20 @@ WasmBinaryReader::ReadMemorySection()
 void
 WasmBinaryReader::Signature()
 {
-    WasmTypes::Signature sig;
-    sig.args = nullptr;
-    sig.argCount = (UINT)ReadConst<UINT8>();
-    sig.retType = (WasmTypes::LocalType) ReadConst<UINT8>();
-    if (sig.argCount)
-    {
-        sig.args = AnewArray(&m_alloc, WasmTypes::LocalType, sig.argCount);
-    }
+    WasmSignature * sig = Anew(&m_alloc, WasmSignature, &m_alloc);
 
-    for (UINT i = 0; i < sig.argCount; i++)
+    // TODO: use param count to create fixed size array
+    uint8 paramCount = ReadConst<UINT8>();
+
+    sig->SetResultType(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
+
+    for (uint8 i = 0; i < paramCount; i++)
     {
-        sig.args[i] = (WasmTypes::LocalType)ReadConst<UINT8>();
+        sig->AddParam(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
     }
-    m_funcSignatureTable->Add(sig);
+    
+
+    m_moduleInfo->AddSignature(sig);
 }
 
 void
@@ -435,7 +434,7 @@ WasmBinaryReader::FunctionHeader()
     UINT16 i32Count = 0, i64Count = 0, f32Count = 0, f64Count = 0;
     const char* funcName = nullptr;
     LPCUTF8 utf8FuncName = nullptr;
-    WasmTypes::Signature sig;
+    WasmSignature * sig;
 
     Assert(m_moduleState.secId == bSectFunctions && m_moduleState.count < m_moduleState.size);
     m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
@@ -445,7 +444,7 @@ WasmBinaryReader::FunctionHeader()
     flags = ReadConst<UINT8>();
     sigId = ReadConst<UINT16>();
 
-    if (sigId >= m_funcSignatureTable->Count())
+    if (sigId >= m_moduleInfo->GetSignatureCount())
     {
         ThrowDecodingError(L"Function signature is out of bound");
     }
@@ -475,15 +474,8 @@ WasmBinaryReader::FunctionHeader()
     }
 
     // params
-    sig = m_funcSignatureTable->GetBuffer()[sigId];
-    for (UINT i = 0; i < sig.argCount; i++)
-    {
-        Assert(sig.args[i] >= WasmTypes::bAstStmt && sig.args[i] < WasmTypes::bAstLimit);
-        // map encoded type id to WasmType
-        m_funcInfo->AddParam(GetWasmType(sig.args[i]));
-    }
-
-    m_funcInfo->SetResultType(GetWasmType(sig.retType));
+    sig = m_moduleInfo->GetSignature(sigId);
+    m_funcInfo->SetSignature(sig);
 
     // locals
     if (flags & bFuncDeclLocals)
