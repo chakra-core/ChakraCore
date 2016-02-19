@@ -196,7 +196,7 @@ SExprParser::ReadExprCore(SExprTokenType tok)
         case wtk##token: \
             ParseGeneralExpr(wn##token); \
             return wn##token;
-#define WASM_KEYWORD_UNARY(token, name) WASM_KEYWORD_BIN(token, name)
+#define WASM_KEYWORD_UNARY(token, name, ...) WASM_KEYWORD_BIN(token, name)
 
 #include "WasmKeywords.h"
 
