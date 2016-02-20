@@ -433,6 +433,33 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_I4_1toR1Mem(name, func) PROCESS_SIMD_I4_1toR1Mem_COMMON(name, func,)
 
+#define PROCESS_SIMD_I1toB4_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool32x4_1Int1, suffix); \
+    SetRegRawSimd(playout->B4_0, func((GetRegRawInt(playout->I1)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_I1toB4_1(name, func) PROCESS_SIMD_I1toB4_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_I1toB8_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool16x8_1Int1, suffix); \
+    SetRegRawSimd(playout->B8_0, func((GetRegRawInt(playout->I1)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_I1toB8_1(name, func) PROCESS_SIMD_I1toB8_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_I1toB16_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool8x16_1Int1, suffix); \
+    SetRegRawSimd(playout->B16_0, func((GetRegRawInt(playout->I1)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_I1toB16_1(name, func) PROCESS_SIMD_I1toB16_1_COMMON(name, func,)
+
 #define PROCESS_SIMD_B4_1toR1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
     { \
@@ -1581,6 +1608,32 @@ if (switchProfileMode) \
     }
 #define PROCESS_SIMD_U16_1I1toI1(name, func) PROCESS_SIMD_U16_1I1toI1_COMMON(name, func,)
 
+#define PROCESS_SIMD_B4_1I1toI1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int1Bool32x4_1Int1, suffix); \
+    SetRegRawInt(playout->I0, func(GetRegRawSimd(playout->B4_1), GetRegRawInt(playout->I2))); \
+    break; \
+    }
+#define PROCESS_SIMD_B4_1I1toI1(name, func) PROCESS_SIMD_B4_1I1toI1_COMMON(name, func,)
+
+#define PROCESS_SIMD_B8_1I1toI1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int1Bool16x8_1Int1, suffix); \
+    SetRegRawInt(playout->I0, (uint16)func(GetRegRawSimd(playout->B8_1), GetRegRawInt(playout->I2))); \
+    break; \
+    }
+#define PROCESS_SIMD_B8_1I1toI1(name, func) PROCESS_SIMD_B8_1I1toI1_COMMON(name, func,)
+
+#define PROCESS_SIMD_B16_1I1toI1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Int1Bool8x16_1Int1, suffix); \
+    SetRegRawInt(playout->I0, (uint8)func(GetRegRawSimd(playout->B16_1), GetRegRawInt(playout->I2))); \
+    break; \
+    }
+#define PROCESS_SIMD_B16_1I1toI1(name, func) PROCESS_SIMD_B16_1I1toI1_COMMON(name, func,)
 
 // Replace Lane
 #define PROCESS_SIMD_I4_1I2toI4_1_COMMON(name, func, suffix) \
@@ -1645,6 +1698,33 @@ if (switchProfileMode) \
     break; \
     }
 #define PROCESS_SIMD_U16_1I2toU16_1_1(name, func) PROCESS_SIMD_U16_1I2toU16_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_B4_1I2toB4_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool32x4_2Int2, suffix); \
+    SetRegRawSimd(playout->B4_0, func(GetRegRawSimd(playout->B4_1), GetRegRawInt(playout->I2), (GetRegRawInt(playout->I3)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_B4_1I2toB4_1(name, func) PROCESS_SIMD_B4_1I2toB4_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_B8_1I2toB8_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool16x8_2Int2, suffix); \
+    SetRegRawSimd(playout->B8_0, func(GetRegRawSimd(playout->B8_1), GetRegRawInt(playout->I2), (GetRegRawInt(playout->I3)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_B8_1I2toB8_1(name, func) PROCESS_SIMD_B8_1I2toB8_1_COMMON(name, func,)
+
+#define PROCESS_SIMD_B16_1I2toB16_1_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+    PROCESS_READ_LAYOUT_ASMJS(name, Bool8x16_2Int2, suffix); \
+    SetRegRawSimd(playout->B16_0, func(GetRegRawSimd(playout->B16_1), GetRegRawInt(playout->I2), (GetRegRawInt(playout->I3)) ? -1 : 0)); \
+    break; \
+    }
+#define PROCESS_SIMD_B16_1I2toB16_1_1(name, func) PROCESS_SIMD_B16_1I2toB16_1_COMMON(name, func,)
 
 // f4swizzle
 #define PROCESS_SIMD_F4_1I4toF4_1_COMMON(name, func, suffix) \

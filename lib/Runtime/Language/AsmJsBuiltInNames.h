@@ -135,6 +135,9 @@ ASMJS_SIMD_MARKERS(Int32x4_End) // just a marker
 ASMJS_SIMD_MARKERS(Bool32x4_Start) // just a marker
 ASMJS_SIMD_C_NAMES(Bool32x4,                                  Bool32x4,                     Bool32x4,         Bool32x4)
 ASMJS_SIMD_O_NAMES(bool32x4_check,                            check,                        Bool32x4,         Check   )
+ASMJS_SIMD_O_NAMES(bool32x4_splat,                            splat,                        Bool32x4,         Splat   )
+ASMJS_SIMD_O_NAMES(bool32x4_extractLane,                      extractLane,                  Bool32x4,         ExtractLane)
+ASMJS_SIMD_O_NAMES(bool32x4_replaceLane,                      replaceLane,                  Bool32x4,         ReplaceLane)
 ASMJS_SIMD_O_NAMES(bool32x4_and,                              and,                          Bool32x4,         And     )
 ASMJS_SIMD_O_NAMES(bool32x4_or,                               or,                           Bool32x4,         Or      )
 ASMJS_SIMD_O_NAMES(bool32x4_xor,                              xor,                          Bool32x4,         Xor     )
@@ -146,6 +149,9 @@ ASMJS_SIMD_MARKERS(Bool32x4_End)  // just a marker
 ASMJS_SIMD_MARKERS(Bool16x8_Start) // just a marker
 ASMJS_SIMD_C_NAMES(Bool16x8,                                  Bool16x8,                     Bool16x8,         Bool16x8)
 ASMJS_SIMD_O_NAMES(bool16x8_check,                            check,                        Bool16x8,         Check   )
+ASMJS_SIMD_O_NAMES(bool16x8_splat,                            splat,                        Bool16x8,         Splat   )
+ASMJS_SIMD_O_NAMES(bool16x8_extractLane,                      extractLane,                  Bool16x8,         ExtractLane)
+ASMJS_SIMD_O_NAMES(bool16x8_replaceLane,                      replaceLane,                  Bool16x8,         ReplaceLane)
 ASMJS_SIMD_O_NAMES(bool16x8_and,                              and,                          Bool16x8,         And     )
 ASMJS_SIMD_O_NAMES(bool16x8_or,                               or,                           Bool16x8,         Or      )
 ASMJS_SIMD_O_NAMES(bool16x8_xor,                              xor,                          Bool16x8,         Xor     )
@@ -157,6 +163,9 @@ ASMJS_SIMD_MARKERS(Bool16x8_End)  // just a marker
 ASMJS_SIMD_MARKERS(Bool8x16_Start) // just a marker
 ASMJS_SIMD_C_NAMES(Bool8x16,                                  Bool8x16,                     Bool8x16,         Bool8x16)
 ASMJS_SIMD_O_NAMES(bool8x16_check,                            check,                        Bool8x16,         Check   )
+ASMJS_SIMD_O_NAMES(bool8x16_splat,                            splat,                        Bool8x16,         Splat   )
+ASMJS_SIMD_O_NAMES(bool8x16_extractLane,                      extractLane,                  Bool8x16,         ExtractLane)
+ASMJS_SIMD_O_NAMES(bool8x16_replaceLane,                      replaceLane,                  Bool8x16,         ReplaceLane)
 ASMJS_SIMD_O_NAMES(bool8x16_and,                              and,                          Bool8x16,         And     )
 ASMJS_SIMD_O_NAMES(bool8x16_or,                               or,                           Bool8x16,         Or      )
 ASMJS_SIMD_O_NAMES(bool8x16_xor,                              xor,                          Bool8x16,         Xor     )

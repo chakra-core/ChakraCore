@@ -882,7 +882,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_3Int4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Float1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float64x2_1);
+                //DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_1Int32x4_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Float32x4_1);
                 //Int32x4
@@ -900,7 +900,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float32x4_2Int1Float1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Float1Float32x4_1Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Int32x4_1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float64x2_1);
+                //DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float64x2_1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int32x4_1Float32x4_1);
                 // Float64x2
 #if 0
@@ -1014,23 +1014,33 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Uint32x4_1)
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Uint8x16_1Uint16x8_1)
                 // Bool32x4
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_1Int4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool32x4_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool32x4_1Int1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_2Int2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool32x4_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool32x4_1);
                 // Bool16x8
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_1Int8);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool16x8_1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool16x8_1Int1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_2Int2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool16x8_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool16x8_1);
+                // Bool8x16
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_1Int16);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool8x16_1);
-                // Bool8x16
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Int1Bool8x16_1Int1);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2Int2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_2);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Bool8x16_3);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1Bool8x16_1);
+                
                 DEFAULT_LAYOUT_WITH_ONEBYTE(AsmSimdTypedArr);
 
 

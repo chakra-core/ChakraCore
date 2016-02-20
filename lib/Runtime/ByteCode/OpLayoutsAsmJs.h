@@ -787,6 +787,23 @@ namespace Js
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_Bool32x4_2Int2
+    {
+        typename SizePolicy::RegSlotType    B4_0;
+        typename SizePolicy::RegSlotType    B4_1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int1Bool32x4_1Int1
+    {
+        typename SizePolicy::RegSlotType    I0;
+        typename SizePolicy::RegSlotType    B4_1;
+        typename SizePolicy::RegSlotType    I2;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_Bool32x4_2
     {
         typename SizePolicy::RegSlotType    B4_0;
@@ -836,6 +853,23 @@ namespace Js
     {
         typename SizePolicy::RegSlotType    B8_0;
         typename SizePolicy::RegSlotType    B8_1;
+    };
+    
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool16x8_2Int2
+    {
+        typename SizePolicy::RegSlotType    B8_0;
+        typename SizePolicy::RegSlotType    B8_1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int1Bool16x8_1Int1
+    {
+    typename SizePolicy::RegSlotType    I0;
+    typename SizePolicy::RegSlotType    B8_1;
+    typename SizePolicy::RegSlotType    I2;
     };
 
     template <typename SizePolicy>
@@ -889,6 +923,23 @@ namespace Js
     {
         typename SizePolicy::RegSlotType    B16_0;
         typename SizePolicy::RegSlotType    B16_1;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Bool8x16_2Int2
+    {
+        typename SizePolicy::RegSlotType    B16_0;
+        typename SizePolicy::RegSlotType    B16_1;
+        typename SizePolicy::RegSlotType    I2;
+        typename SizePolicy::RegSlotType    I3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Int1Bool8x16_1Int1
+    {
+        typename SizePolicy::RegSlotType    I0;
+        typename SizePolicy::RegSlotType    B16_1;
+        typename SizePolicy::RegSlotType    I2;
     };
 
     template <typename SizePolicy>

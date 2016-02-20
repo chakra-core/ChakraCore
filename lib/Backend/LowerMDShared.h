@@ -354,7 +354,8 @@ public:
     IR::Instr*          Simd128LowerAnyTrue(IR::Instr* instr);
     IR::Instr*          Simd128LowerAllTrue(IR::Instr* instr);
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
-    IR::Opnd *          EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type = TyInt32);
+    IR::Instr*          Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpCode& CMPopCode, IR::Opnd& dstOpnd);
+    IR::Opnd*           EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type = TyInt32);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
     void                GenerateCheckedSimdLoad(IR::Instr * instr);
     void                GenerateSimdStore(IR::Instr * instr);

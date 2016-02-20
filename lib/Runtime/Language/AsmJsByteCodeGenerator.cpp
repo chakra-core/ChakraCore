@@ -1051,14 +1051,7 @@ namespace Js
 
         if (sym->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
         {
-            // SIMD boolean constructors are a special case. They are only used to declare variable types in AsmJs module. They are
-            // not allowed to be used for creating simd bool values explicitly within asmjs. 
-            // And Special handling for .load*/.store* operations
             AsmJsSIMDFunction *simdFun = sym->Cast<AsmJsSIMDFunction>();
-            if (simdFun->IsSimdBoolConstructor())
-            {
-                throw AsmJsCompilationException(L"SIMD bool types cannot be constructed from within AsmJs function body.");
-            }
             if (simdFun->IsSimdLoadFunc() || simdFun->IsSimdStoreFunc())
             {
                 return EmitSimdLoadStoreBuiltin(pnode, sym->Cast<AsmJsSIMDFunction>(), expectedType);

@@ -23,7 +23,6 @@ namespace Js
         return result;
     }
 
-
     // Unary Ops
     bool SIMDBool32x4Operation::OpAnyTrue(const SIMDValue& simd)
     {
