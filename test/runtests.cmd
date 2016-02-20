@@ -174,6 +174,11 @@ goto :main
   if /i "%1" == "-variants"         set _Variants=%~2&                                          goto :ArgOkShift2
   if /i "%1" == "-cleanupall"       set _CleanUpAll=1&                                          goto :ArgOk
 
+  ::Extra ch.exe command line flags
+  if /i "%1" == "-ExtraHostFlags"   set _ExtraHostFlags=%~2&                                    goto :ArgOkShift2
+  if /i "%1" == "-DumpOnCrash"      set _DumpOnCrash=1&                                         goto :ArgOk
+  if /i "%1" == "-CrashOnException" set _CrashOnException=1&                                    goto :ArgOk
+
   if /i "%1" == "-extraVariants" (
     :: Extra variants are specified by the user but not run by default.
     if "%_ExtraVariants%" == "" (
@@ -247,6 +252,9 @@ goto :main
   set _nightly=
   set TARGET_OS=win10
   set _quiet=
+  set _ExtraHostFlags=
+  set _DumpOnCrash=
+  set _CrashOnException=
 
   goto :eof
 
@@ -342,7 +350,15 @@ goto :main
 
   if "%_BuildType%" == "debug" (
     rem Enabling storing dumps on user directory.
+    set _DumpOnCrash=1
+  )
+
+  set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% %_ExtraHostFlags%
+  if not "%_DumpOnCrash%" == "" (
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -DumpOnCrash
+  )
+  if not "%_CrashOnException%" == "" (
+    set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -CrashOnException
   )
 
   if "%_Binary%" == "-binary:ch.exe" (
@@ -356,7 +372,7 @@ goto :main
     set EXTRA_CC_FLAGS=%EXTRA_CC_FLAGS% -nonative
     set EXTRA_RL_FLAGS=-nottags:exclude_interpreted -nottags:fails_interpreted
   )
-  :: DisableJit is different from NoNative in that NoNative can be used 
+  :: DisableJit is different from NoNative in that NoNative can be used
   :: with builds which include backend code, whereas DisableJit doesn't have
   :: backend code linked in, and also disables other features that incidentally
   :: depends on the backend like dynamic profile, asmjs, simdjs, background parsing etc.

@@ -44,13 +44,7 @@
         kernel32.lib;
         advapi32.lib;
         ole32.lib;
-        oleaut32.lib;
-        version.lib
-      </AdditionalDependencies>
-      <AdditionalDependencies Condition="'$(OptimizedBuild)'!='true'">
-        %(AdditionalDependencies);
-        dbghelp.lib;
-        user32.lib
+        $(ChakraCommonLinkDependencies)
       </AdditionalDependencies>
       <DelayLoadDLLs>%(DelayLoadDLLs);oleaut32.dll</DelayLoadDLLs>
     </Link>
