@@ -1522,7 +1522,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         // Need to allow filling the formal args slots.
 
-        Js::PropertyIdOnRegSlotsContainer *propertyIdContainer = functionBody->GetPropertyIdOnRegSlotsContainer();
+        Js::PropertyIdOnRegSlotsContainer *propertyIdContainer = functionBody->GetPropertyIdOnRegSlotsContainerWithLock();
         bool hasFormalArgs = propertyIdContainer != nullptr && propertyIdContainer->propertyIdsForFormalArgs != nullptr;
 
         if (hasFormalArgs)

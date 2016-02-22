@@ -1492,12 +1492,13 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     // Now store all the arguments in the register in the stack slots
     //
     this->MovArgFromReg2Stack(entryInstr, RegRCX, 1);
+    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
     if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
     {
         uint16 offset = 2;
-        for (uint16 i = 0; i < m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount() && i < 3; i++)
+        for (uint16 i = 0; i < asmJsFuncInfo->GetArgCount() && i < 3; i++)
         {
-            switch (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgType(i).which())
+            switch (asmJsFuncInfo->GetArgType(i).which())
             {
             case Js::AsmJsVarType::Int:
                 this->MovArgFromReg2Stack(entryInstr, i == 0 ? RegRDX : i == 1 ? RegR8 : RegR9, offset, TyInt32);
@@ -1775,7 +1776,7 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     IR::RegOpnd *retReg = nullptr;
     if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody())
     {
-        switch (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType().which())
+        switch (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetReturnType().which())
         {
         case Js::AsmJsRetType::Double:
         case Js::AsmJsRetType::Float:

@@ -62,7 +62,10 @@ namespace Js
 
         template <typename T>
         static AuxArray<T> const * ReadAuxArray(uint offset, FunctionBody * functionBody);
+        template <typename T>
+        static AuxArray<T> const * ReadAuxArrayWithLock(uint offset, FunctionBody * functionBody);
         static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
+        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
         static VarArrayVarCount const * ReadVarArrayVarCount(uint offset, FunctionBody * functionBody);
 
         const byte* GetIP();

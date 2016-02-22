@@ -2659,7 +2659,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             // See we are ending an outer loop and load the return IP to the ProfiledLoopEnd opcode
             // instead of following the normal branch
 
-            Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeader(num);
+            Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeaderWithLock(num);
 
             JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
             if (loopHeader != loopBodyCodeGen->loopHeader && loopHeader->Contains(loopBodyCodeGen->loopHeader))
@@ -3014,7 +3014,7 @@ IRBuilder::BuildElementScopedC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot 
 {
     IR::Instr *     instr;
     Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyIdWithLock(propertyIdIndex);
     PropertyKind    propertyKind = PropertyKindData;
     IR::RegOpnd * regOpnd;
     Js::RegSlot     fieldRegSlot = this->GetEnvRegForEvalCode();
@@ -3078,7 +3078,7 @@ IRBuilder::BuildElementC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fieldR
 {
     IR::Instr *     instr;
     Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId  propertyId = functionBody->GetReferencedPropertyIdWithLock(propertyIdIndex);
     PropertyKind    propertyKind = PropertyKindData;
     IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, fieldRegSlot, propertyId, propertyIdIndex, propertyKind);
     IR::RegOpnd * regOpnd;
@@ -4364,7 +4364,7 @@ IRBuilder::BuildElementScopedC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot
     {
     case Js::OpCode::ScopedLdInst:
         {
-            propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+            propertyId = functionBody->GetReferencedPropertyIdWithLock(propertyIdIndex);
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instanceSlot, propertyId, propertyIdIndex, PropertyKindData);
             regOpnd = this->BuildDstOpnd(regSlot);
             value2Opnd = this->BuildDstOpnd(value2Slot);
@@ -4514,7 +4514,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
     IR::RegOpnd *   regOpnd;
     IR::SymOpnd *   fieldSymOpnd;
     Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    Js::PropertyId propertyId = functionBody->GetReferencedPropertyId(propertyIdIndex);
+    Js::PropertyId propertyId = functionBody->GetReferencedPropertyIdWithLock(propertyIdIndex);
 
     switch (newOpcode)
     {
@@ -6873,7 +6873,7 @@ IRBuilder::BuildBrProperty(Js::OpCode newOpcode, uint32 offset)
 
     IR::BranchInstr * branchInstr;
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        this->m_func->GetJnFunction()->GetReferencedPropertyIdWithLock(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;
     IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, branchInsn->Instance, propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
 
@@ -6909,7 +6909,7 @@ IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
 
     IR::BranchInstr * branchInstr;
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        this->m_func->GetJnFunction()->GetReferencedPropertyIdWithLock(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;
     IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
 
@@ -6935,7 +6935,7 @@ IRBuilder::BuildBrEnvProperty(Js::OpCode newOpcode, uint32 offset)
     this->AddInstr(instr, offset);
 
     Js::PropertyId    propertyId =
-        this->m_func->GetJnFunction()->GetReferencedPropertyId(branchInsn->PropertyIdIndex);
+        this->m_func->GetJnFunction()->GetReferencedPropertyIdWithLock(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;\
     fieldSym = PropertySym::New(regOpnd->m_sym, propertyId, branchInsn->PropertyIdIndex, (uint)-1, PropertyKindData, m_func);
     fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
@@ -7003,7 +7003,7 @@ IRBuilder::BuildRegexFromPattern(Js::RegSlot dstRegSlot, uint32 patternIndex, ui
     IR::RegOpnd* dstOpnd = this->BuildDstOpnd(dstRegSlot);
     dstOpnd->SetValueType(ValueType::GetObject(ObjectType::RegExp));
 
-    IR::Opnd * regexOpnd = IR::AddrOpnd::New(this->m_func->GetJnFunction()->GetLiteralRegex(patternIndex), IR::AddrOpndKindDynamicMisc, this->m_func);
+    IR::Opnd * regexOpnd = IR::AddrOpnd::New(this->m_func->GetJnFunction()->GetLiteralRegexWithLock(patternIndex), IR::AddrOpndKindDynamicMisc, this->m_func);
 
     instr = IR::Instr::New(Js::OpCode::NewRegEx, dstOpnd, regexOpnd, this->m_func);
     this->AddInstr(instr, offset);
@@ -7188,7 +7188,7 @@ IRBuilder::InsertInitLoopBodyLoopCounter(uint loopNum)
 {
     Assert(this->IsLoopBody());
 
-    Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeader(loopNum);
+    Js::LoopHeader * loopHeader = this->m_func->GetJnFunction()->GetLoopHeaderWithLock(loopNum);
     JsLoopBodyCodeGen* loopBodyCodeGen = (JsLoopBodyCodeGen*)m_func->m_workItem;
     Assert(loopBodyCodeGen->loopHeader == loopHeader);  //Init only once
 
@@ -7209,17 +7209,17 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
     switch (auxArrayType)
     {
     case AuxArrayValue::AuxPropertyIdArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadPropertyIdArray(auxArrayOffset, m_functionBody, extraSlots), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadPropertyIdArrayWithLock(auxArrayOffset, m_functionBody, extraSlots), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxIntArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<int32>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<int32>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFloatArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<double>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<double>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarsArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::Var>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<Js::Var>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarArrayVarCount:
         return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCount(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFuncInfoArray:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArray<Js::FuncInfoEntry>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<Js::FuncInfoEntry>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     default:
         Assert(false);
         return nullptr;
@@ -7229,7 +7229,7 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
 IR::Opnd *
 IRBuilder::BuildAuxObjectLiteralTypeRefOpnd(int objectId, uint32 offset)
 {
-    return IR::AddrOpnd::New(m_func->GetJnFunction()->GetObjectLiteralTypeRef(objectId), IR::AddrOpndKindDynamicMisc, this->m_func);
+    return IR::AddrOpnd::New(m_func->GetJnFunction()->GetObjectLiteralTypeRefWithLock(objectId), IR::AddrOpndKindDynamicMisc, this->m_func);
 }
 
 void
