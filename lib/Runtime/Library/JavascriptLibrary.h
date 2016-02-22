@@ -380,6 +380,10 @@ namespace Js
         JavascriptSymbol* symbolSearch;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
+        JavascriptFunction* regexExecFunction;
+        JavascriptFunction* regexGlobalGetterFunction;
+        JavascriptFunction* regexStickyGetterFunction;
+        JavascriptFunction* regexUnicodeGetterFunction;
 
         mutable CharStringCache charStringCache;
 
@@ -703,6 +707,10 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
+        JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
+        JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 

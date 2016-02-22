@@ -52,6 +52,15 @@ namespace Js
         inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
         inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
 
+        static bool HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool HasObservableUnicodeFlag(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool HasObservableFlag(RecyclableObject* instance, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext);
+        static bool HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext);
+        static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor);
+        static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance);
+
         // For boxing stack instance
         JavascriptRegExp(JavascriptRegExp * instance);
 
