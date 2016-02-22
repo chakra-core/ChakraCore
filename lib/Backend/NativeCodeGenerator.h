@@ -97,7 +97,6 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    bool IsNativeFunctionAddr(void * address);
     void FreeNativeCodeGenAllocation(void* address);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 

@@ -715,8 +715,9 @@ private:
 
         // DisableJIT-TODO: Switch this to Dynamic thunk ifdef instead
 #if ENABLE_NATIVE_CODEGEN
+#if DYNAMIC_INTERPRETER_THUNK
         InterpreterThunkEmitter* interpreterThunkEmitter;
-
+#endif
         BackgroundParser *backgroundParser;
 #ifdef ASMJS_PLAT
         InterpreterThunkEmitter* asmJsInterpreterThunkEmitter;

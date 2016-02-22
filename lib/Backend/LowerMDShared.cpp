@@ -5820,7 +5820,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     if (m_func->CanAllocInPreReservedHeapPageSegment())
     {
         PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator();
-        preReservedRegionStartAddress = m_func->GetEmitBufferManager()->EnsurePreReservedPageAllocation(preReservedVirtualAllocator);
+        preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
         if (preReservedRegionStartAddress != nullptr)
         {
             Assert(preReservedVirtualAllocator);

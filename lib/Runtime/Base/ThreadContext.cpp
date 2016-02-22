@@ -70,10 +70,6 @@ ThreadContext * ThreadContext::globalListFirst = nullptr;
 ThreadContext * ThreadContext::globalListLast = nullptr;
 uint ThreadContext::activeScriptSiteCount = 0;
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-uint ThreadContext::numOfThreadContextsWithPreReserveSegment = 0;
-#endif
-
 const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 {
     Js::BuiltInPropertyRecords::EMPTY,
@@ -94,6 +90,12 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     returnedValueList(nullptr)
 {
 }
+
+#if PDATA_ENABLED
+#define ALLOC_XDATA (true)
+#else
+#define ALLOC_XDATA (false)
+#endif
 
 ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, JsUtil::ThreadService::ThreadServiceCallback threadServiceCallback, bool enableExperimentalFeatures) :
     currentThreadId(::GetCurrentThreadId()),
@@ -164,6 +166,10 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
 #if ENABLE_NATIVE_CODEGEN
     codeGenNumberThreadAllocator(nullptr),
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr),
+#endif
+    codePageAllocators(allocationPolicyManager, ALLOC_XDATA, GetPreReservedVirtualAllocator()),
 #endif
     dynamicObjectEnumeratorCacheMap(&HeapAllocator::Instance, 16),
     //threadContextFlags(ThreadContextFlagNoFlag),
@@ -312,24 +318,12 @@ void ThreadContext::GlobalInitialize()
     }
 }
 
-void ThreadContext::IncrementThreadContextsWithPreReservedSegment()
-{
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-    InterlockedIncrement(&ThreadContext::numOfThreadContextsWithPreReserveSegment);
-#endif
-}
-
+#if ENABLE_NATIVE_CODEGEN
 void ThreadContext::ReleasePreReservedSegment()
 {
-    BOOL success = preReservedVirtualAllocator.Shutdown();
-    if (success)
-    {
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-        Assert(numOfThreadContextsWithPreReserveSegment > 0);
-        InterlockedDecrement(&numOfThreadContextsWithPreReserveSegment);
-#endif
-    }
+    preReservedVirtualAllocator.Shutdown();
 }
+#endif
 
 ThreadContext::~ThreadContext()
 {
@@ -512,7 +506,9 @@ ThreadContext::~ThreadContext()
 #endif
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
     ReleasePreReservedSegment();
+#endif
 }
 
 void
@@ -1469,19 +1465,6 @@ ThreadContext::SetStackLimitForCurrentThread(PBYTE limit)
 {
     this->stackLimitForCurrentThread = limit;
 }
-
-bool
-ThreadContext::CanPreReserveSegmentForCustomHeap()
-{
-#if _M_IX86 && _CONTROL_FLOW_GUARD
-    return numOfThreadContextsWithPreReserveSegment <= Js::Constants::MaxThreadContextsWithPreReserveSegment;
-#elif _M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-    return true;
-#else
-    return false;
-#endif
-}
-
 
 __declspec(noinline) //Win8 947081: might use wrong _AddressOfReturnAddress() if this and caller are inlined
 bool
@@ -3477,18 +3460,19 @@ void DumpRecyclerObjectGraph()
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
-BOOL ThreadContext::IsNativeAddress(void *pCodeAddr)
+BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 {
-    for (Js::ScriptContext *scriptContext = this->scriptContextList;
-        scriptContext;
-        scriptContext = scriptContext->next)
+    PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->GetPreReservedVirtualAllocator();
+    if (preReservedVirtualAllocWrapper->IsInRange(pCodeAddr))
     {
-        if (IsNativeFunctionAddr(scriptContext, pCodeAddr))
-        {
-            return TRUE;
-        }
-    };
-
+        return TRUE;
+    }
+    
+    if (!this->IsAllJITCodeInPreReservedRegion())
+    {
+        CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
+        return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
+    }
     return FALSE;
 }
 #endif

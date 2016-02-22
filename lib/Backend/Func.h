@@ -75,7 +75,6 @@ public:
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
         Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
 public:
-    ArenaAllocator *GetCodeGenAllocator() const { return &this->m_codeGenAllocators->allocator; }
     CodeGenAllocators * const GetCodeGenAllocators()
     {
         return this->GetTopFunc()->m_codeGenAllocators;
