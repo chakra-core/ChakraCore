@@ -36,29 +36,29 @@
     <ClCompile Include="GCStress.cpp" />
     <ClCompile Include="RecyclerTestObject.cpp" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="StubExternalAPI.cpp" />
+    <ClCompile Include="StubExternalApi.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\common\common\Chakra.Common.Common.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\Common\Chakra.Common.Common.vcxproj">
       <Project>{bb4153ff-ac3e-4734-b562-cc23812df31b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\common\core\Chakra.Common.Core.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\Core\Chakra.Common.Core.vcxproj">
       <Project>{cc4153ff-ac3e-4734-b562-cc23812df31b}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\common\DataStructures\Chakra.Common.DataStructures.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\DataStructures\Chakra.Common.DataStructures.vcxproj">
       <Project>{5643d42a-c38d-4d82-9662-58470b3ac9f7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\common\Exceptions\Chakra.Common.Exceptions.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\Exceptions\Chakra.Common.Exceptions.vcxproj">
       <Project>{fd8eec40-4141-448a-bf4b-1589fbe4f60d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\common\Memory\Chakra.Common.Memory.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\Memory\Chakra.Common.Memory.vcxproj">
       <Project>{bb4153ff-ac3e-4734-b562-ff23812df31b}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GCStress.h" />
     <ClInclude Include="RecyclerTestObject.h" />
-    <ClInclude Include="StdAfx.h" />
+    <ClInclude Include="stdafx.h" />
     <ClInclude Include="WeightedTable.h" />
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
