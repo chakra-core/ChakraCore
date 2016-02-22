@@ -4151,6 +4151,12 @@ namespace Js
 
     void FunctionBody::PrintStatementSourceLine(uint statementIndex)
     {
+        if (m_isWasmFunction)
+        {
+            // currently no source view support for wasm
+            return;
+        }
+
         const uint startOffset = GetStatementStartOffset(statementIndex);
 
         // startOffset should only be 0 if statementIndex is 0, otherwise it is EOF and we should skip printing anything

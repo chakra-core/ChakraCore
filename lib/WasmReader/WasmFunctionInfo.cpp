@@ -186,9 +186,21 @@ WasmFunctionInfo::SetNumber(UINT32 number)
 }
 
 UINT32 
-WasmFunctionInfo::GetNumber()
+WasmFunctionInfo::GetNumber() const
 {
     return m_number;
+}
+
+void
+WasmFunctionInfo::SetExitLabel(Js::ByteCodeLabel label)
+{
+    m_ExitLabel = label;
+}
+
+Js::ByteCodeLabel
+WasmFunctionInfo::GetExitLabel() const
+{
+    return m_ExitLabel;
 }
 
 } // namespace Wasm

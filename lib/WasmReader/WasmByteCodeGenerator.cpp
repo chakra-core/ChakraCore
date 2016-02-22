@@ -116,6 +116,7 @@ WasmBytecodeGenerator::GenerateFunction()
     // TODO: fix these bools
     m_writer.Begin(m_func->body, &m_alloc, false, true, false);
 
+    m_funcInfo->SetExitLabel(m_writer.DefineLabel());
     EnregisterLocals();
 
     WasmOp op;
@@ -132,6 +133,8 @@ WasmBytecodeGenerator::GenerateFunction()
     {
         EmitReturnExpr(&exprInfo);
     }
+    m_writer.MarkAsmJsLabel(m_funcInfo->GetExitLabel());
+    m_writer.EmptyAsm(Js::OpCodeAsmJs::Ret);
 
     m_writer.End();
 
@@ -142,6 +145,7 @@ WasmBytecodeGenerator::GenerateFunction()
     }
 #endif
 
+    // TODO: refactor out to separate procedure
     Js::AsmJsFunctionInfo * info = m_func->body->GetAsmJsFunctionInfo();
     if (m_funcInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
     {
@@ -154,8 +158,15 @@ WasmBytecodeGenerator::GenerateFunction()
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), uint, paramCount);
     info->SetArgsSizesArray(argSizeArray);
 
+    if (m_module->memSize > 0)
+    {
+        info->SetUsesHeapBuffer(true);
+    }
     if (paramCount > 0)
     {
+        m_func->body->SetHasImplicitArgIns(true);
+        m_func->body->SetInParamsCount(paramCount + 1);
+        m_func->body->SetReportedInParamsCount(paramCount + 1);
         info->SetArgTypeArray(RecyclerNewArrayLeaf(m_scriptContext->GetRecycler(), Js::AsmJsVarType::Which, paramCount));
     }
     Js::ArgSlot paramSize = 0;
@@ -201,11 +212,11 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetDoubleTmpCount(m_f64RegSlots->GetTmpCount());
 
     info->SetIntConstCount(ReservedRegisterCount);
-    info->SetFloatVarCount(ReservedRegisterCount);
-    info->SetDoubleVarCount(ReservedRegisterCount);
+    info->SetFloatConstCount(ReservedRegisterCount);
+    info->SetDoubleConstCount(ReservedRegisterCount);
 
     info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
-
+    
     // REVIEW: overflow checks?
     info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
     info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots->GetRegisterCount() * sizeof(int32));
@@ -989,6 +1000,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
         // TODO (michhol): consider moving off explicit 0 for return reg
         m_writer.AsmReg1(Js::OpCodeAsmJs::LdUndef, 0);
     }
+    m_writer.AsmBr(m_funcInfo->GetExitLabel());
 
     return EmitInfo();
 }
