@@ -641,7 +641,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::Reinterpret_Prim:
-            GenerateReinterpretPrimitive(instr);
+            instrPrev = LowerReinterpretPrimitive(instr);
             break;
 
         case Js::OpCode::InlineMathMin:
@@ -17256,25 +17256,16 @@ Lowerer::GenerateFastInlineMathImul(IR::Instr* instr)
     instr->Remove();
 }
 
-void
-Lowerer::GenerateReinterpretPrimitive(IR::Instr* instr)
+IR::Instr *
+Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
 {
-    Assert(UNREACHED);
-
-    // TODO (michhol wasm): this totally doesn't work... but idea is save to stack then reload with different type
+    Assert(m_func->GetJnFunction()->IsWasmFunction());
     IR::Opnd* src1 = instr->GetSrc1();
     IR::Opnd* dst = instr->GetDst();
 
     Assert(dst->GetSize() == src1->GetSize());
-
-    StackSym * stackSym = StackSym::New(m_func);
-    IR::SymOpnd * srcSaveOpnd = IR::SymOpnd::New(stackSym, src1->GetType(), m_func);
-    IR::SymOpnd * dstReadOpnd = IR::SymOpnd::New(stackSym, dst->GetType(), m_func);
-
-    InsertMove(srcSaveOpnd, src1, instr);
-    InsertMove(dst, dstReadOpnd, instr);
-
-    instr->Remove();
+    Assert((dst->IsFloat32() && src1->IsInt32()) || (dst->IsInt32() && src1->IsFloat32()));
+    return m_lowererMD.LowerReinterpretPrimitive(instr);
 }
 
 void

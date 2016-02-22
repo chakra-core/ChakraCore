@@ -8382,6 +8382,14 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
 }
 
 IR::Instr *
+LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
+{
+    instr->m_opcode = Js::OpCode::MOVD;
+    Legalize(instr);
+    return instr;
+}
+
+IR::Instr *
 LowererMD::LowerToFloat(IR::Instr *instr)
 {
     switch (instr->m_opcode)
