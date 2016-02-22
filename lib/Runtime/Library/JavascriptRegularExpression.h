@@ -40,6 +40,8 @@ namespace Js
         CharCount lastIndexOrFlag;
 
         static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
+        static JavascriptRegExp * ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext);
+        static RecyclableObject * GetThisObject(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
         static JavascriptString * GetFirstStringArg(Arguments& args, ScriptContext* scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
@@ -52,6 +54,8 @@ namespace Js
         inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
         inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
 
+        static void SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext);
+
         static bool HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext);
@@ -60,6 +64,8 @@ namespace Js
         static bool HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext);
         static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor);
         static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance);
+
+        static Var CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext);
 
         // For boxing stack instance
         JavascriptRegExp(JavascriptRegExp * instance);
