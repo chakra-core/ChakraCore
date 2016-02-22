@@ -2327,7 +2327,7 @@ STDAPI_(JsErrorCode) JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *da
 STDAPI_(JsErrorCode) JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     return CallFunctionCore(-1, function, args, cargs, result);
-        }
+}
 
 STDAPI_(JsErrorCode) JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_ JsValueRef *result)
 {
@@ -3716,13 +3716,10 @@ STDAPI_(JsErrorCode) JsTTDPauseTimeTravelBeforeRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
+    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
     {
-        AssertMsg(false, "Need to create in TTD mode.");
-        return JsErrorCategoryUsage;
+        currentContext->GetRuntime()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
     }
-
-    currentContext->GetRuntime()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
 
     return JsNoError;
 #endif
@@ -3734,13 +3731,10 @@ STDAPI_(JsErrorCode) JsTTDReStartTimeTravelAfterRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog == nullptr)
+    if(currentContext->GetRuntime()->GetThreadContext()->TTDLog != nullptr)
     {
-        AssertMsg(false, "Need to create in TTD mode.");
-        return JsErrorCategoryUsage;
+        currentContext->GetRuntime()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
     }
-
-    currentContext->GetRuntime()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
 
     return JsNoError;
 #endif

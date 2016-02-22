@@ -1050,7 +1050,29 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 
         if(dbgIPAddr != nullptr)
         {
+            wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
+            path[0] = L'\0';
+
+            GetModuleFileName(NULL, path, MAX_PATH);
+
+            //
+            //TODO: this is an ugly semi-hard coded path we need to fix up
+            //
+            wchar_t* spos = wcsstr(path, L"\\ch.exe");
+            AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
+
+            int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+            std::wstring dbgPath;
+            dbgPath.append(path, 0, ccount);
+            dbgPath.append(L"\\..\\chakra_debug.js");
+
+            LPCWSTR contents = nullptr;
+            Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
+
+            DebuggerCh::SetDbgSrcInfo(contents);
             DebuggerCh::StartDebugging(runtime, dbgIPAddr, dbgPort);
+
+            CoTaskMemFree(path);
         }
 
         chRuntime = runtime;
@@ -1110,6 +1132,33 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 #endif
+
+        if(dbgIPAddr != nullptr)
+        {
+            wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
+            path[0] = L'\0';
+
+            GetModuleFileName(NULL, path, MAX_PATH);
+
+            //
+            //TODO: this is an ugly semi-hard coded path we need to fix up
+            //
+            wchar_t* spos = wcsstr(path, L"\\ch.exe");
+            AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
+
+            int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+            std::wstring dbgPath;
+            dbgPath.append(path, 0, ccount);
+            dbgPath.append(L"\\..\\chakra_debug.js");
+
+            LPCWSTR contents = nullptr;
+            Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
+
+            DebuggerCh::SetDbgSrcInfo(contents);
+            DebuggerCh::StartDebugging(runtime, dbgIPAddr, dbgPort);
+
+            CoTaskMemFree(path);
+        }
 
         if(!WScriptJsrt::Initialize())
         {
@@ -1173,10 +1222,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
-    if(DebuggerCh::debugger != nullptr)
-    {
-        DebuggerCh::CloseDebugger();
-    }
+    DebuggerCh::CloseDebuggerIfNeeded();
 
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 

@@ -14,13 +14,6 @@
 
 #define DGB_ENSURE_OK(R) if(R != JsNoError) { AssertMsg(false, "Internal failure aborting!!!");  exit(1);}
 
-asdf;
-static const WCHAR controllerScript[] = L"XXXX";
-//{
-//#include "chakra_debug.js"
-//    L'\0'
-//};
-
 class DebuggerCh
 {
 private:
@@ -78,11 +71,10 @@ public:
     static JsValueRef CALLBACK JsDiagSetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef CALLBACK SendDelayedRespose(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
 
+    static void SetDbgSrcInfo(LPCWSTR contents);
     static void StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigned short port);
     static DebuggerCh* GetDebugger();
-    static void CloseDebugger();
+    static void CloseDebuggerIfNeeded();
 
     bool HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData);
-
-    static DebuggerCh* debugger;
 };

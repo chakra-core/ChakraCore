@@ -6,8 +6,15 @@
 
 #include "Debugger.h"
 
-// Link with ws2_32.lib
-#pragma comment(lib, "Ws2_32.lib")
+DebuggerCh* s_debugger = nullptr;
+
+wchar_t s_controllerScript[65536];
+
+//const WCHAR s_controllerScript[] = 
+//{
+//#include "chakra_debug.js"
+//    L'\0'
+//};
 
 DebuggerCh::DebuggerCh(LPCWSTR ipAddr, unsigned short port)
     : m_port(port), m_dbgConnectSocket(INVALID_SOCKET), m_dbgSocket(INVALID_SOCKET), m_context(nullptr), m_chakraDebugObject(nullptr), m_processJsrtEventData(nullptr), m_processDebugProtocolJSON(nullptr),
@@ -89,7 +96,7 @@ bool DebuggerCh::IsEmpty()
         } while(iResult != 0);
     }
 
-    return !this->m_msgQueue.empty();
+    return this->m_msgQueue.empty();
 }
 
 bool DebuggerCh::ShouldContinue()
@@ -194,13 +201,18 @@ bool DebuggerCh::Initialize(JsRuntimeHandle runtime)
     IfJsrtErrorHR(ChakraRTInterface::JsSetCurrentContext(this->m_context));
 
     JsValueRef globalFunc = JS_INVALID_REFERENCE;
-    IfJsrtErrorHR(ChakraRTInterface::JsParseScriptWithFlags(controllerScript, JS_SOURCE_CONTEXT_NONE, L"chakra_debug.js", JsParseScriptAttributeLibraryCode, &globalFunc));
+    IfJsrtErrorHR(ChakraRTInterface::JsParseScriptWithFlags(s_controllerScript, JS_SOURCE_CONTEXT_NONE, L"chakra_debug.js", JsParseScriptAttributeLibraryCode, &globalFunc));
 
     JsValueRef undefinedValue;
     IfJsrtErrorHR(ChakraRTInterface::JsGetUndefinedValue(&undefinedValue));
-    JsValueRef args[] = { undefinedValue };
-    JsValueRef result = JS_INVALID_REFERENCE;
-    IfJsrtErrorHR(ChakraRTInterface::JsCallFunction(globalFunc, args, _countof(args), &result));
+
+    JsValueRef argsgf[] = { undefinedValue };
+    JsValueRef resultgf = JS_INVALID_REFERENCE;
+    IfJsrtErrorHR(ChakraRTInterface::JsCallFunction(globalFunc, argsgf, _countof(argsgf), &resultgf));
+
+    JsValueRef argsev[] = { undefinedValue };
+    JsValueRef resultev = JS_INVALID_REFERENCE;
+    IfJsrtErrorHR(ChakraRTInterface::JsCallFunction(resultgf, argsev, _countof(argsev), &resultev));
 
     JsValueRef globalObj = JS_INVALID_REFERENCE;
     IfJsrtErrorHR(ChakraRTInterface::JsGetGlobalObject(&globalObj));
@@ -219,30 +231,14 @@ Error:
 
 bool DebuggerCh::InstallDebugCallbacks(JsValueRef chakraDebugObject)
 {
+    HRESULT hr = S_OK;
+
     JsPropertyIdRef propertyIdRef;
-    JsErrorCode errorCode = JsGetPropertyIdFromName(L"ProcessDebugProtocolJSON", &propertyIdRef);
-    if(errorCode != JsNoError)
-    {
-        return false;
-    }
+    IfJsrtErrorHR(ChakraRTInterface::JsGetPropertyIdFromName(L"ProcessDebugProtocolJSON", &propertyIdRef));
+    IfJsrtErrorHR(ChakraRTInterface::JsGetProperty(chakraDebugObject, propertyIdRef, &this->m_processDebugProtocolJSON));
 
-    errorCode = JsGetProperty(chakraDebugObject, propertyIdRef, &this->m_processDebugProtocolJSON);
-    if(errorCode != JsNoError)
-    {
-        return false;
-    }
-
-    errorCode = JsGetPropertyIdFromName(L"ProcessJsrtEventData", &propertyIdRef);
-    if(errorCode != JsNoError)
-    {
-        return false;
-    }
-
-    errorCode = JsGetProperty(chakraDebugObject, propertyIdRef, &this->m_processJsrtEventData);
-    if(errorCode != JsNoError)
-    {
-        return false;
-    }
+    IfJsrtErrorHR(ChakraRTInterface::JsGetPropertyIdFromName(L"ProcessJsrtEventData", &propertyIdRef));
+    IfJsrtErrorHR(ChakraRTInterface::JsGetProperty(chakraDebugObject, propertyIdRef, &this->m_processJsrtEventData));
 
     this->m_chakraDebugObject = chakraDebugObject;
 
@@ -268,6 +264,9 @@ bool DebuggerCh::InstallDebugCallbacks(JsValueRef chakraDebugObject)
     installOk &= this->InstallHostCallback(chakraDebugObject, L"SendDelayedRespose", DebuggerCh::SendDelayedRespose);
 
     return installOk;
+
+Error:
+    return hr == S_OK;
 }
 
 bool DebuggerCh::InstallHostCallback(JsValueRef chakraDebugObject, const wchar_t *name, JsNativeFunction nativeFunction)
@@ -342,13 +341,17 @@ void CALLBACK DebuggerCh::JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEve
         }
     }
 
+#if ENABLE_TTD
     //disable TTD actions before we do things in the JS runtime
     ChakraRTInterface::JsTTDPauseTimeTravelBeforeRuntimeOperation();
+#endif
 
     debugger->HandleDebugEvent(debugEvent, eventData);
 
+#if ENABLE_TTD
     //re-enable TTD actions after we are done with whatever we wanted in the JS runtime
     ChakraRTInterface::JsTTDReStartTimeTravelAfterRuntimeOperation();
+#endif
 }
 
 JsValueRef DebuggerCh::Log(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
@@ -487,7 +490,7 @@ JsValueRef DebuggerCh::JsEvaluateScript(JsValueRef callee, bool isConstructCall,
         IfJsrtErrorRet(ChakraRTInterface::JsConvertValueToString(arguments[1], &scriptRef));
         IfJsrtErrorRet(ChakraRTInterface::JsStringToPointer(scriptRef, &script, &length));
 
-        IfJsrtErrorRet(JsRunScript(script, JS_SOURCE_CONTEXT_NONE, L"", &result));
+        IfJsrtErrorRet(ChakraRTInterface::JsRunScript(script, JS_SOURCE_CONTEXT_NONE, L"", &result));
     }
 
     return result;
@@ -566,25 +569,34 @@ JsValueRef DebuggerCh::SendDelayedRespose(JsValueRef callee, bool isConstructCal
 
 DebuggerCh* DebuggerCh::GetDebugger()
 {
-    return DebuggerCh::debugger;
+    return s_debugger;
 }
 
-void DebuggerCh::CloseDebugger()
+void DebuggerCh::CloseDebuggerIfNeeded()
 {
-    if(DebuggerCh::debugger != nullptr)
+    if(s_debugger != nullptr)
     {
-        delete DebuggerCh::debugger;
-        DebuggerCh::debugger = nullptr;
+        delete s_debugger;
+        s_debugger = nullptr;
     }
+}
+
+void DebuggerCh::SetDbgSrcInfo(LPCWSTR contents)
+{
+    size_t csByteLength = 65536 * sizeof(wchar_t);
+    size_t contentsByteLength = (wcslen(contents) + 1) * sizeof(wchar_t);
+    AssertMsg(csByteLength > contentsByteLength, "We need a bigger buffer!!!");
+
+    memcpy_s(s_controllerScript, csByteLength, contents, contentsByteLength);
 }
 
 void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigned short port)
 {
     //Setup the debugger
-    DebuggerCh::debugger = new DebuggerCh(ipAddr, port);
-    DebuggerCh::debugger->Initialize(runtime);
+    s_debugger = new DebuggerCh(ipAddr, port);
+    s_debugger->Initialize(runtime);
 
-    JsErrorCode errorCode = ChakraRTInterface::JsDiagStartDebugging(runtime, DebuggerCh::JsDiagDebugEventHandler, DebuggerCh::debugger);
+    JsErrorCode errorCode = ChakraRTInterface::JsDiagStartDebugging(runtime, DebuggerCh::JsDiagDebugEventHandler, s_debugger);
     if(errorCode != JsNoError)
     {
         return;
@@ -603,8 +615,8 @@ void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigne
     }
 
     //create socket to listen on for incomming requests
-    DebuggerCh::debugger->m_dbgConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(DebuggerCh::debugger->m_dbgConnectSocket == INVALID_SOCKET)
+    s_debugger->m_dbgConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if(s_debugger->m_dbgConnectSocket == INVALID_SOCKET)
     {
         wprintf(L"socket failed with error: %d\n", GetLastError());
         exit(1);
@@ -613,10 +625,10 @@ void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigne
     //bind to the socket 
     memset(&saddr, 0, sizeof(saddr));
     saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(DebuggerCh::debugger->m_port);
-    InetPton(AF_INET, DebuggerCh::debugger->m_ipAddr, &saddr.sin_addr);
+    saddr.sin_port = htons(s_debugger->m_port);
+    InetPton(AF_INET, s_debugger->m_ipAddr, &saddr.sin_addr);
 
-    rc = bind(DebuggerCh::debugger->m_dbgConnectSocket, (SOCKADDR*)&saddr, sizeof(saddr));
+    rc = bind(s_debugger->m_dbgConnectSocket, (SOCKADDR*)&saddr, sizeof(saddr));
     if(rc == SOCKET_ERROR)
     {
         wprintf(L"connect failed with error: %d\n", WSAGetLastError());
@@ -624,7 +636,7 @@ void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigne
     }
 
     // Listen for incoming connection requests on the created socket
-    if(listen(DebuggerCh::debugger->m_dbgConnectSocket, 1) == SOCKET_ERROR)
+    if(listen(s_debugger->m_dbgConnectSocket, 1) == SOCKET_ERROR)
     {
         wprintf(L"listen failed with error: %ld\n", WSAGetLastError());
         exit(1);
@@ -665,4 +677,3 @@ bool DebuggerCh::HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventD
 
     return true;
 }
-
