@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "Base\ThreadServiceWrapperbase.h"
+#include "Base/ThreadServiceWrapperBase.h"
 
 ThreadServiceWrapperBase::ThreadServiceWrapperBase() :
     threadContext(nullptr),

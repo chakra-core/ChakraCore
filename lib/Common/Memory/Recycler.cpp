@@ -19,9 +19,9 @@
 #include "arm64.h"
 #endif
 
-#include "core\BinaryFeatureControl.h"
-#include "Common\ThreadService.h"
-#include "Memory\AutoAllocatorObjectPtr.h"
+#include "Core/BinaryFeatureControl.h"
+#include "Common/ThreadService.h"
+#include "Memory/AutoAllocatorObjectPtr.h"
 
 DEFINE_RECYCLER_TRACKER_PERF_COUNTER(RecyclerWeakReferenceBase);
 

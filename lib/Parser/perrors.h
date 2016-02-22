@@ -92,3 +92,5 @@ LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode
 LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context")
 
 LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have no parameters")
+LSC_ERROR_MSG(1085, ERRFuncRefFormalNotSupportedInParamScope, "Formals cannot contain functions definitions that reference them")
+LSC_ERROR_MSG(1086, ERREvalNotSupportedInParamScope, "'eval' is not allowed in the default initializer")

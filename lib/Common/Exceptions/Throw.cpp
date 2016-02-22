@@ -20,29 +20,29 @@
 // Header files required before including ConfigFlagsTable.h
 
 #include "EnumHelp.h"
-#include "Common\MathUtil.h"
-#include "Core\AllocSizeMath.h"
-#include "Core\FaultInjection.h"
+#include "Common/MathUtil.h"
+#include "Core/AllocSizeMath.h"
+#include "Core/FaultInjection.h"
 
-#include "core\BasePtr.h"
-#include "core\AutoFILE.h"
-#include "core\Output.h"
+#include "Core/BasePtr.h"
+#include "Core/AutoFile.h"
+#include "Core/Output.h"
 
 // Memory Management
 namespace Memory {}
 using namespace Memory;
-#include "Memory\Allocator.h"
-#include "Memory\HeapAllocator.h"
+#include "Memory/Allocator.h"
+#include "Memory/HeapAllocator.h"
 
 // Data structure
-#include "DataStructures\Comparer.h"
-#include "DataStructures\SizePolicy.h"
-#include "DataStructures\SList.h"
-#include "DataStructures\KeyValuePair.h"
-#include "DataStructures\BaseDictionary.h"
-#include "core\ConfigFlagsTable.h"
+#include "DataStructures/Comparer.h"
+#include "DataStructures/SizePolicy.h"
+#include "DataStructures/SList.h"
+#include "DataStructures/KeyValuePair.h"
+#include "DataStructures/BaseDictionary.h"
+#include "Core/ConfigFlagsTable.h"
 
-#include "core\StackBackTrace.h"
+#include "Core/StackBackTrace.h"
 
 
 

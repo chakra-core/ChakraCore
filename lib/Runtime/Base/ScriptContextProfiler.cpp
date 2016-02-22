@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 
 #ifdef PROFILE_EXEC
-#include "Base\ScriptContextProfiler.h"
+#include "Base/ScriptContextProfiler.h"
 
 namespace Js
 {

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "Language\JavascriptNativeOperators.h"
+#include "Language/JavascriptNativeOperators.h"
 
 class Func;
 class BasicBlock;

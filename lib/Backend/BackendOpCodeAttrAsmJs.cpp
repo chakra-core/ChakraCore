@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 namespace OpCodeAttrAsmJs
 {
@@ -25,14 +25,14 @@ namespace OpCodeAttrAsmJs
     static const int OpcodeAttributesAsmJs[] =
     {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\OpCodeListAsmJs.h"
+#include "ByteCode/OpCodeListAsmJs.h"
 #undef DEF_OP
     };
 
     static const int ExtendedOpcodeAttributesAsmJs[] =
     {
 #define DEF_OP(name, jnLayout, attrib, ...) attrib,
-#include "ByteCode\ExtendedOpCodeListAsmJs.h"
+#include "ByteCode/ExtendedOpCodeListAsmJs.h"
 #undef DEF_OP
     };
 

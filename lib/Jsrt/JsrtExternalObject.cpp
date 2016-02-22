@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
 #include "JsrtExternalObject.h"
-#include "Types\PathTypeHandler.h"
+#include "Types/PathTypeHandler.h"
 
 JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeCallback finalizeCallback)
     : Js::DynamicType(

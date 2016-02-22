@@ -48,7 +48,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chakrartinterface.h" />
+    <ClInclude Include="ChakraRtInterface.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="HostConfigFlags.h" />
     <ClInclude Include="HostConfigFlagsList.h" />
@@ -58,7 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ch.cpp" />
-    <ClCompile Include="chakrartinterface.cpp" />
+    <ClCompile Include="ChakraRtInterface.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />
@@ -73,7 +73,7 @@
     <None Include="ch.def" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\lib\common\codex\Chakra.Common.Codex.vcxproj">
+    <ProjectReference Include="..\..\lib\Common\Codex\Chakra.Common.Codex.vcxproj">
       <Project>{1876e800-ad77-48c4-a2f7-e5265f24ac38}</Project>
     </ProjectReference>
   </ItemGroup>

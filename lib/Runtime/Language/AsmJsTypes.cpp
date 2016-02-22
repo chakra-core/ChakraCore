@@ -23,9 +23,9 @@
 #include "RuntimeLanguagePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS 
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
-#include "Language\AsmJSByteCodeGenerator.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
+#include "Language/AsmJsByteCodeGenerator.h"
 
 namespace Js
 {

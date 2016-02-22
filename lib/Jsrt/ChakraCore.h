@@ -23,7 +23,7 @@
 
 #include <windows.h>
 
-#include "chakracommon.h"
+#include "ChakraCommon.h"
 
 #include "chakrartdebug.h"
 

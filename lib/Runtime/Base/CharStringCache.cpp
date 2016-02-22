@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
 
-#include "Library\ProfileString.h"
-#include "Library\SingleCharString.h"
+#include "Library/ProfileString.h"
+#include "Library/SingleCharString.h"
 
 namespace Js
 {

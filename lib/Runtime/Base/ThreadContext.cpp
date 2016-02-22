@@ -3,34 +3,34 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
-#include "BackEndAPI.h"
+#include "BackendApi.h"
 #include "ThreadServiceWrapper.h"
-#include "Types\TypePropertyCache.h"
-#include "Debug\DebuggingFlags.h"
-#include "Debug\DiagProbe.h"
-#include "Debug\DebugManager.h"
+#include "Types/TypePropertyCache.h"
+#include "Debug/DebuggingFlags.h"
+#include "Debug/DiagProbe.h"
+#include "Debug/DebugManager.h"
 #include "Chars.h"
 #include "CaseInsensitive.h"
 #include "CharSet.h"
 #include "CharMap.h"
 #include "StandardChars.h"
-#include "Base\ThreadContextTLSEntry.h"
-#include "Base\ThreadBoundThreadContextManager.h"
-#include "Language\SourceDynamicProfileManager.h"
-#include "Language\CodeGenRecyclableData.h"
-#include "Language\InterpreterStackFrame.h"
-#include "Language\JavascriptStackWalker.h"
-#include "Base\ScriptMemoryDumper.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
+#include "Language/SourceDynamicProfileManager.h"
+#include "Language/CodeGenRecyclableData.h"
+#include "Language/InterpreterStackFrame.h"
+#include "Language/JavascriptStackWalker.h"
+#include "Base/ScriptMemoryDumper.h"
 
 // SIMD_JS
-#include "Library\SimdLib.h"
+#include "Library/SimdLib.h"
 
 #if DBG
-#include "Memory\StressTest.h"
+#include "Memory/StressTest.h"
 #endif
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
-#include "Language\DynamicProfileMutator.h"
+#include "Language/DynamicProfileMutator.h"
 #endif
 
 
@@ -81,7 +81,7 @@ const Js::PropertyRecord * const ThreadContext::builtInPropertyRecords[] =
 #define ENTRY_SYMBOL(n, d) Js::BuiltInPropertyRecords::n,
 #define ENTRY(n) Js::BuiltInPropertyRecords::n,
 #define ENTRY2(n, s) ENTRY(n)
-#include "Base\JnDirectFields.h"
+#include "Base/JnDirectFields.h"
 };
 
 ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
@@ -208,7 +208,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 
 #define MACRO_SIMD_EXTEND_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_WMS(op, LayoutAsmJs, OpCodeAttrAsmJs, OpCodeAttr, __VA_ARGS__)
 
-#include "ByteCode\OpCodesSimd.h"
+#include "ByteCode/OpCodesSimd.h"
     }
 #endif
 

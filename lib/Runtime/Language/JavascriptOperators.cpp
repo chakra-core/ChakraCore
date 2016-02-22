@@ -4,20 +4,20 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
-#include "Types\PathTypeHandler.h"
-#include "Types\PropertyIndexRanges.h"
-#include "Types\WithScopeObject.h"
-#include "Types\SpreadArgument.h"
-#include "Library\JavascriptPromise.h"
-#include "Library\JavascriptRegularExpression.h"
-#include "Library\ThrowErrorObject.h"
-#include "Library\JavascriptGeneratorFunction.h"
+#include "Types/PathTypeHandler.h"
+#include "Types/PropertyIndexRanges.h"
+#include "Types/WithScopeObject.h"
+#include "Types/SpreadArgument.h"
+#include "Library/JavascriptPromise.h"
+#include "Library/JavascriptRegularExpression.h"
+#include "Library/ThrowErrorObject.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
-#include "Types\DynamicObjectEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library\ForInObjectEnumerator.h"
-#include "Library\ES5Array.h"
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/ForInObjectEnumerator.h"
+#include "Library/ES5Array.h"
 
 #ifndef SCRIPT_DIRECT_TYPE
 typedef enum JsNativeValueType
@@ -1281,10 +1281,10 @@ CommonNumber:
         Var unscopables = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolUnscopables, scriptContext);
         if (JavascriptOperators::IsObject(unscopables))
         {
-            DynamicObject *blackList = DynamicObject::FromVar(unscopables);
+            DynamicObject *unscopablesList = DynamicObject::FromVar(unscopables);
             Var value;
             //8.1.1.2.1.9.c If blocked is not undefined
-            if (JavascriptOperators::GetProperty(blackList, propertyId, &value, scriptContext))
+            if (JavascriptOperators::GetProperty(unscopablesList, propertyId, &value, scriptContext))
             {
                 return JavascriptConversion::ToBoolean(value, scriptContext);
             }

@@ -5,7 +5,7 @@
 #include "RuntimeByteCodePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode\AsmJsByteCodeWriter.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
 
 namespace Js
 {

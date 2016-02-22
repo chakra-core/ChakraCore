@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 #include <strsafe.h>
-#include "ByteCode\ByteCodeAPI.h"
-#include "Exceptions\EvalDisabledException.h"
+#include "ByteCode/ByteCodeApi.h"
+#include "Exceptions/EvalDisabledException.h"
 
-#include "Types\PropertyIndexRanges.h"
-#include "Types\SimpleDictionaryPropertyDescriptor.h"
-#include "Types\SimpleDictionaryTypeHandler.h"
+#include "Types/PropertyIndexRanges.h"
+#include "Types/SimpleDictionaryPropertyDescriptor.h"
+#include "Types/SimpleDictionaryTypeHandler.h"
 
 namespace Js
 {

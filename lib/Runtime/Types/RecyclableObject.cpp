@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
-#include "Library\JavascriptSymbol.h"
-#include "Library\JavascriptSymbolObject.h"
+#include "Library/JavascriptSymbol.h"
+#include "Library/JavascriptSymbolObject.h"
 
 DEFINE_VALIDATE_HAS_VTABLE_CTOR(Js::RecyclableObject);
 

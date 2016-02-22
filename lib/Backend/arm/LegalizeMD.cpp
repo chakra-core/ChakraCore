@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 #undef MACRO
 
@@ -10,7 +10,7 @@
 
 static const LegalInstrForms _InstrForms[] =
 {
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 };
 
 

@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "Common\Tick.h"
+#include "Common/Tick.h"
 
 namespace Js {
     uint64      Tick::s_luFreq;

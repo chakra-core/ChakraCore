@@ -505,7 +505,7 @@ var tests = [
                 if (result === 'ab') {
                     echo(`Test #${index} - Success inner var x overwrote formal parameter x only after the declaration statement`);
                 } else {
-                    echo(`Test #${index} - Failure x appears to have an unexpected value x = ${x}`);
+                    echo(`Test #${index} - Failure x appears to have an unexpected value x = '${result}'`);
                 }
             }, err => {
                 echo(`Test #${index} - Error var redeclaration with err = ${err}`);
@@ -519,7 +519,94 @@ var tests = [
                 if (result === 'afx') {
                     echo(`Test #${index} - Success inner function x() overwrote formal parameter x`);
                 } else {
-                    echo(`Test #${index} - Failure x appears not assigned with inner function x(), x = ${x}`);
+                    echo(`Test #${index} - Failure x appears not assigned with inner function x(), x = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "this value in async functions behaves like it does in normal functions",
+        body: function (index) {
+            async function af() {
+                return this;
+            }
+
+            af.call(5).then(result => {
+                if (result == 5) {
+                    echo(`Test #${index} - Success this value set to 5`);
+                } else {
+                    echo(`Test #${index} - Failure this value is not 5, this = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch err = ${err}`);
+            });
+
+            var o = {
+                af: af,
+                b: "abc"
+            };
+
+            o.af().then(result => {
+                if (result.af === af && result.b === "abc") {
+                    echo(`Test #${index} - Success this value set to { af: af, b: "abc" }`);
+                } else {
+                    echo(`Test #${index} - Failure this value set to something else, this = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "arguments value in async functions behaves like it does in normal functions",
+        body: function (index) {
+            async function af() {
+                return arguments[0] + arguments[1];
+            }
+
+            af('a', 'b').then(result => {
+                if (result === 'ab') {
+                    echo(`Test #${index} - Success result is 'ab' from arguments 'a' + 'b'`);
+                } else {
+                    echo(`Test #${index} - Failure result is not 'ab', result = '${result}'`);
+                }
+            }, err => {
+                echo(`Test #${index} - Error err = ${err}`);
+            }).catch(err => {
+                echo(`Test #${index} - Catch err = ${err}`);
+            });
+        }
+    },
+    {
+        name: "super value in async methods behaves like it does in normal methods",
+        body: function (index) {
+            class B {
+                af() {
+                    return "base";
+                }
+            }
+
+            class C extends B {
+                async af() {
+                    return super.af() + " derived";
+                }
+            }
+
+            var c = new C();
+
+            c.af().then(result => {
+                if (result === 'base derived') {
+                    echo(`Test #${index} - Success result is 'base derived' from derived method call`);
+                } else {
+                    echo(`Test #${index} - Failure result is not 'base derived', result = '${result}'`);
                 }
             }, err => {
                 echo(`Test #${index} - Error err = ${err}`);

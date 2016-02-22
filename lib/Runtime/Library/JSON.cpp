@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Library\JSONStack.h"
-#include "Library\JSONParser.h"
-#include "Library\JSON.h"
+#include "Library/JSONStack.h"
+#include "Library/JSONParser.h"
+#include "Library/JSON.h"
 
 #define MAX_JSON_STRINGIFY_NAMES_ON_STACK 20
 static const int JSONspaceSize = 10; //ES5 defined limit on the indentation space

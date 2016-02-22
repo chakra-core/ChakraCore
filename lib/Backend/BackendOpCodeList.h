@@ -15,20 +15,20 @@
 #define MACRO_BACKEND_ONLY(opcode, layout, attr) \
     DEF_OP(opcode, layout, OpBackEndOnly|attr)
 
-#include "ByteCode\OpCodes.h"
+#include "ByteCode/OpCodes.h"
 
 DEF_OP(MDStart, Empty, None)
 
 #define MACRO DEF_OP
 
 #ifdef _M_AMD64
-    #include "..\..\BackEnd\amd64\MdOpcodes.h"
+    #include "../../Backend/amd64/MdOpCodes.h"
 #elif defined(_M_IX86)
-    #include "..\..\BackEnd\i386\MdOpcodes.h"
+    #include "../../Backend/i386/MdOpCodes.h"
 #elif defined(_M_ARM)
-    #include "..\..\BackEnd\arm\MdOpcodes.h"
+    #include "../../Backend/arm/MdOpCodes.h"
 #elif defined(_M_ARM64)
-    #include "..\..\BackEnd\arm64\MdOpcodes.h"
+    #include "../../Backend/arm64/MdOpCodes.h"
 #endif
 
 #undef MACRO

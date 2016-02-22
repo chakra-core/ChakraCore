@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "core\ICustomConfigFlags.h"
-#include "core\CmdParser.h"
+#include "Core/ICustomConfigFlags.h"
+#include "Core/CmdParser.h"
 
 using namespace Js;
 

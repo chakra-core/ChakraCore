@@ -5,8 +5,8 @@
 #include "CommonCorePch.h"
 
 #ifdef STACK_BACK_TRACE
-#include "core\StackBackTrace.h"
-#include "core\DbgHelpSymbolManager.h"
+#include "Core/StackBackTrace.h"
+#include "Core/DbgHelpSymbolManager.h"
 
 StackBackTrace::StackBackTrace(ULONG framesToSkip, ULONG framesToCapture) : requestedFramesToCapture(framesToCapture)
 {

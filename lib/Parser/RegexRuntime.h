@@ -49,7 +49,7 @@ namespace UnifiedRegex
 
 #define M(TagName) friend struct TagName##Inst;
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, ...) TemplateDeclaration friend struct GenericClassName;
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
 
@@ -622,7 +622,7 @@ namespace UnifiedRegex
         {
 #define M(TagName) TagName,
 #define MTemplate(TagName, ...) M(TagName)
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
         };
@@ -1666,7 +1666,7 @@ namespace UnifiedRegex
     {
 #define M(TagName) friend struct TagName##Inst;
 #define MTemplate(TagName, TemplateDeclaration, GenericClassName, ...) TemplateDeclaration friend struct GenericClassName;
-#include "RegexOpcodes.h"
+#include "RegexOpCodes.h"
 #undef M
 #undef MTemplate
 

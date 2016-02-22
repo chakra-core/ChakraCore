@@ -34,7 +34,7 @@ var tests = [
         }
     },
     {
-        name: "Add to Array.prototype[@@unscopables] blacklist",
+        name: "Add to Array.prototype[@@unscopables]",
         body: function ()
         {
             var globalScope = -1;
@@ -58,7 +58,7 @@ var tests = [
         }
     },
     {
-        name: "Overwrite @@unscopables blacklist",
+        name: "Overwrite @@unscopables",
         body: function ()
         {
             var globalScope = -1;
@@ -88,7 +88,7 @@ var tests = [
 
     },
     {
-        name: "Adding to @@unscopables blacklist in a with statement",
+        name: "Adding to @@unscopables in a with statement",
         body: function ()
         {
             var globalScope = -1;
@@ -345,7 +345,7 @@ var tests = [
             with(child)
             {
                 assert.areEqual(1, a, "Get @@unscopables finds {'b' : true} on child fist so a is not unscoped");
-                assert.areEqual(globalScope, b, "b is blacklisted in child and we don't property walk to find b on proto");
+                assert.areEqual(globalScope, b, "b is unscopable in child and we don't property walk to find b on proto");
                 assert.areEqual(3, c, "c is only on the proto");
                 a = 3;
                 b = 4;
@@ -360,8 +360,8 @@ var tests = [
             with(child2)
             {
                 assert.areEqual(1, a, "Get @@unscopables finds {'b' : true} on child fist so a is not unscoped");
-                assert.areEqual(globalScope, b, "b is blacklisted in child2 and we don't property walk to find b on proto");
-                assert.areEqual(31, c, "c is blacklisted in proto but not child2");
+                assert.areEqual(globalScope, b, "b is unscopable in child2 and we don't property walk to find b on proto");
+                assert.areEqual(31, c, "c is unscopable in proto but not child2");
                 delete c;
                 assert.areEqual(3,proto.c,"No delete should have happened");
                 assert.areEqual(3,child2.c,"delete should have happened to 31 should now be 3");
@@ -437,8 +437,8 @@ var tests = [
             {
                 a += (o[Symbol.unscopables] = {'a' : true },2);
                 // This is a modification of Brian's Operator precedence test above
-                // This is a tricky one a is originally not blacklisted so the a we use is o.a
-                // then the assignment happens after the blacklisting
+                // This is a tricky one a is originally not unscopable so the a we use is o.a
+                // then the assignment happens after it is made unscopable
                 assert.areEqual(3,a, "should be 1+2");
             }
             assert.areEqual(1,o.a, "root.a should not have changed");
@@ -451,14 +451,14 @@ var tests = [
         {
             var a = 1
             this[Symbol.unscopables] =  {"a" : true }
-            assert.areEqual(1,a, "No with statement so blacklist should never hit");
+            assert.areEqual(1,a, "No with statement so @@unscopables should never hit");
             var b;
             this[Symbol.unscopables]["b"] = true;
             b = 1;
-            assert.areEqual(1,b, "No with statement so blacklist should never hit");
+            assert.areEqual(1,b, "No with statement so @@unscopables should never hit");
             this[Symbol.unscopables]["c"] = true;
             var c = 1;
-            assert.areEqual(1,b, "No with statement so blacklist should never hit");
+            assert.areEqual(1,b, "No with statement so @@unscopables should never hit");
 
         }
     },
@@ -563,32 +563,32 @@ var tests = [
             with (env) {
                 void x;
             }
-            assert.areEqual(0, callCount, "If the environment record does not have requested property don't look up unscopables blacklist");
+            assert.areEqual(0, callCount, "If the environment record does not have requested property don't look up unscopables");
 
             var x = 0;
             var env = { x: 1 };
             env[Symbol.unscopables] = {};
             env[Symbol.unscopables].x = false;
             with (env) {
-                assert.areEqual(1, x, "8.1.1.2.1 step 9a return  ToBoolean on the getProperty, if false property is not blacklisted");
+                assert.areEqual(1, x, "8.1.1.2.1 step 9a return  ToBoolean on the getProperty, if false property is not unscopable");
             }
 
         }
     },
     {
-        name: "Let unscopables be Get(bindings, @@unscopables) should do prototype chain lookups on the blacklist",
+        name: "Let unscopables be Get(bindings, @@unscopables) should do prototype chain lookups on unscopables",
         body: function ()
         {
-            var blackList =  { x : true };
-            Object.setPrototypeOf(blackList, { y: true });
-            var env = { x : 1, y : 2, [Symbol.unscopables] : blackList};
+            var unscopables =  { x : true };
+            Object.setPrototypeOf(unscopables, { y: true });
+            var env = { x : 1, y : 2, [Symbol.unscopables] : unscopables};
             var x = -1;
             var y = -2;
 
             with(env)
             {
-                assert.areEqual(-1, x, "x is blacklist on the @@unscopables object");
-                assert.areEqual(-2, y, "y is blacklist on the @@unscopables prototype");
+                assert.areEqual(-1, x, "x is on the @@unscopables object");
+                assert.areEqual(-2, y, "y is on the @@unscopables prototype");
             }
 
         }

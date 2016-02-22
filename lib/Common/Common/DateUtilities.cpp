@@ -6,8 +6,8 @@
 #define ENABLE_INTSAFE_SIGNED_FUNCTIONS 1
 #include <intsafe.h>
 
-#include "Common\DaylightTimeHelper.h"
-#include "Common\DateUtilities.h"
+#include "Common/DaylightTimeHelper.h"
+#include "Common/DateUtilities.h"
 
 #include <Windows.Foundation.h>
 
