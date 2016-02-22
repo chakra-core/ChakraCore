@@ -210,19 +210,16 @@ WASM_KEYWORD_UNARY_FD(FLOOR,  floor, Floor)
 // conversion ops
 WASM_KEYWORD_UNARY(TRUNC_S_F32_I32, trunc_s, Conv_FTI, I32, F32)
 WASM_KEYWORD_UNARY(TRUNC_S_F64_I32, trunc_s, Conv_DTI, I32, F64)
+WASM_KEYWORD_UNARY(TRUNC_U_F32_I32, trunc_u, Conv_FTU, I32, F32)
+WASM_KEYWORD_UNARY(TRUNC_U_F64_I32, trunc_u, Conv_DTU, I32, F64)
 WASM_KEYWORD_UNARY(CONVERT_S_I32_F32, convert_s, Fround_Int, F32, I32)
 WASM_KEYWORD_UNARY(CONVERT_S_I32_F64, convert_s, Conv_ITD, F64, I32)
+WASM_KEYWORD_UNARY(CONVERT_U_I32_F32, convert_u, Conv_UTF, F32, I32)
 WASM_KEYWORD_UNARY(CONVERT_U_I32_F64, convert_u, Conv_UTD, F64, I32)
 WASM_KEYWORD_UNARY(PROMOTE_F32_F64, promote, Conv_ITD, F64, F32)
 WASM_KEYWORD_UNARY(DEMOTE_F64_F32, demote, Fround_Db, F32, F64)
-
-// TODO: new conversions
-// i32.trunc_u/f32
-// i32.trunc_u/f64
-// i32.reinterpret/f32
-// f32.convert_u/i32
-// f32.reinterpret/i32
-
+WASM_KEYWORD_UNARY(REINTERPRET_F32_I32, reinterpret, Reinterpret_FTI, I32, F32)
+WASM_KEYWORD_UNARY(REINTERPRET_I32_F32, reinterpret, Reinterpret_ITF, F32, I32)
 
 // binary ops
 WASM_KEYWORD_BIN_MATH_FDI(ADD, add, Add)

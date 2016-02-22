@@ -224,32 +224,82 @@
                     switch(p[3])
                     {
                     case 't':
-                        if (p[4] == 'r' && p[5] == 'u' && p[6] == 'n' && p[7] == 'c' && p[8] == '_' && p[9] == 's' && p[10] == '/')
+                        if (p[4] == 'r' && p[5] == 'u' && p[6] == 'n' && p[7] == 'c')
                         {
-                            switch(p[11])
+                            switch(p[8])
                             {
-                            case 'f':
-                                switch(p[12])
+                            case '_':
+                                switch(p[9])
                                 {
-                                case '3':
-                                    if (p[13] == '2')
+                                case 's':
+                                    if (p[10] == '/')
                                     {
-                                    p += 14;
-                                    token = wtkTRUNC_S_F32_I32;
-                                    goto LKeyword;
+                                        switch(p[11])
+                                        {
+                                        case 'f':
+                                            switch(p[12])
+                                            {
+                                            case '3':
+                                                if (p[13] == '2')
+                                                {
+                                                p += 14;
+                                                token = wtkTRUNC_S_F32_I32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            case '6':
+                                                if (p[13] == '4')
+                                                {
+                                                p += 14;
+                                                token = wtkTRUNC_S_F64_I32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            }
+                                            break;
+                                        }
                                     }
                                     break;
-                                case '6':
-                                    if (p[13] == '4')
+                                case 'u':
+                                    if (p[10] == '/')
                                     {
-                                    p += 14;
-                                    token = wtkTRUNC_S_F64_I32;
-                                    goto LKeyword;
+                                        switch(p[11])
+                                        {
+                                        case 'f':
+                                            switch(p[12])
+                                            {
+                                            case '3':
+                                                if (p[13] == '2')
+                                                {
+                                                p += 14;
+                                                token = wtkTRUNC_U_F32_I32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            case '6':
+                                                if (p[13] == '4')
+                                                {
+                                                p += 14;
+                                                token = wtkTRUNC_U_F64_I32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            }
+                                            break;
+                                        }
                                     }
                                     break;
                                 }
                                 break;
                             }
+                        }
+                        break;
+                    case 'r':
+                        if (p[4] == 'e' && p[5] == 'i' && p[6] == 'n' && p[7] == 't' && p[8] == 'e' && p[9] == 'r' && p[10] == 'p' && p[11] == 'r' && p[12] == 'e' && p[13] == 't' && p[14] == '/' && p[15] == 'f' && p[16] == '3' && p[17] == '2')
+                        {
+                        p += 18;
+                        token = wtkREINTERPRET_F32_I32;
+                        goto LKeyword;
                         }
                         break;
                     case 'l':
@@ -660,11 +710,32 @@
                                 switch(p[6])
                                 {
                                 case 'v':
-                                    if (p[7] == 'e' && p[8] == 'r' && p[9] == 't' && p[10] == '_' && p[11] == 's' && p[12] == '/' && p[13] == 'i' && p[14] == '3' && p[15] == '2')
+                                    if (p[7] == 'e' && p[8] == 'r' && p[9] == 't')
                                     {
-                                    p += 16;
-                                    token = wtkCONVERT_S_I32_F32;
-                                    goto LKeyword;
+                                        switch(p[10])
+                                        {
+                                        case '_':
+                                            switch(p[11])
+                                            {
+                                            case 's':
+                                                if (p[12] == '/' && p[13] == 'i' && p[14] == '3' && p[15] == '2')
+                                                {
+                                                p += 16;
+                                                token = wtkCONVERT_S_I32_F32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            case 'u':
+                                                if (p[12] == '/' && p[13] == 'i' && p[14] == '3' && p[15] == '2')
+                                                {
+                                                p += 16;
+                                                token = wtkCONVERT_U_I32_F32;
+                                                goto LKeyword;
+                                                }
+                                                break;
+                                            }
+                                            break;
+                                        }
                                     }
                                     break;
                                 case 's':
@@ -708,6 +779,14 @@
                             goto LKeyword;
                             }
                             break;
+                        }
+                        break;
+                    case 'r':
+                        if (p[4] == 'e' && p[5] == 'i' && p[6] == 'n' && p[7] == 't' && p[8] == 'e' && p[9] == 'r' && p[10] == 'p' && p[11] == 'r' && p[12] == 'e' && p[13] == 't' && p[14] == '/' && p[15] == 'i' && p[16] == '3' && p[17] == '2')
+                        {
+                        p += 18;
+                        token = wtkREINTERPRET_I32_F32;
+                        goto LKeyword;
                         }
                         break;
                     case 'n':
