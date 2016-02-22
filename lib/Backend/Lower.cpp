@@ -640,6 +640,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             GenerateFastInlineMathFround(instr);
             break;
 
+        case Js::OpCode::Reinterpret_Prim:
+            GenerateReinterpretPrimitive(instr);
+            break;
+
         case Js::OpCode::InlineMathMin:
         case Js::OpCode::InlineMathMax:
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
@@ -17248,6 +17252,27 @@ Lowerer::GenerateFastInlineMathImul(IR::Instr* instr)
     instr->InsertBefore(imul);
 
     LowererMD::Legalize(imul);
+
+    instr->Remove();
+}
+
+void
+Lowerer::GenerateReinterpretPrimitive(IR::Instr* instr)
+{
+    Assert(UNREACHED);
+
+    // TODO (michhol wasm): this totally doesn't work... but idea is save to stack then reload with different type
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+
+    Assert(dst->GetSize() == src1->GetSize());
+
+    StackSym * stackSym = StackSym::New(m_func);
+    IR::SymOpnd * srcSaveOpnd = IR::SymOpnd::New(stackSym, src1->GetType(), m_func);
+    IR::SymOpnd * dstReadOpnd = IR::SymOpnd::New(stackSym, dst->GetType(), m_func);
+
+    InsertMove(srcSaveOpnd, src1, instr);
+    InsertMove(dst, dstReadOpnd, instr);
 
     instr->Remove();
 }

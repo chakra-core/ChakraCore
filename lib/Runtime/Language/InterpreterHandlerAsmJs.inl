@@ -53,12 +53,17 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( C1toF1           , Ld_FltConst  , None                                               )
   DEF2_WMS( C1toD1           , Ld_DbConst   , None                                               )
   DEF2_WMS( BR_ASM_MemStack  , BrTrue_Int   , None                                               ) // Jumps to location if int reg is true
-  DEF2_WMS( BR_ASM_MemStackF , BrFalse_Int   , None                                               ) // Jumps to location if int reg is false
+  DEF2_WMS( BR_ASM_MemStackF , BrFalse_Int   , None                                              ) // Jumps to location if int reg is false
   DEF2_WMS( BR_ASM_Mem       , BrEq_Int     , AsmJsMath::CmpEq<int>                              ) // Jumps to location if both int reg are equal
+  DEF2_WMS( I1toF1Mem        , Reinterpret_ITF, NumberUtilities::ReinterpretBits                 ) // reinterpret bits of int to float
+  DEF2_WMS( F1toI1Scr        , Reinterpret_FTI, NumberUtilities::ToSpecial                       ) // reinterpret bits of float to int
   DEF2_WMS( D1toI1Scr        , Conv_DTI     , JavascriptConversion::ToInt32                      ) // convert double to int
+  DEF2_WMS( D1toI1Scr        , Conv_DTU     , JavascriptConversion::ToUInt32                     ) // convert double to unsigned int
   DEF2_WMS( F1toI1Scr        , Conv_FTI     , JavascriptConversion::ToInt32                      ) // convert float to int
+  DEF2_WMS( F1toI1Scr        , Conv_FTU     , JavascriptConversion::ToUInt32                     ) // convert float to unsigned int
   DEF2_WMS( I1toD1Mem        , Conv_ITD     , (double)                                           ) // convert int to double
   DEF2_WMS( U1toD1Mem        , Conv_UTD     , (double)                                           ) // convert unsigned int to double
+  DEF2_WMS( U1toF1Mem        , Conv_UTF     , (float)                                            ) // convert unsigned int to float
   DEF2_WMS( F1toD1Mem        , Conv_FTD     , (double)                                           ) // convert unsigned float to double
   DEF2_WMS( I1toI1Mem        , Ld_Int       , (int)                                              )
   DEF2_WMS( D1toD1Mem        , Ld_Db        , (double)                                           )

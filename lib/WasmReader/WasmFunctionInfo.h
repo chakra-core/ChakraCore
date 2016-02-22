@@ -31,10 +31,12 @@ namespace Wasm
         LPCUTF8 GetName() const;
 
         void SetNumber(UINT32 number);
-        UINT32 GetNumber();
+        UINT32 GetNumber() const;
         void SetSignature(WasmSignature * signature);
         WasmSignature * GetSignature() const;
 
+        void SetExitLabel(Js::ByteCodeLabel label);
+        Js::ByteCodeLabel GetExitLabel() const;
     private:
 
         // TODO: need custom comparator so -0 != 0
@@ -50,6 +52,7 @@ namespace Wasm
         bool m_exported, m_imported;
         ArenaAllocator * m_alloc;
         WasmSignature * m_signature;
+        Js::ByteCodeLabel m_ExitLabel;
         LPCUTF8 m_name;
         UINT32 m_number;
     };
