@@ -1953,7 +1953,7 @@ void Parser::ReduceDeferredScriptLength(size_t chars)
     if ((m_grfscr & fscrDeferFncParse) &&
         (
             PHASE_OFF1(Js::DeferEventHandlersPhase) || 
-            !(m_grfscr & (fscrImplicitThis|fscrImplicitParents))
+            (m_grfscr & fscrGlobalCode)
         )
     )
     {
@@ -10380,7 +10380,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
         // by command-line switch.
         grfscr &= ~fscrDeferFncParse;
     }
-    else if ((grfscr & (fscrImplicitThis | fscrImplicitParents)) &&
+    else if (!(grfscr & fscrGlobalCode) &&
              (
                  PHASE_OFF1(Js::Phase::DeferEventHandlersPhase) ||
                  this->m_scriptContext->IsInDebugOrSourceRundownMode()
