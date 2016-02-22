@@ -34,6 +34,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCallFunctionPtr)(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtNumberToDoublePtr)(JsValueRef value, double *doubleValue);
     typedef JsErrorCode (WINAPI *JsrtNumberToIntPtr)(JsValueRef value, int *intValue);
+    typedef JsErrorCode (WINAPI *JsrtIntToNumberPtr)(int intValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
@@ -129,6 +130,7 @@ struct JsAPIHooks
     JsrtCallFunctionPtr pfJsrtCallFunction;
     JsrtNumberToDoublePtr pfJsrtNumbertoDouble;
     JsrtNumberToIntPtr pfJsrtNumbertoInt;
+    JsrtIntToNumberPtr pfJsrtIntToNumber;
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtCreateArrayPtr pfJsrtCreateArray;
@@ -285,6 +287,7 @@ public:
     static JsErrorCode WINAPI JsCallFunction(JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result) { return m_jsApiHooks.pfJsrtCallFunction(function, arguments, argumentCount, result); }
     static JsErrorCode WINAPI JsNumberToDouble(JsValueRef value, double* doubleValue) { return m_jsApiHooks.pfJsrtNumbertoDouble(value, doubleValue); }
     static JsErrorCode WINAPI JsNumberToInt(JsValueRef value, int* intValue) { return m_jsApiHooks.pfJsrtNumbertoInt(value, intValue); }
+    static JsErrorCode WINAPI JsIntToNumber(int intValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtIntToNumber(intValue, value); }
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtDoubleToNumber(doubleValue, value); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return m_jsApiHooks.pfJsrtGetExternalData(object, data); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArray(length, result); }

@@ -5,7 +5,6 @@
 #pragma once
 
 #include "stdafx.h"
-#include "core/AtomLockGuids.h"
 
 #include <winsock2.h>
 #include <Ws2tcpip.h>
@@ -13,10 +12,14 @@
 
 #include <queue>
 
-static const WCHAR controllerScript[] = {
-#include "chakra_debug.js"
-    L'\0'
-};
+#define DGB_ENSURE_OK(R) if(R != JsNoError) { AssertMsg(false, "Internal failure aborting!!!");  exit(1);}
+
+asdf;
+static const WCHAR controllerScript[] = L"XXXX";
+//{
+//#include "chakra_debug.js"
+//    L'\0'
+//};
 
 class DebuggerCh
 {
@@ -24,7 +27,7 @@ private:
     wchar_t m_ipAddr[20];
     unsigned short m_port;
     SOCKET m_dbgConnectSocket;
-    SOCKET m_dbgReadSocket;
+    SOCKET m_dbgSocket;
 
     JsContextRef m_context;
     JsValueRef m_chakraDebugObject;
@@ -34,18 +37,19 @@ private:
     DebuggerCh(LPCWSTR ipAddr, unsigned short port);
     ~DebuggerCh();
 
+    size_t m_buflen;
+    char* m_buf;
     std::queue<wchar_t*> m_msgQueue;
     bool m_waitingForMessage;
     bool m_isProcessingDebuggerMsg;
 
     wchar_t* PopMessage();
+    void SendMsg(const wchar_t* msg, size_t msgLen);
     bool IsEmpty();
     bool ShouldContinue();
     void WaitForMessage();
 
-    bool ProcessMessage(wchar_t* msg);
     void ProcessDebuggerMessage();
-    bool ConvertMessage(JsDiagDebugEvent debugEvent, JsValueRef eventData);
     bool ProcessJsrtDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData);
 
 public:

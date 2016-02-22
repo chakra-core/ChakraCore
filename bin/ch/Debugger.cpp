@@ -10,24 +10,31 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 DebuggerCh::DebuggerCh(LPCWSTR ipAddr, unsigned short port)
-    : m_port(port), m_dbgConnectSocket(INVALID_SOCKET), m_dbgReadSocket(INVALID_SOCKET), m_context(nullptr), m_chakraDebugObject(nullptr), m_processJsrtEventData(nullptr), m_processDebugProtocolJSON(nullptr),
-    m_waitingForMessage(false), m_isProcessingDebuggerMsg(false), m_msgQueue()
+    : m_port(port), m_dbgConnectSocket(INVALID_SOCKET), m_dbgSocket(INVALID_SOCKET), m_context(nullptr), m_chakraDebugObject(nullptr), m_processJsrtEventData(nullptr), m_processDebugProtocolJSON(nullptr),
+    m_waitingForMessage(false), m_isProcessingDebuggerMsg(false), m_msgQueue(), m_buf(nullptr), m_buflen(1024)
 {
     memcpy_s(this->m_ipAddr, sizeof(wchar_t) * 20, ipAddr, sizeof(wchar_t) * (wcslen(ipAddr) + 1));
+
+    this->m_buf = new char[this->m_buflen];
 }
 
 DebuggerCh::~DebuggerCh()
 {
-    if(this->m_dbgReadSocket != INVALID_SOCKET)
+    if(this->m_dbgSocket != INVALID_SOCKET)
     {
-        closesocket(this->m_dbgReadSocket);
-        this->m_dbgReadSocket = INVALID_SOCKET;
+        closesocket(this->m_dbgSocket);
+        this->m_dbgSocket = INVALID_SOCKET;
     }
 
     if(this->m_dbgConnectSocket != INVALID_SOCKET)
     {
         closesocket(this->m_dbgConnectSocket);
         this->m_dbgConnectSocket = INVALID_SOCKET;
+    }
+
+    if(this->m_buf != nullptr)
+    {
+        delete[] this->m_buf;
     }
 }
 
@@ -39,12 +46,47 @@ wchar_t* DebuggerCh::PopMessage()
     return msg;
 }
 
+void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
+{
+    AssertMsg(msgLen < this->m_buflen, "Unexpectedly long msg!!!");
+
+    for(size_t i = 0; i < msgLen; ++i)
+    {
+        this->m_buf[i] = (char)msg[i];
+    }
+
+    int iResult = send(this->m_dbgSocket, this->m_buf, (int)msgLen, 0);
+    if(iResult == SOCKET_ERROR) 
+    {
+        wprintf(L"send failed with error: %d\n", WSAGetLastError());
+        exit(1);
+    }
+}
+
 bool DebuggerCh::IsEmpty()
 {
     //if this is empty try reading out as many messages as we can
     if(this->m_msgQueue.empty())
     {
-        asdf;
+        int iResult;
+        do
+        {
+            iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
+            if(iResult > 0)
+            {
+                AssertMsg(iResult < this->m_buflen, "Unexpectedly large message.");
+
+                wchar_t* wbuff = (wchar_t*)malloc((iResult + 1) * sizeof(wchar_t));
+                for(int i = 0; i < iResult; ++i)
+                {
+                    wbuff[i] = this->m_buf[i];
+                }
+                wbuff[iResult] = L'\0';
+
+                this->m_msgQueue.push(wbuff);
+            }
+
+        } while(iResult != 0);
     }
 
     return !this->m_msgQueue.empty();
@@ -53,16 +95,13 @@ bool DebuggerCh::IsEmpty()
 bool DebuggerCh::ShouldContinue()
 {
     JsPropertyIdRef propertyIdRef;
-    JsErrorCode errorCode = ChakraRTInterface::JsGetPropertyIdFromName(L"shouldContinue", &propertyIdRef);
-    CHAKRA_VERIFY(errorCode == JsNoError);
+    DGB_ENSURE_OK(ChakraRTInterface::JsGetPropertyIdFromName(L"shouldContinue", &propertyIdRef));
 
     JsValueRef shouldContinueRef;
-    errorCode = ChakraRTInterface::JsGetProperty(this->m_chakraDebugObject, propertyIdRef, &shouldContinueRef);
-    CHAKRA_VERIFY(errorCode == JsNoError);
+    DGB_ENSURE_OK(ChakraRTInterface::JsGetProperty(this->m_chakraDebugObject, propertyIdRef, &shouldContinueRef));
 
     bool shouldContinue = true;
-    errorCode = ChakraRTInterface::JsBooleanToBool(shouldContinueRef, &shouldContinue);
-    CHAKRA_VERIFY(errorCode == JsNoError);
+    DGB_ENSURE_OK(ChakraRTInterface::JsBooleanToBool(shouldContinueRef, &shouldContinue));
 
     return shouldContinue;
 }
@@ -70,7 +109,7 @@ bool DebuggerCh::ShouldContinue()
 void DebuggerCh::WaitForMessage()
 {
     //
-    //We single threaded spin lock
+    //We single threaded spin wait
     //
     while(this->IsEmpty()) 
     {
@@ -78,24 +117,71 @@ void DebuggerCh::WaitForMessage()
     }
 }
 
-bool DebuggerCh::ProcessMessage(wchar_t* msg)
-{
-    asdf;
-}
-
 void DebuggerCh::ProcessDebuggerMessage()
 {
-    asdf;
-}
+    if(this->m_isProcessingDebuggerMsg)
+    {
+        return;
+    }
 
-bool DebuggerCh::ConvertMessage(JsDiagDebugEvent debugEvent, JsValueRef eventData)
-{
-    asdf;
+    if(!this->IsEmpty())
+    {
+        this->m_isProcessingDebuggerMsg = true;
+
+        wchar_t* msg = this->PopMessage();
+
+        JsValueRef msgArg;
+        DGB_ENSURE_OK(ChakraRTInterface::JsPointerToString(msg, wcslen(msg), &msgArg));
+
+        JsValueRef undef;
+        DGB_ENSURE_OK(ChakraRTInterface::JsGetUndefinedValue(&undef));
+
+        JsValueRef args[] = { undef, msgArg };
+        JsValueRef responseRef;
+        DGB_ENSURE_OK(ChakraRTInterface::JsCallFunction(this->m_processDebugProtocolJSON, args, _countof(args), &responseRef));
+
+        JsValueType resultType;
+        DGB_ENSURE_OK(ChakraRTInterface::JsGetValueType(responseRef, &resultType));
+
+        if(resultType == JsString)
+        {
+            const wchar_t* msgPtr = nullptr;
+            size_t msgLen = 0;
+            DGB_ENSURE_OK(ChakraRTInterface::JsStringToPointer(responseRef, &msgPtr, &msgLen));
+
+            this->SendMsg(msgPtr, msgLen);
+        }
+
+        delete[] msg;
+        this->m_isProcessingDebuggerMsg = false;
+    }
 }
 
 bool DebuggerCh::ProcessJsrtDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData)
 {
-    asdf;
+    JsValueRef debugEventRef;
+    DGB_ENSURE_OK(ChakraRTInterface::JsIntToNumber(debugEvent, &debugEventRef));
+
+    JsValueRef undef;
+    DGB_ENSURE_OK(ChakraRTInterface::JsGetUndefinedValue(&undef));
+
+    JsValueRef args[] = { undef, debugEventRef, eventData };
+    JsValueRef result;
+    DGB_ENSURE_OK(ChakraRTInterface::JsCallFunction(this->m_processJsrtEventData, args, _countof(args), &result));
+
+    JsValueType resultType;
+    DGB_ENSURE_OK(ChakraRTInterface::JsGetValueType(result, &resultType));
+
+    if(resultType == JsString)
+    {
+        const wchar_t* msgPtr = nullptr;
+        size_t msgLen = 0;
+        DGB_ENSURE_OK(ChakraRTInterface::JsStringToPointer(result, &msgPtr, &msgLen));
+
+        this->SendMsg(msgPtr, msgLen);
+    }
+
+    return this->ShouldContinue();
 }
 
 bool DebuggerCh::Initialize(JsRuntimeHandle runtime)
@@ -237,21 +323,21 @@ void CALLBACK DebuggerCh::JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEve
     DebuggerCh* debugger = (DebuggerCh*)callbackState;
 
     //If we haven't talked with the debugger yet wait for their connection
-    if(debugger->m_dbgReadSocket == INVALID_SOCKET)
+    if(debugger->m_dbgSocket == INVALID_SOCKET)
     {
         // Create a SOCKET for accepting incoming requests.
-        debugger->m_dbgReadSocket = accept(debugger->m_dbgConnectSocket, NULL, NULL);
-        if(debugger->m_dbgReadSocket == INVALID_SOCKET)
+        debugger->m_dbgSocket = accept(debugger->m_dbgConnectSocket, NULL, NULL);
+        if(debugger->m_dbgSocket == INVALID_SOCKET)
         {
-            wprintf(L"accept failed with error: %ld\n", WSAGetLastError());
+            wprintf(L"accept failed with error: %ld\n", GetLastError());
             exit(1);
         }
 
         //set our listening socket to non-blocking
         DWORD yes = 1;
-        if(ioctlsocket(debugger->m_dbgReadSocket, FIONBIO, &yes) == SOCKET_ERROR)
+        if(ioctlsocket(debugger->m_dbgSocket, FIONBIO, &yes) == SOCKET_ERROR)
         {
-            wprintf(L"ioctl failed with error: %ld\n", WSAGetLastError());
+            wprintf(L"ioctl failed with error: %ld\n", GetLastError());
             exit(1);
         }
     }
@@ -267,9 +353,6 @@ void CALLBACK DebuggerCh::JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEve
 
 JsValueRef DebuggerCh::Log(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-    JsValueRef scriptRef;
-    const wchar_t *script;
-
     if(argumentCount > 1)
     {
         JsValueRef strRef = JS_INVALID_REFERENCE;
@@ -523,7 +606,7 @@ void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigne
     DebuggerCh::debugger->m_dbgConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(DebuggerCh::debugger->m_dbgConnectSocket == INVALID_SOCKET)
     {
-        wprintf(L"socket failed with error: %d\n", WSAGetLastError());
+        wprintf(L"socket failed with error: %d\n", GetLastError());
         exit(1);
     }
 
@@ -551,34 +634,35 @@ void DebuggerCh::StartDebugging(JsRuntimeHandle runtime, LPCWSTR ipAddr, unsigne
 bool DebuggerCh::HandleDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef eventData)
 {
     bool shouldContinue = true;
-    bool isMsgToProcess = !Debug::messageQueue.IsEmpty();
+    bool isMsgToProcess = !this->IsEmpty();
 
     do {
-        while(!Debug::messageQueue.isProcessingDebuggerMsg && isMsgToProcess)
+        while(!this->m_isProcessingDebuggerMsg && isMsgToProcess)
         {
-            Debug::messageQueue.ProcessDebuggerMessage();
-            isMsgToProcess = !Debug::messageQueue.IsEmpty();
+            this->ProcessDebuggerMessage();
+            isMsgToProcess = !this->IsEmpty();
         }
 
         if(eventData != nullptr)
         {
-            Debug::messageQueue.ProcessJsrtDebugEvent(debugEvent, eventData);
+            this->ProcessJsrtDebugEvent(debugEvent, eventData);
             eventData = nullptr;
         }
 
-        shouldContinue = Debug::messageQueue.ShouldContinue();
+        shouldContinue = this->ShouldContinue();
 
-        isMsgToProcess = !Debug::messageQueue.IsEmpty();
+        isMsgToProcess = !this->IsEmpty();
 
-        while(!shouldContinue && !isMsgToProcess && !Debug::messageQueue.isProcessingDebuggerMsg)
+        while(!shouldContinue && !isMsgToProcess && !this->m_isProcessingDebuggerMsg)
         {
-            Debug::messageQueue.WaitForMessage();
-            isMsgToProcess = !Debug::messageQueue.IsEmpty();
+            this->WaitForMessage();
+            isMsgToProcess = !this->IsEmpty();
         }
 
-        isMsgToProcess = !Debug::messageQueue.IsEmpty();
+        isMsgToProcess = !this->IsEmpty();
 
-    } while(isMsgToProcess && !Debug::messageQueue.isProcessingDebuggerMsg && !shouldContinue);
+    } while(isMsgToProcess && !this->m_isProcessingDebuggerMsg && !shouldContinue);
 
     return true;
 }
+

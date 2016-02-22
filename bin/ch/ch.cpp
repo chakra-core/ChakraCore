@@ -14,6 +14,9 @@ BOOL doTTRecord = false;
 BOOL doTTDebug = false;
 wchar_t* ttUri = nullptr;
 
+wchar_t* dbgIPAddr = nullptr;
+unsigned short dbgPort = 0;
+
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 {
@@ -1030,31 +1033,6 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     LPCWSTR fileContents = nullptr;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
 
-    ////////
-    int recvbuflen = 512;
-    char recvbuf[512];
-
-    while(true)
-    {
-       int iResult = recv(dbgReadSocket, recvbuf, recvbuflen, 0);
-       if(iResult > 0)
-       {
-           printf("Bytes received: %d\n", iResult);
-           printf("msg: %s\n", recvbuf);
-       }
-       else if(iResult == 0)
-       {
-           printf("Connection closed\n");
-           exit(1);
-       }
-       else
-       {
-           printf("recv failed: %d\n", WSAGetLastError());
-           exit(1);
-       }
-    }
-    ////////
-
     if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
     {
 #if !ENABLE_TTD
@@ -1069,6 +1047,11 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
         ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
+
+        if(dbgIPAddr != nullptr)
+        {
+            DebuggerCh::StartDebugging(runtime, dbgIPAddr, dbgPort);
+        }
 
         chRuntime = runtime;
 
@@ -1190,6 +1173,11 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
+    if(DebuggerCh::debugger != nullptr)
+    {
+        DebuggerCh::CloseDebugger();
+    }
+
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 
     if (runtime != JS_INVALID_RUNTIME_HANDLE)
@@ -1268,10 +1256,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         }
         else if(wcsstr(argv[i], L"--debug-brk=") == argv[i])
         {
-            LPCWSTR portStr = argv[i] + wcslen(L"--debug-brk=");
-            unsigned short port = (unsigned short)_wtoi(portStr);
+            dbgIPAddr = L"127.0.0.1";
 
-            asdf;
+            LPCWSTR portStr = argv[i] + wcslen(L"--debug-brk=");
+            dbgPort = (unsigned short)_wtoi(portStr);
         }
         else
         {
@@ -1297,7 +1285,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
 
-    if (fileName.m_str == nullptr) {
+    if (fileName.m_str == nullptr) 
+    {
         fileName = CComBSTR(argv[1]);
     }
 
