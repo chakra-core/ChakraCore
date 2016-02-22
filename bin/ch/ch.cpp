@@ -1030,6 +1030,31 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     LPCWSTR fileContents = nullptr;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
 
+    ////////
+    int recvbuflen = 512;
+    char recvbuf[512];
+
+    while(true)
+    {
+       int iResult = recv(dbgReadSocket, recvbuf, recvbuflen, 0);
+       if(iResult > 0)
+       {
+           printf("Bytes received: %d\n", iResult);
+           printf("msg: %s\n", recvbuf);
+       }
+       else if(iResult == 0)
+       {
+           printf("Connection closed\n");
+           exit(1);
+       }
+       else
+       {
+           printf("recv failed: %d\n", WSAGetLastError());
+           exit(1);
+       }
+    }
+    ////////
+
     if(wcslen(fileName) >= 14 && wcscmp(fileName + wcslen(fileName) - 14, L"ttdSentinal.js") == 0)
     {
 #if !ENABLE_TTD
@@ -1228,52 +1253,37 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         return EXIT_FAILURE;
     }
 
-    bool move = false;
+    int cpos = -1;
     for(int i = 0; i < argc; ++i)
     {
         if(wcsstr(argv[i], L"-TTRecord:") == argv[i])
         {
-            if(move)
-            {
-                printf("We should only see one  -TTxxx flag\n");
-                return 1;
-            }
-
             doTTRecord = true;
             ttUri = argv[i] + wcslen(L"-TTRecord:");
-
-            move = true;
-            i++;
         }
         else if(wcsstr(argv[i], L"-TTDebug:") == argv[i])
         {
-            if(move)
-            {
-                printf("We should only see one  -TTxxx flag\n");
-                return 1;
-            }
-
             doTTDebug = true;
             ttUri = argv[i] + wcslen(L"-TTDebug:");
+        }
+        else if(wcsstr(argv[i], L"--debug-brk=") == argv[i])
+        {
+            LPCWSTR portStr = argv[i] + wcslen(L"--debug-brk=");
+            unsigned short port = (unsigned short)_wtoi(portStr);
 
-            move = true;
-            i++;
+            asdf;
         }
         else
         {
-            ;
+            cpos++;
         }
 
-        if(move)
+        if(cpos != i)
         {
-            argv[i - 1] = argv[i];
+            argv[cpos] = argv[i];
         }
     }
-
-    if(move)
-    {
-        argc--;
-    }
+    argc = cpos + 1;
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
 
