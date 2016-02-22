@@ -608,32 +608,15 @@ namespace Js
 
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
 
-        JavascriptRegExp* regExObj = GetJavascriptRegExp(args, L"RegExp.prototype[Symbol.match]", scriptContext);
-        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        PCWSTR const varName = L"RegExp.prototype[Symbol.match]";
 
-        bool isObservable =
-            HasObservableExec(regExObj, scriptContext)
-            || HasObservableGlobalFlag(regExObj, scriptContext)
-            || HasObservableStickyFlag(regExObj, scriptContext)
-            || HasObservableUnicodeFlag(regExObj, scriptContext)
-            || HasObservableLastIndex(regExObj, scriptContext);
-        if (!isObservable)
-        {
-            return RegexHelper::RegexMatch(
-                scriptContext,
-                regExObj,
-                string,
-                RegexHelper::IsResultNotUsed(callInfo.Flags));
-        }
-        else
-        {
-            // TODO: Implement ES6 logic calling user-defined functions.
-            return RegexHelper::RegexMatch(
-                scriptContext,
-                regExObj,
-                string,
-                RegexHelper::IsResultNotUsed(callInfo.Flags));
-        }
+        RecyclableObject *thisObj = GetThisObject(args, varName, scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        return RegexHelper::RegexMatch(
+            scriptContext,
+            thisObj,
+            string,
+            RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
     bool JavascriptRegExp::HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -789,6 +772,21 @@ namespace Js
 
     Var JavascriptRegExp::CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext)
     {
+        JavascriptRegExp* regExObj = nullptr;
+
+        // TODO: The built-in "exec" in ES6 is supposed to access the RegExp flags. Since the flags
+        // can be overridden and return a different value than what's passed to the constructor,
+        // the pattern needs to be recompiled. However, the way the observability check is currently
+        // implemented, it reduces the perf quite a lot.
+        //
+        // Therefore, we recompile the pattern here before calling "exec" for the time being, but
+        // this will be moved to "exec".
+        if (JavascriptRegExp::Is(thisObj))
+        {
+            regExObj = JavascriptRegExp::FromVar(thisObj);
+            regExObj->RecompilePatternForExecIfNeeded(scriptContext);
+        }
+
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
@@ -803,8 +801,60 @@ namespace Js
             return result;
         }
 
-        JavascriptRegExp* regExObj = ToRegExp(thisObj, varName, scriptContext);
+        if (regExObj == nullptr)
+        {
+            regExObj = ToRegExp(thisObj, varName, scriptContext);
+        }
         return RegexHelper::RegexExec(scriptContext, regExObj, string, false);
+    }
+
+    void JavascriptRegExp::RecompilePatternForExecIfNeeded(ScriptContext* scriptContext)
+    {
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            return;
+        }
+
+        bool isObservable =
+            JavascriptRegExp::HasObservableGlobalFlag(this, scriptContext)
+            || JavascriptRegExp::HasObservableStickyFlag(this, scriptContext);
+        if (!isObservable)
+        {
+            return;
+        }
+
+        UnifiedRegex::RegexPattern* pattern = this->GetPattern();
+
+        UnifiedRegex::RegexFlags newFlags = pattern->GetFlags();
+        newFlags = SetRegexFlag(PropertyIds::global, newFlags, UnifiedRegex::GlobalRegexFlag, scriptContext);
+        newFlags = SetRegexFlag(PropertyIds::sticky, newFlags, UnifiedRegex::StickyRegexFlag, scriptContext);
+
+        if (newFlags != pattern->GetFlags())
+        {
+            InternalString source = pattern->GetSource();
+            UnifiedRegex::RegexPattern* newPattern = RegexHelper::CompileDynamic(
+                scriptContext,
+                source.GetBuffer(),
+                source.GetLength(),
+                newFlags,
+                pattern->IsLiteral());
+            this->SetPattern(newPattern);
+            this->SetSplitPattern(nullptr);
+        }
+    }
+
+    UnifiedRegex::RegexFlags JavascriptRegExp::SetRegexFlag(
+        PropertyId propertyId,
+        UnifiedRegex::RegexFlags flags,
+        UnifiedRegex::RegexFlags flag,
+        ScriptContext* scriptContext)
+    {
+        bool isEnabled = JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(this, propertyId, scriptContext),
+            scriptContext);
+        return isEnabled
+            ? static_cast<UnifiedRegex::RegexFlags>(flags | flag)
+            : static_cast<UnifiedRegex::RegexFlags>(flags & ~flag);
     }
 
     Var JavascriptRegExp::EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...)
