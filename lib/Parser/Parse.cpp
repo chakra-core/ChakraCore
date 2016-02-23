@@ -2521,9 +2521,20 @@ ParseVarDecl:
         {
             pnode = ParseStatement<buildAST>();
 
+            // TODO: fix binding for anonymous function/class 
             if (buildAST)
             {
-                IdentPtr localName = pnode->sxFnc.pid;
+                IdentPtr localName;
+                if (pnode->nop == knopClassDecl)
+                {
+                    localName = pnode->sxClass.pnodeName->sxVar.pid;
+                }
+                else
+                {
+                    Assert(pnode->nop == knopFncDecl);
+                    localName = pnode->sxFnc.pid;
+                }
+                Assert(localName != nullptr);
 
                 AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
             }

@@ -29,6 +29,7 @@ namespace Projection
 namespace Js
 {
     class MissingPropertyTypeHandler;
+    class SourceTextModuleRecord;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
 
     class UndeclaredBlockVariable : public RecyclableObject
@@ -36,6 +37,9 @@ namespace Js
         friend class JavascriptLibrary;
         UndeclaredBlockVariable(Type* type) : RecyclableObject(type) { }
     };
+
+    class SourceTextModuleRecord;
+    typedef JsUtil::List<SourceTextModuleRecord*> ModuleRecordList;
 
 #if ENABLE_COPYONACCESS_ARRAY
     struct CacheForCopyOnAccessArraySegments
@@ -395,6 +399,8 @@ namespace Js
         // See abstract operation GetTemplateObject in ES6 Spec (RC1) 12.2.8.3
         StringTemplateCallsiteObjectList* stringTemplateCallsiteObjectList;
 
+        ModuleRecordList* moduleRecordList;
+
         // This list contains types ensured to have only writable data properties in it and all objects in its prototype chain
         // (i.e., no readonly properties or accessors). Only prototype objects' types are stored in the list. When something
         // in the script context adds a readonly property or accessor to an object that is used as a prototype object, this
@@ -481,7 +487,8 @@ namespace Js
                               isHybridDebugging(false),
                               isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
-                              stringTemplateCallsiteObjectList(nullptr)
+                              stringTemplateCallsiteObjectList(nullptr),
+                              moduleRecordList(nullptr)
         {
             globalObject = globalObject;
         }
@@ -991,6 +998,9 @@ namespace Js
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
 
+        ModuleRecordList* EnsureModuleRecordList();
+        SourceTextModuleRecord* GetModuleRecord(uint moduleId);
+
     private:
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // Declare fretest/debug properties here since otherwise it can cause
@@ -1133,6 +1143,7 @@ namespace Js
 #endif
 
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
+        
 
     public:
         virtual void Finalize(bool isShutdown) override
