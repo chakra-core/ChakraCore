@@ -3144,12 +3144,12 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
 
         ////
         //TODO: we may want to handle this differently later
-        if(scriptContext->GetThreadContext()->GetDebugManager() != nullptr && !scriptContext->GetThreadContext()->GetDebugManager()->IsDebuggerAttaching())
+        if(scriptContext->GetThreadContext()->GetDebugManager() != nullptr && (parseAttributes & JsParseScriptAttributeLibraryCode) != JsParseScriptAttributeLibraryCode)
         {
             Js::DebugDocument* debugDocument = scriptFunction->GetFunctionBody()->GetUtf8SourceInfo()->GetDebugDocument();
 
             Js::StatementLocation statement;
-            debugDocument->GetStatementLocation(0, &statement);
+            debugDocument->GetStatementLocation(1, &statement);
             debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
         }
         //

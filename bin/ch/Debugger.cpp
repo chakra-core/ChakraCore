@@ -123,31 +123,32 @@ bool DebuggerCh::IsEmpty()
 
             if(iResult > 0)
             {
-                AssertMsg(iResult < this->m_buflen, "Unexpectedly large message.");
+                AssertMsg(iResult + 1 < this->m_buflen, "Unexpectedly large message.");
+                this->m_buf[iResult] = '\0';
 
-                int spos = 0;
-                while(this->m_buf[spos] != '{' && spos < 30 && spos < iResult)
+                char* cpos = strstr(this->m_buf, "Content-Length:");
+                while(cpos != nullptr)
                 {
-                    spos++;
-                }
+                    cpos = cpos + strlen("Content-Length: ");
+                    char* mpos = strstr(cpos, "\r\n");
+                    char* epos = strstr(cpos, "{");
 
-                if(spos < 30)
-                {
-                    iResult = (iResult - spos);
-                }
-                else
-                {
-                    spos = 0;
-                }
+                    *mpos = '\0';
+                    int contentLength = atoi(cpos);
 
-                wchar_t* wbuff = (wchar_t*)malloc((iResult + 1) * sizeof(wchar_t));
-                for(int i = 0; i < iResult; ++i)
-                {
-                    wbuff[i] = this->m_buf[spos + i];
-                }
-                wbuff[iResult] = L'\0';
+                    AssertMsg(iResult >= ((int)(epos - this->m_buf)) + contentLength, "We didn't get all of the message yet!!!");
 
-                this->m_msgQueue.push(wbuff);
+                    wchar_t* wbuff = (wchar_t*)malloc((contentLength + 1) * sizeof(wchar_t));
+                    for(int i = 0; i < contentLength; ++i)
+                    {
+                        wbuff[i] = epos[i];
+                    }
+                    wbuff[contentLength] = L'\0';
+
+                    this->m_msgQueue.push(wbuff);
+
+                    cpos = strstr(epos + contentLength, "Content-Length:");
+                }
             }
 
         } while(iResult > 0);
@@ -571,13 +572,13 @@ JsValueRef DebuggerCh::JsDiagEvaluate(JsValueRef callee, bool isConstructCall, J
 
     if(argumentCount > 2)
     {
-        IfJsrtErrorRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
-
         JsValueRef strRef = JS_INVALID_REFERENCE;
         LPCWSTR str = nullptr;
         size_t length;
-        IfJsrtErrorRet(ChakraRTInterface::JsConvertValueToString(arguments[2], &strRef));
+        IfJsrtErrorRet(ChakraRTInterface::JsConvertValueToString(arguments[1], &strRef));
         IfJsrtErrorRet(ChakraRTInterface::JsStringToPointer(strRef, &str, &length));
+
+        IfJsrtErrorRet(ChakraRTInterface::JsNumberToInt(arguments[2], &stackFrameIndex));
 
         IfJsrtErrorRet(ChakraRTInterface::JsDiagEvaluate(str, stackFrameIndex, &result));
     }
