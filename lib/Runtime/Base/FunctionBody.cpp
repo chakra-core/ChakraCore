@@ -63,9 +63,6 @@ namespace Js
         m_nestedCount(nestedCount),
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
-#ifdef DBG
-        m_isPendingFinalize(false),
-#endif
         m_derivedSize(derivedSize),
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
@@ -87,7 +84,7 @@ namespace Js
         {
             return nullptr;
         }
-        Assert(m_isPendingFinalize || GetCurrentThreadId() == GetScriptContext()->GetThreadContext()->GetCurrentThreadId());
+        Assert(ThreadContext::GetContextForCurrentThread());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
     inline void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
@@ -96,13 +93,20 @@ namespace Js
         {
             return nullptr;
         }
-        AutoCriticalSection autoCS(&auxPtrsLock);
-        return AuxPtrsT::GetAuxPtr(this, e);
+        if (ThreadContext::GetContextForCurrentThread() == nullptr)
+        {
+            AutoCriticalSection autoCS(&auxPtrsLock);
+            return AuxPtrsT::GetAuxPtr(this, e);
+        }
+        else
+        {
+            return AuxPtrsT::GetAuxPtr(this, e);
+        }
     }
 
     inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
-        Assert(m_isPendingFinalize || GetCurrentThreadId() == GetScriptContext()->GetThreadContext()->GetCurrentThreadId());
+        Assert(ThreadContext::GetContextForCurrentThread());
         
         if (ptr == nullptr && GetAuxPtr(e) == nullptr)
         {
@@ -2915,9 +2919,6 @@ namespace Js
 
     void FunctionProxy::Finalize(bool isShutdown)
     {
-#ifdef DBG
-        m_isPendingFinalize = true;
-#endif
         __super::Finalize(isShutdown);
 
         this->CleanupFunctionProxyCounters();
@@ -7275,9 +7276,6 @@ namespace Js
 
     void FunctionBody::Finalize(bool isShutdown)
     {
-#ifdef DBG
-        m_isPendingFinalize = true;
-#endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->GetSourceContextId(), this->GetLocalFunctionId()))
         {

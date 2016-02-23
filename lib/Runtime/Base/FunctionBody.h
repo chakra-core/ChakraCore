@@ -1324,9 +1324,6 @@ namespace Js
 
         bool m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         bool m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
-#ifdef DBG
-        bool m_isPendingFinalize : 1;
-#endif
         void CleanupFunctionProxyCounters()
         {
             PERF_COUNTER_DEC(Code, TotalFunction);
