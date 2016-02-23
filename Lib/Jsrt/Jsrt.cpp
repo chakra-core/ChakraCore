@@ -3142,6 +3142,19 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             return JsErrorScriptCompile;
         }
 
+        ////
+        //TODO: we may want to handle this differently later
+        if(scriptContext->GetThreadContext()->GetDebugManager() != nullptr && !scriptContext->GetThreadContext()->GetDebugManager()->IsDebuggerAttaching())
+        {
+            Js::DebugDocument* debugDocument = scriptFunction->GetFunctionBody()->GetUtf8SourceInfo()->GetDebugDocument();
+
+            Js::StatementLocation statement;
+            debugDocument->GetStatementLocation(0, &statement);
+            debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+        }
+        //
+        ////
+
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformRecordAction())

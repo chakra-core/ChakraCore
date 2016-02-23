@@ -8,7 +8,31 @@
 
 DebuggerCh* s_debugger = nullptr;
 
+wchar_t s_headerBuff[256];
 wchar_t s_controllerScript[65536];
+
+void DBGPrintSend(char* msg, size_t length)
+{
+    printf("Send of %i>", (int)length);
+    for(size_t i = 0; i < length && i < 256; ++i)
+    {
+        printf("%c", msg[i]);
+    }
+    printf("<End\n");
+}
+
+void DBGPrintRcv(char* msg, int length)
+{
+    if(length >= 0)
+    {
+        printf("Recv of %i>", (int)length);
+        for(int i = 0; i < length && i < 256; ++i)
+        {
+            printf("%c", msg[i]);
+        }
+        printf("<End\n");
+    }
+}
 
 //const WCHAR s_controllerScript[] = 
 //{
@@ -18,7 +42,7 @@ wchar_t s_controllerScript[65536];
 
 DebuggerCh::DebuggerCh(LPCWSTR ipAddr, unsigned short port)
     : m_port(port), m_dbgConnectSocket(INVALID_SOCKET), m_dbgSocket(INVALID_SOCKET), m_context(nullptr), m_chakraDebugObject(nullptr), m_processJsrtEventData(nullptr), m_processDebugProtocolJSON(nullptr),
-    m_waitingForMessage(false), m_isProcessingDebuggerMsg(false), m_msgQueue(), m_buf(nullptr), m_buflen(1024)
+    m_waitingForMessage(false), m_isProcessingDebuggerMsg(false), m_msgQueue(), m_buf(nullptr), m_buflen(65536)
 {
     memcpy_s(this->m_ipAddr, sizeof(wchar_t) * 20, ipAddr, sizeof(wchar_t) * (wcslen(ipAddr) + 1));
 
@@ -55,14 +79,29 @@ wchar_t* DebuggerCh::PopMessage()
 
 void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
 {
-    AssertMsg(msgLen < this->m_buflen, "Unexpectedly long msg!!!");
+    this->SendMsgWHeader(nullptr, msg, msgLen);
+}
 
-    for(size_t i = 0; i < msgLen; ++i)
+void DebuggerCh::SendMsgWHeader(const wchar_t* header, const wchar_t* body, size_t bodyLen)
+{
+    wsprintf(s_headerBuff, L"%lsContent-Length: %I32i \r\n\r\n", header, (int)bodyLen);
+    size_t headerSize = wcslen(s_headerBuff);
+
+    AssertMsg(bodyLen + headerSize < this->m_buflen, "Unexpectedly long msg!!!");
+
+    for(size_t i = 0; i < headerSize; ++i)
     {
-        this->m_buf[i] = (char)msg[i];
+        this->m_buf[i] = (char)s_headerBuff[i];
     }
 
-    int iResult = send(this->m_dbgSocket, this->m_buf, (int)msgLen, 0);
+    for(size_t j = 0; j < bodyLen; ++j)
+    {
+        this->m_buf[headerSize + j] = (char)body[j];
+    }
+
+    DBGPrintSend(this->m_buf, headerSize + bodyLen);
+
+    int iResult = send(this->m_dbgSocket, this->m_buf, (int)(bodyLen + headerSize), 0);
     if(iResult == SOCKET_ERROR) 
     {
         wprintf(L"send failed with error: %d\n", WSAGetLastError());
@@ -79,21 +118,39 @@ bool DebuggerCh::IsEmpty()
         do
         {
             iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
+
+            DBGPrintRcv(this->m_buf, iResult);
+
             if(iResult > 0)
             {
                 AssertMsg(iResult < this->m_buflen, "Unexpectedly large message.");
 
+                int spos = 0;
+                while(this->m_buf[spos] != '{' && spos < 30 && spos < iResult)
+                {
+                    spos++;
+                }
+
+                if(spos < 30)
+                {
+                    iResult = (iResult - spos);
+                }
+                else
+                {
+                    spos = 0;
+                }
+
                 wchar_t* wbuff = (wchar_t*)malloc((iResult + 1) * sizeof(wchar_t));
                 for(int i = 0; i < iResult; ++i)
                 {
-                    wbuff[i] = this->m_buf[i];
+                    wbuff[i] = this->m_buf[spos + i];
                 }
                 wbuff[iResult] = L'\0';
 
                 this->m_msgQueue.push(wbuff);
             }
 
-        } while(iResult != 0);
+        } while(iResult > 0);
     }
 
     return this->m_msgQueue.empty();
@@ -339,6 +396,9 @@ void CALLBACK DebuggerCh::JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEve
             wprintf(L"ioctl failed with error: %ld\n", GetLastError());
             exit(1);
         }
+
+        LPCWSTR helloMsg = L"Type: connect\r\nV8-Version: undefined\r\nProtocol-Version: 1\r\nEmbedding-Host: node v6.0.0-pre\r\n";
+        debugger->SendMsgWHeader(helloMsg, L"", 0);
     }
 
 #if ENABLE_TTD
@@ -490,7 +550,15 @@ JsValueRef DebuggerCh::JsEvaluateScript(JsValueRef callee, bool isConstructCall,
         IfJsrtErrorRet(ChakraRTInterface::JsConvertValueToString(arguments[1], &scriptRef));
         IfJsrtErrorRet(ChakraRTInterface::JsStringToPointer(scriptRef, &script, &length));
 
-        IfJsrtErrorRet(ChakraRTInterface::JsRunScript(script, JS_SOURCE_CONTEXT_NONE, L"", &result));
+        if(wcscmp(L"process.pid", script) == 0)
+        {
+            DWORD pid = GetCurrentProcessId();
+            IfJsrtErrorRet(ChakraRTInterface::JsIntToNumber((int)pid, &result));
+        }
+        else
+        {
+            IfJsrtErrorRet(ChakraRTInterface::JsRunScript(script, JS_SOURCE_CONTEXT_NONE, L"", &result));
+        }
     }
 
     return result;
