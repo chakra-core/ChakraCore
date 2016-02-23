@@ -84,7 +84,9 @@ namespace Js
         {
             return nullptr;
         }
-        Assert(ThreadContext::GetContextForCurrentThread());
+
+        // On process detach this can be called from another thread but the ThreadContext should be locked
+        Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
     inline void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
@@ -93,20 +95,14 @@ namespace Js
         {
             return nullptr;
         }
-        if (ThreadContext::GetContextForCurrentThread() == nullptr)
-        {
-            AutoCriticalSection autoCS(&auxPtrsLock);
-            return AuxPtrsT::GetAuxPtr(this, e);
-        }
-        else
-        {
-            return AuxPtrsT::GetAuxPtr(this, e);
-        }
+        AutoCriticalSection autoCS(&auxPtrsLock);
+        return AuxPtrsT::GetAuxPtr(this, e);
     }
 
     inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
-        Assert(ThreadContext::GetContextForCurrentThread());
+        // On process detach this can be called from another thread but the ThreadContext should be locked
+        Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
         
         if (ptr == nullptr && GetAuxPtr(e) == nullptr)
         {
