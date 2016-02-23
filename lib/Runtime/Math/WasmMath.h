@@ -2,11 +2,15 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
-#include "Runtime.h"
-#include "Math/JavascriptSSE2MathOperators.h"
-#include "Math/JavascriptSSE2MathOperators.inl"
 
-#ifdef ENABLE_WASM
-#include "Math/WasmMath.h"
-#endif
+#pragma once
+
+namespace Wasm
+{
+class WasmMath
+{
+public:
+    static int Ctz(int value);
+};
+} //namespace Wasm
+
