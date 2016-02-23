@@ -64,6 +64,8 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDiagGetBreakpointsPtr)(JsValueRef * breakPoints);
     typedef JsErrorCode (WINAPI *JsrtDiagGetPropertiesPtr)(JsValueRef handlesArray, JsValueRef * propertiesObject);
     typedef JsErrorCode (WINAPI *JsrtDiagRemoveBreakpointPtr)(unsigned int breakpointId);
+    typedef JsErrorCode(WINAPI *JsrtDiagSetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType exceptionType);
+    typedef JsErrorCode(WINAPI *JsrtDiagGetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType* exceptionType);
 
     typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode(WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
@@ -160,7 +162,8 @@ struct JsAPIHooks
     JsrtDiagGetBreakpointsPtr pfJsrtDiagGetBreakpoints;
     JsrtDiagGetPropertiesPtr pfJsrtDiagGetProperties;
     JsrtDiagRemoveBreakpointPtr pfJsrtDiagRemoveBreakpoint;
-
+    JsrtDiagSetBreakOnExceptionPtr pfJsrtDiagSetBreakOnException;
+    JsrtDiagGetBreakOnExceptionPtr pfJsrtDiagGetBreakOnException;
 
     JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
     JsrtTTDCreateDebugRuntimePtr pfJsrtTTDCreateDebugRuntime;
@@ -317,6 +320,8 @@ public:
     static JsErrorCode WINAPI JsDiagGetBreakpoints(JsValueRef * breakPoints) { return m_jsApiHooks.pfJsrtDiagGetBreakpoints(breakPoints); }
     static JsErrorCode WINAPI JsDiagGetProperties(JsValueRef handlesArray, JsValueRef * propertiesObject) { return m_jsApiHooks.pfJsrtDiagGetProperties(handlesArray, propertiesObject); }
     static JsErrorCode WINAPI JsDiagRemoveBreakpoint(unsigned int breakpointId) { return m_jsApiHooks.pfJsrtDiagRemoveBreakpoint(breakpointId); }
+    static JsErrorCode WINAPI JsDiagSetBreakOnException(JsDiagBreakOnExceptionType exceptionType) { return m_jsApiHooks.pfJsrtDiagSetBreakOnException(exceptionType); }
+    static JsErrorCode WINAPI JsDiagGetBreakOnException(JsDiagBreakOnExceptionType* exceptionType) { return m_jsApiHooks.pfJsrtDiagGetBreakOnException(exceptionType); }
 
     static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, threadService, runtime); }
     static JsErrorCode WINAPI JsTTDCreateDebugRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateDebugRuntime(attributes, infoUri, threadService, runtime); }

@@ -178,7 +178,7 @@ void DebuggerCh::WaitForMessage()
     //
     while(this->IsEmpty()) 
     {
-        Sleep(50);
+        Sleep(10);
     }
 }
 
@@ -623,16 +623,46 @@ JsValueRef DebuggerCh::JsDiagRemoveBreakpoint(JsValueRef callee, bool isConstruc
 
 JsValueRef DebuggerCh::JsDiagSetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-    return JS_INVALID_REFERENCE;
+    int breakOnExceptionType;
+    bool success = false;
+
+    if(argumentCount > 1)
+    {
+        IfJsrtErrorRet(ChakraRTInterface::JsNumberToInt(arguments[1], &breakOnExceptionType));
+        IfJsrtErrorRet(ChakraRTInterface::JsDiagSetBreakOnException((JsDiagBreakOnExceptionType)breakOnExceptionType));
+
+        success = true;
+    }
+
+    JsValueRef returnRef;
+    if(success)
+    {
+        IfJsrtErrorRet(ChakraRTInterface::JsGetTrueValue(&returnRef));
+    }
+    else
+    {
+        IfJsrtErrorRet(ChakraRTInterface::JsGetFalseValue(&returnRef));
+    }
+
+    return returnRef;
 }
 
 JsValueRef DebuggerCh::JsDiagGetBreakOnException(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
-    return JS_INVALID_REFERENCE;
+    JsDiagBreakOnExceptionType breakOnExceptionType = JsDiagBreakOnExceptionTypeNone;
+
+    IfJsrtErrorRet(ChakraRTInterface::JsDiagGetBreakOnException(&breakOnExceptionType));
+
+    JsValueRef returnRef = JS_INVALID_REFERENCE;
+    IfJsrtErrorRet(ChakraRTInterface::JsIntToNumber(breakOnExceptionType, &returnRef));
+
+    return returnRef;
 }
 
 JsValueRef DebuggerCh::SendDelayedRespose(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
+    AssertMsg(false, "Not Implemented Yet!!!");
+
     return JS_INVALID_REFERENCE;
 }
 

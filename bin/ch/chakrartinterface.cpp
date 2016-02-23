@@ -104,6 +104,10 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetPropertiesPtr)GetProcAddress(library, "JsDiagGetProperties");
     m_jsApiHooks.pfJsrtDiagRemoveBreakpoint = (JsAPIHooks::JsrtDiagRemoveBreakpointPtr)GetProcAddress(library, "JsDiagRemoveBreakpoint");
 
+    m_jsApiHooks.pfJsrtDiagSetBreakOnException = (JsAPIHooks::JsrtDiagSetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagSetBreakOnException");
+    m_jsApiHooks.pfJsrtDiagGetBreakOnException = (JsAPIHooks::JsrtDiagGetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagGetBreakOnException");
+
+
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetProcAddress(library, "JsTTDCreateRecordRuntime");
     m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = (JsAPIHooks::JsrtTTDCreateDebugRuntimePtr)GetProcAddress(library, "JsTTDCreateDebugRuntime");
