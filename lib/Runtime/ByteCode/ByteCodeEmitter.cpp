@@ -4325,6 +4325,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         }
         else
         {
+            Assert(funcInfo->frameObjRegister != Js::Constants::NoRegister);
             this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
         }
 
