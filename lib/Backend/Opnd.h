@@ -506,6 +506,7 @@ private:
     Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
     Js::Type* finalType;
+    Js::Type* monoGuardType;
     BVSparse<JitArenaAllocator>* guardedPropOps;
     BVSparse<JitArenaAllocator>* writeGuards;
     byte m_polyCacheUtil;
@@ -534,7 +535,6 @@ public:
                     bool typeDead: 1;
                     bool typeChecked: 1;
                     bool initialTypeChecked: 1;
-                    bool mustDoMonoCheck: 1;
                     bool typeMismatch: 1;
                     bool writeGuardChecked: 1;
                 };
@@ -667,14 +667,17 @@ public:
 
     bool MustDoMonoCheck() const
     {
-        // Question: does this property access need to do a monomorphic check because of some other access
-        // that this check protects?
-        return this->mustDoMonoCheck;
+        return this->monoGuardType != nullptr;
     }
 
-    void SetMustDoMonoCheck(bool value)
+    Js::Type * GetMonoGuardType() const
     {
-        this->mustDoMonoCheck = value;
+        return this->monoGuardType;
+    }
+
+    void SetMonoGuardType(Js::Type *type)
+    {
+        this->monoGuardType = type;
     }
 
     bool NeedsMonoCheck() const

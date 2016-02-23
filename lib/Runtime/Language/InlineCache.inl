@@ -37,7 +37,7 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = DynamicObject::FromVar(propertyObject)->GetInlineSlot(u.local.slotIndex);
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -51,7 +51,7 @@ namespace Js
             Assert(propertyObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = DynamicObject::FromVar(propertyObject)->GetAuxSlot(u.local.slotIndex);
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Local;
@@ -65,7 +65,7 @@ namespace Js
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Proto;
@@ -78,10 +78,8 @@ namespace Js
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-            // TODO: This assert often results in Assert(RootObjectBase::Is(object)) inside GetRootProperty, which is misleading
-            // when the problem is that GetProperty returned a different value than propertyValue. Consider reworking it here and elsewhere.
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
             if (ReturnOperationInfo)
             {
                 operationInfo->cacheType = CacheType_Proto;
@@ -136,10 +134,8 @@ namespace Js
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
-            // TODO: This assert often results in Assert(RootObjectBase::Is(object)) inside GetRootProperty, which is misleading
-            // when the problem is that GetProperty returned a different value than propertyValue. Consider reworking it here and elsewhere.
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))
@@ -160,10 +156,8 @@ namespace Js
         {
             Assert(u.proto.prototypeObject->GetScriptContext() == requestContext); // we never cache a type from another script context
             *propertyValue = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
-            // TODO: This assert often results in Assert(RootObjectBase::Is(object)) inside GetRootProperty, which is misleading
-            // when the problem is that GetProperty returned a different value than propertyValue. Consider reworking it here and elsewhere.
             Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext) ||
-                *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext));
+                (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext)));
 
 #ifdef MISSING_PROPERTY_STATS
             if (PHASE_STATS1(MissingPropertyCachePhase))

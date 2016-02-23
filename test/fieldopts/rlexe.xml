@@ -836,4 +836,10 @@
       <compile-flags>-force:fieldhoist -off:inlinegetters -off:fixedmethods</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck.js</files>
+      <compile-flags>-force:fixdataprops</compile-flags>
+    </default>
+  </test>
 </regress-exe>

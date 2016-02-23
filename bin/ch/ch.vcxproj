@@ -48,7 +48,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chakrartinterface.h" />
+    <ClInclude Include="ChakraRtInterface.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="HostConfigFlags.h" />
     <ClInclude Include="HostConfigFlagsList.h" />
@@ -58,7 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ch.cpp" />
-    <ClCompile Include="chakrartinterface.cpp" />
+    <ClCompile Include="ChakraRtInterface.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="HostConfigFlags.cpp" />

@@ -715,6 +715,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
     newOpnd->m_type = type;
     newOpnd->SetObjTypeSpecFldInfo(nullptr);
     newOpnd->finalType = nullptr;
+    newOpnd->monoGuardType = nullptr;
     newOpnd->guardedPropOps = nullptr;
     newOpnd->writeGuards = nullptr;
     newOpnd->objTypeSpecFlags = 0;
