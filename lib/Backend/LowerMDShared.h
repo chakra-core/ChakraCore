@@ -170,6 +170,7 @@ public:
             bool            GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR::Opnd *srcStr, IR::Opnd *srcIndex, IR::Instr *callInstr, IR::Instr *insertInstr,
                 IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
             void            GenerateClz(IR::Instr * instr);
+            void            GenerateCtz(IR::Instr * instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             bool            GenerateLdThisCheck(IR::Instr * instr);
             bool            GenerateLdThisStrict(IR::Instr * instr);

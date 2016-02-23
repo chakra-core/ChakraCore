@@ -30,6 +30,7 @@ MACRO(ANDNPS,   Reg2,   None,          RNON,   f(MODRM),   o(ANDNPS),  DNO16|DOP
 
 MACRO(ANDPD,    Reg2,   None,          RNON,   f(MODRM),   o(ANDPD),   DNO16|DOPEQ|D66|DCOMMOP,     OLB_0F)
 MACRO(ANDPS,    Reg2,   None,          RNON,   f(MODRM),   o(ANDPS),   DNO16|DOPEQ|DCOMMOP,         OLB_0F)
+MACRO(BSF,      Reg2,   None,          RNON,   f(MODRM),   o(BSF),     DDST,                        OLB_0F)
 MACRO(BSR,      Reg2,   None,          RNON,   f(MODRM),   o(BSR),     DDST,                        OLB_0F)
 MACRO(BT,       Reg2,   OpSideEffect,  R100,   f(SPMOD),   o(BT),      DSETCC,                      OLB_0F)
 MACRO(BTR,      Reg2,   OpSideEffect,  R110,   f(SPMOD),   o(BTR),     DOPEQ|DSETCC,                OLB_0F)
@@ -256,6 +257,9 @@ MACRO(SUBPS,    Reg3,   None,           RNON,   f(MODRM),   o(SUBPS),   DNO16|DO
 MACRO(SUBSD,    Reg3,   None,          RNON,   f(MODRM),   o(SUBSD),   DNO16|DOPEQ|DF2,             OLB_0F)
 MACRO(SUBSS,    Reg3,   None,          RNON,   f(MODRM),   o(SUBSS),   DNO16|DOPEQ|DF3,             OLB_0F)
 MACRO(TEST,     Empty,  OpSideEffect,  R000,   f(TEST),    o(TEST),    DSETCC|DCOMMOP,              OLB_NONE)
+
+MACRO(TZCNT,    Reg2,   None,          RNON,   f(MODRM),   o(TZCNT),   DF3|DSETCC|DDST,             OLB_0F)
+
 MACRO(UCOMISD,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISD), DNO16|D66|DSETCC,            OLB_0F)
 MACRO(UCOMISS,  Empty,  None,          RNON,   f(MODRM),   o(UCOMISS), DNO16|DSETCC,                OLB_0F)
 MACRO(XCHG,     Reg2,   None,          R000,   f(XCHG),    o(XCHG),    DOPEQ,                       OLB_NONE)

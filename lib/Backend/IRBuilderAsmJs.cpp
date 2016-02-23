@@ -2540,6 +2540,10 @@ IRBuilderAsmJs::BuildInt2(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
         instr = IR::Instr::New(Js::OpCode::InlineMathClz32, dstOpnd, srcOpnd, m_func);
         break;
 
+    case Js::OpCodeAsmJs::Ctz_Int:
+        instr = IR::Instr::New(Js::OpCode::Ctz, dstOpnd, srcOpnd, m_func);
+        break;
+
     case Js::OpCodeAsmJs::I_Conv_VTI:
         instr = IR::Instr::New(Js::OpCode::Ld_I4, dstOpnd, srcOpnd, m_func);
         break;

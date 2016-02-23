@@ -101,6 +101,7 @@ public:
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);
+            void            GenerateCtz(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);

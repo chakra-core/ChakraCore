@@ -46,8 +46,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeMathPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="WasmMath.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="WasmMath.h" />
     <None Include="JavascriptMath.cpp" />
     <ClInclude Include="AsmJsMath.h" />
     <ClInclude Include="CrtSSE2Math.h" />
@@ -60,6 +62,6 @@
     <None Include="JavascriptMath.inl" />
     <None Include="JavascriptSSE2MathOperators.inl" />
   </ItemGroup>
-  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
