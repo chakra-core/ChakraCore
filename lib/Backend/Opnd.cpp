@@ -3356,8 +3356,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 WriteToBuffer(&buffer, &n, L" (&StackLimit)");
             }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
-                address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())
+                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
             {
                 WriteToBuffer(&buffer, &n, L" (PreReservedCodeSegmentEnd)");
             }

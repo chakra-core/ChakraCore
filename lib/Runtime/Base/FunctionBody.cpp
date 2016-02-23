@@ -2867,7 +2867,7 @@ namespace Js
     BOOL FunctionBody::IsNativeOriginalEntryPoint() const
     {
 #if ENABLE_NATIVE_CODEGEN
-        return IsNativeFunctionAddr(this->GetScriptContext(), this->originalEntryPoint);
+        return this->GetScriptContext()->IsNativeAddress(this->originalEntryPoint);
 #else
         return false;
 #endif

@@ -10,18 +10,21 @@ CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js
                  PageAllocator::DefaultLowMaxFreePageCount :
                  PageAllocator::DefaultMaxFreePageCount))
 , allocator(L"NativeCode", &pageAllocator, Js::Throw::OutOfMemory)
-, emitBufferManager(policyManager, &allocator, scriptContext, L"JIT code buffer", ALLOC_XDATA)
+, emitBufferManager(&allocator, scriptContext->GetThreadContext()->GetCodePageAllocators(), scriptContext, L"JIT code buffer")
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
 , canCreatePreReservedSegment(false)
-#endif
-#ifdef PERF_COUNTERS
-, staticNativeCodeData(0)
 #endif
 {
 }
 
 CodeGenAllocators::~CodeGenAllocators()
 {
-    PERF_COUNTER_SUB(Code, StaticNativeCodeDataSize, staticNativeCodeData);
-    PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, staticNativeCodeData);
 }
+
+#if DBG
+void
+CodeGenAllocators::ClearConcurrentThreadId()
+{    
+    this->pageAllocator.ClearConcurrentThreadId();
+}
+#endif

@@ -188,7 +188,7 @@ template<typename TVirtualAlloc>
 class PageSegmentBase : public SegmentBase<TVirtualAlloc>
 {
 public:
-    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool external);
+    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool committed, bool allocated);
     // Maximum possible size of a PageSegment; may be smaller.
     static const uint MaxDataPageCount = 256;     // 1 MB
     static const uint MaxGuardPageCount = 16;
@@ -368,33 +368,6 @@ public:
 
     static size_t GetAndResetMaxUsedBytes();
 
-    virtual BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag)
-    {
-        Assert(false);
-        return false;
-    }
-
-    virtual bool AllocSecondary(void* segment, ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
-    {
-        Assert(false);
-        return false;
-    }
-
-    virtual void ReleaseSecondary(const SecondaryAllocation& allocation, void* segment)
-    {
-        Assert(false);
-    }
-
-    virtual void DecommitPages(__in char* address, int pageCount)
-    {
-        Assert(false);
-    }
-
-    virtual void TrackDecommittedPages(void * address, uint pageCount, __in void* segment)
-    {
-        Assert(false);
-    }
-
     struct BackgroundPageQueue
     {
         BackgroundPageQueue();
@@ -437,12 +410,7 @@ public:
 
     //VirtualAllocator APIs
     TVirtualAlloc * GetVirtualAllocator() { return virtualAllocator; }
-    void SetVirtualAllocator(TVirtualAlloc * virtualAllocator)
-    {
-        Assert(virtualAllocator != nullptr);
-        PVOID oldVirtualAllocator = InterlockedCompareExchangePointer((PVOID*) &(this->virtualAllocator), virtualAllocator, NULL);
-        AssertMsg(oldVirtualAllocator == nullptr || oldVirtualAllocator == (PVOID)virtualAllocator, "Trying to set a new value for VirtualAllocWrapper ? - INVALID");
-    }
+
     bool IsPreReservedPageAllocator() { return virtualAllocator != nullptr; }
 
 
@@ -548,7 +516,8 @@ protected:
     virtual void DumpStats() const;
 #endif
     virtual PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool external);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, 
+        PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
 
     // Zero Pages
     void AddPageToZeroQueue(__in void * address, uint pageCount, __in PageSegmentBase<TVirtualAlloc> * pageSegment);
@@ -625,7 +594,7 @@ protected:
     friend class IdleDecommit;
 
 protected:
-    virtual bool CreateSecondaryAllocator(SegmentBase<TVirtualAlloc>* segment, SecondaryAllocator** allocator)
+    virtual bool CreateSecondaryAllocator(SegmentBase<TVirtualAlloc>* segment, bool committed, SecondaryAllocator** allocator)
     {
         *allocator = nullptr;
         return true;
@@ -746,7 +715,7 @@ template<typename TVirtualAlloc>
 class HeapPageAllocator : public PageAllocatorBase<TVirtualAlloc>
 {
 public:
-    HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages);
+    HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, TVirtualAlloc * virtualAllocator);
 
     BOOL ProtectPages(__in char* address, size_t pageCount, __in void* segment, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag);
     bool AllocSecondary(void* segment, ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
@@ -755,18 +724,15 @@ public:
     void DecommitPages(__in char* address, size_t pageCount = 1);
 
     // Release pages that has already been decommitted
-    void    ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
-    bool    IsAddressFromAllocator(__in void* address);
-    char *  InitPageSegment();
+    void ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
+    bool IsAddressFromAllocator(__in void* address);    
 
-    PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-
-
+    bool AllocXdata() { return allocXdata; }
 private:
     bool         allocXdata;
     void         ReleaseDecommittedSegment(__in SegmentBase<TVirtualAlloc>* segment);
 #if PDATA_ENABLED
-    virtual bool CreateSecondaryAllocator(SegmentBase<TVirtualAlloc>* segment, SecondaryAllocator** allocator) override;
+    virtual bool CreateSecondaryAllocator(SegmentBase<TVirtualAlloc>* segment, bool committed, SecondaryAllocator** allocator) override;
 #endif
 
 };

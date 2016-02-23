@@ -109,9 +109,7 @@ NativeCodeGenerator::~NativeCodeGenerator()
         // We have already removed this manager from the job queue and hence its fine to set the threadId to -1.
         // We can't DissociatePageAllocator here as its allocated ui thread.
         //this->Processor()->DissociatePageAllocator(allocator->GetPageAllocator());
-        this->backgroundAllocators->emitBufferManager.GetHeapPageAllocator()->ClearConcurrentThreadId();
-        this->backgroundAllocators->emitBufferManager.GetPreReservedHeapPageAllocator()->ClearConcurrentThreadId();
-        this->backgroundAllocators->GetPageAllocator()->ClearConcurrentThreadId();
+        this->backgroundAllocators->ClearConcurrentThreadId();
 #endif
         // The native code generator may be deleted after Close was called on the job processor. In that case, the
         // background thread is no longer running, so clean things up in the foreground.
@@ -2661,18 +2659,6 @@ NativeCodeGenerator::EnterScriptStart()
     Processor()->PrioritizeManagerAndWait(this, CONFIG_FLAG(BgJitDelay) - CONFIG_FLAG(BgJitDelayFgBuffer));
 }
 
-// Is the given address within one of our JIT'd frame?
-bool
-IsNativeFunctionAddr(Js::ScriptContext *scriptContext, void * address)
-{
-    if (!scriptContext->GetNativeCodeGenerator())
-    {
-        return false;
-    }
-
-    return scriptContext->GetNativeCodeGenerator()->IsNativeFunctionAddr(address);
-}
-
 void
 FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, void * address)
 {
@@ -2709,15 +2695,6 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 
     workItem->Delete();
     return true;
-}
-
-// Called on the same thread that did the allocation
-bool
-NativeCodeGenerator::IsNativeFunctionAddr(void * address)
-{
-    return
-        (this->backgroundAllocators && this->backgroundAllocators->emitBufferManager.IsInRange(address)) ||
-        (this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.IsInRange(address));
 }
 
 void
