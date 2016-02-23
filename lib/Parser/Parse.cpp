@@ -123,7 +123,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_parseType = ParseType_Upfront;
 
     m_deferEllipsisError = false;
-
+    m_hasDeferredShorthandInitError = false;
     m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperDisallowed;
 }
 
@@ -3766,7 +3766,7 @@ Parse a list of object members. e.g. { x:foo, 'y me':bar }
 template<bool buildAST>
 ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength, tokens declarationType)
 {
-    ParseNodePtr pnodeArg;
+    ParseNodePtr pnodeArg = nullptr;
     ParseNodePtr pnodeName = nullptr;
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -3785,6 +3785,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
     }
 
     ArenaAllocator tempAllocator(L"MemberNames", m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
+
+    bool hasDeferredInitError = false;
 
     for (;;)
     {
@@ -4044,7 +4046,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                     }
                 }
             }
-            else if ((m_token.tk == tkRCurly || m_token.tk == tkComma || (isObjectPattern && m_token.tk == tkAsg)) && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
+            else if ((m_token.tk == tkRCurly || m_token.tk == tkComma || m_token.tk == tkAsg) && m_scriptContext->GetConfig()->IsES6ObjectLiteralsEnabled())
             {
                 // Shorthand {foo} -> {foo:foo} syntax.
                 // {foo = <initializer>} supported only when on object pattern rules are being applied
@@ -4063,6 +4065,17 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                 if (buildAST)
                 {
                     CheckArgumentsUse(pidHint, GetCurrentFunctionNode());
+                }
+
+                bool couldBeObjectPattern = !isObjectPattern && m_token.tk == tkAsg;
+
+                if (couldBeObjectPattern)
+                {
+                    declarationType = tkLCurly;
+                    isObjectPattern = true;
+
+                    // This may be an error but we are deferring for favouring destructuring.
+                    hasDeferredInitError = true;
                 }
 
                 ParseNodePtr pnodeIdent = nullptr;
@@ -4090,7 +4103,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
                         pnodeIdent->sxPid.SetSymRef(ref);
                     }
 
-                    pnodeArg = CreateBinNode(isObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
+                    pnodeArg = CreateBinNode(isObjectPattern && !couldBeObjectPattern ? knopObjectPatternMember : knopMemberShort, pnodeName, pnodeIdent);
                 }
             }
             else
@@ -4127,6 +4140,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
             break;
         }
     }
+
+    m_hasDeferredShorthandInitError = m_hasDeferredShorthandInitError || hasDeferredInitError;
 
     if (buildAST)
     {
@@ -7698,6 +7713,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
     m_pscan->Capture(&termStart);
 
+    bool deferredErrorFoundOnLeftSide = false;
+    bool savedDeferredInitError = m_hasDeferredShorthandInitError;
+    m_hasDeferredShorthandInitError = false;
+
     // Is the current token a unary operator?
     if (m_phtbl->TokIsUnop(m_token.tk, &opl, &nop) && nop != knopNone)
     {
@@ -7876,6 +7895,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 pnode = ConvertToPattern(pnode);
             }
+
+            // The left-hand side is found to be destructuring pattern - so the shorthand can have initializer.
+            m_hasDeferredShorthandInitError = false;
         }
 
         if (buildAST)
@@ -7943,6 +7965,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             m_pscan->Scan();
         }
     }
+
+    deferredErrorFoundOnLeftSide = m_hasDeferredShorthandInitError;
 
     // Process a sequence of operators and operands.
     for (;;)
@@ -8123,6 +8147,15 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
         }
     }
+
+    if (m_hasDeferredShorthandInitError && !deferredErrorFoundOnLeftSide)
+    {
+        // Raise error only if it is found not on the right side of the expression.
+        // such as  <expr> = {x = 1}
+        Error(ERRnoColon);
+    }
+
+    m_hasDeferredShorthandInitError = m_hasDeferredShorthandInitError || savedDeferredInitError;
 
     if (NULL != pfCanAssign)
     {
@@ -9756,6 +9789,11 @@ LDefaultToken:
         // An expression statement or a label.
         IdentToken tok;
         pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tok);
+
+        if (m_hasDeferredShorthandInitError)
+        {
+            Error(ERRnoColon);
+        }
 
         if (buildAST)
         {
@@ -11560,6 +11598,11 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
 
 ParseNodePtr Parser::ConvertMemberToMemberPattern(ParseNodePtr pnodeMember)
 {
+    if (pnodeMember->nop == knopObjectPatternMember)
+    {
+        return pnodeMember;
+    }
+
     Assert(pnodeMember->nop == knopMember || pnodeMember->nop == knopMemberShort);
 
     ParseNodePtr rightNode = GetRightSideNodeFromPattern(pnodeMember->sxBin.pnode2);
@@ -11614,6 +11657,9 @@ void Parser::ParseDestructuredLiteralWithScopeSave(tokens declarationType,
 
     charcount_t funcInArraySave = m_funcInArray;
     uint funcInArrayDepthSave = m_funcInArrayDepth;
+
+    // we need to reset this as we are going to parse the grammar again.
+    m_hasDeferredShorthandInitError = false;
 
     ParseDestructuredLiteral<false>(declarationType, isDecl, topLevel, initializerContext, allowIn);
 
@@ -11691,7 +11737,16 @@ ParseNodePtr Parser::ParseDestructuredInitializer(ParseNodePtr lhsNode,
 
     m_pscan->Scan();
 
+
+    bool alreadyHasInitError = m_hasDeferredShorthandInitError;
+
     ParseNodePtr pnodeDefault = ParseExpr<buildAST>(koplCma, nullptr, allowIn);
+
+    if (m_hasDeferredShorthandInitError && !alreadyHasInitError)
+    {
+        Error(ERRnoColon);
+    }
+
     ParseNodePtr pnodeDestructAsg = nullptr;
     if (buildAST)
     {
@@ -11772,7 +11827,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     if (IsPossiblePatternStart())
     {
         // Go recursively
-        pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/);
+        pnodeElem = ParseDestructuredLiteral<buildAST>(declarationType, isDecl, false /*topLevel*/, seenRest ? DIC_ShouldNotParseInitializer : DIC_None);
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID)
     {
@@ -11845,7 +11900,13 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         }
         m_pscan->Scan();
 
+        bool alreadyHasInitError = m_hasDeferredShorthandInitError;
         ParseNodePtr pnodeInit = ParseExpr<buildAST>(koplCma);
+
+        if (m_hasDeferredShorthandInitError && !alreadyHasInitError)
+        {
+            Error(ERRnoColon);
+        }
 
         if (buildAST)
         {
