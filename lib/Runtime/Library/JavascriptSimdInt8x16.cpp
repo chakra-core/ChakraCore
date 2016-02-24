@@ -83,12 +83,10 @@ namespace Js
         JavascriptSIMDInt8x16* instance = JavascriptSIMDInt8x16::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[1024];
+        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
-        swprintf_s(stringBuffer, 1024, L"SIMD.Int8x16(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
-            value.i8[0], value.i8[1], value.i8[2], value.i8[3], value.i8[4], value.i8[5], value.i8[6], value.i8[7],
-            value.i8[8], value.i8[9], value.i8[10], value.i8[11], value.i8[12], value.i8[13], value.i8[14], value.i8[15]);
+        JavascriptSIMDInt8x16::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 

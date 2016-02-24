@@ -48,6 +48,14 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         // End Entry Points
 
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        {
+            swprintf_s(stringBuffer, countBuffer, L"SIMD.Bool16x8(%s, %s, %s, %s, %s, %s, %s, %s)", \
+                value.i16[0] ? L"true" : L"false", value.i16[1] ? L"true" : L"false", value.i16[2] ? L"true" : L"false", value.i16[3] ? L"true" : L"false", \
+                value.i16[4] ? L"true" : L"false", value.i16[5] ? L"true" : L"false", value.i16[6] ? L"true" : L"false", value.i16[7] ? L"true" : L"false"
+                );
+        }
+
         Var  Copy(ScriptContext* requestContext);
 
     private:
