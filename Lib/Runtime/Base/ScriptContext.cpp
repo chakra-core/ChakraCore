@@ -2554,8 +2554,7 @@ namespace Js
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
 #if ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD
-        //Ensure that we behave somewhat nicely
-        this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
+        this->ForceNoNative();
 #endif
 
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
@@ -2570,7 +2569,6 @@ namespace Js
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
     {
         this->ForceNoNative();
-        this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
     }
 
 #endif

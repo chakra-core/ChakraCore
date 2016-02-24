@@ -1891,11 +1891,6 @@ void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx)
 {
     AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 
-    //if we are tracing then we always need to disable native execution so we get our loop/call counting
-#if ENABLE_TTD_DEBUGGING
-    ctx->ForceNoNative();
-#endif
-
     this->TTDLog->StartTimeTravelOnScript(ctx);
 }
 

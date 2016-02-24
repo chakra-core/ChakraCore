@@ -569,7 +569,7 @@ unsigned int LoadNamedPropertyAsUInt(JsValueRef obj, LPCWSTR name)
     return (unsigned int)val;
 }
 
-void StartupDebuggerPortAsNeeded()
+void StartupDebuggerAsNeeded()
 {
     if(dbgIPAddr != nullptr)
     {
@@ -921,9 +921,6 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
 
         ChakraRTInterface::JsTTDStartTimeTravelDebugging();
 
-        ChakraRTInterface::JsTTDSetDebuggerCallback(&TTDebuggerCallback);
-        ChakraRTInterface::JsTTDSetStepBP(firstScript); //ignored if we set the free-run flag
-
         try
         {
             INT64 snapEventTime = -1;
@@ -1117,17 +1114,13 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
         chRuntime = runtime;
 
-        StartupDebuggerPortAsNeeded();
         ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
-        if(!WScriptJsrt::Initialize())
-        {
-            IfFailGo(E_FAIL);
-        }
+        StartupDebuggerAsNeeded();
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr, true));
 #endif
@@ -1152,23 +1145,24 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
             chRuntime = runtime;
 
-            StartupDebuggerPortAsNeeded();
             ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
+            StartupDebuggerAsNeeded();
         }
         else
         {
             IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
             chRuntime = runtime;
 
-            StartupDebuggerPortAsNeeded();
-
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
+            StartupDebuggerAsNeeded();
         }
 #else
         IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));

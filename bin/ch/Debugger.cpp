@@ -261,11 +261,17 @@ bool DebuggerCh::ProcessJsrtDebugEvent(JsDiagDebugEvent debugEvent, JsValueRef e
 bool DebuggerCh::Initialize(JsRuntimeHandle runtime)
 {
     HRESULT hr = S_OK;
+    bool callbacksOk = true;
     // setup chakra_debug.js callbacks
     // put runtime in debug mode
 
+    JsContextRef prevContext = JS_INVALID_REFERENCE;
+    IfJsrtErrorHR(ChakraRTInterface::JsGetCurrentContext(&prevContext));
+
     IfJsrtErrorHR(ChakraRTInterface::JsCreateContext(runtime, &this->m_context));
     IfJsrtErrorHR(ChakraRTInterface::JsSetCurrentContext(this->m_context));
+
+    ChakraRTInterface::JsAddRef(this->m_context, nullptr);
 
     JsValueRef globalFunc = JS_INVALID_REFERENCE;
     IfJsrtErrorHR(ChakraRTInterface::JsParseScriptWithFlags(s_controllerScript, JS_SOURCE_CONTEXT_NONE, L"chakra_debug.js", JsParseScriptAttributeLibraryCode, &globalFunc));
@@ -290,15 +296,19 @@ bool DebuggerCh::Initialize(JsRuntimeHandle runtime)
     JsPropertyIdRef chakraDebugObject;
     IfJsrtErrorHR(ChakraRTInterface::JsGetProperty(globalObj, chakraDebugPropId, &chakraDebugObject));
 
-    return this->InstallDebugCallbacks(chakraDebugObject);
+    callbacksOk = this->InstallDebugCallbacks(chakraDebugObject);
 
 Error:
-    return hr == S_OK;
+    // Restore the previous context
+    IfJsrtErrorHR(ChakraRTInterface::JsSetCurrentContext(prevContext));
+
+    return (hr == S_OK) & callbacksOk;
 }
 
 bool DebuggerCh::InstallDebugCallbacks(JsValueRef chakraDebugObject)
 {
     HRESULT hr = S_OK;
+    bool installOk = true;
 
     JsPropertyIdRef propertyIdRef;
     IfJsrtErrorHR(ChakraRTInterface::JsGetPropertyIdFromName(L"ProcessDebugProtocolJSON", &propertyIdRef));
@@ -310,7 +320,6 @@ bool DebuggerCh::InstallDebugCallbacks(JsValueRef chakraDebugObject)
     this->m_chakraDebugObject = chakraDebugObject;
 
     ////
-    bool installOk = true;
 
     installOk &= this->InstallHostCallback(chakraDebugObject, L"log", DebuggerCh::Log);
     installOk &= this->InstallHostCallback(chakraDebugObject, L"JsDiagGetScripts", DebuggerCh::JsDiagGetScripts);
@@ -330,10 +339,8 @@ bool DebuggerCh::InstallDebugCallbacks(JsValueRef chakraDebugObject)
     installOk &= this->InstallHostCallback(chakraDebugObject, L"JsDiagGetBreakOnException", DebuggerCh::JsDiagGetBreakOnException);
     installOk &= this->InstallHostCallback(chakraDebugObject, L"SendDelayedRespose", DebuggerCh::SendDelayedRespose);
 
-    return installOk;
-
 Error:
-    return hr == S_OK;
+    return (hr == S_OK) & installOk;
 }
 
 bool DebuggerCh::InstallHostCallback(JsValueRef chakraDebugObject, const wchar_t *name, JsNativeFunction nativeFunction)
@@ -347,6 +354,7 @@ bool DebuggerCh::InstallHostCallback(JsValueRef chakraDebugObject, const wchar_t
     IfJsrtErrorHR(ChakraRTInterface::JsCreateFunction(nativeFunction, nullptr, &funcRef));
 
     IfJsrtErrorHR(ChakraRTInterface::JsSetProperty(chakraDebugObject, propertyIdRef, funcRef, true));
+
 Error:
     return hr == S_OK;
 }
@@ -685,6 +693,8 @@ void DebuggerCh::CloseDebuggerIfNeeded()
 {
     if(s_debugger != nullptr)
     {
+        ChakraRTInterface::JsRelease(s_debugger->m_context, nullptr);
+
         delete s_debugger;
         s_debugger = nullptr;
     }

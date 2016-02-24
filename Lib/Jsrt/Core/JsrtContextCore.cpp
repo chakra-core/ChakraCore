@@ -40,16 +40,6 @@ void JsrtContextCore::Dispose(bool isShutdown)
 {
     if (nullptr != this->GetScriptContext())
     {
-#if ENABLE_TTD
-        //If we are unloading the context then we are done with TTD so write out the result and call it a day
-        ThreadContext* threadContext = this->GetScriptContext()->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
-        {
-            threadContext->EmitTTDLogIfNeeded();
-            threadContext->EndCtxTimeTravel(this->GetScriptContext());
-        }
-#endif
-
         if (this->GetRuntime()->GetDebugObject())
         {
             this->GetRuntime()->GetDebugObject()->ClearDebugDocument(this->GetScriptContext());
@@ -91,7 +81,7 @@ void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::
 {
     JsrtDebug* debugObject = this->GetRuntime()->GetDebugObject();
     if (debugObject != nullptr)
-{
+    {
         debugObject->ReportScriptCompile(scriptFunction, utf8SourceInfo, compileException);
     }
 }
