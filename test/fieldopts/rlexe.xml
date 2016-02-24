@@ -842,4 +842,10 @@
       <compile-flags>-force:fixdataprops</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck2.js</files>
+      <compile-flags>-force:deferparse -force:inline -force:scriptfunctionwithinlinecache</compile-flags>
+    </default>
+  </test>
 </regress-exe>

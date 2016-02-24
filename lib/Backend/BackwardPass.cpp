@@ -3995,7 +3995,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
-            Js::Type *monoGuardType = opnd->HasInitialType() ? opnd->GetInitialType() : opnd->GetType();
+            Js::Type *monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
             bucket->SetMonoGuardType(monoGuardType);
         }
 
