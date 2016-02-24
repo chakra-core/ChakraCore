@@ -91,7 +91,7 @@
     </ResourceCompile>
     <Link>
       <LinkTimeCodeGeneration Condition="'$(PlatformToolset)'=='v120' OR '$(TF_BUILD)'!=''">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <LinkTimeCodeGeneration Condition="'$(PlatformToolset)'!='v120'">UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration Condition="'$(PlatformToolset)'!='v120' AND '$(TF_BUILD)'==''">UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <Lib>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
