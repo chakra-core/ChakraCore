@@ -552,6 +552,22 @@ static bool CALLBACK TTDebuggerCallback(INT64* optEventTimeRequest, wchar_t** op
     }
 }
 
+JsValueRef LoadNamedProperty(JsValueRef obj, LPCWSTR name)
+{
+    JsPropertyIdRef pid;
+    ChakraRTInterface::JsGetPropertyIdFromName(name, &pid);
+    JsValueRef val;
+    ChakraRTInterface::JsGetProperty(obj, pid, &val);
+    return val;
+}
+unsigned int LoadNamedPropertyAsUInt(JsValueRef obj, LPCWSTR name)
+{
+    JsValueRef rval = LoadNamedProperty(obj, name);
+    int val = -1;
+    ChakraRTInterface::JsNumberToInt(rval, &val);
+    AssertMsg(val >= 0, "Failed conversion.");
+    return (unsigned int)val;
+}
 void CreateDirectoryIfNeeded(const wchar_t* path)
 {
     bool isPathDirName = (path[wcslen(path) - 1] == L'\\');
@@ -852,7 +868,7 @@ static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool 
     }
 }
 
-HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_t *fullPath)
+HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_t *fullPath, bool firstScript)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -875,7 +891,7 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
         ChakraRTInterface::JsTTDStartTimeTravelDebugging();
 
         ChakraRTInterface::JsTTDSetDebuggerCallback(&TTDebuggerCallback);
-        ChakraRTInterface::JsTTDSetStepBP(true); //ignored if we set the free-run flag
+        ChakraRTInterface::JsTTDSetStepBP(firstScript); //ignored if we set the free-run flag
 
         try
         {
@@ -948,16 +964,24 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
         }
         else
         {
+            JsValueRef functionRef;
+            runScript = ChakraRTInterface::JsParseScriptWithFlags(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, JsParseScriptAttributeNone, &functionRef);
+            unsigned short argc = 1;
+            JsValueRef argv[1];
+            ChakraRTInterface::JsGetUndefinedValue(argv);
+            if(runScript == JsNoError)
+            {
 #if ENABLE_TTD
             if(doTTRecord)
             {
                 ChakraRTInterface::JsTTDStartTimeTravelRecording();
             }
 
-            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+                runScript = ChakraRTInterface::JsTTDCallFunction(-1, functionRef, argv, argc, nullptr /*result*/);
 #else
-            runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+                runScript = ChakraRTInterface::JsCallFunction(functionRef, argv, argc, nullptr /*result*/);
 #endif
+            }
         }
 
         if(runScript != JsNoError)
@@ -1007,7 +1031,7 @@ HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, wch
         IfFailGo(E_FAIL);
     }
 
-    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
+    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath, false));
 
 Error:
     if (bcBuffer != nullptr)
@@ -1086,7 +1110,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             IfFailGo(E_FAIL);
         }
 
-        IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
+        IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr, true));
 #endif
     }
     else
@@ -1217,7 +1241,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
         else
         {
-            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
+            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath, true));
         }
     }
 

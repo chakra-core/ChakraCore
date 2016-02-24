@@ -121,6 +121,15 @@ bool DebuggerCh::IsEmpty()
 
             DBGPrintRcv(this->m_buf, iResult);
 
+            if(iResult == 0)
+            {
+                //
+                //TODO: this is pretty brutal -- maybe there is something else we want to do instead.
+                //
+                wprintf(L"Debugger Detached -- Exiting...");
+                exit(1);
+            }
+
             if(iResult > 0)
             {
                 AssertMsg(iResult + 1 < this->m_buflen, "Unexpectedly large message.");
@@ -178,7 +187,7 @@ void DebuggerCh::WaitForMessage()
     //
     while(this->IsEmpty()) 
     {
-        Sleep(10);
+        Sleep(50);
     }
 }
 
@@ -382,6 +391,7 @@ void CALLBACK DebuggerCh::JsDiagDebugEventHandler(_In_ JsDiagDebugEvent debugEve
     //If we haven't talked with the debugger yet wait for their connection
     if(debugger->m_dbgSocket == INVALID_SOCKET)
     {
+        wprintf(L"Listening on %ls:%u for debugger...\n", debugger->m_ipAddr, debugger->m_port);
         // Create a SOCKET for accepting incoming requests.
         debugger->m_dbgSocket = accept(debugger->m_dbgConnectSocket, NULL, NULL);
         if(debugger->m_dbgSocket == INVALID_SOCKET)

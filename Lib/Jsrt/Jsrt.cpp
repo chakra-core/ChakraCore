@@ -378,7 +378,10 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             }
         }
 
+        if(result != nullptr)
+        {
         TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+        }
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
         //May want to look into more sophisticated means for making this decision later
