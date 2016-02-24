@@ -2818,11 +2818,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::LdSuper:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperLdSuper);
+            this->GenerateLdSuper(instr);
             break;
 
         case Js::OpCode::LdSuperCtor:
-            instrPrev = m_lowererMD.LowerLdSuper(instr, IR::HelperLdSuperCtor);
+            this->GenerateLdSuperCtor(instr);
             break;
 
         case Js::OpCode::ScopedLdSuper:
@@ -2835,14 +2835,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::SetHomeObj:
         {
-            IR::Opnd *src2Opnd = instr->UnlinkSrc2();
-            IR::Opnd *src1Opnd = instr->UnlinkSrc1();
-
-            m_lowererMD.LoadHelperArgument(instr, src2Opnd);
-            m_lowererMD.LoadHelperArgument(instr, src1Opnd);
-
-            m_lowererMD.ChangeToHelperCall(instr, IR::HelperSetHomeObj);
-
+            this->GenerateSetHomeObj(instr);
             break;
         }
 
@@ -20033,6 +20026,252 @@ Lowerer::GenerateCheckForCallFlagNew(IR::Instr* instrInsert)
     this->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
 
     instrInsert->InsertBefore(labelDone);
+    instrInsert->Remove();
+}
+
+void
+Lowerer::GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnTrue, IR::LabelInstr *labelReturnFalse)
+{
+    //  $ProxyLoop:
+    //  // if (!RecyclableObject::Is(instance)) { goto $ReturnFalse }; // omitted: RecyclableObject::Is(instance) always true
+    //  MOV s0, instance->type
+    //  MOV s1, s0->typeId
+    //  CMP s1, TypeIds_Proxy
+    //  JNE $NotProxy
+    //
+    //  MOV instance, instance->target
+    //  JMP $ProxyLoop
+    //
+    //  $NotProxy:
+    //  CMP s1, TypeIds_Function
+    //  JNE $ReturnFalse   // external
+    //
+    //  MOV s0, instance->functionInfo
+    //  MOV s1, s0->attributes
+    //  TEST s1, ErrorOnNew
+    //  JNE $ReturnFalse   // external
+    //
+    //  JMP $ReturnTrue    // external
+
+    Func *func = instrInsert->m_func;
+
+    IR::LabelInstr *labelProxyLoop = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelNotProxy = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+
+    IR::RegOpnd *indir0RegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    IR::RegOpnd *indir1RegOpnd = IR::RegOpnd::New(TyUint32, func);
+
+    instrInsert->InsertBefore(labelProxyLoop);
+    labelProxyLoop->m_isLoopTop = true;
+
+    Loop *loop = JitAnew(func->m_alloc, Loop, func->m_alloc, this->m_func);
+    labelProxyLoop->SetLoop(loop);
+    loop->SetLoopTopInstr(labelProxyLoop);
+    loop->regAlloc.liveOnBackEdgeSyms = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
+    loop->regAlloc.liveOnBackEdgeSyms->Set(instanceRegOpnd->m_sym->m_id);
+
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, func);
+    LowererMD::CreateAssign(indir0RegOpnd, indirOpnd, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(indir0RegOpnd, Js::Type::GetOffsetOfTypeId(), TyUint32, func);
+    LowererMD::CreateAssign(indir1RegOpnd, indirOpnd, instrInsert);
+
+    InsertCompareBranch(indir1RegOpnd, IR::IntConstOpnd::New(Js::TypeIds_Proxy, TyUint32, func, true), Js::OpCode::BrNeq_A, labelNotProxy, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::JavascriptProxy::GetOffsetOfTarget(), TyMachPtr, func);
+    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instrInsert);
+
+    InsertBranch(Js::OpCode::Br, labelProxyLoop, instrInsert);
+
+    instrInsert->InsertBefore(labelNotProxy);
+
+    InsertCompareBranch(indir1RegOpnd, IR::IntConstOpnd::New(Js::TypeIds_Function, TyUint32, func, true), Js::OpCode::BrNeq_A, labelReturnFalse, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, func);
+    LowererMD::CreateAssign(indir0RegOpnd, indirOpnd, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(indir0RegOpnd, Js::FunctionInfo::GetAttributesOffset(), TyUint32, func);
+    LowererMD::CreateAssign(indir1RegOpnd, indirOpnd, instrInsert);
+
+    InsertTestBranch(indir1RegOpnd, IR::IntConstOpnd::New(Js::FunctionInfo::Attributes::ErrorOnNew, TyUint32, func, true), Js::OpCode::BrNeq_A, labelReturnFalse, instrInsert);
+
+    InsertBranch(Js::OpCode::Br, labelReturnTrue, instrInsert);
+}
+
+void
+Lowerer::GenerateRecyclableObjectGetPrototypeNullptrGoto(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnNullptr)
+{
+    //  MOV instance, instance->type
+    //  MOV flags, instance->flags
+    //  TEST flags, TypeFlagMask_HasSpecialPrototype
+    //  JNE $ReturnNullptr        // external, bypassing nullptr check
+    //  MOV instance, instance->prototype
+
+    Func *func = instrInsert->m_func;
+
+    IR::RegOpnd *flagsRegOpnd = IR::RegOpnd::New(TyUint32, func);
+
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, func);
+    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::Type::GetOffsetOfFlags(), TyUint32, func);
+    LowererMD::CreateAssign(flagsRegOpnd, indirOpnd, instrInsert);
+
+    InsertTestBranch(flagsRegOpnd, IR::IntConstOpnd::New(TypeFlagMask_HasSpecialPrototype, TyUint32, func, true), Js::OpCode::BrNeq_A, labelReturnNullptr, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::Type::GetOffsetOfPrototype(), TyMachPtr, func);
+    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instrInsert);
+}
+
+void
+Lowerer::GenerateRecyclableObjectIsElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelFalse)
+{
+    Func *func = instrInsert->m_func;
+
+#if INT32VAR
+    InsertTestBranch(instanceRegOpnd, IR::AddrOpnd::New((Js::Var)0xffff000000000000, IR::AddrOpndKindConstantVar, func, true), Js::OpCode::BrNeq_A, labelFalse, instrInsert);
+#else
+    InsertTestBranch(instanceRegOpnd, IR::IntConstOpnd::New(Js::AtomTag, TyUint32, func, true), Js::OpCode::BrNeq_A, labelFalse, instrInsert);
+#endif
+}
+
+void
+Lowerer::GenerateLdSuper(IR::Instr* instrInsert)
+{
+    //  MOV dst, undefined
+    //  MOV instance, functionObject  // functionObject through stack params or src1
+    //  CMP [instance], VtableStackScriptFunction
+    //  JE  $Done
+    //  MOV instance, instance->homeObj
+    //  TEST instance, instance
+    //  JZ  $Done
+    //
+    //  if (!RecyclableObject::Is(instance)) goto $Done
+    //
+    //  instance = ((RecyclableObject*)instance)->GetPrototype();
+    //  if (instance == nullptr) goto $Done;
+    //
+    //  if (!RecyclableObject::Is(instance)) goto $Done
+    //
+    //  MOV dst, instance
+    //  $Done:
+
+    Func *func = instrInsert->m_func;
+
+    IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instrInsert, LibraryValue::ValueUndefined);
+
+    IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+
+    IR::Opnd *dstOpnd = instrInsert->GetDst();
+    Assert(dstOpnd->IsRegOpnd());
+    LowererMD::CreateAssign(dstOpnd, opndUndefAddress, instrInsert);
+
+    IR::Opnd * functionObjOpnd;
+    m_lowererMD.LoadFunctionObjectOpnd(instrInsert, functionObjOpnd);
+    LowererMD::CreateAssign(instanceRegOpnd, functionObjOpnd, instrInsert);
+
+    IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableStackScriptFunction);
+    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
+        Js::OpCode::BrEq_A, true, labelDone, instrInsert);
+
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
+    LowererMD::CreateAssign(instanceRegOpnd, indirOpnd, instrInsert);
+
+    InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instrInsert);
+
+    this->GenerateRecyclableObjectIsElse(instrInsert, instanceRegOpnd, labelDone);
+    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instrInsert, instanceRegOpnd, labelDone);
+    this->GenerateRecyclableObjectIsElse(instrInsert, instanceRegOpnd, labelDone);
+
+    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instrInsert);
+
+    instrInsert->InsertBefore(labelDone);
+    instrInsert->Remove();
+}
+
+void
+Lowerer::GenerateLdSuperCtor(IR::Instr* instrInsert)
+{
+    //  MOV instance, functionObject  // functionObject through stack params or src1
+    //
+    //  instance = ((RecyclableObject*)instance)->GetPrototype();
+    //  if (instance == nullptr) goto $ThrowTypeError;
+    //
+    //  MOV dst, instance
+    //
+    //  if (!JavascriptOperators::IsConstructor(instance))
+    //     goto $ThrowTypeError;
+    //  else
+    //     goto $Done;
+    //
+    //  $helperLabelThrowTypeError:
+    //  ThrowRunTimeError(JSERR_NotAConstructor);
+    //
+    //  $Done:
+
+    Func *func = instrInsert->m_func;
+
+    IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *helperLabelThrowTypeError = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+
+    IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    IR::Opnd *dstOpnd = instrInsert->GetDst();
+    IR::Opnd * functionObjOpnd = nullptr;
+
+    m_lowererMD.LoadFunctionObjectOpnd(instrInsert, functionObjOpnd);
+    LowererMD::CreateAssign(instanceRegOpnd, functionObjOpnd, instrInsert);
+
+    this->GenerateRecyclableObjectGetPrototypeNullptrGoto(instrInsert, instanceRegOpnd, helperLabelThrowTypeError);
+
+    LowererMD::CreateAssign(dstOpnd, instanceRegOpnd, instrInsert);
+
+    this->GenerateJavascriptOperatorsIsConstructorGotoElse(instrInsert, instanceRegOpnd, labelDone, helperLabelThrowTypeError);
+
+    instrInsert->InsertBefore(helperLabelThrowTypeError);
+    this->GenerateRuntimeError(instrInsert, JSERR_NotAConstructor);
+
+    instrInsert->InsertBefore(labelDone);
+    instrInsert->Remove();
+}
+
+void
+Lowerer::GenerateSetHomeObj(IR::Instr* instrInsert)
+{
+    //  MOV funcObj, src1
+    //  CMP [funcObj], VtableJavascriptGeneratorFunction
+    //  JNE $ScriptFunction
+    //
+    //  MOV funcObj, funcObj->scriptFunction
+    //
+    //  $ScriptFunction:
+    //  MOV funcObj->homeObj, src2
+
+    Func *func = instrInsert->m_func;
+
+    IR::LabelInstr *labelScriptFunction = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+
+    IR::Opnd *src2Opnd = instrInsert->UnlinkSrc2();
+    IR::Opnd *src1Opnd = instrInsert->UnlinkSrc1();
+    IR::RegOpnd *funcObjRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    IR::IndirOpnd *indirOpnd = nullptr;
+
+    Assert(src1Opnd != nullptr && src2Opnd != nullptr);
+
+    LowererMD::CreateAssign(funcObjRegOpnd, src1Opnd, instrInsert);
+
+    IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableJavascriptGeneratorFunction);
+    InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
+        Js::OpCode::BrNeq_A, true, labelScriptFunction, instrInsert);
+
+    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::JavascriptGeneratorFunction::GetOffsetOfScriptFunction() , TyMachPtr, func);
+    LowererMD::CreateAssign(funcObjRegOpnd, indirOpnd, instrInsert);
+
+    instrInsert->InsertBefore(labelScriptFunction);
+
+    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
+    LowererMD::CreateAssign(indirOpnd, src2Opnd, instrInsert);
+
     instrInsert->Remove();
 }
 

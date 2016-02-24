@@ -250,7 +250,7 @@ RT_ERROR_MSG(JSERR_WeakMapSetKeyNotAnObject, 5117, "%s: 'key' is not an object",
 
 RT_ERROR_MSG(JSERR_OptionValueOutOfRange, 5118, "Option value '%s' for '%s' is outside of valid range. Expected: %s", "Option value is outside of valid range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_NeedObjectOrString, 5119, "%s is not an object or a string", "Object or string expected", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "This can't be used in a new statement", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "Function is not a constructor", kjstTypeError, 0)
 
 //Intl Specific
 RT_ERROR_MSG(JSERR_LocaleNotWellFormed, 5121, "Locale '%s' is not well-formed", "Locale is not well-formed", kjstRangeError, 0)

@@ -258,6 +258,8 @@ enum VTableValue {
     VtableNativeFloatArray,
     VtableJavascriptNativeIntArray,
     VtableJavascriptRegExp,
+    VtableScriptFunction,
+    VtableJavascriptGeneratorFunction,
     VtableStackScriptFunction,
     VtableConcatStringMulti,
     VtableCompoundString,

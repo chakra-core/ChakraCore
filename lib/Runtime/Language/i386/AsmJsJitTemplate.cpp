@@ -3349,7 +3349,7 @@ namespace Js
 
             size += PUSH::EncodeInstruction<int>( buffer, InstrParamsReg(reg));
 
-            size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, reg, RecyclableObject::GetTypeOffset()));
+            size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, reg, RecyclableObject::GetOffsetOfType()));
 
             size += MOV::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, RegEAX, ScriptFunctionType::GetEntryPointInfoOffset()));
 
