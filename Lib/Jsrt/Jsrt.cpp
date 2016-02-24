@@ -261,7 +261,7 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
         JsrtContext * context = JsrtContext::New(runtime);
 
 #if ENABLE_TTD
-        if(threadContext->IsTTRequested && !threadContext->IsTTDInitialized())
+        if(createUnderTT && threadContext->IsTTRequested && !threadContext->IsTTDInitialized())
         {
 #if ENABLE_TTD_DEBUGGING
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
@@ -673,7 +673,7 @@ STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ v
 STDAPI_(JsErrorCode) JsCreateContext(_In_ JsRuntimeHandle runtimeHandle, _Out_ JsContextRef *newContext)
 {
     return CreateContextCore(runtimeHandle, false, newContext);
-        }
+}
 
 STDAPI_(JsErrorCode) JsGetCurrentContext(_Out_ JsContextRef *currentContext)
 {
@@ -3144,19 +3144,6 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             HandleScriptCompileError(scriptContext, &se);
             return JsErrorScriptCompile;
         }
-
-        ////
-        //TODO: we may want to handle this differently later
-        if(scriptContext->GetThreadContext()->GetDebugManager() != nullptr && (parseAttributes & JsParseScriptAttributeLibraryCode) != JsParseScriptAttributeLibraryCode)
-        {
-            Js::DebugDocument* debugDocument = scriptFunction->GetFunctionBody()->GetUtf8SourceInfo()->GetDebugDocument();
-
-            Js::StatementLocation statement;
-            debugDocument->GetStatementLocation(1, &statement);
-            debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
-        }
-        //
-        ////
 
 #if ENABLE_TTD
         ThreadContext* threadContext = scriptContext->GetThreadContext();

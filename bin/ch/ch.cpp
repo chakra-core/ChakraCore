@@ -568,6 +568,37 @@ unsigned int LoadNamedPropertyAsUInt(JsValueRef obj, LPCWSTR name)
     AssertMsg(val >= 0, "Failed conversion.");
     return (unsigned int)val;
 }
+
+void StartupDebuggerPortAsNeeded()
+{
+    if(dbgIPAddr != nullptr)
+    {
+        wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
+        path[0] = L'\0';
+
+        GetModuleFileName(NULL, path, MAX_PATH);
+
+        //
+        //TODO: this is an ugly semi-hard coded path we need to fix up
+        //
+        wchar_t* spos = wcsstr(path, L"\\ch.exe");
+        AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
+
+        int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+        std::wstring dbgPath;
+        dbgPath.append(path, 0, ccount);
+        dbgPath.append(L"\\..\\chakra_debug.js");
+
+        LPCWSTR contents = nullptr;
+        Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
+
+        DebuggerCh::SetDbgSrcInfo(contents);
+        DebuggerCh::StartDebugging(chRuntime, dbgIPAddr, dbgPort);
+
+        CoTaskMemFree(path);
+    }
+}
+
 void CreateDirectoryIfNeeded(const wchar_t* path)
 {
     bool isPathDirName = (path[wcslen(path) - 1] == L'\\');
@@ -969,13 +1000,27 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
             unsigned short argc = 1;
             JsValueRef argv[1];
             ChakraRTInterface::JsGetUndefinedValue(argv);
+
+            if(firstScript && dbgIPAddr != nullptr)
+            {
+                JsValueRef functionInfo;
+                ChakraRTInterface::JsDiagGetFunctionPosition(functionRef, &functionInfo);
+
+                unsigned int scriptId = LoadNamedPropertyAsUInt(functionInfo, L"scriptId");
+                unsigned int stmtLine = LoadNamedPropertyAsUInt(functionInfo, L"stmtStartLine");
+                unsigned int stmtColumn = LoadNamedPropertyAsUInt(functionInfo, L"stmtStartColumn");
+
+                JsValueRef bp;
+                ChakraRTInterface::JsDiagSetBreakpoint(scriptId, stmtLine, stmtColumn, &bp);
+            }
+
             if(runScript == JsNoError)
             {
 #if ENABLE_TTD
-            if(doTTRecord)
-            {
-                ChakraRTInterface::JsTTDStartTimeTravelRecording();
-            }
+                if(doTTRecord)
+                {
+                    ChakraRTInterface::JsTTDStartTimeTravelRecording();
+                }
 
                 runScript = ChakraRTInterface::JsTTDCallFunction(-1, functionRef, argv, argc, nullptr /*result*/);
 #else
@@ -1070,36 +1115,10 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
 
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
-
-        if(dbgIPAddr != nullptr)
-        {
-            wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
-            path[0] = L'\0';
-
-            GetModuleFileName(NULL, path, MAX_PATH);
-
-            //
-            //TODO: this is an ugly semi-hard coded path we need to fix up
-            //
-            wchar_t* spos = wcsstr(path, L"\\ch.exe");
-            AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
-
-            int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
-            std::wstring dbgPath;
-            dbgPath.append(path, 0, ccount);
-            dbgPath.append(L"\\..\\chakra_debug.js");
-
-            LPCWSTR contents = nullptr;
-            Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
-
-            DebuggerCh::SetDbgSrcInfo(contents);
-            DebuggerCh::StartDebugging(runtime, dbgIPAddr, dbgPort);
-
-            CoTaskMemFree(path);
-        }
-
         chRuntime = runtime;
+
+        StartupDebuggerPortAsNeeded();
+        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
@@ -1131,9 +1150,10 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         if(doTTRecord)
         {
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
-            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
-
             chRuntime = runtime;
+
+            StartupDebuggerPortAsNeeded();
+            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
@@ -1143,6 +1163,8 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         {
             IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
             chRuntime = runtime;
+
+            StartupDebuggerPortAsNeeded();
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
@@ -1156,33 +1178,6 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 #endif
-
-        if(dbgIPAddr != nullptr)
-        {
-            wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
-            path[0] = L'\0';
-
-            GetModuleFileName(NULL, path, MAX_PATH);
-
-            //
-            //TODO: this is an ugly semi-hard coded path we need to fix up
-            //
-            wchar_t* spos = wcsstr(path, L"\\ch.exe");
-            AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
-
-            int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
-            std::wstring dbgPath;
-            dbgPath.append(path, 0, ccount);
-            dbgPath.append(L"\\..\\chakra_debug.js");
-
-            LPCWSTR contents = nullptr;
-            Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
-
-            DebuggerCh::SetDbgSrcInfo(contents);
-            DebuggerCh::StartDebugging(runtime, dbgIPAddr, dbgPort);
-
-            CoTaskMemFree(path);
-        }
 
         if(!WScriptJsrt::Initialize())
         {
