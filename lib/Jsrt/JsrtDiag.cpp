@@ -105,7 +105,7 @@ STDAPI_(JsErrorCode)
 JsDiagGetScripts(
     _Out_ JsValueRef *scriptsArray)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(scriptsArray);
 
@@ -136,7 +136,7 @@ JsDiagGetSource(
     _In_ unsigned int scriptId,
     _Out_ JsValueRef *source)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         PARAM_NOT_NULL(source);
 
@@ -410,7 +410,7 @@ JsDiagGetFunctionPosition(
     _In_ JsValueRef func,
     _Out_ JsValueRef *funcInfo)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         VALIDATE_INCOMING_REFERENCE(func, scriptContext);
         PARAM_NOT_NULL(funcInfo);
@@ -462,7 +462,7 @@ STDAPI_(JsErrorCode)
 JsDiagGetStacktrace(
     _Out_ JsValueRef *stackTrace)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(stackTrace);
 
         *stackTrace = JS_INVALID_REFERENCE;
@@ -488,7 +488,7 @@ JsDiagGetStackProperties(
     _In_ unsigned int stackFrameIndex,
     _Out_ JsValueRef *properties)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(properties);
 
         *properties = JS_INVALID_REFERENCE;
@@ -527,7 +527,7 @@ JsDiagGetProperties(
     _Out_ JsValueRef *propertiesObject)
 {
 
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(handlesArray, scriptContext);
         PARAM_NOT_NULL(propertiesObject);
 
@@ -571,7 +571,7 @@ JsDiagLookupHandles(
     _In_ JsValueRef handlesArray,
     _Out_ JsValueRef *valuesObject)
 {
-    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         VALIDATE_INCOMING_REFERENCE(handlesArray, scriptContext);
         PARAM_NOT_NULL(valuesObject);
 
