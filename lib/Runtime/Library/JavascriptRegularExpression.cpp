@@ -144,7 +144,7 @@ namespace Js
     {
         if (args.Info.Count == 0 || !JavascriptOperators::IsObject(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);;
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);
         }
 
         return RecyclableObject::FromVar(args[0]);
