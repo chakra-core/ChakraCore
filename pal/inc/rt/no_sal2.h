@@ -25,6 +25,8 @@
 #ifndef _NO_SAL_2_H_
 #define _NO_SAL_2_H_
 
+#undef __notnull
+#define __notnull
 #undef _When_
 #define _When_(c,a)
 #undef _At_
