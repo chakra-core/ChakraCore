@@ -338,3 +338,4 @@ RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegEx
 RT_ERROR_MSG(JSERR_ProxyTrapReturnedFalse, 5642, "Proxy trap `%s` returned false", "Proxy trap returned false", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_ModuleResolveExport, 5643, "Module export %s cannot be resolved", "Module export cannot be resolved", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_TooManyImportExprots, 5644, "Module has too many import/export definitions", "Module has too many import/export definitions", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_ObjectCoercible, 5645, "", "Cannot convert null or undefined to object", kjstTypeError, 0)

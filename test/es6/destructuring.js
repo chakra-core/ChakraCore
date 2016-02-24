@@ -66,8 +66,8 @@ var tests = [
       assert.throws(function () { eval("let a; [++a] = [];"); },     SyntaxError, "Destructured let array assignment with an operator throws",    "Unexpected operator in destructuring expression");
       assert.doesNotThrow(function () { eval("var a = [1], i = 0; [a[i++]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
       assert.doesNotThrow(function () { eval("let a = [1], i = 0; [a[i++]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
-      //assert.doesNotThrow(function () { eval("var a = [1], i = 0; [a[(() => 1 + i)()]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
-      //assert.doesNotThrow(function () { eval("let a = [1], i = 0; [a[(() => 1 + i)()]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
+      assert.doesNotThrow(function () { eval("var a = [1], i = 0; [a[(() => 1 + i)()]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
+      assert.doesNotThrow(function () { eval("let a = [1], i = 0; [a[(() => 1 + i)()]] = [];"); }, "Destructured var array assignment operators inside an identifier reference does not throw");
 
       // Missing values
       assert.doesNotThrow(function () { eval("var [,] = [];"); },   "Destructured var array declaration with no identifiers and missing values does not throw");
@@ -202,14 +202,6 @@ var tests = [
       assert.doesNotThrow(function () { eval("var a, b; [[(a)], ((((((([b])))))))] = [[],[]];"); }, "Destructured var array assignment with valid mixed paren and array nesting does not throw");
       assert.doesNotThrow(function () { eval("let a, b; [[(a)], ((((((([b])))))))] = [[],[]];"); }, "Destructured let array assignment with valid mixed paren and array nesting does not throw");
 
-      // All the things
-      // Currently disabled until default scoping is implemented.
-//      assert.doesNotThrow(function () { eval("var [a = () => 1, [b, [c, d] = [1, 2], ([e])]] = [,[,,[]]];"); },                "Destructured var array declaration with mixed valid syntax does not throw");
-//      assert.doesNotThrow(function () { eval("let [a = () => 1, [b, [c, d] = [1, 2], ([e])]] = [,[,,[]]];"); },                "Destructured let array declaration with mixed valid syntax does not throw");
-//      assert.doesNotThrow(function () { eval("const [a = () => 1, [b, [c, d] = [1, 2], ([e])]] = [,[,,[]]];"); },              "Destructured const array declaration with mixed valid syntax does not throw");
-//      assert.doesNotThrow(function () { eval("var a, b, c, d, e; [a = () => 1, [b, [c, d] = [1, 2], ([e])]] = [,[,,[]]];"); }, "Destructured var array declaration with mixed valid syntax does not throw");
-//      assert.doesNotThrow(function () { eval("let a, b, c, d, e; [a = () => 1, [b, [c, d] = [1, 2], ([e])]] = [,[,,[]]];"); }, "Destructured let array declaration with mixed valid syntax does not throw");
-
       // Redeclarations
       assert.doesNotThrow(function () { eval("var [a, a] = [];"); },    "Destructured var array declaration with a repeated identifier reference does not throw");
       assert.throws(function () { eval("let [a, a] = [];"); },   SyntaxError, "Destructured let array declaration with a repeated identifier reference throws", "Let/Const redeclaration");
@@ -245,31 +237,8 @@ var tests = [
       assert.doesNotThrow(function () { eval("class foo { method() { [super.x] = []; } }"); },      "Destructured var array assignment with super a property reference does not throw");
       assert.doesNotThrow(function () { eval("class foo { method() { [super[\"x\"]] = []; } }"); }, "Destructured array assignment with a super property reference does not throw");
 
-      // for in/of
-      // Not yet implemented.
-//      assert.doesNotThrow(function () { eval("for (var [a] in [1]) { }"); },    "Destructured var array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("for (let [a] in [1]) { }"); },    "Destructured let array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("for (const [a] in [1]) { }"); },  "Destructured const array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("var a; for ([a] in [1]) { }"); }, "Destructured var array assignment in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("let a; for ([a] in [1]) { }"); }, "Destructured let array assignment in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("for (var [a] of [1]) { }"); },    "Destructured var array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("for (let [a] of [1]) { }"); },    "Destructured let array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("for (const [a] of [1]) { }"); },  "Destructured const array declaration in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("var a; for ([a] of [1]) { }"); }, "Destructured var array assignment in a for in statement does not throw");
-//      assert.doesNotThrow(function () { eval("let a; for ([a] of [1]) { }"); }, "Destructured let array assignment in a for in statement does not throw");
-
       // Destructured array expressions used in other constructs
       assert.doesNotThrow(function () { eval("var a; `${[a] = [1]}`"); }, "Destructured assignment does not throw inside a string template");
-
-     /* Function and Catch bindings - not yet implemented
-      assert.doesNotThrow(function () { eval("try { } catch ([a]) { } finally { }"); }, "x = function() { try { } catch ([...a]) { } finally { } }; // ");
-      assert.throws(function () { eval("try { } catch (...a) { } finally { }"); }, SyntaxError, ""); // error
-      assert.throws(function () { eval("try { } catch ([a], b) { } finally { }"); }, SyntaxError, ""); // error
-
-      assert.doesNotThrow(function () { eval("function foo([a]) {}"); }, "x = function() { var obj = { method([a]) {} } }; // ");
-      assert.doesNotThrow(function () { eval("class { method([a]) {} }"); }, "x = function() { ([a]) => a }; // ");
-      assert.throws(function () { eval("[a] => a"); }, SyntaxError, ""); // error
-      */
 
       // OS 597319: Parens before a default value should not throw
       assert.doesNotThrow(function () { eval("[((((vrh190 )))) = 5184] = []"); }, "Destructured array assignment with parens before a default expression should not throw");
