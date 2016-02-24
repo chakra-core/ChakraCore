@@ -272,6 +272,11 @@ STDAPI_(JsErrorCode) JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
             }
         }
 
+        if (runtime->GetDebugObject() != nullptr)
+        {
+            runtime->GetDebugObject()->ClearDebuggerObjects();
+        }
+
         // Close any open Contexts.
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();

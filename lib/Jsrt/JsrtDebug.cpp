@@ -127,9 +127,7 @@ HRESULT JsrtDebug::DbgRegisterFunction(Js::ScriptContext * scriptContext, Js::Fu
 {
     Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
 
-    Assert(!utf8SourceInfo->HasDebugDocument());
-
-    if (!utf8SourceInfo->GetIsLibraryCode())
+    if (!utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->HasDebugDocument())
     {
         DebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
         Assert(debugDocumentManager != nullptr);
@@ -262,8 +260,8 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
         resolvedObject.address = nullptr;
         resolvedObject.obj = scriptContext->GetDebugContext()->GetProbeContainer()->GetExceptionObject();
 
-        if (resolvedObject.obj == nullptr) {
-            Assert(false);
+        if (resolvedObject.obj == nullptr)
+        {
             resolvedObject.obj = resolvedObject.scriptContext->GetLibrary()->GetUndefined();
         }
 
@@ -587,6 +585,14 @@ DebuggerObjectsManager * JsrtDebug::GetDebuggerObjectsManager()
         this->debuggerObjectsManager = Anew(this->GetDebugObjectArena(), DebuggerObjectsManager, this);
     }
     return this->debuggerObjectsManager;
+}
+
+void JsrtDebug::ClearDebuggerObjects()
+{
+    if (this->debuggerObjectsManager != nullptr)
+    {
+        this->debuggerObjectsManager->ClearAll();
+    }
 }
 
 ArenaAllocator * JsrtDebug::GetDebugObjectArena()

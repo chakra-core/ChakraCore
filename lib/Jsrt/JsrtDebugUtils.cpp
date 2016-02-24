@@ -188,14 +188,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             AssertMsg(false, "Not valid types");
             break;
 
-        case Js::TypeIds_NativeIntArray:
-#if ENABLE_COPYONACCESS_ARRAY
-        case Js::TypeIds_CopyOnAccessNativeIntArray:
-#endif
-        case Js::TypeIds_NativeFloatArray:
-        case Js::TypeIds_ES5Array:
-        case Js::TypeIds_CharArray:
-        case Js::TypeIds_BoolArray:
         case Js::TypeIds_ArrayIterator:
         case Js::TypeIds_MapIterator:
         case Js::TypeIds_SetIterator:
@@ -207,6 +199,14 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             AssertMsg(false, "Are these valid types for debugger?");
             break;
 
+        case Js::TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
+        case Js::TypeIds_CopyOnAccessNativeIntArray:
+#endif
+        case Js::TypeIds_NativeFloatArray:
+        case Js::TypeIds_ES5Array:
+        case Js::TypeIds_CharArray:
+        case Js::TypeIds_BoolArray:
         case Js::TypeIds_Object:
         case Js::TypeIds_Array:
         case Js::TypeIds_Date:
@@ -329,7 +329,16 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     {
     case Js::TypeIds_Object: return L"Object";
     case Js::TypeIds_Proxy: return L"Proxy";
-    case Js::TypeIds_Array: return L"Array";
+    case Js::TypeIds_Array:
+    case Js::TypeIds_NativeIntArray:
+#if ENABLE_COPYONACCESS_ARRAY
+    case Js::TypeIds_CopyOnAccessNativeIntArray:
+#endif
+    case Js::TypeIds_NativeFloatArray:
+    case Js::TypeIds_ES5Array:
+    case Js::TypeIds_CharArray:
+    case Js::TypeIds_BoolArray:
+        return L"Array";
     case Js::TypeIds_Date: return L"Date";
     case Js::TypeIds_RegEx: return L"RegExp";
     case Js::TypeIds_Error: return L"Error";

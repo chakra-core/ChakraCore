@@ -55,7 +55,7 @@
   <ItemGroup>
     <ClInclude Include="ChakraCommon.h" />
     <ClInclude Include="ChakraCore.h" />
-    <ClInclude Include="chakrartdebug.h" />
+    <ClInclude Include="ChakraDebug.h" />
     <ClInclude Include="JsrtContext.h" />
     <ClInclude Include="JsrtDebug.h" />
     <ClInclude Include="JsrtDebugEventObject.h" />

@@ -37,6 +37,7 @@ public:
     void GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext* scriptContext);
 
     DebuggerObjectsManager* GetDebuggerObjectsManager();
+    void ClearDebuggerObjects();
 
     ArenaAllocator* GetDebugObjectArena();
 

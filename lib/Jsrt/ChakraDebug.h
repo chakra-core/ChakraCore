@@ -15,8 +15,8 @@
 #pragma once
 #endif  // _MSC_VER
 
-#ifndef _CHAKRARTDEBUG_H_
-#define _CHAKRARTDEBUG_H_
+#ifndef _CHAKRADEBUG_H_
+#define _CHAKRADEBUG_H_
 
     /// <summary>
     ///     Debug events reported from ChakraCore engine.
@@ -505,4 +505,4 @@
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
 
-#endif // _CHAKRARTDEBUG_H_
+#endif // _CHAKRADEBUG_H_
