@@ -5,9 +5,7 @@ add_library (Chakra.Common.Memory
     Allocator.cpp
     ArenaAllocator.cpp
 
-    # xplat-todo: This is needed for allocating jitted code memory
-    # CustomHeap.cpp
-
+    CustomHeap.cpp
     CommonMemoryPch.cpp
     EtwMemoryTracking.cpp
     ForcedMemoryConstraints.cpp
