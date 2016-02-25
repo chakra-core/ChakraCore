@@ -304,7 +304,10 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
 
         if(createUnderTT)
         {
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+            byte* cbMem = HeapNewArrayZ(byte, sizeof(ScriptLoadCallbackTTD));
+            ScriptLoadCallbackTTD* loadCallback = new (cbMem) ScriptLoadCallbackTTD(context);
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), loadCallback);
+
             context->GetScriptContext()->InitializeCoreImage_TTD();
         }
 #endif
@@ -380,7 +383,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 
         if(result != nullptr)
         {
-        TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
+            TTD::RuntimeThreadInfo::JsRTTagObject(threadContext, *result);
         }
 
         //put this here in the hope that after handling an event there is an idle period where we can work without blocking user work
@@ -4005,7 +4008,10 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
             JsrtContext::TrySetCurrent(context);
 
             threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext());
+
+            byte* cbMem = HeapNewArrayZ(byte, sizeof(ScriptLoadCallbackTTD));
+            ScriptLoadCallbackTTD* loadCallback = new (cbMem) ScriptLoadCallbackTTD(context);
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), loadCallback);
 
             //initialize the core image but we need to disable debugging while this happens
             threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);

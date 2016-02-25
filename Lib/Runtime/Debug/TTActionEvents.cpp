@@ -1365,6 +1365,11 @@ namespace TTD
 
         //since we tag in JsRT we need to tag here too
         threadContext->TTDInfo->TrackTagObject(function);
+
+        //
+        //TODO: need to pass the functor in here so that we can trigger script parse callback
+        //
+        AssertMsg(false, "Not implemented yet -- need to pass in functor for script compile callback!!!");
     }
 
     void JsRTCodeParseAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
@@ -1529,6 +1534,36 @@ namespace TTD
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
         Js::RecyclableObject* fobj = execContext->GetThreadContext()->TTDInfo->LookupObjectForTag(this->m_functionTagId);
         Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(fobj);
+
+        ////
+        //TEMP DEBUGGING CODE -- SET A BREAKPOINT AT THE START OF EVERY CALLBACK
+        if(this->m_callbackDepth == 0)
+        {
+            Js::FunctionBody* fb = jsFunction->GetFunctionBody();
+            if(fb != nullptr)
+            {
+                Js::Utf8SourceInfo* utf8SourceInfo = fb->GetUtf8SourceInfo();
+                if(utf8SourceInfo->HasDebugDocument())
+                {
+                    Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
+
+                    uint startOffset = fb->GetStatementStartOffset(0);
+                    ULONG stmtStartLineNumber;
+                    LONG stmtStartColumnNumber;
+                    fb->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber);
+
+                    charcount_t charPosition;
+                    charcount_t byteOffset;
+                    utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)stmtStartLineNumber, &charPosition, &byteOffset);
+                    long ibos = charPosition + stmtStartColumnNumber + 1;
+
+                    debugDocument->SetBreakPoint(ibos, BREAKPOINT_ENABLED);
+                }
+            }
+        }
+        //
+        ////
+
 
         Js::CallInfo callInfo((ushort)this->m_argCount);
         for(uint32 i = 0; i < this->m_argCount; ++i)

@@ -142,3 +142,26 @@ void JsrtContext::Mark(Recycler * recycler)
 {
     AssertMsg(false, "Mark called on object that isn't TrackableObject");
 }
+
+#if ENABLE_TTD
+    ScriptLoadCallbackTTD::ScriptLoadCallbackTTD(JsrtContext* jsrtCtx)
+        : m_jsrtCtx(jsrtCtx)
+    {
+        ;
+    }
+
+    ScriptLoadCallbackTTD::~ScriptLoadCallbackTTD()
+    {
+        ;
+    }
+
+    uint32 ScriptLoadCallbackTTD::UnderlyingMemorySize() const
+    {
+        return sizeof(ScriptLoadCallbackTTD);
+    }
+
+    void ScriptLoadCallbackTTD::OnScriptLoadCallback(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
+    {
+        this->m_jsrtCtx->OnScriptLoad(scriptFunction, utf8SourceInfo, compileException);
+    }
+#endif

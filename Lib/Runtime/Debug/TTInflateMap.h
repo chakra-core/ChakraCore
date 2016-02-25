@@ -8,6 +8,24 @@
 
 namespace TTD
 {
+    //A class that we use to pass in a functor from the host when we need to inform it about something we are doing
+    class HostScriptContextCallbackFunctor
+    {
+    public:
+        HostScriptContextCallbackFunctor()
+        {
+            ;
+        }
+
+        virtual ~HostScriptContextCallbackFunctor()
+        {
+            ;
+        }
+
+        virtual uint32 UnderlyingMemorySize() const = 0;
+        virtual void OnScriptLoadCallback(Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException) = 0;
+    };
+
     //A class that manages inflation maps during heap state restoration
     class InflateMap
     {

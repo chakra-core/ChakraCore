@@ -1887,11 +1887,11 @@ void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doR
     }
 }
 
-void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx)
+void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, TTD::HostScriptContextCallbackFunctor* callbackFunctor)
 {
     AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 
-    this->TTDLog->StartTimeTravelOnScript(ctx);
+    this->TTDLog->StartTimeTravelOnScript(ctx, callbackFunctor);
 }
 
 void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)

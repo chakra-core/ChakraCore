@@ -946,7 +946,7 @@ public:
 
     //Initialize the context for time-travel
     void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay);
-    void BeginCtxTimeTravel(Js::ScriptContext* ctx);
+    void BeginCtxTimeTravel(Js::ScriptContext* ctx, TTD::HostScriptContextCallbackFunctor* callbackFunctor);
     void EndCtxTimeTravel(Js::ScriptContext* ctx);
 
     void MarkLoggedObjects_TTD(TTD::MarkTable& marks) const;

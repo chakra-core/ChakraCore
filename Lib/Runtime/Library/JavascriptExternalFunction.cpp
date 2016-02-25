@@ -284,7 +284,7 @@ namespace Js
             }
         }
 
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
@@ -298,8 +298,7 @@ namespace Js
                 END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
                 scriptContext->TTDRootNestingCount--;
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else if(elog->ShouldPerformRecordAction())
             {
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
@@ -317,6 +316,16 @@ namespace Js
 
                 //no exception check below so I assume the external call cannot have an exception registered
                 logPopper.NormalReturn(false, result);
+            }
+            else
+            {
+                Var result = nullptr;
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                {
+                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
             }
         }
         else
@@ -385,7 +394,7 @@ namespace Js
             }
         }
 
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
@@ -399,8 +408,7 @@ namespace Js
                 END_LEAVE_SCRIPT(scriptContext);
                 scriptContext->TTDRootNestingCount--;
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else if(elog->ShouldPerformRecordAction())
             {
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
@@ -416,6 +424,14 @@ namespace Js
 
                 //exception check is done explicitly below call can have an exception registered
                 logPopper.NormalReturn(true, result);
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT(scriptContext)
+                {
+                    result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                }
+                END_LEAVE_SCRIPT(scriptContext);
             }
         }
         else

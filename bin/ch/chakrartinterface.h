@@ -64,43 +64,43 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDiagGetBreakpointsPtr)(JsValueRef * breakPoints);
     typedef JsErrorCode (WINAPI *JsrtDiagGetPropertiesPtr)(JsValueRef handlesArray, JsValueRef * propertiesObject);
     typedef JsErrorCode (WINAPI *JsrtDiagRemoveBreakpointPtr)(unsigned int breakpointId);
-    typedef JsErrorCode(WINAPI *JsrtDiagSetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType exceptionType);
-    typedef JsErrorCode(WINAPI *JsrtDiagGetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType* exceptionType);
+    typedef JsErrorCode (WINAPI *JsrtDiagSetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType exceptionType);
+    typedef JsErrorCode (WINAPI *JsrtDiagGetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType* exceptionType);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
-    typedef JsErrorCode(WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
-    typedef JsErrorCode(WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
-    typedef JsErrorCode(WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
-    typedef JsErrorCode(WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode (WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode (WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
+    typedef JsErrorCode (WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
+    typedef JsErrorCode (WINAPI *JsrtTTDCallFunctionPtr)(INT64 hostCallbackId, JsValueRef function, JsValueRef* arguments, unsigned short argumentCount, JsValueRef *result);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDSetDebuggerForReplayPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDSetIOCallbacksPtr)(JsRuntimeHandle runtime, JsTTDInitializeTTDUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
+    typedef JsErrorCode (WINAPI *JsrtTTDSetDebuggerForReplayPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDSetIOCallbacksPtr)(JsRuntimeHandle runtime, JsTTDInitializeTTDUriCallback ttdInitializeTTDUriFunction, JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, JsTTDGetLogStreamCallback getLogStreamInfo, JsTTDGetSnapshotStreamCallback getSnapshotStreamInfo, JsTTDGetSrcCodeStreamCallback getSrcCodeStreamInfo, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelRecordingPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDStopTimeTravelRecordingPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDEmitTimeTravelRecordingPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDStartTimeTravelDebuggingPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
-    typedef JsErrorCode(WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDStartTimeTravelRecordingPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDStopTimeTravelRecordingPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDEmitTimeTravelRecordingPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDStartTimeTravelDebuggingPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
 
-    typedef JsErrorCode(WINAPI *JsrtTTDPrintVariablePtr)(wchar_t* varName);
+    typedef JsErrorCode (WINAPI *JsrtTTDPrintVariablePtr)(wchar_t* varName);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDGetExecutionTimeInfoPtr)(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
-    typedef JsErrorCode(WINAPI *JsrtTTDGetLastExceptionThrowTimeInfoPtr)(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
-    typedef JsErrorCode(WINAPI *JsrtTTDGetLastFunctionReturnTimeInfoPtr)(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
+    typedef JsErrorCode (WINAPI *JsrtTTDGetExecutionTimeInfoPtr)(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
+    typedef JsErrorCode (WINAPI *JsrtTTDGetLastExceptionThrowTimeInfoPtr)(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
+    typedef JsErrorCode (WINAPI *JsrtTTDGetLastFunctionReturnTimeInfoPtr)(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId);
-    typedef JsErrorCode(WINAPI *JsrtTTDGetCurrentCallbackOperationTimeInfoPtr)(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, _Out_ UINT32* sourceId);
+    typedef JsErrorCode (WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId);
+    typedef JsErrorCode (WINAPI *JsrtTTDGetCurrentCallbackOperationTimeInfoPtr)(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, _Out_ UINT32* sourceId);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDSetBPPtr)(INT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId);
-    typedef JsErrorCode(WINAPI *JsrtTTDSetStepBPPtr)(bool into);
-    typedef JsErrorCode(WINAPI *JsrtTTDSetContinueBPPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDSetBPPtr)(INT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId);
+    typedef JsErrorCode (WINAPI *JsrtTTDSetStepBPPtr)(bool into);
+    typedef JsErrorCode (WINAPI *JsrtTTDSetContinueBPPtr)();
 
-    typedef JsErrorCode(WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
-    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
-    typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
+    typedef JsErrorCode (WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
+    typedef JsErrorCode (WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
+    typedef JsErrorCode (WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
 
-    typedef JsErrorCode(WINAPI *JsrtTTDTestingCompareArtifactsPtr)();
+    typedef JsErrorCode (WINAPI *JsrtTTDTestingCompareArtifactsPtr)();
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;

@@ -42,3 +42,18 @@ private:
     JsrtContext * next;
 };
 
+#if ENABLE_TTD
+class ScriptLoadCallbackTTD : public TTD::HostScriptContextCallbackFunctor
+{
+private:
+    JsrtContext* m_jsrtCtx;
+
+public:
+    ScriptLoadCallbackTTD(JsrtContext* jsrtCtx);
+    virtual ~ScriptLoadCallbackTTD() override;
+
+    virtual uint32 UnderlyingMemorySize() const override;
+    virtual void OnScriptLoadCallback(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException) override;
+};
+#endif
+

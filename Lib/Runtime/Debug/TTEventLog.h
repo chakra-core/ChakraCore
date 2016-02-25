@@ -198,8 +198,9 @@ namespace TTD
         JsUtil::List<TTDMode, HeapAllocator> m_modeStack;
         TTDMode m_currentMode;
 
-        //A list of contexts that are being run in TTD mode -- We assume the host creates a single context for now 
+        //A list of contexts that are being run in TTD mode (and the associated callback functors) -- We assume the host creates a single context for now 
         Js::ScriptContext* m_ttdContext;
+        HostScriptContextCallbackFunctor* m_hostCallbackFunctor;
 
         //The snapshot extractor that this log uses
         SnapshotExtractor m_snapExtractor;
@@ -263,7 +264,7 @@ namespace TTD
         void InitForTTDReplay();
 
         //Add/remove script contexts from time travel
-        void StartTimeTravelOnScript(Js::ScriptContext* ctx);
+        void StartTimeTravelOnScript(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor* callbackFunctor);
         void StopTimeTravelOnScript(Js::ScriptContext* ctx);
 
         //reset the bottom (global) mode with the specific value

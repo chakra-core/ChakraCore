@@ -313,6 +313,11 @@ void JsrtDebug::CallDebugEventCallback(JsDiagDebugEvent debugEvent, Js::DynamicO
 
     if (scriptContext->GetThreadContext()->IsScriptActive())
     {
+        //
+        //TODO: this is weird -- Ensure we force this before leaving script context 
+        //
+        this->GetDebuggerObjectsManager();
+
         BEGIN_LEAVE_SCRIPT(scriptContext)
         {
             funcPtr();
