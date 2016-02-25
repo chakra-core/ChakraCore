@@ -448,7 +448,6 @@
     ///            "line" : 1,
     ///            "column" : 63,
     ///            "name" : "foo",
-    ///            "inferredName" : "foo",
     ///            "type" : "function",
     ///            "handle" : 2
     ///        },

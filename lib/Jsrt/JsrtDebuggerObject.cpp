@@ -752,7 +752,6 @@ Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * sc
         JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::line, this->functionBody->GetLineNumber(), scriptContext);
         JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::column, this->functionBody->GetColumnNumber(), scriptContext);
         JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::name, this->functionBody->GetDisplayName(), scriptContext);
-        JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::inferredName, this->functionBody->GetDisplayName(), scriptContext);
         JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetFunctionTypeDisplayString()->GetSz(), scriptContext);
         JsrtDebugUtils::AddPropertyToObject(this->functionObject, JsrtDebugPropertyId::handle, this->GetHandle(), scriptContext);
     }
