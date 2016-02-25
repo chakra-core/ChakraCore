@@ -72,7 +72,7 @@ namespace Js
         static Var RegexMatchResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexMatchResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexMatchResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        static Var RegexMatch(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
+        static Var RegexMatch(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexMatchNoHistory(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult);
         static Var RegexExecResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
@@ -114,7 +114,11 @@ namespace Js
     private:
         static void AppendSubString(ScriptContext* scriptContext, JavascriptArray* ary, CharCount& numElems, JavascriptString* input, CharCount startInclusive, CharCount endExclusive);
         template <bool updateHistory>
-        static Var RegexMatchImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
+        static Var RegexMatchImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
+        static bool IsRegexSymbolMatchObservable(RecyclableObject* instance, ScriptContext* scriptContext);
+        static Var RegexEs6MatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer);
+        template <bool updateHistory>
+        static Var RegexEs5MatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexExecImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, JavascriptString* options, bool noResult);
         static Var RegexReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn, JavascriptString* options);
@@ -122,5 +126,6 @@ namespace Js
         __inline static UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression);
         static Var RegexSplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static int GetReplaceSubstitutions(const wchar_t * const replaceStr, CharCount const replaceLength, ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut);
+        static int64 AdvanceStringIndex(JavascriptString* string, int64 index, bool isUnicode);
     };
 }

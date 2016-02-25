@@ -384,6 +384,10 @@ namespace Js
         JavascriptSymbol* symbolSearch;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
+        JavascriptFunction* regexExecFunction;
+        JavascriptFunction* regexGlobalGetterFunction;
+        JavascriptFunction* regexStickyGetterFunction;
+        JavascriptFunction* regexUnicodeGetterFunction;
 
         mutable CharStringCache charStringCache;
 
@@ -428,7 +432,10 @@ namespace Js
 
         JavascriptFunction * AddFunctionToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * functionInfo, int length);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
-        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
+        void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject * getterFunction, RecyclableObject * setterFunction);
+        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunction);
+        RuntimeFunction * CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
+        RuntimeFunction * CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
 
         template <size_t N>
         JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const wchar_t(&propertyName)[N], FunctionInfo * functionInfo, int length);
@@ -707,6 +714,10 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
+        JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
+        JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 

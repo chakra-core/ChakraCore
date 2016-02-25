@@ -3876,8 +3876,11 @@ namespace Js
         JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
 
         library->AddMember(regexPrototype, PropertyIds::constructor, library->regexConstructor);
+
         func = library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::exec, &JavascriptRegExp::EntryInfo::Exec, 1);
         builtinFuncs[BuiltinFunction::RegExp_Exec] = func;
+        library->regexExecFunction = func;
+
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::test, &JavascriptRegExp::EntryInfo::Test, 1);
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::toString, &JavascriptRegExp::EntryInfo::ToString, 0);
         // This is deprecated. Should be guarded with appropriate version flag.
@@ -3887,7 +3890,10 @@ namespace Js
 
         if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         {
-            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal, nullptr);
+            RuntimeFunction* globalGetter = library->CreateGetterFunction(PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
+            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, globalGetter, nullptr);
+            library->regexGlobalGetterFunction = globalGetter;
+
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
@@ -3896,12 +3902,16 @@ namespace Js
 
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky, nullptr);
+                RuntimeFunction* stickyGetter = library->CreateGetterFunction(PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, stickyGetter, nullptr);
+                library->regexStickyGetterFunction = stickyGetter;
             }
 
             if (scriptConfig->IsES6UnicodeExtensionsEnabled())
             {
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode, nullptr);
+                RuntimeFunction* unicodeGetter = library->CreateGetterFunction(PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
+                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, unicodeGetter, nullptr);
+                library->regexUnicodeGetterFunction = unicodeGetter;
             }
 
         }
@@ -4467,36 +4477,47 @@ namespace Js
         AddAccessorsToLibraryObjectWithName(object, propertyId, propertyId, getterFunctionInfo, setterFunctionInfo);
     }
 
-    void JavascriptLibrary::AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId name, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo)
+    void JavascriptLibrary::AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject* getterFunction, RecyclableObject* setterFunction)
     {
-        Js::RecyclableObject * getter;
-        Js::RecyclableObject * setter;
-
-        if (getterFunctionInfo != nullptr)
+        if (getterFunction == nullptr)
         {
-            Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"get ", scriptContext), scriptContext->GetPropertyString(name));
-            RuntimeFunction* getterFunction = DefaultCreateFunction(getterFunctionInfo, 0, nullptr, nullptr, name_withGetPrefix);
-            getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
-            getter = getterFunction;
-        }
-        else
-        {
-            getter = GetUndefined();
+            getterFunction = GetUndefined();
         }
 
-        if (setterFunctionInfo != nullptr)
+        if (setterFunction == nullptr)
         {
-            Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"set ", scriptContext), scriptContext->GetPropertyString(name));
-            RuntimeFunction* setterFunction = DefaultCreateFunction(setterFunctionInfo, 0, nullptr, nullptr, name_withSetPrefix);
-            setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
-            setter = setterFunction;
+            setterFunction = GetUndefined();
         }
-        else
-        {
-            setter = GetUndefined();
-        }
-        object->SetAccessors(propertyId, getter, setter);
+
+        object->SetAccessors(propertyId, getterFunction, setterFunction);
         object->SetAttributes(propertyId, PropertyConfigurable | PropertyWritable);
+    }
+
+    void JavascriptLibrary::AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo)
+    {
+        Js::RuntimeFunction* getterFunction = (getterFunctionInfo != nullptr)
+            ? CreateGetterFunction(nameId, getterFunctionInfo)
+            : nullptr;
+        Js::RuntimeFunction* setterFunction = (setterFunctionInfo != nullptr)
+            ? CreateSetterFunction(nameId, setterFunctionInfo)
+            : nullptr;
+        AddAccessorsToLibraryObject(object, propertyId, getterFunction, setterFunction);
+    }
+
+    RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
+    {
+        Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"get ", scriptContext), scriptContext->GetPropertyString(nameId));
+        RuntimeFunction* getterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withGetPrefix);
+        getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
+        return getterFunction;
+    }
+
+    RuntimeFunction* JavascriptLibrary::CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
+    {
+        Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"set ", scriptContext), scriptContext->GetPropertyString(nameId));
+        RuntimeFunction* setterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withSetPrefix);
+        setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
+        return setterFunction;
     }
 
     void JavascriptLibrary::AddMember(DynamicObject* object, PropertyId propertyId, Var value)
