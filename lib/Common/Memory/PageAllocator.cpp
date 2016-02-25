@@ -2419,14 +2419,15 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, boo
     // If we are not allocating xdata there is nothing to do
 
     // ARM might allocate XDATA but not have a reserved region for it (no secondary alloc reserved space)
-    if(!allocXdata)
+    if (!allocXdata)
     {
         Assert(segment->GetSecondaryAllocSize() == 0);
         *allocator = nullptr;
         return true;
     }
 
-    if (!committed && !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
+    if (!committed && segment->GetSecondaryAllocSize() != 0 &&
+        !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
         MEM_COMMIT, PAGE_READWRITE, true))
     {
         *allocator = nullptr;
@@ -2435,9 +2436,9 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, boo
 
     XDataAllocator* secondaryAllocator = HeapNewNoThrow(XDataAllocator, (BYTE*)segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize());
     bool success = false;
-    if(secondaryAllocator)
+    if (secondaryAllocator)
     {
-        if(secondaryAllocator->Initialize((BYTE*)segment->GetAddress(), (BYTE*)segment->GetEndAddress()))
+        if (secondaryAllocator->Initialize((BYTE*)segment->GetAddress(), (BYTE*)segment->GetEndAddress()))
         {
             success = true;
         }
