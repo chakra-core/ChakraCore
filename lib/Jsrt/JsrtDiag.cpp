@@ -75,7 +75,7 @@ STDAPI_(JsErrorCode) JsDiagStartDebugging(
         {
             if (!scriptContext->IsClosed())
             {
-                Assert(!scriptContext->IsInDebugOrSourceRundownMode());
+                Assert(!scriptContext->IsScriptContextInSourceRundownOrDebugMode());
 
                 Js::DebugContext* debugContext = scriptContext->GetDebugContext();
 
