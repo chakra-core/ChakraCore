@@ -10418,7 +10418,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     // Scanner should run in Running mode and not syntax coloring mode
     grfscr &= ~fscrSyntaxColor;
 
-    if (this->m_scriptContext->IsInDebugMode() || PHASE_OFF1(Js::Phase::DeferParsePhase)
+    if (this->m_scriptContext->IsScriptContextInDebugMode() || PHASE_OFF1(Js::Phase::DeferParsePhase)
 #ifdef ENABLE_PREJIT
          || Js::Configuration::Global.flags.Prejit
 #endif
@@ -10432,7 +10432,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     else if (!(grfscr & fscrGlobalCode) &&
              (
                  PHASE_OFF1(Js::Phase::DeferEventHandlersPhase) ||
-                 this->m_scriptContext->IsInDebugOrSourceRundownMode()
+                 this->m_scriptContext->IsScriptContextInSourceRundownOrDebugMode()
              )
         )
     {
@@ -10731,7 +10731,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
         !m_pscan->IsEscapeOnLastTkStrCon() &&
         wcsncmp(pid->Psz(), L"use asm", 10) == 0);
 
-    if (isAsmCandidate && m_scriptContext->IsInDebugMode())
+    if (isAsmCandidate && m_scriptContext->IsScriptContextInDebugMode())
     {
         // We would like to report this to debugger - they may choose to disable debugging.
         // TODO : localization of the string?

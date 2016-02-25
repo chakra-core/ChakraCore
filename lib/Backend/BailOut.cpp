@@ -575,8 +575,8 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
 
     if (this->localOffsetsCount)
     {
-#if ENABLE_DEBUG_CONFIG_OPTIONS
         Js::FunctionBody* functionBody = newInstance->function->GetFunctionBody();
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         BAILOUT_VERBOSE_TRACE(functionBody, bailOutKind, L"BailOut:   Register #%3d: Not live\n", 0);
 
         for (uint i = 1; i < functionBody->GetConstantCount(); i++)
@@ -585,7 +585,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         }
 #endif
 
-        if (scriptContext->IsInDebugMode())
+        if (functionBody->IsInDebugMode())
         {
             this->AdjustOffsetsForDiagMode(layout, newInstance->GetJavascriptFunction());
         }
@@ -657,10 +657,10 @@ BailOutRecord::AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, 
     // 1. Check if the value got changed (by checking at the particular location at the stack)
     // 2. In that case update the offset to point to the stack offset
 
-    Assert(function->GetScriptContext()->IsInDebugMode());
-
     Js::FunctionBody *functionBody =  function->GetFunctionBody();
     Assert(functionBody != nullptr);
+
+    Assert(functionBody->IsInDebugMode());
 
     Js::FunctionEntryPointInfo *entryPointInfo = functionBody->GetDefaultFunctionEntryPointInfo();
     Assert(entryPointInfo != nullptr);
@@ -752,7 +752,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             else
             {
                 value = layout->GetOffset(offset);
-                AssertMsg(!(scriptContext->IsInDebugMode() &&
+                AssertMsg(!(newInstance->function->GetFunctionBody()->IsInDebugMode() &&
                     newInstance->function->GetFunctionBody()->IsNonTempLocalVar(regSlot) &&
                     value == (Js::Var)Func::c_debugFillPattern),
                     "Uninitialized value (debug mode only)? Try -trace:bailout -verbose and check last traced reg in byte code.");
@@ -769,7 +769,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             Assert(!isFloat64 && !isInt32 && !isSimd128F4 && !isSimd128I4);
 
             value = *((Js::Var *)(((char *)argoutRestoreAddress) + regSlot * MachPtr));
-            AssertMsg(!(scriptContext->IsInDebugMode() &&
+            AssertMsg(!(newInstance->function->GetFunctionBody()->IsInDebugMode() &&
                 newInstance->function->GetFunctionBody()->IsNonTempLocalVar(regSlot) &&
                 value == (Js::Var)Func::c_debugFillPattern),
                 "Uninitialized value (debug mode only)? Try -trace:bailout -verbose and check last traced reg in byte code.");
@@ -1215,7 +1215,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     // Clear the disable implicit call bit in case we bail from that region
     functionScriptContext->GetThreadContext()->ClearDisableImplicitFlags();
 
-    bool isInDebugMode = functionScriptContext->IsInDebugMode();
+    bool isInDebugMode = executeFunction->IsInDebugMode();
     AssertMsg(!isInDebugMode || Js::Configuration::Global.EnableJitInDebugMode(),
         "In diag mode we can get here (function has to be JIT'ed) only when EnableJitInDiagMode is true!");
 
@@ -2389,8 +2389,7 @@ Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ScriptFunction * function = *functionRef;
     Js::FunctionBody * executeFunction = function->GetFunctionBody();
-    Js::ScriptContext * functionScriptContext = executeFunction->GetScriptContext();
-    bool isInDebugMode = functionScriptContext->IsInDebugMode();
+    bool isInDebugMode = executeFunction->IsInDebugMode();
 
     Js::JavascriptGenerator* generator = static_cast<Js::JavascriptGenerator*>(layout->args[0]);
     Js::InterpreterStackFrame* frame = generator->GetFrame();

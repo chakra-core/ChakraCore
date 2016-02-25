@@ -13,7 +13,7 @@ namespace Js
     // if m_cchLength < 0 it came from an external source.
     // If m_cbLength > abs(m_cchLength) then m_utf8Source contains non-ASCII (multi-byte encoded) characters.
 
-    Utf8SourceInfo::Utf8SourceInfo(ISourceHolder* mappableSource, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext) :
+    Utf8SourceInfo::Utf8SourceInfo(ISourceHolder* mappableSource, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext, bool isLibraryCode) :
         sourceHolder(mappableSource),
         m_cchLength(cchLength),
         m_pOriginalSourceInfo(nullptr),
@@ -23,7 +23,7 @@ namespace Js
         m_sourceInfoId(scriptContext->GetThreadContext()->NewSourceInfoNumber()),
         m_hasHostBuffer(false),
         m_isCesu8(false),
-        m_isLibraryCode(false),
+        m_isLibraryCode(isLibraryCode),
         m_isXDomain(false),
         m_isXDomainString(false),
         m_scriptContext(scriptContext),
@@ -33,6 +33,7 @@ namespace Js
         debugModeSource(nullptr),
         debugModeSourceIsEmpty(false),
         debugModeSourceLength(0),
+        m_isInDebugMode(false),
         callerUtf8SourceInfo(nullptr)
     {
         if (!sourceHolder->IsDeferrable())
@@ -46,7 +47,7 @@ namespace Js
     LPCUTF8 Utf8SourceInfo::GetSource(const wchar_t * reason) const
     {
         AssertMsg(this->sourceHolder != nullptr, "We have no source mapper.");
-        if (this->m_scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             AssertMsg(this->debugModeSource != nullptr || this->debugModeSourceIsEmpty, "Debug mode source should have been set by this point.");
             return debugModeSource;
@@ -60,7 +61,7 @@ namespace Js
     size_t Utf8SourceInfo::GetCbLength(const wchar_t * reason) const
     {
         AssertMsg(this->sourceHolder != nullptr, "We have no source mapper.");
-        if (this->m_scriptContext->IsInDebugMode())
+        if (this->IsInDebugMode())
         {
             AssertMsg(this->debugModeSource != nullptr || this->debugModeSourceIsEmpty, "Debug mode source should have been set by this point.");
             return debugModeSourceLength;
@@ -155,7 +156,7 @@ namespace Js
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo)
+    Utf8SourceInfo::NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo, bool isLibraryCode)
     {
         // TODO: make this finalizable? Or have a finalizable version which would HeapDelete the string? Is this needed?
         DWORD_PTR secondaryHostSourceContext = Js::Constants::NoHostSourceContext;
@@ -166,9 +167,9 @@ namespace Js
 
         Recycler * recycler = scriptContext->GetRecycler();
         Utf8SourceInfo* toReturn = RecyclerNewFinalized(recycler,
-            Utf8SourceInfo, sourceHolder, length, SRCINFO::Copy(recycler, srcInfo), secondaryHostSourceContext, scriptContext);
+            Utf8SourceInfo, sourceHolder, length, SRCINFO::Copy(recycler, srcInfo), secondaryHostSourceContext, scriptContext, isLibraryCode);
 
-        if (scriptContext->IsInDebugMode())
+        if (!isLibraryCode && scriptContext->IsScriptContextInDebugMode())
         {
             toReturn->debugModeSource = sourceHolder->GetSource(L"Debug Mode Loading");
             toReturn->debugModeSourceLength = sourceHolder->GetByteLength(L"Debug Mode Loading");
@@ -179,19 +180,19 @@ namespace Js
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo)
+    Utf8SourceInfo::New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode)
     {
         utf8char_t * newUtf8String = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), utf8char_t, numBytes + 1);
         js_memcpy_s(newUtf8String, numBytes + 1, utf8String, numBytes + 1);
-        return NewWithNoCopy(scriptContext, newUtf8String, length, numBytes, srcInfo);
+        return NewWithNoCopy(scriptContext, newUtf8String, length, numBytes, srcInfo, isLibraryCode);
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const * srcInfo)
+    Utf8SourceInfo::NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const * srcInfo, bool isLibraryCode)
     {
         ISourceHolder* sourceHolder = RecyclerNew(scriptContext->GetRecycler(), SimpleSourceHolder, utf8String, numBytes);
 
-        return NewWithHolder(scriptContext, sourceHolder, length, srcInfo);
+        return NewWithHolder(scriptContext, sourceHolder, length, srcInfo, isLibraryCode);
     }
 
 
@@ -199,13 +200,14 @@ namespace Js
     Utf8SourceInfo::Clone(ScriptContext* scriptContext, const Utf8SourceInfo* sourceInfo)
     {
         Utf8SourceInfo* newSourceInfo = Utf8SourceInfo::NewWithHolder(scriptContext, sourceInfo->GetSourceHolder()->Clone(scriptContext), sourceInfo->m_cchLength,
-             SRCINFO::Copy(scriptContext->GetRecycler(), sourceInfo->GetSrcInfo()));
+             SRCINFO::Copy(scriptContext->GetRecycler(), sourceInfo->GetSrcInfo()), sourceInfo->m_isLibraryCode);
         newSourceInfo->m_isXDomain = sourceInfo->m_isXDomain;
         newSourceInfo->m_isXDomainString = sourceInfo->m_isXDomainString;
         newSourceInfo->m_isLibraryCode = sourceInfo->m_isLibraryCode;
         newSourceInfo->SetIsCesu8(sourceInfo->GetIsCesu8());
         newSourceInfo->m_lineOffsetCache = sourceInfo->m_lineOffsetCache;
-        if (scriptContext->IsInDebugMode())
+
+        if (scriptContext->IsScriptContextInDebugMode() && !newSourceInfo->GetIsLibraryCode())
         {
             newSourceInfo->SetInDebugMode(true);
         }
@@ -216,7 +218,7 @@ namespace Js
     Utf8SourceInfo::CloneNoCopy(ScriptContext* scriptContext, const Utf8SourceInfo* sourceInfo, SRCINFO const* srcInfo)
     {
         Utf8SourceInfo* newSourceInfo = Utf8SourceInfo::NewWithHolder(scriptContext, sourceInfo->GetSourceHolder(), sourceInfo->m_cchLength,
-             srcInfo ? srcInfo : sourceInfo->GetSrcInfo());
+             srcInfo ? srcInfo : sourceInfo->GetSrcInfo(), sourceInfo->m_isLibraryCode);
         newSourceInfo->m_isXDomain = sourceInfo->m_isXDomain;
         newSourceInfo->m_isXDomainString = sourceInfo->m_isXDomainString;
         newSourceInfo->m_isLibraryCode = sourceInfo->m_isLibraryCode;

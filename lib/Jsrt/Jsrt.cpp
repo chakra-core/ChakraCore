@@ -2533,7 +2533,7 @@ JsErrorCode JsSerializeScriptCore(const wchar_t *script, BYTE *functionTable, in
             ZeroMemory(buffer, *bufferSize);
         }
 
-        if (scriptContext->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode())
         {
             return JsErrorCannotSerializeDebugScript;
         }
