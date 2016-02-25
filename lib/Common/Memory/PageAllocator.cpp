@@ -2312,7 +2312,7 @@ bool HeapPageAllocator<T>::AllocSecondary(void* segmentParam, ULONG_PTR function
 }
 
 template<typename T>
-void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocation, void* segmentParam)
+bool HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocation, void* segmentParam)
 {
     SegmentBase<T> * segment = (SegmentBase<T>*)segmentParam;
     Assert(allocation.address != nullptr);
@@ -2335,6 +2335,7 @@ void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocatio
             AssertMsg(fromList == &fullSegments, "Releasing a secondary allocator should make a state change only if the segment was originally in the full list");
             AssertMsg(pageSegment->CanAllocSecondary(), "It should be allocate secondary now");
             this->AddFreePageCount(pageSegment->GetFreePageCount());
+            return true;
         }
     }
     else
@@ -2342,6 +2343,7 @@ void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocatio
         Assert(segment->CanAllocSecondary());
         segment->GetSecondaryAllocator()->Release(allocation);
     }
+    return false;
 }
 
 template<typename T>
