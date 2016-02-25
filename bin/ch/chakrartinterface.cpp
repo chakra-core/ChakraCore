@@ -115,7 +115,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtTTDRunScript = (JsAPIHooks::JsrtTTDRunScriptPtr)GetProcAddress(library, "JsTTDRunScript");
     m_jsApiHooks.pfJsrtTTDCallFunction = (JsAPIHooks::JsrtTTDCallFunctionPtr)GetProcAddress(library, "JsTTDCallFunction");
 
-    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = (JsAPIHooks::JsrtTTDSetDebuggerCallbackPtr)GetProcAddress(library, "JsTTDSetDebuggerCallback");
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = (JsAPIHooks::JsrtTTDSetDebuggerForReplayPtr)GetProcAddress(library, "JsTTDSetDebuggerForReplay");
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
 
     m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = (JsAPIHooks::JsrtTTDStartTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStartTimeTravelRecording");
@@ -143,7 +143,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetProcAddress(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetProcAddress(library, "JsTTDReplayExecution");
 #else
-    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = nullptr;
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = nullptr;
     m_jsApiHooks.pfJsrtTTDPrintVariable = nullptr;
 

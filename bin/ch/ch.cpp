@@ -571,7 +571,12 @@ unsigned int LoadNamedPropertyAsUInt(JsValueRef obj, LPCWSTR name)
 
 void StartupDebuggerAsNeeded()
 {
-    if(dbgIPAddr != nullptr)
+    if(dbgIPAddr == nullptr)
+    {
+        //we need to force the script context into dbg mode for replay even if we don't attach the debugger -- so do that here
+        ChakraRTInterface::JsTTDSetDebuggerForReplay();
+    }
+    else
     {
         wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
         path[0] = L'\0';
@@ -899,7 +904,7 @@ static void CALLBACK TTFlushAndCloseStreamCallback(HANDLE strm, bool read, bool 
     }
 }
 
-HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_t *fullPath, bool firstScript)
+HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_t *fullPath)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -998,7 +1003,7 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
             JsValueRef argv[1];
             ChakraRTInterface::JsGetUndefinedValue(argv);
 
-            if(firstScript && dbgIPAddr != nullptr)
+            if(dbgIPAddr != nullptr)
             {
                 JsValueRef functionInfo;
                 ChakraRTInterface::JsDiagGetFunctionPosition(functionRef, &functionInfo);
@@ -1042,6 +1047,13 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
     }
 
 Error:
+#if ENABLE_TTD
+    if(doTTRecord)
+    {
+        ChakraRTInterface::JsTTDStopTimeTravelRecording();
+    }
+#endif
+
     if (messageQueue != nullptr)
     {
         delete messageQueue;
@@ -1073,7 +1085,7 @@ HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, wch
         IfFailGo(E_FAIL);
     }
 
-    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath, false));
+    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
 
 Error:
     if (bcBuffer != nullptr)
@@ -1122,7 +1134,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 
         StartupDebuggerAsNeeded();
 
-        IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr, true));
+        IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
 #endif
     }
     else
@@ -1230,7 +1242,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
         else
         {
-            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath, true));
+            IfFailGo(RunScript(fileName, fileContents, nullptr, fullPath));
         }
     }
 
@@ -1300,7 +1312,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         return EXIT_FAILURE;
     }
 
-    int cpos = -1;
+    int cpos = 0;
     for(int i = 0; i < argc; ++i)
     {
         if(wcsstr(argv[i], L"-TTRecord:") == argv[i])
@@ -1322,15 +1334,11 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         }
         else
         {
+            argv[cpos] = argv[i];
             cpos++;
         }
-
-        if(cpos != i)
-        {
-            argv[cpos] = argv[i];
-        }
     }
-    argc = cpos + 1;
+    argc = cpos;
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
 

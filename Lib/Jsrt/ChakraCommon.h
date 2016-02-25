@@ -2687,11 +2687,10 @@
             _Out_opt_ JsValueRef *result);
 
     /// <summary>
-    ///     Set the function that is called when the debugger hits a breakpoint.
+    ///     Set the current script context into debug/replay mode for replay without debugger attach.
     /// </summary>
     STDAPI_(JsErrorCode)
-        JsTTDSetDebuggerCallback(
-            _In_ JsTTDDbgCallback debuggerCallback);
+        JsTTDSetDebuggerForReplay();
 
     /// <summary>
     ///     Set the functions that the TTD system uses to write info out of main memory when needed.

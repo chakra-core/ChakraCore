@@ -3526,7 +3526,7 @@ STDAPI_(JsErrorCode) JsTTDCallFunction(_In_ INT64 hostCallbackId, _In_ JsValueRe
     return CallFunctionCore(hostCallbackId, function, arguments, argumentCount, result);
 }
 
-STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
+STDAPI_(JsErrorCode) JsTTDSetDebuggerForReplay()
 {
 #if !ENABLE_TTD_DEBUGGING
     return JsErrorCategoryUsage;
@@ -3538,7 +3538,7 @@ STDAPI_(JsErrorCode) JsTTDSetDebuggerCallback(JsTTDDbgCallback debuggerCallback)
         return JsErrorCategoryUsage;
     }
 
-    currentContext->GetRuntime()->GetThreadContext()->TTDLog->BPDbgCallback = debuggerCallback;
+    currentContext->GetScriptContext()->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
 
     return JsNoError;
 #endif

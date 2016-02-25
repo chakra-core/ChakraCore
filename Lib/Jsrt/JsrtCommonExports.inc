@@ -110,7 +110,7 @@
     JsTTDCreateContext
     JsTTDRunScript
     JsTTDCallFunction
-    JsTTDSetDebuggerCallback
+    JsTTDSetDebuggerForReplay
     JsTTDSetIOCallbacks
     JsTTDStartTimeTravelRecording
     JsTTDStopTimeTravelRecording
