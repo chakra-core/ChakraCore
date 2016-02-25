@@ -33,6 +33,7 @@
 
 namespace Js
 {
+    CriticalSection FunctionProxy::auxPtrsLock;
 
 #ifdef FIELD_ACCESS_STATS
     void FieldAccessStats::Add(FieldAccessStats* other)
@@ -72,14 +73,45 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
+    inline Recycler* FunctionProxy::GetRecycler() const
+    {
+        return m_scriptContext->GetRecycler(); 
+    }
+
     inline void* FunctionProxy::GetAuxPtr(AuxPointerType e) const
     {
+        if (this->auxPtrs == nullptr)
+        {
+            return nullptr;
+        }
+
+        // On process detach this can be called from another thread but the ThreadContext should be locked
+        Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
+    inline void* FunctionProxy::GetAuxPtrWithLock(AuxPointerType e) const
+    {
+        if (this->auxPtrs == nullptr)
+        {
+            return nullptr;
+        }
+        AutoCriticalSection autoCS(&auxPtrsLock);
+        return AuxPtrsT::GetAuxPtr(this, e);
+    }
+
     inline void FunctionProxy::SetAuxPtr(AuxPointerType e, void* ptr)
     {
-        return AuxPtrsT::SetAuxPtr(this, e, ptr,
-            ptr == nullptr ? nullptr : m_scriptContext->GetRecycler());// when setting ptr to null we never need to promote
+        // On process detach this can be called from another thread but the ThreadContext should be locked
+        Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
+        
+        if (ptr == nullptr && GetAuxPtr(e) == nullptr)
+        {
+            return;
+        }
+
+        // when setting ptr to null we never need to promote
+        AutoCriticalSection aucoCS(&auxPtrsLock);
+        AuxPtrsT::SetAuxPtr(this, e, ptr);
     }
 
     uint FunctionProxy::GetSourceContextId() const
@@ -838,7 +870,7 @@ namespace Js
     FunctionBody::SetNativeThrowSpanSequence(SmallSpanSequence *seq, uint loopNum, LoopEntryPointInfo* entryPoint)
     {
         Assert(loopNum != LoopHeader::NoLoop);
-        LoopHeader *loopHeader = this->GetLoopHeader(loopNum);
+        LoopHeader *loopHeader = this->GetLoopHeaderWithLock(loopNum);
         Assert(loopHeader);
         Assert(entryPoint->loopHeader == loopHeader);
 
@@ -3214,7 +3246,7 @@ namespace Js
     void FunctionBody::SetLoopBodyEntryPoint(Js::LoopHeader * loopHeader, EntryPointInfo* entryPointInfo, Js::JavascriptMethod entryPoint)
     {
 #if DBG_DUMP
-        uint loopNum = this->GetLoopNumber(loopHeader);
+        uint loopNum = this->GetLoopNumberWithLock(loopHeader);
         if (PHASE_TRACE1(Js::JITLoopBodyPhase))
         {
             DumpFunctionId(true);
@@ -3230,7 +3262,7 @@ namespace Js
         {
             loopHeader->interpretCount = entryPointInfo->GetFunctionBody()->GetLoopInterpretCount(loopHeader) - 1;
         }
-        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo)));
+        JS_ETW(EtwTrace::LogLoopBodyLoadEvent(this, loopHeader, ((LoopEntryPointInfo*) entryPointInfo), ((uint16)this->GetLoopNumberWithLock(loopHeader))));
     }
 #endif
 
@@ -3274,8 +3306,18 @@ namespace Js
     uint
     FunctionBody::GetLoopNumber(LoopHeader const * loopHeader) const
     {
-        Assert(loopHeader >=  this->GetLoopHeaderArray());
-        uint loopNum = (uint)(loopHeader - this->GetLoopHeaderArray());
+        LoopHeader* loopHeaderArray = this->GetLoopHeaderArray();
+        Assert(loopHeader >= loopHeaderArray);
+        uint loopNum = (uint)(loopHeader - loopHeaderArray);
+        Assert(loopNum < GetLoopCount());
+        return loopNum;
+    }
+    uint
+    FunctionBody::GetLoopNumberWithLock(LoopHeader const * loopHeader) const
+    {
+        LoopHeader* loopHeaderArray = this->GetLoopHeaderArrayWithLock();
+        Assert(loopHeader >= loopHeaderArray);
+        uint loopNum = (uint)(loopHeader - loopHeaderArray);
         Assert(loopNum < GetLoopCount());
         return loopNum;
     }
@@ -3823,11 +3865,28 @@ namespace Js
         return GetReferencedPropertyIdWithMapIndex(mapIndex);
     }
 
+    PropertyId FunctionBody::GetReferencedPropertyIdWithLock(uint index)
+    {
+        if (index < (uint)TotalNumberOfBuiltInProperties)
+        {
+            return index;
+        }
+        uint mapIndex = index - TotalNumberOfBuiltInProperties;
+        return GetReferencedPropertyIdWithMapIndexWithLock(mapIndex);
+    }
+
     PropertyId FunctionBody::GetReferencedPropertyIdWithMapIndex(uint mapIndex)
     {
         Assert(this->GetReferencedPropertyIdMap());
         Assert(mapIndex < this->GetReferencedPropertyIdCount());
         return this->GetReferencedPropertyIdMap()[mapIndex];
+    }
+
+    PropertyId FunctionBody::GetReferencedPropertyIdWithMapIndexWithLock(uint mapIndex)
+    {
+        Assert(this->GetReferencedPropertyIdMapWithLock());
+        Assert(mapIndex < this->GetReferencedPropertyIdCount());
+        return this->GetReferencedPropertyIdMapWithLock()[mapIndex];
     }
 
     void FunctionBody::SetReferencedPropertyIdWithMapIndex(uint mapIndex, PropertyId propertyId)
@@ -5846,8 +5905,16 @@ namespace Js
     DynamicType ** FunctionBody::GetObjectLiteralTypeRef(uint index)
     {
         Assert(index < objLiteralCount);
-        Assert(this->GetObjectLiteralTypes() != nullptr);
-        return this->GetObjectLiteralTypes() + index;
+        DynamicType ** literalTypes = this->GetObjectLiteralTypes();
+        Assert(literalTypes != nullptr);
+        return literalTypes + index;
+    }
+    DynamicType ** FunctionBody::GetObjectLiteralTypeRefWithLock(uint index)
+    {
+        Assert(index < objLiteralCount);
+        DynamicType ** literalTypes = this->GetObjectLiteralTypesWithLock();
+        Assert(literalTypes != nullptr);
+        return literalTypes + index;
     }
 
     void FunctionBody::AllocateObjectLiteralTypeArray()
@@ -5907,6 +5974,14 @@ namespace Js
         Assert(this->GetLiteralRegexes());
 
         return this->GetLiteralRegexes()[index];
+    }
+
+    UnifiedRegex::RegexPattern *FunctionBody::GetLiteralRegexWithLock(const uint index)
+    {
+        Assert(index < literalRegexCount);
+        Assert(this->GetLiteralRegexesWithLock());
+
+        return this->GetLiteralRegexesWithLock()[index];
     }
 
     void FunctionBody::SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern)
@@ -5992,7 +6067,7 @@ namespace Js
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
 
-        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeDataWithLock();
         return codeGenRuntimeData ? codeGenRuntimeData[profiledCallSiteId] : nullptr;
     }
 
@@ -6000,7 +6075,7 @@ namespace Js
     {
         Assert(profiledCallSiteId < profiledCallSiteCount);
 
-        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
+        auto codeGenRuntimeData = this->GetCodeGenRuntimeDataWithLock();
         if (!codeGenRuntimeData)
         {
             return nullptr;
@@ -6058,7 +6133,7 @@ namespace Js
     {
         Assert(inlineCacheIndex < inlineCacheCount);
 
-        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeData();
+        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeDataWithLock();
         return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
     }
 
@@ -6192,6 +6267,12 @@ namespace Js
         return &this->GetLoopHeaderArray()[index];
     }
 
+    LoopHeader *FunctionBody::GetLoopHeaderWithLock(uint index) const
+    {
+        Assert(this->GetLoopHeaderArrayWithLock() != nullptr);
+        Assert(index < loopCount);
+        return &this->GetLoopHeaderArrayWithLock()[index];
+    }
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
         return static_cast<FunctionEntryPointInfo *>(this->GetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo));

@@ -42,16 +42,16 @@ namespace Js
         typedef AuxPtrs<T, FieldsEnum> AuxPtrsT;
         uint8 count;                            // save instantiated pointers count
         uint8 capacity;                         // save number of pointers can be hold in current instance of AuxPtrs
-        FieldsEnum offsets[FieldsEnum::Max];       // save position of each instantiated pointers, if not instantiate, it's invalid
+        uint8 offsets[FieldsEnum::Max];       // save position of each instantiated pointers, if not instantiate, it's invalid
         WriteBarrierPtr<void> ptrs[1];          // instantiated pointer addresses
         AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);  // called when promoting from AuxPtrs32 to AuxPtrs
         AuxPtrs(uint8 capacity, AuxPtrs* ptr);      // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
         void* Get(FieldsEnum e);
         bool Set(FieldsEnum e, void* p);
-        static void AllocAuxPtrFix(T* host, uint8 size, Recycler* recycler);
-        static void AllocAuxPtr(T* host, uint8 count, Recycler* recycler);
+        static void AllocAuxPtrFix(T* host, uint8 size);
+        static void AllocAuxPtr(T* host, uint8 count);
         static void* GetAuxPtr(const T* host, FieldsEnum e);
-        static void SetAuxPtr(T* host, FieldsEnum e, void* ptr, Recycler* recycler);
+        static void SetAuxPtr(T* host, FieldsEnum e, void* ptr);
     };
 
 
@@ -118,7 +118,7 @@ namespace Js
         memset(offsets, (uint8)FieldsEnum::Invalid, (uint8)FieldsEnum::Max);
         for (uint8 i = 0; i < ptr32->count; i++)
         {
-            offsets[(uint8)ptr32->type[i]] = (FieldsEnum)i;
+            offsets[(uint8)ptr32->type[i]] = i;
             ptrs[i] = ptr32->ptr[i];
         }
     }
@@ -132,15 +132,15 @@ namespace Js
     inline void* AuxPtrs<T, FieldsEnum>::Get(FieldsEnum e)
     {
         uint8 u = (uint8)e;
-        return offsets[u] == FieldsEnum::Invalid ? nullptr : ptrs[(uint8)offsets[u]];
+        return offsets[u] == (uint8)FieldsEnum::Invalid ? nullptr : ptrs[offsets[u]];
     }
     template<class T, typename FieldsEnum>
     inline bool AuxPtrs<T, FieldsEnum>::Set(FieldsEnum e, void* p)
     {
         uint8 u = (uint8)e;
-        if (offsets[u] != FieldsEnum::Invalid)
+        if (offsets[u] != (uint8)FieldsEnum::Invalid)
         {
-            ptrs[(uint8)offsets[u]] = p;
+            ptrs[offsets[u]] = p;
             return true;
         }
         else
@@ -152,7 +152,7 @@ namespace Js
             }
             else
             {
-                offsets[u] = (FieldsEnum)count++;
+                offsets[u] = count++;
                 ptrs[(uint8)offsets[u]] = p;
                 return true;
             }
@@ -160,9 +160,11 @@ namespace Js
     }
 
     template<class T, typename FieldsEnum>
-    void AuxPtrs<T, FieldsEnum>::AllocAuxPtrFix(T* host, uint8 size, Recycler* recycler)
+    void AuxPtrs<T, FieldsEnum>::AllocAuxPtrFix(T* host, uint8 size)
     {
+        Recycler* recycler = host->GetRecycler();
         Assert(recycler != nullptr);
+
         if (size == 16)
         {
             host->auxPtrs = (AuxPtrs<T, FieldsEnum>*)RecyclerNewWithBarrierStructZ(recycler, AuxPtrs16);
@@ -178,9 +180,13 @@ namespace Js
     }
 
     template<class T, typename FieldsEnum>
-    void AuxPtrs<T, FieldsEnum>::AllocAuxPtr(T* host, uint8 count, Recycler* recycler)
+    void AuxPtrs<T, FieldsEnum>::AllocAuxPtr(T* host, uint8 count)
     {
         Assert(count >= AuxPtrs32::MaxCount);
+
+        Recycler* recycler = host->GetRecycler();
+        Assert(recycler != nullptr);
+
         auto requestSize = sizeof(AuxPtrs<T, FieldsEnum>) + (count - 1)*sizeof(void*);
         auto allocSize = ::Math::Align<uint8>((uint8)requestSize, 16);
         auto capacity = (uint8)((allocSize - offsetof(AuxPtrsT, ptrs)) / sizeof(void*));
@@ -198,30 +204,23 @@ namespace Js
     template<class T, typename FieldsEnum>
     inline void* AuxPtrs<T, FieldsEnum>::GetAuxPtr(const T* host, FieldsEnum e)
     {
-        if (host->auxPtrs == nullptr)
+        auto tmpAuxPtrs = host->auxPtrs;
+        if (tmpAuxPtrs->count == AuxPtrs16::MaxCount)
         {
-            return nullptr;
+            return ((AuxPtrs16*)(void*)tmpAuxPtrs)->Get(e);
         }
-        if (host->auxPtrs->count == AuxPtrs16::MaxCount)
+        if (tmpAuxPtrs->count == AuxPtrs32::MaxCount)
         {
-            return ((AuxPtrs16*)(void*)host->auxPtrs)->Get(e);
+            return ((AuxPtrs32*)(void*)tmpAuxPtrs)->Get(e);
         }
-        if (host->auxPtrs->count == AuxPtrs32::MaxCount)
-        {
-            return ((AuxPtrs32*)(void*)host->auxPtrs)->Get(e);
-        }
-        return host->auxPtrs->Get(e);
+        return tmpAuxPtrs->Get(e);
     }
     template<class T, typename FieldsEnum>
-    void AuxPtrs<T, FieldsEnum>::SetAuxPtr(T* host, FieldsEnum e, void* ptr, Recycler* recycler)
+    void AuxPtrs<T, FieldsEnum>::SetAuxPtr(T* host, FieldsEnum e, void* ptr)
     {
-        if (ptr == nullptr && GetAuxPtr(host, e) == nullptr)
-        {
-            return;
-        }
         if (host->auxPtrs == nullptr)
         {
-            AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtrFix(host, 16, recycler);
+            AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtrFix(host, 16);
             bool ret = ((AuxPtrs16*)(void*)host->auxPtrs)->Set(e, ptr);
             Assert(ret);
             return;
@@ -235,7 +234,7 @@ namespace Js
             }
             else
             {
-                AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtrFix(host, 32, recycler);
+                AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtrFix(host, 32);
             }
         }
         if (host->auxPtrs->count == AuxPtrs32::MaxCount)
@@ -247,14 +246,14 @@ namespace Js
             }
             else
             {
-                AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtr(host, AuxPtrs32::MaxCount + 1, recycler);
+                AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtr(host, AuxPtrs32::MaxCount + 1);
             }
         }
 
         bool ret = host->auxPtrs->Set(e, ptr);
         if (!ret)
         {
-            AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtr(host, host->auxPtrs->count + 1, recycler);
+            AuxPtrs<FunctionProxy, FieldsEnum>::AllocAuxPtr(host, host->auxPtrs->count + 1);
             ret = host->auxPtrs->Set(e, ptr);
             Assert(ret);
         }

@@ -56,6 +56,7 @@ namespace Js
         void AddReloc( const int labelOffset, BYTE* patchAddr );
         uint32 GetEncodeBufferSize(FunctionBody* functionBody);
         AsmJsFunctionInfo* GetAsmJsFunctionInfo(){ return mFunctionBody->GetAsmJsFunctionInfo(); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfoWithLock() { return mFunctionBody->GetAsmJsFunctionInfoWithLock(); }
         bool ReadOp();
         template<LayoutSize T> void ReadOpTemplate( OpCodeAsmJs op );
 

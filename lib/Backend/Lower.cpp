@@ -2337,7 +2337,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->InsertBranch(LowererMD::MDUncondBranchOpcode, true, checkDoBailout, entryPointIsNull);
 
                     // If the entry point is null
-                    auto head = m_func->GetJnFunction()->GetLoopHeader(loopNum);
+                    auto head = m_func->GetJnFunction()->GetLoopHeaderWithLock(loopNum);
                     Assert(head);
 
                     static_assert(sizeof(head->interpretCount) == 4, "Change the type in the following line");
@@ -3434,7 +3434,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
 {
     Func * func = m_func;
     IR::IntConstOpnd * literalObjectIdOpnd = newObjInstr->UnlinkSrc2()->AsIntConstOpnd();
-    Js::DynamicType ** literalTypeRef = newObjInstr->m_func->GetJnFunction()->GetObjectLiteralTypeRef(literalObjectIdOpnd->AsUint32());
+    Js::DynamicType ** literalTypeRef = newObjInstr->m_func->GetJnFunction()->GetObjectLiteralTypeRefWithLock(literalObjectIdOpnd->AsUint32());
     Js::DynamicType * literalType = *literalTypeRef;
 
     IR::LabelInstr * helperLabel = nullptr;
@@ -3444,7 +3444,7 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     IR::Opnd * propertyArrayOpnd;
 
     IR::IntConstOpnd * propertyArrayIdOpnd = newObjInstr->UnlinkSrc1()->AsIntConstOpnd();
-    const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArray(propertyArrayIdOpnd->AsUint32(), newObjInstr->m_func->GetJnFunction());
+    const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(propertyArrayIdOpnd->AsUint32(), newObjInstr->m_func->GetJnFunction());
     Js::ScriptContext *const scriptContext = newObjInstr->m_func->GetJnFunction()->GetScriptContext();
     uint inlineSlotCapacity = Js::JavascriptOperators::GetLiteralInlineSlotCapacity(propIds, scriptContext);
     uint slotCapacity = Js::JavascriptOperators::GetLiteralSlotCapacity(propIds, scriptContext);
@@ -9226,7 +9226,7 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
     }
     if (m_func->IsTJLoopBody())
     {
-        offset = offset - m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetTotalSizeinBytes();
+        offset = offset - m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetTotalSizeinBytes();
     }
 
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(symOpnd->CreatePropertyOwnerOpnd(m_func),
@@ -9916,7 +9916,7 @@ Lowerer::LowerArgInAsmJs(IR::Instr * instrArgIn)
 {
     Assert(m_func->GetJnFunction()->GetIsAsmjsMode());
 
-    Js::ArgSlot argCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgCount();
+    Js::ArgSlot argCount = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetArgCount();
     IR::Instr * instr = instrArgIn;
     for (int argNum = argCount - 1; argNum >= 0; --argNum)
     {

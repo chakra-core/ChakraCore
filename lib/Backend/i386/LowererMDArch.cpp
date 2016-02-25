@@ -916,7 +916,7 @@ LowererMDArch::LowerAsmJsLdElemHelper(IR::Instr * instr, bool isSimdLoad /*= fal
 
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->IsHeapBufferConst())
+    if (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->IsHeapBufferConst())
     {
         src1->AsIndirOpnd()->ReplaceBaseOpnd(src1->AsIndirOpnd()->UnlinkIndexOpnd());
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
@@ -992,7 +992,7 @@ LowererMDArch::LowerAsmJsStElemHelper(IR::Instr * instr, bool isSimdStore /*= fa
 
     Lowerer::InsertBranch(Js::OpCode::Br, doneLabel, storeLabel);
 
-    if (m_func->GetJnFunction()->GetAsmJsFunctionInfo()->IsHeapBufferConst())
+    if (m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->IsHeapBufferConst())
     {
         dst->AsIndirOpnd()->ReplaceBaseOpnd(dst->AsIndirOpnd()->UnlinkIndexOpnd());
         Js::Var* module = (Js::Var*)m_func->m_workItem->GetEntryPoint()->GetModuleAddress();
@@ -1772,7 +1772,8 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     exitInstr = LowerExitInstrCommon(exitInstr);
 
     // get asm.js return type
-    Js::AsmJsRetType asmRetType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
+    Js::AsmJsRetType asmRetType = asmJsFuncInfo->GetReturnType();
     IRType regType;
     if (asmRetType.which() == Js::AsmJsRetType::Double)
     {
@@ -1813,7 +1814,7 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     {
 
         // Generate RET
-        int32 alignedSize = Math::Align<int32>(m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgByteSize(), MachStackAlignment);
+        int32 alignedSize = Math::Align<int32>(asmJsFuncInfo->GetArgByteSize(), MachStackAlignment);
         IR::IntConstOpnd * intSrc = IR::IntConstOpnd::New(alignedSize + MachPtr, TyMachReg, m_func);
         IR::RegOpnd * retReg = IR::RegOpnd::New(nullptr, GetRegReturnAsmJs(regType), regType, m_func);
         IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, m_func);

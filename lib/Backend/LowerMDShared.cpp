@@ -786,7 +786,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 
     if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
-        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetReturnType();
         IRType regType = TyInt32;
         if (asmType.which() == Js::AsmJsRetType::Double)
         {
@@ -7920,7 +7920,7 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     IR::IntConstOpnd *intConstOpnd = instrCommit->UnlinkSrc2()->AsIntConstOpnd();
     LowererMD::ChangeToAssign(instrCommit);
 
-    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(intConstOpnd->AsUint32(), instrCommit->m_func->GetJnFunction());
+    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(intConstOpnd->AsUint32(), instrCommit->m_func->GetJnFunction());
     intConstOpnd->Free(this->m_func);
 
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);
