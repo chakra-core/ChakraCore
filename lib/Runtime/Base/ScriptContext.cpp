@@ -1184,13 +1184,13 @@ namespace Js
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
-        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
-            SourceCodeAllocator(), Js::InterpreterStackFrame::InterpreterThunk);
+        interpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(), 
+            Js::InterpreterStackFrame::InterpreterThunk);
 #endif
 
 #ifdef ASMJS_PLAT
-        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, this->GetThreadContext()->GetAllocationPolicyManager(),
-            SourceCodeAllocator(), Js::InterpreterStackFrame::InterpreterAsmThunk);
+        asmJsInterpreterThunkEmitter = HeapNew(InterpreterThunkEmitter, SourceCodeAllocator(), this->GetThreadContext()->GetThunkPageAllocators(),
+            Js::InterpreterStackFrame::InterpreterAsmThunk);
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
@@ -4291,7 +4291,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
     void
-        ScriptContext::SetLastUtcTimeFromStr(JavascriptString * str, double value)
+    ScriptContext::SetLastUtcTimeFromStr(JavascriptString * str, double value)
     {
             lastUtcTimeFromStr = value;
             cache->lastUtcTimeFromStrString = str;
@@ -4300,23 +4300,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #if ENABLE_NATIVE_CODEGEN
     BOOL ScriptContext::IsNativeAddress(void * codeAddr)
     {
-        PreReservedVirtualAllocWrapper *preReservedVirtualAllocWrapper = this->threadContext->GetPreReservedVirtualAllocator();
-        if (preReservedVirtualAllocWrapper->IsPreReservedRegionPresent())
-        {
-            if (preReservedVirtualAllocWrapper->IsInRange(codeAddr))
-            {
-                Assert(!this->IsDynamicInterpreterThunk(codeAddr));
-                return true;
-            }
-            else if (this->threadContext->IsAllJITCodeInPreReservedRegion())
-            {
-                return false;
-            }
-        }
-
-        // Try locally first and then all script context on the thread
-        //Slow path
-        return IsNativeFunctionAddr(this, codeAddr) || this->threadContext->IsNativeAddress(codeAddr);
+        return this->GetThreadContext()->IsNativeAddress(codeAddr);
     }
 #endif
 
@@ -4534,7 +4518,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     BOOL ScriptContext::IsDynamicInterpreterThunk(void* address)
     {
-        return this->interpreterThunkEmitter->IsInRange(address);
+        return this->interpreterThunkEmitter->IsInHeap(address);
     }
 
     void ScriptContext::ReleaseDynamicInterpreterThunk(BYTE* address, bool addtoFreeList)

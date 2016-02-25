@@ -24,6 +24,8 @@
 #include "Library/JavascriptGenerator.h"
 #include "Library/JavascriptRegularExpression.h"
 #include "Library/StackScriptFunction.h"
+#include "Library/JavascriptProxy.h"
+#include "Library/JavascriptGeneratorFunction.h"
 
 #include "Language/InterpreterStackFrame.h"
 #include "Language/ReadOnlyDynamicProfileInfo.h"

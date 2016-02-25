@@ -250,7 +250,7 @@ RT_ERROR_MSG(JSERR_WeakMapSetKeyNotAnObject, 5117, "%s: 'key' is not an object",
 
 RT_ERROR_MSG(JSERR_OptionValueOutOfRange, 5118, "Option value '%s' for '%s' is outside of valid range. Expected: %s", "Option value is outside of valid range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_NeedObjectOrString, 5119, "%s is not an object or a string", "Object or string expected", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "This can't be used in a new statement", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NotAConstructor, 5120, "Function '%s' is not a constructor", "Function is not a constructor", kjstTypeError, 0)
 
 //Intl Specific
 RT_ERROR_MSG(JSERR_LocaleNotWellFormed, 5121, "Locale '%s' is not well-formed", "Locale is not well-formed", kjstRangeError, 0)
@@ -336,3 +336,6 @@ RT_ERROR_MSG(JSERR_FunctionArgument_FirstCannotBeRegExp, 5640, "%s: first argume
 RT_ERROR_MSG(JSERR_RegExpExecInvalidReturnType, 5641, "%s: Return value of RegExp 'exec' is not an Object and is not null", "Return value of RegExp 'exec' is not an Object and is not null", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_ProxyTrapReturnedFalse, 5642, "Proxy trap `%s` returned false", "Proxy trap returned false", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ModuleResolveExport, 5643, "Module export %s cannot be resolved", "Module export cannot be resolved", kjstSyntaxError, 0)
+RT_ERROR_MSG(JSERR_TooManyImportExprots, 5644, "Module has too many import/export definitions", "Module has too many import/export definitions", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_ObjectCoercible, 5645, "", "Cannot convert null or undefined to object", kjstTypeError, 0)

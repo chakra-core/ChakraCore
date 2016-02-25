@@ -117,6 +117,7 @@ enum TypeId
     TypeIds_HostObject = 71,
     TypeIds_ActivationObject = 72,
     TypeIds_SpreadArgument = 73,
+    TypeIds_ModuleNamespace = 74,
 
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };

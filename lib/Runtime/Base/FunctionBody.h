@@ -1161,6 +1161,7 @@ namespace Js
     //
     class FunctionProxy : public FunctionInfo
     {
+        static CriticalSection auxPtrsLock;
     public:
         typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
         typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
@@ -1201,6 +1202,7 @@ namespace Js
         friend AuxPtrsT;
         WriteBarrierPtr<AuxPtrsT> auxPtrs;
         void* GetAuxPtr(AuxPointerType e) const;
+        void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
 
     public:
@@ -1211,6 +1213,7 @@ namespace Js
             SetDisplayNameFlagsRecyclerAllocated = 2
         };
 
+        Recycler* GetRecycler() const;
         uint32 GetSourceContextId() const;
         wchar_t* GetDebugNumberSet(wchar(&bufferToWriteTo)[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]) const;
         bool GetIsTopLevel() { return m_isTopLevel; }
@@ -1998,6 +2001,7 @@ namespace Js
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
         ByteBlock* GetAuxiliaryData() const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::AuxBlock)); }
+        ByteBlock* GetAuxiliaryDataWithLock() const { return static_cast<ByteBlock*>(this->GetAuxPtrWithLock(AuxPointerType::AuxBlock)); }
         void SetAuxiliaryData(ByteBlock* auxBlock) { this->SetAuxPtr(AuxPointerType::AuxBlock, auxBlock); }
         ByteBlock* GetAuxiliaryContextData()const { return static_cast<ByteBlock*>(this->GetAuxPtr(AuxPointerType::AuxContextBlock)); }
         void SetAuxiliaryContextData(ByteBlock* auxContextBlock) { this->SetAuxPtr(AuxPointerType::AuxContextBlock, auxContextBlock); }
@@ -2042,6 +2046,7 @@ namespace Js
         void AllocateLoopHeaders();
         void ReleaseLoopHeaders();
         Js::LoopHeader * GetLoopHeader(uint index) const;
+        Js::LoopHeader * GetLoopHeaderWithLock(uint index) const;
         Js::Var GetLoopHeaderArrayPtr() const
         {
             Assert(this->GetLoopHeaderArray() != nullptr);
@@ -2254,13 +2259,15 @@ namespace Js
         DebuggerScope* AddScopeObject(DiagExtraScopesType scopeType, int start, RegSlot scopeLocation);
         bool TryGetDebuggerScopeAt(int index, DebuggerScope*& debuggerScope);
 
-        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtr(AuxPointerType::StatementMaps)); }
+        StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtrWithLock(AuxPointerType::StatementMaps)); }
         void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::StatementMaps, pStatementMaps); }
 
         FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenGetSetRuntimeData)); }
         void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
         FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
+        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
         static StatementMap * GetNextNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -2331,8 +2338,10 @@ namespace Js
         void SetIsFromNativeCodeModule(bool isFromNativeCodeModule) { m_isFromNativeCodeModule = isFromNativeCodeModule; }
 
         uint GetLoopNumber(LoopHeader const * loopHeader) const;
+        uint GetLoopNumberWithLock(LoopHeader const * loopHeader) const;
         bool GetHasAllocatedLoopHeaders() { return this->GetLoopHeaderArray() != nullptr; }
         Js::LoopHeader* GetLoopHeaderArray() const { return static_cast<Js::LoopHeader*>(this->GetAuxPtr(AuxPointerType::LoopHeaderArray)); }
+        Js::LoopHeader* GetLoopHeaderArrayWithLock() const { return static_cast<Js::LoopHeader*>(this->GetAuxPtrWithLock(AuxPointerType::LoopHeaderArray)); }
         void SetLoopHeaderArray(Js::LoopHeader* loopHeaderArray) { this->SetAuxPtr(AuxPointerType::LoopHeaderArray, loopHeaderArray); }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -2471,6 +2480,10 @@ namespace Js
         Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainer() const
         {
             return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->GetAuxPtr(AuxPointerType::PropertyIdOnRegSlotsContainer));
+        }
+        Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainerWithLock() const
+        {
+            return static_cast<Js::PropertyIdOnRegSlotsContainer *>(this->GetAuxPtrWithLock(AuxPointerType::PropertyIdOnRegSlotsContainer));
         }
         void SetPropertyIdOnRegSlotsContainer(Js::PropertyIdOnRegSlotsContainer *propertyIdOnRegSlotsContainer)
         {
@@ -2682,12 +2695,15 @@ namespace Js
         void VerifyCacheIdToPropertyIdMap();
 #endif
         PropertyId* GetReferencedPropertyIdMap() const { return static_cast<PropertyId*>(this->GetAuxPtr(AuxPointerType::ReferencedPropertyIdMap)); }
+        PropertyId* GetReferencedPropertyIdMapWithLock() const { return static_cast<PropertyId*>(this->GetAuxPtrWithLock(AuxPointerType::ReferencedPropertyIdMap)); }
         void SetReferencedPropertyIdMap(PropertyId* propIdMap) { this->SetAuxPtr(AuxPointerType::ReferencedPropertyIdMap, propIdMap); }
         void CreateReferencedPropertyIdMap(uint referencedPropertyIdCount);
         void CreateReferencedPropertyIdMap();
         PropertyId GetReferencedPropertyIdWithMapIndex(uint mapIndex);
+        PropertyId GetReferencedPropertyIdWithMapIndexWithLock(uint mapIndex);
         void SetReferencedPropertyIdWithMapIndex(uint mapIndex, PropertyId propertyId);
         PropertyId GetReferencedPropertyId(uint index);
+        PropertyId GetReferencedPropertyIdWithLock(uint index);
 #if DBG
         void VerifyReferencedPropertyIdMap();
 #endif
@@ -2701,14 +2717,18 @@ namespace Js
         uint NewObjectLiteral();
         void AllocateObjectLiteralTypeArray();
         DynamicType ** GetObjectLiteralTypeRef(uint index);
+        DynamicType ** GetObjectLiteralTypeRefWithLock(uint index);
         uint NewLiteralRegex();
         uint GetLiteralRegexCount() const;
         void AllocateLiteralRegexArray();
         UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
+        UnifiedRegex::RegexPattern **GetLiteralRegexesWithLock() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtrWithLock(AuxPointerType::LiteralRegexes)); }
         void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::LiteralRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
+        UnifiedRegex::RegexPattern *GetLiteralRegexWithLock(const uint index);
 #ifndef TEMP_DISABLE_ASMJS
         AsmJsFunctionInfo* GetAsmJsFunctionInfo()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsFunctionInfo)); }
+        AsmJsFunctionInfo* GetAsmJsFunctionInfoWithLock()const { return static_cast<AsmJsFunctionInfo*>(this->GetAuxPtrWithLock(AuxPointerType::AsmJsFunctionInfo)); }
         AsmJsFunctionInfo* AllocateAsmJsFunctionInfo();
         AsmJsModuleInfo* GetAsmJsModuleInfo()const { return static_cast<AsmJsModuleInfo*>(this->GetAuxPtr(AuxPointerType::AsmJsModuleInfo)); }
         void ResetAsmJsInfo()
@@ -2724,6 +2744,7 @@ namespace Js
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();
         DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
+        DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
         void SetObjectLiteralTypes(DynamicType** objLiteralTypes) { this->SetAuxPtr(AuxPointerType::ObjLiteralTypes, objLiteralTypes); };
     public:
 
@@ -2860,6 +2881,18 @@ namespace Js
                 }
             }
         }
+        template<class Fn>
+        void MapLoopHeadersWithLock(Fn fn) const
+        {
+            Js::LoopHeader* loopHeaderArray = this->GetLoopHeaderArrayWithLock();
+            if (loopHeaderArray)
+            {
+                for (uint i = 0; i < loopCount; i++)
+                {
+                    fn(i, &loopHeaderArray[i]);
+                }
+            }
+        }
 
         template <class Fn>
         void MapEntryPoints(Fn fn) const
@@ -2878,7 +2911,7 @@ namespace Js
 
         bool DoJITLoopBody() const
         {
-            return IsJitLoopBodyPhaseEnabled() && this->GetAuxPtr(AuxPointerType::LoopHeaderArray) != nullptr;
+            return IsJitLoopBodyPhaseEnabled() && this->GetLoopHeaderArrayWithLock() != nullptr;
         }
 
         bool ForceJITLoopBody() const

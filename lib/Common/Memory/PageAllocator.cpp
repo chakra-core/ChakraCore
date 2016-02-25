@@ -86,13 +86,13 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     if(Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.NoThrow))
     {
         this->address = nullptr;
-        return(address != nullptr);
+        return false;
     }
 #endif
 
     if (!this->allocator->RequestAlloc(totalPages * AutoSystemInfo::PageSize))
     {
-        return nullptr;
+        return false;
     }
 
     this->address = (char *) GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
@@ -101,6 +101,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 
     if (originalAddress != nullptr)
     {
+        bool committed = (allocFlags & MEM_COMMIT) != 0;
         if (addGuardPages)
         {
 #if DBG_DUMP
@@ -109,15 +110,19 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
             GUARD_PAGE_TRACE(L"Offset of Segment Start address: 0x%p\n", this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize));
             GUARD_PAGE_TRACE(L"Starting address of Trailing Guard Pages: 0x%p\n", address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize));
 #endif
+            if (committed)
+            {
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+                GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
-            this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount)*AutoSystemInfo::PageSize);
+                GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            }
+            this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount) * AutoSystemInfo::PageSize);
+
             this->address = this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize);
         }
 
-        if (!allocator->CreateSecondaryAllocator(this, &this->secondaryAllocator))
+        if (!allocator->CreateSecondaryAllocator(this, committed, &this->secondaryAllocator))
         {
             GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
             this->allocator->ReportFree(totalPages * AutoSystemInfo::PageSize);
@@ -140,9 +145,10 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     if (this->address == nullptr)
     {
         this->allocator->ReportFailure(totalPages * AutoSystemInfo::PageSize);
+        return false;
     }
 
-    return (this->address != nullptr);
+    return true;
 }
 
 //=============================================================================================================
@@ -150,22 +156,17 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 //=============================================================================================================
 
 template<typename T>
-PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool external) :
+PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool committed, bool allocated) :
     SegmentBase(allocator, allocator->maxAllocPageCount), decommitPageCount(0)
 {
     Assert(this->segmentPageCount == allocator->maxAllocPageCount + allocator->secondaryAllocPageCount);
 
-    if (external)
-    {
-        this->freePageCount = 0;
-        this->ClearAllInFreePagesBitVector();
-    }
-    else
-    {
+    uint maxPageCount = GetMaxPageCount();
 
+    if (committed)
+    {    
+        Assert(!allocated);
         this->freePageCount = this->GetAvailablePageCount();
-        uint maxPageCount = GetMaxPageCount();
-
         this->SetRangeInFreePagesBitVector(0, this->freePageCount);
         if (this->freePageCount != maxPageCount)
         {
@@ -173,6 +174,21 @@ PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool exter
         }
 
         Assert(this->GetCountOfFreePages() == this->freePageCount);
+    }
+    else
+    {
+        this->freePageCount = 0;
+        this->ClearAllInFreePagesBitVector();
+        if (!allocated)
+        {
+            this->decommitPageCount = this->GetAvailablePageCount();
+            this->SetRangeInDecommitPagesBitVector(0, this->decommitPageCount);
+
+            if (this->decommitPageCount != maxPageCount)
+            {
+                this->ClearRangeInDecommitPagesBitVector(this->decommitPageCount, (maxPageCount - this->decommitPageCount));
+            }
+        }
     }
 }
 
@@ -699,16 +715,16 @@ PageAllocatorBase<T>::AllocPagesForBytes(size_t requestBytes)
 
 template<typename T>
 PageSegmentBase<T> *
-PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, bool external)
+PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, bool committed, bool allocated)
 {
-    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, external);
+    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, committed, allocated);
 
     if (segment == nullptr)
     {
         return nullptr;
     }
 
-    if (!segment->Initialize((external ? 0 : MEM_COMMIT) | pageAllocator->allocFlags, pageAllocator->excludeGuardPages))
+    if (!segment->Initialize((committed ? MEM_COMMIT : 0) | pageAllocator->allocFlags, pageAllocator->excludeGuardPages))
     {
         segmentList.RemoveHead(&NoThrowNoMemProtectHeapAllocator::Instance);
         return nullptr;
@@ -722,44 +738,7 @@ PageAllocatorBase<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
 {
     Assert(!HasMultiThreadAccess());
 
-    PageSegmentBase<T> * segment = AllocPageSegment(segmentList, this, false);
-
-    if (segment != nullptr)
-    {
-        LogAllocSegment(segment);
-        this->AddFreePageCount(maxAllocPageCount);
-    }
-    return segment;
-}
-
-template<>
-char *
-HeapPageAllocator<PreReservedVirtualAllocWrapper>::InitPageSegment()
-{
-    Assert(virtualAllocator);
-    PageSegmentBase<PreReservedVirtualAllocWrapper> * firstPreReservedSegment = AddPageSegment(emptySegments);
-    if (firstPreReservedSegment == nullptr)
-    {
-        return nullptr;
-    }
-    return firstPreReservedSegment->GetAddress();
-}
-
-template<>
-char *
-HeapPageAllocator<VirtualAllocWrapper>::InitPageSegment()
-{
-    Assert(false);
-    return nullptr;
-}
-
-template<typename T>
-PageSegmentBase<T> *
-HeapPageAllocator<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
-{
-    Assert(!HasMultiThreadAccess());
-
-    PageSegmentBase<T> * segment = AllocPageSegment(segmentList, this, false);
+    PageSegmentBase<T> * segment = AllocPageSegment(segmentList, this, true, false);
 
     if (segment != nullptr)
     {
@@ -1010,14 +989,7 @@ char *
 PageAllocatorBase<PreReservedVirtualAllocWrapper>::Alloc(size_t * pageCount, SegmentBase<PreReservedVirtualAllocWrapper> ** segment)
 {
     Assert(virtualAllocator);
-    if (virtualAllocator->IsPreReservedRegionPresent())
-    {
-        return AllocInternal<false>(pageCount, segment);
-    }
-    else
-    {
-        return nullptr;
-    }
+    return AllocInternal<false>(pageCount, segment);
 }
 
 template<typename T>
@@ -1103,14 +1075,7 @@ char *
 PageAllocatorBase<PreReservedVirtualAllocWrapper>::AllocPages(uint pageCount, PageSegmentBase<PreReservedVirtualAllocWrapper> ** pageSegment)
 {
     Assert(virtualAllocator);
-    if (virtualAllocator->IsPreReservedRegionPresent())
-    {
-        return AllocPagesInternal<true /* noPageAligned */>(pageCount, pageSegment);
-    }
-    else
-    {
-        return nullptr;
-    }
+    return AllocPagesInternal<true /* noPageAligned */>(pageCount, pageSegment);
 }
 
 template<typename T>
@@ -1216,6 +1181,31 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
     }
 
     Assert(pages == nullptr);
+    Assert(maxAllocPageCount >= pageCount);
+    if (maxAllocPageCount != pageCount && (maxFreePageCount < maxAllocPageCount - pageCount + freePageCount))
+    {
+        // If we exceed the number of max free page count, allocate from a new fully decommit block
+        PageSegmentBase<T> * decommitSegment = AllocPageSegment(this->decommitSegments, this, false, false);
+        if (decommitSegment == nullptr)
+        {
+            return nullptr;
+        }
+
+        pages = decommitSegment->DoAllocDecommitPages<notPageAligned>(pageCount, pageHeapFlags);
+        if (pages != nullptr)
+        {
+#if DBG_DUMP
+            this->decommitPageCount = this->decommitPageCount + decommitSegment->GetDecommitPageCount();
+#endif
+            this->FillAllocPages(pages, pageCount);
+
+            LogRecommitPages(pageCount);
+            LogAllocPages(pageCount);
+
+            *pageSegment = decommitSegment;
+        }
+        return pages;
+    }
 
     // At this point, we haven't been able to allocate either from the
     // decommitted pages, or from the empty segment list, so we'll
@@ -2129,7 +2119,7 @@ PageAllocatorBase<T>::Check()
 #endif
 
 template<typename T>
-HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages) :
+HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, T * virtualAllocator) :
     PageAllocatorBase(policyManager,
         Js::Configuration::Global.flags,
         PageAllocatorType_CustomHeap,
@@ -2142,6 +2132,7 @@ HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager,
         excludeGuardPages),
     allocXdata(allocXdata)
 {
+    this->virtualAllocator = virtualAllocator;
 }
 
 template<typename T>
@@ -2273,7 +2264,6 @@ HeapPageAllocator<T>::TrackDecommittedPages(void * address, uint pageCount, __in
 
     // Update the state of the segment with the decommitted pages
     segment->DecommitPages<true>(address, pageCount);
-
     // Move the segment to its appropriate list
     TransferSegment(segment, fromSegmentList);
 }
@@ -2421,9 +2411,10 @@ PageAllocatorBase<T>::IsAddressInSegment(__in void* address, const SegmentBase<T
 #if PDATA_ENABLED
 #include "Memory/XDataAllocator.h"
 template<typename T>
-bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, SecondaryAllocator** allocator)
+bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, bool committed, SecondaryAllocator** allocator)
 {
     Assert(segment->GetAllocator() == this);
+    Assert(segment->IsInCustomHeapAllocator());
 
     // If we are not allocating xdata there is nothing to do
 
@@ -2433,6 +2424,13 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, Sec
         Assert(segment->GetSecondaryAllocSize() == 0);
         *allocator = nullptr;
         return true;
+    }
+
+    if (!committed && !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
+        MEM_COMMIT, PAGE_READWRITE, true))
+    {
+        *allocator = nullptr;
+        return false;
     }
 
     XDataAllocator* secondaryAllocator = HeapNewNoThrow(XDataAllocator, (BYTE*)segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize());
