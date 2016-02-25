@@ -574,12 +574,12 @@ namespace Js
     {
         friend class JavascriptFunction;
 
-        typedef struct GuardStruct
+        struct GuardStruct
         {
             CtorCacheGuardValues value;
         };
 
-        typedef struct ContentStruct
+        struct ContentStruct
         {
             DynamicType* type;
             ScriptContext* scriptContext;

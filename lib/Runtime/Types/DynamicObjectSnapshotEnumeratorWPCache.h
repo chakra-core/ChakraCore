@@ -17,8 +17,10 @@ namespace Js
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     class DynamicObjectSnapshotEnumeratorWPCache : public DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols>
     {
+        typedef DynamicObjectSnapshotEnumerator<T, enumNonEnumerable, enumSymbols> Base;
+
     protected:
-        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumeratorWPCache, DynamicObjectSnapshotEnumerator);
+        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumeratorWPCache, Base);
         DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(DynamicObjectSnapshotEnumeratorWPCache);
 
     private:

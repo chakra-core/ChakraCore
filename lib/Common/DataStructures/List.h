@@ -227,7 +227,7 @@ namespace JsUtil
 
         virtual void Delete() override
         {
-            AllocatorDelete(TAllocator, alloc, this);
+            AllocatorDelete(TAllocator, this->alloc, this);
         }
 
         void EnsureArray()
@@ -292,10 +292,11 @@ namespace JsUtil
             return AllocatorNew(TAllocator, alloc, List, alloc, increment);
         }
 
-        List(TAllocator* alloc, int increment = DefaultIncrement) : increment(increment), removePolicy(this), ReadOnlyList(alloc)
+        List(TAllocator* alloc, int increment = DefaultIncrement) :
+            increment(increment), removePolicy(this), ParentType(alloc)
         {
-            buffer = nullptr;
-            count = 0;
+            this->buffer = nullptr;
+            this->count = 0;
             length = 0;
         }
 
@@ -311,7 +312,7 @@ namespace JsUtil
 
         const T& Item(int index) const
         {
-            return ReadOnlyList::Item(index);
+            return ParentType::Item(index);
         }
 
         T& Item(int index)
@@ -573,10 +574,10 @@ namespace JsUtil
             if (this->buffer != nullptr)
             {
                 auto freeFunc = AllocatorInfo::GetFreeFunc();
-                AllocatorFree(this->alloc, freeFunc, buffer, sizeof(T) * length); // TODO: Better version of DeleteArray?
+                AllocatorFree(this->alloc, freeFunc, this->buffer, sizeof(T) * length); // TODO: Better version of DeleteArray?
 
                 this->buffer = nullptr;
-                count = 0;
+                this->count = 0;
                 length = 0;
             }
         }
@@ -623,62 +624,62 @@ namespace Js
 
         int Count() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::Count();
         }
 
         const T& Item(int index) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::Item(index);
         }
 
         void Item(int index, const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::Item(index, item);
         }
 
         void SetExistingItem(int index, const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::SetExistingItem(index, item);
         }
 
         bool IsItemValid(int index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             return __super::IsItemValid(index);
         }
 
         int SetAtFirstFreeSpot(const T& item)
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             return __super::SetAtFirstFreeSpot(item);
         }
 
         void ClearAndZero()
         {
-            LockPolicy::WriteLock autoLock(syncObj);
+            typename LockPolicy::WriteLock autoLock(syncObj);
             __super::ClearAndZero();
         }
 
         void RemoveAt(int index)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
             return __super::RemoveAt(index);
         }
 
         int Add(const T& item)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
             return __super::Add(item);
         }
 
         template<class TMapFunction>
         void Map(TMapFunction map) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
             __super::Map(map);
         }
 

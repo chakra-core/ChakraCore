@@ -113,24 +113,34 @@ INT_PTR const VirtualTableInfo<T>::Address = VirtualTableInfo<T>::RegisterVirtua
     friend class VirtualTableInfo<T>; \
     DEFINE_VTABLE_CTOR_NOBASE_ABSTRACT(T)
 
-#define DEFINE_VTABLE_CTOR_ABSTRACT(T, Base, ...) \
+#define DEFINE_VTABLE_CTOR_ABSTRACT(T, Base) \
+    T(VirtualTableInfoCtorEnum v) : Base(v) {}
+
+#define DEFINE_VTABLE_CTOR_ABSTRACT_INIT(T, Base, ...) \
     T(VirtualTableInfoCtorEnum v) : Base(v), __VA_ARGS__ {}
+
 
 #define DEFINE_VTABLE_CTOR(T, Base) \
     friend class VirtualTableInfo<T>; \
     DEFINE_VTABLE_CTOR_ABSTRACT(T, Base) \
     DEFINE_VALIDATE_VTABLE_REGISTERED(T);
 
-// Used by non-RecyclableObject
-#define DEFINE_VTABLE_CTOR_NO_REGISTER(T, Base, ...) \
-    friend class VirtualTableInfo<T>; \
-    DEFINE_VTABLE_CTOR_ABSTRACT(T, Base, __VA_ARGS__) \
-    enum RegisterVTableEnum { RegisterVTable = 0 };
-
 #define DEFINE_VTABLE_CTOR_MEMBER_INIT(T, Base, Member) \
     friend class VirtualTableInfo<T>; \
     T(VirtualTableInfoCtorEnum v) : Base(v), Member(v) {} \
     DEFINE_VALIDATE_VTABLE_REGISTERED(T);
+
+
+// Used by non-RecyclableObject
+#define DEFINE_VTABLE_CTOR_NO_REGISTER(T, Base) \
+    friend class VirtualTableInfo<T>; \
+    DEFINE_VTABLE_CTOR_ABSTRACT(T, Base) \
+    enum RegisterVTableEnum { RegisterVTable = 0 };
+
+#define DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(T, Base, ...) \
+    friend class VirtualTableInfo<T>; \
+    DEFINE_VTABLE_CTOR_ABSTRACT_INIT(T, Base, __VA_ARGS__) \
+    enum RegisterVTableEnum { RegisterVTable = 0 };
 
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

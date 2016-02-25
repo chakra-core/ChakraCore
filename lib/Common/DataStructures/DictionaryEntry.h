@@ -177,7 +177,7 @@ namespace JsUtil
         __inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
         {
             Assert(TAGHASH(Comparer::GetHashCode(Key())) == this->hashCode);
-            return this->hashCode == otherHashCode && Comparer::Equals(Key(), otherKey);
+            return this->hashCode == otherHashCode && Comparer::Equals(this->Key(), otherKey);
         }
 
         template<typename Comparer>

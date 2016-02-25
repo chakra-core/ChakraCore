@@ -19,7 +19,7 @@ namespace UnifiedRegex
             NumPhases
         };
 
-        static const wchar_t* PhaseNames[NumPhases];
+        static const wchar16* PhaseNames[NumPhases];
 
         enum Use
         {
@@ -32,7 +32,7 @@ namespace UnifiedRegex
             NumUses
         };
 
-        static const wchar_t* UseNames[NumUses];
+        static const wchar16* UseNames[NumUses];
 
         RegexPattern* pattern; // null => total record
 

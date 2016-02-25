@@ -171,7 +171,8 @@ namespace Js
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
 
-        virtual void* GetCompareElementsFunction() = 0;
+        typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);
+        virtual CompareElementsFunction GetCompareElementsFunction() = 0;
 
         virtual Var Subarray(uint32 begin, uint32 end) = 0;
         int32 BYTES_PER_ELEMENT;
@@ -398,13 +399,13 @@ namespace Js
         }
 
     protected:
-        void* GetCompareElementsFunction()
+        CompareElementsFunction GetCompareElementsFunction()
         {
             return &TypedArrayCompareElementsHelper<TypeName>;
         }
     };
 
-    // in windows build environment, wchar_t is not an intrinsic type, and we cannot do the type
+    // in windows build environment, wchar16 is not an intrinsic type, and we cannot do the type
     // specialization
     class CharArray : public TypedArrayBase
     {
@@ -425,10 +426,10 @@ namespace Js
         static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
 
         CharArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
-        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(wchar_t), type)
+        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(wchar16), type)
         {
             AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
-            AssertMsg(mappedLength*sizeof(wchar_t)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
+            AssertMsg(mappedLength*sizeof(wchar16)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
@@ -443,9 +444,9 @@ namespace Js
         virtual Var  DirectGetItem(__in uint32 index) override;
 
     protected:
-        void* GetCompareElementsFunction()
+        CompareElementsFunction GetCompareElementsFunction()
         {
-            return &TypedArrayCompareElementsHelper<wchar_t>;
+            return &TypedArrayCompareElementsHelper<wchar16>;
         }
     };
 

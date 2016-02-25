@@ -158,7 +158,7 @@ namespace JsUtil
 
     private:
 
-        static bool FindNextLine(_In_z_ LPCUTF8 &currentSourcePosition, _In_z_ LPCUTF8 sourceEndCharacter, charcount_t &inOutCharacterOffset, charcount_t &inOutByteOffset, charcount_t maxCharacterOffset = MAXUINT32)
+        static bool FindNextLine(_In_z_ LPCUTF8 &currentSourcePosition, _In_z_ LPCUTF8 sourceEndCharacter, charcount_t &inOutCharacterOffset, charcount_t &inOutByteOffset, charcount_t maxCharacterOffset = UINT32_MAX)
         {
             charcount_t currentCharacterOffset = inOutCharacterOffset;
             charcount_t currentByteOffset = inOutByteOffset;

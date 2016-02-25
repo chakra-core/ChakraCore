@@ -9,7 +9,7 @@ namespace IR
     class LabelInstr;
 }
 
-enum JsNativeValueType;
+enum JsNativeValueType: int;
 
 namespace Js
 {

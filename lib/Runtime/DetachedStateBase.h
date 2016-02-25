@@ -6,7 +6,6 @@
 
 namespace Js
 {
-    enum TypeId;
     class DetachedStateBase
     {
     protected:

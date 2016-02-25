@@ -9,19 +9,19 @@ namespace Js
     // ModuleRecord need to keep rootFunction etc. alive.
     class ModuleRecordBase : FinalizableObject
     {
-    public: 
+    public:
         const unsigned long ModuleMagicNumber = *(const unsigned long*)"Mode";
         typedef SList<PropertyId> ExportedNames;
         typedef JsUtil::BaseDictionary<ModuleRecordBase, PropertyId, ArenaAllocator, PrimeSizePolicy> ResolutionDictionary;
         typedef SList<ModuleRecordBase*> ResolveSet;
-        typedef struct ModuleNameRecord 
+        struct ModuleNameRecord
         {
             ModuleRecordBase* module;
             LiteralString* bindingName;
         };
 
-        ModuleRecordBase(JavascriptLibrary* library) : 
-            namespaceObject(nullptr), wasEvaluated(false), 
+        ModuleRecordBase(JavascriptLibrary* library) :
+            namespaceObject(nullptr), wasEvaluated(false),
             javascriptLibrary(library),  magicNumber(ModuleMagicNumber){};
         bool WasEvaluated() { return wasEvaluated; }
         void SetWasEvaluated() { Assert(!wasEvaluated); wasEvaluated = true; }

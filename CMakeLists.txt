@@ -56,7 +56,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
 
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
         set(IS_64BIT_BUILD 1)
-        add_definitions(-D_M_X64)
+        add_definitions(-D_M_X64 -D_M_AMD64)
     endif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
 
     add_definitions("-fms-extensions")
@@ -89,6 +89,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-invalid-noreturn
         -Wno-null-arithmetic
         -Wno-tautological-undefined-compare
+        -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
@@ -104,8 +105,11 @@ if(CLR_CMAKE_PLATFORM_UNIX)
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
 
-include_directories("pal")
-include_directories("pal/inc")
-include_directories("pal/inc/rt")
-include_directories(lib/Common)
+include_directories(
+    lib/Common
+    lib/Common/PlaceHolder
+    pal
+    pal/inc
+    pal/inc/rt
+    )
 add_subdirectory (lib)

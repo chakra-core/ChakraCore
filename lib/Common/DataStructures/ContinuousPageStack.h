@@ -354,7 +354,7 @@ template<class T, const size_t InitialPageCount>
 __inline ContinuousPageStackOfFixedElements<T, InitialPageCount>::ContinuousPageStackOfFixedElements(
     PageAllocator *const pageAllocator,
     void (*const outOfMemoryFunc)())
-    : ContinuousPageStack(pageAllocator, outOfMemoryFunc)
+    : ContinuousPageStack<InitialPageCount>(pageAllocator, outOfMemoryFunc)
 {
 }
 
@@ -472,7 +472,7 @@ template<class T, const size_t InitialPageCount>
 __inline ContinuousPageStackOfVariableElements<T, InitialPageCount>::ContinuousPageStackOfVariableElements(
     PageAllocator *const pageAllocator,
     void (*const outOfMemoryFunc)())
-    : ContinuousPageStack(pageAllocator, outOfMemoryFunc)
+    : ContinuousPageStack<InitialPageCount>(pageAllocator, outOfMemoryFunc)
 {
 }
 

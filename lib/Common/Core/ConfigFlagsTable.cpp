@@ -531,7 +531,7 @@ namespace Js
                 const int scannedCount =
                     swscanf_s(
                         static_cast<LPCWSTR>(ExecutionModeLimits),
-                        L"%u.%u.%u.%u.%u",
+                        CH_WSTR("%u.%u.%u.%u.%u"),
                         &autoProfilingInterpreter0Limit,
                         &profilingInterpreter0Limit,
                         &autoProfilingInterpreter1Limit,
@@ -1128,7 +1128,7 @@ namespace Js
             {
                 Boolean childValue = value;
 
-                Output::VerboseNote(L"FLAG %s = %d - setting child flag %s = %d\n", FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(CH_WSTR("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
             }
 

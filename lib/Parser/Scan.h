@@ -4,12 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef ENABLE_GLOBALIZATION
 namespace Js
 {
     class DelayLoadWindowsGlobalization;
 }
 #include "Windows.Globalization.h"
-
+#endif
 
 int CountNewlines(LPCOLESTR psz, int cch = -1);
 
