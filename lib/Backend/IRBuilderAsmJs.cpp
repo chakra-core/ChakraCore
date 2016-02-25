@@ -7441,13 +7441,18 @@ void IRBuilderAsmJs::BuildSimd_1Ints(Js::OpCodeAsmJs newOpcode, uint32 offset, I
 
     IR::RegOpnd * srcOpnds[16];
     IR::Instr * instr = nullptr;
-
+    Assert(LANES <= 16);
     Js::OpCode opcode = GetSimdOpcode(newOpcode);
-    for (uint i = 0; i < LANES; i++)
+    // first arg
+    srcOpnds[0] = BuildSrcOpnd(srcRegSlots[0], TyInt32);
+    srcOpnds[0]->SetValueType(ValueType::GetInt(false));
+    instr = AddExtendedArg(srcOpnds[0], nullptr, offset);
+    // reset of args
+    for (uint i = 1; i < LANES; i++)
     {
         srcOpnds[i] = BuildSrcOpnd(srcRegSlots[i], TyInt32);
         srcOpnds[i]->SetValueType(ValueType::GetInt(false));
-        instr = AddExtendedArg(srcOpnds[i], i == 0 ? nullptr : instr->GetDst()->AsRegOpnd(), offset);
+        instr = AddExtendedArg(srcOpnds[i], instr->GetDst()->AsRegOpnd(), offset);
     }
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, dstSimdType);
