@@ -10,7 +10,7 @@ add_library (Chakra.Common.Common
     Jobs.cpp
     MathUtil.cpp
     NumberUtilities.cpp
-    # NumberUtilities_strtod.cpp
+    NumberUtilities_strtod.cpp
     RejitReason.cpp
     SmartFpuControl.cpp
     Tick.cpp
