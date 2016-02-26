@@ -476,6 +476,7 @@ namespace TTD
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
         m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
+        m_pendingTTDTarget(-1),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
@@ -1050,6 +1051,26 @@ namespace TTD
 
         this->m_lastFrame = this->m_callStack.Last();
     }
+
+    bool EventLog::HasPendingTTDTarget() const
+    {
+        return this->m_pendingTTDTarget != -1;
+    }
+
+    int64 EventLog::GetPendingTTDTarget() const
+    {
+        return this->m_pendingTTDTarget;
+    }
+
+    void EventLog::ClearPendingTTDTarget()
+    {
+        this->m_pendingTTDTarget = -1;
+    }
+
+    void EventLog::SetPendingTTDTarget(int64 targetTime)
+    {
+        this->m_pendingTTDTarget = targetTime;
+    }
 #endif
 
     void EventLog::UpdateLoopCountInfo()
@@ -1099,8 +1120,6 @@ namespace TTD
 
     void EventLog::GetTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
 
         *rootEventTime = this->m_topLevelCallbackEventTime;
@@ -1119,8 +1138,6 @@ namespace TTD
 
     bool EventLog::GetPreviousTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
 
         //this always works -- even if we are at the start of the function
@@ -1524,6 +1541,7 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
         this->ClearReturnFrame();
         this->ClearExceptionFrame();
+        this->ClearPendingTTDTarget();
 #endif
     }
 

@@ -225,6 +225,8 @@ namespace TTD
         bool m_isReturnFrame;
         bool m_isExceptionFrame;
         SingleCallCounter m_lastFrame;
+
+        int64 m_pendingTTDTarget;
 #endif
 
         ////
@@ -357,6 +359,11 @@ namespace TTD
         void ClearReturnFrame();
         void ClearExceptionFrame();
         void SetReturnAndExceptionFramesFromCurrent(bool setReturn, bool setException);
+
+        bool HasPendingTTDTarget() const;
+        int64 GetPendingTTDTarget() const;
+        void ClearPendingTTDTarget();
+        void SetPendingTTDTarget(int64 targetTime);
 #endif
 
         //Update the loop count information

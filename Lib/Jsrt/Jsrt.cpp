@@ -4012,6 +4012,7 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
             byte* cbMem = HeapNewArrayZ(byte, sizeof(ScriptLoadCallbackTTD));
             ScriptLoadCallbackTTD* loadCallback = new (cbMem) ScriptLoadCallbackTTD(context);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), loadCallback);
+            context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
 
             //initialize the core image but we need to disable debugging while this happens
             threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
@@ -4019,6 +4020,11 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
             threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
 
             context->GetScriptContext()->InitializeDebuggingActionsAsNeeded_TTD();
+
+            context->GetScriptContext()->InitializeDebugging();
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeInlineBreakEngine(runtime->GetDebugObject());
+            context->GetScriptContext()->GetDebugContext()->GetProbeContainer()->InitializeDebuggerScriptOptionCallback(runtime->GetDebugObject());
+            threadContext->GetDebugManager()->SetLocalsDisplayFlags(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods);
         }
         catch(...)
         {

@@ -81,6 +81,19 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 uint prevOffset = m_reader.GetCurrentOffset();
                 InterpreterHaltState haltState(STOP_STEPCOMPLETE, m_functionBody);
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchStepHandler(&haltState, &op);
+
+#if ENABLE_TTD
+                //If we have requested a reverse TTD operation compute the updated position info an bailout
+                TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
+                if(elog != nullptr && elog->ShouldPerformDebugAction())
+                {
+                    if(elog->HasPendingTTDTarget())
+                    {
+                        throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
+                    }
+                }
+#endif
+
                 if (prevOffset != m_reader.GetCurrentOffset())
                 {
                     // The location of the statement has been changed, setnextstatement was called.
@@ -101,6 +114,11 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 uint prevOffset = m_reader.GetCurrentOffset();
                 InterpreterHaltState haltState(STOP_ASYNCBREAK, m_functionBody);
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchAsyncBreak(&haltState);
+
+#if ENABLE_TTD
+                AssertMsg(false, "TODO: we need to implement reverse step actions here if needed");
+#endif
+
                 if (prevOffset != m_reader.GetCurrentOffset())
                 {
                     // The location of the statement has been changed, setnextstatement was called.
@@ -377,6 +395,19 @@ SWAP_BP_FOR_OPCODE:
                     uint prevOffset = m_reader.GetCurrentOffset();
                     InterpreterHaltState haltState(STOP_BREAKPOINT, m_functionBody);
                     this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchProbeHandlers(&haltState);
+
+#if ENABLE_TTD
+                    //If we have requested a reverse TTD operation compute the updated position info an bailout
+                    TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
+                    if(elog != nullptr && elog->ShouldPerformDebugAction())
+                    {
+                        if(elog->HasPendingTTDTarget())
+                        {
+                            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
+                        }
+                    }
+#endif
+
                     if (prevOffset != m_reader.GetCurrentOffset())
                     {
                         // The location of the statement has been changed, setnextstatement was called.
@@ -395,6 +426,11 @@ SWAP_BP_FOR_OPCODE:
                         uint prevOffset = m_reader.GetCurrentOffset();
                         InterpreterHaltState haltState(STOP_INLINEBREAKPOINT, m_functionBody);
                         this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchInlineBreakpoint(&haltState);
+
+#if ENABLE_TTD
+                        AssertMsg(false, "TODO: we need to implement reverse step actions here if needed");
+#endif
+
                         if (prevOffset != m_reader.GetCurrentOffset())
                         {
                             // The location of the statement has been changed, setnextstatement was called.
