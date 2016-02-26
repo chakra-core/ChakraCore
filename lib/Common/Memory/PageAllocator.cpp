@@ -850,12 +850,6 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
     Assert(!HasMultiThreadAccess());
     char* pages = nullptr;
 
-    pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
-    if (pages != nullptr) 
-    {
-        return pages;
-    }
-
     if (this->freePageCount >= pageCount)
     {
         FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*AutoSystemInfo::PageSize);
@@ -885,7 +879,9 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
             }
         }
     }
-    
+
+    pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
+
     return pages;
 }
 
