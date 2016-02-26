@@ -486,9 +486,9 @@ typedef struct tagDEC {
         struct {
             BYTE sign;
             BYTE scale;
-        } u;
+        };
         USHORT signscale;
-    } u;
+    };
     USHORT wReserved;
 #else
     USHORT wReserved;
@@ -496,31 +496,19 @@ typedef struct tagDEC {
         struct {
             BYTE scale;
             BYTE sign;
-        } u;
+        };
         USHORT signscale;
-    } u;
+    };
 #endif
     ULONG Hi32;
     union {
         struct {
             ULONG Lo32;
             ULONG Mid32;
-        } v;
+        };
         ULONGLONG Lo64;
-    } v;
+    };
 } DECIMAL, *LPDECIMAL;
-
-#define DECIMAL_NEG ((BYTE)0x80)
-#define DECIMAL_SCALE(dec)       ((dec).u.u.scale)
-#define DECIMAL_SIGN(dec)        ((dec).u.u.sign)
-#define DECIMAL_SIGNSCALE(dec)   ((dec).u.signscale)
-#define DECIMAL_LO32(dec)        ((dec).v.v.Lo32)
-#define DECIMAL_MID32(dec)       ((dec).v.v.Mid32)
-#define DECIMAL_HI32(dec)        ((dec).Hi32)
-#define DECIMAL_LO64_GET(dec)    ((dec).v.Lo64)
-#define DECIMAL_LO64_SET(dec,value)   {(dec).v.Lo64 = value; }
-
-#define DECIMAL_SETZERO(dec) {DECIMAL_LO32(dec) = 0; DECIMAL_MID32(dec) = 0; DECIMAL_HI32(dec) = 0; DECIMAL_SIGNSCALE(dec) = 0;}
 
 typedef struct tagBLOB {
     ULONG cbSize;
