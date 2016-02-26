@@ -5,10 +5,7 @@
 #include "Backend.h"
 
 CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext)
-: pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-                (AutoSystemInfo::Data.IsLowMemoryProcess() ?
-                 PageAllocator::DefaultLowMaxFreePageCount :
-                 PageAllocator::DefaultMaxFreePageCount))
+: pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT, 0)
 , allocator(L"NativeCode", &pageAllocator, Js::Throw::OutOfMemory)
 , emitBufferManager(&allocator, scriptContext->GetThreadContext()->GetCodePageAllocators(), scriptContext, L"JIT code buffer")
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
