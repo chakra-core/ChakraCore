@@ -57,7 +57,7 @@ struct BIGNUM
     void Round(ulong luExtra)
     {
         if (0 == (luExtra & 0x80000000) ||
-            0 == (luExtra & 0x7FFFFFFF) && 0 == (m_lu0 & 1))
+            (0 == (luExtra & 0x7FFFFFFF) && 0 == (m_lu0 & 1)))
         {
             if (luExtra)
                 m_luError++;
@@ -856,7 +856,7 @@ static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwE
             goto LFail;
 
         wT = biDbl.Compare(&biDec);
-        if (wT > 0 || 0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (wT > 0 || (0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // Return the next lower value.
             if (!Js::NumberUtilities::AddLu(&Js::NumberUtilities::LuLoDbl(dbl), 0xFFFFFFFF))
@@ -876,7 +876,7 @@ static double AdjustDbl(double dbl, const EncodedChar *prgch, long cch, long lwE
             goto LFail;
 
         wT = biDbl.Compare(&biDec);
-        if (wT < 0 || 0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (wT < 0 || (0 == wT && 0 != (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // Return the next higher value.
             if (Js::NumberUtilities::AddLu(&Js::NumberUtilities::LuLoDbl(dbl), 1))
@@ -1492,7 +1492,7 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
         }
 
         // if (biNum < *pbiLo || biNum == *pbiLo && even)
-        if (w1 < 0 || 0 == w1 && 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1))
+        if (w1 < 0 || (0 == w1 && 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1)))
         {
             // if (biNum + biHi > biDen)
             if (w2 > 0)
@@ -1501,7 +1501,7 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
                 if (!biNum.FShiftLeft(1))
                     goto LFail;
                 w2 = biNum.Compare(&biDen);
-                if ((w2 > 0 || w2 == 0 && (bT & 1)) && bT++ == 9)
+                if ((w2 > 0 || (w2 == 0 && (bT & 1))) && bT++ == 9)
                     goto LRoundUp9;
             }
             Assert(ib < kcbMaxRgb);
