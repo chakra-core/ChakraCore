@@ -640,6 +640,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             GenerateFastInlineMathFround(instr);
             break;
 
+        case Js::OpCode::Reinterpret_Prim:
+            instrPrev = LowerReinterpretPrimitive(instr);
+            break;
+
         case Js::OpCode::InlineMathMin:
         case Js::OpCode::InlineMathMax:
             m_lowererMD.GenerateFastInlineBuiltInCall(instr, (IR::JnHelperMethod)0);
@@ -17250,6 +17254,18 @@ Lowerer::GenerateFastInlineMathImul(IR::Instr* instr)
     LowererMD::Legalize(imul);
 
     instr->Remove();
+}
+
+IR::Instr *
+Lowerer::LowerReinterpretPrimitive(IR::Instr* instr)
+{
+    Assert(m_func->GetJnFunction()->IsWasmFunction());
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+
+    Assert(dst->GetSize() == src1->GetSize());
+    Assert((dst->IsFloat32() && src1->IsInt32()) || (dst->IsInt32() && src1->IsFloat32()));
+    return m_lowererMD.LowerReinterpretPrimitive(instr);
 }
 
 void

@@ -134,6 +134,11 @@ namespace Js
         return  *(reinterpret_cast<uint32 *>(&value));
     }
 
+    NUMBER_UTIL_INLINE float NumberUtilities::ReinterpretBits(int value)
+    {
+        return  *(reinterpret_cast<float *>(&value));
+    }
+
     NUMBER_UTIL_INLINE bool NumberUtilities::IsFloat32NegZero(float value)
     {
         uint32 nCompare = ToSpecial(value);

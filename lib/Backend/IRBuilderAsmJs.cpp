@@ -707,6 +707,10 @@ IRBuilderAsmJs::BuildConstantLoads()
     {
         BuildHeapBufferReload(Js::Constants::NoByteCodeOffset);
     }
+    if (!constTable)
+    {
+        return;
+    }
 
     uint32 regAllocated = AsmJsRegSlots::RegCount;
 
@@ -1736,15 +1740,24 @@ IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildInt1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstIntReg, Js::RegSlot srcDoubleReg)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::Conv_DTI);
 
     Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dstIntReg);
     Js::RegSlot srcRegSlot = GetRegSlotFromDoubleReg(srcDoubleReg);
 
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat64);
     srcOpnd->SetValueType(ValueType::Float);
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+    IR::RegOpnd * dstOpnd = nullptr;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_DTI:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        break;
+    case Js::OpCodeAsmJs::Conv_DTU:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
+        break;
+    default:
+        Assume(UNREACHED);
+    }
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, m_func);
@@ -1763,18 +1776,33 @@ IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildInt1Float1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot dstIntReg, Js::RegSlot srcFloatReg)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::Conv_FTI);
-
     Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dstIntReg);
     Js::RegSlot srcRegSlot = GetRegSlotFromFloatReg(srcFloatReg);
 
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyFloat32);
     srcOpnd->SetValueType(ValueType::Float);
-
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+    IR::RegOpnd * dstOpnd = nullptr;
+    Js::OpCode op = Js::OpCode::Nop;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Conv_FTI:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        op = Js::OpCode::Conv_Prim;
+        break;
+    case Js::OpCodeAsmJs::Conv_FTU:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyUint32);
+        op = Js::OpCode::Conv_Prim;
+        break;
+    case Js::OpCodeAsmJs::Reinterpret_FTI:
+        dstOpnd = BuildDstOpnd(dstRegSlot, TyInt32);
+        op = Js::OpCode::Reinterpret_Prim;
+        break;
+    default:
+        Assume(UNREACHED);
+    }
     dstOpnd->SetValueType(ValueType::GetInt(false));
 
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::Conv_Prim, dstOpnd, srcOpnd, m_func);
+    IR::Instr * instr = IR::Instr::New(op, dstOpnd, srcOpnd, m_func);
     AddInstr(instr, offset);
 }
 
@@ -2135,7 +2163,7 @@ IRBuilderAsmJs::BuildFloat1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Ld_FltConst);
 
-    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dst);
+    Js::RegSlot dstRegSlot = GetRegSlotFromFloatReg(dst);
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
     dstOpnd->SetValueType(ValueType::Float);
@@ -2724,7 +2752,19 @@ IRBuilderAsmJs::BuildFloat1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     Js::RegSlot dstRegSlot = GetRegSlotFromFloatReg(dst);
     Js::RegSlot srcRegSlot = GetRegSlotFromIntReg(src);
 
-    IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt32);
+    IR::RegOpnd * srcOpnd = nullptr;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::Fround_Int:
+        srcOpnd = BuildSrcOpnd(srcRegSlot, TyInt32);
+        break;
+    case Js::OpCodeAsmJs::Conv_UTF:
+        srcOpnd = BuildSrcOpnd(srcRegSlot, TyUint32);
+        break;
+    default:
+        Assume(UNREACHED);
+    }
+
     srcOpnd->SetValueType(ValueType::GetInt(false));
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat32);
@@ -2816,10 +2856,18 @@ IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset)
 void
 IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 relativeOffset, Js::RegSlot src)
 {
-    Assert(newOpcode == Js::OpCodeAsmJs::BrTrue_Int);
-
-    // TODO (michhol): handle BrFalse_Int
-
+    Js::OpCode op = Js::OpCode::Nop;
+    switch (newOpcode)
+    {
+    case Js::OpCodeAsmJs::BrTrue_Int:
+        op = Js::OpCode::BrTrue_I4;
+        break;
+    case Js::OpCodeAsmJs::BrFalse_Int:
+        op = Js::OpCode::BrFalse_I4;
+        break;
+    default:
+        Assume(UNREACHED);
+    }
     Js::RegSlot src1RegSlot = GetRegSlotFromIntReg(src);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TyInt32);
     src1Opnd->SetValueType(ValueType::GetInt(false));

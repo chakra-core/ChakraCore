@@ -76,11 +76,16 @@ MACRO       ( EndSwitch_Int             , AsmBr        , OpNoFallThrough ) // En
 MACRO_WMS   ( Case_Int                  , BrInt2       , None            ) // Integer branch, same function as BrInt2
 
 // Type conversion
+MACRO_WMS   ( Reinterpret_ITF           , Float1Int1   , None            ) // reinterpret bits of int to float
+MACRO_WMS   ( Reinterpret_FTI           , Int1Float1   , None            ) // reinterpret bits of float to int
 MACRO_WMS   ( Conv_DTI                  , Int1Double1  , None            ) // convert double to int
 MACRO_WMS   ( Conv_FTI                  , Int1Float1   , None            ) // convert float to int
+MACRO_WMS   ( Conv_DTU                  , Int1Double1  , None            ) // convert double to unsigned int
+MACRO_WMS   ( Conv_FTU                  , Int1Float1   , None            ) // convert float to unsigned int
 MACRO_WMS   ( Conv_ITD                  , Double1Int1  , None            ) // convert int to double
 MACRO_WMS   ( Conv_FTD                  , Double1Float1, None            ) // convert float to double
 MACRO_WMS   ( Conv_UTD                  , Double1Int1  , None            ) // convert unsigned int to double
+MACRO_WMS   ( Conv_UTF                  , Float1Int1   , None            ) // convert unsigned int to float
 MACRO_WMS   ( Return_Db                 , Double2      , None            ) // convert double to var
 MACRO_WMS   ( Return_Flt                , Float2       , None            ) // convert float to var
 MACRO_WMS   ( Return_Int                , Int2         , None            ) // convert int to var

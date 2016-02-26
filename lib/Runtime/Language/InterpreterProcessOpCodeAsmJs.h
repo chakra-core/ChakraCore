@@ -225,12 +225,25 @@ if (switchProfileMode) \
 
 #define PROCESS_U1toD1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
-                                                                { \
+    { \
         PROCESS_READ_LAYOUT_ASMJS(name, Double1Int1, suffix); \
         SetRegRawDouble(playout->D0, \
                 func((unsigned int)GetRegRawInt(playout->I1)) ); \
         break; \
-                                                                }
+    }
+#define PROCESS_U1toD1Mem(name, func) PROCESS_U1toD1Mem_COMMON(name, func,)
+
+#define PROCESS_U1toF1Mem_COMMON(name, func, suffix) \
+    case OpCodeAsmJs::name: \
+    { \
+        PROCESS_READ_LAYOUT_ASMJS(name, Float1Int1, suffix); \
+        SetRegRawFloat(playout->F0, \
+                func((unsigned int)GetRegRawInt(playout->I1)) ); \
+        break; \
+    }
+
+#define PROCESS_U1toF1Mem(name, func) PROCESS_U1toF1Mem_COMMON(name, func,)
+
 #define PROCESS_F1toD1Mem_COMMON(name, func, suffix) \
     case OpCodeAsmJs::name: \
                                                                 { \
@@ -240,7 +253,6 @@ if (switchProfileMode) \
         break; \
                                                                 }
 
-#define PROCESS_U1toD1Mem(name, func) PROCESS_U1toD1Mem_COMMON(name, func,)
 #define PROCESS_F1toD1Mem(name, func) PROCESS_F1toD1Mem_COMMON(name, func,)
 
 
