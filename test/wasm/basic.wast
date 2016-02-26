@@ -23,8 +23,9 @@
     (block
         (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
         (setlocal 0 (i32.add (getlocal 0) (i32.clz (getlocal 0))))
-        (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
         (setlocal 0 (i32.add (getlocal 0) (call 0)))
+        (br_if 0 (select (f32.neq (getlocal 1) (getlocal 1)) (i32.const 0) (i32.const 1)))
+        (setlocal 0 (i32.add (getlocal 0) (i32.const 4)))
     )
     (setlocal 1 (f32.convert_s/i32 (getlocal 0)))
     (setlocal 1 (f32.add (getlocal 1) (getlocal 1)))
@@ -34,5 +35,5 @@
     (setlocal 0 (i32.load 0 10000 (getlocal 0)))
     (return (i32.add (getlocal 0) (i32.const 42)))
 )
-(table 1 3)
+(table 0 2)
 (export "a" 2)

@@ -202,11 +202,18 @@ SExprParser::ReadExprCore(SExprTokenType tok)
         return wnLOOP;
     case wtkLABEL:
         return wnLABEL;
+    case wtkSELECT:
+        m_blockNesting->Push(SExpr::Expr);
+        return wnSELECT;
     case wtkRETURN:
         return ParseReturnExpr();
     case wtkIF:
     case wtkIF_ELSE:
         return ParseIfExpr();
+    case wtkBR:
+        return ParseBrExpr(wnBR);
+    case wtkBR_IF:
+        return ParseBrExpr(wnBR_IF);
     case wtkGETLOCAL:
         op = wnGETLOCAL;
         goto ParseVarCommon;
@@ -234,10 +241,8 @@ SExprParser::ReadExprCore(SExprTokenType tok)
 ParseVarCommon:
         ParseVarNode(op);
         return op;
-
-    // TODO: implement enumerated ops
-    case wtkBREAK:
-    case wtkSWITCH:
+    // TODO: implement
+    case wtkBR_TABLE:
     default:
         ThrowSyntaxError();
     }
@@ -551,6 +556,25 @@ WasmOp
 SExprParser::ParseIfExpr()
 {
     m_currentNode.op = wnIF;
+
+    m_blockNesting->Push(SExpr::Expr);
+
+    return m_currentNode.op;
+}
+
+WasmOp
+SExprParser::ParseBrExpr(WasmOp op)
+{
+    m_currentNode.op = op;
+    m_scanner->ScanToken(wtkINTLIT);
+
+    if (m_token.u.lng < 0 || m_token.u.lng >= UINT8_MAX)
+    {
+        ThrowSyntaxError();
+    }
+    m_currentNode.br.depth = (uint8)m_token.u.lng;
+    // TODO: need to support br with value
+    m_currentNode.br.hasSubExpr = false;
 
     m_blockNesting->Push(SExpr::Expr);
 

@@ -62,6 +62,7 @@ namespace Wasm
         WasmOp ParseReturnExpr();
         void ParseMemOpExpr(WasmOp op);
         WasmOp ParseIfExpr();
+        WasmOp ParseBrExpr(WasmOp op);
         WasmOp ParseBlock();
         WasmOp ParseCall();
         WasmOp ParseCallIndirect();
