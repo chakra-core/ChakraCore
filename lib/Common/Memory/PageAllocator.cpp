@@ -794,12 +794,8 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
     if (localList != nullptr)
     {
         uint newFreePages = 0;
-        while (true)
+        while (localList != nullptr)
         {
-            if (localList == nullptr)
-            {
-                break;
-            }
             FreePageEntry* freePagesEntry = localList;
             localList = (FreePageEntry*)localList->Next;
 
@@ -818,14 +814,12 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
 
         }
 
+        LogFreePages(newFreePages);
+        PAGE_ALLOC_VERBOSE_TRACE(L"New free pages: %d\n", newFreePages);
+        this->AddFreePageCount(newFreePages);
 #if DBG
         UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
 #endif
-
-        LogFreePages(newFreePages);
-
-        PAGE_ALLOC_VERBOSE_TRACE(L"New free pages: %d\n", newFreePages);
-        this->AddFreePageCount(newFreePages);
     }
 
     return pages;
@@ -839,6 +833,12 @@ PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> *
     {
         return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue->freePageList, false);
     }
+
+    if (this->hasZeroQueuedPages) 
+    {
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, (((ZeroPageQueue *)backgroundPageQueue)->pendingZeroPageList), true);
+    }
+
     return nullptr;
 }
 
@@ -850,13 +850,10 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
     Assert(!HasMultiThreadAccess());
     char* pages = nullptr;
 
-    if (this->hasZeroQueuedPages)
+    pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
+    if (pages != nullptr) 
     {
-        pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
-        if (pages != nullptr) 
-        {
-            return pages;
-        }
+        return pages;
     }
 
     if (this->freePageCount >= pageCount)
