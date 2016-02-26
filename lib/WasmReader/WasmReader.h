@@ -22,8 +22,15 @@ namespace Wasm
 #include "ByteCode\ByteCodeWriter.h"
 #include "ByteCode\AsmJsByteCodeWriter.h"
 
-#include "ModuleInfo.h"
 #include "WasmParseTree.h"
+
+namespace Wasm
+{
+    typedef JsUtil::GrowingArray<WasmTypes::WasmType, ArenaAllocator> WasmTypeArray;
+}
+
+#include "WasmSignature.h"
+#include "ModuleInfo.h"
 #include "WasmFunctionInfo.h"
 
 #include "BaseWasmReader.h"

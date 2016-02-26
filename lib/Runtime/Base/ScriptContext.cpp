@@ -1844,7 +1844,7 @@ namespace Js
 
             Wasm::WasmFunction ** functionArray = wasmModule->functions->GetBuffer();
 
-            Var* moduleMemoryPtr = RecyclerNewArray(GetRecycler(), Var, wasmModule->memSize);
+            Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
 
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
             if (wasmModule->info->GetMemory()->minSize != 0)
@@ -1863,7 +1863,7 @@ namespace Js
             frameDisplay->SetItem(0, moduleMemoryPtr);
 
             Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
-
+            // TODO, refactor this function into smaller functions
             for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
                 if (functionArray[i]->wasmInfo->Imported())
@@ -1874,7 +1874,7 @@ namespace Js
                     utf8::DecodeOptions decodeOptions = utf8::doAllowInvalidWCHARs;
 
                     UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
-                    LPCWSTR contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (utf16Len + 1) * sizeof(WCHAR));
+                    LPCWSTR contents = HeapNewArray(WCHAR, (utf16Len + 1));
                     if (contents == nullptr)
                     {
                         Js::Throw::OutOfMemory();
@@ -1882,6 +1882,7 @@ namespace Js
                     utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
 
                     GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
+                    HeapDeleteArray(utf16Len + 1, contents);
                     if (!ffi)
                     {
                         // TODO: michhol give error message
@@ -1913,7 +1914,7 @@ namespace Js
                         AnalysisAssertMsg(name, "export function is guaranteed to have name.");
                         utf8::DecodeOptions decodeOptions = utf8::doDefault;
                         UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
-                        LPCWSTR contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (utf16Len + 1) * sizeof(WCHAR));
+                        LPCWSTR contents = HeapNewArray(WCHAR, (utf16Len + 1));
                         if (contents == nullptr)
                         {
                             Js::Throw::OutOfMemory();
@@ -1921,10 +1922,31 @@ namespace Js
                         utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
 
                         GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
+                        HeapDeleteArray(utf16Len + 1, contents);
     
                         JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), funcObj, this);
-					}	
+                    }
                 }
+            }
+
+            Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);
+            for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
+            {
+                uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
+                if (funcIndex >= wasmModule->functions->Count())
+                {
+                    // TODO: michhol give error message
+                    Js::Throw::InternalError();
+                }
+                Wasm::WasmFunction * indirFunc = functionArray[funcIndex];
+                uint sigId = indirFunc->wasmInfo->GetSignature()->GetSignatureId();
+                if (!indirectFunctionTables[sigId])
+                {
+                    // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
+                    // now, indirect func call to invalid type will give nullptr deref
+                    indirectFunctionTables[sigId] = RecyclerNewArrayZ(GetRecycler(), Js::Var, wasmModule->info->GetFunctionCount());
+                }
+                indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
             }
 
             HeapDelete(bytecodeGen);

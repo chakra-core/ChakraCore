@@ -43,19 +43,28 @@ namespace Wasm
         SExprToken          m_token;
 
     private:
+        enum FuncHeaderType : byte
+        {
+            funcType,
+            funcImport,
+            funcFull
+        };
+
         WasmOp ReadExprCore(SExprTokenType tok);
-        template <bool imported>
+        template <FuncHeaderType type>
         WasmOp ParseFunctionHeader();
         WasmOp ParseExport();
         WasmOp ParseMemory();
-        void ParseParam();
-        void ParseResult();
+        WasmOp ParseTable();
+        void ParseParam(WasmSignature * signature);
+        void ParseResult(WasmSignature * signature);
         void ParseLocal();
         WasmOp ParseReturnExpr();
         void ParseMemOpExpr(WasmOp op);
         WasmOp ParseIfExpr();
         WasmOp ParseBlock();
         WasmOp ParseCall();
+        WasmOp ParseCallIndirect();
         WasmOp ParseConstLitExpr(SExprTokenType tok);
         void ParseGeneralExpr(WasmOp opcode);
 
@@ -78,6 +87,7 @@ namespace Wasm
         JsUtil::Stack<SExpr::BlockType> * m_blockNesting;
 
         bool m_inExpr;
+        bool m_initialized;
     };
 
 } // namespace Wasm

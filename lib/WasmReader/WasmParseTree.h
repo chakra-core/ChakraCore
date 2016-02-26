@@ -57,15 +57,6 @@ namespace Wasm
         bool exists;
     };
 
-    struct WasmInvokeNode
-    {
-        WasmNode * expr;
-        union
-        {
-            LPCUTF8 name;
-        };
-    };
-
     struct WasmBlockNode
     {
         UINT8 count;
@@ -96,7 +87,6 @@ namespace Wasm
         {
             WasmVarNode var;
             WasmConstLitNode cnst;
-            WasmInvokeNode invk;
             WasmFuncNode func;
             WasmOptionalNode opt;
             WasmBlockNode block;

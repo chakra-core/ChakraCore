@@ -12,7 +12,6 @@ namespace Wasm
 
 WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
     : m_alloc(alloc),
-    m_resultType(WasmTypes::Void),
     m_exported(false),
     m_imported(false),
     m_name(nullptr)
@@ -22,20 +21,12 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
     m_f32Consts = Anew(m_alloc, ConstMap<float>, m_alloc);
     m_f64Consts = Anew(m_alloc, ConstMap<double>, m_alloc);
     m_locals = Anew(m_alloc, WasmTypeArray, m_alloc, 0);
-    m_params = Anew(m_alloc, WasmTypeArray, m_alloc, 0);
 }
 
 void
 WasmFunctionInfo::AddLocal(WasmTypes::WasmType type)
 {
     m_locals->Add(type);
-}
-
-void
-WasmFunctionInfo::AddParam(WasmTypes::WasmType type)
-{
-    m_locals->Add(type);
-    m_params->Add(type);
 }
 
 template<>
@@ -70,13 +61,6 @@ WasmFunctionInfo::AddConst<double>(double constVal, Js::RegSlot reg)
     Assert(result != -1);
 }
 
-void
-WasmFunctionInfo::SetResultType(WasmTypes::WasmType type)
-{
-    Assert(m_resultType == WasmTypes::Void);
-    m_resultType = type;
-}
-
 WasmTypes::WasmType
 WasmFunctionInfo::GetLocal(uint index) const
 {
@@ -90,11 +74,7 @@ WasmFunctionInfo::GetLocal(uint index) const
 WasmTypes::WasmType
 WasmFunctionInfo::GetParam(uint index) const
 {
-    if (index < m_params->Count())
-    {
-        return m_params->GetBuffer()[index];
-    }
-    return WasmTypes::Limit;
+    return m_signature->GetParam(index);
 }
 
 template<>
@@ -128,7 +108,7 @@ WasmFunctionInfo::GetConst<double>(double constVal) const
 WasmTypes::WasmType
 WasmFunctionInfo::GetResultType() const
 {
-    return m_resultType;
+    return m_signature->GetResultType();
 }
 
 uint32
@@ -140,7 +120,7 @@ WasmFunctionInfo::GetLocalCount() const
 uint32 
 WasmFunctionInfo::GetParamCount() const
 {
-    return m_params->Count();
+    return m_signature->GetParamCount();
 }
 
 void 
@@ -189,6 +169,23 @@ UINT32
 WasmFunctionInfo::GetNumber()
 {
     return m_number;
+}
+
+void
+WasmFunctionInfo::SetSignature(WasmSignature * signature)
+{
+    for (uint32 i = 0; i < signature->GetParamCount(); ++i)
+    {
+        m_locals->Add(signature->GetParam(i));
+    }
+
+    m_signature = signature;
+}
+
+WasmSignature *
+WasmFunctionInfo::GetSignature() const
+{
+    return m_signature;
 }
 
 } // namespace Wasm

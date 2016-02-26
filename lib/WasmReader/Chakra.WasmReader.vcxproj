@@ -44,6 +44,7 @@
     <ClCompile Include="SExprScanner.cpp" />
     <ClCompile Include="WasmRegisterSpace.cpp" />
     <ClCompile Include="WasmBinaryReader.cpp" />
+    <ClCompile Include="WasmSignature.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BaseWasmReader.h" />
@@ -58,6 +59,7 @@
     <ClInclude Include="WasmReaderPch.h" />
     <ClInclude Include="WasmParseTree.h" />
     <ClInclude Include="WasmRegisterSpace.h" />
+    <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmTokens.h" />
     <ClInclude Include="WasmBinaryReader.h" />
     <ClInclude Include="WasmBinaryOpcodes.h" />

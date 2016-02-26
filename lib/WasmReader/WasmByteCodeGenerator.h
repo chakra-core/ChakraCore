@@ -69,6 +69,7 @@ namespace Wasm
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;
+        uint indirFuncTableOffset;
         uint memSize;
     };
 
@@ -88,7 +89,6 @@ namespace Wasm
 
         WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader);
         WasmModule * GenerateModule();
-        void GenerateInvoke();
         WasmFunction * GenerateFunction();
 
     private:
@@ -99,6 +99,7 @@ namespace Wasm
         EmitInfo EmitBlock();
         EmitInfo EmitLoop();
 
+        template<WasmOp wasmOp>
         EmitInfo EmitCall();
         EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
