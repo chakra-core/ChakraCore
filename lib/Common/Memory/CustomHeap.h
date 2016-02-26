@@ -35,14 +35,11 @@ enum BucketId
 
 BucketId GetBucketForSize(size_t bytes);
 
-struct PageAllocatorAllocation
+struct Page
 {
-    bool isDecommitted;
-};
-
-struct Page: public PageAllocatorAllocation
-{
-    void* segment;
+    bool         inFullList;
+    bool         isDecommitted;
+    void*        segment;
     BVUnit       freeBitVector;
     char*        address;
     BucketId     currentBucket;
@@ -62,14 +59,14 @@ struct Page: public PageAllocatorAllocation
         return freeBitVector.FirstStringOfOnes(targetBucket + 1) != BVInvalidIndex;
     }
 
-    Page(__in char* address, void* segment, BucketId bucket):
-      address(address),
-      segment(segment),
-      currentBucket(bucket),
-      freeBitVector(0xFFFFFFFF)
+    Page(__in char* address, void* segment, BucketId bucket) :
+        address(address),
+        segment(segment),
+        currentBucket(bucket),
+        freeBitVector(0xFFFFFFFF),
+        isDecommitted(false),
+        inFullList(false)
     {
-        // Initialize PageAllocatorAllocation fields
-        this->isDecommitted = false;
     }
 
     // Each bit in the bit vector corresponds to 128 bytes of memory
@@ -83,9 +80,10 @@ struct Allocation
     union
     {
         Page*  page;
-        struct: PageAllocatorAllocation
+        struct
         {
             void* segment;
+            bool isDecommitted;
         } largeObjectAllocation;
     };
 
@@ -145,7 +143,8 @@ public:
     CodePageAllocators(AllocationPolicyManager * policyManager, bool allocXdata, PreReservedVirtualAllocWrapper * virtualAllocator) :
         pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, nullptr),
         preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator),
-        cs(4000)
+        cs(4000),
+        secondaryAllocStateChangedCount(0)
     {
 #if DBG
         this->preReservedHeapPageAllocator.ClearConcurrentThreadId();
@@ -271,12 +270,22 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
+            secondaryAllocStateChangedCount += (uint)this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
+            secondaryAllocStateChangedCount += (uint)this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
         }
+    }
+
+    bool HasSecondaryAllocStateChanged(uint * lastSecondaryAllocStateChangedCount)
+    {
+        if (secondaryAllocStateChangedCount != *lastSecondaryAllocStateChangedCount)
+        {
+            *lastSecondaryAllocStateChangedCount = secondaryAllocStateChangedCount;
+            return true;
+        }
+        return false;
     }
 
     void DecommitPages(__in char* address, size_t pageCount, void* segment)
@@ -371,6 +380,13 @@ private:
     HeapPageAllocator<VirtualAllocWrapper>               pageAllocator;
     HeapPageAllocator<PreReservedVirtualAllocWrapper>    preReservedHeapPageAllocator;
     CriticalSection cs;
+
+    // Track the number of time a segment's secondary allocate change from full to available to allocate.
+    // So that we know whether CustomHeap to know when to update their "full page"
+    // It is ok to overflow this variable.  All we care is if the state has changed.
+    // If in the unlikely scenario that we do overflow, then we delay the full pages in CustomHeap from
+    // being made available.
+    uint secondaryAllocStateChangedCount;
 };
 
 /*
@@ -388,8 +404,8 @@ public:
     Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators);
 
     Allocation* Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
-    bool Free(__in Allocation* allocation);
-    bool Decommit(__in Allocation* allocation);
+    void Free(__in Allocation* allocation);
+    void DecommitAll();
     void FreeAll();
     bool IsInHeap(__in void* address);
    
@@ -444,14 +460,10 @@ private:
      * Large object methods
      */
     Allocation* AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
+    
+    void FreeLargeObject(Allocation* header);
 
-    template<bool freeAll>
-    bool FreeLargeObject(Allocation* header);
-
-    void FreeLargeObjects()
-    {
-        FreeLargeObject<true>(nullptr);
-    }
+    void FreeLargeObjects();
 
     //Called during Free
     DWORD EnsurePageWriteable(Page* page);
@@ -506,30 +518,13 @@ private:
      * Page methods
      */
     Page*       AddPageToBucket(Page* page, BucketId bucket, bool wasFull = false);
-    Allocation* AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize);
+    bool        AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocation);
     Page*       AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     Page*       FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages = false);
-
-    template<class Fn>
-    void TransferPages(Fn predicate, DListBase<Page>* fromList, DListBase<Page>* toList)
-    {
-        Assert(fromList != toList);
-
-        for(int bucket = 0; bucket < BucketId::NumBuckets; bucket++)
-        {
-            FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &(fromList[bucket]), bucketIter)
-            {
-                if(predicate(&page))
-                {
-                    bucketIter.MoveCurrentTo(&(toList[bucket]));
-                }
-            }
-            NEXT_DLISTBASE_ENTRY_EDITING;
-        }
-    }
+    bool        UpdateFullPages();
+    Page *      GetExistingPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment);
 
     BVIndex     GetIndexInPage(__in Page* page, __in char* address);
-    void        RemovePageFromFullList(Page* page);
 
 
     bool IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void *address);
@@ -562,6 +557,7 @@ private:
     DListBase<Page>        decommittedPages;
     DListBase<Allocation>  decommittedLargeObjects;
 
+    uint lastSecondaryAllocStateChangedCount;
 #if DBG
     bool inDtor;
 #endif

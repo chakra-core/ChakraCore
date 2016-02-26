@@ -2312,7 +2312,7 @@ bool HeapPageAllocator<T>::AllocSecondary(void* segmentParam, ULONG_PTR function
 }
 
 template<typename T>
-void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocation, void* segmentParam)
+bool HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocation, void* segmentParam)
 {
     SegmentBase<T> * segment = (SegmentBase<T>*)segmentParam;
     Assert(allocation.address != nullptr);
@@ -2335,6 +2335,7 @@ void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocatio
             AssertMsg(fromList == &fullSegments, "Releasing a secondary allocator should make a state change only if the segment was originally in the full list");
             AssertMsg(pageSegment->CanAllocSecondary(), "It should be allocate secondary now");
             this->AddFreePageCount(pageSegment->GetFreePageCount());
+            return true;
         }
     }
     else
@@ -2342,6 +2343,7 @@ void HeapPageAllocator<T>::ReleaseSecondary(const SecondaryAllocation& allocatio
         Assert(segment->CanAllocSecondary());
         segment->GetSecondaryAllocator()->Release(allocation);
     }
+    return false;
 }
 
 template<typename T>
@@ -2419,14 +2421,15 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, boo
     // If we are not allocating xdata there is nothing to do
 
     // ARM might allocate XDATA but not have a reserved region for it (no secondary alloc reserved space)
-    if(!allocXdata)
+    if (!allocXdata)
     {
         Assert(segment->GetSecondaryAllocSize() == 0);
         *allocator = nullptr;
         return true;
     }
 
-    if (!committed && !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
+    if (!committed && segment->GetSecondaryAllocSize() != 0 &&
+        !this->GetVirtualAllocator()->Alloc(segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize(),
         MEM_COMMIT, PAGE_READWRITE, true))
     {
         *allocator = nullptr;
@@ -2435,9 +2438,9 @@ bool HeapPageAllocator<T>::CreateSecondaryAllocator(SegmentBase<T>* segment, boo
 
     XDataAllocator* secondaryAllocator = HeapNewNoThrow(XDataAllocator, (BYTE*)segment->GetSecondaryAllocStartAddress(), segment->GetSecondaryAllocSize());
     bool success = false;
-    if(secondaryAllocator)
+    if (secondaryAllocator)
     {
-        if(secondaryAllocator->Initialize((BYTE*)segment->GetAddress(), (BYTE*)segment->GetEndAddress()))
+        if (secondaryAllocator->Initialize((BYTE*)segment->GetAddress(), (BYTE*)segment->GetEndAddress()))
         {
             success = true;
         }
