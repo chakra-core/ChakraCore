@@ -111,6 +111,7 @@ namespace Js
                     value = undefined;
                 }
 
+                // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
                 adder->GetEntryPoint()(adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
             }
         }

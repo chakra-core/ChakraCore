@@ -10129,6 +10129,7 @@ CommonNumber:
 
     bool JavascriptOperators::IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue)
     {
+        // CONSIDER: Fast-pathing for iterators that are built-ins?
         RecyclableObject* result = JavascriptOperators::IteratorNext(iterator, scriptContext);
 
         if (!JavascriptOperators::IteratorComplete(result, scriptContext))
