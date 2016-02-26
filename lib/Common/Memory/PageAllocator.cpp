@@ -749,70 +749,113 @@ PageAllocatorBase<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
 }
 
 template<typename T>
+char *
+PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<T> ** pageSegment, SLIST_HEADER& zeroPagesList)
+{
+    char * pages = nullptr;
+    FreePageEntry * freePage = (FreePageEntry *)::InterlockedPopEntrySList(&zeroPagesList);
+    FreePageEntry* localList = nullptr;
+    while (freePage != nullptr) {
+#if DBG
+        UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
+#endif
+
+        if (freePage->pageCount == pageCount)
+        {
+            *pageSegment = freePage->segment;
+            pages = (char *)freePage;
+            memset(pages, 0, sizeof(FreePageEntry));
+            this->FillAllocPages(pages, pageCount);
+            break;
+        }
+        else if (freePage->pageCount > pageCount)
+        {
+            *pageSegment = freePage->segment;
+            freePage->pageCount -= pageCount;
+            pages = (char *)freePage + freePage->pageCount * AutoSystemInfo::PageSize;
+            this->FillAllocPages(pages, pageCount);
+
+            ::InterlockedPushEntrySList(&backgroundPageQueue->freePageList, freePage);
+            break;
+        }
+        else
+        {
+            freePage->Next = localList;
+            localList = (FreePageEntry*)freePage;
+        }
+
+        freePage = (FreePageEntry *)::InterlockedPopEntrySList(&zeroPagesList);
+    }
+
+    while (localList != nullptr)
+    {
+        FreePageEntry* next = (FreePageEntry*)localList->Next;
+        ::InterlockedPushEntrySList(&zeroPagesList, localList);
+        localList = next;
+    }
+
+    return pages;
+}
+
+template<typename T>
+char *
+PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
+{
+    if (backgroundPageQueue != nullptr) 
+    {
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue->freePageList);
+    }
+    return nullptr;
+}
+
+template<typename T>
 template <bool notPageAligned>
 char *
 PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pageSegment, PageHeapMode pageHeapFlags)
 {
     Assert(!HasMultiThreadAccess());
-    if (this->freePageCount < pageCount)
+    char* pages = nullptr;
+
+    if (this->hasZeroQueuedPages)
     {
-        return nullptr;
-    }
-
-    FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*4096);
-    DListBase<PageSegmentBase<T>>::EditingIterator i(&segments);
-
-    while (i.Next())
-    {
-        PageSegmentBase<T> * freeSegment = &i.Data();
-
-        char * pages = freeSegment->AllocPages<notPageAligned>(pageCount, pageHeapFlags);
-        if (pages != nullptr)
+        pages = TryAllocFromZeroPages(pageCount, pageSegment, pageHeapFlags);
+        if (pages != nullptr) 
         {
-            LogAllocPages(pageCount);
-            if (freeSegment->GetFreePageCount() == 0)
-            {
-                i.MoveCurrentTo(&fullSegments);
-            }
-
-            this->freePageCount -= pageCount;
-            *pageSegment = freeSegment;
-
-#if DBG
-            UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
-#endif
-            this->FillAllocPages(pages, pageCount);
             return pages;
         }
     }
 
-    if (pageCount == 1 && backgroundPageQueue != nullptr)
+    if (this->freePageCount >= pageCount)
     {
-        FreePageEntry * freePage = (FreePageEntry *)::InterlockedPopEntrySList(&backgroundPageQueue->freePageList);
-        if (freePage != nullptr)
+        FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*AutoSystemInfo::PageSize);
+        DListBase<PageSegmentBase<T>>::EditingIterator i(&this->segments);
+
+        while (i.Next())
         {
+            PageSegmentBase<T> * freeSegment = &i.Data();
+
+            pages = freeSegment->AllocPages<notPageAligned>(pageCount, pageHeapFlags);
+            if (pages != nullptr)
+            {
+                LogAllocPages(pageCount);
+                if (freeSegment->GetFreePageCount() == 0)
+                {
+                    i.MoveCurrentTo(&this->fullSegments);
+                }
+
+                this->freePageCount -= pageCount;
+                *pageSegment = freeSegment;
+
 #if DBG
-            UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
+                UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
 #endif
-            *pageSegment = freePage->segment;
-            char * pages;
-            if (freePage->pageCount != 1)
-            {
-                uint pageIndex = --freePage->pageCount;
-                ::InterlockedPushEntrySList(&backgroundPageQueue->freePageList, freePage);
-                pages = (char *)freePage + pageIndex * AutoSystemInfo::PageSize;
+                this->FillAllocPages(pages, pageCount);
+                return pages;
             }
-            else
-            {
-                pages = (char *)freePage;
-                memset(pages, 0, sizeof(FreePageEntry));
-            }
-            this->FillAllocPages(pages, pageCount);
-            return (char *)pages;
         }
     }
-
-    return nullptr;
+    
+    return pages;
 }
 
 template<typename T>

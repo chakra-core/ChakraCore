@@ -25,6 +25,24 @@ bool RecyclerPageAllocator::IsMemProtectMode()
     return recycler->IsMemProtectMode();
 }
 
+char * RecyclerPageAllocator::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<VirtualAllocWrapper> ** pageSegment, PageHeapMode pageHeapFlags)
+{
+    char* pages = nullptr;
+
+    pages = TryAllocFromZeroPagesList(pageCount, pageSegment, this->zeroPageQueue.pendingZeroPageList);
+    if (pages != nullptr)
+    {
+        // zero out
+        memset(pages, 0, pageCount*AutoSystemInfo::PageSize);
+        return pages;
+    }
+
+    pages = TryAllocFromZeroPagesList(pageCount, pageSegment, this->zeroPageQueue.freePageList);
+
+    return pages;
+}
+
+
 #if ENABLE_CONCURRENT_GC
 void
 RecyclerPageAllocator::EnableWriteWatch()

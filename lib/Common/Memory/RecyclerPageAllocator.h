@@ -40,5 +40,6 @@ private:
     Recycler* recycler;
 
     bool IsMemProtectMode();
+    virtual char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<VirtualAllocWrapper> ** pageSegment, PageHeapMode pageHeapFlags) override;
 };
 }
