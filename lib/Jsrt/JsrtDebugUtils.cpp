@@ -45,14 +45,14 @@ void JsrtDebugUtils::AddLineColumnToObject(Js::DynamicObject* object, Js::Functi
     }
 }
 
-void JsrtDebugUtils::AddSourceTextToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset)
+void JsrtDebugUtils::AddSourceLengthAndTextToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset)
 {
     Js::FunctionBody::StatementMap* statementMap = functionBody->GetEnclosingStatementMapFromByteCode(byteCodeOffset);
 
-    LPCUTF8 source = functionBody->GetStartOfDocument(L"");
+    LPCUTF8 source = functionBody->GetStartOfDocument(L"Source for debugging");
     size_t startByte = utf8::CharacterIndexToByteIndex(source, functionBody->GetUtf8SourceInfo()->GetCbLength(), (const charcount_t)statementMap->sourceSpan.begin);
 
-    int32 byteLength = statementMap->sourceSpan.end - statementMap->sourceSpan.begin;
+    int byteLength = statementMap->sourceSpan.end - statementMap->sourceSpan.begin;
 
     AutoArrayPtr<wchar_t> sourceContent(HeapNewNoThrowArray(wchar_t, byteLength + 1), byteLength + 1);
     if (sourceContent != nullptr)
@@ -60,7 +60,8 @@ void JsrtDebugUtils::AddSourceTextToObject(Js::DynamicObject* object, Js::Functi
         utf8::DecodeOptions options = functionBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
         utf8::DecodeIntoAndNullTerminate(sourceContent, source + startByte, byteLength, options);
     }
-    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent, functionBody->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceLength, (double)byteLength, functionBody->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent != nullptr ? sourceContent : L"", functionBody->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddLineCountToObject(Js::DynamicObject * object, Js::Utf8SourceInfo * utf8SourceInfo)
@@ -120,7 +121,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             break;
 
         case Js::TypeIds_Null:
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectDisplayString()->GetSz(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetObjectTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, scriptContext->GetLibrary()->GetNull(), scriptContext);
             break;
 
@@ -182,7 +183,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             break;
 
         case Js::TypeIds_Enumerator:
-        case Js::TypeIds_VariantDate:
         case Js::TypeIds_HostDispatch:
         case Js::TypeIds_WithScopeObject:
         case Js::TypeIds_UndeclBlockVar:
@@ -191,9 +191,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             AssertMsg(false, "Not valid types");
             break;
 
-        case Js::TypeIds_ArrayIterator:
-        case Js::TypeIds_MapIterator:
-        case Js::TypeIds_SetIterator:
         case Js::TypeIds_StringIterator:
         case Js::TypeIds_JavascriptEnumeratorIterator:
         case Js::TypeIds_ModuleRoot:
@@ -210,6 +207,10 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_ES5Array:
         case Js::TypeIds_CharArray:
         case Js::TypeIds_BoolArray:
+        case Js::TypeIds_ArrayIterator:
+        case Js::TypeIds_MapIterator:
+        case Js::TypeIds_SetIterator:
+        case Js::TypeIds_VariantDate:
         case Js::TypeIds_Object:
         case Js::TypeIds_Array:
         case Js::TypeIds_Date:
@@ -273,7 +274,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     {
         LPCWSTR value = nullptr;
 
-        // Getting value might call getter whuch can throw
+        // Getting value might call getter which can throw
         try
         {
             value = objectDisplayRef->Value(10);
@@ -347,7 +348,11 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
 {
     switch (typeId)
     {
-    case Js::TypeIds_Object: return L"Object";
+    case Js::TypeIds_Object:
+    case Js::TypeIds_ArrayIterator:
+    case Js::TypeIds_MapIterator:
+    case Js::TypeIds_SetIterator:
+        return L"Object";
     case Js::TypeIds_Proxy: return L"Proxy";
     case Js::TypeIds_Array:
     case Js::TypeIds_NativeIntArray:
@@ -359,7 +364,9 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_CharArray:
     case Js::TypeIds_BoolArray:
         return L"Array";
-    case Js::TypeIds_Date: return L"Date";
+    case Js::TypeIds_Date:
+    case Js::TypeIds_VariantDate:
+        return L"Date";
     case Js::TypeIds_RegEx: return L"RegExp";
     case Js::TypeIds_Error: return L"Error";
     case Js::TypeIds_BooleanObject: return L"Boolean";

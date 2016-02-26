@@ -302,7 +302,7 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetJSONObject(Js::ScriptContext* s
     }
 
     JsrtDebugUtils::AddLineColumnToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
-    JsrtDebugUtils::AddSourceTextToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
+    JsrtDebugUtils::AddSourceLengthAndTextToObject(this->stackTraceObject, functionBody, currentByteCodeOffset);
 
     DebuggerObjectBase* functionObject = DebuggerObjectFunction::Make(this->GetDebuggerObjectsManager(), functionBody);
     JsrtDebugUtils::AddPropertyToObject(stackTraceObject, JsrtDebugPropertyId::functionHandle, functionObject->GetHandle(), frameScriptContext);

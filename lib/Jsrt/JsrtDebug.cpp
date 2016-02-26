@@ -221,7 +221,7 @@ void JsrtDebug::ReportBreak(Js::InterpreterHaltState * haltState)
 
         JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
-        JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
+        JsrtDebugUtils::AddSourceLengthAndTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
 
         this->CallDebugEventCallbackForBreak(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
@@ -250,7 +250,7 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
         
         int currentByteCodeOffset = haltState->topFrame->GetByteCodeOffset();
         JsrtDebugUtils::AddLineColumnToObject(eventDataObject, functionBody, currentByteCodeOffset);
-        JsrtDebugUtils::AddSourceTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
+        JsrtDebugUtils::AddSourceLengthAndTextToObject(eventDataObject, functionBody, currentByteCodeOffset);
         JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::uncaught, !haltState->exceptionObject->IsFirstChanceException(), scriptContext);
 
         Js::ResolvedObject resolvedObject;
