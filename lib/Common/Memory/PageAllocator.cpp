@@ -836,6 +836,7 @@ PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> *
 
     if (this->hasZeroQueuedPages) 
     {
+        __analysis_assume(backgroundPageQueue != nullptr);
         return TryAllocFromZeroPagesList(pageCount, pageSegment, (((ZeroPageQueue *)backgroundPageQueue)->pendingZeroPageList), true);
     }
 
