@@ -1847,10 +1847,19 @@ namespace Js
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
 
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
+
+            Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
+
             if (wasmModule->info->GetMemory()->minSize != 0)
             {
                 // TODO: create new type array buffer that is non detachable
                 *heap = JavascriptArrayBuffer::Create((uint32)wasmModule->info->GetMemory()->maxSize, GetLibrary()->arrayBufferType);
+                if (wasmModule->info->GetMemory()->exported)
+                {
+                    PropertyRecord const * propertyRecord = nullptr;
+                    GetOrAddPropertyRecord(L"memory", lstrlen(L"memory"), &propertyRecord);
+                    JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), *heap, this);
+                }
             }
             else
             {
@@ -1862,7 +1871,6 @@ namespace Js
             FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
             frameDisplay->SetItem(0, moduleMemoryPtr);
 
-            Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
             // TODO, refactor this function into smaller functions
             for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
@@ -1923,7 +1931,7 @@ namespace Js
 
                         GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
                         HeapDeleteArray(utf16Len + 1, contents);
-    
+
                         JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), funcObj, this);
                     }
                 }
