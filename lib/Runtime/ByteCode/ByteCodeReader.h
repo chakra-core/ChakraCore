@@ -67,6 +67,7 @@ namespace Js
         static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
         static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
         static VarArrayVarCount const * ReadVarArrayVarCount(uint offset, FunctionBody * functionBody);
+        static VarArrayVarCount const * ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody);
 
         const byte* GetIP();
         void SetIP(const byte *const ip);
