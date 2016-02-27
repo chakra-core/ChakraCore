@@ -527,6 +527,10 @@ namespace Js
         FunctionBody *callerFunctionBody,
         Fn fn)
     {
+        if (!callerFunctionBody->DoStackNestedFunc())
+        {
+            return;
+        }
         InterpreterStackFrame *interpreterFrame = walker.GetCurrentInterpreterFrame();
         if (interpreterFrame)
         {
