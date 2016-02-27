@@ -4535,29 +4535,20 @@ namespace Js
 
         if (!fOnlyCurrent)
         {
-            this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
+            for (uint uIndex = 0; uIndex < this->GetNestedCount(); uIndex++)
             {
-                FunctionProxy* currentNestedFunction = this->GetNestedFunc(index);
-                Assert(currentNestedFunction);
-                if (proxy->IsDeferredDeserializeFunction())
-                {
-                    proxy = proxy->EnsureDeserialized();
-                    this->SetNestedFunc(proxy, index, 0u);
-                }
-
-                Js::ParseableFunctionInfo * pBody = proxy->GetParseableFunctionInfo();
+                Js::ParseableFunctionInfo * pBody = this->GetNestedFunctionForExecution(uIndex);
                 if (pBody == nullptr || !pBody->IsFunctionParsed())
                 {
-                    return true;
+                    continue;
                 }
 
                 hr = pBody->GetFunctionBody()->RegisterFunction(fChangeMode);
                 if (FAILED(hr))
                 {
-                    return false;
+                    break;
                 }
-                return true;
-            });
+            }
         }
         return hr;
     }
