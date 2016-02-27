@@ -1043,6 +1043,9 @@ namespace Js
 
     void FunctionProxy::SetReferenceInParentFunction(FunctionProxyPtrPtr reference)
     {
+        // No need to tag the reference because the first field of the nested array 
+        // is count, so the reference here won't be same as address of the parent nested 
+        // array (even for index 0)
         this->m_referenceInParentFunction = reference;
     }
 
