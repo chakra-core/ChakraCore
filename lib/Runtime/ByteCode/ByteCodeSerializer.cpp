@@ -117,13 +117,13 @@ enum FileVersionScheme : byte
 
 // Used for selective serialization of Function Body fields to make the representation compact
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) bool has_##name : 1
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, deserializeHere) bool has_##name: 1
 
 #define DEFINE_ALL_FIELDS
 struct SerializedFieldList {
 #include "SerializableFunctionFields.h"
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
+	bool has_m_nestedCount: 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -2063,11 +2063,6 @@ public:
             definedFields.has_##name = true; \
             Prepend##serializableType(builder, L#name, function->##name); \
         }
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, serializeHere) \
-        if (function->##name != 0 && serializeHere) { \
-            definedFields.has_##name = true; \
-            Prepend##serializableType(builder, L#name, function->##name); \
-        }
 
 #include "SerializableFunctionFields.h"
 
@@ -2076,11 +2071,6 @@ public:
 #define DEFINE_FUNCTION_BODY_FIELDS 1
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
             if (function->##name != 0) { \
-                definedFields.has_##name = true; \
-                Prepend##serializableType(builder, L#name, function->##name); \
-            }
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, serializeHere) \
-            if (function->##name != 0 && serializeHere) { \
                 definedFields.has_##name = true; \
                 Prepend##serializableType(builder, L#name, function->##name); \
             }
@@ -3552,10 +3542,6 @@ public:
         if (definedFields->has_##name == true) { \
             current = Read##serializableType(current, &(*function)->##name); \
         }
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, deserializeHere) \
-        if (deserializeHere && definedFields->has_##name == true) { \
-            current = Read##serializableType(current, &(*function)->##name); \
-        }
 #include "SerializableFunctionFields.h"
 
         if (definedFields->has_m_constCount)
@@ -3565,10 +3551,6 @@ public:
 #define DEFINE_FUNCTION_BODY_FIELDS 1
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
             if (definedFields->has_##name == true) { \
-                current = Read##serializableType(current, &(*functionBody)->##name); \
-            }
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, deserializeHere) \
-            if (deserializeHere && definedFields->has_##name == true) { \
                 current = Read##serializableType(current, &(*functionBody)->##name); \
             }
 #include "SerializableFunctionFields.h"
