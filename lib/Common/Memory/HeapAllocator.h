@@ -130,6 +130,35 @@ struct HeapAllocator
     static HeapAllocator Instance;
     static HeapAllocator * GetNoMemProtectInstance();
 
+private:
+    // TODO (doilij) add config flags to enable/disable PrivateHeap functionality
+    HANDLE PrivateHeap;
+
+    void InitPrivateHeap()
+    {
+        if (this->PrivateHeap == nullptr)
+        {
+            PrivateHeap = HeapCreate(0, 0, 0); // no options, default initial size, no max size
+        }
+    }
+
+    void DestroyPrivateHeap()
+    {
+        if (this->PrivateHeap != nullptr)
+        {
+            BOOL success = HeapDestroy(this->PrivateHeap);
+            Assert(success);
+            this->PrivateHeap = nullptr;
+        }
+    }
+
+    HANDLE GetPrivateHeap()
+    {
+        InitPrivateHeap(); // will initialize PrivateHeap if not already initialized
+        return this->PrivateHeap;
+    }
+
+public:
 
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
@@ -137,10 +166,6 @@ struct HeapAllocator
     void ClearTrackAllocInfo(TrackAllocData* data = NULL);
 
 #ifdef HEAP_TRACK_ALLOC
-#ifndef INTERNAL_MEM_PROTECT_HEAP_ALLOC
-    ~HeapAllocator();
-#endif
-
     static void InitializeThread()
     {
         memset(&nextAllocData, 0, sizeof(nextAllocData));
@@ -151,13 +176,13 @@ struct HeapAllocator
     __declspec(thread) static TrackAllocData nextAllocData;
     HeapAllocatorData data;
     static CriticalSection cs;
-#endif
-#endif
+#endif // HEAP_TRACK_ALLOC
+#endif // TRACK_ALLOC
 
-#ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
-    HeapAllocator(bool allowMemProtect = true);
+    HeapAllocator(bool useAllocMemProtect = true);
     ~HeapAllocator();
 
+#ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
     void FinishMemProtectHeapCollect();
 
 private:
@@ -167,8 +192,8 @@ private:
     bool isUsed;
     bool allocMemProtect;
     void * memProtectHeapHandle;
-#endif
-#endif
+#endif // DBG
+#endif // INTERNAL_MEM_PROTECT_HEAP_ALLOC
 }; // HeapAllocator.
 
 class NoThrowHeapAllocator
