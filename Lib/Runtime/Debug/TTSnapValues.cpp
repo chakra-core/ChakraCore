@@ -853,7 +853,7 @@ namespace TTD
             fbInfoDest->LoadFlag = fbInfoSrc->LoadFlag;
         }
 
-        Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor* hostCallbackFunctor)
+        Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx)
         {
             LPCWSTR script = fbInfo->TopLevelBase.SourceCode.Contents;
             uint32 scriptLength = fbInfo->TopLevelBase.SourceCode.Length;
@@ -895,7 +895,11 @@ namespace TTD
             //walk global body to (1) add functions to pin set (2) build parent map
             ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
 
-            hostCallbackFunctor->OnScriptLoadCallback(scriptFunction, utf8SourceInfo, &se);
+            const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
+            if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+            {
+                hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, scriptFunction, utf8SourceInfo, &se);
+            }
             ////
 
             return globalBody;
@@ -1263,7 +1267,7 @@ namespace TTD
             }
         }
 
-        void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator, HostScriptContextCallbackFunctor* hostCallbackFunctor)
+        void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator)
         {
             AssertMsg(wcscmp(snpCtx->m_contextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
@@ -1277,7 +1281,7 @@ namespace TTD
                 Js::FunctionBody* fb = inflator->FindReusableFunctionBodyIfExists(fbInfo->TopLevelBase.FunctionBodyId);
                 if(fb == nullptr)
                 {
-                    fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx, hostCallbackFunctor);
+                    fb = NSSnapValues::InflateTopLevelLoadedFunctionBodyInfo(fbInfo, intoCtx);
                 }
                 inflator->AddInflationFunctionBody(fbInfo->TopLevelBase.FunctionBodyId, fb);
             }

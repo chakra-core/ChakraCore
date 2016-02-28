@@ -304,9 +304,8 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
 
         if(createUnderTT)
         {
-            byte* cbMem = HeapNewArrayZ(byte, sizeof(ScriptLoadCallbackTTD));
-            ScriptLoadCallbackTTD* loadCallback = new (cbMem) ScriptLoadCallbackTTD(context);
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), loadCallback);
+            HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
             context->GetScriptContext()->InitializeCoreImage_TTD();
         }
@@ -4009,9 +4008,8 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
 
             threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
 
-            byte* cbMem = HeapNewArrayZ(byte, sizeof(ScriptLoadCallbackTTD));
-            ScriptLoadCallbackTTD* loadCallback = new (cbMem) ScriptLoadCallbackTTD(context);
-            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), loadCallback);
+            HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
+            threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
             context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
 
             //initialize the core image but we need to disable debugging while this happens

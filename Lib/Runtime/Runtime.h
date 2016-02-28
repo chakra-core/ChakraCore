@@ -97,12 +97,13 @@ typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
 
 #include "Debug\TTSupport.h"
 
+class HostScriptContextCallbackFunctor;
+
 namespace TTD
 {
     //typedef for a pin set (ensure that objects are kept live).
     typedef JsUtil::BaseHashSet<FinalizableObject*, Recycler> ReferencePinSet;
 
-    class HostScriptContextCallbackFunctor;
     class RuntimeThreadInfo;
     class RuntimeContextInfo;
 

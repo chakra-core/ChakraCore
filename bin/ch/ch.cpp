@@ -1000,38 +1000,16 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
         }
         else
         {
-            JsValueRef functionRef;
-            runScript = ChakraRTInterface::JsParseScriptWithFlags(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, JsParseScriptAttributeNone, &functionRef);
-            unsigned short argc = 1;
-            JsValueRef argv[1];
-            ChakraRTInterface::JsGetUndefinedValue(argv);
-
-            if(dbgIPAddr != nullptr)
-            {
-                JsValueRef functionInfo;
-                ChakraRTInterface::JsDiagGetFunctionPosition(functionRef, &functionInfo);
-
-                unsigned int scriptId = LoadNamedPropertyAsUInt(functionInfo, L"scriptId");
-                unsigned int stmtLine = LoadNamedPropertyAsUInt(functionInfo, L"stmtStartLine");
-                unsigned int stmtColumn = LoadNamedPropertyAsUInt(functionInfo, L"stmtStartColumn");
-
-                JsValueRef bp;
-                ChakraRTInterface::JsDiagSetBreakpoint(scriptId, stmtLine, stmtColumn, &bp);
-            }
-
-            if(runScript == JsNoError)
-            {
 #if ENABLE_TTD
-                if(doTTRecord)
-                {
-                    ChakraRTInterface::JsTTDStartTimeTravelRecording();
-                }
-
-                runScript = ChakraRTInterface::JsTTDCallFunction(-1, functionRef, argv, argc, nullptr /*result*/);
-#else
-                runScript = ChakraRTInterface::JsCallFunction(functionRef, argv, argc, nullptr /*result*/);
-#endif
+            if(doTTRecord)
+            {
+                ChakraRTInterface::JsTTDStartTimeTravelRecording();
             }
+
+            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#else
+            runScript = ChakraRTInterface::JsRunScript(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+#endif
         }
 
         if(runScript != JsNoError)

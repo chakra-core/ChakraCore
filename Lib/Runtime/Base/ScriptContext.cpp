@@ -138,6 +138,7 @@ namespace Js
         , bindRef(MiscAllocator())
 #endif
 #if ENABLE_TTD
+        , m_ttdHostCallbackFunctor()
         , m_ttdRootSet(nullptr)
         , m_ttdTopLevelScriptLoad(&HeapAllocator::Instance)
         , m_ttdTopLevelNewFunction(&HeapAllocator::Instance)
@@ -2405,6 +2406,16 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void ScriptContext::SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor)
+    {
+        this->m_ttdHostCallbackFunctor = functor;
+    }
+
+    const HostScriptContextCallbackFunctor& ScriptContext::GetCallbackFunctor_TTD() const
+    {
+        return this->m_ttdHostCallbackFunctor;
+    }
+
     bool ScriptContext::IsRootTrackedObject_TTD(Js::RecyclableObject* obj)
     {
         return this->m_ttdRootSet->ContainsKey(obj);
@@ -2553,10 +2564,6 @@ namespace Js
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-#if ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD
-        this->ForceNoNative();
-#endif
-
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetUndefined());
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetNull());

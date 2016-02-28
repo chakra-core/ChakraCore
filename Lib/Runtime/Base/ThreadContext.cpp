@@ -928,14 +928,17 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
 #if ENABLE_TTD
     if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction())
     {
-        //We reload all properties that occour in the trace so they only way we get here in TTD mode is if the program is creating a new symbol (which always gets a fresh id)
-        AssertMsg(isSymbol, "Something went wrong.");
+        //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
+        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+        //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
+        if(isSymbol)
+        {
+            Js::PropertyId propertyId = Js::Constants::NoProperty;
+            this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
 
-        Js::PropertyId propertyId = Js::Constants::NoProperty;
-        this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
-
-        //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
-        return this->GetPropertyName(propertyId);
+            //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
+            return this->GetPropertyName(propertyId);
+        }
     }
 #endif
 
@@ -1887,7 +1890,7 @@ void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doR
     }
 }
 
-void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, TTD::HostScriptContextCallbackFunctor* callbackFunctor)
+void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
 {
     AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 

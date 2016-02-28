@@ -1361,15 +1361,16 @@ namespace TTD
 
         //walk global body to (1) add functions to pin set (2) build parent map
         execContext->ProcessFunctionBodyOnLoad(fb, nullptr);
+
+        const HostScriptContextCallbackFunctor& hostFunctor = execContext->GetCallbackFunctor_TTD();
+        if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+        {
+            hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, function, utf8SourceInfo, &se);
+        }
         ////
 
         //since we tag in JsRT we need to tag here too
         threadContext->TTDInfo->TrackTagObject(function);
-
-        //
-        //TODO: need to pass the functor in here so that we can trigger script parse callback
-        //
-        AssertMsg(false, "Not implemented yet -- need to pass in functor for script compile callback!!!");
     }
 
     void JsRTCodeParseAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const

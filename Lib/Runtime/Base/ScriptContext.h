@@ -128,6 +128,28 @@ private:
     Js::ScriptContext* scriptContext;
 };
 
+#if ENABLE_TTD
+//A class that we use to pass in a functor from the host when we need to inform it about something we are doing
+class HostScriptContextCallbackFunctor
+{
+public:
+    void* HostData;
+    void(*pfOnScriptLoadCallback)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+
+    HostScriptContextCallbackFunctor()
+        : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
+    {
+        ;
+    }
+
+    HostScriptContextCallbackFunctor(void* callbackData, void(*pfcallbackOnScriptLoad)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
+        : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
+    {
+        ;
+    }
+};
+#endif
+
 namespace Js
 {
 
@@ -1031,6 +1053,10 @@ private:
         }
 
 #if ENABLE_TTD
+        HostScriptContextCallbackFunctor m_ttdHostCallbackFunctor;
+        void SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor);
+        const HostScriptContextCallbackFunctor& GetCallbackFunctor_TTD() const;
+
         //Keep track of roots, loaded script, and the current debugger state
         TTD::ReferencePinSet* m_ttdRootSet;
 

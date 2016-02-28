@@ -480,7 +480,6 @@ namespace TTD
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
-        m_hostCallbackFunctor(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
 #if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
@@ -510,12 +509,6 @@ namespace TTD
         this->UnloadRetainedData();
 
         JsSupport::DeleteStringFromHeapAllocator(this->m_logInfoRootDir);
-
-        if(this->m_hostCallbackFunctor != nullptr)
-        {
-            HeapDeleteArray(this->m_hostCallbackFunctor->UnderlyingMemorySize(), (byte*)this->m_hostCallbackFunctor);
-            this->m_hostCallbackFunctor = nullptr;
-        }
     }
 
     void EventLog::InitForTTDRecord()
@@ -558,13 +551,14 @@ namespace TTD
         }
     }
 
-    void EventLog::StartTimeTravelOnScript(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor* callbackFunctor)
+    void EventLog::StartTimeTravelOnScript(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
     {
         AssertMsg(this->m_ttdContext == nullptr, "Should only add 1 time!");
 
         ctx->SetMode_TTD(this->m_currentMode);
+        ctx->SetCallbackFunctor_TTD(callbackFunctor);
+
         this->m_ttdContext = ctx;
-        this->m_hostCallbackFunctor = callbackFunctor;
 
         ctx->InitializeRecordingActionsAsNeeded_TTD();
     }
@@ -575,12 +569,6 @@ namespace TTD
 
         ctx->SetMode_TTD(TTDMode::Detached);
         this->m_ttdContext = nullptr;
-
-        if(this->m_hostCallbackFunctor != nullptr)
-        {
-            HeapDeleteArray(this->m_hostCallbackFunctor->UnderlyingMemorySize(), (byte*)this->m_hostCallbackFunctor);
-            this->m_hostCallbackFunctor = nullptr;
-        }
     }
 
     void EventLog::SetGlobalMode(TTDMode m)
@@ -1705,7 +1693,7 @@ namespace TTD
         {
             this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
 
-            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, this->m_hostCallbackFunctor);
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
         }
         else
         {
@@ -1713,7 +1701,7 @@ namespace TTD
             this->m_lastInflateMap->PrepForInitialInflate(this->m_threadContext, snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), snap->EnvCount(), snap->SlotArrayCount());
             this->m_lastInflateSnapshotTime = etime;
 
-            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap, this->m_hostCallbackFunctor);
+            NSSnapValues::InflateScriptContext(sCtx, this->m_ttdContext, this->m_lastInflateMap);
 
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
             for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
