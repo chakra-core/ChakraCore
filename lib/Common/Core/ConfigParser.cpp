@@ -3,12 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#ifdef _WIN32
+
+#ifndef USING_PAL_STDLIB
 #include <io.h>
 #include <share.h>
-#endif
 #include <fcntl.h>
 #include <strsafe.h>
+#endif
+
 #include "Memory/MemoryLogger.h"
 #include "Memory/ForcedMemoryConstraints.h"
 #include "Core/ICustomConfigFlags.h"

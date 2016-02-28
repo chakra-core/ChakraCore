@@ -6,15 +6,25 @@
 
 #include "TargetVer.h"
 
+#ifdef _WIN32
 #include <windows.h>
 #include <winbase.h>
 #include <oleauto.h>
+#else
+// #define NO_PAL_MINMAX
+#include <CommonPal.h>
+#endif
+
+#ifdef _MSC_VER
 #pragma warning(disable:4985)
 #include <intrin.h>
-#include <wtypes.h>
+#endif
 
+#ifndef USING_PAL_STDLIB
+#include <wtypes.h>
 #include <stdio.h>
-#include <tchar.h>
+#include <cstdlib>
+#endif
 
 // This is an intentionally lame name because we can't use Assert or Verify etc
 

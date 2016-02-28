@@ -58,29 +58,7 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
 #define _bittestandset BitTestAndSet
 #define _interlockedbittestandset InterlockedBitTestAndSet
 
-#ifdef PAL_STDCPP_COMPAT
-// SAL.h doesn't define these if PAL_STDCPP_COMPAT is defined
-// Apparently, some C++ headers will conflict with this-
-// not sure which ones but stubbing them out for now in linux-
-// we can revisit if we do hit a conflict
-#define __in    _SAL1_Source_(__in, (), _In_)
-#define __out   _SAL1_Source_(__out, (), _Out_)
-
-#define fclose          PAL_fclose
-#define fflush          PAL_fflush
-#define fwprintf        PAL_fwprintf
-#define wcschr          PAL_wcschr
-#define wcscmp          PAL_wcscmp
-#define wcslen          PAL_wcslen
-#define wcsncmp         PAL_wcsncmp
-#define wcsrchr         PAL_wcsrchr
-#define wcsstr          PAL_wcsstr
-#define wprintf         PAL_wprintf
-
-#define stdout          PAL_stdout
-#endif // PAL_STDCPP_COMPAT
-
-#define FILE PAL_FILE
+#define DbgRaiseAssertionFailure() __asm__ volatile("int $0x03");
 
 // These are not available in pal
 #define fwprintf_s      fwprintf

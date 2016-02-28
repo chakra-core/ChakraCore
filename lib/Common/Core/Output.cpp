@@ -4,8 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
 
+#ifndef USING_PAL_STDLIB
 #include <string.h>
 #include <stdarg.h>
+#endif
 
 // Initialization order
 //  AB AutoSystemInfo

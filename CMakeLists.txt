@@ -59,20 +59,26 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         add_definitions(-D_M_X64 -D_M_AMD64)
     endif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
 
-    add_definitions("-fms-extensions")
-
-    # Disable some warnings
-    add_definitions("-Wno-tautological-constant-out-of-range-compare")
     add_definitions("-D__STDC_WANT_LIB_EXT1__=1")
-    add_definitions("-std=c++11")
-    add_definitions("-stdlib=libc++")
     add_definitions(
-        -DPAL_STDCPP_COMPAT=1
         -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         )
 
+    # xplat-todo: enable the JIT for Linux
+    add_definitions(
+        -DDISABLE_JIT=1
+        )
+      
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions")
+
+    # Disable some warnings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-tautological-constant-out-of-range-compare")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
     # xplat-todo: revisit these
+    # also, we should change this from add_definitions- the intent of that
+    # is to just add -D flags
     add_definitions(
         -fdelayed-template-parsing
         -Wno-microsoft
@@ -90,8 +96,19 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-null-arithmetic
         -Wno-tautological-undefined-compare
         -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
+        -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
+
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    add_definitions(
+        -DDBG=1
+        -DDEBUG=1
+        -DDBG_DUMP=1        
+    )
+    # xplat-todo: reenable this warning
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-writable-strings")
+endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
     add_definitions(
@@ -104,7 +121,9 @@ if(CLR_CMAKE_PLATFORM_UNIX)
    add_definitions(-DFEATURE_PAL)
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
+enable_language(ASM)
 
+<<<<<<< 39355eaa3f2bfbbf571fbffca5e916c3a10a4ba0
 include_directories(
     lib/Common
     lib/Common/PlaceHolder
@@ -112,4 +131,13 @@ include_directories(
     pal/inc
     pal/inc/rt
     )
+=======
+include_directories(".")
+include_directories("pal")
+include_directories("pal/inc")
+include_directories("pal/inc/rt")
+include_directories(lib/Common)
+>>>>>>> Update CMakeLists.txt
 add_subdirectory (lib)
+add_subdirectory (bin)
+add_subdirectory (pal)
