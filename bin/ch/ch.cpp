@@ -573,8 +573,11 @@ void StartupDebuggerAsNeeded()
 {
     if(dbgIPAddr == nullptr)
     {
-        //we need to force the script context into dbg mode for replay even if we don't attach the debugger -- so do that here
-        ChakraRTInterface::JsTTDSetDebuggerForReplay();
+        if(doTTDebug)
+        {
+            //we need to force the script context into dbg mode for replay even if we don't attach the debugger -- so do that here
+            ChakraRTInterface::JsTTDSetDebuggerForReplay();
+        }
     }
     else
     {

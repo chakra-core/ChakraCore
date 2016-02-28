@@ -1,3 +1,0 @@
-TypeError: Unable to get property 'doExcited' of undefined or null reference
-	at foo(string) (dbgexception.js:8:5)
-	at doIt() (dbgexception.js:23:5)

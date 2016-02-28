@@ -113,11 +113,6 @@
 </dir>
 <dir>
   <default>
-    <files>TTDebuggerBasic</files>
-  </default>
-</dir>
-<dir>
-  <default>
     <files>Optimizer</files>
     <tags>require_backend</tags>
   </default>
