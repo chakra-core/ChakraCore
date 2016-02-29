@@ -580,10 +580,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #if ENABLE_TTD
 #include "screrror.h"
 
-#if ENABLE_TTD_FORCE_RECORD_NODE
-#include "Debug\TTDefaultHostFunctions.h"
-#endif 
-
 #include "Debug\TTRuntimeInfoTracker.h"
 #include "Debug\TTInflateMap.h"
 #include "Debug\TTSerialize.h"

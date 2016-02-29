@@ -105,7 +105,7 @@ bool CallbackWrapper(Fn fn)
 /////////////////////
 
 //A create runtime function that we can funnel to for regular and record or debug aware creation
-JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wchar_t* optRecordUri, _In_opt_ wchar_t* optDebugUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
+JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wchar_t* optRecordUri, _In_opt_ wchar_t* optDebugUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
     return GlobalAPIWrapper([&]() -> JsErrorCode {
         PARAM_NOT_NULL(runtimeHandle);
@@ -201,6 +201,8 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes, _In_opt_ wcha
             js_memcpy_s(uriCopy, uriOrigLengthBytes, uriOrig, uriOrigLengthBytes);
 
             threadContext->TTDUri = uriCopy;
+            threadContext->TTSnapInterval = snapInterval;
+            threadContext->TTSnapHistoryLength = snapHistoryLength;
         }
 #endif
 
@@ -267,21 +269,10 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             threadContext->SetThreadContextFlag(ThreadContextFlagNoJIT);
 #endif
 
-#if ENABLE_TTD_FORCE_RECORD_NODE
-            threadContext->TTDInitializeTTDUriFunction = NodeSupportDefaultImpl::GetTTDDirectory;
-            threadContext->TTDWriteInitializeFunction = NodeSupportDefaultImpl::TTInitializeForWriteLogStreamCallback;
-            threadContext->TTDStreamFunctions.pfGetLogStream = NodeSupportDefaultImpl::TTGetLogStreamCallback;
-            threadContext->TTDStreamFunctions.pfGetSnapshotStream = NodeSupportDefaultImpl::TTGetSnapshotStreamCallback;
-            threadContext->TTDStreamFunctions.pfGetSrcCodeStream = NodeSupportDefaultImpl::TTGetSrcCodeStreamCallback;
-            threadContext->TTDStreamFunctions.pfReadBytesFromStream = NodeSupportDefaultImpl::TTReadBytesFromStreamCallback;
-            threadContext->TTDStreamFunctions.pfWriteBytesToStream = NodeSupportDefaultImpl::TTWriteBytesToStreamCallback;
-            threadContext->TTDStreamFunctions.pfFlushAndCloseStream = NodeSupportDefaultImpl::TTFlushAndCloseStreamCallback;
-#endif
-
             wchar_t* ttdlogStr = nullptr;
             threadContext->TTDInitializeTTDUriFunction(threadContext->TTDUri, &ttdlogStr);
 
-            threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested);
+            threadContext->InitTimeTravel(ttdlogStr, threadContext->IsTTRecordRequested, threadContext->IsTTDebugRequested, threadContext->TTSnapInterval, threadContext->TTSnapHistoryLength);
 
             CoTaskMemFree(ttdlogStr);
 
@@ -389,10 +380,11 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
         //May want to look into more sophisticated means for making this decision later
         if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
         {
-            if(threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+            if(threadContext->TTDLog->IsTimeForSnapshot())
             {
                 threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                 threadContext->TTDLog->DoSnapshotExtract(false);
+                threadContext->TTDLog->PruneLogLength();
                 threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
             }
         }
@@ -413,7 +405,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
 
 STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
-    return CreateRuntimeCore(attributes, nullptr, nullptr, threadService, runtimeHandle);
+    return CreateRuntimeCore(attributes, nullptr, nullptr, UINT_MAX, UINT_MAX, threadService, runtimeHandle);
 }
 
 template <CollectionFlags flags>
@@ -3220,10 +3212,11 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
             //May want to look into more sophisticated means for making this decision later
             if(threadContext->TTDLog != nullptr && scriptContext->TTDRootNestingCount == 0 && threadContext->TTDLog->ShouldPerformRecordAction())
             {
-                if(threadContext->TTDLog->GetElapsedSnapshotTime() > Js::Configuration::Global.flags.TTSnapInterval)
+                if(threadContext->TTDLog->IsTimeForSnapshot())
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
                     threadContext->TTDLog->DoSnapshotExtract(false);
+                    threadContext->TTDLog->PruneLogLength();
                     threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
                 }
             }
@@ -3503,14 +3496,14 @@ STDAPI_(JsErrorCode) JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLo
 
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
 
-STDAPI_(JsErrorCode) JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
+STDAPI_(JsErrorCode) JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
-    return CreateRuntimeCore(attributes, infoUri, nullptr, threadService, runtime);
+    return CreateRuntimeCore(attributes, infoUri, nullptr, snapInterval, snapHistoryLength, threadService, runtime);
 }
 
 STDAPI_(JsErrorCode) JsTTDCreateDebugRuntime(_In_ JsRuntimeAttributes attributes, _In_ wchar_t* infoUri, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
-    return CreateRuntimeCore(attributes, nullptr, infoUri, threadService, runtime);
+    return CreateRuntimeCore(attributes, nullptr, infoUri, UINT_MAX, UINT_MAX, threadService, runtime);
 }
 
 STDAPI_(JsErrorCode) JsTTDCreateContext(_In_ JsRuntimeHandle runtime, _Out_ JsContextRef *newContext)

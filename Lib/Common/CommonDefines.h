@@ -272,15 +272,7 @@
 //Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
 #define ENABLE_TTD_IDENTITY_TRACING 1
 
-//A temp workaround with default recording actions for Node
-#define ENABLE_TTD_FORCE_RECORD_NODE 0
-
-//Flags to control special features turned on for debugging
-#if ENABLE_TTD_FORCE_RECORD_NODE
-#define ENABLE_TTD_DEBUGGING 0
-#else
 #define ENABLE_TTD_DEBUGGING 1
-#endif
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1

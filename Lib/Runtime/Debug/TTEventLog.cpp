@@ -469,8 +469,8 @@ namespace TTD
         this->m_threadContext->TTDInfo->GetTagsForSnapshot(logTag, identityTag);
     }
 
-    EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
-        : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
+    EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength)
+        : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL), m_snapInterval(snapInterval), m_snapHistoryLength(snapHistoryLength),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
@@ -484,6 +484,11 @@ namespace TTD
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
     {
         JsSupport::CopyStringToHeapAllocator(logDir, this->m_logInfoRootDir);
+
+        if(this->m_snapHistoryLength < 2)
+        {
+            this->m_snapHistoryLength = 2;
+        }
 
         this->m_modeStack.Add(TTDMode::Pending);
 
@@ -1034,6 +1039,11 @@ namespace TTD
         return this->m_pendingTTDBPEvent != -1;
     }
 
+    int64 EventLog::GetPendingTTDBPTargetEventTime() const
+    {
+        return this->m_pendingTTDBPEvent;
+    }
+
     void EventLog::GetPendingTTDBPInfo(int64& etime, uint64& ftime, uint64& ltime, uint32& docid, uint32& line, uint32& column) const
     {
         etime = this->m_pendingTTDBPEvent;
@@ -1306,13 +1316,19 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
         this->ClearReturnFrame();
         this->ClearExceptionFrame();
-        this->ClearPendingTTDBPInfo();
 #endif
     }
 
-    double EventLog::GetElapsedSnapshotTime()
+    bool EventLog::IsTimeForSnapshot() const
     {
-        return this->m_elapsedExecutionTimeSinceSnapshot;
+        return (this->m_elapsedExecutionTimeSinceSnapshot > this->m_snapInterval);
+    }
+
+    void EventLog::PruneLogLength()
+    {
+        //
+        //TODO: add code to see if we have more snapshots than the specified limit and if so unload them
+        //
     }
 
     void EventLog::IncrementElapsedSnapshotTime(double addtlTime)

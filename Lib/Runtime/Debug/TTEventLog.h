@@ -175,6 +175,10 @@ namespace TTD
         //The root directory that the log info gets stored into
         TTString m_logInfoRootDir;
 
+        //The interval between snapshots we want to use and the history length we want to keep (at least 2)
+        uint32 m_snapInterval;
+        uint32 m_snapHistoryLength;
+
         //The global event time variable
         int64 m_eventTimeCtr;
 
@@ -263,7 +267,7 @@ namespace TTD
         void DoSnapshotExtract_Helper(bool firstSnap, SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag);
 
     public:
-        EventLog(ThreadContext* threadContext, LPCWSTR logDir);
+        EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength);
         ~EventLog();
 
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
@@ -366,6 +370,7 @@ namespace TTD
         void SetReturnAndExceptionFramesFromCurrent(bool setReturn, bool setException);
 
         bool HasPendingTTDBP() const;
+        int64 GetPendingTTDBPTargetEventTime() const;
         void GetPendingTTDBPInfo(int64& etime, uint64& ftime, uint64& ltime, uint32& docid, uint32& line, uint32& column) const;
         void ClearPendingTTDBPInfo();
         void SetPendingTTDBPInfo(int64 etime, uint64 ftime, uint64 ltime, uint32 docid, uint32 line, uint32 column);
@@ -409,8 +414,13 @@ namespace TTD
         //Ensure the call stack is clear and counters are zeroed appropriately
         void ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime, int64 hostCallbackId);
 
+        //Check if we want to take a snapshot
+        bool IsTimeForSnapshot() const;
+
+        //After a snapshot we may want to discard old events so do that in here as needed
+        void PruneLogLength();
+
         //Get/Increment the elapsed time since the last snapshot
-        double GetElapsedSnapshotTime();
         void IncrementElapsedSnapshotTime(double addtlTime);
 
         ////////////////////////////////

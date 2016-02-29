@@ -2655,6 +2655,8 @@
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
             _In_ wchar_t* infoUri,
+            _In_ UINT32 snapInterval, 
+            _In_ UINT32 snapHistoryLength,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
 

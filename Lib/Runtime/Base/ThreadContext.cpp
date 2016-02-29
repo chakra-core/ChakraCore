@@ -184,6 +184,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , IsTTRecordRequested(false)
     , IsTTDebugRequested(false)
     , TTDUri(nullptr)
+    , TTSnapInterval(2000)
+    , TTSnapHistoryLength(UINT32_MAX)
     , TTDGeneralAllocator(L"TTDGeneralAllocator", &this->pageAllocator, nullptr)
     , TTDBulkAllocator(L"TTDBulkAllocator", &this->pageAllocator, nullptr)
     , TTDTaggingAllocator(L"TTDTaggingAllocator", &this->pageAllocator, nullptr)
@@ -1871,13 +1873,13 @@ bool ThreadContext::IsTTDInitialized() const
     return (this->TTDInfo != nullptr) & (this->TTDLog != nullptr);
 }
 
-void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay)
+void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength)
 {
     AssertMsg(this->TTDLog == nullptr && this->TTDInfo == nullptr, "We should only init once.");
     AssertMsg((doRecord & !doReplay) || (!doRecord && doReplay), "Should be exactly 1 of record or replay.");
 
     this->TTDInfo = Anew(&this->TTDGeneralAllocator, TTD::RuntimeThreadInfo, this, &this->TTDGeneralAllocator, &this->TTDBulkAllocator, &this->TTDTaggingAllocator);
-    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory);
+    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory, snapInterval, snapHistoryLength);
 
     if(doRecord)
     {

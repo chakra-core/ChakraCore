@@ -13,6 +13,8 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
 wchar_t* ttUri = nullptr;
+UINT32 snapInterval = UINT32_MAX;
+UINT32 snapHistoryLength = UINT32_MAX;
 
 wchar_t* dbgIPAddr = nullptr;
 unsigned short dbgPort = 0;
@@ -838,7 +840,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 #if ENABLE_TTD
         if(doTTRecord)
         {
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
             chRuntime = runtime;
 
             ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
@@ -1008,6 +1010,16 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             doTTDebug = true;
             ttUri = argv[i] + wcslen(L"-TTDebug:");
+        }
+        else if(wcsstr(argv[i], L"-TTSnapInterval:") == argv[i])
+        {
+            LPCWSTR intervalStr = argv[i] + wcslen(L"-TTSnapInterval:");
+            snapInterval = (UINT32)_wtoi(intervalStr);
+        }
+        else if(wcsstr(argv[i], L"-TTHistoryLength:") == argv[i])
+        {
+            LPCWSTR historyStr = argv[i] + wcslen(L"-TTHistoryLength:");
+            snapHistoryLength = (UINT32)_wtoi(historyStr);
         }
         else if(wcsstr(argv[i], L"--debug-brk=") == argv[i])
         {

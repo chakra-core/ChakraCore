@@ -377,6 +377,10 @@ JsDiagResume(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
+#if ENABLE_TTD
+        scriptContext->GetThreadContext()->TTDLog->ClearPendingTTDBPInfo();
+#endif
+
         if (resumeType == JsDiagResumeTypeStepIn)
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_INTO);
@@ -389,6 +393,10 @@ JsDiagResume(
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
         }
+//        else if(resumeType == TODO_JsDiagResumeTypeStepBack)
+//        {
+//            asdf;
+//        }
 
         return JsNoError;
     });

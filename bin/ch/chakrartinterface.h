@@ -67,7 +67,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDiagSetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType exceptionType);
     typedef JsErrorCode (WINAPI *JsrtDiagGetBreakOnExceptionPtr)(JsDiagBreakOnExceptionType* exceptionType);
 
-    typedef JsErrorCode (WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
+    typedef JsErrorCode (WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtTTDCreateDebugRuntimePtr)(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtTTDCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
     typedef JsErrorCode (WINAPI *JsrtTTDRunScriptPtr)(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result);
@@ -299,7 +299,7 @@ public:
     static JsErrorCode WINAPI JsDiagSetBreakOnException(JsDiagBreakOnExceptionType exceptionType) { return m_jsApiHooks.pfJsrtDiagSetBreakOnException(exceptionType); }
     static JsErrorCode WINAPI JsDiagGetBreakOnException(JsDiagBreakOnExceptionType* exceptionType) { return m_jsApiHooks.pfJsrtDiagGetBreakOnException(exceptionType); }
 
-    static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, threadService, runtime); }
+    static JsErrorCode WINAPI JsTTDCreateRecordRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, UINT32 snapInterval, UINT32 snapHistoryLength, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateRecordRuntime(attributes, infoUri, snapInterval, snapHistoryLength, threadService, runtime); }
     static JsErrorCode WINAPI JsTTDCreateDebugRuntime(JsRuntimeAttributes attributes, wchar_t* infoUri, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return m_jsApiHooks.pfJsrtTTDCreateDebugRuntime(attributes, infoUri, threadService, runtime); }
     static JsErrorCode WINAPI JsTTDCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return m_jsApiHooks.pfJsrtTTDCreateContext(runtime, newContext); }
     static JsErrorCode WINAPI JsTTDRunScript(INT64 hostCallbackId, const wchar_t *script, DWORD_PTR sourceContext, const wchar_t *sourceUrl, JsValueRef* result) { return m_jsApiHooks.pfJsrtTTDRunScript(hostCallbackId, script, sourceContext, sourceUrl, result); }
