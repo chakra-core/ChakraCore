@@ -222,7 +222,7 @@ WasmBinaryReader::ASTNode()
     case wbBrIf:
         BrNode();
         break;
-    case wbTableSwitch:
+    case wbBrTable:
         TableSwitchNode();
         break;
     case wbReturn:
@@ -300,6 +300,8 @@ void
 WasmBinaryReader::BrNode()
 {
     m_currentNode.br.depth = ReadConst<UINT8>();
+    // TODO: binary encoding doesn't yet support br yielding value
+    m_currentNode.br.hasSubExpr = false;
     m_funcState.count++;
 }
 

@@ -103,11 +103,14 @@ namespace Wasm
         EmitInfo EmitCall();
         EmitInfo EmitIfExpr();
         EmitInfo EmitIfElseExpr();
-        EmitInfo EmitSwitch();
+        EmitInfo EmitBrTable();
         EmitInfo EmitGetLocal();
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
-        EmitInfo EmitBreak();
+        EmitInfo EmitSelect();
+
+        template<WasmOp wasmOp>
+        EmitInfo EmitBr();
 
         template<WasmOp wasmOp, WasmTypes::WasmType type>
         EmitInfo EmitMemRead();
@@ -137,6 +140,7 @@ namespace Wasm
         static Js::AsmJsRetType GetAsmJsReturnType(WasmTypes::WasmType wasmType);
         static Js::AsmJsVarType GetAsmJsVarType(WasmTypes::WasmType wasmType);
         static Js::ArrayBufferView::ViewType GetViewType(WasmOp op);
+        static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
         WasmRegisterSpace * GetRegisterSpace(WasmTypes::WasmType type) const;
 
         ArenaAllocator m_alloc;

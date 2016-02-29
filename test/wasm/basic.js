@@ -6,3 +6,10 @@
 var a = WScript.LoadWasmFile('basic.wast', {foo: function(a){print(a); return 2;}});
 print(a.a(11));
 print(a.a(11));
+var b = 0;
+var c = new Int32Array(a.memory);
+for(var i=0; i<10000; i++)
+{
+    b+= c[i];
+}
+print(b);

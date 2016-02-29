@@ -65,13 +65,13 @@ WASM_CTRL_OPCODE(Block,          0x01,       BLOCK,              Limit)
 WASM_CTRL_OPCODE(Loop,           0x02,       LOOP,               Limit)
 WASM_CTRL_OPCODE(If,             0x03,       IF,                 Limit)
 WASM_CTRL_OPCODE(IfElse,         0x04,       IF_ELSE,            Limit)
-WASM_CTRL_OPCODE(Select,         0x05,       LIMIT,              Limit)
-WASM_CTRL_OPCODE(Br,             0x06,       BREAK,              Limit)
-WASM_CTRL_OPCODE(BrIf,           0x07,       LIMIT,              Limit)
-WASM_CTRL_OPCODE(TableSwitch,    0x08,       SWITCH,             Limit)
+WASM_CTRL_OPCODE(Br,             0x06,       BR,                 Limit)
+WASM_CTRL_OPCODE(BrIf,           0x07,       BR_IF,              Limit)
+WASM_CTRL_OPCODE(BrTable,        0x08,       BR_TABLE,           Limit)
 WASM_CTRL_OPCODE(Return,         0x14,       RETURN,             Limit)
 WASM_CTRL_OPCODE(Unreachable,    0x15,       LIMIT,              Limit)
 
+WASM_SIMPLE_OPCODE(Select,       0x05,       SELECT,             Limit)
 
 // Constants, locals, globals, and calls.
 WASM_MISC_OPCODE(I8Const,        0x09,        CONST_I32,         Limit)

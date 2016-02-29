@@ -71,6 +71,7 @@ namespace Wasm
     struct WasmBrNode
     {
         UINT8 depth;
+        bool hasSubExpr;
     };
 
     struct WasmTableSwitchNode

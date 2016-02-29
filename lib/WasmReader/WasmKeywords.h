@@ -169,16 +169,19 @@ WASM_KEYWORD(CALL, call)
 WASM_KEYWORD(CALL_INDIRECT, call_indirect)
 
 // control flow ops
-WASM_KEYWORD(NOP,        nop)
 WASM_KEYWORD(BLOCK,      block)
+WASM_KEYWORD(SELECT,     select)
 WASM_KEYWORD(IF,         if)
 WASM_KEYWORD(IF_ELSE,    if_else)
 WASM_KEYWORD(LOOP,       loop)
 WASM_KEYWORD(LABEL,      label)
-WASM_KEYWORD(BREAK,      break)
-WASM_KEYWORD(SWITCH,     switch)
+WASM_KEYWORD(BR,         br)
+WASM_KEYWORD(BR_IF,      br_if)
+WASM_KEYWORD(BR_TABLE,   br_table)
 WASM_KEYWORD(RETURN,     return)
-WASM_KEYWORD_FDI(CONST,      const)
+
+WASM_KEYWORD(NOP,        nop)
+WASM_KEYWORD_FDI(CONST,  const)
 
 // structures
 WASM_KEYWORD(FUNC,       func)
