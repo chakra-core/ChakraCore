@@ -18,8 +18,8 @@ namespace Js
         bool isCleaningUp;
 #endif
         union {
-            uint8 u8fields[CountT::Max];
-            int8 i8fields[CountT::Max];
+            uint8 u8Fields[CountT::Max];
+            int8 i8Fields[CountT::Max];
             WriteBarrierPtr<uint16> u16Fields;
             WriteBarrierPtr<uint32> u32Fields;
             WriteBarrierPtr<int16> i16Fields;
@@ -33,7 +33,7 @@ namespace Js
             , bgThreadCallStarted(false), isCleaningUp(false)
 #endif
         {
-            memset(u8fields, 0, (uint8)CountT::Max);
+            memset(u8Fields, 0, (uint8)CountT::Max);
         }
 
         void AllocCounters(T* host, uint8 newSize);
@@ -51,7 +51,7 @@ namespace Js
             uint32 value = 0;
             if (localFieldSize == 1)
             {
-                value = this->u8fields[type];
+                value = this->u8Fields[type];
             }
             else if (localFieldSize == 2)
             {
@@ -80,7 +80,7 @@ namespace Js
             int32 value = 0;
             if (localFieldSize == 1)
             {
-                value = this->i8fields[type];
+                value = this->i8Fields[type];
             }
             else if (localFieldSize == 2)
             {
@@ -103,7 +103,7 @@ namespace Js
             {
                 if (val <= UINT8_MAX)
                 {
-                    return this->u8fields[type] = static_cast<uint8>(val);
+                    return this->u8Fields[type] = static_cast<uint8>(val);
                 }
                 else
                 {
@@ -138,7 +138,7 @@ namespace Js
             {
                 if (val <= INT8_MAX && val >= INT8_MIN)
                 {
-                    return this->i8fields[type] = static_cast<uint8>(val);
+                    return this->i8Fields[type] = static_cast<uint8>(val);
                 }
                 else
                 {
@@ -171,9 +171,9 @@ namespace Js
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
             {
-                if (this->u8fields[type] < UINT8_MAX)
+                if (this->u8Fields[type] < UINT8_MAX)
                 {
-                    return this->u8fields[type]++;
+                    return this->u8Fields[type]++;
                 }
                 else
                 {
@@ -230,22 +230,22 @@ namespace Js
             {
                 for (; i < signedStart; i++)
                 {
-                    ((uint16*)newFieldsArray)[i] = this->u8fields[i];
+                    ((uint16*)newFieldsArray)[i] = this->u8Fields[i];
                 }
                 for (; i < max; i++)
                 {
-                    ((int16*)newFieldsArray)[i] = this->i8fields[i];
+                    ((int16*)newFieldsArray)[i] = this->i8Fields[i];
                 }
             }
             else
             {
                 for (; i < signedStart; i++)
                 {
-                    ((uint32*)newFieldsArray)[i] = this->u8fields[i];
+                    ((uint32*)newFieldsArray)[i] = this->u8Fields[i];
                 }
                 for (; i < max; i++)
                 {
-                    ((int32*)newFieldsArray)[i] = this->i8fields[i];
+                    ((int32*)newFieldsArray)[i] = this->i8Fields[i];
                 }
             }
         }
