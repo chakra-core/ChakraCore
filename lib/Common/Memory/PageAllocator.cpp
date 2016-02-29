@@ -752,6 +752,8 @@ template<typename T>
 char *
 PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<T> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList)
 {
+    FAULTINJECT_MEMORY_NOTHROW(this->debugName, pageCount*AutoSystemInfo::PageSize);
+
     char * pages = nullptr;    
     FreePageEntry* localList = nullptr;
     while (true) 
