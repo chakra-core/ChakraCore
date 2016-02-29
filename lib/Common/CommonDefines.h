@@ -92,12 +92,26 @@
 #define BYTECODE_BRANCH_ISLAND                      // Byte code short branch and branch island
 
 // Language features
+// xplat-todo: revisit these features
+#ifdef _WIN32
 #define ENABLE_INTL_OBJECT                          // Intl support
+#endif
 #define ENABLE_ES6_CHAR_CLASSIFIER                  // ES6 Unicode character classifier support
 
 // Type system features
 #define PERSISTENT_INLINE_CACHES                    // *** TODO: Won't build if disabled currently
 #define SUPPORT_FIXED_FIELDS_ON_PATH_TYPES          // *** TODO: Won't build if disabled currently
+
+// xplat-todo: revisit these features
+#ifdef _WIN32
+// dep: TIME_ZONE_INFORMATION, DaylightTimeHelper, Windows.Globalization
+#define ENABLE_GLOBALIZATION
+// dep: IDebugDocumentContext
+#define ENABLE_SCRIPT_DEBUGGING
+// dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
+#define ENABLE_SCRIPT_PROFILING
+// xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
+#endif
 
 // GC features
 

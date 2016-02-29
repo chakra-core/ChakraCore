@@ -6,13 +6,6 @@
 
 #include "CommonMinMemory.h"
 
-#ifdef _WIN32
-typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
-#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
-#endif
-
-#include <wchar.h>
-
 // === C Runtime Header Files ===
 #include <stdarg.h>
 #include <float.h>
@@ -25,6 +18,10 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include <time.h>
 
 #ifdef _WIN32
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+
+#include <wchar.h>
 #include <io.h>
 #endif
 

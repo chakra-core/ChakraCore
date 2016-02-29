@@ -315,7 +315,7 @@ namespace Js
 
                     Output::SkipToColumn(column);
 
-                    Output::Print(L"%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n",
+                    Output::Print(CH_WSTR("%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n"),
                             (Profiler::PhaseNameWidth-column), PhaseNames[i],
                             (double)data->incl / freq ,                    // incl
                             int(data->incl * 100 / base->incl ),        // incl %
@@ -355,25 +355,25 @@ namespace Js
             if(!foundNode)
             {
                 foundNode = true;
-                Output::Print(L"%-*s:%7s %5s %7s %5s %7s %7s %5s\n",
+                Output::Print(CH_WSTR("%-*s:%7s %5s %7s %5s %7s %7s %5s\n"),
                                 (Profiler::PhaseNameWidth-0),
-                                L"Profiler Report",
-                                L"Incl",
-                                L"(%)",
-                                L"Excl",
-                                L"(%)",
-                                L"Max",
-                                L"Mean",
-                                L"Count"
+                                CH_WSTR("Profiler Report"),
+                                CH_WSTR("Incl"),
+                                CH_WSTR("(%)"),
+                                CH_WSTR("Excl"),
+                                CH_WSTR("(%)"),
+                                CH_WSTR("Max"),
+                                CH_WSTR("Mean"),
+                                CH_WSTR("Count")
                                 );
-                Output::Print(L"-------------------------------------------------------------------------------\n");
+                Output::Print(CH_WSTR("-------------------------------------------------------------------------------\n"));
             }
 
             UnitData *data      = baseNode->GetValue();
 
             if(0 == data->count)
             {
-                Output::Print(L"The phase : %s was never started", PhaseNames[baseTag]);
+                Output::Print(CH_WSTR("The phase : %s was never started"), PhaseNames[baseTag]);
                 return;
             }
 
@@ -384,7 +384,7 @@ namespace Js
                 TypeNode *const parentNode = baseNode->GetParent();
                 Assert(parentNode);
 
-                Output::Print(L"%-*s\n", (Profiler::PhaseNameWidth-0), PhaseNames[parentTag]);
+                Output::Print(CH_WSTR("%-*s\n"), (Profiler::PhaseNameWidth-0), PhaseNames[parentTag]);
                 indent += Profiler::TabWidth;
             }
 
@@ -392,7 +392,7 @@ namespace Js
             {
                 Output::SkipToColumn(indent);
             }
-            Output::Print(L"%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n",
+            Output::Print(CH_WSTR("%-*s %7.1f %5d %7.1f %5d %7.1f %7.1f %5d\n"),
                     (Profiler::PhaseNameWidth-indent),
                     PhaseNames[baseTag],
                     (double)data->incl / freq ,                 // incl
@@ -410,7 +410,7 @@ namespace Js
 
         if(foundNode)
         {
-            Output::Print(L"-------------------------------------------------------------------------------\n");
+            Output::Print(CH_WSTR("-------------------------------------------------------------------------------\n"));
             Output::Flush();
         }
     }

@@ -49,7 +49,7 @@ public:
 
 class ThreadContext;
 
-class InterruptPoller abstract
+class InterruptPoller _ABSTRACT
 {
     // Interface with a polling object located in the hosting layer.
 
@@ -703,6 +703,7 @@ private:
     // If all try/catch blocks in the current stack marked as non-user code then this member will remain false.
     bool hasCatchHandlerToUserCode;
 
+#ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString delayLoadWinRtString;
 #ifdef ENABLE_PROJECTION
     Js::DelayLoadWinRtError delayLoadWinRtError;
@@ -721,6 +722,7 @@ private:
     Js::DelayLoadWinCoreMemory delayLoadWinCoreMemoryLibrary;
 #endif
     Js::DelayLoadWinCoreProcessThreads delayLoadWinCoreProcessThreads;
+#endif
 
     // Number of script context attached with probe manager.
     // This counter will be used as addref when the script context is created, this way we maintain the life of diagnostic object.
@@ -792,6 +794,7 @@ public:
 
     UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 
+#ifdef ENABLE_GLOBALIZATION
     Js::DelayLoadWinRtString *GetWinRTStringLibrary();
 #ifdef ENABLE_PROJECTION
     Js::DelayLoadWinRtError *GetWinRTErrorLibrary();
@@ -810,6 +813,7 @@ public:
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
 #endif
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
+#endif
 
     JITTimer JITTelemetry;
     ParserTimer ParserTelemetry;

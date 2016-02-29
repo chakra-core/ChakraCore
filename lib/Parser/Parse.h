@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
-#include <crtdefs.h>
+
 #include "ParseFlags.h"
 
 // Operator precedence levels
@@ -42,7 +42,7 @@ enum DestructuringInitializerContext
     DIC_ForceErrorOnInitializer, // e.g. Catch param where we explicitly want to raise an error when the initializer found
 };
 
-enum ScopeType;
+enum ScopeType: int;
 enum SymbolType : byte;
 
 // Representation of a label used when no AST is being built.
@@ -108,10 +108,7 @@ class Parser
     typedef Scanner<NotNullTerminatedUTF8EncodingPolicy> Scanner_t;
 
 private:
-
     template <OpCode nop> static int GetNodeSize();
-#define PTNODE(nop,sn,pc,nk,ok,json) template <> static int GetNodeSize<nop>() { return kcbPn##nk; };
-#include "ptlist.h"
 
     template <OpCode nop> static ParseNodePtr StaticAllocNode(ArenaAllocator * alloc)
     {
@@ -138,7 +135,7 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) wchar_t* name,long len);
+    IdentPtr GenerateIdentPtr(__ecount(len) wchar16* name,long len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 
@@ -326,11 +323,11 @@ public:
         switch(m_parseType)
         {
             case ParseType_Upfront:
-                return L"Upfront";
+                return CH_WSTR("Upfront");
             case ParseType_Deferred:
-                return L"Deferred";
+                return CH_WSTR("Deferred");
             case ParseType_Reparse:
-                return L"Reparse";
+                return CH_WSTR("Reparse");
         }
         Assert(false);
         return NULL;
@@ -383,7 +380,7 @@ private:
         IdentPtr target;
         IdentPtr from;
         IdentPtr as;
-        IdentPtr default;
+        IdentPtr _default;
         IdentPtr _star; // Special '*' identifier for modules
         IdentPtr _starDefaultStar; // Special '*default*' identifier for modules
     };
@@ -1010,3 +1007,7 @@ public:
     static BOOL NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, ulong cch);
 
 };
+
+#define PTNODE(nop,sn,pc,nk,ok,json) \
+    template<> inline int Parser::GetNodeSize<nop>() { return kcbPn##nk; }
+#include "ptlist.h"

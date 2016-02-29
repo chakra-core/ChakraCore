@@ -32,6 +32,8 @@ typedef wchar_t wchar16;
 #include "pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
+#include "inc/rt/oaidl.h"
+#include <emmintrin.h>
 
 typedef char16_t wchar16;
 #define CH_WSTR(s) u##s
@@ -87,7 +89,8 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
 #undef sprintf_s
 
 // PAL LoadLibraryExW not supported
-#define LOAD_LIBRARY_SEARCH_SYSTEM32 0
+#define LOAD_LIBRARY_SEARCH_SYSTEM32    0
+#define FACILITY_JSCRIPT                2306
 
 // _countof
 #if defined _M_X64 || defined _M_ARM || defined _M_ARM64
@@ -113,6 +116,7 @@ extern "C++"
 #endif
 // _countof
 
+#define ARRAYSIZE(A) _countof(A)
 
 //
 //  Singly linked list structure. Can be used as either a list head, or
@@ -191,6 +195,36 @@ PALIMPORT VOID PALAPI InitializeSListHead(IN OUT PSLIST_HEADER ListHead);
 PALIMPORT PSLIST_ENTRY PALAPI InterlockedPushEntrySList(IN OUT PSLIST_HEADER ListHead, IN OUT PSLIST_ENTRY  ListEntry);
 PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER ListHead);
 
+
+// Use overloaded versions of InterlockedExchangeAdd
+#define InterlockedExchangeAdd __InterlockedExchangeAdd
+inline long InterlockedExchangeAdd(
+    IN OUT long volatile *Addend,
+    IN long Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+inline unsigned long InterlockedExchangeAdd(
+    IN OUT unsigned long volatile *Addend,
+    IN unsigned long Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+inline long InterlockedExchangeSubtract(
+    IN OUT long volatile *Addend,
+    IN long Value)
+{
+    return __sync_fetch_and_sub(Addend, Value);
+}
+inline unsigned long InterlockedExchangeSubtract(
+    IN OUT unsigned long volatile *Addend,
+    IN unsigned long Value)
+{
+    return __sync_fetch_and_sub(Addend, Value);
+}
+
+
 // xplat-todo: implement these for JIT and Concurrent/Partial GC
 uintptr_t _beginthreadex(
    void *security,
@@ -242,12 +276,4 @@ errno_t rand_s(unsigned int* randomValue);
 #define _NOEXCEPT
 #else
 #define _NOEXCEPT noexcept
-#endif
-
-// xplat-todo: can we get rid of this for clang?
-// Including xmmintrin.h right now creates a ton of
-// compile errors, so temporarily defining this for clang
-// to avoid including that header
-#ifndef _MSC_VER
-#define _MM_HINT_T0 3
 #endif

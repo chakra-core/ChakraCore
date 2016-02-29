@@ -3,13 +3,15 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
+#ifdef ENABLE_GLOBALIZATION
 #ifdef NTBUILD
 #include "Windows.Globalization.h"
 #else
 #include "Windows.Data.Text.h"
 using namespace ABI;
 #endif
-
+#endif
 
 
 //Helpers
@@ -130,7 +132,9 @@ namespace Js
     class CharClassifier
     {
     private:
+#ifdef ENABLE_GLOBALIZATION
         Windows::Data::Text::IUnicodeCharactersStatics* winGlobCharApi;
+#endif
 
         static BOOL BigCharIsWhitespaceDefault(codepoint_t ch, const CharClassifier *instance)
         {
@@ -164,9 +168,9 @@ namespace Js
         static const OLECHAR* SkipIdentifierNonSurrogate(LPCOLESTR psz, const CharClassifier *instance);
         static const LPCUTF8 SkipIdentifierNonSurrogateStartEnd(LPCUTF8 psz, LPCUTF8 end, const CharClassifier *instance);
 
-
-
+#ifdef ENABLE_GLOBALIZATION
         Windows::Data::Text::UnicodeGeneralCategory GetUnicodeCategoryFor(codepoint_t ch) const;
+#endif
 
         CharTypes (*getBigCharTypeFunc)(codepoint_t ch, const CharClassifier *instance);
         CharTypeFlags (*getBigCharFlagsFunc)(codepoint_t ch, const CharClassifier *instance);
@@ -231,7 +235,7 @@ namespace Js
             return count;
         }
 
-        const wchar_t SkipBiDirectionalChars(_In_z_ wchar_t* &pszRef) const
+        const wchar16 SkipBiDirectionalChars(_In_z_ wchar16* &pszRef) const
         {
             while (*pszRef != '\0')
             {
@@ -249,7 +253,7 @@ namespace Js
         const OLECHAR* SkipWhiteSpace(LPCOLESTR psz) const
         {
             // Fast path for the case in which first character is not space
-            wchar_t firstChar = *psz;
+            wchar16 firstChar = *psz;
             if (firstChar == 0)
             {
                 return psz;
@@ -270,7 +274,7 @@ namespace Js
             {
                 return pStr;
             }
-            wchar_t firstChar = *pStr;
+            wchar16 firstChar = *pStr;
             if (!this->IsWhiteSpace(firstChar) &&
                 (skipWhiteSpaceStartEndFunc != &SkipWhiteSpaceSurrogateStartEnd
                 || !Js::NumberUtilities::IsSurrogateLowerPart(firstChar)))

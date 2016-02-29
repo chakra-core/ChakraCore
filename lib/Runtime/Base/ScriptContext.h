@@ -4,7 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef ENABLE_SCRIPT_PROFILING
 #include "activprof.h"
+#endif
 
 #if DBG || ENABLE_REGEX_CONFIG_OPTIONS || defined(PROFILE_STRINGS)
 #define NEED_MISC_ALLOCATOR
@@ -155,6 +157,7 @@ namespace Js
     };
 #pragma pack(pop)
 
+#ifdef ENABLE_PROJECTION
     class ProjectionConfiguration
     {
     public:
@@ -171,6 +174,7 @@ namespace Js
     private:
         DWORD targetVersion;
     };
+#endif // ENABLE_PROJECTION
 
     class ScriptConfiguration
     {
@@ -376,6 +380,7 @@ namespace Js
         Js::JavascriptMethod DispatchDefaultInvoke;
         Js::JavascriptMethod DispatchProfileInvoke;
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         typedef HRESULT (*GetDocumentContextFunction)(
             ScriptContext *pContext,
             Js::FunctionBody *pFunctionBody,
@@ -384,6 +389,7 @@ namespace Js
 
         typedef HRESULT (*CleanupDocumentContextFunction)(ScriptContext *pContext);
         CleanupDocumentContextFunction CleanupDocumentContext;
+#endif // ENABLE_SCRIPT_DEBUGGING
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
@@ -448,11 +454,15 @@ namespace Js
         AsmJsCodeGenerator* InitAsmJsCodeGenerator();
 #endif
 
+#ifdef ENABLE_SCRIPT_DEBUGGING
         bool IsExceptionWrapperForBuiltInsEnabled();
-        bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
-        bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
         static bool IsExceptionWrapperForBuiltInsEnabled(ScriptContext* scriptContext);
         static bool IsExceptionWrapperForHelpersEnabled(ScriptContext* scriptContext);
+#endif
+#ifdef ENABLE_SCRIPT_PROFILING
+        bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
+        bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
+#endif
 
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
@@ -728,9 +738,11 @@ private:
         NativeCodeGenerator* nativeCodeGen;
 #endif
 
+#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION timeZoneInfo;
         uint lastTimeZoneUpdateTickCount;
         DaylightTimeHelper daylightTimeHelper;
+#endif // ENABLE_GLOBALIZATION
 
         HostScriptContext * hostScriptContext;
         HaltCallback* scriptEngineHaltCallback;
@@ -769,6 +781,7 @@ private:
         typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> SourceList;
         RecyclerRootPtr<SourceList> sourceList;
 
+#ifdef ENABLE_SCRIPT_PROFILING
         IActiveScriptProfilerHeapEnum* heapEnum;
 
         // Profiler Probes
@@ -782,6 +795,7 @@ private:
         IActiveScriptProfilerCallback2 *m_pProfileCallback2;
         BOOL m_fTraceDomCall;
         BOOL m_inProfileCallback;
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -846,7 +860,9 @@ private:
         bool isRootTrackerScriptContext;
 #endif
 
+#ifdef ENABLE_GLOBALIZATION
         DaylightTimeHelper *GetDaylightTimeHelper() { return &daylightTimeHelper; }
+#endif // ENABLE_GLOBALIZATION
 
         bool IsClosed() const { return isClosed; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
@@ -949,6 +965,7 @@ private:
 
         ThreadContext * GetThreadContext() const { return threadContext; }
 
+#ifdef ENABLE_GLOBALIZATION
         TIME_ZONE_INFORMATION * GetTimeZoneInfo()
         {
             uint tickCount = GetTickCount();
@@ -960,6 +977,7 @@ private:
             return &timeZoneInfo;
         }
         void UpdateTimeZoneInfo();
+#endif // ENABLE_GLOBALIZATION
 
         static const int MaxEvalSourceSize = 400;
 
@@ -1090,9 +1108,9 @@ private:
         WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
-        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+        ParseNodePtr ParseScript(Parser* parser, const byte* script, size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag, uint* sourceIndex);
-        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, 
+        JavascriptFunction* LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo,
             CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag);
 
         ArenaAllocator* GeneralAllocator() { return &generalAllocator; }
@@ -1323,6 +1341,7 @@ private:
             return sourceContextInfo == cache->noContextSourceContextInfo;
         }
 
+#ifdef ENABLE_SCRIPT_PROFILING
         BOOL IsProfiling()
         {
             return (m_pProfileCallback != nullptr);
@@ -1332,6 +1351,7 @@ private:
         {
             return m_inProfileCallback;
         }
+#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
         SourceContextInfo const * GetNoContextSourceContextInfo() const { return cache->noContextSourceContextInfo; }
@@ -1359,6 +1379,7 @@ private:
 
         SRCINFO *AddHostSrcInfo(SRCINFO const *pSrcInfo);
 
+#ifdef ENABLE_SCRIPT_PROFILING
         inline void CoreSetProfileEventMask(DWORD dwEventMask);
         typedef HRESULT (*RegisterExternalLibraryType)(Js::ScriptContext *pScriptContext);
         HRESULT RegisterProfileProbe(IActiveScriptProfilerCallback *pProfileCallback, DWORD dwEventMask, DWORD dwContext, RegisterExternalLibraryType RegisterExternalLibrary, JavascriptMethod dispatchInvoke);
@@ -1369,26 +1390,28 @@ private:
 
         // Register static and dynamic scripts
         HRESULT RegisterAllScripts();
-
-        // Iterate through utf8sourceinfo and clear debug document if they are there.
-        void EnsureClearDebugDocument();
-
-        // To be called directly only when the thread context is shutting down
-        void ShutdownClearSourceLists();
-
         HRESULT RegisterLibraryFunction(const wchar_t *pwszObjectName, const wchar_t *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint);
 
         HRESULT RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary);
-        void RegisterDebugThunk(bool calledDuringAttach = true);
-        void UnRegisterDebugThunk();
 
-        void UpdateRecyclerFunctionEntryPointsForDebugger();
         void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
+#endif
+
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        // Iterate through utf8sourceinfo and clear debug document if they are there.
+        void EnsureClearDebugDocument();
+        // To be called directly only when the thread context is shutting down
+        void ShutdownClearSourceLists();
+
+        void RegisterDebugThunk(bool calledDuringAttach = true);
+        void UnRegisterDebugThunk();
 
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
+        void UpdateRecyclerFunctionEntryPointsForDebugger();
+#endif
 
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
 
@@ -1467,6 +1490,7 @@ private:
         void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
 #endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
         void SetProfileMode(BOOL fSet);
         static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
         static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
@@ -1492,15 +1516,16 @@ private:
         HRESULT OnFunctionEnter(PROFILER_TOKEN scriptId, PROFILER_TOKEN functionId);
         HRESULT OnFunctionExit(PROFILER_TOKEN scriptId, PROFILER_TOKEN functionId);
 
+        static HRESULT FunctionExitSenderThunk(PROFILER_TOKEN functionId, PROFILER_TOKEN scriptId, ScriptContext *pScriptContext);
+        static HRESULT FunctionExitByNameSenderThunk(const wchar_t *pwszFunctionName, ScriptContext *pScriptContext);
+#endif // ENABLE_SCRIPT_PROFILING
+
         bool SetDispatchProfile(bool fSet, JavascriptMethod dispatchInvoke);
         HRESULT OnDispatchFunctionEnter(const WCHAR *pwszFunctionName);
         HRESULT OnDispatchFunctionExit(const WCHAR *pwszFunctionName);
 
         void OnStartupComplete();
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
-
-        static HRESULT FunctionExitSenderThunk(PROFILER_TOKEN functionId, PROFILER_TOKEN scriptId, ScriptContext *pScriptContext);
-        static HRESULT FunctionExitByNameSenderThunk(const wchar_t *pwszFunctionName, ScriptContext *pScriptContext);
 
 #if ENABLE_PROFILE_INFO
         void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);

@@ -9,6 +9,8 @@ namespace Js
     template <typename T, bool enumNonEnumerable, bool enumSymbols>
     class DynamicObjectSnapshotEnumerator : public DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true>
     {
+        typedef DynamicObjectEnumerator<T, enumNonEnumerable, enumSymbols, /*snapShotSemantics*/true> Base;
+
     protected:
         int initialPropertyCount;
 
@@ -17,7 +19,7 @@ namespace Js
         {
         }
 
-        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumerator, DynamicObjectEnumerator);
+        DEFINE_VTABLE_CTOR(DynamicObjectSnapshotEnumerator, Base);
         DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(DynamicObjectSnapshotEnumerator);
 
         Var GetCurrentAndMoveNextFromArray(PropertyId& propertyId, PropertyAttributes* attributes);

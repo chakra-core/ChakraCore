@@ -512,7 +512,7 @@ namespace Js
 
     protected:
         EntryPointInfo(void* address, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(address, context), 
+            ProxyEntryPointInfo(address, context),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
@@ -870,10 +870,10 @@ namespace Js
 #endif
 #if DBG_DUMP
      public:
-#else if defined(VTUNE_PROFILING)
+#elif defined(VTUNE_PROFILING)
      private:
 #endif
-#if DBG_DUMP | defined(VTUNE_PROFILING)
+#if DBG_DUMP || defined(VTUNE_PROFILING)
          // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
          struct NativeOffsetMap
          {
@@ -2923,7 +2923,7 @@ namespace Js
     struct ScopeSlots
     {
     public:
-        static uint const MaxEncodedSlotCount = USHORT_MAX;
+        static uint const MaxEncodedSlotCount = Constants::UShortMaxValue;
 
         // The slot index is at the same location as the vtable, so that we can distinguish between scope slot and frame display
         static uint const EncodedSlotCountSlotIndex = 0;

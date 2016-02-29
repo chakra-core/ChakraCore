@@ -239,13 +239,13 @@ namespace Js
     // asm.js
     namespace ArrayBufferView
     {
-        enum ViewType;
+        enum ViewType: int;
     }
     struct EmitExpressionInfo;
     struct AsmJsModuleMemory;
     namespace AsmJsLookupSource
     {
-        enum Source;
+        enum Source: int;
     }
     struct AsmJsByteCodeWriter;
     class AsmJsArrayView;
@@ -275,7 +275,7 @@ namespace Js
     class AsmJsModuleCompiler;
     class AsmJSCompiler;
     class AsmJSByteCodeGenerator;
-    enum AsmJSMathBuiltinFunction;
+    enum AsmJSMathBuiltinFunction: int;
     //////////////////////////////////////////////////////////////////////////
     typedef JsUtil::WeakReferenceDictionary<PropertyId, PropertyString, PowerOf2SizePolicy> PropertyStringCacheMap;
 
@@ -314,8 +314,10 @@ const Js::ModuleID kmodGlobal = 0;
 
 class SourceContextInfo;
 
-
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "activdbg100.h"
+#endif
+
 #ifndef NTDDI_WIN10
 // These are only defined for the Win10 SDK and above
 // Consider: Refactor to avoid needing these?
@@ -336,9 +338,12 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/SourceHolder.h"
 #include "Base/Utf8SourceInfo.h"
 #include "Base/PropertyRecord.h"
+#ifdef ENABLE_GLOBALIZATION
 #include "Base/DelayLoadLibrary.h"
+#endif
 #include "Base/CallInfo.h"
 #include "Language/ExecutionMode.h"
+#include "Types/TypeId.h"
 #include "BackendApi.h"
 #include "DetachedStateBase.h"
 
@@ -349,7 +354,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "ByteCode/OpCodeUtil.h"
 #include "Language/Arguments.h"
 
-#include "Types/TypeId.h"
 #include "Types/RecyclableObject.h"
 #include "Base/ExpirableObject.h"
 #include "Types/Type.h"
@@ -396,8 +400,12 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Base/CharStringCache.h"
 
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
 #include "Library/JavascriptObject.h"
 #include "Library/BuiltInFlags.h"
+#include "Library/ForInObjectEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
 #include "Library/JavascriptLibrary.h"
@@ -409,8 +417,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 
 #include "Base/HiResTimer.h"
+#ifdef ENABLE_GLOBALIZATION
 #include "Base/WindowsGlobalizationAdapter.h"
 #include "Base/WindowsFoundationAdapter.h"
+#endif
 #include "Base/Debug.h"
 
 #ifdef _M_X64

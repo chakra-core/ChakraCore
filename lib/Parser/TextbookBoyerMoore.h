@@ -9,10 +9,46 @@
 namespace UnifiedRegex
 {
     template <typename C>
+    struct TextbookBoyerMooreSetup : private Chars<C>
+    {
+    private:
+        typedef typename Chars<C>::Char Char;
+
+        template <typename C>
+        friend class TextbookBoyerMoore;
+        template <typename C>
+        friend class TextbookBoyerMooreWithLinearMap;
+
+    public:
+        enum Scheme
+        {
+            DefaultScheme,
+            LinearScheme
+        };
+
+        TextbookBoyerMooreSetup(Char const * pat, CharCount patLen) : pat(pat), patLen(patLen) { Init(); }
+
+        Scheme GetScheme() const { return scheme; }
+
+        static int32 * GetGoodSuffix(ArenaAllocator* allocator, const Char * pat, CharCount patLen, int skip = 1);
+    private:
+        void Init();
+
+
+        Scheme scheme;
+        Char const * const pat;
+        CharCount const patLen;
+        uint numLinearChars;
+        Char linearChar[MaxCharMapLinearChars];
+        int32 lastOcc[MaxCharMapLinearChars];
+    };
+
+    template <typename C>
     class TextbookBoyerMooreWithLinearMap : private Chars<C>
     {
         template <typename C>
         friend struct TextbookBoyerMooreSetup;
+        typedef typename Chars<C>::Char Char;
     private:
         typedef CharMap<Char, int32, CharMapScheme_Linear> LastOccMap;
 
@@ -52,7 +88,7 @@ namespace UnifiedRegex
             ) const;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        static wchar_t const * GetName() { return L"linear map Boyer-Moore"; }
+        static wchar16 const * GetName() { return CH_WSTR("linear map Boyer-Moore"); }
 #endif
      };
 
@@ -61,6 +97,8 @@ namespace UnifiedRegex
     {
         template <typename C>
         friend struct TextbookBoyerMooreSetup;
+        typedef typename Chars<C>::Char Char;
+
     private:
         typedef CharMap<Char, int32> LastOccMap;
 
@@ -118,36 +156,7 @@ namespace UnifiedRegex
             ) const;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        static wchar_t const * GetName() { return L"full map Boyer-Moore"; }
+        static wchar16 const * GetName() { return CH_WSTR("full map Boyer-Moore"); }
 #endif
-    };
-
-    template <typename C>
-    struct TextbookBoyerMooreSetup : private Chars<C>
-    {
-        friend class TextbookBoyerMoore<C>;
-        friend class TextbookBoyerMooreWithLinearMap<C>;
-
-        enum Scheme
-        {
-            DefaultScheme,
-            LinearScheme
-        };
-
-        TextbookBoyerMooreSetup(Char const * pat, CharCount patLen) : pat(pat), patLen(patLen) { Init(); }
-
-        Scheme GetScheme() const { return scheme; }
-
-        static int32 * GetGoodSuffix(ArenaAllocator* allocator, const Char * pat, CharCount patLen, int skip = 1);
-    private:
-        void Init();
-
-
-        Scheme scheme;
-        Char const * const pat;
-        CharCount const patLen;
-        uint numLinearChars;
-        Char linearChar[MaxCharMapLinearChars];
-        int32 lastOcc[MaxCharMapLinearChars];
     };
 }

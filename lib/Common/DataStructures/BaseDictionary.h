@@ -1596,7 +1596,7 @@ namespace JsUtil
 
         inline int Count() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Count();
         }
@@ -1659,7 +1659,7 @@ namespace JsUtil
 
         void Clear()
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Clear();
         }

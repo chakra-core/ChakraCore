@@ -8,7 +8,7 @@
 
 namespace UnifiedRegex
 {
-    const wchar_t* const DebugWriter::hex = L"0123456789abcdef";
+    const wchar16* const DebugWriter::hex = CH_WSTR("0123456789abcdef");
 
     DebugWriter::DebugWriter() : indent(0), nlPending(false)
     {
@@ -20,12 +20,12 @@ namespace UnifiedRegex
         va_start(argptr, form);
         int len = _vsnwprintf_s(buf, bufLen, _TRUNCATE, form, argptr);
         if (len < 0)
-            Output::Print(L"<not enough buffer space to format>");
+            Output::Print(CH_WSTR("<not enough buffer space to format>"));
         else
         {
             if (len > 0)
                 CheckForNewline();
-            Output::Print(L"%s", buf);
+            Output::Print(CH_WSTR("%s"), buf);
         }
     }
 
@@ -37,7 +37,7 @@ namespace UnifiedRegex
         Assert(len >= 0 && len < bufLen - 1);
         if (len > 0)
             CheckForNewline();
-        Output::Print(L"%s", buf);
+        Output::Print(CH_WSTR("%s"), buf);
         EOL();
     }
 
@@ -50,7 +50,7 @@ namespace UnifiedRegex
         for (const Char* p = str; p < pl; p++)
         {
             if (*p == '"')
-                Output::Print(L"\\\"");
+                Output::Print(CH_WSTR("\\\""));
             else
                 PrintEscapedChar(*p);
         }
@@ -60,12 +60,12 @@ namespace UnifiedRegex
     {
         CheckForNewline();
         if (str == 0)
-            Output::Print(L"null");
+            Output::Print(CH_WSTR("null"));
         else
         {
-            Output::Print(L"\"");
+            Output::Print(CH_WSTR("\""));
             PrintEscapedString(str, len);
-            Output::Print(L"\"");
+            Output::Print(CH_WSTR("\""));
         }
     }
 
@@ -73,22 +73,22 @@ namespace UnifiedRegex
     {
         CheckForNewline();
         if (c > 0xff)
-            Output::Print(L"\\u%lc%lc%lc%lc", hex[c >> 12], hex[(c >> 8) & 0xf], hex[(c >> 4) & 0xf], hex[c & 0xf]);
+            Output::Print(CH_WSTR("\\u%lc%lc%lc%lc"), hex[c >> 12], hex[(c >> 8) & 0xf], hex[(c >> 4) & 0xf], hex[c & 0xf]);
         else if (c < ' ' || c > '~')
-            Output::Print(L"\\x%lc%lc", hex[c >> 4], hex[c & 0xf]);
+            Output::Print(CH_WSTR("\\x%lc%lc"), hex[c >> 4], hex[c & 0xf]);
         else
-            Output::Print(L"%lc", c);
+            Output::Print(CH_WSTR("%lc"), c);
     }
 
     void DebugWriter::PrintQuotedChar(const Char c)
     {
         CheckForNewline();
-        Output::Print(L"'");
+        Output::Print(CH_WSTR("'"));
         if (c == '\'')
-            Output::Print(L"\\'");
+            Output::Print(CH_WSTR("\\'"));
         else
             PrintEscapedChar(c);
-        Output::Print(L"'");
+        Output::Print(CH_WSTR("'"));
     }
 
     void DebugWriter::EOL()
@@ -109,14 +109,14 @@ namespace UnifiedRegex
 
     void DebugWriter::Flush()
     {
-        Output::Print(L"\n");
+        Output::Print(CH_WSTR("\n"));
         Output::Flush();
         nlPending = false;
     }
 
     void DebugWriter::BeginLine()
     {
-        Output::Print(L"\n%*s", indent * 4, L"");
+        Output::Print(CH_WSTR("\n%*s"), indent * 4, CH_WSTR(""));
     }
 }
 

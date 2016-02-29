@@ -281,10 +281,10 @@ namespace UnifiedRegex
     {
         if (firstSet != 0)
         {
-            w->PrintEOL(L"<");
+            w->PrintEOL(CH_WSTR("<"));
             w->Indent();
 
-            w->Print(L"features: {");
+            w->Print(CH_WSTR("features: {"));
             bool first = true;
             for (uint i = Empty; i <= Assertion; i++)
             {
@@ -293,64 +293,64 @@ namespace UnifiedRegex
                     if (first)
                         first = false;
                     else
-                        w->Print(L",");
+                        w->Print(CH_WSTR(","));
                     switch (i)
                     {
-                    case Empty: w->Print(L"Empty"); break;
-                    case BOL: w->Print(L"BOL"); break;
-                    case EOL: w->Print(L"EOL"); break;
-                    case WordBoundary: w->Print(L"WordBoundary"); break;
-                    case MatchLiteral: w->Print(L"MatchLiteral"); break;
-                    case MatchChar: w->Print(L"MatchChar"); break;
-                    case Concat: w->Print(L"Concat"); break;
-                    case Alt: w->Print(L"Alt"); break;
-                    case DefineGroup: w->Print(L"DefineGroup"); break;
-                    case MatchGroup: w->Print(L"MatchGroup"); break;
-                    case Loop: w->Print(L"Loop"); break;
-                    case MatchSet: w->Print(L"MatchSet"); break;
-                    case Assertion: w->Print(L"Assertion"); break;
+                    case Empty: w->Print(CH_WSTR("Empty")); break;
+                    case BOL: w->Print(CH_WSTR("BOL")); break;
+                    case EOL: w->Print(CH_WSTR("EOL")); break;
+                    case WordBoundary: w->Print(CH_WSTR("WordBoundary")); break;
+                    case MatchLiteral: w->Print(CH_WSTR("MatchLiteral")); break;
+                    case MatchChar: w->Print(CH_WSTR("MatchChar")); break;
+                    case Concat: w->Print(CH_WSTR("Concat")); break;
+                    case Alt: w->Print(CH_WSTR("Alt")); break;
+                    case DefineGroup: w->Print(CH_WSTR("DefineGroup")); break;
+                    case MatchGroup: w->Print(CH_WSTR("MatchGroup")); break;
+                    case Loop: w->Print(CH_WSTR("Loop")); break;
+                    case MatchSet: w->Print(CH_WSTR("MatchSet")); break;
+                    case Assertion: w->Print(CH_WSTR("Assertion")); break;
                     }
                 }
             }
-            w->PrintEOL(L"}");
+            w->PrintEOL(CH_WSTR("}"));
 
-            w->Print(L"firstSet: ");
+            w->Print(CH_WSTR("firstSet: "));
             firstSet->Print(w);
             if (isFirstExact)
-                w->Print(L" (exact)");
+                w->Print(CH_WSTR(" (exact)"));
             w->EOL();
 
-            w->Print(L"followSet: ");
+            w->Print(CH_WSTR("followSet: "));
             followSet->Print(w);
             w->EOL();
 
-            w->Print(L"prevConsumes: ");
+            w->Print(CH_WSTR("prevConsumes: "));
             prevConsumes.Print(w);
             w->EOL();
 
-            w->Print(L"thisConsumes: ");
+            w->Print(CH_WSTR("thisConsumes: "));
             thisConsumes.Print(w);
             w->EOL();
 
-            w->Print(L"followConsumes: ");
+            w->Print(CH_WSTR("followConsumes: "));
             followConsumes.Print(w);
             w->EOL();
 
-            w->PrintEOL(L"isThisIrrefutable: %s", isThisIrrefutable ? L"true" : L"false");
-            w->PrintEOL(L"isFollowIrrefutable: %s", isFollowIrrefutable ? L"true" : L"false");
-            w->PrintEOL(L"isWord: %s", isWord ? L"true" : L"false");
-            w->PrintEOL(L"isThisWillNotProgress: %s", isThisWillNotProgress ? L"true" : L"false");
-            w->PrintEOL(L"isThisWillNotRegress: %s", isThisWillNotRegress ? L"true" : L"false");
-            w->PrintEOL(L"isPrevWillNotProgress: %s", isPrevWillNotProgress ? L"true" : L"false");
-            w->PrintEOL(L"isPrevWillNotRegress: %s", isPrevWillNotRegress ? L"true" : L"false");
-            w->PrintEOL(L"isDeterministic: %s", isDeterministic ? L"true" : L"false");
-            w->PrintEOL(L"isNotInLoop: %s", isNotInLoop ? L"true" : L"false");
-            w->PrintEOL(L"isNotNegated: %s", isNotNegated ? L"true" : L"false");
-            w->PrintEOL(L"isAtLeastOnce: %s", isAtLeastOnce ? L"true" : L"false");
-            w->PrintEOL(L"hasInitialHardFailBOI: %s", hasInitialHardFailBOI ? L"true" : L"false");
+            w->PrintEOL(CH_WSTR("isThisIrrefutable: %s"), isThisIrrefutable ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isFollowIrrefutable: %s"), isFollowIrrefutable ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isWord: %s"), isWord ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isThisWillNotProgress: %s"), isThisWillNotProgress ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isThisWillNotRegress: %s"), isThisWillNotRegress ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isPrevWillNotProgress: %s"), isPrevWillNotProgress ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isPrevWillNotRegress: %s"), isPrevWillNotRegress ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isDeterministic: %s"), isDeterministic ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isNotInLoop: %s"), isNotInLoop ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isNotNegated: %s"), isNotNegated ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("isAtLeastOnce: %s"), isAtLeastOnce ? CH_WSTR("true") : CH_WSTR("false"));
+            w->PrintEOL(CH_WSTR("hasInitialHardFailBOI: %s"), hasInitialHardFailBOI ? CH_WSTR("true") : CH_WSTR("false"));
 
             w->Unindent();
-            w->PrintEOL(L">");
+            w->PrintEOL(CH_WSTR(">"));
         }
     }
 #endif
@@ -591,15 +591,15 @@ namespace UnifiedRegex
         switch (tag)
         {
         case Empty:
-            w->Print(L"Empty"); break;
+            w->Print(CH_WSTR("Empty")); break;
         case BOL:
-            w->Print(L"BOL"); break;
+            w->Print(CH_WSTR("BOL")); break;
         case EOL:
-            w->Print(L"EOL"); break;
+            w->Print(CH_WSTR("EOL")); break;
         default:
             Assert(false);
         }
-        w->PrintEOL(L"()");
+        w->PrintEOL(CH_WSTR("()"));
         PrintAnnotations(w);
     }
 #endif
@@ -747,7 +747,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void WordBoundaryNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"WordBoundary(%s, %s, %s)", isNegation ? L"negative" : L"positive", mustIncludeEntering ? L"entering" : L"-", mustIncludeLeaving ? L"leaving" : L"-");
+        w->PrintEOL(CH_WSTR("WordBoundary(%s, %s, %s)"), isNegation ? CH_WSTR("negative") : CH_WSTR("positive"), mustIncludeEntering ? CH_WSTR("entering") : CH_WSTR("-"), mustIncludeLeaving ? CH_WSTR("leaving") : CH_WSTR("-"));
         PrintAnnotations(w);
     }
 #endif
@@ -975,13 +975,13 @@ namespace UnifiedRegex
                 EMIT(compiler, SyncToChar2LiteralAndConsumeInst, litptr[0], litptr[1]);
             else
             {
-                TextbookBoyerMooreSetup<wchar_t> setup(litptr, length);
+                TextbookBoyerMooreSetup<wchar16> setup(litptr, length);
                 switch (setup.GetScheme())
                 {
-                case TextbookBoyerMooreSetup<wchar_t>::LinearScheme:
+                case TextbookBoyerMooreSetup<wchar16>::LinearScheme:
                     EMIT(compiler, SyncToLinearLiteralAndConsumeInst, offset, length)->scanner.Setup(compiler.rtAllocator, setup);
                     break;
-                case TextbookBoyerMooreSetup<wchar_t>::DefaultScheme:
+                case TextbookBoyerMooreSetup<wchar16>::DefaultScheme:
                     EMIT(compiler, SyncToLiteralAndConsumeInst, offset, length)->scanner.Setup(compiler.rtAllocator, setup);
                     break;
                 };
@@ -1014,13 +1014,13 @@ namespace UnifiedRegex
                     EMIT(compiler, SyncToChar2LiteralAndContinueInst, litptr[0], litptr[1]);
                 else
                 {
-                    TextbookBoyerMooreSetup<wchar_t> setup(litptr, length);
+                    TextbookBoyerMooreSetup<wchar16> setup(litptr, length);
                     switch (setup.GetScheme())
                     {
-                    case TextbookBoyerMooreSetup<wchar_t>::LinearScheme:
+                    case TextbookBoyerMooreSetup<wchar16>::LinearScheme:
                         EMIT(compiler, SyncToLinearLiteralAndContinueInst, offset, length)->scanner.Setup(compiler.rtAllocator, setup);
                         break;
-                    case TextbookBoyerMooreSetup<wchar_t>::DefaultScheme:
+                    case TextbookBoyerMooreSetup<wchar16>::DefaultScheme:
                         EMIT(compiler, SyncToLiteralAndContinueInst, offset, length)->scanner.Setup(compiler.rtAllocator, setup);
                         break;
                     };
@@ -1048,13 +1048,13 @@ namespace UnifiedRegex
                     EMIT(compiler, SyncToChar2LiteralAndBackupInst, litptr[0], litptr[1], prevConsumes);
                 else
                 {
-                    TextbookBoyerMooreSetup<wchar_t> setup(litptr, length);
+                    TextbookBoyerMooreSetup<wchar16> setup(litptr, length);
                     switch (setup.GetScheme())
                     {
-                    case TextbookBoyerMooreSetup<wchar_t>::LinearScheme:
+                    case TextbookBoyerMooreSetup<wchar16>::LinearScheme:
                         EMIT(compiler, SyncToLinearLiteralAndBackupInst, offset, length, prevConsumes)->scanner.Setup(compiler.rtAllocator, setup);
                         break;
-                    case TextbookBoyerMooreSetup<wchar_t>::DefaultScheme:
+                    case TextbookBoyerMooreSetup<wchar16>::DefaultScheme:
                         EMIT(compiler, SyncToLiteralAndBackupInst, offset, length, prevConsumes)->scanner.Setup(compiler.rtAllocator, setup);
                         break;
                     };
@@ -1124,18 +1124,18 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void MatchLiteralNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->Print(L"MatchLiteral(");
+        w->Print(CH_WSTR("MatchLiteral("));
         int skip = isEquivClass ? CaseInsensitive::EquivClassSize : 1;
         for (int i = 0; i < skip; i++)
         {
             if (i > 0)
-                w->Print(L", ");
-            w->Print(L"\"");
+                w->Print(CH_WSTR(", "));
+            w->Print(CH_WSTR("\""));
             for (CharCount j = 0; j < length; j++)
                 w->PrintEscapedChar(litbuf[offset + j * skip + i]);
-            w->Print(L"\"");
+            w->Print(CH_WSTR("\""));
         }
-        w->PrintEOL(L")");
+        w->PrintEOL(CH_WSTR(")"));
         PrintAnnotations(w);
     }
 #endif
@@ -1437,14 +1437,14 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void MatchCharNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->Print(L"MatchChar(");
+        w->Print(CH_WSTR("MatchChar("));
         for (int i = 0; i < (isEquivClass ? CaseInsensitive::EquivClassSize : 1); i++)
         {
             if (i > 0)
-                w->Print(L", ");
+                w->Print(CH_WSTR(", "));
             w->PrintQuotedChar(cs[i]);
         }
-        w->PrintEOL(L")");
+        w->PrintEOL(CH_WSTR(")"));
         PrintAnnotations(w);
     }
 #endif
@@ -1715,9 +1715,9 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void MatchSetNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->Print(L"MatchSet(%s, ", isNegation ? L"negative" : L"positive");
+        w->Print(CH_WSTR("MatchSet(%s, "), isNegation ? CH_WSTR("negative") : CH_WSTR("positive"));
         set.Print(w);
-        w->PrintEOL(L")");
+        w->PrintEOL(CH_WSTR(")"));
         PrintAnnotations(w);
     }
 #endif
@@ -2042,14 +2042,14 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void ConcatNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"Concat()");
+        w->PrintEOL(CH_WSTR("Concat()"));
         PrintAnnotations(w);
-        w->PrintEOL(L"{");
+        w->PrintEOL(CH_WSTR("{"));
         w->Indent();
         for (const ConcatNode *curr = this; curr != 0; curr = curr->tail)
             curr->head->Print(w, litbuf);
         w->Unindent();
-        w->PrintEOL(L"}");
+        w->PrintEOL(CH_WSTR("}"));
     }
 #endif
 
@@ -2354,7 +2354,8 @@ namespace UnifiedRegex
                 // The firing condition is not strong enough yet.
                 fires = false;
                 // Check conditions (2) and (3) first because they're faster, then check condition (1).
-                if (numNonEmpty == 0 || isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count())
+                if (numNonEmpty == 0 ||
+                    (isFollowIrrefutable && allSimpleOneChar && totalChars == firstSet->Count()))
                 {
                     fires = true;
                 }
@@ -2913,14 +2914,14 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void AltNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"Alt()");
+        w->PrintEOL(CH_WSTR("Alt()"));
         PrintAnnotations(w);
-        w->PrintEOL(L"{");
+        w->PrintEOL(CH_WSTR("{"));
         w->Indent();
         for (const AltNode *curr = this; curr != 0; curr = curr->tail)
             curr->head->Print(w, litbuf);
         w->Unindent();
-        w->PrintEOL(L"}");
+        w->PrintEOL(CH_WSTR("}"));
     }
 #endif
 
@@ -3196,13 +3197,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void DefineGroupNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"DefineGroup(%d)", groupId);
+        w->PrintEOL(CH_WSTR("DefineGroup(%d)"), groupId);
         PrintAnnotations(w);
-        w->PrintEOL(L"{");
+        w->PrintEOL(CH_WSTR("{"));
         w->Indent();
         body->Print(w, litbuf);
         w->Unindent();
-        w->PrintEOL(L"}");
+        w->PrintEOL(CH_WSTR("}"));
     }
 #endif
 
@@ -3340,7 +3341,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void MatchGroupNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"MatchGroup(%d)", groupId);
+        w->PrintEOL(CH_WSTR("MatchGroup(%d)"), groupId);
         PrintAnnotations(w);
     }
 #endif
@@ -4061,15 +4062,15 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void LoopNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->Print(L"Loop(");
+        w->Print(CH_WSTR("Loop("));
         repeats.Print(w);
-        w->PrintEOL(L", %s)", isGreedy ? L"greedy" : L"non-greedy");
+        w->PrintEOL(CH_WSTR(", %s)"), isGreedy ? CH_WSTR("greedy") : CH_WSTR("non-greedy"));
         PrintAnnotations(w);
-        w->PrintEOL(L"{");
+        w->PrintEOL(CH_WSTR("{"));
         w->Indent();
         body->Print(w, litbuf);
         w->Unindent();
-        w->PrintEOL(L"}");
+        w->PrintEOL(CH_WSTR("}"));
     }
 #endif
 
@@ -4310,13 +4311,13 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void AssertionNode::Print(DebugWriter* w, const Char* litbuf) const
     {
-        w->PrintEOL(L"Assertion(%s)", isNegation ? L"negative" : L"positive");
+        w->PrintEOL(CH_WSTR("Assertion(%s)"), isNegation ? CH_WSTR("negative") : CH_WSTR("positive"));
         PrintAnnotations(w);
-        w->PrintEOL(L"{");
+        w->PrintEOL(CH_WSTR("{"));
         w->Indent();
         body->Print(w, litbuf);
         w->Unindent();
-        w->PrintEOL(L"}");
+        w->PrintEOL(CH_WSTR("}"));
     }
 #endif
 
@@ -4427,11 +4428,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(L"REGEX AST /%s/ {", program->source);
+            w->PrintEOL(CH_WSTR("REGEX AST /%s/ {"), program->source);
             w->Indent();
             root->Print(w, litbuf);
             w->Unindent();
-            w->PrintEOL(L"}");
+            w->PrintEOL(CH_WSTR("}"));
             w->Flush();
         }
 #endif
@@ -4539,11 +4540,11 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
                     if (w != 0)
                     {
-                        w->PrintEOL(L"REGEX ANNOTATED AST /%s/ {", program->source);
+                        w->PrintEOL(CH_WSTR("REGEX ANNOTATED AST /%s/ {"), program->source);
                         w->Indent();
                         root->Print(w, program->rep.insts.litbuf);
                         w->Unindent();
-                        w->PrintEOL(L"}");
+                        w->PrintEOL(CH_WSTR("}"));
                         w->Flush();
                     }
 #endif
@@ -4612,7 +4613,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(L"REGEX PROGRAM /%s/ ", program->source);
+            w->PrintEOL(CH_WSTR("REGEX PROGRAM /%s/ "), program->source);
             program->Print(w);
             w->Flush();
         }

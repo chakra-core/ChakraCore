@@ -13,7 +13,7 @@ namespace Js
     friend class Js::CrossSiteEnumerator<T>; \
     virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) override \
     { \
-        Assert(GetScriptContext() == scriptContext); \
+        Assert(this->GetScriptContext() == scriptContext); \
         AssertMsg(VirtualTableInfo<T>::HasVirtualTable(this) || VirtualTableInfo<Js::CrossSiteEnumerator<T>>::HasVirtualTable(this), "Derived class need to define marshal to script context"); \
         VirtualTableInfo<Js::CrossSiteEnumerator<T>>::SetVirtualTable(this); \
     }
@@ -46,7 +46,7 @@ namespace Js
         Var result = __super::GetCurrentIndex();
         if (result)
         {
-            result = CrossSite::MarshalVar(GetScriptContext(), result);
+            result = CrossSite::MarshalVar(this->GetScriptContext(), result);
         }
         return result;
     }
@@ -57,7 +57,7 @@ namespace Js
         Var result = __super::GetCurrentValue();
         if (result)
         {
-            result = CrossSite::MarshalVar(GetScriptContext(), result);
+            result = CrossSite::MarshalVar(this->GetScriptContext(), result);
         }
         return result;
     }
@@ -80,7 +80,7 @@ namespace Js
         Var result = __super::GetCurrentAndMoveNext(propertyId, attributes);
         if (result)
         {
-            result = CrossSite::MarshalVar(GetScriptContext(), result);
+            result = CrossSite::MarshalVar(this->GetScriptContext(), result);
         }
         return result;
     }

@@ -5,15 +5,6 @@
 #pragma once
 
 namespace Js {
-
-    const DWORD ExceptionCode = ('jsc' | 0xE0000000);
-
-    // As magic numbers increase, we have to keep track of the versions that we are
-    // backwards compatible with.
-    // Old CRTs also recognize unknown magic numbers with a >= test.  Therefore, we just increment the
-    // the magic number by one every time we need another.
-    //
-
     const DWORD  ExceptionParameters = 1;
     const int    ExceptionObjectIndex = 0;
 

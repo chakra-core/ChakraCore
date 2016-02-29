@@ -8,7 +8,7 @@ template <typename T, typename HeapAllocatorT = HeapAllocator>
 class AutoPtr : public BasePtr<T>
 {
 public:
-    AutoPtr(T * ptr) : BasePtr(ptr) {}
+    AutoPtr(T * ptr) : BasePtr<T>(ptr) {}
     ~AutoPtr()
     {
         Clear();
@@ -24,10 +24,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            AllocatorDelete(HeapAllocatorT, &HeapAllocatorT::Instance, ptr);
-            ptr = nullptr;
+            AllocatorDelete(HeapAllocatorT, &HeapAllocatorT::Instance, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
