@@ -52,9 +52,12 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Flag
+    enum Flag: unsigned short
     {
 #define FLAG(type, name, ...) name##Flag,
+
+#define FLAG_STRING(name, ...) name##Flag,
+
 #include "ConfigFlagsList.h"
         FlagCount,
         InvalidFlag,
@@ -75,7 +78,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
 
-    enum Phase
+    enum Phase: unsigned short
     {
 #define PHASE(name) name##Phase,
 #include "ConfigFlagsList.h"
@@ -117,12 +120,12 @@ namespace Js
 
     // Data
     private:
-                LPWSTR           pszValue;
+        wchar16*           pszValue;
 
     // Construction
     public:
         inline String();
-        inline String(__in_opt LPWSTR psz);
+        inline String(__in_opt const wchar16* psz);
         inline ~String();
 
 
@@ -135,7 +138,7 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        String& operator=(__in_opt LPWSTR psz)
+        String& operator=(__in_opt const wchar16* psz)
         {
             Set(psz);
             return *this;
@@ -152,14 +155,14 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        operator LPCWSTR () const
+        operator const wchar16* () const
         {
             return this->pszValue;
         }
 
     // Implementation
     private:
-        void Set(__in_opt LPWSTR pszValue);
+        void Set(__in_opt const wchar16* pszValue);
     };
 
     class NumberSet
@@ -436,6 +439,8 @@ namespace Js
         #define FLAG(type, name, ...) \
             \
             type name;\
+
+        #define FLAG_STRING(name, ...) String name;
 
         #include "ConfigFlagsList.h"
 

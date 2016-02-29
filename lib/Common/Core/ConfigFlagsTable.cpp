@@ -65,7 +65,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt LPWSTR psz)
+    String::String(__in_opt const wchar16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -89,7 +89,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt LPWSTR pszValue)
+    String::Set(__in_opt const wchar16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -205,8 +205,10 @@ namespace Js
     const wchar16* const FlagNames[FlagCount + 1] =
     {
     #define FLAG(type, name, ...) CH_WSTR(#name),
+    #define FLAG_STRING(name, ...) CH_WSTR(#name),
     #include "ConfigFlagsList.h"
         NULL
+    #undef FLAG_STRING
     #undef FLAG
     };
 
@@ -230,9 +232,11 @@ namespace Js
     const wchar16* const FlagDescriptions[FlagCount + 1] =
     {
     #define FLAG(type, name, description, ...) CH_WSTR(description),
+    #define FLAG_STRING(name, description, ...) CH_WSTR(description),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
+    #undef FLAG_STRING
     };
 
     //
@@ -241,9 +245,11 @@ namespace Js
     const Flag FlagParents[FlagCount + 1] =
     {
     #define FLAG(type, name, description, defaultValue, parentName, ...) parentName##Flag,
+    #define FLAG_STRING(name, description, defaultValue, parentName, ...) parentName##Flag,
     #include "ConfigFlagsList.h"
         InvalidFlag
     #undef FLAG
+    #undef FLAG_STRING
     };
 
     ///
@@ -270,9 +276,14 @@ namespace Js
         \
         name ## ( ## defaultValue ##), \
 
+#define FLAG_STRING(name, description, defaultValue, ...) \
+        \
+        name ## ( ## CH_WSTR(defaultValue) ##),     \
+
     ConfigFlagsTable::ConfigFlagsTable():
         #include "ConfigFlagsList.h"
 #undef FLAG
+#undef FLAG_STRING
         nDummy(0)
     {
         for(int i=0; i < FlagCount; flagPresent[i++] = false);
@@ -281,9 +292,12 @@ namespace Js
         ZeroMemory(this->flagIsParent, sizeof(this->flagIsParent));
 #define FLAG(type, name, description, defaultValue, parentName, ...) \
         if ((int)parentName##Flag < FlagCount) this->flagIsParent[(int) parentName##Flag] = true;
+#define FLAG_STRING(name, description, defaultValue, parentName, ...) \
+        if ((int)parentName##Flag < FlagCount) this->flagIsParent[(int) parentName##Flag] = true;
 #include "ConfigFlagsList.h"
 #undef FLAG
-
+#undef FLAG_STRING
+        
         // set all parent flags to their default (setting all child flags to their right values)
         this->SetAllParentFlagsAsDefaultValue();
     }
@@ -391,7 +405,14 @@ namespace Js
     {
         // Transfer acronym flag configuration into the corresponding actual flag
     #define FLAG(...)
+    #define FLAG_STRING(...)
     #define FLAGNRA(Type, Name, Acronym, ...) \
+        if(!IsEnabled(Name##Flag) && IsEnabled(Acronym##Flag)) \
+        { \
+            Enable(Name##Flag); \
+            Name = Acronym; \
+        }
+    #define FLAGNRA_STRING(Name, Acronym, ...) \
         if(!IsEnabled(Name##Flag) && IsEnabled(Acronym##Flag)) \
         { \
             Enable(Name##Flag); \
@@ -449,6 +470,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #if !DISABLE_JIT
         if(ForceDynamicProfile)
         {
             Force.Enable(DynamicProfilePhase);
@@ -457,11 +479,14 @@ namespace Js
         {
             Force.Enable(JITLoopBodyPhase);
         }
+    #endif
         if(NoDeferParse)
         {
             Off.Enable(DeferParsePhase);
         }
-
+    #endif
+        
+    #if ENABLE_DEBUG_CONFIG_OPTIONS && !DISABLE_JIT
         bool dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = false;
         if((IsEnabled(MinInterpretCountFlag) || IsEnabled(MaxInterpretCountFlag)) &&
             !(IsEnabled(SimpleJitAfterFlag) || IsEnabled(FullJitAfterFlag)))
@@ -491,7 +516,7 @@ namespace Js
                     SimpleJitAfter = MinInterpretCount;
                     dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = true;
                 }
-                if(IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag) ||
+                if((IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag)) ||
                     IsEnabled(MaxSimpleJitRunCountFlag))
                 {
                     Enable(FullJitAfterFlag);
@@ -852,6 +877,10 @@ namespace Js
     #define FLAG(type, name, ...) \
             case name##Flag : \
                 return Flag##type; \
+                
+    #define FLAG_STRING(name, ...) \
+            case name##Flag : \
+                return FlagString; \
 
     #include "ConfigFlagsList.h"
 
@@ -881,6 +910,11 @@ namespace Js
             case name##Flag : \
                 return reinterpret_cast<void*>(const_cast<type*>(&##name)); \
 
+        #define FLAG_STRING(name, ...) \
+            \
+            case name##Flag : \
+                return reinterpret_cast<void*>(const_cast<String*>(&##name)); \
+            
         #include "ConfigFlagsList.h"
 
             default:
@@ -913,11 +947,26 @@ namespace Js
             case FlagNumber: \
                 Output::Print(CH_WSTR(":%d"), *GetAsNumber(name##Flag)); \
                 break; \
+            default: \
+                break; \
             }; \
             Output::Print(CH_WSTR("\n")); \
         }
+
+#define FLAG_STRING(name, ...)     \
+        if (IsEnabled(name##Flag)) \
+        { \
+            Output::Print(CH_WSTR("-%s"), CH_WSTR(#name));              \
+            if (GetAsString(name##Flag) != nullptr)                     \
+            {                                                           \
+                Output::Print(CH_WSTR(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
+            }                                                           \
+            Output::Print(CH_WSTR("\n"));                               \
+        }
+        
 #include "ConfigFlagsList.h"
 #undef FLAG
+#undef FLAG_STRING
     }
 
     ///----------------------------------------------------------------------------
@@ -936,6 +985,7 @@ namespace Js
         switch (flag)
         {
 #define FLAG(type, name, description, defaultValue, ...) FLAGDEFAULT##type(name, defaultValue)
+#define FLAG_STRING(name, description, defaultValue, ...) FLAGDEFAULTString(name, defaultValue)
             // define an overload for each FlagTypes - type
             //   * all defaults we don't care about
 #define FLAGDEFAULTPhases(name, defaultValue)
@@ -1028,6 +1078,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // in case the flag is marked as 'callback' - to call the method
 #define FLAG(type, name, description, defaultValue, parentName, hasCallback) FLAGCALLBACK##hasCallback(type, name)
+#define FLAG_STRING(name, description, defaultValue, parentName, hasCallback) FLAGCALLBACK##hasCallback(String, name)
 #define FLAGCALLBACKFALSE(type, name)
 #define FLAGCALLBACKTRUE(type, name)    FLAGDOCALLBACK##type(name)
 
@@ -1053,7 +1104,8 @@ namespace Js
 #undef FLAGDOCALLBACKPhases
 #undef FLAGCALLBACKTRUE
 #undef FLAGCALLBACKFALSE
-#undef FLAG
+#undef FLAG_STRING
+#undef FLAG        
 #endif
     }
 
