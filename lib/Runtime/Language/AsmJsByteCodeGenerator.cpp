@@ -663,7 +663,8 @@ namespace Js
         {
             CheckNodeLocation( lhsEmit, int );
             CheckNodeLocation( rhsEmit, int );
-            auto opType = lType.isUnsigned() ? BMOT_UInt : BMOT_Int;
+            // because fixnum can be either signed or unsigned, use both lhs and rhs to infer sign
+            auto opType = (lType.isSigned() && rType.isSigned()) ? BMOT_Int : BMOT_UInt;
             if (op == BMO_REM || op == BMO_DIV)
             {
                 // div and rem must have explicit sign
