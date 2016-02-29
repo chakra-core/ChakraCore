@@ -594,7 +594,7 @@ namespace Js
                     {
                         memset(this->m_inlineCaches[i], 0, sizeof(InlineCache));
                     }
-                    else if(scriptContext != nullptr && !scriptContext->IsClosed())
+                    else if(!scriptContext->IsClosed())
                     {
                         if (inlineCache->RemoveFromInvalidationList())
                         {
