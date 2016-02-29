@@ -195,7 +195,7 @@ namespace Js
             nbConst += (int)((mFunction->GetRegisterSpace<AsmJsSIMDValue>().GetConstCount() + 1) * SIMD_SLOTS_SPACE); // Return register is already reserved in the register space.
         }
 
-        byteCodeFunction->SetConstantCount(nbConst);
+        byteCodeFunction->CheckAndSetConstantCount(nbConst);
 
         // add 3 for each of I0, F0, and D0
         RegSlot regCount = mInfo->RegCount() + 3 + AsmJsFunctionMemory::RequiredVarConstants;

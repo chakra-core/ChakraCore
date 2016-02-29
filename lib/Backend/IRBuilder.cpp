@@ -278,13 +278,13 @@ IRBuilder::GetLoopBodyExitInstrOffset() const
 Js::RegSlot
 IRBuilder::GetEnvReg() const
 {
-    return this->m_func->GetJnFunction()->GetEnvReg();
+    return this->m_func->GetJnFunction()->GetEnvRegister();
 }
 
 Js::RegSlot
 IRBuilder::GetEnvRegForInnerFrameDisplay() const
 {
-    Js::RegSlot envReg = this->m_func->GetJnFunction()->GetLocalFrameDisplayReg();
+    Js::RegSlot envReg = this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister();
     if (envReg == Js::Constants::NoRegister)
     {
         envReg = this->GetEnvReg();
@@ -300,7 +300,7 @@ IRBuilder::AddEnvOpndForInnerFrameDisplay(IR::Instr *instr, uint offset)
     if (envReg != Js::Constants::NoRegister)
     {
         IR::RegOpnd *src2Opnd;
-        if (envReg == this->m_functionBody->GetLocalFrameDisplayReg() &&
+        if (envReg == this->m_functionBody->GetLocalFrameDisplayRegister() &&
             this->m_functionBody->DoStackFrameDisplay() &&
             m_func->IsTopFunc())
         {
@@ -424,7 +424,7 @@ IRBuilder::Build()
     m_func->m_headInstr->InsertAfter(m_func->m_tailInstr);
     m_func->m_isLeaf = true;  // until proven otherwise
 
-    if (this->m_func->GetJnFunction()->GetLocalClosureReg() != Js::Constants::NoRegister)
+    if (this->m_func->GetJnFunction()->GetLocalClosureRegister() != Js::Constants::NoRegister)
     {
         m_func->InitLocalClosureSyms();
     }
@@ -509,11 +509,11 @@ IRBuilder::Build()
         IR::Instr *instr;
 
         // Do the implicit operations LdEnv, NewScopeSlots, LdFrameDisplay, as indicated by function body attributes.
-        Js::RegSlot envReg = funcBody->GetEnvReg();
+        Js::RegSlot envReg = funcBody->GetEnvRegister();
         if (envReg != Js::Constants::NoRegister && !this->RegIsConstant(envReg))
         {
             Js::OpCode newOpcode;
-            Js::RegSlot thisReg = funcBody->GetThisRegForEventHandler();
+            Js::RegSlot thisReg = funcBody->GetThisRegisterForEventHandler();
             IR::RegOpnd *srcOpnd = nullptr;
             IR::RegOpnd *dstOpnd = nullptr;
             if (thisReg != Js::Constants::NoRegister)
@@ -540,8 +540,8 @@ IRBuilder::Build()
             this->AddInstr(instr, offset);
         }
 
-        Js::RegSlot frameDisplayReg = funcBody->GetLocalFrameDisplayReg();
-        Js::RegSlot funcExprScopeReg = funcBody->GetFuncExprScopeReg();
+        Js::RegSlot frameDisplayReg = funcBody->GetLocalFrameDisplayRegister();
+        Js::RegSlot funcExprScopeReg = funcBody->GetFuncExprScopeRegister();
         IR::RegOpnd *frameDisplayOpnd = nullptr;
         if (funcExprScopeReg != Js::Constants::NoRegister)
         {
@@ -558,7 +558,7 @@ IRBuilder::Build()
             this->AddInstr(instr, (uint)-1);
         }
 
-        Js::RegSlot closureReg = funcBody->GetLocalClosureReg();
+        Js::RegSlot closureReg = funcBody->GetLocalClosureRegister();
         IR::RegOpnd *closureOpnd = nullptr;
         if (closureReg != Js::Constants::NoRegister)
         {
@@ -1482,7 +1482,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         {
             Js::Throw::FatalInternalError();
         }
-        srcOpnd = BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
+        srcOpnd = BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
         isNotInt = true;
         break;
 
@@ -1491,7 +1491,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         {
             Js::Throw::FatalInternalError();
         }
-        srcOpnd = BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
+        srcOpnd = BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
         isNotInt = true;
         newOpcode = Js::OpCode::Ld_A;
         break;
@@ -1700,7 +1700,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
             src1Opnd->m_sym->m_instrDef &&
             src1Opnd->m_sym->m_instrDef->m_opcode == Js::OpCode::LdPropIds)
         {
-            Js::RegSlot regFrameObj = m_func->GetJnFunction()->GetLocalClosureReg();
+            Js::RegSlot regFrameObj = m_func->GetJnFunction()->GetLocalClosureRegister();
             Assert(regFrameObj != Js::Constants::NoRegister);
             opndFrameObj = BuildSrcOpnd(regFrameObj);
         }
@@ -1750,7 +1750,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
 
         IR::RegOpnd *src2Opnd = dstOpnd;
         src1Opnd = BuildSrcOpnd(R0);
-        dstOpnd = BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayReg());
+        dstOpnd = BuildDstOpnd(this->m_func->GetJnFunction()->GetLocalFrameDisplayRegister());
         instr = IR::Instr::New(Js::OpCode::LdFrameDisplay, dstOpnd, src1Opnd, src2Opnd, m_func);
         dstOpnd->m_sym->m_isNotInt = true;
         this->AddInstr(instr, offset);
@@ -2063,7 +2063,7 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
             Js::Throw::FatalInternalError();
         }
         newOpcode = Js::OpCode::NewScopeSlotsWithoutPropIds;
-        dstRegSlot += m_func->GetJnFunction()->FirstInnerScopeReg();
+        dstRegSlot += m_func->GetJnFunction()->GetFirstInnerScopeRegister();
         instr = IR::Instr::New(newOpcode, BuildDstOpnd(dstRegSlot),
                                IR::IntConstOpnd::New(src1RegSlot, TyVar, m_func),
                                IR::IntConstOpnd::New(src2RegSlot, TyVar, m_func),
@@ -2514,7 +2514,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             {
                 Js::Throw::FatalInternalError();
             }
-            Js::RegSlot dstRegSlot = num + m_func->GetJnFunction()->FirstInnerScopeReg();
+            Js::RegSlot dstRegSlot = num + m_func->GetJnFunction()->GetFirstInnerScopeRegister();
             IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot);
             IR::Instr * instr = IR::Instr::New(newOpcode, dstOpnd, m_func);
             this->AddInstr(instr, offset);
@@ -2532,7 +2532,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
             {
                 Js::Throw::FatalInternalError();
             }
-            Js::RegSlot srcRegSlot = num + m_func->GetJnFunction()->FirstInnerScopeReg();
+            Js::RegSlot srcRegSlot = num + m_func->GetJnFunction()->GetFirstInnerScopeRegister();
             IR::RegOpnd * srcOpnd = BuildSrcOpnd(srcRegSlot);
             IR::Instr * instr = IR::Instr::New(newOpcode, m_func);
             instr->SetSrc1(srcOpnd);
@@ -2677,7 +2677,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
         {
             // The reg and constant are both src operands.
             IR::Instr* instr = IR::Instr::New(Js::OpCode::InvalCachedScope, m_func);
-            IR::RegOpnd *envOpnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetEnvReg());
+            IR::RegOpnd *envOpnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetEnvRegister());
             instr->SetSrc1(envOpnd);
             IR::IntConstOpnd *envIndex = IR::IntConstOpnd::New(num, TyInt32, m_func, true);
             instr->SetSrc2(envIndex);
@@ -2849,7 +2849,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
 
         case Js::OpCode::GetCachedFunc:
         {
-            IR::RegOpnd *src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
+            IR::RegOpnd *src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
             IR::Opnd *src2Opnd = IR::IntConstOpnd::New(C1, TyUint32, m_func);
             IR::RegOpnd *dstOpnd = this->BuildDstOpnd(R0);
             IR::Instr *instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
@@ -2940,7 +2940,7 @@ IRBuilder::BuildReg2Int1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstReg
         {
             Js::Throw::FatalInternalError();
         }
-        IR::RegOpnd *src1Opnd = this->BuildSrcOpnd(value + m_func->GetJnFunction()->FirstInnerScopeReg());
+        IR::RegOpnd *src1Opnd = this->BuildSrcOpnd(value + m_func->GetJnFunction()->GetFirstInnerScopeRegister());
         IR::RegOpnd *src2Opnd = this->BuildSrcOpnd(srcRegSlot);
         IR::RegOpnd *dstOpnd = this->BuildDstOpnd(dstRegSlot);
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
@@ -3388,7 +3388,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             }
             else
             {
-                symID = m_func->GetJnFunction()->GetLocalClosureReg();
+                symID = m_func->GetJnFunction()->GetLocalClosureRegister();
                 if (IsLoopBody())
                 {
                     this->EnsureLoopBodyLoadSlot(symID);
@@ -3424,7 +3424,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 this->AddInstr(byteCodeUse, offset);
             }
 
-            fieldOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
+            fieldOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);
@@ -3485,7 +3485,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             }
             else
             {
-                symID = m_func->GetJnFunction()->GetLocalClosureReg();
+                symID = m_func->GetJnFunction()->GetLocalClosureRegister();
                 if (IsLoopBody())
                 {
                     this->EnsureLoopBodyLoadSlot(symID);
@@ -3520,7 +3520,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             }
 
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
-            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, m_func->GetJnFunction()->GetLocalClosureReg(), (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
+            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, m_func->GetJnFunction()->GetLocalClosureRegister(), (Js::DynamicObject::GetOffsetOfAuxSlots())/sizeof(Js::Var), (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);
 
@@ -3730,7 +3730,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 Js::Throw::FatalInternalError();
             }
             regOpnd = this->BuildSrcOpnd(regSlot);
-            slotId1 += this->m_func->GetJnFunction()->FirstInnerScopeReg();
+            slotId1 += this->m_func->GetJnFunction()->GetFirstInnerScopeRegister();
             if ((uint)slotId1 >= this->m_func->GetJnFunction()->GetLocalsCount())
             {
                 Js::Throw::FatalInternalError();
@@ -3773,7 +3773,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             {
                 Js::Throw::FatalInternalError();
             }
-            slotId1 += this->m_func->GetJnFunction()->FirstInnerScopeReg();
+            slotId1 += this->m_func->GetJnFunction()->GetFirstInnerScopeRegister();
             if ((uint)slotId1 >= this->m_func->GetJnFunction()->GetLocalsCount())
             {
                 Js::Throw::FatalInternalError();
@@ -3926,11 +3926,11 @@ Js::RegSlot IRBuilder::GetEnvRegForEvalCode() const
 
     if (functionBody->GetIsStrictMode() && functionBody->GetIsGlobalFunc())
     {
-        return functionBody->GetLocalFrameDisplayReg();
+        return functionBody->GetLocalFrameDisplayRegister();
     }
     else
     {
-        return functionBody->GetEnvReg();
+        return functionBody->GetEnvRegister();
     }
 }
 
@@ -3983,7 +3983,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         }
 
         newOpcode = Js::OpCode::LdFld;
-        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
         if (fieldSymOpnd->IsPropertySymOpnd())
         {
             fieldSymOpnd->AsPropertySymOpnd()->TryDisableRuntimePolymorphicCache();
@@ -4012,7 +4012,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
             this->AddInstr(byteCodeUse, offset);
         }
 
-        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
         if (fieldSymOpnd->IsPropertySymOpnd())
         {
             fieldSymOpnd->AsPropertySymOpnd()->TryDisableRuntimePolymorphicCache();
@@ -4034,7 +4034,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
             this->AddInstr(byteCodeUse, offset);
         }
 
-        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
+        fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
         // Store
         if (newOpcode == Js::OpCode::InitUndeclLocalLetFld)
         {
@@ -4504,7 +4504,7 @@ IRBuilder::BuildElementScopedU(Js::OpCode newOpcode, uint32 offset)
     Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_ElementScopedU<SizePolicy>>();
-    BuildElementU(newOpcode, offset, m_func->GetJnFunction()->GetEnvReg(), layout->PropertyIdIndex);
+    BuildElementU(newOpcode, offset, m_func->GetJnFunction()->GetEnvRegister(), layout->PropertyIdIndex);
 }
 
 void
@@ -4527,7 +4527,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
                 this->AddInstr(byteCodeUse, offset);
             }
 
-            instance = m_func->GetJnFunction()->GetLocalClosureReg();
+            instance = m_func->GetJnFunction()->GetLocalClosureRegister();
             newOpcode = Js::OpCode::LdElemUndef;
             fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, propertyIdIndex, PropertyKindData);
             instr = IR::Instr::New(newOpcode, fieldSymOpnd, m_func);
@@ -4557,7 +4557,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
         }
 
         case Js::OpCode::StLocalFuncExpr:
-            fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, propertyIdIndex, PropertyKindData);
+            fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, propertyIdIndex, PropertyKindData);
             regOpnd = this->BuildSrcOpnd(instance);
             newOpcode = Js::OpCode::StFuncExpr;
             instr = IR::Instr::New(newOpcode, fieldSymOpnd, regOpnd, m_func);
@@ -4565,7 +4565,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
 
         case Js::OpCode::DeleteLocalFld:
             newOpcode = Js::OpCode::DeleteFld;
-            fieldSymOpnd = BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, propertyIdIndex, PropertyKindData);
+            fieldSymOpnd = BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, propertyIdIndex, PropertyKindData);
             regOpnd = BuildDstOpnd(instance);
             instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
             break;
@@ -4605,7 +4605,7 @@ IRBuilder::BuildAuxNoReg(Js::OpCode newOpcode, uint32 offset)
             IR::RegOpnd *   src1Opnd;
             IR::Opnd*       src2Opnd;
 
-            src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
+            src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
             src2Opnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, this->m_func);
 
             IR::LabelInstr *labelNull = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -4630,8 +4630,8 @@ IRBuilder::BuildAuxNoReg(Js::OpCode newOpcode, uint32 offset)
 
         case Js::OpCode::InitCachedFuncs:
         {
-            IR::Opnd   *src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
-            IR::Opnd   *src2Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalFrameDisplayReg());
+            IR::Opnd   *src1Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
+            IR::Opnd   *src2Opnd = this->BuildSrcOpnd(m_func->GetJnFunction()->GetLocalFrameDisplayRegister());
             IR::Opnd   *src3Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxFuncInfoArray, offset, auxInsn->Offset);
 
             instr = IR::Instr::New(Js::OpCode::ArgOut_A, IR::RegOpnd::New(TyVar, m_func), src3Opnd, m_func);
@@ -4999,7 +4999,7 @@ void IRBuilder::BuildInitCachedScope(int auxOffset, int offset)
     src2Opnd = this->BuildAuxArrayOpnd(AuxArrayValue::AuxPropertyIdArray, offset, auxOffset, Js::ActivationObjectEx::ExtraSlotCount());
     Js::PropertyIdArray * propIds = (Js::PropertyIdArray *)src2Opnd->AsAddrOpnd()->m_address;
     src3Opnd = this->BuildAuxObjectLiteralTypeRefOpnd(Js::ActivationObjectEx::GetLiteralObjectRef(propIds), offset);
-    dstOpnd = this->BuildDstOpnd(m_func->GetJnFunction()->GetLocalClosureReg());
+    dstOpnd = this->BuildDstOpnd(m_func->GetJnFunction()->GetLocalClosureRegister());
 
     formalsAreLetDeclOpnd = IR::IntConstOpnd::New(propIds->hasNonSimpleParams, TyUint8, m_func);
 
@@ -6911,7 +6911,7 @@ IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
     Js::PropertyId    propertyId =
         this->m_func->GetJnFunction()->GetReferencedPropertyIdWithLock(branchInsn->PropertyIdIndex);
     unsigned int      targetOffset = m_jnReader.GetCurrentOffset() + branchInsn->RelativeJumpOffset;
-    IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureReg(), propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
+    IR::SymOpnd *     fieldSymOpnd = this->BuildFieldOpnd(newOpcode, m_func->GetJnFunction()->GetLocalClosureRegister(), propertyId, branchInsn->PropertyIdIndex, PropertyKindData);
 
     branchInstr = IR::BranchInstr::New(newOpcode, nullptr, fieldSymOpnd, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);
@@ -7241,9 +7241,9 @@ IRBuilder::DoClosureRegCheck(Js::RegSlot reg)
     }
 
     Js::FunctionBody * functionBody = this->m_func->GetJnFunction();
-    if (reg == functionBody->GetEnvReg() ||
-        reg == functionBody->GetLocalClosureReg() ||
-        reg == functionBody->GetLocalFrameDisplayReg())
+    if (reg == functionBody->GetEnvRegister() ||
+        reg == functionBody->GetLocalClosureRegister() ||
+        reg == functionBody->GetLocalFrameDisplayRegister())
     {
         Js::Throw::FatalInternalError();
     }
@@ -7256,7 +7256,7 @@ IRBuilder::InnerScopeIndexToRegSlot(uint32 index) const
     {
         Js::Throw::FatalInternalError();
     }
-    Js::RegSlot reg = m_func->GetJnFunction()->FirstInnerScopeReg() + index;
+    Js::RegSlot reg = m_func->GetJnFunction()->GetFirstInnerScopeRegister() + index;
     if (reg >= m_func->GetJnFunction()->GetLocalsCount())
     {
         Js::Throw::FatalInternalError();

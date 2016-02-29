@@ -279,7 +279,7 @@ public:
 
     uint GetInterpretedCount() const override
     {
-        return this->functionBody->interpretedCount;
+        return this->functionBody->GetInterpretedCount();
     }
 
     void Delete() override

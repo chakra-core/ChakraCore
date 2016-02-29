@@ -389,7 +389,7 @@ Js::RegSlot FuncInfo::FirstInnerScopeReg() const
 {
     // FunctionBody stores this as a mapped reg. Callers of this function want the pre-mapped value.
 
-    Js::RegSlot reg = this->GetParsedFunctionBody()->FirstInnerScopeReg();
+    Js::RegSlot reg = this->GetParsedFunctionBody()->GetFirstInnerScopeRegister();
     Assert(reg != Js::Constants::NoRegister);
 
     return reg - this->constRegsCount;
@@ -398,7 +398,7 @@ Js::RegSlot FuncInfo::FirstInnerScopeReg() const
 void FuncInfo::SetFirstInnerScopeReg(Js::RegSlot reg)
 {
     // Just forward to the FunctionBody.
-    this->GetParsedFunctionBody()->SetFirstInnerScopeReg(reg);
+    this->GetParsedFunctionBody()->MapAndSetFirstInnerScopeRegister(reg);
 }
 
 void FuncInfo::AddCapturedSym(Symbol *sym)

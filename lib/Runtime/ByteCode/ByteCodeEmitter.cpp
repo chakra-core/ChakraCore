@@ -1676,21 +1676,21 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 
     // Set the function body's constant count before emitting anything so that the byte code writer
     // can distinguish constants from variables.
-    byteCodeFunction->SetConstantCount(funcInfo->constRegsCount);
+    byteCodeFunction->CheckAndSetConstantCount(funcInfo->constRegsCount);
 
     if (funcInfo->frameDisplayRegister != Js::Constants::NoRegister)
     {
-        byteCodeFunction->SetLocalFrameDisplayReg(funcInfo->frameDisplayRegister);
+        byteCodeFunction->MapAndSetLocalFrameDisplayRegister(funcInfo->frameDisplayRegister);
     }
 
     if (funcInfo->frameObjRegister != Js::Constants::NoRegister)
     {
-        byteCodeFunction->SetLocalClosureReg(funcInfo->frameObjRegister);
+        byteCodeFunction->MapAndSetLocalClosureRegister(funcInfo->frameObjRegister);
         byteCodeFunction->SetHasScopeObject(true);
     }
     else if (funcInfo->frameSlotsRegister != Js::Constants::NoRegister)
     {
-        byteCodeFunction->SetLocalClosureReg(funcInfo->frameSlotsRegister);
+        byteCodeFunction->MapAndSetLocalClosureRegister(funcInfo->frameSlotsRegister);
     }
 
     if (this->IsInDebugMode())
@@ -1863,7 +1863,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
 
     if (funcInfo->funcExprScope && funcInfo->funcExprScope->GetIsObject())
     {
-        byteCodeFunction->SetFuncExprScopeReg(funcInfo->funcExprScope->GetLocation());
+        byteCodeFunction->MapAndSetFuncExprScopeRegister(funcInfo->funcExprScope->GetLocation());
         byteCodeFunction->SetEnvDepth((uint16)-1);
     }
 
@@ -1871,10 +1871,10 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
 
     if (funcInfo->NeedEnvRegister())
     {
-        byteCodeFunction->SetEnvReg(funcInfo->GetEnvRegister());
+        byteCodeFunction->MapAndSetEnvRegister(funcInfo->GetEnvRegister());
         if (funcInfo->GetIsEventHandler())
         {
-            byteCodeFunction->SetThisRegForEventHandler(funcInfo->thisPointerRegister);
+            byteCodeFunction->MapAndSetThisRegisterForEventHandler(funcInfo->thisPointerRegister);
             // The environment is the namespace hierarchy starting with "this".
             Assert(!funcInfo->RegIsConst(funcInfo->GetEnvRegister()));
             thisLoadedFromParams = true;
@@ -3231,8 +3231,8 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         Assert(funcInfo->curTmpReg == firstTmpReg);
         Assert(byteCodeFunction->GetFirstTmpReg() == firstTmpReg + byteCodeFunction->GetConstantCount());
 
-        byteCodeFunction->SetVarCount(funcInfo->varRegsCount);
-        byteCodeFunction->SetOutParamDepth(funcInfo->outArgsMaxDepth);
+        byteCodeFunction->CheckAndSetVarCount(funcInfo->varRegsCount);
+        byteCodeFunction->CheckAndSetOutParamMaxDepth(funcInfo->outArgsMaxDepth);
 
         // Do a uint32 add just to verify that we haven't overflowed the reg slot type.
         UInt32Math::Add(funcInfo->varRegsCount, funcInfo->constRegsCount);
