@@ -32,41 +32,41 @@ namespace Js
 
     const wchar_t g_rgpszDay[7][4] =
     {
-        L"Sun",
-        L"Mon",
-        L"Tue",
-        L"Wed",
-        L"Thu",
-        L"Fri",
-        L"Sat"
+        CH_WSTR("Sun"),
+        CH_WSTR("Mon"),
+        CH_WSTR("Tue"),
+        CH_WSTR("Wed"),
+        CH_WSTR("Thu"),
+        CH_WSTR("Fri"),
+        CH_WSTR("Sat")
     };
 
     const wchar_t g_rgpszMonth[12][4] =
     {
-        L"Jan",
-        L"Feb",
-        L"Mar",
-        L"Apr",
-        L"May",
-        L"Jun",
-        L"Jul",
-        L"Aug",
-        L"Sep",
-        L"Oct",
-        L"Nov",
-        L"Dec"
+        CH_WSTR("Jan"),
+        CH_WSTR("Feb"),
+        CH_WSTR("Mar"),
+        CH_WSTR("Apr"),
+        CH_WSTR("May"),
+        CH_WSTR("Jun"),
+        CH_WSTR("Jul"),
+        CH_WSTR("Aug"),
+        CH_WSTR("Sep"),
+        CH_WSTR("Oct"),
+        CH_WSTR("Nov"),
+        CH_WSTR("Dec")
     };
 
     const wchar_t g_rgpszZone[8][4] =
     {
-        L"EST",
-        L"EDT",
-        L"CST",
-        L"CDT",
-        L"MST",
-        L"MDT",
-        L"PST",
-        L"PDT"
+        CH_WSTR("EST"),
+        CH_WSTR("EDT"),
+        CH_WSTR("CST"),
+        CH_WSTR("CDT"),
+        CH_WSTR("MST"),
+        CH_WSTR("MDT"),
+        CH_WSTR("PST"),
+        CH_WSTR("PDT")
     };
 
     //

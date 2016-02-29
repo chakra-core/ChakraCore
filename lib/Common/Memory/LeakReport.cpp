@@ -85,10 +85,10 @@ LeakReport::StartSection(wchar_t const * msg, va_list argptr)
     nestedSectionCount++;
 
 
-    Print(L"--------------------------------------------------------------------------------\n");
+    Print(CH_WSTR("--------------------------------------------------------------------------------\n"));
     vfwprintf(file, msg, argptr);
-    Print(L"\n");
-    Print(L"--------------------------------------------------------------------------------\n");
+    Print(CH_WSTR("\n"));
+    Print(CH_WSTR("--------------------------------------------------------------------------------\n"));
 }
 
 void
@@ -131,7 +131,7 @@ LeakReport::EnsureLeakReportFile()
     }
 
     wchar_t const * filename = Js::Configuration::Global.flags.LeakReport;
-    wchar_t const * openMode = L"w+";
+    wchar_t const * openMode = CH_WSTR("w+");
     wchar_t defaultFilename[_MAX_PATH];
     if (filename == nullptr)
     {
@@ -143,7 +143,7 @@ LeakReport::EnsureLeakReportFile()
 #endif
 
         filename = defaultFilename;
-        openMode = L"a+";   // append mode
+        openMode = CH_WSTR("a+");   // append mode
     }
     if (_wfopen_s(&file, filename, openMode) != 0)
     {
@@ -229,7 +229,7 @@ LeakReport::DumpUrl(DWORD tid)
             _wasctime_s(timeStr, &local_time);
 #endif
             timeStr[wcslen(timeStr) - 1] = 0;
-            Print(L"%s - (%p, %p) %s\n", timeStr, curr->scriptEngine, curr->globalObject, curr->url);
+            Print(CH_WSTR("%s - (%p, %p) %s\n"), timeStr, curr->scriptEngine, curr->globalObject, curr->url);
             *pprev = curr->next;
             NoCheckHeapDeleteArray(wcslen(curr->url) + 1, curr->url);
             NoCheckHeapDelete(curr);

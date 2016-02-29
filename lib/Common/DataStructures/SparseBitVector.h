@@ -891,11 +891,11 @@ void
 BVSparse<TAllocator>::Dump() const
 {
     bool hasBits = false;
-    Output::Print(L"[  ");
+    Output::Print(CH_WSTR("[  "));
     for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
     {
         hasBits = node->data.Dump(node->startIndex, hasBits);
     }
-    Output::Print(L"]\n");
+    Output::Print(CH_WSTR("]\n"));
 }
 #endif

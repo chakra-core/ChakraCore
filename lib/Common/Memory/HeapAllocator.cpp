@@ -515,7 +515,7 @@ MemoryLeakCheck::~MemoryLeakCheck()
     {
         if (enableOutput)
         {
-            Output::Print(L"FATAL ERROR: Memory Leak Detected\n");
+            Output::Print(CH_WSTR("FATAL ERROR: Memory Leak Detected\n"));
         }
         LeakRecord * current = head;
         do
@@ -533,8 +533,8 @@ MemoryLeakCheck::~MemoryLeakCheck()
         while (current != nullptr);
         if (enableOutput)
         {
-            Output::Print(L"-------------------------------------------------------------------------------------\n");
-            Output::Print(L"Total leaked: %d bytes (%d objects)\n", leakedBytes, leakedCount);
+            Output::Print(CH_WSTR("-------------------------------------------------------------------------------------\n"));
+            Output::Print(CH_WSTR("Total leaked: %d bytes (%d objects)\n"), leakedBytes, leakedCount);
             Output::Flush();
         }
 #ifdef GENERATE_DUMP

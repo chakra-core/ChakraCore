@@ -25,22 +25,25 @@ typedef void* FunctionTableHandle;
 
 #define PAGE_ALLOC_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(false, false, format, __VA_ARGS__)
 #define PAGE_ALLOC_VERBOSE_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(true, false, format, __VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE_0(format) PAGE_ALLOC_TRACE_EX(true, false, format, "")
 
 #define PAGE_ALLOC_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(false, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(false, true, format, "")
 #define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(true, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(true, true, format, "")
 
-#define PAGE_ALLOC_TRACE_EX(verbose, stats, format, ...) \
+#define PAGE_ALLOC_TRACE_EX(verbose, stats, format, ...)                \
     if (this->pageAllocatorFlagTable.Trace.IsEnabled(Js::PageAllocatorPhase)) \
     { \
         if (!verbose || this->pageAllocatorFlagTable.Verbose) \
         {   \
-            Output::Print(L"%p : %p> PageAllocator(%p): ", GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
+            Output::Print(CH_WSTR("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
             if (debugName != nullptr) \
             { \
-                Output::Print(L"[%s] ", this->debugName); \
+                Output::Print(CH_WSTR("[%s] "), this->debugName);       \
             } \
             Output::Print(format, __VA_ARGS__);         \
-            Output::Print(L"\n"); \
+            Output::Print(CH_WSTR("\n"));                               \
             if (stats && this->pageAllocatorFlagTable.Stats.IsEnabled(Js::PageAllocatorPhase)) \
             { \
                 this->DumpStats();         \
@@ -51,9 +54,13 @@ typedef void* FunctionTableHandle;
 #else
 #define PAGE_ALLOC_TRACE(format, ...)
 #define PAGE_ALLOC_VERBOSE_TRACE(format, ...)
+#define PAGE_ALLOC_VERBOSE_TRACE_0(format)
 
 #define PAGE_ALLOC_TRACE_AND_STATS(format, ...)
 #define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...)
+#define PAGE_ALLOC_TRACE_AND_STATS_0(format)
+#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS_0(format)
+
 #endif
 
 #ifdef _M_X64

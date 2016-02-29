@@ -35,7 +35,7 @@ void RecyclerObjectGraphDumper::BeginDumpObject(wchar_t const * name, void * add
 {
     Assert(dumpObjectName == nullptr);
     Assert(dumpObject == nullptr);
-    swprintf_s(tempObjectName, _countof(tempObjectName), L"%s %p", name, address);
+    swprintf_s(tempObjectName, _countof(tempObjectName), CH_WSTR("%s %p"), name, address);
     dumpObjectName = tempObjectName;
 }
 
@@ -79,10 +79,10 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
             if (!this->param->dumpReferenceFunc(this->dumpObjectName, this->dumpObject, objectAddress))
                 return;
         }
-        Output::Print(L"\"");
+        Output::Print(CH_WSTR("\""));
         if (this->dumpObjectName)
         {
-            Output::Print(L"%s", this->dumpObjectName);
+            Output::Print(CH_WSTR("%s"), this->dumpObjectName);
         }
         else
         {
@@ -90,14 +90,14 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
 #ifdef PROFILE_RECYCLER_ALLOC
             RecyclerObjectDumper::DumpObject(this->dumpObjectTypeInfo, this->dumpObjectIsArray, this->dumpObject);
 #else
-            Output::Print(L"Address %p", objectAddress);
+            Output::Print(CH_WSTR("Address %p"), objectAddress);
 #endif
         }
 
-        Output::Print(remark? L"\" => \"" : L"\" -> \"");
+        Output::Print(remark? CH_WSTR("\" => \"") : CH_WSTR("\" -> \""));
         recycler->DumpObjectDescription(objectAddress);
 
-        Output::Print(L"\"\n");
+        Output::Print(CH_WSTR("\"\n"));
     }
 }
 #endif

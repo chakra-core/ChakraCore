@@ -41,7 +41,7 @@ namespace JsUtil
         // By default, implemented in Dll\Jscript\ScriptEngine.cpp
         // Anyone who statically links with jscript.common.common.lib has to implement this
         // This is used to determine which regkey we should read while loading the configuration
-        static LPWSTR GetFeatureKeyName();
+        static LPCWSTR GetFeatureKeyName();
     };
 };
 

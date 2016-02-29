@@ -33,16 +33,16 @@ __forceinline void js_wmemcpy_s(__ecount(sizeInWords) wchar_t *dst, size_t sizeI
 
 bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
 {
-    swprintf_s(buffer, cchBufferSize, L"Chakra GC: %d - %s", GetCurrentProcessId(), moduleName);
+    swprintf_s(buffer, cchBufferSize, CH_WSTR("Chakra GC: %d - %s"), GetCurrentProcessId(), moduleName);
 
     return true;
 }
 
 void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
 {
-    Output::Print(L"Chakra GC\n");
-    Output::Print(L"INIT: PID        : %d\n", GetCurrentProcessId());
-    Output::Print(L"INIT: DLL Path   : %s\n", moduleName);
+    Output::Print(CH_WSTR("Chakra GC\n"));
+    Output::Print(CH_WSTR("INIT: PID        : %d\n"), GetCurrentProcessId());
+    Output::Print(CH_WSTR("INIT: DLL Path   : %s\n"), moduleName);
 }
 
 #ifdef ENABLE_JS_ETW
@@ -77,9 +77,9 @@ bool JsUtil::ExternalApi::RaiseOnIntOverflow()
     return false;
 }
 
-LPWSTR JsUtil::ExternalApi::GetFeatureKeyName()
+LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
-    return  L"Software\\Microsoft\\Internet Explorer\\ChakraRecycler";
+    return  CH_WSTR("Software\\Microsoft\\Internet Explorer\\ChakraRecycler");
 }
 
 #if DBG || defined(EXCEPTION_CHECK)

@@ -27,7 +27,7 @@ class ArenaHost
     ArenaAllocator m_allocator;
 
 public:
-    ArenaHost(__in_z wchar16* arenaName) :
+    ArenaHost(__in_z const wchar16* arenaName) :
         m_allocationPolicyManager(/* needConcurrencySupport = */ true),
         m_pageAllocator(&m_allocationPolicyManager, Js::Configuration::Global.flags),
         m_allocator(arenaName, &m_pageAllocator, Js::Throw::OutOfMemory)

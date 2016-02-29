@@ -9,7 +9,7 @@ void DoVerify(bool value, const char * expr, const char * file, int line)
 {
     if (!value)
     {
-        wprintf(L"==== FAILURE: '%S' evaluated to false. %S(%d)\n", expr, file, line);
+        wprintf(CH_WSTR("==== FAILURE: '%S' evaluated to false. %S(%d)\n"), expr, file, line);
         DebugBreak();
     }
 }
@@ -264,7 +264,7 @@ void SimpleRecyclerTest()
         }
 #endif
 
-        wprintf(L"Recycler created, initializing heap...\n");
+        wprintf(CH_WSTR("Recycler created, initializing heap...\n"));
         
         // Initialize stack roots and add to our roots table        
         RecyclerTestObject * stackRoots[stackRootCount];
@@ -298,7 +298,7 @@ void SimpleRecyclerTest()
             InsertObject();
         }
 
-        wprintf(L"Initialization complete\n");
+        wprintf(CH_WSTR("Initialization complete\n"));
 
         // Do an initial walk
         WalkHeap();
@@ -322,7 +322,7 @@ void SimpleRecyclerTest()
         printf("Error: OOM\n");
     }
 
-    wprintf(L"==== Test completed.\n");
+    wprintf(CH_WSTR("==== Test completed.\n"));
 }
 
 //////////////////// End test implementations ////////////////////
@@ -347,8 +347,8 @@ bool GetDeviceFamilyInfo(
 void usage(const WCHAR* self)
 {
     wprintf(
-        L"usage: %s [-?|-v] [-js <jscript options from here on>]\n"
-        L"  -v\n\tverbose logging\n",
+        CH_WSTR("usage: %s [-?|-v] [-js <jscript options from here on>]\n")
+        CH_WSTR("  -v\n\tverbose logging\n"),
         self);
 }
 
@@ -360,30 +360,30 @@ int __cdecl wmain(int argc, __in_ecount(argc) WCHAR* argv[])
     {
         if (argv[i][0] == '-')
         {
-            if (wcscmp(argv[i], L"-?") == 0)
+            if (wcscmp(argv[i], CH_WSTR("-?")) == 0)
             {
                 usage(argv[0]);
                 exit(1);
             }
-            else if (wcscmp(argv[i], L"-v") == 0)
+            else if (wcscmp(argv[i], CH_WSTR("-v")) == 0)
             {
                 verbose = true;
             }
-            else if (wcscmp(argv[i], L"-js") == 0 || wcscmp(argv[i], L"-JS") == 0)
+            else if (wcscmp(argv[i], CH_WSTR("-js")) == 0 || wcscmp(argv[i], CH_WSTR("-JS")) == 0)
             {
                 jscriptOptions = i;
                 break;
             }
             else 
             {
-                wprintf(L"unknown argument '%s'\n", argv[i]);
+                wprintf(CH_WSTR("unknown argument '%s'\n"), argv[i]);
                 usage(argv[0]);
                 exit(1);
             }
         }
         else
         {
-            wprintf(L"unknown argument '%s'\n", argv[i]);
+            wprintf(CH_WSTR("unknown argument '%s'\n"), argv[i]);
             usage(argv[0]);
             exit(1);
         }
