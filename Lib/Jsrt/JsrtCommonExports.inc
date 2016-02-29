@@ -118,15 +118,7 @@
     JsTTDStartTimeTravelDebugging
     JsTTDPauseTimeTravelBeforeRuntimeOperation
     JsTTDReStartTimeTravelAfterRuntimeOperation
-    JsTTDPrintVariable
-    JsTTDGetExecutionTimeInfo
-    JsTTDGetLastExceptionThrowTimeInfo
-    JsTTDGetLastFunctionReturnTimeInfo
     JsTTDNotifyHostCallbackCreatedOrCanceled
-    JsTTDGetCurrentCallbackOperationTimeInfo
-    JsTTDSetBP
-    JsTTDSetStepBP
-    JsTTDSetContinueBP
     JsTTDPrepContextsForTopLevelEventMove
     JsTTDMoveToTopLevelEvent
     JsTTDReplayExecution

@@ -83,24 +83,11 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)();
     typedef JsErrorCode (WINAPI *JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)();
 
-    typedef JsErrorCode (WINAPI *JsrtTTDPrintVariablePtr)(wchar_t* varName);
-
-    typedef JsErrorCode (WINAPI *JsrtTTDGetExecutionTimeInfoPtr)(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
-    typedef JsErrorCode (WINAPI *JsrtTTDGetLastExceptionThrowTimeInfoPtr)(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
-    typedef JsErrorCode (WINAPI *JsrtTTDGetLastFunctionReturnTimeInfoPtr)(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId);
-
     typedef JsErrorCode (WINAPI *JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId);
-    typedef JsErrorCode (WINAPI *JsrtTTDGetCurrentCallbackOperationTimeInfoPtr)(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, _Out_ UINT32* sourceId);
-
-    typedef JsErrorCode (WINAPI *JsrtTTDSetBPPtr)(INT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId);
-    typedef JsErrorCode (WINAPI *JsrtTTDSetStepBPPtr)(bool into);
-    typedef JsErrorCode (WINAPI *JsrtTTDSetContinueBPPtr)();
 
     typedef JsErrorCode (WINAPI *JsrtTTDPrepContextsForTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime);
     typedef JsErrorCode (WINAPI *JsrtTTDMoveToTopLevelEventPtr)(INT64 snapshotStartTime, INT64 eventTime);
     typedef JsErrorCode (WINAPI *JsrtTTDReplayExecutionPtr)(INT64* rootEventTime);
-
-    typedef JsErrorCode (WINAPI *JsrtTTDTestingCompareArtifactsPtr)();
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
@@ -181,18 +168,7 @@ struct JsAPIHooks
     JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation;
     JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr pfJsrtTTDReStartTimeTravelAfterRuntimeOperation;
 
-    JsrtTTDPrintVariablePtr pfJsrtTTDPrintVariable;
-
-    JsrtTTDGetExecutionTimeInfoPtr pfJsrtTTDGetExecutionTimeInfo;
-    JsrtTTDGetLastExceptionThrowTimeInfoPtr pfJsrtTTDGetLastExceptionThrowTimeInfo;
-    JsrtTTDGetLastFunctionReturnTimeInfoPtr pfJsrtTTDGetLastFunctionReturnTimeInfo;
-
     JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr pfJsrtTTDNotifyHostCallbackCreatedOrCanceled;
-    JsrtTTDGetCurrentCallbackOperationTimeInfoPtr pfJsrtTTDGetCurrentCallbackOperationTimeInfo;
-
-    JsrtTTDSetBPPtr pfJsrtTTDSetBP;
-    JsrtTTDSetStepBPPtr pfJsrtTTDSetStepBP;
-    JsrtTTDSetContinueBPPtr pfJsrtTTDSetContinueBP;
 
     JsrtTTDPrepContextsForTopLevelEventMovePtr pfJsrtTTDPrepContextsForTopLevelEventMove;
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
@@ -340,18 +316,7 @@ public:
     static JsErrorCode WINAPI JsTTDPauseTimeTravelBeforeRuntimeOperation() { return m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation(); }
     static JsErrorCode WINAPI JsTTDReStartTimeTravelAfterRuntimeOperation() { return m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation(); }
 
-    static JsErrorCode WINAPI JsTTDPrintVariable(wchar_t* varName) { return m_jsApiHooks.pfJsrtTTDPrintVariable(varName); }
-
-    static JsErrorCode WINAPI JsTTDGetExecutionTimeInfo(bool previousTime, bool* noPrevious, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId) { return m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo(previousTime, noPrevious, rootEventTime, ftime, ltime, line, column, sourceId); }
-    static JsErrorCode WINAPI JsTTDGetLastExceptionThrowTimeInfo(bool* hasException, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId) { return m_jsApiHooks.pfJsrtTTDGetLastExceptionThrowTimeInfo(hasException, rootEventTime, ftime, ltime, line, column, sourceId); }
-    static JsErrorCode WINAPI JsTTDGetLastFunctionReturnTimeInfo(bool* isImmediateReturn, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId) { return m_jsApiHooks.pfJsrtTTDGetLastFunctionReturnTimeInfo(isImmediateReturn, rootEventTime, ftime, ltime, line, column, sourceId); }
-
     static JsErrorCode WINAPI JsTTDNotifyHostCallbackCreatedOrCanceled(bool isCancel, bool isRepeating, JsValueRef function, INT64 createdCallbackId) { return m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled(isCancel, isRepeating, function, createdCallbackId); }
-    static JsErrorCode WINAPI JsTTDGetCurrentCallbackOperationTimeInfo(bool wantRegisterOp, bool* hasEvent, bool* eventHasTimeInfo, INT64* rootEventTime, UINT64* ftime, UINT64* ltime, UINT32* line, UINT32* column, UINT32* sourceId) { return m_jsApiHooks.pfJsrtTTDGetCurrentCallbackOperationTimeInfo(wantRegisterOp, hasEvent, eventHasTimeInfo, rootEventTime, ftime, ltime, line, column, sourceId); }
-
-    static JsErrorCode WINAPI JsTTDSetBP(INT64 rootEventTime, UINT64 ftime, UINT64 ltime, UINT32 line, UINT32 column, UINT32 sourceId) { return m_jsApiHooks.pfJsrtTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId); }
-    static JsErrorCode WINAPI JsTTDSetStepBP(bool into) { return m_jsApiHooks.pfJsrtTTDSetStepBP(into); }
-    static JsErrorCode WINAPI JsTTDSetContinueBP() { return m_jsApiHooks.pfJsrtTTDSetContinueBP(); }
 
     static JsErrorCode WINAPI JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runtimeHandle, INT64 targetEventTime, INT64* targetStartSnapTime) { return m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove(runtimeHandle, targetEventTime, targetStartSnapTime); }
     static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(INT64 snapshotStartTime, INT64 eventTime) { return m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent(snapshotStartTime, eventTime); }

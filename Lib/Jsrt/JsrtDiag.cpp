@@ -383,24 +383,7 @@ JsDiagResume(
         }
         else if (resumeType == JsDiagResumeTypeStepOut)
         {
-            ////
-            //TODO: TEMP HIJACKING FOR REVERSE STEP
-            ThreadContext* threadContext = runtime->GetThreadContext();
-            INT64 rootEventTime = -1;
-            UINT64 ftime = 0;
-            UINT64 ltime = 0;
-            UINT32 line = 0;
-            UINT32 column = 0;
-            UINT32 sourceId = 0;
-            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(&rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-            threadContext->TTDLog->SetPendingTTDTarget(rootEventTime);
-
-            debugObject->SetResumeType(BREAKRESUMEACTION_CONTINUE);
-            //
-            ////
-
-            //debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+            debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
         }
         else if (resumeType == JsDiagResumeTypeStepOver)
         {

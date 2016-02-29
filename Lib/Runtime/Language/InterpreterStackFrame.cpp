@@ -2256,20 +2256,7 @@ namespace Js
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
         {
-            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-            if(newstmt & threadContext->TTDLog->BPIsSet)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
-            }
-
-            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
-            if(newstmt)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
-            }
-#endif
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 
@@ -2307,20 +2294,7 @@ namespace Js
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
         if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
         {
-            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-            if(newstmt & threadContext->TTDLog->BPIsSet)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
-            }
-
-            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
-            if(newstmt)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
-            }
-#endif
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 

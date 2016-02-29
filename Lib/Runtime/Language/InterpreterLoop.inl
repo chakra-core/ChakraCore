@@ -87,9 +87,10 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
                 if(elog != nullptr && elog->ShouldPerformDebugAction())
                 {
-                    if(elog->HasPendingTTDTarget())
+                    if(elog->HasPendingTTDBP())
                     {
-                        throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
+                        AssertMsg(false, "Need to setup these values here!!!");
+                        //throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
                     }
                 }
 #endif
@@ -401,9 +402,10 @@ SWAP_BP_FOR_OPCODE:
                     TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
                     if(elog != nullptr && elog->ShouldPerformDebugAction())
                     {
-                        if(elog->HasPendingTTDTarget())
+                        if(elog->HasPendingTTDBP())
                         {
-                            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
+                            AssertMsg(false, "Need to set these values here.");
+                            //throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDTarget(), L"Reverse operation requested.");
                         }
                     }
 #endif

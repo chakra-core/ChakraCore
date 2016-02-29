@@ -476,23 +476,12 @@ namespace TTD
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
         m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
-        m_pendingTTDTarget(-1),
+        m_pendingTTDBPEvent(-1), m_pendingTTDBPFunctionTime(0), m_pendingTTDBPLoopTime(0), m_pendingTTDBPSourceDocumentId(0), m_pendingTTDBPLine(0), m_pendingTTDBPColumn(0),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-        , BPIsSet(false)
-        , BPRootEventTime(-1)
-        , BPFunctionTime(0)
-        , BPLoopTime(0)
-        , BPLine(0)
-        , BPColumn(0)
-        , BPSourceContextId(0)
-        , BPBreakAtNextStmtInto(false)
-        , BPBreakAtNextStmtDepth(-1)
-#endif
     {
         JsSupport::CopyStringToHeapAllocator(logDir, this->m_logInfoRootDir);
 
@@ -1040,24 +1029,42 @@ namespace TTD
         this->m_lastFrame = this->m_callStack.Last();
     }
 
-    bool EventLog::HasPendingTTDTarget() const
+    bool EventLog::HasPendingTTDBP() const
     {
-        return this->m_pendingTTDTarget != -1;
+        return this->m_pendingTTDBPEvent != -1;
     }
 
-    int64 EventLog::GetPendingTTDTarget() const
+    void EventLog::GetPendingTTDBPInfo(int64& etime, uint64& ftime, uint64& ltime, uint32& docid, uint32& line, uint32& column) const
     {
-        return this->m_pendingTTDTarget;
+        etime = this->m_pendingTTDBPEvent;
+        ftime = this->m_pendingTTDBPFunctionTime;
+        ltime = this->m_pendingTTDBPLoopTime;
+
+        docid = this->m_pendingTTDBPSourceDocumentId;
+        line = this->m_pendingTTDBPLine;
+        column = this->m_pendingTTDBPColumn;
     }
 
-    void EventLog::ClearPendingTTDTarget()
+    void EventLog::ClearPendingTTDBPInfo()
     {
-        this->m_pendingTTDTarget = -1;
+        this->m_pendingTTDBPEvent = -1;
+        this->m_pendingTTDBPFunctionTime = 0;
+        this->m_pendingTTDBPLoopTime = 0;
+
+        this->m_pendingTTDBPSourceDocumentId = 0;
+        this->m_pendingTTDBPLine = 0;
+        this->m_pendingTTDBPColumn = 0;
     }
 
-    void EventLog::SetPendingTTDTarget(int64 targetTime)
+    void EventLog::SetPendingTTDBPInfo(int64 etime, uint64 ftime, uint64 ltime, uint32 docid, uint32 line, uint32 column)
     {
-        this->m_pendingTTDTarget = targetTime;
+        this->m_pendingTTDBPEvent = etime;
+        this->m_pendingTTDBPFunctionTime = ftime;
+        this->m_pendingTTDBPLoopTime = ltime;
+
+        this->m_pendingTTDBPSourceDocumentId = docid;
+        this->m_pendingTTDBPLine = line;
+        this->m_pendingTTDBPColumn = column;
     }
 #endif
 
@@ -1073,12 +1080,12 @@ namespace TTD
     }
 
 #if ENABLE_TTD_DEBUGGING
-    bool EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
+    void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
     {
         SingleCallCounter& cfinfo = this->GetTopCallCounter();
         if((cfinfo.CurrentStatementBytecodeMin <= bytecodeOffset) & (bytecodeOffset <= cfinfo.CurrentStatementBytecodeMax))
         {
-            return false;
+            return;
         }
         else
         {
@@ -1101,8 +1108,6 @@ namespace TTD
                 cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
                 cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
             }
-
-            return newstmt;
         }
     }
 
@@ -1121,7 +1126,7 @@ namespace TTD
 
         *line = (uint32)srcLine;
         *column = (uint32)srcColumn;
-        *sourceId = cfinfo.Function->GetSourceContextId();
+        *sourceId = cfinfo.Function->GetUtf8SourceInfo()->GetSourceInfoId();
     }
 
     bool EventLog::GetPreviousTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
@@ -1165,7 +1170,7 @@ namespace TTD
 
         *line = (uint32)srcLine;
         *column = (uint32)srcColumn;
-        *sourceId = fbody->GetSourceContextId();
+        *sourceId = fbody->GetUtf8SourceInfo()->GetSourceInfoId();
 
         return false;
     }
@@ -1197,7 +1202,7 @@ namespace TTD
 
             *line = (uint32)srcLine;
             *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetSourceContextId();
+            *sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
 
             return true;
         }
@@ -1230,7 +1235,7 @@ namespace TTD
 
             *line = (uint32)srcLine;
             *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetSourceContextId();
+            *sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
 
             return true;
         }
@@ -1288,234 +1293,6 @@ namespace TTD
         AssertMsg(false, "Bad event index!!!");
         return -1;
     }
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-    void EventLog::ClearBreakpointOnNextStatement()
-    {
-        this->BPBreakAtNextStmtInto = false;
-        this->BPBreakAtNextStmtDepth = -1;
-    }
-
-    void EventLog::SetBreakpointOnNextStatement(bool into)
-    {
-        this->BPBreakAtNextStmtInto = into;
-        this->BPBreakAtNextStmtDepth = this->m_callStack.Count();
-    }
-
-    void EventLog::BPPrintBaseVariable(Js::ScriptContext* ctx, Js::Var var, bool expandObjects)
-    {
-        Js::TypeId tid = Js::JavascriptOperators::GetTypeId(var);
-        switch(tid)
-        {
-        case Js::TypeIds_Undefined:
-            wprintf(L"undefined");
-            break;
-        case Js::TypeIds_Null:
-            wprintf(L"null");
-            break;
-        case Js::TypeIds_Boolean:
-            wprintf(Js::JavascriptBoolean::FromVar(var)->GetValue() ? L"true" : L"false");
-            break;
-        case Js::TypeIds_Integer:
-            wprintf(L"%I32i", Js::TaggedInt::ToInt32(var));
-            break;
-        case Js::TypeIds_Number:
-        {
-            if(Js::NumberUtilities::IsNan(Js::JavascriptNumber::GetValue(var)))
-            {
-                wprintf(L"#Nan");
-            }
-            else if(!Js::NumberUtilities::IsFinite(Js::JavascriptNumber::GetValue(var)))
-            {
-                wprintf(L"Infinite");
-            }
-            else
-            {
-                if(floor(Js::JavascriptNumber::GetValue(var)) == Js::JavascriptNumber::GetValue(var))
-                {
-                    wprintf(L"%I64i", (int64)Js::JavascriptNumber::GetValue(var));
-                }
-                else
-                {
-                    wprintf(L"%.22f", Js::JavascriptNumber::GetValue(var));
-                }
-            }
-            break;
-        }
-        case Js::TypeIds_Int64Number:
-            wprintf(L"%I64i", Js::JavascriptInt64Number::FromVar(var)->GetValue());
-            break;
-        case Js::TypeIds_UInt64Number:
-            wprintf(L"%I64u", Js::JavascriptUInt64Number::FromVar(var)->GetValue());
-            break;
-        case Js::TypeIds_String:
-            wprintf(L"\"%ls\"", Js::JavascriptString::FromVar(var)->GetSz());
-            break;
-        case Js::TypeIds_Symbol:
-        case Js::TypeIds_Enumerator:
-        case Js::TypeIds_VariantDate:
-        case Js::TypeIds_SIMDFloat32x4:
-        case Js::TypeIds_SIMDFloat64x2:
-        case Js::TypeIds_SIMDInt32x4:
-            wprintf(L"Printing not supported for variable!");
-            break;
-        default:
-        {
-#if ENABLE_TTD_IDENTITY_TRACING
-            if(Js::StaticType::Is(tid))
-            {
-                wprintf(L"static object w/o identity: {");
-            }
-            else
-            {
-                wprintf(L"object w/ identity %I64i: {", Js::DynamicObject::FromVar(var)->TTDObjectIdentityTag);
-            }
-#else
-            wprintf(L"untagged object: {");
-#endif
-
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(var);
-            int32 pcount = obj->GetPropertyCount();
-            bool first = true;
-            for(int32 i = 0; i < pcount; ++i)
-            {
-                Js::PropertyId propertyId = obj->GetPropertyId((Js::PropertyIndex)i);
-                if(Js::IsInternalPropertyId(propertyId))
-                {
-                    continue;
-                }
-
-                if(!first)
-                {
-                    wprintf(L", ");
-                }
-                first = false;
-
-                wprintf(L"%ls: ", ctx->GetPropertyName(propertyId)->GetBuffer());
-
-                Js::Var pval = nullptr;
-                Js::JavascriptOperators::GetProperty(obj, propertyId, &pval, ctx, nullptr);
-                this->BPPrintBaseVariable(ctx, pval, false);
-            }
-
-            wprintf(L"}");
-            break;
-        }
-        }
-    }
-
-    void EventLog::BPPrintVariable(Js::ScriptContext* ctx, LPCWSTR name)
-    {
-        Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(name, (charcount_t)wcslen(name)));
-        Js::Var var = Js::JavascriptOperators::GetProperty(ctx->GetGlobalObject(), propertyId, ctx, nullptr);
-
-        if(var == nullptr)
-        {
-            wprintf(L"Name was not found in the global scope.\n");
-            return;
-        }
-
-        wprintf(L"  -> ");
-        this->BPPrintBaseVariable(ctx, var, true);
-        wprintf(L"\n");
-    }
-
-    void EventLog::BPCheckAndAction(Js::ScriptContext* ctx)
-    {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        bool bpHit = false;
-
-        if(this->BPBreakAtNextStmtDepth != -1)
-        {
-            if(this->BPBreakAtNextStmtInto)
-            {
-                bpHit = true;
-            }
-            else
-            {
-                bpHit = this->m_callStack.Count() <= this->BPBreakAtNextStmtDepth;
-            }
-        }
-
-        if(!bpHit)
-        {
-            ULONG srcLine = 0;
-            LONG srcColumn = -1;
-            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-            cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-            bool lineMatch = (this->BPLine == (uint32)srcLine);
-            bool columnMatch = (this->BPColumn == (uint32)srcColumn);
-            bool srcMatch = (this->BPSourceContextId == cfinfo.Function->GetSourceContextId());
-
-            bool etimeMatch = (this->BPRootEventTime == this->m_topLevelCallbackEventTime);
-            bool ftimeMatch = (this->BPFunctionTime == cfinfo.FunctionTime);
-            bool ltimeMatch = (this->BPLoopTime == cfinfo.LoopTime);
-
-            bpHit = (lineMatch & columnMatch & srcMatch & etimeMatch & ftimeMatch & ltimeMatch);
-        }
-
-        int64 optAbortTime = 0;
-        wchar_t* optAbortMsg = nullptr;
-        bool continueExecution = true;
-
-        if(bpHit)
-        {
-            //if we hit a breakpoint then disable future hits -- unless we re-enable in this handler
-            this->BPIsSet = false; 
-            this->BPRootEventTime = -1;
-            this->ClearBreakpointOnNextStatement();
-
-            //print the call stack
-            int callStackPrint = min(this->m_callStack.Count(), 5);
-            if(this->m_callStack.Count() != callStackPrint)
-            {
-                wprintf(L"...\n");
-            }
-
-            for(int32 i = this->m_callStack.Count() - callStackPrint; i < this->m_callStack.Count() - 1; ++i)
-            {
-                wprintf(L"%ls\n", this->m_callStack.Item(i).Function->GetDisplayName());
-            }
-
-            //print the current line information
-            ULONG srcLine = 0;
-            LONG srcColumn = -1;
-            LPCUTF8 srcBegin = nullptr;
-            LPCUTF8 srcEnd = nullptr;
-            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-            cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
-
-            wprintf(L"----\n");
-            wprintf(L"%ls @ ", this->m_callStack.Last().Function->GetDisplayName());
-            if(Js::Configuration::Global.flags.TTDCmdsFromFile == nullptr)
-            {
-                wprintf(L"line: %u, column: %i, etime: %I64i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
-            }
-            else
-            {
-                wprintf(L"line: %u, column: %i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, cfinfo.FunctionTime, cfinfo.LoopTime);
-            }
-
-            while(srcBegin != srcEnd)
-            {
-                wprintf(L"%C", (wchar)*srcBegin);
-                srcBegin++;
-            }
-            wprintf(L"\n\n");
-
-            continueExecution = this->BPDbgCallback(&optAbortTime, &optAbortMsg);
-        }
-
-        if(!continueExecution)
-        {
-            throw TTDebuggerAbortException::CreateTopLevelAbortRequest(optAbortTime, optAbortMsg);
-        }
-    }
-#endif
 #endif
 
     void EventLog::ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime, int64 hostCallbackId)
@@ -1529,7 +1306,7 @@ namespace TTD
 #if ENABLE_TTD_DEBUGGING
         this->ClearReturnFrame();
         this->ClearExceptionFrame();
-        this->ClearPendingTTDTarget();
+        this->ClearPendingTTDBPInfo();
 #endif
     }
 
@@ -2093,7 +1870,7 @@ namespace TTD
         TTString optSrcUri;
         this->m_eventSlabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
 
-        DWORD_PTR optDocumentID = fb->GetSourceContextId();
+        DWORD_PTR optDocumentID = fb->GetUtf8SourceInfo()->GetSourceInfoId();
 
         TTString sourceCode;
         this->m_eventSlabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
@@ -2289,7 +2066,6 @@ namespace TTD
         writer.WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
 
         writer.FlushAndClose();
-
 #endif
     }
 

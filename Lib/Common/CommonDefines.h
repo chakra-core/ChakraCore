@@ -278,10 +278,8 @@
 //Flags to control special features turned on for debugging
 #if ENABLE_TTD_FORCE_RECORD_NODE
 #define ENABLE_TTD_DEBUGGING 0
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 0
 #else
 #define ENABLE_TTD_DEBUGGING 1
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 1
 #endif
 
 //Enable various sanity checking features and asserts

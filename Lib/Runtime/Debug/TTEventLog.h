@@ -225,7 +225,13 @@ namespace TTD
         bool m_isExceptionFrame;
         SingleCallCounter m_lastFrame;
 
-        int64 m_pendingTTDTarget;
+        int64 m_pendingTTDBPEvent;
+        uint64 m_pendingTTDBPFunctionTime;
+        uint64 m_pendingTTDBPLoopTime;
+
+        uint32 m_pendingTTDBPSourceDocumentId;
+        uint32 m_pendingTTDBPLine;
+        uint32 m_pendingTTDBPColumn;
 #endif
 
         ////
@@ -359,10 +365,10 @@ namespace TTD
         void ClearExceptionFrame();
         void SetReturnAndExceptionFramesFromCurrent(bool setReturn, bool setException);
 
-        bool HasPendingTTDTarget() const;
-        int64 GetPendingTTDTarget() const;
-        void ClearPendingTTDTarget();
-        void SetPendingTTDTarget(int64 targetTime);
+        bool HasPendingTTDBP() const;
+        void GetPendingTTDBPInfo(int64& etime, uint64& ftime, uint64& ltime, uint32& docid, uint32& line, uint32& column) const;
+        void ClearPendingTTDBPInfo();
+        void SetPendingTTDBPInfo(int64 etime, uint64 ftime, uint64 ltime, uint32 docid, uint32 line, uint32 column);
 #endif
 
         //Update the loop count information
@@ -373,7 +379,7 @@ namespace TTD
         //TODO: This is not great performance wise
         //
         //For debugging we currently brute force track the current/last source statements executed
-        bool UpdateCurrentStatementInfo(uint bytecodeOffset);
+        void UpdateCurrentStatementInfo(uint bytecodeOffset);
 
         //Get the current time/position info for the debugger -- all out arguments are optional (nullptr if you don't care)
         void GetTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const;
@@ -398,36 +404,6 @@ namespace TTD
 
         //Get the event time corresponding to the k-th top-level event in the log
         int64 GetKthEventTime(uint32 k) const;
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-        //The values that we have when we set breakpoints
-        bool BPIsSet;
-        int64 BPRootEventTime;
-        uint64 BPFunctionTime;
-        uint64 BPLoopTime;
-
-        uint32 BPLine;
-        uint32 BPColumn;
-        uint32 BPSourceContextId;
-
-        bool BPBreakAtNextStmtInto;
-        int32 BPBreakAtNextStmtDepth;
-
-        //set/clear a breakpoint for step to the next statement
-        void ClearBreakpointOnNextStatement();
-        void SetBreakpointOnNextStatement(bool into);
-
-        //a callback function to invoke at breakpoints -- return true to continue normal execution false to abort toplevel with info
-        TTDDbgCallback BPDbgCallback;
-
-        //Print a variable on the global object
-        void BPPrintBaseVariable(Js::ScriptContext* ctx, Js::Var var, bool expandObjects);
-        void BPPrintVariable(Js::ScriptContext* ctx, LPCWSTR name);
-
-        //Check if we hit a breakpoint and call the callback function
-        void BPCheckAndAction(Js::ScriptContext* ctx);
-#endif //end temp debugging workaround
-
 #endif
 
         //Ensure the call stack is clear and counters are zeroed appropriately

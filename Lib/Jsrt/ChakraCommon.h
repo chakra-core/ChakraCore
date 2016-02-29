@@ -2744,80 +2744,12 @@
         JsTTDReStartTimeTravelAfterRuntimeOperation();
 
     /// <summary>
-    ///     Print a variable.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDPrintVariable(
-            _In_ wchar_t* varName);
-
-    /// <summary>
-    ///     Get the info on the line/execution time for either the current Breakpoint or the previous statement in the debugger.
-    ///     Call from the debugger when we want to step back or print the current BP info.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDGetExecutionTimeInfo(
-            _In_ bool previousTime, _Out_ bool* noPrevious,
-            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
-            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
-
-    /// <summary>
-    ///     Get the info on the line/execution time where the last (escaping) exception was thrown.
-    ///     Call from the debugger when we want to step back to the last exception event -- this is only valid immediately after catching the exception as it resets anytime we execute a method call/return.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDGetLastExceptionThrowTimeInfo(
-            _In_ bool* hasException,
-            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
-            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
-
-    /// <summary>
-    ///     Get the info on the line/execution for the just returned function.
-    ///     Call from the debugger when we want to step back *into* to the last call event -- this is only valid immediately after a method return.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDGetLastFunctionReturnTimeInfo(
-            _In_ bool* isImmediateReturn,
-            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
-            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
-
-    /// <summary>
     ///     Notify the Js runtime that the host as created/canceled a callback with hte given function and id
     /// </summary>
     STDAPI_(JsErrorCode) 
         JsTTDNotifyHostCallbackCreatedOrCanceled(
             _In_ bool isCancel, _In_ bool isRepeating, 
             _In_ JsValueRef function, _In_ INT64 createdCallbackId);
-
-    /// <summary>
-    ///     Get the info on the line/execution time for the statement that registers/cancels the callback that is currently executing.
-    ///     Call from the debugger when we want to step back to the previous event.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDGetCurrentCallbackOperationTimeInfo(
-            _In_ bool wantRegisterOp, 
-            _Out_ bool* hasEvent, _Out_ bool* eventHasTimeInfo, 
-            _Out_ INT64* rootEventTime, _Out_ UINT64* ftime, _Out_ UINT64* ltime,
-            _Out_ UINT32* line, _Out_ UINT32* column, _Out_ UINT32* sourceId);
-
-    /// <summary>
-    ///     Set a breakpoint at a specific line/time.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDSetBP(
-            _In_ UINT64 rootEventTime, _In_ UINT64 ftime, _In_ UINT64 ltime,
-            _In_ UINT32 line, _In_ UINT32 column, _In_ UINT32 sourceId);
-
-    /// <summary>
-    ///     Set a breakpoint that will trigger on step or step-into.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDSetStepBP(_In_ bool into);
-
-    /// <summary>
-    ///     Set the execution to continue.
-    /// </summary>
-    STDAPI_(JsErrorCode)
-        JsTTDSetContinueBP();
 
     /// <summary>
     ///     Before calling JsTTDMoveToTopLevelEvent (which inflates a snapshot and replays) check to see if we want to reset the script context.
