@@ -617,7 +617,7 @@
     <default>
       <files>return1.js</files>
       <baseline>return1.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
+      <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -lic:1</compile-flags>
     </default>
   </test>
   <test>

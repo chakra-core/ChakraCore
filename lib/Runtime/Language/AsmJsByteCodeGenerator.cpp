@@ -2740,7 +2740,7 @@ namespace Js
         const EmitExpressionInfo& rhsEmit = Emit( rhs );
         const AsmJsType& rType = rhsEmit.type;
         StartStatement(pnode);
-        EmitExpressionInfo emitInfo( AsmJsType::Signed );
+        EmitExpressionInfo emitInfo( AsmJsType::Int );
         if( rType.isInt() )
         {
             CheckNodeLocation( rhsEmit, int );
