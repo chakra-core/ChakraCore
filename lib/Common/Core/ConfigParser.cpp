@@ -310,7 +310,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 
 void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 {
-#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(PARSE_CONFIG_FILE)
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
     Assert(!_hasReadConfig);
     _hasReadConfig = true;
 
@@ -362,12 +362,18 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
 
 void ConfigParser::ProcessConfiguration(HANDLE hmod)
 {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     bool hasOutput = false;
     wchar16 modulename[_MAX_PATH];
 
     GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH);
 
+    // Win32 specific console creation code
+    // xplat-todo: Consider having this mechanism available on other
+    // platforms
+    // Not a pressing need since ChakraCore runs only in consoles by
+    // default so we don't need to allocate a second console for this
+#if CONFIG_CONSOLE_AVAILABLE
     if (Js::Configuration::Global.flags.Console)
     {
         int fd;
@@ -397,7 +403,8 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
 
         hasOutput = true;
     }
-
+#endif
+    
     if (Js::Configuration::Global.flags.IsEnabled(Js::OutputFileFlag)
         && Js::Configuration::Global.flags.OutputFile != nullptr)
     {

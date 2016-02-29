@@ -231,12 +231,18 @@ void SimpleRecyclerTest()
     BuildOperationTable();
 
     // Construct Recycler instance and use it
+#if ENABLE_BACKGROUND_PAGE_FREEING
     PageAllocator::BackgroundPageQueue backgroundPageQueue;
+#endif
     IdleDecommitPageAllocator pageAllocator(nullptr, 
         PageAllocatorType::PageAllocatorType_Thread,
         Js::Configuration::Global.flags,
         0 /* maxFreePageCount */, PageAllocator::DefaultMaxFreePageCount /* maxIdleFreePageCount */,
-        false /* zero pages */, &backgroundPageQueue);
+        false /* zero pages */
+#if ENABLE_BACKGROUND_PAGE_FREEING
+        , &backgroundPageQueue
+#endif
+        );
 
     try
     {

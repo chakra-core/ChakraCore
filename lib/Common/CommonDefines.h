@@ -87,6 +87,17 @@
 // NOTE: Disabling these might not work and are not fully supported and maintained
 // Even if it builds, it may not work properly. Disable at your own risk
 
+// Config options
+#ifdef _WIN32
+#define CONFIG_CONSOLE_AVAILABLE 1
+#define CONFIG_PARSE_CONFIG_FILE 1
+#define CONFIG_RICH_TRACE_FORMAT 1
+#else
+#define CONFIG_CONSOLE_AVAILABLE 0
+#define CONFIG_PARSE_CONFIG_FILE 0
+#define CONFIG_RICH_TRACE_FORMAT 0
+#endif
+
 // ByteCode
 #define VARIABLE_INT_ENCODING 1                     // Byte code serialization variable size int field encoding
 #define BYTECODE_BRANCH_ISLAND                      // Byte code short branch and branch island
@@ -120,11 +131,23 @@
 // These are disabled because these GC features depend on hardware
 // write-watch support that the Windows Memory Manager provides.
 #ifdef _WIN32
+#define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
 #define ENABLE_PARTIAL_GC 1
+#define ENABLE_BACKGROUND_PAGE_ZEROING 1
+#define ENABLE_BACKGROUND_PAGE_FREEING 1
+#define ENABLE_RECYCLER_TYPE_TRACKING 1
 #else
+#define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #define ENABLE_CONCURRENT_GC 0
 #define ENABLE_PARTIAL_GC 0
+#define ENABLE_BACKGROUND_PAGE_ZEROING 0
+#define ENABLE_BACKGROUND_PAGE_FREEING 0
+#define ENABLE_RECYCLER_TYPE_TRACKING 0
+#endif
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING && !ENABLE_BACKGROUND_PAGE_FREEING
+#error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
 
 #define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
@@ -139,6 +162,7 @@
 #if DISABLE_JIT
 #define ENABLE_NATIVE_CODEGEN 0
 #define ENABLE_PROFILE_INFO 0
+#define ENABLE_BACKGROUND_JOB_PROCESSOR 0
 #define ENABLE_BACKGROUND_PARSING 0                 // Disable background parsing in this mode
                                                     // We need to decouple the Jobs infrastructure out of
                                                     // Backend to make background parsing work with JIT disabled
@@ -152,6 +176,8 @@
 // By default, enable the JIT
 #define ENABLE_NATIVE_CODEGEN 1
 #define ENABLE_PROFILE_INFO 1
+
+#define ENABLE_BACKGROUND_JOB_PROCESSOR 1
 #define ENABLE_BACKGROUND_PARSING 1
 #define ENABLE_COPYONACCESS_ARRAY 1
 #ifndef DYNAMIC_INTERPRETER_THUNK
@@ -246,7 +272,11 @@
 #endif
 #define RUNTIME_DATA_COLLECTION
 #define SECURITY_TESTING
+
+// xplat-todo: Temporarily disable profile output on non-Win32 builds
+#ifdef _WIN32
 #define PROFILE_EXEC
+#endif
 
 #define BGJIT_STATS
 #define REJIT_STATS
@@ -297,7 +327,12 @@
 //----------------------------------------------------------------------------------------------------
 #ifdef DEBUG
 #define BYTECODE_TESTING
+
+// xplat-todo: revive FaultInjection on non-Win32 platforms
+// currently depends on io.h
+#ifdef _WIN32
 #define FAULT_INJECTION
+#endif
 #define RECYCLER_NO_PAGE_REUSE
 #ifdef NTBUILD
 #define INTERNAL_MEM_PROTECT_HEAP_ALLOC
@@ -307,7 +342,11 @@
 
 #ifdef DBG
 #define VALIDATE_ARRAY
+
+// xplat-todo: Do we need dump generation for non-Win32 platforms?
+#ifdef _WIN32
 #define GENERATE_DUMP
+#endif
 #endif
 
 #if DBG_DUMP
@@ -322,16 +361,28 @@
 #define MISSING_PROPERTY_STATS
 #define EXCEPTION_RECOVERY 1
 #define EXCEPTION_CHECK                     // Check exception handling.
+#ifdef _WIN32
 #define PROFILE_EXEC
+#endif
 #define PROFILE_MEM
 #define PROFILE_TYPES
 #define PROFILE_EVALMAP
 #define PROFILE_OBJECT_LITERALS
 #define PROFILE_BAILOUT_RECORD_MEMORY
 #define MEMSPECT_TRACKING
+
+// xplat-todo: Depends on C++ type-info
+// enable later on non-VC++ compilers
+
+#ifdef _WIN32
 #define PROFILE_RECYCLER_ALLOC
-#define PROFILE_STRINGS
+// Needs to compile in debug mode
+// Just needs strings converted
 #define PROFILE_DICTIONARY 1
+#endif
+
+#define PROFILE_STRINGS
+
 #define RECYCLER_SLOW_CHECK_ENABLED          // This can be disabled to speed up the debug build's GC
 #define RECYCLER_STRESS
 #define RECYCLER_STATS
@@ -351,7 +402,13 @@
 #define PAGEALLOCATOR_PROTECT_FREEPAGE
 #define ARENA_MEMORY_VERIFY
 #define SEPARATE_ARENA
+
+// xplat-todo: This depends on C++ type-tracking
+// Need to re-enable on non-VC++ compilers
+#ifdef _WIN32
 #define HEAP_TRACK_ALLOC
+#endif
+
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
 
@@ -455,7 +512,6 @@
 #if _M_IX86
 #define I386_ASM 1
 #endif //_M_IX86
-#endif // _WIN32 || _WIN64
 
 #ifndef PDATA_ENABLED
 #if defined(_M_ARM32_OR_ARM64) || defined(_M_X64)
@@ -464,6 +520,7 @@
 #define PDATA_ENABLED 0
 #endif
 #endif
+#endif // _WIN32 || _WIN64
 
 #ifndef _WIN32
 #define DISABLE_SEH 1
@@ -506,7 +563,9 @@
 // HEAP_TRACK_ALLOC and RECYCLER_STATS
 #if defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
 #define RECYCLER_DUMP_OBJECT_GRAPH
+#ifdef _WIN32
 #define HEAP_TRACK_ALLOC
+#endif
 #define RECYCLER_STATS
 #endif
 
@@ -522,6 +581,10 @@
 
 
 #if defined(HEAP_TRACK_ALLOC) || defined(PROFILE_RECYCLER_ALLOC)
+#ifndef _WIN32
+#error "Not yet supported on non-VC++ compiler"
+#endif
+
 #define TRACK_ALLOC
 #define TRACE_OBJECT_LIFETIME           // track a particular object's lifetime
 #endif

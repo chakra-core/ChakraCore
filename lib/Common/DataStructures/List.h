@@ -214,8 +214,8 @@ namespace JsUtil
         TRemovePolicyType removePolicy;
 
         template <bool isLeaf> T * AllocArray(int size);
-        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, alloc, T, size); }
-        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, alloc, T, size); }
+        template <> T * AllocArray<true>(int size) { return AllocatorNewArrayLeaf(TAllocator, this->alloc, T, size); }
+        template <> T * AllocArray<false>(int size) { return AllocatorNewArray(TAllocator, this->alloc, T, size); }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -237,15 +237,15 @@ namespace JsUtil
 
         void EnsureArray(int32 requiredCapacity)
         {
-            if (buffer == nullptr)
+            if (this->buffer == nullptr)
             {
                 int32 newSize = max(requiredCapacity, increment);
 
-                buffer = AllocArray<isLeaf>(newSize);
-                count = 0;
-                length = newSize;
+                this->buffer = AllocArray<isLeaf>(newSize);
+                this->count = 0;
+                this->length = newSize;
             }
-            else if (count == length || requiredCapacity > length)
+            else if (this->count == length || requiredCapacity > this->length)
             {
                 int32 newLength = 0, newBufferSize = 0, oldBufferSize = 0;
 
@@ -265,13 +265,13 @@ namespace JsUtil
 
                 T* newbuffer = AllocArray<isLeaf>(newLength);
 
-                js_memcpy_s(newbuffer, newBufferSize, buffer, oldBufferSize);
+                js_memcpy_s(newbuffer, newBufferSize, this->buffer, oldBufferSize);
 
                 auto freeFunc = AllocatorInfo::GetFreeFunc();
-                AllocatorFree(this->alloc, freeFunc, buffer, oldBufferSize);
+                AllocatorFree(this->alloc, freeFunc, this->buffer, oldBufferSize);
 
-                length = newLength;
-                buffer = newbuffer;
+                this->length = newLength;
+                this->buffer = newbuffer;
             }
         }
 
@@ -317,8 +317,8 @@ namespace JsUtil
 
         T& Item(int index)
         {
-            Assert(index >= 0 && index < count);
-            return buffer[index];
+            Assert(index >= 0 && index < this->count);
+            return this->buffer[index];
         }
 
         T& Last()
@@ -376,16 +376,16 @@ namespace JsUtil
                 return Add(item);
             }
 
-            buffer[indexToSetAt] = item;
+            this->buffer[indexToSetAt] = item;
             return indexToSetAt;
         }
 
         int Add(const T& item)
         {
             EnsureArray();
-            buffer[count] = item;
-            int pos = count;
-            count++;
+            this->buffer[this->count] = item;
+            int pos = this->count;
+            this->count++;
             return pos;
         }
 

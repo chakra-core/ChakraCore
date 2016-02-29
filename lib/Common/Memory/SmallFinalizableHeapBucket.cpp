@@ -60,7 +60,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::GetNonEmptyHeapBlockCount(bool chec
     size_t currentHeapBlockCount =  __super::GetNonEmptyHeapBlockCount(false)
         + HeapBlockList::Count(pendingDisposeList)
         + HeapBlockList::Count(tempPendingDisposeList);
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount));
     return currentHeapBlockCount;
 }
 #endif
@@ -175,7 +175,7 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::TransferDisposedObjects()
             heapBlock->TransferDisposedObjects();
 
             // in pageheap, we actually always have free object
-            Assert(heapBlock->HasFreeObject<false>());
+            Assert(heapBlock->template HasFreeObject<false>());
         });
 
 #ifdef RECYCLER_PAGE_HEAP
@@ -241,9 +241,9 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Verify()
         Assert(false);
     }
 
-    HeapBlockList::ForEach(this->pendingDisposeList, [&recyclerVerifyListConsistencyData](TBlockType * heapBlock)
+    HeapBlockList::ForEach(this->pendingDisposeList, [this, &recyclerVerifyListConsistencyData](TBlockType * heapBlock)
     {
-        DebugOnly(VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
+        DebugOnly(this->VerifyBlockConsistencyInList(heapBlock, recyclerVerifyListConsistencyData));
         heapBlock->Verify(true);
     });
 #endif

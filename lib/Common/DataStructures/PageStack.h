@@ -38,7 +38,10 @@ public:
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void SetMaxPageCount(size_t maxPageCount) { this->maxPageCount = max<size_t>(maxPageCount, 1); }
+    void SetMaxPageCount(size_t maxPageCount)
+    {
+        this->maxPageCount = maxPageCount > 1 ? maxPageCount : 1;
+    }
 #endif
 
     static const uint MaxSplitTargets = 3;     // Not counting original stack, so this supports 4-way parallel

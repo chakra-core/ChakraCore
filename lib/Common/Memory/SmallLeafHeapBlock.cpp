@@ -51,7 +51,7 @@ template <class TBlockAttributes>
 bool
 SmallLeafHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallLeafHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallLeafHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 #endif
 

@@ -9,7 +9,7 @@
 namespace Js
 {
     class Profiler;
-    enum Phase;
+    enum Phase: unsigned short;
 };
 
 namespace JsUtil
@@ -17,7 +17,9 @@ namespace JsUtil
     class ThreadService;
 };
 
+#ifdef STACK_BACK_TRACE
 class StackBackTraceNode;
+#endif
 class ScriptEngineBase;
 class JavascriptThreadService;
 
@@ -699,15 +701,24 @@ private:
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     struct PinRecord
     {
+#ifdef STACK_BACK_TRACE
         PinRecord() : refCount(0), stackBackTraces(nullptr) {}
+#else
+        PinRecord() : refCount(0) {}
+#endif
         PinRecord& operator=(uint newRefCount)
         {
-            Assert(stackBackTraces == nullptr); Assert(newRefCount == 0); refCount = 0; return *this;
+#ifdef STACK_BACK_TRACE
+            Assert(stackBackTraces == nullptr);
+#endif
+            Assert(newRefCount == 0); refCount = 0; return *this;
         }
         PinRecord& operator++() { ++refCount; return *this; }
         PinRecord& operator--() { --refCount; return *this; }
         operator uint() const { return refCount; }
+#ifdef STACK_BACK_TRACE
         StackBackTraceNode * stackBackTraces;
+#endif
     private:
         uint refCount;
     };
@@ -722,8 +733,10 @@ private:
     uint weakReferenceCleanupId;
 
     void * transientPinnedObject;
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     StackBackTrace * transientPinnedObjectStackBackTrace;
+#endif
 #endif
 
     struct GuestArenaAllocator : public ArenaAllocator

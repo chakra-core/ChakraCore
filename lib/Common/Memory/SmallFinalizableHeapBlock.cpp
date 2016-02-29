@@ -318,7 +318,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::TransferDisposedObjects()
     // So just update the free object head.
     this->lastFreeObjectHead = this->freeObjectList;
 
-    RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
+    RECYCLER_SLOW_CHECK(this->CheckFreeBitVector(true));
 }
 
 template <class TBlockAttributes>
@@ -334,7 +334,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::AddDisposedObjectFreeBitVector(Sma
         while (true)
         {
             uint bitIndex = this->GetAddressBitIndex(freeObject);
-            Assert(IsValidBitIndex(bitIndex));
+            Assert(this->IsValidBitIndex(bitIndex));
 
             // not allocable yet
             Assert(!this->GetDebugFreeBitVector()->Test(bitIndex));
@@ -424,7 +424,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::CheckDisposedObjectFreeBitVector()
         while (true)
         {
             uint bitIndex = this->GetAddressBitIndex(freeObject);
-            Assert(IsValidBitIndex(bitIndex));
+            Assert(this->IsValidBitIndex(bitIndex));
             Assert(!this->GetDebugFreeBitVector()->Test(bitIndex));
             Assert(free->Test(bitIndex));
             verifyFreeCount++;
@@ -443,7 +443,7 @@ template <class TBlockAttributes>
 bool
 SmallFinalizableHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallFinalizableHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallFinalizableHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 
 #endif

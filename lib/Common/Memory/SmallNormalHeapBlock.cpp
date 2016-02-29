@@ -76,7 +76,7 @@ template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::ScanInitialImplicitRoots(Recycler * recycler)
 {
-    Assert(IsAnyNormalBlock());
+    Assert(this->IsAnyNormalBlock());
 
     uint const localObjectCount = this->objectCount;
     uint const localObjectSize = this->GetObjectSize();
@@ -111,7 +111,7 @@ template <class TBlockAttributes>
 void
 SmallNormalHeapBlockT<TBlockAttributes>::ScanNewImplicitRoots(Recycler * recycler)
 {
-    Assert(IsAnyNormalBlock());
+    Assert(this->IsAnyNormalBlock());
     __super::ScanNewImplicitRootsBase([recycler](void * objectAddress, size_t objectSize)
     {
         // TODO: only interior?
@@ -187,7 +187,7 @@ template <class TBlockAttributes>
 bool
 SmallNormalHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeObject ** freeObjectList)
 {
-    return GetFreeObjectListOnAllocatorImpl<SmallNormalHeapBlockT<TBlockAttributes>>(freeObjectList);
+    return this->template GetFreeObjectListOnAllocatorImpl<SmallNormalHeapBlockT<TBlockAttributes>>(freeObjectList);
 }
 #endif
 

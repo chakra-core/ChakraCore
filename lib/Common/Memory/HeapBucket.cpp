@@ -34,8 +34,6 @@ HeapBucket::GetMediumBucketIndex() const
 
 namespace Memory
 {
-EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(HeapBucketT);
-}
 
 template <typename TBlockType>
 HeapBucketT<TBlockType>::HeapBucketT() :
@@ -67,6 +65,7 @@ HeapBucketT<TBlockType>::~HeapBucketT()
     DeleteEmptyHeapBlockList(this->emptyBlockList);
     Assert(this->heapBlockCount + this->newHeapBlockCount + this->emptyHeapBlockCount == 0);
 }
+};
 
 template <typename TBlockType>
 void
@@ -108,7 +107,7 @@ HeapBucketT<TBlockType>::Initialize(HeapInfo * heapInfo, uint sizeCat)
 #endif
     this->sizeCat = sizeCat;
     allocatorHead.Initialize();
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     allocatorHead.bucket = this;
 #endif
     this->lastExplicitFreeListAllocator = &allocatorHead;
@@ -187,7 +186,7 @@ HeapBucketT<TBlockType>::AddAllocator(TBlockAllocatorType * allocator)
     allocator->prev = &this->allocatorHead;
     allocator->next->prev = allocator;
     this->allocatorHead.next = allocator;
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     allocator->bucket = this;
 #endif
 }
@@ -230,7 +229,7 @@ HeapBucketT<TBlockType>::IntegrateBlock(char * blockAddress, PageSegment * segme
 #ifdef RECYCLER_PAGE_HEAP
     heapBlock->ClearPageHeap();
 #endif
-    if (!heapBlock->SetPage<false>(blockAddress, segment, recycler))
+    if (!heapBlock->template SetPage<false>(blockAddress, segment, recycler))
     {
         FreeHeapBlock(heapBlock);
         return false;
@@ -286,7 +285,8 @@ bool
 HeapBucketT<TBlockType>::HasPendingDisposeHeapBlocks() const
 {
 #ifdef RECYCLER_WRITE_BARRIER
-    return (IsFinalizableBucket || IsFinalizableWriteBarrierBucket) && ((SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
+    return (IsFinalizableBucket || IsFinalizableWriteBarrierBucket) &&
+    ((SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #else
     return IsFinalizableBucket && ((SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #endif
@@ -731,7 +731,7 @@ HeapBucketT<TBlockType>::VerifyBlockConsistencyInList(TBlockType * heapBlock, Re
     }
     else if (*expectDispose)
     {
-        Assert(heapBlock->IsAnyFinalizableBlock() && heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>()->IsPendingDispose());
+        Assert(heapBlock->IsAnyFinalizableBlock() && heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->IsPendingDispose());
         Assert(heapBlock->HasAnyDisposeObjects());
     }
     else
@@ -890,7 +890,7 @@ HeapBucketT<TBlockType>::SweepHeapBlockList(RecyclerSweep& recyclerSweep, TBlock
             Assert(IsFinalizableBucket);
 #endif
 
-            DebugOnly(heapBlock->AsFinalizableBlock<TBlockType::HeapBlockAttributes>()->SetIsPendingDispose());
+            DebugOnly(heapBlock->template AsFinalizableBlock<typename TBlockType::HeapBlockAttributes>()->SetIsPendingDispose());
 
             // These are the blocks that have swept finalizable object
 
@@ -1193,7 +1193,7 @@ void
 HeapBucketT<TBlockType>::VerifyHeapBlockCount(bool background)
 {
     // TODO-REFACTOR: GetNonEmptyHeapBlockCount really should be virtual
-    static_cast<SmallHeapBlockType<TBlockType::RequiredAttributes, TBlockType::HeapBlockAttributes>::BucketType *>(this)->GetNonEmptyHeapBlockCount(true);
+    static_cast<typename SmallHeapBlockType<TBlockType::RequiredAttributes, typename TBlockType::HeapBlockAttributes>::BucketType *>(this)->GetNonEmptyHeapBlockCount(true);
     if (!background)
     {
         this->GetEmptyHeapBlockCount();
@@ -1693,4 +1693,6 @@ namespace Memory
     template void HeapBucketT<MediumNormalWithBarrierHeapBlock>::SweepBucket<true>(RecyclerSweep&);
     template void HeapBucketT<MediumNormalWithBarrierHeapBlock>::SweepBucket<false>(RecyclerSweep&);
 #endif
-}
+
+    EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(HeapBucketT);
+};

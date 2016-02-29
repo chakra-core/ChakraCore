@@ -25,6 +25,7 @@
 #include "Common/ThreadService.h"
 #include "Common/Jobs.h"
 #include "Common/Jobs.inl"
+#include "Core/CommonMinMax.h"
 
 namespace JsUtil
 {
@@ -464,6 +465,9 @@ namespace JsUtil
         // Do nothing
     }
 
+// Xplat-todo: revive BackgroundJobProcessor- we need this for the JIT
+#if ENABLE_BACKGROUND_JOB_PROCESSOR
+
     // -------------------------------------------------------------------------------------------------------------------------
     // BackgroundJobProcessor
     // -------------------------------------------------------------------------------------------------------------------------
@@ -483,6 +487,7 @@ namespace JsUtil
         {
             int processorCount = AutoSystemInfo::Data.GetNumberOfPhysicalProcessors();
             //There is 2 threads already in play, one UI (main) thread and a GC thread. So subtract 2 from processorCount to account for the same.
+
             this->maxThreadCount = max(1, min(processorCount - 2, CONFIG_FLAG(MaxJitThreadCount)));
         }
     }
@@ -1257,9 +1262,10 @@ namespace JsUtil
         }
     }
 
+// xplat-todo: this entire function probably needs to be ifdefed out
     int BackgroundJobProcessor::ExceptFilter(LPEXCEPTION_POINTERS pEP)
     {
-#if DBG
+#if DBG && defined(_WIN32)
         // Assert exception code
         if (pEP->ExceptionRecord->ExceptionCode == STATUS_ASSERTION_FAILURE)
         {
@@ -1398,5 +1404,6 @@ namespace JsUtil
         L"BackgroundJobProcessor thread 14",
         L"BackgroundJobProcessor thread 15",
         L"BackgroundJobProcessor thread 16" };
+#endif
 #endif
 }

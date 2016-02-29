@@ -88,7 +88,7 @@ private:
     template <class TBlockAttributes>
     friend class SmallHeapBlockT;
 #endif
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     HeapBucket * bucket;
 #endif
 

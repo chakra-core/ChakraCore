@@ -542,6 +542,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 
 }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template <class TBlockAttributes>
 template<bool pageheap>
 void
@@ -574,6 +575,7 @@ SmallHeapBlockT<TBlockAttributes>::BackgroundReleasePagesSweep(Recycler* recycle
     this->segment = nullptr;
     this->Reset();
 }
+#endif
 
 template <class TBlockAttributes>
 void

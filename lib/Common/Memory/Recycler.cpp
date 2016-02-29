@@ -588,12 +588,14 @@ Recycler::RootAddRef(void* obj, uint *count)
             this->scanPinnedObjectMap = true;
             RECYCLER_PERF_COUNTER_INC(PinnedObject);
         }
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             StackBackTraceNode::Prepend(&NoCheckHeapAllocator::Instance, refCount.stackBackTraces,
                 transientPinnedObjectStackBackTrace);
         }
+#endif
 #endif
     }
 
@@ -605,11 +607,13 @@ Recycler::RootAddRef(void* obj, uint *count)
 
     transientPinnedObject = obj;
 
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     if (GetRecyclerFlagsTable().LeakStackTrace)
     {
         transientPinnedObjectStackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance);
     }
+#endif
 #endif
 }
 
@@ -628,11 +632,13 @@ Recycler::RootRelease(void* obj, uint *count)
             *count = (refCount != nullptr) ? *refCount : 0;
         }
 
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             transientPinnedObjectStackBackTrace->Delete(&NoCheckHeapAllocator::Instance);
         }
+#endif
 #endif
     }
     else
@@ -658,6 +664,7 @@ Recycler::RootRelease(void* obj, uint *count)
 
         if (newRefCount != 0)
         {
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
@@ -665,11 +672,14 @@ Recycler::RootRelease(void* obj, uint *count)
                     StackBackTrace::Capture(&NoCheckHeapAllocator::Instance));
             }
 #endif
+#endif
             return;
         }
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         StackBackTraceNode::DeleteAll(&NoCheckHeapAllocator::Instance, refCount->stackBackTraces);
         refCount->stackBackTraces = nullptr;
+#endif
 #endif
 #if ENABLE_CONCURRENT_GC
         // Don't delete the entry if we are in concurrent find root state
@@ -1083,11 +1093,16 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     Assert((info.GetAttributes() & ~ObjectInfoBits::LeafBit) == 0);          // Only NoBit or LeafBit
 
 #if DBG || defined(RECYCLER_MEMORY_VERIFY) || defined(RECYCLER_PAGE_HEAP)
+
+    // xplat-todo: reenable this Assert once GetThreadId is implemented on
+    // non-Win32 platforms
+#ifdef _WIN32
     // Either the mainThreadHandle is null (we're not thread bound)
     // or we should be calling this function on the main script thread
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
-
+#endif
+    
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 
     Assert(heapBlock != nullptr);
@@ -1534,8 +1549,10 @@ size_t Recycler::ScanPinnedObjects()
             {
                 if (refCount == 0)
                 {
+#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
                     Assert(refCount.stackBackTraces == nullptr);
+#endif
 #endif
                     // Only remove if we are not doing this in the background.
                     return !background;
@@ -7776,6 +7793,7 @@ Recycler::CheckLeaks(wchar_t const * header)
 
         if (param.stats.markData.markCount != 0)
         {
+#ifdef STACK_BACK_TRACE
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
                 Output::Print(L"-------------------------------------------------------------------------------------\n");
@@ -7783,9 +7801,10 @@ Recycler::CheckLeaks(wchar_t const * header)
                 Output::Print(L"-------------------------------------------------------------------------------------\n");
                 this->PrintPinnedObjectStackTraces();
             }
-
-            Output::Print(L"-------------------------------------------------------------------------------------\n");
-            Output::Print(L"Recycler Leaked Object: %d bytes (%d objects)\n",
+#endif
+            
+            Output::Print(CH_WSTR("-------------------------------------------------------------------------------------\n"));
+            Output::Print(CH_WSTR("Recycler Leaked Object: %d bytes (%d objects)\n"),
                 param.stats.markData.markBytes, param.stats.markData.markCount);
 
             wchar_t * buffer = Output::CaptureEnd();
@@ -7848,6 +7867,7 @@ Recycler::ReportOnProcessDetach(Fn fn)
     fn();
 }
 
+#ifdef STACK_BACK_TRACE
 void
 Recycler::PrintPinnedObjectStackTraces()
 {
@@ -7859,6 +7879,7 @@ Recycler::PrintPinnedObjectStackTraces()
         }
     );
 }
+#endif
 #endif
 
 #if defined(RECYCLER_DUMP_OBJECT_GRAPH) ||  defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
