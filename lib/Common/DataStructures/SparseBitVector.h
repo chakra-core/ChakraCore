@@ -77,13 +77,6 @@ struct BVSparseNode
     BVSparseNode(BVIndex beginIndex, BVSparseNode * nextNode);
 
     void init(BVIndex beginIndex, BVSparseNode * nextNode);
-    bool ToString(
-        __out_ecount(strSize) char *const str,
-        const size_t strSize,
-        size_t *const writtenLengthRef = nullptr,
-        const bool isInSequence = false,
-        const bool isFirstInSequence = false,
-        const bool isLastInSequence = false) const;
 };
 
 // xplat-todo: revisit for unix
@@ -188,9 +181,6 @@ public:
 
             // this & bv != empty
             bool            Test(BVSparse const * bv) const;
-
-            void            ToString(__out_ecount(strSize) char *const str, const size_t strSize) const;
-            template<class F> void ToString(__out_ecount(strSize) char *const str, const size_t strSize, const F ReadNode) const;
 
             TAllocator *    GetAllocator() const { return alloc; }
 #if DBG_DUMP
@@ -892,71 +882,6 @@ BVSparse<TAllocator>::Test(BVSparse const * bv) const
     }
 
     return false;
-}
-
-template<class TAllocator>
-template<class F>
-void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const size_t strSize, const F ReadNode) const
-{
-    Assert(str);
-
-    if(strSize == 0)
-    {
-        return;
-    }
-    str[0] = '\0';
-
-    bool empty = true;
-    bool isFirstInSequence = true;
-    size_t length = 0;
-    BVSparseNode *nodePtr = head;
-    while(nodePtr)
-    {
-        bool readSuccess;
-        const BVSparseNode node(ReadNode(nodePtr, &readSuccess));
-        if(!readSuccess)
-        {
-            str[0] = '\0';
-            return;
-        }
-        if(node.data.IsEmpty())
-        {
-            nodePtr = node.next;
-            continue;
-        }
-        empty = false;
-
-        size_t writtenLength;
-        if(!node.ToString(&str[length], strSize - length, &writtenLength, true, isFirstInSequence, !node.next))
-        {
-            return;
-        }
-        length += writtenLength;
-
-        isFirstInSequence = false;
-        nodePtr = node.next;
-    }
-
-    if(empty && _countof("{}") < strSize)
-    {
-        strcpy_s(str, strSize, "{}");
-    }
-}
-
-template<class TAllocator>
-void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const size_t strSize) const
-{
-    ToString(
-        str,
-        strSize,
-        [](BVSparseNode *const nodePtr, bool *const successRef) -> BVSparseNode
-        {
-            Assert(nodePtr);
-            Assert(successRef);
-
-            *successRef = true;
-            return *nodePtr;
-        });
 }
 
 #if DBG_DUMP

@@ -287,7 +287,10 @@ namespace Js {
             return false;
 #endif
         }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+
+        // The following code is applicable only when we are hosted in an
+        // GUI environment 
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
         // Then if DumpOncrashFlag is not specified it directly returns,
         // otherwise if will raise a non-continuable exception, generate the dump and terminate the process.
         // the popup message box might be useful when testing in IE

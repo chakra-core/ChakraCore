@@ -402,4 +402,12 @@ int __cdecl wmain(int argc, __in_ecount(argc) WCHAR* argv[])
     return 0;
 }
 
+#ifndef _WIN32
+int main(int argc, char** argv)
+{
+    int ret = wmain(0, NULL);
+    PAL_Shutdown();
+    return ret;
+}
+#endif
 //////////////////// End program entrypoint ////////////////////

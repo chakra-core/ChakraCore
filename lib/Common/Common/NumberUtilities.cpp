@@ -254,7 +254,7 @@ namespace Js
             return false;
         }
         uint32 val = (uint32)(str[0] - L'0');
-        int calcLen = min(length, 9);
+        int calcLen = (length < 9 ? length : 9);
         for (int i = 1; i < calcLen; i++)
         {
             if ((str[i] < L'0')|| (str[i] > L'9'))

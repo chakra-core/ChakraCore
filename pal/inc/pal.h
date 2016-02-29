@@ -171,9 +171,7 @@ extern "C" {
 /******************* Compiler-specific glue *******************************/
 
 #ifndef _MSC_VER
-#if defined(CORECLR)
 #define FEATURE_PAL_SXS 1
-#endif
 #endif // !_MSC_VER
 
 #if defined(_MSC_VER) || defined(__llvm__)
@@ -322,6 +320,11 @@ typedef char * va_list;
 
 #endif // !PAL_STDCPP_COMPAT
 
+#if defined(__CLANG__) || defined(__GNUC__)
+#define PAL_GLOBAL __attribute__((init_priority(200)))
+#else
+#define PAL_GLOBAL
+#endif
 /******************* PAL-Specific Entrypoints *****************************/
 
 #define IsDebuggerPresent PAL_IsDebuggerPresent
@@ -485,8 +488,8 @@ typedef long time_t;
 // PAL_InitializeDLL() flags - don't start any of the helper threads
 #define PAL_INITIALIZE_DLL             PAL_INITIALIZE_NONE       
 
-// PAL_InitializeCoreCLR() flags
-#define PAL_INITIALIZE_CORECLR         (PAL_INITIALIZE | PAL_INITIALIZE_EXEC_ALLOCATOR)
+// PAL_InitializeChakraCore() flags
+#define PAL_INITIALIZE_CHAKRACORE         (PAL_INITIALIZE | PAL_INITIALIZE_EXEC_ALLOCATOR)
 
 typedef DWORD (PALAPI *PTHREAD_START_ROUTINE)(LPVOID lpThreadParameter);
 typedef PTHREAD_START_ROUTINE LPTHREAD_START_ROUTINE;
@@ -529,6 +532,12 @@ PALIMPORT
 DWORD
 PALAPI
 PAL_InitializeCoreCLR(
+    const char *szExePath);
+
+PALIMPORT
+DWORD
+PALAPI
+PAL_InitializeChakraCore(
     const char *szExePath);
 
 PALIMPORT
@@ -786,16 +795,6 @@ BOOL
 (PALAPI *PHANDLER_ROUTINE)(
     DWORD CtrlType
     );
-
-#ifndef CORECLR
-PALIMPORT
-BOOL
-PALAPI
-GenerateConsoleCtrlEvent(
-    IN DWORD dwCtrlEvent,
-    IN DWORD dwProcessGroupId
-    );
-#endif // !CORECLR
 
 //end wincon.h Entrypoints
 
@@ -5365,6 +5364,17 @@ PALIMPORT
 inline
 LONGLONG
 PALAPI
+InterlockedIncrement16(
+    IN OUT SHORT volatile *lpAddend)
+{
+    return __sync_add_and_fetch(lpAddend, (SHORT)1);
+}
+    
+EXTERN_C
+PALIMPORT
+inline
+LONGLONG
+PALAPI
 InterlockedIncrement64(
     IN OUT LONGLONG volatile *lpAddend)
 {
@@ -5576,6 +5586,18 @@ InterlockedExchangeAdd(
     return __sync_fetch_and_add(Addend, Value);
 }
 
+EXTERN_C
+PALIMPORT
+inline
+LONG
+PALAPI
+InterlockedAdd(
+    IN OUT LONG volatile *Addend,
+    IN LONG Value)
+{
+    return InterlockedExchangeAdd(Addend, Value) + Value; 
+}
+    
 EXTERN_C
 PALIMPORT
 inline
@@ -6387,9 +6409,13 @@ PALIMPORT char * __cdecl _strdup(const char *);
 #define alloca  __builtin_alloca
 #endif // __GNUC__
 
+#ifndef NO_PAL_MINMAX
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
-
+#endif
+    
+#define USING_PAL_MINMAX 1
+    
 #endif // !PAL_STDCPP_COMPAT
 
 PALIMPORT PAL_NORETURN void __cdecl exit(int);
@@ -6501,7 +6527,7 @@ PALIMPORT PAL_FILE * __cdecl _wfsopen(const WCHAR *, const WCHAR *, int);
 
 PALIMPORT int __cdecl rand(void);
 PALIMPORT void __cdecl srand(unsigned int);
-
+PALIMPORT errno_t __cdecl rand_s(unsigned int*);
 PALIMPORT int __cdecl printf(const char *, ...);
 PALIMPORT int __cdecl vprintf(const char *, va_list);
 

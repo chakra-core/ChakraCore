@@ -4,6 +4,17 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+// In Debug mode, the PALs definition of max and min are insufficient
+// since some of our code expects the template min-max instead, so
+// including that here
+#if defined(DBG) && !defined(_MSC_VER)
+#define NO_PAL_MINMAX
+#define _Post_equal_to_(x)
+#define _Post_satisfies_(x)
+
+#include "Core/CommonMinMax.h"
+#endif
+
 #include "CommonDefines.h"
 #include "CommonMin.h"
 

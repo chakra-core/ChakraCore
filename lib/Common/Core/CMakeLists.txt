@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Core
+add_library (Chakra.Common.Core STATIC
     BinaryFeatureControl.cpp
     CmdParser.cpp
     CodexAssert.cpp

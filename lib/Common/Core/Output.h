@@ -5,11 +5,11 @@
 #pragma once
 
 // xplat-todo: error: ISO C++ forbids forward references to 'enum' types
-#ifdef ENABLE_TRACE
+#if defined(ENABLE_TRACE) 
 namespace Js
 {
-enum Flag;
-enum Phase;
+enum Flag: unsigned short;
+enum Phase: unsigned short;
 };
 #endif
 
@@ -54,11 +54,14 @@ namespace Js
     {
         virtual void Write(const wchar16* msg) = 0;
     };
+
+#ifdef STACK_BACK_TRACE
     struct IStackTraceHelper
     {
         virtual size_t PrintStackTrace(ULONG framesToSkip, ULONG framesToCapture) = 0;  // Returns # of chars printed.
         virtual ULONG GetStackTrace(ULONG framesToSkip, ULONG framesToCapture, void** stackFrames) = 0; // Returns # of frames captured.
     };
+#endif
 } // namespace Js.
 
 
@@ -89,9 +92,12 @@ public:
         }
 
         return retValue;
-    }
+    }    
     static void     SetInMemoryLogger(Js::ILogger* logger);
+#ifdef STACK_BACK_TRACE
     static void     SetStackTraceHelper(Js::IStackTraceHelper* helper);
+#endif
+    
 #endif // ENABLE_TRACE
     static size_t __cdecl Print(const wchar16 *form, ...);
     static size_t __cdecl Print(int column, const wchar16 *form, ...);

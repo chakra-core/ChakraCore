@@ -24,12 +24,15 @@ typedef wchar_t wchar16;
 
 // xplat-todo: get a better name for this macro
 #define CH_WSTR(s) L##s
+#define INIT_PRIORITY(x)
 
 #define get_cpuid __cpuid
 
 #else // !_WIN32
 
-#include "pal.h"
+#define USING_PAL_STDLIB 1
+
+#include "inc/pal.h"
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
@@ -37,6 +40,7 @@ typedef wchar_t wchar16;
 
 typedef char16_t wchar16;
 #define CH_WSTR(s) u##s
+#define INIT_PRIORITY(x) __attribute__((init_priority(x)))
 
 // xplat-todo: verify below is correct
 #include <cpuid.h>
@@ -48,6 +52,12 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
             reinterpret_cast<unsigned int*>(&cpuInfo[1]),
             reinterpret_cast<unsigned int*>(&cpuInfo[2]),
             reinterpret_cast<unsigned int*>(&cpuInfo[3]));
+}
+
+inline void DebugBreak()
+{
+    asm ("int3");
+    __builtin_unreachable();
 }
 
 #define _BitScanForward BitScanForward
@@ -267,6 +277,8 @@ int GetCurrentThreadStackBounds(char** stackBase, char** stackEnd);
 // xplat-todo: cryptographically secure PRNG?
 errno_t rand_s(unsigned int* randomValue);
 
+#define MAXUINT32   ((uint32_t)~((uint32_t)0))
+#define MAXINT32    ((int32_t)(MAXUINT32 >> 1))
 #endif // _WIN32
 
 
@@ -296,3 +308,25 @@ errno_t rand_s(unsigned int* randomValue);
 #else
 #define _NOEXCEPT noexcept
 #endif
+
+// xplat-todo: figure out why strsafe.h includes stdio etc
+// which prevents me from directly including PAL's strsafe.h
+#ifdef __cplusplus
+#define _STRSAFE_EXTERN_C    extern "C"
+#else
+#define _STRSAFE_EXTERN_C    extern
+#endif
+
+// If you do not want to use these functions inline (and instead want to link w/ strsafe.lib), then
+// #define STRSAFE_LIB before including this header file.
+#if defined(STRSAFE_LIB)
+#define STRSAFEAPI  _STRSAFE_EXTERN_C HRESULT __stdcall
+#pragma comment(lib, "strsafe.lib")
+#elif defined(STRSAFE_LIB_IMPL)
+#define STRSAFEAPI  _STRSAFE_EXTERN_C HRESULT __stdcall
+#else
+#define STRSAFEAPI  __inline HRESULT __stdcall
+#define STRSAFE_INLINE
+#endif
+
+STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, ...);

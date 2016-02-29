@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Util
+add_library (Chakra.Common.Util STATIC
     Pinned.cpp)
 
 target_include_directories (

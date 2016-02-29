@@ -23,7 +23,7 @@ __forceinline void js_wmemcpy_s(__ecount(sizeInWords) wchar_t *dst, size_t sizeI
     Assert(count <= sizeInWords && count <= SIZE_MAX/sizeof(wchar_t));
     if(!(count <= sizeInWords && count <= SIZE_MAX/sizeof(wchar_t)))
     {
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
+        ReportFatalException((ULONG_PTR) NULL, E_FAIL, Fatal_Internal_Error, 2);
     }
     else
     {

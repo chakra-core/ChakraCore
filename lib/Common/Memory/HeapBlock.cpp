@@ -868,7 +868,7 @@ template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMarkBitVector()
 {
-    this->GetRecycler()->heapBlockMap.VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
+    this->GetRecycler()->heapBlockMap.template VerifyMarkCountForPages<TBlockAttributes::BitVectorCount>(this->address, TBlockAttributes::PageCount);
 }
 
 template <class TBlockAttributes>
