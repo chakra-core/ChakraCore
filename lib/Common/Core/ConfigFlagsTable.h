@@ -56,8 +56,6 @@ namespace Js
     {
 #define FLAG(type, name, ...) name##Flag,
 
-#define FLAG_STRING(name, ...) name##Flag,
-
 #include "ConfigFlagsList.h"
         FlagCount,
         InvalidFlag,
@@ -438,9 +436,7 @@ namespace Js
 
         #define FLAG(type, name, ...) \
             \
-            type name;\
-
-        #define FLAG_STRING(name, ...) String name;
+            type name;                      \
 
         #include "ConfigFlagsList.h"
 
@@ -463,8 +459,8 @@ namespace Js
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                 // special callback logic
-                void        FlagSetCallback_ES6All(Boolean value);
-                void        FlagSetCallback_ES6Experimental(Boolean value);
+                void        FlagSetCallback_ES6All(Js::Boolean value);
+                void        FlagSetCallback_ES6Experimental(Js::Boolean value);
 #endif
 
     public:

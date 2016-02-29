@@ -1242,6 +1242,10 @@ typename std::remove_reference<T>::type&& move( T&& t );
 typedef DWORD OLE_COLOR;
 
 #ifndef PAL_STDCPP_COMPAT
+// defined in xmmintrin.h
+typedef float __m128 __attribute__((__vector_size__(16)));
+typedef double __m128d __attribute__((__vector_size__(16)));
+
 // __m128i defined in emmintrin.h
 typedef union __m128i {
     __int8              m128i_i8[16];

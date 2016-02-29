@@ -11,7 +11,6 @@
 #include <winbase.h>
 #include <oleauto.h>
 #else
-// #define NO_PAL_MINMAX
 #include <CommonPal.h>
 #endif
 

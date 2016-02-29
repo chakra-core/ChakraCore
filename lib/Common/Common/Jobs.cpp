@@ -1405,5 +1405,5 @@ namespace JsUtil
         L"BackgroundJobProcessor thread 15",
         L"BackgroundJobProcessor thread 16" };
 #endif
-#endif
+#endif // ENABLE_BACKGROUND_JOB_PROCESSOR
 }

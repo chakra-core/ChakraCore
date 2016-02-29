@@ -36,7 +36,6 @@ typedef wchar_t wchar16;
 #include "inc/rt/palrt.h"
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
-#include <emmintrin.h>
 
 typedef char16_t wchar16;
 #define CH_WSTR(s) u##s
@@ -307,6 +306,14 @@ errno_t rand_s(unsigned int* randomValue);
 #define _NOEXCEPT
 #else
 #define _NOEXCEPT noexcept
+#endif
+
+// xplat-todo: can we get rid of this for clang?
+// Including xmmintrin.h right now creates a ton of
+// compile errors, so temporarily defining this for clang
+// to avoid including that header
+#ifndef _MSC_VER
+#define _MM_HINT_T0 3
 #endif
 
 // xplat-todo: figure out why strsafe.h includes stdio etc

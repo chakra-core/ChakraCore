@@ -318,7 +318,7 @@ public:
 
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    WCHAR* GetParseType() const
+    LPCWSTR GetParseType() const
     {
         switch(m_parseType)
         {

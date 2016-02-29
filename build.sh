@@ -1,4 +1,7 @@
-#/usr/bin/env bash
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
 
 if [ ! -d "BuildLinux" ]; then
     mkdir BuildLinux;
@@ -21,7 +24,7 @@ if [ $DEBUG_BUILD -eq 1 ]; then
 else
     echo Generating Retail makefiles
     echo Building Retail;
-    cmake ..
+    cmake -DCMAKE_BUILD_TYPE=Release ..
 fi
 
 make |& tee build.log

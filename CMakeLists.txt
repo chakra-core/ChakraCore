@@ -123,21 +123,14 @@ endif(CLR_CMAKE_PLATFORM_UNIX)
 
 enable_language(ASM)
 
-<<<<<<< 39355eaa3f2bfbbf571fbffca5e916c3a10a4ba0
 include_directories(
+    .
     lib/Common
     lib/Common/PlaceHolder
     pal
     pal/inc
     pal/inc/rt
     )
-=======
-include_directories(".")
-include_directories("pal")
-include_directories("pal/inc")
-include_directories("pal/inc/rt")
-include_directories(lib/Common)
->>>>>>> Update CMakeLists.txt
 add_subdirectory (lib)
 add_subdirectory (bin)
 add_subdirectory (pal)
