@@ -1137,11 +1137,13 @@ namespace Js
         {
             symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
+            symbolSplit = CreateSymbol(BuiltInPropertyRecords::_symbolSplit);
         }
         else
         {
             symbolMatch = nullptr;
             symbolSearch = nullptr;
+            symbolSplit = nullptr;
         }
 
         debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(L"[Uninitialized block variable]");
@@ -2092,7 +2094,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 14);
+        typeHandler->Convert(symbolConstructor, mode, 15);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2132,6 +2134,7 @@ namespace Js
         {
             library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
+            library->AddMember(symbolConstructor, PropertyIds::split, library->GetSymbolSplit(), PropertyNone);
         }
 
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::for_, &JavascriptSymbol::EntryInfo::For, 1);
@@ -3890,30 +3893,26 @@ namespace Js
 
         if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         {
-            RuntimeFunction* globalGetter = library->CreateGetterFunction(PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
-            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, globalGetter, nullptr);
-            library->regexGlobalGetterFunction = globalGetter;
-
+            library->regexGlobalGetterFunction =
+                library->AddGetterToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
-            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags, nullptr);
+            library->regexFlagsGetterFunction =
+                library->AddGetterToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags);
 
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
-                RuntimeFunction* stickyGetter = library->CreateGetterFunction(PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, stickyGetter, nullptr);
-                library->regexStickyGetterFunction = stickyGetter;
+                library->regexStickyGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
             }
 
             if (scriptConfig->IsES6UnicodeExtensionsEnabled())
             {
-                RuntimeFunction* unicodeGetter = library->CreateGetterFunction(PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, unicodeGetter, nullptr);
-                library->regexUnicodeGetterFunction = unicodeGetter;
+                library->regexUnicodeGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
             }
-
         }
 
         if (scriptConfig->IsES6RegExSymbolsEnabled())
@@ -3930,6 +3929,12 @@ namespace Js
                 PropertyIds::_RuntimeFunctionNameId_search,
                 &JavascriptRegExp::EntryInfo::SymbolSearch,
                 1);
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolSplit,
+                PropertyIds::_RuntimeFunctionNameId_split,
+                &JavascriptRegExp::EntryInfo::SymbolSplit,
+                2);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
@@ -4472,6 +4477,14 @@ namespace Js
         AddMember(object, propertyId, function);
         return function;
     }
+
+    RuntimeFunction* JavascriptLibrary::AddGetterToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo* functionInfo)
+    {
+        RuntimeFunction* getter = CreateGetterFunction(propertyId, functionInfo);
+        AddAccessorsToLibraryObject(object, propertyId, getter, nullptr);
+        return getter;
+    }
+
     void JavascriptLibrary::AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo)
     {
         AddAccessorsToLibraryObjectWithName(object, propertyId, propertyId, getterFunctionInfo, setterFunctionInfo);

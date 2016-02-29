@@ -850,17 +850,12 @@ namespace Js
         this->weakReferenceDictionaryList.Prepend(this->GeneralAllocator(), weakReferenceDictionary);
     }
 
-    RecyclableObject *ScriptContext::GetMissingPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id)
+    RecyclableObject *ScriptContext::GetMissingPropertyResult()
     {
         return GetLibrary()->GetUndefined();
     }
 
-    RecyclableObject *ScriptContext::GetMissingItemResult(Js::RecyclableObject *instance, uint32 index)
-    {
-        return GetLibrary()->GetUndefined();
-    }
-
-    RecyclableObject *ScriptContext::GetMissingParameterValue(Js::JavascriptFunction *function, uint32 paramIndex)
+    RecyclableObject *ScriptContext::GetMissingItemResult()
     {
         return GetLibrary()->GetUndefined();
     }

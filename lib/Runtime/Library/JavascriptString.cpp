@@ -1364,15 +1364,27 @@ case_2:
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
-        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
+        auto fallback = [&](JavascriptString* stringObj)
         {
-            return RegexHelper::RegexMatch(
-                scriptContext,
-                regExObj,
-                stringObj,
-                RegexHelper::IsResultNotUsed(callInfo.Flags));
+            Var regExp = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+
+            if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+            {
+                JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
+                return RegexHelper::RegexMatch(
+                    scriptContext,
+                    regExObj,
+                    stringObj,
+                    RegexHelper::IsResultNotUsed(callInfo.Flags));
+            }
+            else
+            {
+                JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
+                Var symbolFn = GetRegExSymbolFunction(regExObj, PropertyIds::_symbolMatch, scriptContext);
+                return CallRegExSymbolFunction<1>(symbolFn, regExObj, args, varName, scriptContext);
+            }
         };
-        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolMatch, fallback, varName, scriptContext);
+        return DelegateToRegExSymbolFunction<1>(args, PropertyIds::_symbolMatch, fallback, varName, scriptContext);
     }
 
     Var JavascriptString::EntryNormalize(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1640,14 +1652,26 @@ case_2:
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
-        auto fallback = [&](JavascriptRegExp* regExObj, JavascriptString* stringObj)
+        auto fallback = [&](JavascriptString* stringObj)
         {
-            return RegexHelper::RegexSearch(scriptContext, regExObj, stringObj);
+            Var regExp = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+
+            if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+            {
+                JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
+                return RegexHelper::RegexSearch(scriptContext, regExObj, stringObj);
+            }
+            else
+            {
+                JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
+                Var symbolFn = GetRegExSymbolFunction(regExObj, PropertyIds::_symbolSearch, scriptContext);
+                return CallRegExSymbolFunction<1>(symbolFn, regExObj, args, varName, scriptContext);
+            }
         };
-        return DelegateToRegExSymbolFunction(args, PropertyIds::_symbolSearch, fallback, varName, scriptContext);
+        return DelegateToRegExSymbolFunction<1>(args, PropertyIds::_symbolSearch, fallback, varName, scriptContext);
     }
 
-    template<typename FallbackFn>
+    template<int argCount, typename FallbackFn>
     Var JavascriptString::DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext)
     {
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
@@ -1663,27 +1687,14 @@ case_2:
                 Var symbolFn = GetRegExSymbolFunction(regExp, symbolPropertyId, scriptContext);
                 if (!JavascriptOperators::IsUndefinedOrNull(symbolFn))
                 {
-                    return CallRegExSymbolFunction(symbolFn, regExp, args[0], varName, scriptContext);
+                    return CallRegExSymbolFunction<argCount>(symbolFn, regExp, args, varName, scriptContext);
                 }
             }
         }
 
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, varName, &pThis);
-
-        Var regExp = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-
-        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
-        {
-            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegEx(regExp, nullptr, scriptContext);
-            return fallback(regExObj, pThis);
-        }
-        else
-        {
-            JavascriptRegExp * regExObj = JavascriptRegExp::CreateRegExNoCoerce(regExp, nullptr, scriptContext);
-            Var symbolFn = GetRegExSymbolFunction(regExObj, symbolPropertyId, scriptContext);
-            return CallRegExSymbolFunction(symbolFn, regExObj, args[0], varName, scriptContext);
-        }
+        return fallback(pThis);
     }
 
     Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
@@ -1694,7 +1705,8 @@ case_2:
             scriptContext);
     }
 
-    Var JavascriptString::CallRegExSymbolFunction(Var fn, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext)
+    template<int argCount>
+    Var JavascriptString::CallRegExSymbolFunction(Var fn, Var regExp, Arguments& args, PCWSTR const varName, ScriptContext* scriptContext)
     {
         if (!JavascriptConversion::IsCallable(fn))
         {
@@ -1702,7 +1714,29 @@ case_2:
         }
 
         RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
-        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 2), regExp, string);
+        return CallRegExFunction<argCount>(fnObj, regExp, args);
+    }
+
+    template<>
+    Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    {
+        // args[0]: String
+        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+    }
+
+    template<>
+    Var JavascriptString::CallRegExFunction<2>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    {
+        // args[0]: String
+        // args[1]: RegExp (ignored since we need to create one when the argument is "undefined")
+        // args[2]: Var
+
+        if (args.Info.Count < 3)
+        {
+            return CallRegExFunction<1>(fnObj, regExp, args);
+        }
+
+        return fnObj->GetEntryPoint()(fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1765,9 +1799,19 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptString* input = nullptr;
-        GetThisStringArgument(args, scriptContext, L"String.prototype.split", &input);
+        PCWSTR const varName = L"String.prototype.split";
 
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
+
+        auto fallback = [&](JavascriptString* stringObj)
+        {
+            return DoStringSplit(args, callInfo, stringObj, varName, scriptContext);
+        };
+        return DelegateToRegExSymbolFunction<2>(args, PropertyIds::_symbolSplit, fallback, varName, scriptContext);
+    }
+
+    Var JavascriptString::DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, PCWSTR varName, ScriptContext* scriptContext)
+    {
         if (args.Info.Count == 1)
         {
             JavascriptArray* ary = scriptContext->GetLibrary()->CreateArray(1);
@@ -1786,7 +1830,9 @@ case_2:
                 limit = JavascriptConversion::ToUInt32(args[2], scriptContext);
             }
 
-            if (JavascriptRegExp::Is(args[1]))
+            // When the config is enabled, the operation is handled by RegExp.prototype[@@split].
+            if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+                && JavascriptRegExp::Is(args[1]))
             {
                 return RegexHelper::RegexSplit(scriptContext, JavascriptRegExp::FromVar(args[1]), input, limit,
                     RegexHelper::IsResultNotUsed(callInfo.Flags));
