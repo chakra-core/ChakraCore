@@ -39,6 +39,7 @@ add_library (Chakra.Common.Memory STATIC
     SmallNormalHeapBucket.cpp
     StressTest.cpp
     VirtualAllocWrapper.cpp
+    amd64/amd64_SAVE_REGISTERS.S
     )
 
 include_directories(..)
