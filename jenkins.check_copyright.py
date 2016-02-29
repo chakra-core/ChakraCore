@@ -30,10 +30,21 @@ if not os.path.isfile(file_name):
     print("File does not exist:", file_name, "(not necessarily an error)")
     exit(0)
 
+linecount = 0
 with open(file_name, 'r') as sourcefile:
     for x in range(0,len(copyright_lines)):
-        # TODO add a check for empty files (dummy.js etc), as they cause the script to crash here
-        line = next(sourcefile)
+        try:
+            line = next(sourcefile)
+            linecount += 1
+        except StopIteration:
+            if linecount == 0:
+                # the file was empty (e.g. dummy.js) so no problem
+                exit(0)
+            else:
+                # file didn't have enough lines to have a complete copyright notice
+                print(file_name, "... does not contain a correct Microsoft copyright notice.")
+                exit(1)
+
         line = line.rstrip()
         matches = regexes[x].match(line)
         if not matches:
