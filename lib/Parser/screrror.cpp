@@ -25,35 +25,6 @@ void CopyException (EXCEPINFO *peiDest, const EXCEPINFO *peiSource)
 }
 
 /***
-*BOOL FSupportsErrorInfo
-*Purpose:
-*  Answers if the given object supports the Rich Error mechanism
-*  on the given interface.
-*
-*Entry:
-*  punk = the object
-*  riid = the IID of the interface on the object
-*
-*Exit:
-*  return value = BOOL
-*
-***********************************************************************/
-BOOL FSupportsErrorInfo(IUnknown *punk, REFIID riid)
-{
-    BOOL fSupports;
-    ISupportErrorInfo *psupport;
-
-    fSupports = FALSE;
-    if(SUCCEEDED(punk->QueryInterface(__uuidof(ISupportErrorInfo), (void **)&psupport)))
-    {
-        if(NOERROR == psupport->InterfaceSupportsErrorInfo(riid))
-            fSupports = TRUE;
-        psupport->Release();
-    }
-    return fSupports;
-}
-
-/***
 *PUBLIC HRESULT GetErrorInfo
 *Purpose:
 *  Filling the given EXCEPINFO structure from the contents of
@@ -125,12 +96,8 @@ struct MHR
 const MHR g_rgmhr[] =
 {
     // FACILITY_NULL errors
-#if _WIN32 || _WIN64
     /*0x80004001*/ MAPHR(E_NOTIMPL, VBSERR_ActionNotSupported),
     /*0x80004002*/ MAPHR(E_NOINTERFACE, VBSERR_OLENotSupported),
-#else
-#error Neither __WIN32, nor _WIN64 is defined
-#endif
 
     // FACILITY_DISPATCH - IDispatch errors.
     /*0x80020001*/ MAPHR(DISP_E_UNKNOWNINTERFACE, VBSERR_OLENoPropOrMethod),
@@ -332,7 +299,7 @@ HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, Pars
         BstrGetResourceString(HRESULT_CODE(ei.scode))))
     {
         OLECHAR szT[50];
-        _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, OLESTR("error %d"), ei.scode);
+        _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, CH_WSTR("error %d"), ei.scode);
         if (nullptr == (ei.bstrDescription = SysAllocString(szT)))
             ei.scode = E_OUTOFMEMORY;
     }

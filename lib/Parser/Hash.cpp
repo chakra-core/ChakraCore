@@ -22,7 +22,7 @@ const HashTbl::ReservedWordInfo HashTbl::s_reservedWordInfo[tkID] =
 {
     { nullptr, fidNil },
 #define KEYWORD(tk,f,prec2,nop2,prec1,nop1,name) \
-        { &g_ssym_##name, f },
+        { reinterpret_cast<const StaticSym*>(&g_ssym_##name), f },
 #include "keywords.h"
 };
 
@@ -237,7 +237,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
 
     IdentPtr * ppid;
     IdentPtr pid;
-    long cb;
+    LONG cb;
     long bucketCount;
 
 

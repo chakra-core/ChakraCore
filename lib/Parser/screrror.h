@@ -25,7 +25,6 @@ inline void FreeExcepInfo(EXCEPINFO *pei)
 
 void CopyException (EXCEPINFO *pexcepinfoDest, const EXCEPINFO *pexcepinfoSource);
 
-BOOL FSupportsErrorInfo(IUnknown *punk, REFIID riid);
 HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo);
 
 HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut = nullptr);

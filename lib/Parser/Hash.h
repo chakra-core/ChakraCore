@@ -4,7 +4,19 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-struct StaticSym;
+// StaticSym contains a string literal at the end (flexible array) and is
+// meant to be initialized statically. However, flexible array initialization
+// is not allowed in standard C++. We declare each StaticSym with length
+// instead and cast to common StaticSymLen<0>* (StaticSym*) to access.
+template <ulong N>
+struct StaticSymLen
+{
+    ulong luHash;
+    ulong cch;
+    OLECHAR sz[N];
+};
+
+typedef StaticSymLen<0> StaticSym;
 
 /***************************************************************************
 Hashing functions. Definitions in core\hashfunc.cpp.

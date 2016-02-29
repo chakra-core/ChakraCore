@@ -6,7 +6,7 @@ add_library (Chakra.Parser
     # CharSet.cpp
     CharTrie.cpp
     DebugWriter.cpp
-    # Hash.cpp
+    Hash.cpp
     OctoquadIdentifier.cpp
     # Parse.cpp
     ParserPch.cpp
@@ -19,11 +19,11 @@ add_library (Chakra.Parser
     # StandardChars.cpp
     # TextbookBoyerMoore.cpp
     cmperr.cpp
-    # errstr.cpp
-    # globals.cpp
+    errstr.cpp
+    globals.cpp
     jserr.gen
-    # rterror.cpp
-    # screrror.cpp
+    rterror.cpp
+    screrror.cpp
     )
 
 target_include_directories (
