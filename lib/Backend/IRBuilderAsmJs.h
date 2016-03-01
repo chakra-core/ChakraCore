@@ -84,6 +84,7 @@ private:
     Js::RegSlot             GetRegSlotFromDoubleReg(Js::RegSlot srcDoubleReg);
     Js::RegSlot             GetRegSlotFromVarReg(Js::RegSlot srcVarReg);
     Js::OpCode              GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode);
+    void                    GetSimdTypesFromAsmType(Js::AsmJsType::Which asmType, IRType *pIRType, ValueType *pValueType = nullptr);
     Js::RegSlot             GetRegSlotFromSimd128Reg(Js::RegSlot srcSimd128Reg);
     IR::Instr *             AddExtendedArg(IR::RegOpnd *src1, IR::RegOpnd *src2, uint32 offset);
     BOOL                    RegIsSimd128Var(Js::RegSlot reg);

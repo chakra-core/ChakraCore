@@ -1225,24 +1225,24 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
 
     switch (instr->m_opcode)
     {
-    case Js::OpCode::Simd128_ShLtByScalar_I4:    // 66 0F 72 /6 ib (PSLLD) int32x4 
+    case Js::OpCode::Simd128_ShLtByScalar_I4:
     case Js::OpCode::Simd128_ShLtByScalar_U4:    // same as int32x4.ShiftLeftScalar
         opcode = Js::OpCode::PSLLD;
         break;
-    case Js::OpCode::Simd128_ShRtByScalar_I4:    // 66 0F 72 /4 ib (PSRAD) int32x4 
+    case Js::OpCode::Simd128_ShRtByScalar_I4:
         opcode = Js::OpCode::PSRAD;
         break;
-    case Js::OpCode::Simd128_ShLtByScalar_I8:    // 66 0F 71 /6 ib (PSLLW) int16x8 
+    case Js::OpCode::Simd128_ShLtByScalar_I8:
     case Js::OpCode::Simd128_ShLtByScalar_U8:    // same as int16x8.ShiftLeftScalar
         opcode = Js::OpCode::PSLLW;
         break;
-    case Js::OpCode::Simd128_ShRtByScalar_I8:    // 66 0F 71 /4 ib (PSRAW) int16x8 
+    case Js::OpCode::Simd128_ShRtByScalar_I8:
         opcode = Js::OpCode::PSRAW;
         break;
-    case Js::OpCode::Simd128_ShRtByScalar_U4:    // 66 0F 72 /2 ib (PSRLD) uint32x4
+    case Js::OpCode::Simd128_ShRtByScalar_U4:
         opcode = Js::OpCode::PSRLD;
         break;
-    case Js::OpCode::Simd128_ShRtByScalar_U8:    // 66 0F 71 /2 ib (PSRLW) uint16x8
+    case Js::OpCode::Simd128_ShRtByScalar_U8:
         opcode = Js::OpCode::PSRLW;
         break;
     case Js::OpCode::Simd128_ShLtByScalar_I16:   // composite, int8x16.ShiftLeftScalar 
@@ -2418,12 +2418,12 @@ IR::Instr* LowererMD::Simd128LowerAnyTrue(IR::Instr* instr)
     IR::Opnd* src1 = instr->GetSrc1();
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
-    // pmovmskb dst, src1 (66 0F D7 /r PMOVMSKB r32, xmm)
+    // pmovmskb dst, src1
     // neg      dst
     // sbb      dst, dst
     // neg      dst
 
-    // pmovmskb dst, src1 (66 0F D7 /r PMOVMSKB r32, xmm)
+    // pmovmskb dst, src1
     pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, dst, src1, m_func);
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
@@ -2460,7 +2460,7 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
     // mov      dst, 0
-    // pmovmskb reg, src1 (66 0F D7 /r PMOVMSKB r32, xmm)
+    // pmovmskb reg, src1 
     // cmp      reg, 0FFFFh
     // sete     dst, (al)
 
@@ -2472,7 +2472,7 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
-    // pmovmskb reg, src1 (66 0F D7 /r PMOVMSKB r32, xmm)
+    // pmovmskb reg, src1 
     pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, reg, src1, m_func);
     instr->InsertBefore(pInstr);
 
@@ -2652,7 +2652,7 @@ IR::Instr* LowererMD::Simd128LowerUint32x4FromFloat32x4(IR::Instr *instr)
     Legalize(newInstr);
 
     // check if any value is out of range (i.e. >= 2^31, meaning originally >= 2^32 before value adjustment)
-    // CMPEQPS      tmp, dst, [X86_NEG_MASK]
+    // PCMPEQD      tmp, dst, [X86_NEG_MASK]
     // MOVMSKPS     mask, tmp
     // CMP          mask, 0
     // JNE          $throwLabel
@@ -3293,16 +3293,16 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Add_I8               , PADDW);
     SET_SIMDOPCODE(Simd128_Sub_I8               , PSUBW);
     SET_SIMDOPCODE(Simd128_Mul_I8               , PMULLW); 
-    SET_SIMDOPCODE(Simd128_Min_I8               , PMINSW);  // 66 0F EA /r PMINSW xmm1, xmm2/m128
-    SET_SIMDOPCODE(Simd128_Max_I8               , PMAXSW);  // 66 0F EE /r PMAXSW xmm1, xmm2/m128
+    SET_SIMDOPCODE(Simd128_Min_I8               , PMINSW); 
+    SET_SIMDOPCODE(Simd128_Max_I8               , PMAXSW); 
     SET_SIMDOPCODE(Simd128_Eq_I8                , PCMPEQW); 
     SET_SIMDOPCODE(Simd128_Lt_I8                , PCMPGTW); // (swap srcs)
     SET_SIMDOPCODE(Simd128_Gt_I8                , PCMPGTW);
-    SET_SIMDOPCODE(Simd128_AddSaturate_I8       , PADDSW);  // 66 0F ED paddsw      xmm0,xmm1/m128
-    SET_SIMDOPCODE(Simd128_SubSaturate_I8       , PSUBSW);  // 66 0F E9 psubsw      xmm0,xmm1/m128
+    SET_SIMDOPCODE(Simd128_AddSaturate_I8       , PADDSW); 
+    SET_SIMDOPCODE(Simd128_SubSaturate_I8       , PSUBSW); 
 
-    SET_SIMDOPCODE(Simd128_AddSaturate_I16      , PADDSB);  // 66 0F EC paddsb      xmm0,xmm1/m128
-    SET_SIMDOPCODE(Simd128_SubSaturate_I16      , PSUBSB);  // 66 0F E8 psubsb      xmm0,xmm1/m128
+    SET_SIMDOPCODE(Simd128_AddSaturate_I16      , PADDSB); 
+    SET_SIMDOPCODE(Simd128_SubSaturate_I16      , PSUBSB); 
 
     SET_SIMDOPCODE(Simd128_And_U4               , PAND);
     SET_SIMDOPCODE(Simd128_Or_U4                , POR);
@@ -3319,9 +3319,9 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Add_U8               , PADDW);
     SET_SIMDOPCODE(Simd128_Sub_U8               , PSUBW);
     SET_SIMDOPCODE(Simd128_Mul_U8               , PMULLW);
-    SET_SIMDOPCODE(Simd128_Eq_U8                , PCMPEQB); // same as int16X8.equal , 66 0F 74 /r PCMPEQB xmm1, xmm2/m128
-    SET_SIMDOPCODE(Simd128_AddSaturate_U8       , PADDUSW); // 66 0F DD paddusw     xmm0,xmm1/m128
-    SET_SIMDOPCODE(Simd128_SubSaturate_U8       , PSUBUSW); // 66 0F D9 psubusw     xmm0,xmm1/m128
+    SET_SIMDOPCODE(Simd128_Eq_U8                , PCMPEQB); // same as int16X8.equal
+    SET_SIMDOPCODE(Simd128_AddSaturate_U8       , PADDUSW); 
+    SET_SIMDOPCODE(Simd128_SubSaturate_U8       , PSUBUSW); 
 
     SET_SIMDOPCODE(Simd128_And_U16              , PAND);
     SET_SIMDOPCODE(Simd128_Or_U16               , POR);
@@ -3329,11 +3329,11 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Not_U16              , XORPS);
     SET_SIMDOPCODE(Simd128_Add_U16              , PADDB);
     SET_SIMDOPCODE(Simd128_Sub_U16              , PSUBB);
-    SET_SIMDOPCODE(Simd128_Min_U16              , PMINUB);  // 66 0F DA /r PMINUB xmm1, xmm2/m128
-    SET_SIMDOPCODE(Simd128_Max_U16              , PMAXUB);  // 66 0F DE /r PMAXUB xmm1, xmm2/m128
+    SET_SIMDOPCODE(Simd128_Min_U16              , PMINUB);
+    SET_SIMDOPCODE(Simd128_Max_U16              , PMAXUB);
     SET_SIMDOPCODE(Simd128_Eq_U16               , PCMPEQB); // same as int16x8.equal
-    SET_SIMDOPCODE(Simd128_AddSaturate_U16      , PADDUSB); // 66 0F DC paddusb     xmm0,xmm1/m128
-    SET_SIMDOPCODE(Simd128_SubSaturate_U16      , PSUBUSB); // 66 0F D8 psubusb     xmm0,xmm1/m128
+    SET_SIMDOPCODE(Simd128_AddSaturate_U16      , PADDUSB);
+    SET_SIMDOPCODE(Simd128_SubSaturate_U16      , PSUBUSB);
 
     SET_SIMDOPCODE(Simd128_And_B4               , PAND);
     SET_SIMDOPCODE(Simd128_Or_B4                , POR);

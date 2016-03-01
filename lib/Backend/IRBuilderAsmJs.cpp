@@ -885,51 +885,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
         {
             // SIMD_JS
             IRType argType;
-            if (varType.which() == Js::AsmJsVarType::Which::Float32x4)
-            {
-                argType = TySimd128F4;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Int32x4)
-            {
-                argType = TySimd128I4;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Bool32x4)
-            {
-                argType = TySimd128B4;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Bool16x8)
-            {
-                argType = TySimd128B8;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Bool8x16)
-            {
-                argType = TySimd128B16;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Float64x2)
-            {
-                argType = TySimd128D2;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Int16x8)
-            {
-                argType = TySimd128I8;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Int8x16)
-            {
-                argType = TySimd128I16;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Uint32x4)
-            {
-                argType = TySimd128U4;
-            }
-            else if (varType.which() == Js::AsmJsVarType::Which::Uint16x8)
-            {
-                argType = TySimd128U8;
-            }
-            else
-            {
-                Assert(varType.which() == Js::AsmJsVarType::Which::Uint8x16);
-                argType = TySimd128U16;
-            }
+            GetSimdTypesFromAsmType((Js::AsmJsType::Which)varType.which(), &argType);
 
             symSrc = StackSym::NewParamSlotSym(i, m_func, argType);
             m_func->SetArgOffset(symSrc, offset);
@@ -1067,64 +1023,16 @@ IRBuilderAsmJs::BuildEmpty(Js::OpCodeAsmJs newOpcode, uint32 offset)
             retSlot = GetRegSlotFromVarReg(0);
             regOpnd = BuildDstOpnd(retSlot, TyVar);
             break;
-
-        case Js::AsmJsRetType::Which::Float32x4:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128F4);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
-            break;
-        case Js::AsmJsRetType::Which::Int32x4:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128I4);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int32x4));
-            break;
-        case Js::AsmJsRetType::Which::Bool32x4:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128B4);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Bool32x4));
-            break;
-        case Js::AsmJsRetType::Which::Bool16x8:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128B8);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Bool16x8));
-            break;
-        case Js::AsmJsRetType::Which::Bool8x16:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128B16);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Bool8x16));
-            break;
-        case Js::AsmJsRetType::Which::Float64x2:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128D2);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float64x2));
-            break;
-        case Js::AsmJsRetType::Which::Int16x8:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128I8);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int16x8));
-            break;
-        case Js::AsmJsRetType::Which::Int8x16:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128I16);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int8x16));
-            break;
-        case Js::AsmJsRetType::Which::Uint32x4:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128U4);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int16x8));
-            break;
-        case Js::AsmJsRetType::Which::Uint16x8:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128U8);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint16x8));
-            break;
-        case Js::AsmJsRetType::Which::Uint8x16:
-            retSlot = GetRegSlotFromSimd128Reg(0);
-            regOpnd = BuildDstOpnd(retSlot, TySimd128U16);
-            regOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Uint8x16));
-            break;
         default:
-            Assume(UNREACHED);
+        {
+            IRType irType;
+            ValueType vType;
+            GetSimdTypesFromAsmType(m_asmFuncInfo->GetReturnType().toType().GetWhich(), &irType, &vType);
+            retSlot = GetRegSlotFromSimd128Reg(0);
+            regOpnd = BuildDstOpnd(retSlot, irType);
+            regOpnd->SetValueType(vType);
+        }
+
         }
         instr->SetSrc1(regOpnd);
         AddInstr(instr, offset);
@@ -3469,6 +3377,40 @@ inline Js::OpCode IRBuilderAsmJs::GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode)
     }
     Assert(IsSimd128Opcode(opcode));
     return opcode;
+}
+
+void IRBuilderAsmJs::GetSimdTypesFromAsmType(Js::AsmJsType::Which asmType, IRType *pIRType, ValueType *pValueType /* = nullptr */)
+{
+    IRType irType = IRType::TyVar;
+    ValueType vType = ValueType::Uninitialized;
+
+#define SIMD_TYPE_CHECK(type1, type2, type3) \
+case Js::AsmJsType::Which::##type1: \
+        irType = type2; \
+        vType = ValueType::GetSimd128(ObjectType::##type3); \
+        break;
+
+    switch (asmType)
+    {
+        SIMD_TYPE_CHECK(Float32x4,  TySimd128F4,    Simd128Float32x4)
+        SIMD_TYPE_CHECK(Int32x4,    TySimd128I4,    Simd128Int32x4  )
+        SIMD_TYPE_CHECK(Int16x8,    TySimd128I8,    Simd128Int16x8  )
+        SIMD_TYPE_CHECK(Int8x16,    TySimd128I16,   Simd128Int8x16  )
+        SIMD_TYPE_CHECK(Uint32x4,   TySimd128U4,    Simd128Uint32x4 )
+        SIMD_TYPE_CHECK(Uint16x8,   TySimd128U8,    Simd128Uint16x8 )
+        SIMD_TYPE_CHECK(Uint8x16,   TySimd128U16,   Simd128Uint8x16 )
+        SIMD_TYPE_CHECK(Bool32x4,   TySimd128B4,    Simd128Bool32x4 )
+        SIMD_TYPE_CHECK(Bool16x8,   TySimd128B8,    Simd128Bool16x8 )
+        SIMD_TYPE_CHECK(Bool8x16,   TySimd128B16,   Simd128Bool8x16 )
+    default:
+        Assert(UNREACHED);
+    }
+    *pIRType = irType;
+    if (pValueType)
+    {
+        *pValueType = vType;
+    }
+#undef SIMD_TYPE_CHECK
 }
 
 
