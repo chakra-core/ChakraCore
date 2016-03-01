@@ -31,7 +31,7 @@ namespace Js
             if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (long)hr \
                 || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (long)hr) \
             { \
-                if (scriptContext->IsInDebugMode()) \
+                if (scriptContext->IsScriptContextInDebugMode()) \
                 { \
                     JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, true); \
                 } \
@@ -60,14 +60,14 @@ namespace Js
     public: \
         AutoCleanup(ScriptContext *const scriptContext) : scriptContext(scriptContext) \
         { \
-            if (scriptContext->IsInDebugMode()) \
+            if (scriptContext->IsScriptContextInDebugMode()) \
             { \
                 scriptContext->GetDebugContext()->GetProbeContainer()->SetThrowIsInternal(true); \
             } \
         } \
         ~AutoCleanup() \
         { \
-            if (scriptContext->IsInDebugMode()) \
+            if (scriptContext->IsScriptContextInDebugMode()) \
             { \
                 scriptContext->GetDebugContext()->GetProbeContainer()->SetThrowIsInternal(false); \
             } \

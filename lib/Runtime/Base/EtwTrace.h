@@ -182,7 +182,7 @@ enum MethodType : uint16
             loopBodyName = loopBodyNameArray;                                                              \
         }                                                                                                  \
     }                                                                                                      \
-    JS_ETW(Function(Body->GetScriptContext(),                                                               \
+    JS_ETW(Function(Body->GetScriptContext(),                                                              \
         (void *)entryPoint->GetNativeAddress(),                                                            \
         entryPoint->GetCodeSize(),                                                                         \
         GetFunctionId(Body),                                                                               \
@@ -209,6 +209,51 @@ enum MethodType : uint16
     }
 
 
+#define LogLoopBodyEventBG(Function, Body, loopHeader, entryPoint, loopNumber)                             \
+    Assert(entryPoint->GetNativeAddress() != NULL);                                                        \
+    Assert(entryPoint->GetCodeSize() > 0);                                                                 \
+    WCHAR loopBodyNameArray[NameBufferLength];                                                             \
+    WCHAR* loopBodyName = loopBodyNameArray;                                                               \
+    size_t bufferSize = Body->GetLoopBodyName(loopNumber, loopBodyName, NameBufferLength);                 \
+    if(bufferSize > NameBufferLength) /* insufficient buffer space*/                                       \
+    {                                                                                                      \
+        loopBodyName = new WCHAR[bufferSize];                                                              \
+        if(loopBodyName)                                                                                   \
+        {                                                                                                  \
+            GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
+        }                                                                                                  \
+        else                                                                                               \
+        {                                                                                                  \
+            loopBodyNameArray[0] = L'\0';                                                                  \
+            loopBodyName = loopBodyNameArray;                                                              \
+        }                                                                                                  \
+    }                                                                                                      \
+    JS_ETW(Function(Body->GetScriptContext(),                                                              \
+        (void *)entryPoint->GetNativeAddress(),                                                            \
+        entryPoint->GetCodeSize(),                                                                         \
+        GetFunctionId(Body),                                                                               \
+        0 /* methodFlags - for future use*/,                                                               \
+        MethodType_LoopBody + (uint16)loopNumber,                                                          \
+        GetSourceId(Body),                                                                                 \
+        /*line*/ 0,                                                                                        \
+        /*column*/ 0,                                                                                      \
+        loopBodyName));                                                                                    \
+   WriteMethodEvent(STRINGIZEW(Function),                                                                  \
+        Body->GetScriptContext(),                                                                          \
+        (void *)entryPoint->GetNativeAddress(),                                                            \
+        entryPoint->GetCodeSize(),                                                                         \
+        GetFunctionId(Body),                                                                               \
+        0 /* methodFlags - for future use*/,                                                               \
+        MethodType_LoopBody + (uint16)loopNumber,                                     \
+        GetSourceId(Body),                                                                                 \
+        /*line*/ 0,                                                                                        \
+        /*column*/ 0,                                                                                      \
+        loopBodyName);                                                                                     \
+    if(loopBodyNameArray != loopBodyName)                                                                  \
+    {                                                                                                      \
+        delete[] loopBodyName;                                                                             \
+    }
+
 //
 // Encapsulates all ETW event logging and registration related to symbol decoding.
 //
@@ -234,7 +279,7 @@ public:
     static void LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint);
 
 
-    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint);
+    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
     static void LogScriptContextLoadEvent(Js::ScriptContext* scriptContext);
     static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const wchar_t* url);
 

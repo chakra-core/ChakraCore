@@ -58,7 +58,7 @@ namespace Js
 
     bool DebugContext::CanRegisterFunction() const
     {
-        if (this->hostDebugContext == nullptr || this->scriptContext == nullptr || this->scriptContext->IsClosed() || this->IsInNonDebugMode())
+        if (this->hostDebugContext == nullptr || this->scriptContext == nullptr || this->scriptContext->IsClosed() || this->IsDebugContextInNonDebugMode())
         {
             return false;
         }
@@ -371,7 +371,7 @@ namespace Js
             {
                 WalkAndAddUtf8SourceInfo(callerUtf8SourceInfo, utf8SourceInfoList);
             }
-            else if (!callerScriptContext->IsInDebugOrSourceRundownMode())
+            else if (callerScriptContext->IsScriptContextInNonDebugMode())
             {
                 // The caller scriptContext is not in run down/debug mode so let's save the relationship so that we can re-parent callees afterwards.
                 callerScriptContext->AddCalleeSourceInfoToList(sourceInfo);

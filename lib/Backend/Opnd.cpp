@@ -715,6 +715,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
     newOpnd->m_type = type;
     newOpnd->SetObjTypeSpecFldInfo(nullptr);
     newOpnd->finalType = nullptr;
+    newOpnd->monoGuardType = nullptr;
     newOpnd->guardedPropOps = nullptr;
     newOpnd->writeGuards = nullptr;
     newOpnd->objTypeSpecFlags = 0;
@@ -3355,8 +3356,7 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
                 WriteToBuffer(&buffer, &n, L" (&StackLimit)");
             }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedRegionPresent() &&
-                address == func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->GetPreReservedEndAddress())
+                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
             {
                 WriteToBuffer(&buffer, &n, L" (PreReservedCodeSegmentEnd)");
             }

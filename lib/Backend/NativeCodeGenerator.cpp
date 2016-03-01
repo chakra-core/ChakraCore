@@ -109,9 +109,7 @@ NativeCodeGenerator::~NativeCodeGenerator()
         // We have already removed this manager from the job queue and hence its fine to set the threadId to -1.
         // We can't DissociatePageAllocator here as its allocated ui thread.
         //this->Processor()->DissociatePageAllocator(allocator->GetPageAllocator());
-        this->backgroundAllocators->emitBufferManager.GetHeapPageAllocator()->ClearConcurrentThreadId();
-        this->backgroundAllocators->emitBufferManager.GetPreReservedHeapPageAllocator()->ClearConcurrentThreadId();
-        this->backgroundAllocators->GetPageAllocator()->ClearConcurrentThreadId();
+        this->backgroundAllocators->ClearConcurrentThreadId();
 #endif
         // The native code generator may be deleted after Close was called on the job processor. In that case, the
         // background thread is no longer running, so clean things up in the foreground.
@@ -192,13 +190,13 @@ extern Func *CurrentFunc;
 JsFunctionCodeGen *
 NativeCodeGenerator::NewFunctionCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info)
 {
-    return HeapNewNoThrow(JsFunctionCodeGen, this, functionBody, info, this->IsInDebugMode());
+    return HeapNewNoThrow(JsFunctionCodeGen, this, functionBody, info, functionBody->IsInDebugMode());
 }
 
 JsLoopBodyCodeGen *
 NativeCodeGenerator::NewLoopBodyCodeGen(Js::FunctionBody *functionBody, Js::EntryPointInfo* info)
 {
-    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, this->IsInDebugMode());
+    return HeapNewNoThrow(JsLoopBodyCodeGen, this, functionBody, info, functionBody->IsInDebugMode());
 }
 
 #ifdef ENABLE_PREJIT
@@ -228,7 +226,7 @@ NativeCodeGenerator::GenerateAllFunctions(Js::FunctionBody * fn)
 
     if (DoBackEnd(fn))
     {
-        if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !IsInDebugMode())
+        if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !fn->IsInDebugMode())
         {
             // Only jit the loop body with /force:JITLoopBody
 
@@ -443,7 +441,7 @@ NativeCodeGenerator::RejitIRViewerFunction(Js::FunctionBody *fn, Js::ScriptConte
     AutoRestoreDefaultEntryPoint autoRestore(fn);
     Js::FunctionEntryPointInfo * entryPoint = fn->GetDefaultFunctionEntryPointInfo();
 
-    JsFunctionCodeGen workitem(this, fn, entryPoint, this->IsInDebugMode());
+    JsFunctionCodeGen workitem(this, fn, entryPoint, fn->IsInDebugMode());
     workitem.isRejitIRViewerFunction = true;
     workitem.irViewerRequestContext = scriptContext;
 
@@ -487,7 +485,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         return false;
     }
 
-    if (IsInDebugMode() && fn->GetHasTry())
+    if (fn->IsInDebugMode() && fn->GetHasTry())
     {
         // Under debug mode disable JIT for functions that:
         // - have try
@@ -503,7 +501,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     }
 #endif
 
-    if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !IsInDebugMode())
+    if (fn->GetLoopCount() != 0 && fn->ForceJITLoopBody() && !fn->IsInDebugMode())
     {
         // Don't code gen the function if the function has loop, ForceJITLoopBody is on,
         // unless we are in debug mode in which case JIT loop body is disabled, even if it's forced.
@@ -1456,12 +1454,6 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
     }
 }
 
-bool
-NativeCodeGenerator::IsInDebugMode() const
-{
-    return this->scriptContext->IsInDebugMode();
-}
-
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
     Assert(IS_PREJIT_ON());
@@ -1905,7 +1897,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
                         // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
                         // which can result in using garbage object during bailout/restore values.
-                        if (!(IsInDebugMode() && inlineCache->GetType() &&
+                        if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
                             objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
@@ -2010,7 +2002,7 @@ NativeCodeGenerator::GatherCodeGenData(
                         // WinBlue 170722: Disable ObjTypeSpec optimization for activation object in debug mode,
                         // as it can result in BailOutFailedTypeCheck before locals are set to undefined,
                         // which can result in using garbage object during bailout/restore values.
-                        if (!(IsInDebugMode() && inlineCache->GetType() &&
+                        if (!(functionBody->IsInDebugMode() && inlineCache->GetType() &&
                               inlineCache->GetType()->GetTypeId() == Js::TypeIds_ActivationObject))
                         {
                             objTypeSpecFldInfo = Js::ObjTypeSpecFldInfo::CreateFrom(objTypeSpecFldInfoList->Count(), inlineCache, i, entryPoint, topFunctionBody, functionBody, InlineCacheStatsArg(jitTimeData));
@@ -2512,7 +2504,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
     const auto recycler = scriptContext->GetRecycler();
     {
         const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);
-        InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, this->IsInDebugMode(), workItem->GetJitMode());
+        InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->IsInDebugMode(), workItem->GetJitMode());
 
         BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, L"GatherCodeGenData");
 
@@ -2603,7 +2595,7 @@ NativeCodeGenerator::EnterScriptStart()
     }
 
     // Don't need to do anything if we're in debug mode
-    if (this->IsInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
+    if (this->scriptContext->IsScriptContextInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
     {
         return;
     }
@@ -2661,18 +2653,6 @@ NativeCodeGenerator::EnterScriptStart()
     Processor()->PrioritizeManagerAndWait(this, CONFIG_FLAG(BgJitDelay) - CONFIG_FLAG(BgJitDelayFgBuffer));
 }
 
-// Is the given address within one of our JIT'd frame?
-bool
-IsNativeFunctionAddr(Js::ScriptContext *scriptContext, void * address)
-{
-    if (!scriptContext->GetNativeCodeGenerator())
-    {
-        return false;
-    }
-
-    return scriptContext->GetNativeCodeGenerator()->IsNativeFunctionAddr(address);
-}
-
 void
 FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, void * address)
 {
@@ -2709,15 +2689,6 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 
     workItem->Delete();
     return true;
-}
-
-// Called on the same thread that did the allocation
-bool
-NativeCodeGenerator::IsNativeFunctionAddr(void * address)
-{
-    return
-        (this->backgroundAllocators && this->backgroundAllocators->emitBufferManager.IsInRange(address)) ||
-        (this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.IsInRange(address));
 }
 
 void

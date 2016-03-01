@@ -135,6 +135,11 @@
   </test>
   <test>
     <default>
+      <files>neg_index.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>substring.js</files>
       <baseline>substring.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>

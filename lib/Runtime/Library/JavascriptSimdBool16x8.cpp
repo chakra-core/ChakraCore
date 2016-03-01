@@ -76,8 +76,6 @@ namespace Js
         return false;
     }
 
-    // Entry Points
-
     Var JavascriptSIMDBool16x8::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -96,20 +94,15 @@ namespace Js
         JavascriptSIMDBool16x8 *instance = JavascriptSIMDBool16x8::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[1024];
+        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
-
-        swprintf_s(stringBuffer, 1024, L"SIMD.Bool16x8(%s, %s, %s, %s, %s, %s, %s, %s)", \
-            value.i16[0] ? L"true" : L"false", value.i16[1] ? L"true" : L"false", value.i16[2] ? L"true" : L"false", value.i16[3] ? L"true" : L"false", \
-            value.i16[4] ? L"true" : L"false", value.i16[5] ? L"true" : L"false", value.i16[6] ? L"true" : L"false", value.i16[7] ? L"true" : L"false"
-            );
+        
+        JavascriptSIMDBool16x8::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 
         return string;
     }
-
-    // End Entry Points
 
     Var JavascriptSIMDBool16x8::Copy(ScriptContext* requestContext)
     {

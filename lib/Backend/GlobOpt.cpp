@@ -20305,7 +20305,7 @@ GlobOpt::TrackTempObjectSyms(IR::Instr * instr, IR::RegOpnd * opnd)
                 // to disappear. Do it is flow base make it easier to stop propagate those entries.
 
                 IR::IntConstOpnd * propertyArrayIdOpnd = instr->GetSrc1()->AsIntConstOpnd();
-                const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArray(propertyArrayIdOpnd->AsUint32(), instr->m_func->GetJnFunction());
+                const Js::PropertyIdArray * propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(propertyArrayIdOpnd->AsUint32(), instr->m_func->GetJnFunction());
 
                 // Duplicates are removed by parser
                 Assert(!propIds->hadDuplicates);

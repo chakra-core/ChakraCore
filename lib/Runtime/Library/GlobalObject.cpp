@@ -605,13 +605,11 @@ namespace Js
             Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            if (scriptContext->IsInDebugMode())
+            Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
+            if (scriptContext->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
             {
-                if (!(pfuncScript->GetFunctionBody()->GetUtf8SourceInfo()->GetIsLibraryCode() || pfuncScript->GetFunctionBody()->IsByteCodeDebugMode()))
-                {
-                    // Identifying if any function escaped for not being in debug mode. (This can be removed as a part of TFS : 935011)
-                    Throw::FatalInternalError();
-                }
+                // Identifying if any non library function escaped for not being in debug mode.
+                Throw::FatalInternalError();
             }
 #endif
             scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
@@ -620,13 +618,11 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         else
         {
-            if (scriptContext->IsInDebugMode())
+            Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
+            if (scriptContext->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
             {
-                if (!(pfuncScript->GetFunctionBody()->GetUtf8SourceInfo()->GetIsLibraryCode() || pfuncScript->GetFunctionBody()->IsByteCodeDebugMode()))
-                {
-                    // Identifying if any function escaped for not being in debug mode. (This can be removed as a part of TFS : 935011)
-                    Throw::FatalInternalError();
-                }
+                // Identifying if any non library function escaped for not being in debug mode.
+                Throw::FatalInternalError();
             }
         }
 #endif
@@ -635,6 +631,7 @@ namespace Js
         if (CONFIG_FLAG(ForceSerialized)) {
             pfuncScript->GetFunctionProxy()->EnsureDeserialized();
         }
+
         if (pfuncScript->GetFunctionBody()->GetHasThis())
         {
             // The eval expression refers to "this"
@@ -831,11 +828,7 @@ namespace Js
             // The function body is created in GenerateByteCode but the source info isn't passed in, only the index
             // So we need to pin it here (TODO: Change GenerateByteCode to take in the sourceInfo itself)
             ENTER_PINNED_SCOPE(Utf8SourceInfo, sourceInfo);
-            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource, cbSource, pSrcInfo);
-            if ((grfscr & fscrIsLibraryCode) != 0)
-            {
-                sourceInfo->SetIsLibraryCode();
-            }
+            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource, cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0));
 
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
@@ -1009,11 +1002,7 @@ namespace Js
             // The function body is created in GenerateByteCode but the source info isn't passed in, only the index
             // So we need to pin it here (TODO: Change GenerateByteCode to take in the sourceInfo itself)
             ENTER_PINNED_SCOPE(Utf8SourceInfo, sourceInfo);
-            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource, cbSource, pSrcInfo);
-            if ((grfscr & fscrIsLibraryCode) != 0)
-            {
-                sourceInfo->SetIsLibraryCode();
-            }
+            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource, cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0));
 
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;

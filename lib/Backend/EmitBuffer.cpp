@@ -12,9 +12,9 @@ template class EmitBufferManager<CriticalSection>;
 //      Constructor
 //----------------------------------------------------------------------------
 template <typename SyncObject>
-EmitBufferManager<SyncObject>::EmitBufferManager(AllocationPolicyManager * policyManager, ArenaAllocator * allocator,
-    Js::ScriptContext * scriptContext, LPCWSTR name, bool allocXdata) :
-    allocationHeap(policyManager, allocator, allocXdata),
+EmitBufferManager<SyncObject>::EmitBufferManager(ArenaAllocator * allocator, CustomHeap::CodePageAllocators * codePageAllocators,
+    Js::ScriptContext * scriptContext, LPCWSTR name) :
+    allocationHeap(allocator, codePageAllocators),
     allocator(allocator),
     allocations(nullptr),
     scriptContext(scriptContext)
@@ -68,13 +68,6 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
     EmitBufferAllocation * allocation = this->allocations;
     while (allocation != nullptr)
     {
-        BOOL isFreed;
-        // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
-        if (!release && (scriptContext != nullptr) && allocation->recorded)
-        {
-            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
-            allocation->recorded = false;
-        }
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if(CONFIG_FLAG(CheckEmitBufferPermissions))
         {
@@ -83,21 +76,32 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
 #endif
         if (release)
         {
-            isFreed = this->allocationHeap.Free(allocation->allocation);
+            this->allocationHeap.Free(allocation->allocation);
         }
-        else
+        else if ((scriptContext != nullptr) && allocation->recorded)
         {
-            isFreed = this->allocationHeap.Decommit(allocation->allocation);
+            // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
+            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
+            allocation->recorded = false;
         }
 
-        Assert(isFreed);
         allocation = allocation->nextAllocation;
     }
     if (release)
     {
         this->allocations = nullptr;
     }
+    else
+    {
+        this->allocationHeap.DecommitAll();
+    }
+}
 
+template <typename SyncObject>
+bool EmitBufferManager<SyncObject>::IsInHeap(__in void* address)
+{
+    AutoRealOrFakeCriticalSection<SyncObject> autocs(&this->criticalSection);
+    return this->allocationHeap.IsInHeap(address);
 }
 
 class AutoCustomHeapPointer
@@ -141,15 +145,6 @@ EmitBufferManager<SyncObject>::NewAllocation(size_t bytes, ushort pdataCount, us
     FAULTINJECT_MEMORY_THROW(L"JIT", bytes);
 
     Assert(this->criticalSection.IsLocked());
-
-    PreReservedVirtualAllocWrapper  * preReservedVirtualAllocator = nullptr;
-
-    if (canAllocInPreReservedHeapPageSegment)
-    {
-        Assert(scriptContext && scriptContext->GetThreadContext());
-        preReservedVirtualAllocator = this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator();
-        this->EnsurePreReservedPageAllocation(preReservedVirtualAllocator);
-    }
 
     bool isAllJITCodeInPreReservedRegion = true;
     CustomHeap::Allocation* heapAllocation = this->allocationHeap.Alloc(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, &isAllJITCodeInPreReservedRegion);

@@ -891,7 +891,7 @@
   <test>
     <default>
       <files>regex-symbols.js</files>
-      <compile-flags>-ES6RegExSymbols -args summary -endargs</compile-flags>
+      <compile-flags>-ES6RegExSymbols -ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

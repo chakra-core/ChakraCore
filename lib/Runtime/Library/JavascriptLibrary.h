@@ -29,6 +29,7 @@ namespace Projection
 namespace Js
 {
     class MissingPropertyTypeHandler;
+    class SourceTextModuleRecord;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
 
     class UndeclaredBlockVariable : public RecyclableObject
@@ -36,6 +37,9 @@ namespace Js
         friend class JavascriptLibrary;
         UndeclaredBlockVariable(Type* type) : RecyclableObject(type) { }
     };
+
+    class SourceTextModuleRecord;
+    typedef JsUtil::List<SourceTextModuleRecord*> ModuleRecordList;
 
 #if ENABLE_COPYONACCESS_ARRAY
     struct CacheForCopyOnAccessArraySegments
@@ -380,6 +384,10 @@ namespace Js
         JavascriptSymbol* symbolSearch;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
+        JavascriptFunction* regexExecFunction;
+        JavascriptFunction* regexGlobalGetterFunction;
+        JavascriptFunction* regexStickyGetterFunction;
+        JavascriptFunction* regexUnicodeGetterFunction;
 
         mutable CharStringCache charStringCache;
 
@@ -394,6 +402,8 @@ namespace Js
         // We use the raw strings in the callsite object (or a string template parse node) to identify unique callsite objects in the list.
         // See abstract operation GetTemplateObject in ES6 Spec (RC1) 12.2.8.3
         StringTemplateCallsiteObjectList* stringTemplateCallsiteObjectList;
+
+        ModuleRecordList* moduleRecordList;
 
         // This list contains types ensured to have only writable data properties in it and all objects in its prototype chain
         // (i.e., no readonly properties or accessors). Only prototype objects' types are stored in the list. When something
@@ -422,7 +432,10 @@ namespace Js
 
         JavascriptFunction * AddFunctionToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * functionInfo, int length);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
-        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
+        void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject * getterFunction, RecyclableObject * setterFunction);
+        void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunction);
+        RuntimeFunction * CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
+        RuntimeFunction * CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo);
 
         template <size_t N>
         JavascriptFunction * AddFunctionToLibraryObjectWithPropertyName(DynamicObject* object, const wchar_t(&propertyName)[N], FunctionInfo * functionInfo, int length);
@@ -481,7 +494,8 @@ namespace Js
                               isHybridDebugging(false),
                               isLibraryReadyForHybridDebugging(false),
                               referencedPropertyRecords(nullptr),
-                              stringTemplateCallsiteObjectList(nullptr)
+                              stringTemplateCallsiteObjectList(nullptr),
+                              moduleRecordList(nullptr)
         {
             globalObject = globalObject;
         }
@@ -700,6 +714,10 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
+        JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
+        JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
@@ -991,6 +1009,9 @@ namespace Js
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
 
+        ModuleRecordList* EnsureModuleRecordList();
+        SourceTextModuleRecord* GetModuleRecord(uint moduleId);
+
     private:
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // Declare fretest/debug properties here since otherwise it can cause
@@ -1133,6 +1154,7 @@ namespace Js
 #endif
 
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
+        
 
     public:
         virtual void Finalize(bool isShutdown) override

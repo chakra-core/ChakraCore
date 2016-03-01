@@ -111,10 +111,6 @@ namespace Js
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;
 #endif
 
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-        static const unsigned MaxThreadContextsWithPreReserveSegment = 6;
-#endif
-
         static const PBYTE StackLimitForScriptInterrupt;
 
 

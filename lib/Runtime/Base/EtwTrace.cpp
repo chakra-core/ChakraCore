@@ -206,7 +206,7 @@ void EtwTrace::PerformRundown(bool start)
                     }
                 });
 
-                body->MapLoopHeaders([&](uint loopNumber, LoopHeader* header)
+                body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
                 {
                     header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
                     {
@@ -214,11 +214,11 @@ void EtwTrace::PerformRundown(bool start)
                         {
                             if(start)
                             {
-                                LogLoopBodyEvent(EventWriteMethodDCStart, body, header, entryPoint);
+                                LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                             }
                             else
                             {
-                                LogLoopBodyEvent(EventWriteMethodDCEnd, body, header, entryPoint);
+                                LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                             }
                         }
                     });
@@ -369,9 +369,9 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
 #endif
 }
 
-void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint)
+void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
-    LogLoopBodyEvent(EventWriteMethodLoad, body, loopHeader, entryPoint);
+    LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
 
 #ifdef VTUNE_PROFILING
     if(isJitProfilingActive)
