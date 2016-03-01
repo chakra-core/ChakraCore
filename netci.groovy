@@ -143,21 +143,21 @@ CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows 7 ${config}",
-            '(win(dows)?\\s*7|(dev|msbuild)\\s*12)')})
+            'legacy\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with -includeSlow
 CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",
-            '(slow\\s*(tests)?)')})
+            'slow\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with JIT disabled
 CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",
-            '(disablejit|nojit)')})
+            '(disablejit|nojit)\\s+tests')})
 
 // ----------------
 // CODE STYLE TASKS
