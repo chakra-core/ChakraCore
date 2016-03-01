@@ -23,7 +23,7 @@ public:
     ~DebugDocumentManager();
     void AddDocument(UINT bpId, Js::DebugDocument* debugDocument);
     void ClearDebugDocument(Js::ScriptContext * scriptContext);
-    void RemoveBreakpoint(UINT breakpointId);
+    bool RemoveBreakpoint(UINT breakpointId);
 private:
     JsrtDebug* debugObject;
     typedef JsUtil::BaseDictionary<uint, Js::DebugDocument*, ArenaAllocator> BreakpointDebugDocumentDictionary;

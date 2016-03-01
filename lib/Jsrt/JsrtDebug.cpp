@@ -455,7 +455,7 @@ Js::DynamicObject * JsrtDebug::GetSource(uint scriptId)
         scriptContext->GetSourceList()->MapUntil([&](int i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) -> bool
         {
             Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-            if (sourceInfo != nullptr && sourceInfo->GetSourceInfoId() == scriptId)
+            if (sourceInfo != nullptr && sourceInfo->IsInDebugMode() && sourceInfo->GetSourceInfoId() == scriptId)
             {
                 utf8SourceInfo = sourceInfo;
                 return true;
@@ -624,12 +624,14 @@ void JsrtDebug::ClearDebugDocument(Js::ScriptContext * scriptContext)
     }
 }
 
-void JsrtDebug::RemoveBreakpoint(UINT breakpointId)
+bool JsrtDebug::RemoveBreakpoint(UINT breakpointId)
 {
     if (this->debugDocumentManager != nullptr)
     {
-        this->GetDebugDocumentManager()->RemoveBreakpoint(breakpointId);
+        return this->GetDebugDocumentManager()->RemoveBreakpoint(breakpointId);
     }
+
+    return false;
 }
 
 void JsrtDebug::SetBreakOnException(JsDiagBreakOnExceptionType breakOnExceptionType)

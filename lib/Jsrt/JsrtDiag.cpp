@@ -311,7 +311,10 @@ JsDiagRemoveBreakpoint(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        debugObject->RemoveBreakpoint(breakpointId);
+        if (!debugObject->RemoveBreakpoint(breakpointId))
+        {
+            return JsErrorInvalidArgument;
+        }
 
         return JsNoError;
     });

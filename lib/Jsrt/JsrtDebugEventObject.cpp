@@ -86,7 +86,7 @@ void DebugDocumentManager::ClearDebugDocument(Js::ScriptContext * scriptContext)
     }
 }
 
-void DebugDocumentManager::RemoveBreakpoint(UINT breakpointId)
+bool DebugDocumentManager::RemoveBreakpoint(UINT breakpointId)
 {
     if (this->breakpointDebugDocumentDictionary != nullptr)
     {
@@ -98,9 +98,12 @@ void DebugDocumentManager::RemoveBreakpoint(UINT breakpointId)
             if (debugDocument->FindBPStatementLocation(breakpointId, &statement))
             {
                 debugDocument->SetBreakPoint(statement, BREAKPOINT_DELETED);
+                return true;
             }
         }
     }
+
+    return false;
 }
 
 DebugDocumentManager::BreakpointDebugDocumentDictionary * DebugDocumentManager::GetBreakpointDictionary()

@@ -44,7 +44,7 @@ public:
     DebugDocumentManager* GetDebugDocumentManager();
     void ClearDebugDocument(Js::ScriptContext* scriptContext);
 
-    void RemoveBreakpoint(UINT breakpointId);
+    bool RemoveBreakpoint(UINT breakpointId);
 
     void SetBreakOnException(JsDiagBreakOnExceptionType breakOnExceptionType);
     JsDiagBreakOnExceptionType GetBreakOnException();

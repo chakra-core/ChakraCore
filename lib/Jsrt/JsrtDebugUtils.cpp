@@ -117,7 +117,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         {
         case Js::TypeIds_Undefined:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetUndefinedDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, scriptContext->GetLibrary()->GetUndefined(), scriptContext);
+            addDisplay = true;
             break;
 
         case Js::TypeIds_Null:
@@ -191,7 +191,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             AssertMsg(false, "Not valid types");
             break;
 
-        case Js::TypeIds_StringIterator:
         case Js::TypeIds_JavascriptEnumeratorIterator:
         case Js::TypeIds_ModuleRoot:
         case Js::TypeIds_HostObject:
@@ -210,6 +209,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_ArrayIterator:
         case Js::TypeIds_MapIterator:
         case Js::TypeIds_SetIterator:
+        case Js::TypeIds_StringIterator:
         case Js::TypeIds_VariantDate:
         case Js::TypeIds_Object:
         case Js::TypeIds_Array:
@@ -352,6 +352,7 @@ wchar_t * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_ArrayIterator:
     case Js::TypeIds_MapIterator:
     case Js::TypeIds_SetIterator:
+    case Js::TypeIds_StringIterator:
         return L"Object";
     case Js::TypeIds_Proxy: return L"Proxy";
     case Js::TypeIds_Array:
