@@ -462,14 +462,8 @@ namespace TTD
         ////////////////////////////////
         //Host API record & replay support
 
-        //Record primitive allocate operations
-        void RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival);
-        void RecordJsRTAllocateDouble(Js::ScriptContext* ctx, double dval);
-        void RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, uint32 stringLength);
-        void RecordJsRTAllocateSymbol(Js::ScriptContext* ctx, Js::Var symbolDescription);
-
         //Record conversions
-        void RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString, bool toObject);
+        void RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var);
 
         //Record object allocate operations
         void RecordJsRTAllocateBasicObject(Js::ScriptContext* ctx, bool isRegularObject);

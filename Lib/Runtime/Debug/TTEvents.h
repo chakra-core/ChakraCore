@@ -253,10 +253,15 @@ namespace TTD
             Invalid = 0x0,
 
             RawNull,
-            ChakraTaggedInteger,
-#if FLOATVAR
-            ChakraTaggedDouble,
-#endif
+            ChakraUndefined,
+            ChakraNull,
+            ChakraBool,
+            ChakraInteger,
+            ChakraInt64,
+            ChakraUInt64,
+            ChakraNumber,
+            ChakraString,
+            ChakraSymbol,
             ChakraLoggedObject
         };
 
@@ -267,17 +272,25 @@ namespace TTD
 
             union
             {
+                BOOL u_boolVal;
                 int64 u_int64Val;
+                uint64 u_uint64Val;
                 double u_doubleVal;
+                Js::PropertyId u_propertyId;
                 TTD_LOG_TAG u_objectTag;
             };
+
+            TTString* m_optStringContents;
         };
+
+        //Unload any data that is needed from this ArgRetValue
+        void UnloadData(const ArgRetValue& val, UnlinkableSlabAllocator& alloc);
 
         //Initialize as invalid
         void InitializeArgRetValueAsInvalid(ArgRetValue& val);
 
         //Extract a ArgRetValue 
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val);
+        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val, UnlinkableSlabAllocator& alloc);
 
         //Convert the ArgRetValue into the appropriate value
         Js::Var InflateArgRetValueIntoVar(const ArgRetValue& val, Js::ScriptContext* ctx);
@@ -286,7 +299,7 @@ namespace TTD
         void EmitArgRetValue(const ArgRetValue& val, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the SnapPrimitiveValue
-        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader);
+        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 
     //////////////////
@@ -348,6 +361,7 @@ namespace TTD
 
     public:
         ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, const NSLogValue::ArgRetValue& returnVal);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         //Get the event as a external call event (and do tag checking for consistency)
         static ExternalCallEventEndLogEntry* As(EventLogEntry* e);

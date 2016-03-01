@@ -2569,11 +2569,6 @@ namespace Js
 #endif
 
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetUndefined());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetNull());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetTrue());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetFalse());
-
         this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
     }
 

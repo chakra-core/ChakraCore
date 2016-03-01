@@ -277,7 +277,7 @@ namespace Js
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarPtrValued(arg))
+                if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
                     threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }
@@ -387,7 +387,7 @@ namespace Js
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarPtrValued(arg))
+                if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
                     threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }

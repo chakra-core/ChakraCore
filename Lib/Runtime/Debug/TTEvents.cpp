@@ -468,39 +468,75 @@ namespace TTD
 
     namespace NSLogValue
     {
+        void UnloadData(const ArgRetValue& val, UnlinkableSlabAllocator& alloc)
+        {
+            if(val.Tag == ArgRetValueTag::ChakraString)
+            {
+                //Unlink the string contents and the string object
+                alloc.UnlinkString(*(val.m_optStringContents));
+                alloc.UnlinkAllocation(val.m_optStringContents);
+            }
+        }
+
         void InitializeArgRetValueAsInvalid(ArgRetValue& val)
         {
             val.Tag = ArgRetValueTag::Invalid;
         }
 
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val)
+        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val, UnlinkableSlabAllocator& alloc)
         {
+            val.u_uint64Val = 0;
+            val.m_optStringContents = nullptr;
+
             if(var == nullptr)
             {
                 val.Tag = ArgRetValueTag::RawNull;
             }
             else
             {
-                if(JsSupport::IsVarTaggedInline(var))
+                Js::TypeId tid = Js::JavascriptOperators::GetTypeId(var);
+                switch(tid)
                 {
-#if FLOATVAR
-                    if(Js::TaggedInt::Is(var))
-                    {
-#endif
-                        val.Tag = ArgRetValueTag::ChakraTaggedInteger;
-                        val.u_int64Val = Js::TaggedInt::ToInt32(var);
-#if FLOATVAR
-                    }
-                    else
-                    {
-                        AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
-
-                        val.Tag = ArgRetValueTag::ChakraTaggedDouble;
-                        val.u_doubleVal = Js::JavascriptNumber::GetValue(var);
-                    }
-#endif
+                case Js::TypeIds_Undefined:
+                    val.Tag = ArgRetValueTag::ChakraUndefined;
+                    break;
+                case Js::TypeIds_Null:
+                    val.Tag = ArgRetValueTag::ChakraNull;
+                    break;
+                case Js::TypeIds_Boolean:
+                    val.Tag = ArgRetValueTag::ChakraBool;
+                    val.u_boolVal = Js::JavascriptBoolean::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_Integer:
+                    val.Tag = ArgRetValueTag::ChakraInteger;
+                    val.u_int64Val = Js::TaggedInt::ToInt64(var);
+                    break;
+                case Js::TypeIds_Number:
+                    val.Tag = ArgRetValueTag::ChakraNumber;
+                    val.u_doubleVal = Js::JavascriptNumber::GetValue(var);
+                    break;
+                case Js::TypeIds_Int64Number:
+                    val.Tag = ArgRetValueTag::ChakraInt64;
+                    val.u_int64Val = Js::JavascriptInt64Number::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_UInt64Number:
+                    val.Tag = ArgRetValueTag::ChakraUInt64;
+                    val.u_uint64Val = Js::JavascriptUInt64Number::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_String:
+                {
+                    val.Tag = ArgRetValueTag::ChakraString;
+                    val.m_optStringContents = alloc.SlabAllocateStruct<TTString>();
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength(), *(val.m_optStringContents));
+                    break;
                 }
-                else
+                case Js::TypeIds_Symbol:
+                {
+                    val.Tag = ArgRetValueTag::ChakraSymbol;
+                    val.u_propertyId = Js::RecyclableObject::FromVar(var)->GetScriptContext()->GetLibrary()->ExtractPrimitveSymbolId_TTD(var);
+                    break;
+                }
+                default:
                 {
                     val.Tag = ArgRetValueTag::ChakraLoggedObject;
 
@@ -509,6 +545,8 @@ namespace TTD
                     AssertMsg(logTag != TTD_INVALID_LOG_TAG, "Object was not logged previously!!!");
 
                     val.u_objectTag = logTag;
+                    break;
+                }
                 }
             }
         }
@@ -517,23 +555,44 @@ namespace TTD
         {
             Js::Var res = nullptr;
 
-            if(val.Tag == ArgRetValueTag::RawNull)
+            switch(val.Tag)
             {
+            case ArgRetValueTag::RawNull:
                 res = nullptr;
-            }
-            else if(val.Tag == ArgRetValueTag::ChakraTaggedInteger)
-            {
-                res = Js::TaggedInt::ToVarUnchecked((int32)val.u_int64Val);
-            }
-#if FLOATVAR
-            else if(val.Tag == ArgRetValueTag::ChakraTaggedDouble)
-            {
-                res = Js::JavascriptNumber::NewInlined(val.u_doubleVal, nullptr);
-            }
-#endif
-            else
-            {
+                break;
+            case ArgRetValueTag::ChakraUndefined:
+                res = ctx->GetLibrary()->GetUndefined();
+                break;
+            case ArgRetValueTag::ChakraNull:
+                res = ctx->GetLibrary()->GetNull();
+                break;
+            case ArgRetValueTag::ChakraBool:
+                res = (val.u_boolVal ? ctx->GetLibrary()->GetTrue() : ctx->GetLibrary()->GetFalse());
+                break;
+            case ArgRetValueTag::ChakraInteger:
+                res = Js::TaggedInt::ToVarUnchecked((int)val.u_int64Val);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                res = Js::JavascriptInt64Number::ToVar(val.u_int64Val, ctx);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                res = Js::JavascriptUInt64Number::ToVar(val.u_uint64Val, ctx);
+                break;
+            case ArgRetValueTag::ChakraNumber:
+                res = Js::JavascriptNumber::ToVarWithCheck(val.u_doubleVal, ctx);
+                break;
+            case ArgRetValueTag::ChakraString:
+                res = Js::JavascriptString::NewCopyBuffer(val.m_optStringContents->Contents, val.m_optStringContents->Length, ctx);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                res = ctx->GetLibrary()->CreatePrimitveSymbol_TTD(val.u_propertyId);
+                break;
+            case ArgRetValueTag::ChakraLoggedObject:
                 res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val.u_objectTag);
+                break;
+            default:
+                AssertMsg(false, "Missing case??");
+                break;
             }
 
             return res;
@@ -547,15 +606,30 @@ namespace TTD
             switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
+            case ArgRetValueTag::ChakraUndefined:
+            case ArgRetValueTag::ChakraNull:
                 break;
-            case ArgRetValueTag::ChakraTaggedInteger:
-                writer->WriteInt32(NSTokens::Key::i32Val, (int32)val.u_int64Val, NSTokens::Separator::CommaSeparator);
+            case ArgRetValueTag::ChakraBool:
+                writer->WriteInt32(NSTokens::Key::boolVal, val.u_boolVal, NSTokens::Separator::CommaSeparator);
                 break;
-#if FLOATVAR
-            case ArgRetValueTag::ChakraTaggedDouble:
+            case ArgRetValueTag::ChakraInteger:
+                writer->WriteInt64(NSTokens::Key::i64Val, val.u_int64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                writer->WriteInt64(NSTokens::Key::i64Val, val.u_int64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                writer->WriteInt64(NSTokens::Key::u64Val, val.u_uint64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraNumber:
                 writer->WriteDouble(NSTokens::Key::doubleVal, val.u_doubleVal, NSTokens::Separator::CommaSeparator);
                 break;
-#endif
+            case ArgRetValueTag::ChakraString:
+                writer->WriteString(NSTokens::Key::stringVal, *(val.m_optStringContents), NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                writer->WriteInt32(NSTokens::Key::propertyId, val.u_propertyId, NSTokens::Separator::CommaSeparator);
+                break;
             case ArgRetValueTag::ChakraLoggedObject:
                 writer->WriteLogTag(NSTokens::Key::tagVal, val.u_objectTag, NSTokens::Separator::CommaSeparator);
                 break;
@@ -567,24 +641,42 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader)
+        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
 
-            val.Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
+            val.u_uint64Val = 0;
+            val.m_optStringContents = nullptr;
 
+            val.Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
             switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
+            case ArgRetValueTag::ChakraUndefined:
+            case ArgRetValueTag::ChakraNull:
                 break;
-            case ArgRetValueTag::ChakraTaggedInteger:
-                val.u_int64Val = reader->ReadInt32(NSTokens::Key::i32Val, true);
+            case ArgRetValueTag::ChakraBool:
+                val.u_int64Val = reader->ReadInt32(NSTokens::Key::boolVal, true);
                 break;
-#if FLOATVAR
-            case ArgRetValueTag::ChakraTaggedDouble:
+            case ArgRetValueTag::ChakraInteger:
+                val.u_int64Val = reader->ReadInt64(NSTokens::Key::i64Val, true);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                val.u_int64Val = reader->ReadInt64(NSTokens::Key::i64Val, true);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                val.u_uint64Val = reader->ReadInt64(NSTokens::Key::u64Val, true);
+                break;
+            case ArgRetValueTag::ChakraNumber:
                 val.u_doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
                 break;
-#endif
+            case ArgRetValueTag::ChakraString:
+                val.m_optStringContents = alloc.SlabAllocateStruct<TTString>();
+                reader->ReadString(NSTokens::Key::stringVal, alloc, *(val.m_optStringContents), true);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                val.u_propertyId = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
+                break;
             case ArgRetValueTag::ChakraLoggedObject:
                 val.u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
                 break;
@@ -669,6 +761,11 @@ namespace TTD
         ;
     }
 
+    void ExternalCallEventEndLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_returnVal, alloc);
+    }
+
     ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::As(EventLogEntry* e)
     {
         AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::ExternalCallEndTag, "Not an external call event!");
@@ -727,7 +824,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue retVal;
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(retVal, false, reader);
+        NSLogValue::ParseArgRetValue(retVal, false, reader, alloc);
 
         double endTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 

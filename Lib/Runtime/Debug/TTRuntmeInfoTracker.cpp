@@ -56,6 +56,8 @@ namespace TTD
 
     void RuntimeThreadInfo::TrackTagObject(Js::RecyclableObject* obj)
     {
+        AssertMsg(obj->GetTypeId() >= Js::TypeIds_LastToPrimitiveType, "These shouldn't be tagged!!!");
+
         //
         //TODO: this is a bit rough as we never clean the root set so we grow without bound here. 
         //
@@ -118,7 +120,7 @@ namespace TTD
     void RuntimeThreadInfo::JsRTTagObject(ThreadContext* threadContext, Js::Var value)
     {
         //TTD is completely disabled so we aren't doing anything
-        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarPtrValued(value))
+        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
         {
             return;
         }

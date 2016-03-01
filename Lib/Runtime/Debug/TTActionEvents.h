@@ -14,10 +14,7 @@ namespace TTD
     enum class JsRTActionType : int
     {
         Invalid = 0x0,
-        AllocateNumber,
-        AllocateString,
-        AllocateSymbol,
-        VarConvert,
+        VarConvertToObject,
         AllocateObject,
         AllocateArray,
         AllocateArrayBuffer,
@@ -81,76 +78,20 @@ namespace TTD
         static JsRTActionLogEntry* CompleteParse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
     };
 
-    //A class for creating numbers
-    class JsRTNumberAllocateAction : public JsRTActionLogEntry
+    //A class for converting variables
+    class JsRTVarConvertToObjectAction : public JsRTActionLogEntry
     {
     private:
-        const bool m_useIntRepresentation;
-
-        const union
-        {
-            int32 u_ival;
-            double u_dval;
-        };
+        const NSLogValue::ArgRetValue m_var;
 
     public:
-        JsRTNumberAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool useIntRepresentation, int32 ival, double dval);
-
-        virtual void ExecuteAction(ThreadContext* threadContext) const override;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static JsRTNumberAllocateAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
-    };
-
-    //A class for creating strings
-    class JsRTStringAllocateAction : public JsRTActionLogEntry
-    {
-    private:
-        const TTString m_stringValue;
-
-    public:
-        JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& stringValue);
+        JsRTVarConvertToObjectAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static JsRTStringAllocateAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
-    };
-
-    //A class for creating symbols
-    class JsRTSymbolAllocateAction : public JsRTActionLogEntry
-    {
-    private:
-        const NSLogValue::ArgRetValue m_symbolDescription;
-
-    public:
-        JsRTSymbolAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& symbolDescription);
-
-        virtual void ExecuteAction(ThreadContext* threadContext) const override;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static JsRTSymbolAllocateAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
-    };
-
-    //A class for converting variables
-    class JsRTVarConvertAction : public JsRTActionLogEntry
-    {
-    private:
-        const bool m_toBool;
-        const bool m_toNumber;
-        const bool m_toString;
-        const bool m_toObject;
-
-        const NSLogValue::ArgRetValue m_var;
-
-    public:
-        JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, bool toObject, const NSLogValue::ArgRetValue& var);
-
-        virtual void ExecuteAction(ThreadContext* threadContext) const override;
-
-        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
-        static JsRTVarConvertAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
+        static JsRTVarConvertToObjectAction* CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag);
     };
 
     //A class for creating regular and external objects
@@ -210,6 +151,7 @@ namespace TTD
 
     public:
         JsRTFunctionAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isNamed, const NSLogValue::ArgRetValue& name);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -240,6 +182,7 @@ namespace TTD
 
     public:
         JsRTGetPropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::PropertyId pid, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -256,6 +199,7 @@ namespace TTD
 
     public:
         JsRTGetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& index, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -272,6 +216,7 @@ namespace TTD
 
     public:
         JsRTGetOwnPropertyInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, Js::PropertyId pid, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -288,6 +233,7 @@ namespace TTD
 
     public:
         JsRTGetOwnPropertiesInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isGetNames, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -305,6 +251,7 @@ namespace TTD
 
     public:
         JsRTDefinePropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, Js::PropertyId pid, const NSLogValue::ArgRetValue& propertyDescriptor);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -322,6 +269,7 @@ namespace TTD
 
     public:
         JsRTDeletePropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, Js::PropertyId pid, bool useStrictRules);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -338,6 +286,7 @@ namespace TTD
 
     public:
         JsRTSetPrototypeAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, const NSLogValue::ArgRetValue& proto);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -356,6 +305,7 @@ namespace TTD
 
     public:
         JsRTSetPropertyAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, Js::PropertyId pid, const NSLogValue::ArgRetValue& value, bool useStrictRules);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -373,6 +323,7 @@ namespace TTD
 
     public:
         JsRTSetIndexAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var, const NSLogValue::ArgRetValue& index, const NSLogValue::ArgRetValue& val);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 
@@ -389,6 +340,7 @@ namespace TTD
 
     public:
         JsRTGetTypedArrayInfoAction(int64 eTime, TTD_LOG_TAG ctxTag, bool returnsArrayBuff, const NSLogValue::ArgRetValue& var);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 

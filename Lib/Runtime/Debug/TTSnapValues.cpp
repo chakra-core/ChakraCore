@@ -428,7 +428,7 @@ namespace TTD
                     reader->ReadString(NSTokens::Key::stringVal, alloc, *(snapValue->m_optStringValue), true);
                     break;
                 case Js::TypeIds_Symbol:
-                    snapValue->u_propertyIdValue = reader->ReadInt32(NSTokens::Key::propertyId, true);
+                    snapValue->u_propertyIdValue = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
                     break;
                 default:
                     AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
