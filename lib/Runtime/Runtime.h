@@ -467,9 +467,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
 
-#include "Language/ModuleNamespace.h"
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
+#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 
