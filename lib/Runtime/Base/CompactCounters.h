@@ -12,7 +12,7 @@ namespace Js
     template<class T, typename CountT = T::CounterFields>
     struct CompactCounters
     {
-        volatile uint8 fieldSize;
+        uint8 fieldSize;
 #if DBG
         mutable bool bgThreadCallStarted;
         bool isCleaningUp;
@@ -25,7 +25,6 @@ namespace Js
             WriteBarrierPtr<int16> i16Fields;
             WriteBarrierPtr<int32> i32Fields;
         };
-
 
         CompactCounters()
             :fieldSize(1)
