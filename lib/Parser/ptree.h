@@ -202,6 +202,7 @@ enum FncFlags
     kFunctionHasNewTargetReference              = 1 << 27, // function has a reference to new.target
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
+    kFunctionHasAnyWriteToFormals               = 1 << 30, // function has writes to formal parameters.
 };
 
 struct RestorePoint;
@@ -277,6 +278,7 @@ public:
     void SetDoesNotEscape(bool set = true) { SetFlags(kFunctionDoesNotEscape, set); }
     void SetHasDefaultArguments(bool set = true) { SetFlags(kFunctionHasDefaultArguments, set); }
     void SetHasHeapArguments(bool set = true) { SetFlags(kFunctionHasHeapArguments, set); }
+    void SetHasAnyWriteToFormals(bool set = true) { SetFlags(kFunctionHasAnyWriteToFormals, set); }
     void SetHasNonSimpleParameterList(bool set = true) { SetFlags(kFunctionHasNonSimpleParameterList, set); }
     void SetHasNonThisStmt(bool set = true) { SetFlags(kFunctionHasNonThisStmt, set); }
     void SetHasReferenceableBuiltInArguments(bool set = true) { SetFlags(kFunctionHasReferenceableBuiltInArguments, set); }
@@ -308,6 +310,7 @@ public:
     bool GetAsmjsMode() const { return HasFlags(kFunctionAsmjsMode); }
     bool GetStrictMode() const { return HasFlags(kFunctionStrictMode); }
     bool HasDefaultArguments() const { return HasFlags(kFunctionHasDefaultArguments); }
+    bool HasAnyWriteToFormals() const {return HasFlags(kFunctionHasAnyWriteToFormals); }
     bool HasHeapArguments() const { return true; /* HasFlags(kFunctionHasHeapArguments); Disabling stack arguments. Always return HeapArguments as True */ }
     bool HasOnlyThisStmts() const { return !HasFlags(kFunctionHasNonThisStmt); }
     bool HasReferenceableBuiltInArguments() const { return HasFlags(kFunctionHasReferenceableBuiltInArguments); }

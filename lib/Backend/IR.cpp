@@ -69,7 +69,7 @@ Instr::IsPlainInstr() const
 bool
 Instr::DoStackArgsOpt(Func *topFunc) const
 {
-    return this->usesStackArgumentsObject && this->m_func->GetHasStackArgs() && topFunc->GetHasStackArgs();
+    return this->usesStackArguments && this->m_func->GetHasStackArgs() && topFunc->GetHasStackArgs();
 }
 
 bool
@@ -494,7 +494,7 @@ Instr::Copy()
     {
         instrCopy->SetByteCodeOffset(this->GetByteCodeOffset());
     }
-    instrCopy->usesStackArgumentsObject = this->usesStackArgumentsObject;
+    instrCopy->usesStackArguments = this->usesStackArguments;
     return instrCopy;
 }
 
@@ -657,7 +657,7 @@ Instr::Clone()
     {
         instrClone->SetByteCodeOffset(this->GetByteCodeOffset());
     }
-    instrClone->usesStackArgumentsObject = this->usesStackArgumentsObject;
+    instrClone->usesStackArguments = this->usesStackArguments;
     cloner->AddInstr(this, instrClone);
 
     return instrClone;
@@ -2904,7 +2904,7 @@ Instr::TransferTo(Instr * instr)
     Assert(instr->m_src1 == nullptr);
     Assert(instr->m_src2 == nullptr);
     this->TransferDstAttributesTo(instr);
-    instr->usesStackArgumentsObject = this->usesStackArgumentsObject;
+    instr->usesStackArguments = this->usesStackArguments;
     instr->isCloned = this->isCloned;
     instr->ignoreNegativeZero = this->ignoreNegativeZero;
     instr->ignoreIntOverflow = this->ignoreIntOverflow;
