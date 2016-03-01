@@ -18,20 +18,20 @@
 #define INT8_SIZE    1
 #define SIMD_INDEX_VALUE_MAX     5
 #define SIMD_STRING_BUFFER_MAX   1024
-#define SIMD_DATA 	\
-	int32   i32[4];\
-	int16   i16[8];\
-	int8    i8[16];\
-	uint32  u32[4];\
-	uint16  u16[8];\
-	uint8   u8[16];\
-	float   f32[4];\
-	double  f64[2];
+#define SIMD_DATA     \
+    int32   i32[4];\
+    int16   i16[8];\
+    int8    i8[16];\
+    uint32  u32[4];\
+    uint16  u16[8];\
+    uint8   u8[16];\
+    float   f32[4];\
+    double  f64[2];
 
 struct _SIMDValue
 {
     union{
-		SIMD_DATA
+        SIMD_DATA
     };
 
     void SetValue(_SIMDValue value)
@@ -80,7 +80,7 @@ struct DefaultComparer<_SIMDValue>
 struct _x86_SIMDValue
 {
     union{
-		SIMD_DATA
+        SIMD_DATA
         __m128  m128_value;
         __m128d m128d_value;
         __m128i m128i_value;
