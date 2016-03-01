@@ -267,8 +267,17 @@ namespace Js
 
     const Js::VarArrayVarCount * ByteCodeReader::ReadVarArrayVarCount(uint offset, FunctionBody * functionBody)
     {
-        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(functionBody->GetAuxiliaryContextData()->GetBuffer() + offset);
-        Assert(offset + varArray->GetDataSize() <= functionBody->GetAuxiliaryContextData()->GetLength());
+        Js::ByteBlock* auxiliaryContextData = functionBody->GetAuxiliaryContextData();
+        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(auxiliaryContextData->GetBuffer() + offset);
+        Assert(offset + varArray->GetDataSize() <= auxiliaryContextData->GetLength());
+        return varArray;
+    }
+
+    const Js::VarArrayVarCount * ByteCodeReader::ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody)
+    {
+        Js::ByteBlock* auxiliaryContextData = functionBody->GetAuxiliaryContextDataWithLock();
+        Js::VarArrayVarCount const * varArray = (Js::VarArrayVarCount const *)(auxiliaryContextData->GetBuffer() + offset);
+        Assert(offset + varArray->GetDataSize() <= auxiliaryContextData->GetLength());
         return varArray;
     }
 

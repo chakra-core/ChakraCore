@@ -102,10 +102,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\UnwindInfoManager.cpp">
       <Filter>arm</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobOptSimd128.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SwitchIRBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\EncoderMD.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />

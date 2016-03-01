@@ -4781,7 +4781,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
 
     case Js::OpCode::NewScObject_A:
         {
-            const Js::VarArrayVarCount *vars = Js::ByteCodeReader::ReadVarArrayVarCount(auxInsn->Offset, m_functionBody);
+            const Js::VarArrayVarCount *vars = Js::ByteCodeReader::ReadVarArrayVarCountWithLock(auxInsn->Offset, m_functionBody);
 
             int count = Js::TaggedInt::ToInt32(vars->count);
 
@@ -7217,7 +7217,7 @@ IRBuilder::BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 offset, uint32 a
     case AuxArrayValue::AuxVarsArray:
         return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<Js::Var>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxVarArrayVarCount:
-        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCount(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
+        return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadVarArrayVarCountWithLock(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     case AuxArrayValue::AuxFuncInfoArray:
         return IR::AddrOpnd::New((Js::Var)Js::ByteCodeReader::ReadAuxArrayWithLock<Js::FuncInfoEntry>(auxArrayOffset, m_functionBody), IR::AddrOpndKindDynamicMisc, m_func);
     default:
