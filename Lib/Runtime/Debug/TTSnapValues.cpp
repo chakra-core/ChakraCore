@@ -231,7 +231,7 @@ namespace TTD
 
             snapValue->ValueLogTag = isLogged ? jsValue->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(jsValue) : TTD_INVALID_LOG_TAG;
 
-            snapValue->OptWellKnownToken = (isWellKnown) ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN;
+            snapValue->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN);
 
             if(snapValue->OptWellKnownToken == TTD_INVALID_WELLKNOWN_TOKEN)
             {
@@ -1075,7 +1075,7 @@ namespace TTD
 
             if(isWellKnown)
             {
-                fbInfo->OptKnownPath = fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb);
+                fbInfo->OptKnownPath = alloc.CopyRawNullTerminatedStringInto(fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb));
 
                 fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;

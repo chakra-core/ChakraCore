@@ -400,6 +400,25 @@ namespace TTD
         SlabAllocatorBase(const SlabAllocatorBase&) = delete;
         SlabAllocatorBase& operator=(SlabAllocatorBase const&) = delete;
 
+        //clone a null terminated LPCWSTR string (or nullptr) into the allocator -- currently only used for wellknown tokens 
+        LPCWSTR CopyRawNullTerminatedStringInto(LPCWSTR str)
+        {
+            if(str == nullptr)
+            {
+                return nullptr;
+            }
+            else
+            {
+                size_t length = wcslen(str) + 1;
+                size_t byteLength = length * sizeof(wchar);
+
+                wchar* res = this->SlabAllocateArray<wchar>(length);
+                js_memcpy_s(res, byteLength, str, byteLength);
+
+                return res;
+            }
+        }
+
         //clone a string into the allocator of a known length
         void CopyStringIntoWLength(LPCWSTR str, uint32 length, TTString& into)
         {

@@ -298,6 +298,12 @@ JsErrorCode CreateContextCore(_In_ JsRuntimeHandle runtimeHandle, _In_ bool crea
             HostScriptContextCallbackFunctor callbackFunctor(context, &JsrtContext::OnScriptLoad_TTDCallback);
             threadContext->BeginCtxTimeTravel(context->GetScriptContext(), callbackFunctor);
 
+#if TTD_FORCE_DEBUG_MODE_IN_RECORD
+            if(threadContext->IsTTRecordRequested)
+            {
+                context->GetScriptContext()->GetDebugContext()->SetInDebugMode();
+            }
+#endif
             context->GetScriptContext()->InitializeCoreImage_TTD();
         }
 #endif
@@ -3697,6 +3703,10 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
     bool createFreshCtxs = false;
     *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
 
+    ////
+    //TEMP DEBUGGING CODE -- if we force createFreshCtxs = true everything works fine!!!
+    //createFreshCtxs = true;
+    ////
     if(createFreshCtxs)
     {
         try
@@ -3709,8 +3719,12 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
             ThreadContextScope scope(threadContext);
             AssertMsg(scope.IsValid(), "Hmm not cool");
 
+            JsrtContext* oldContext = JsrtContext::GetCurrent();
+
             JsrtContext* context = JsrtContext::New(runtime);
             JsrtContext::TrySetCurrent(context);
+
+            oldContext->Dispose(false);
 
             threadContext->TTDLog->UpdateInflateMapForFreshScriptContexts();
 

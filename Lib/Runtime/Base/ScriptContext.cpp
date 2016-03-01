@@ -2564,10 +2564,6 @@ namespace Js
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-#if TTD_FORCE_DEBUG_MODE_IN_RECORD
-        this->GetDebugContext()->SetInDebugMode();
-#endif
-
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
     }

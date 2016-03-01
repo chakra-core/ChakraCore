@@ -1445,11 +1445,10 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        TTString res;
-        const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
-        alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, res); //don't include the "..." marks
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
 
-        return res.Contents;
+        return res;
     }
 
     TTD_WELLKNOWN_TOKEN JSONReader::ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator)
@@ -1459,11 +1458,10 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
 
-        TTString res;
-        const wchar* spos = (this->m_charListOpt.GetBuffer() + 1);
-        alloc.CopyStringIntoWLength(spos, this->m_charListOpt.Count() - 2, res); //don't include the "..." marks
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
 
-        return res.Contents;
+        return res;
     }
 }
 

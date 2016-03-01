@@ -1435,6 +1435,35 @@ namespace TTD
         }
         Js::Arguments jsArgs(callInfo, this->m_execArgs);
 
+        ////  
+        //TEMP DEBUGGING CODE -- SET A BREAKPOINT AT THE START OF EVERY CALLBACK  
+        if(this->m_callbackDepth == 0)
+        {
+            Js::FunctionBody* fb = jsFunction->GetFunctionBody();
+            if(fb != nullptr)
+            {
+                Js::Utf8SourceInfo* utf8SourceInfo = fb->GetUtf8SourceInfo();
+                if(utf8SourceInfo->HasDebugDocument())
+                {
+                    Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
+
+                    uint startOffset = fb->GetStatementStartOffset(0);
+                    ULONG stmtStartLineNumber;
+                    LONG stmtStartColumnNumber;
+                    fb->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber);
+
+                    charcount_t charPosition;
+                    charcount_t byteOffset;
+                    utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)stmtStartLineNumber, &charPosition, &byteOffset);
+                    long ibos = charPosition + stmtStartColumnNumber + 1;
+
+                    debugDocument->SetBreakPoint(ibos, BREAKPOINT_ENABLED);
+                }
+            }
+        }
+        //
+        ////
+
         if(this->m_callbackDepth == 0)
         {
             threadContext->TTDLog->ResetCallStackForTopLevelCall(this->GetEventTime(), this->m_hostCallbackId);

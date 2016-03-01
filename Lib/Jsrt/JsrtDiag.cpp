@@ -387,16 +387,28 @@ JsDiagResume(
         }
         else if (resumeType == JsDiagResumeTypeStepOut)
         {
-            debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+            ////
+            //TEMP DEBUGGING CODE -- set reverse step action
+            ThreadContext* threadContext = runtime->GetThreadContext();
+            INT64 rootEventTime = -1;
+            UINT64 ftime = 0;
+            UINT64 ltime = 0;
+            UINT32 line = 0;
+            UINT32 column = 0;
+            UINT32 sourceId = 0;
+            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(&rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
+
+            threadContext->TTDLog->SetPendingTTDBPInfo(rootEventTime, ftime, ltime, sourceId, line, column);
+            debugObject->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+            //
+            ////
+
+            //debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
         }
         else if (resumeType == JsDiagResumeTypeStepOver)
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
         }
-//        else if(resumeType == TODO_JsDiagResumeTypeStepBack)
-//        {
-//            asdf;
-//        }
 
         return JsNoError;
     });

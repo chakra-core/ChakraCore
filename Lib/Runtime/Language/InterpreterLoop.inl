@@ -89,7 +89,6 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 {
                     if(elog->HasPendingTTDBP())
                     {
-                        AssertMsg(false, "Need to setup these values here!!!");
                         throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
                     }
                 }
