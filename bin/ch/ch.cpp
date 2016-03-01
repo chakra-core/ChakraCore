@@ -454,7 +454,7 @@ void GetDefaultTTDDirectory(std::wstring& res, const wchar_t* optExtraDir)
     }
 
     wchar_t lastChar = res.back();
-    if(lastChar != '\\')
+    if(lastChar != L'\\')
     {
         res.append(L"\\");
     }

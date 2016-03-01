@@ -85,6 +85,8 @@ namespace TTD
 
     double TTDRecordExternalFunctionCallActionPopper::GetStartTime()
     {
+        this->m_startTime = this->m_timer.Now();
+
         return this->m_startTime;
     }
 
