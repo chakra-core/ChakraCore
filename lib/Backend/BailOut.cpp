@@ -1433,8 +1433,8 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         memset(newInstance->m_localSlots + constantCount, 0, varCount * sizeof(Js::Var));
     }
 
-    Js::RegSlot localFrameDisplayReg = executeFunction->GetLocalFrameDisplayReg();
-    Js::RegSlot localClosureReg = executeFunction->GetLocalClosureReg();
+    Js::RegSlot localFrameDisplayReg = executeFunction->GetLocalFrameDisplayRegister();
+    Js::RegSlot localClosureReg = executeFunction->GetLocalClosureRegister();
 
     if (!isInlinee)
     {
@@ -1503,7 +1503,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     uint32 innerScopeCount = executeFunction->GetInnerScopeCount();
     for (uint32 i = 0; i < innerScopeCount; i++)
     {
-        Js::RegSlot reg = executeFunction->FirstInnerScopeReg() + i;
+        Js::RegSlot reg = executeFunction->GetFirstInnerScopeRegister() + i;
         newInstance->SetInnerScopeFromIndex(i, newInstance->GetNonVarReg(reg));
         newInstance->SetNonVarReg(reg, nullptr);
     }
