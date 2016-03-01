@@ -46,6 +46,10 @@ namespace TTD
         ArenaAllocator* GetGeneralAllocator() { return this->m_generalAllocator; }
         ArenaAllocator* GetBulkAllocator() { return this->m_bulkAllocator; }
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        TTD_LOG_TAG GetLogTagValueForDiagnostics() const { return this->m_logTagCtr; }
+#endif
+
         //When reset the object tagging
         void GetTagsForSnapshot(TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const;
         void ResetTagsForRestore_TTD(TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag);

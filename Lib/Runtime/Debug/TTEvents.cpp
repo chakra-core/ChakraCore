@@ -78,6 +78,10 @@ namespace TTD
 
         writer->WriteTag<EventKind>(NSTokens::Key::eventKind, this->m_eventKind);
         writer->WriteInt64(NSTokens::Key::eventTime, this->m_eventTimestamp, NSTokens::Separator::CommaSeparator);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        writer->WriteLogTag(NSTokens::Key::logTag, this->DiagnosticEventTagValue, NSTokens::Separator::CommaSeparator);
+#endif
     }
 
     EventLogEntry::EventKind EventLogEntry::GetEventKind() const
@@ -101,6 +105,10 @@ namespace TTD
 
         EventKind kind = reader->ReadTag<EventKind>(NSTokens::Key::eventKind);
         int64 etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        TTD_LOG_TAG diagnosticTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
+#endif
 
         EventLogEntry* res = nullptr;
         switch(kind)
@@ -137,6 +145,10 @@ namespace TTD
         }
 
         reader->ReadRecordEnd();
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        res->DiagnosticEventTagValue = diagnosticTag;
+#endif
 
         return res;
     }

@@ -388,6 +388,10 @@ namespace TTD
 
     void EventLog::InsertEventAtHead(EventLogEntry* evnt)
     {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        evnt->DiagnosticEventTagValue = this->m_threadContext->TTDInfo->GetLogTagValueForDiagnostics();
+#endif
+
         this->m_eventList.AddEntry(evnt);
     }
 
@@ -1543,6 +1547,12 @@ namespace TTD
         {
             this->AbortReplayReturnToHost();
         }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        TTD_LOG_TAG diagnosticsCurrentTag = this->m_threadContext->TTDInfo->GetLogTagValueForDiagnostics();
+        const EventLogEntry* diagnosticsEntry = this->m_currentReplayEventIterator.Current();
+        AssertMsg(diagnosticsCurrentTag == diagnosticsEntry->DiagnosticEventTagValue, "Log Tag is out of sync!!!");
+#endif
 
         switch(this->m_currentReplayEventIterator.Current()->GetEventKind())
         {

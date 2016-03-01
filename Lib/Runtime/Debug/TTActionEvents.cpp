@@ -528,7 +528,7 @@ namespace TTD
             Js::JavascriptString* name = nullptr;
             if(nameVar != nullptr)
             {
-                name = Js::JavascriptConversion::ToString(name, execContext);
+                name = Js::JavascriptConversion::ToString(nameVar, execContext);
             }
             else
             {
@@ -565,7 +565,6 @@ namespace TTD
 
         if(isNamed)
         {
-            NSLogValue::ArgRetValue name;
             reader->ReadKey(NSTokens::Key::entry, true);
             NSLogValue::ParseArgRetValue(name, false, reader);
         }

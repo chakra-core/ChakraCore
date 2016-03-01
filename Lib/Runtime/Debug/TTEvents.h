@@ -92,6 +92,11 @@ namespace TTD
         //de-serialize an Event calling the correct completion vased on the EventKind
         //IMPORTANT: Each subclass should implement a static "CompleteParse" method which this will call to complete the parse and create the event
         static EventLogEntry* Parse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        //A debug value that tells us what the global event tag counter should be before this event completes
+        TTD_LOG_TAG DiagnosticEventTagValue;
+#endif
     };
 
     //////////////////
