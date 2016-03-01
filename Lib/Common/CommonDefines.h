@@ -274,6 +274,10 @@
 
 #define ENABLE_TTD_DEBUGGING 1
 
+//We need to put the system in debug mode during record as well otherwise we get weird mismatches in how script is parsed 
+//This needs to be fixed later
+#define TTD_FORCE_DEBUG_MODE_IN_RECORD 1
+
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
 
