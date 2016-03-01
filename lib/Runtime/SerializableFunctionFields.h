@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifdef DEFINE_ALL_FIELDS
-#define DEFINE_FUNCTION_PROXY_FIELDS 1
 #define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
 #define DEFINE_FUNCTION_BODY_FIELDS 1
 #endif
@@ -13,9 +12,6 @@
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) type name
 #endif
 
-#ifndef DECLARE_MANUAL_SERIALIZABLE_FIELD
-#define DECLARE_MANUAL_SERIALIZABLE_FIELD(type, name, serializableType, serializeHere) type name
-#endif
 
 #ifdef CURRENT_ACCESS_MODIFIER
 #define PROTECTED_FIELDS protected:
@@ -26,13 +22,6 @@
 #define PROTECTED_FIELDS
 #define PRIVATE_FIELDS
 #define PUBLIC_FIELDS
-#endif
-
-#if DEFINE_FUNCTION_PROXY_FIELDS
-PROTECTED_FIELDS
-    DECLARE_MANUAL_SERIALIZABLE_FIELD(uint, m_nestedCount, UInt32, false);
-
-CURRENT_ACCESS_MODIFIER
 #endif
 
 #if DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS
@@ -96,11 +85,9 @@ CURRENT_ACCESS_MODIFIER
 #endif
 
 #undef DEFINE_ALL_FIELDS
-#undef DEFINE_FUNCTION_PROXY_FIELDS
 #undef DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS
 #undef DEFINE_FUNCTION_BODY_FIELDS
 #undef CURRENT_ACCESS_MODIFIER
-#undef DECLARE_MANUAL_SERIALIZABLE_FIELD
 #undef DECLARE_SERIALIZABLE_FIELD
 #undef PROTECTED_FIELDS
 #undef PRIVATE_FIELDS

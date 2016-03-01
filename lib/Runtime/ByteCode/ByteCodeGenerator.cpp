@@ -3174,11 +3174,8 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 // The nested function is deferred but has its own nested functions.
                 // Make sure we at least zero-initialize its array in case, for instance, we get cloned
                 // before the function is called and the array filled in.
-#ifdef RECYCLER_WRITE_BARRIER
-                WriteBarrierPtr<Js::FunctionProxy>::ClearArray(pnodeScope->sxFnc.funcInfo->byteCodeFunction->GetNestedFuncArray(), pnodeScope->sxFnc.nestedCount);
-#else
+
                 memset(pnodeScope->sxFnc.funcInfo->byteCodeFunction->GetNestedFuncArray(), 0, pnodeScope->sxFnc.nestedCount * sizeof(Js::FunctionBody*));
-#endif
             }
             pnodeScope->sxFnc.nestedIndex = *pIndex;
             parentFunc->SetNestedFunc(pnodeScope->sxFnc.funcInfo->byteCodeFunction, (*pIndex)++, byteCodeGenerator->GetFlags());

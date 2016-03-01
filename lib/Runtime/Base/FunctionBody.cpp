@@ -58,12 +58,10 @@ namespace Js
 #endif
 
     // FunctionProxy methods
-    FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, int nestedCount, int derivedSize, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
+    FunctionProxy::FunctionProxy(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, ScriptContext* scriptContext, Utf8SourceInfo* utf8SourceInfo, uint functionNumber):
         FunctionInfo(entryPoint, attributes, functionId, (FunctionBody*) this),
-        m_nestedCount(nestedCount),
         m_isTopLevel(false),
         m_isPublicLibraryCode(false),
-        m_derivedSize(derivedSize),
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
         m_referenceInParentFunction(nullptr),
@@ -405,9 +403,9 @@ namespace Js
             )
     {
 #ifdef PERF_COUNTERS
-            return RecyclerNewWithBarrierFinalizedPlus(scriptContext->GetRecycler(), nestedCount * sizeof(FunctionBody*), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, isDeserializedFunction);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes, isDeserializedFunction);
 #else
-            return RecyclerNewWithBarrierFinalizedPlus(scriptContext->GetRecycler(), nestedCount * sizeof(FunctionBody*), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes);
+            return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(), FunctionBody, scriptContext, displayName, displayNameLength, displayShortNameOffset, nestedCount, sourceInfo, uFunctionNumber, uScriptId, functionId, boundPropertyRecords, attributes);
 #endif
     }
 
@@ -419,7 +417,7 @@ namespace Js
         , bool isDeserializedFunction
     #endif
         ) :
-        ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, sizeof(FunctionBody), functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords),
+        ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords),
         m_uScriptId(uScriptId),
         m_varCount(0),
         m_outParamMaxDepth(0),
@@ -1045,39 +1043,24 @@ namespace Js
 
     void FunctionProxy::SetReferenceInParentFunction(FunctionProxyPtrPtr reference)
     {
-        if (reference)
-        {
-            // Tag the reference so that the child function doesn't
-            // keep the parent alive. If the parent function is going away,
-            // it'll clear its children's references.
-            this->m_referenceInParentFunction = reference;
-        }
-        else
-        {
-            this->m_referenceInParentFunction = nullptr;
-        }
+        // No need to tag the reference because the first field of the nested array 
+        // is count, so the reference here won't be same as address of the parent nested 
+        // array (even for index 0)
+        this->m_referenceInParentFunction = reference;
     }
 
     void FunctionProxy::UpdateReferenceInParentFunction(FunctionProxy* newFunctionInfo)
     {
         if (this->m_referenceInParentFunction)
         {
-#ifdef RECYCLER_WRITE_BARRIER
-            if (newFunctionInfo == nullptr)
-            {
-                (*m_referenceInParentFunction).NoWriteBarrierSet(nullptr);
-                return;
-            }
-#endif
-
-            (*m_referenceInParentFunction) = newFunctionInfo;
+            *m_referenceInParentFunction = newFunctionInfo;
         }
     }
 
     // DeferDeserializeFunctionInfo methods
 
     DeferDeserializeFunctionInfo::DeferDeserializeFunctionInfo(int nestedCount, LocalFunctionId functionId, ByteCodeCache* byteCodeCache, const byte* serializedFunction, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber, const wchar_t* displayName, uint displayNameLength, uint displayShortNameOffset, NativeModule *nativeModule, Attributes attributes) :
-        FunctionProxy(DefaultDeferredDeserializeThunk, (Attributes)(attributes | DeferredDeserialize), nestedCount, sizeof(DeferDeserializeFunctionInfo), functionId, scriptContext, sourceInfo, functionNumber),
+        FunctionProxy(DefaultDeferredDeserializeThunk, (Attributes)(attributes | DeferredDeserialize), functionId, scriptContext, sourceInfo, functionNumber),
         m_cache(byteCodeCache),
         m_functionBytes(serializedFunction),
         m_displayName(nullptr),
@@ -1115,10 +1098,10 @@ namespace Js
     }
 
     // ParseableFunctionInfo methods
-    ParseableFunctionInfo::ParseableFunctionInfo(JavascriptMethod entryPoint, int nestedCount, int derivedSize,
+    ParseableFunctionInfo::ParseableFunctionInfo(JavascriptMethod entryPoint, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber,
         const wchar_t* displayName, uint displayNameLength, uint displayShortNameOffset, Attributes attributes, Js::PropertyRecordList* propertyRecords) :
-      FunctionProxy(entryPoint, attributes, nestedCount, derivedSize, functionId, scriptContext, sourceInfo, functionNumber),
+      FunctionProxy(entryPoint, attributes, functionId, scriptContext, sourceInfo, functionNumber),
 #if DYNAMIC_INTERPRETER_THUNK
       m_dynamicInterpreterThunk(nullptr),
 #endif
@@ -1157,6 +1140,16 @@ namespace Js
       ,scopeObjectSize(0)
 #endif
     {
+        if (nestedCount > 0)
+        {
+            nestedArray = RecyclerNewPlusZ(m_scriptContext->GetRecycler(),
+                nestedCount*sizeof(FunctionProxy), NestedArray, nestedCount);
+        }
+        else
+        {
+            nestedArray = nullptr;
+        }
+
         SetBoundPropertyRecords(propertyRecords);
         if ((attributes & Js::FunctionInfo::DeferredParse) == 0)
         {
@@ -1197,12 +1190,10 @@ namespace Js
         }
 
         // When generating a new defer parse function, we always use a new function number
-        return RecyclerNewWithBarrierFinalizedPlus(scriptContext->GetRecycler(),
-            nestedCount * sizeof(FunctionBody*),
+        return RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(),
             ParseableFunctionInfo,
             scriptContext->DeferredParsingThunk,
             nestedCount,
-            sizeof(ParseableFunctionInfo),
             functionId,
             sourceInfo,
             scriptContext,
@@ -1386,15 +1377,13 @@ namespace Js
 
     FunctionProxyArray ParseableFunctionInfo::GetNestedFuncArray()
     {
-        // The array is allocated as extra bytes past the end of the struct.
-        Assert(this->m_nestedCount > 0);
-
-        return (FunctionProxyArray )((char*)this + m_derivedSize);
+        Assert(GetNestedArray() != nullptr);
+        return GetNestedArray()->functionProxyArray;
     }
 
     void ParseableFunctionInfo::SetNestedFunc(FunctionProxy* nestedFunc, uint index, ulong flags)
     {
-        AssertMsg(index < this->m_nestedCount, "Trying to write past the nested func array");
+        AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
         FunctionProxyArray nested = this->GetNestedFuncArray();
         nested[index] = nestedFunc;
@@ -1418,7 +1407,7 @@ namespace Js
 
     FunctionProxyPtrPtr ParseableFunctionInfo::GetNestedFuncReference(uint index)
     {
-        AssertMsg(index < this->m_nestedCount, "Trying to write past the nested func array");
+        AssertMsg(index < this->GetNestedCount(), "Trying to write past the nested func array");
 
         FunctionProxyArray nested = this->GetNestedFuncArray();
         return &nested[index];
@@ -1449,18 +1438,14 @@ namespace Js
 
     void ParseableFunctionInfo::ClearNestedFunctionParentFunctionReference()
     {
-        if (this->m_nestedCount > 0)
+        this->ForEachNestedFunc([](FunctionProxy* proxy, uint32 index) 
         {
-            // If the function is x-domain all the nested functions should also be marked as x-domain
-            FunctionProxyArray nested = this->GetNestedFuncArray();
-            for (uint i = 0; i < this->m_nestedCount; ++i)
+            if (proxy)
             {
-                if (nested[i])
-                {
-                    nested[i]->SetReferenceInParentFunction(nullptr);
-                }
+                proxy->SetReferenceInParentFunction(nullptr);
             }
-        }
+            return true;
+        });
     }
 
     //
@@ -1688,7 +1673,7 @@ namespace Js
                 this->m_displayName,
                 this->m_displayNameLength,
                 this->m_displayShortNameOffset,
-                this->m_nestedCount,
+                this->GetNestedCount(),
                 this->GetUtf8SourceInfo(),
                 this->m_functionNumber,
                 this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
@@ -1948,7 +1933,7 @@ namespace Js
             this->m_displayName,
             this->m_displayNameLength,
             this->m_displayShortNameOffset,
-            this->m_nestedCount,
+            this->GetNestedCount(),
             this->GetUtf8SourceInfo(),
             this->m_functionNumber,
             this->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId, /* script id */
@@ -3590,7 +3575,7 @@ namespace Js
         }
 
         FunctionBody * newFunctionBody = FunctionBody::NewFromRecycler(scriptContext, this->GetDisplayName(), this->GetDisplayNameLength(),
-                this->GetShortDisplayNameOffset(), this->m_nestedCount, sourceInfo, this->m_functionNumber, this->m_uScriptId,
+                this->GetShortDisplayNameOffset(), this->GetNestedCount(), sourceInfo, this->m_functionNumber, this->m_uScriptId,
                 this->GetLocalFunctionId(), this->GetBoundPropertyRecords(),
                 this->GetAttributes()
 #ifdef PERF_COUNTERS
@@ -3693,9 +3678,8 @@ namespace Js
 
         newFunctionInfo->scopeSlotArraySize = this->scopeSlotArraySize;
 
-        for (uint index = 0; index < this->m_nestedCount; index++)
+        this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
         {
-            FunctionProxy* proxy = this->GetNestedFunc(index);
             if (proxy)
             {
                 // Deserialize the proxy here if we have to
@@ -3719,7 +3703,8 @@ namespace Js
                 // 0u is an empty value for the bit-mask 'flags', when initially parsing this is used to track defer-parse functions.
                 newFunctionInfo->SetNestedFunc(nullptr, index, 0u);
             }
-        }
+            return true;
+        });
 
         return newFunctionInfo;
     }
@@ -3743,8 +3728,14 @@ namespace Js
             sourceInfo = scriptContext->GetSource(sourceIndex);
         }
 
-        ParseableFunctionInfo* newFunctionInfo = ParseableFunctionInfo::New(scriptContext, this->m_nestedCount, this->GetLocalFunctionId(), sourceInfo, this->GetDisplayName(), this->GetDisplayNameLength(),
-            this->GetShortDisplayNameOffset(), this->GetBoundPropertyRecords(), this->GetAttributes());
+        ParseableFunctionInfo* newFunctionInfo = ParseableFunctionInfo::New(scriptContext,
+            this->GetNestedCount(),
+            this->GetLocalFunctionId(), 
+            sourceInfo, this->GetDisplayName(), 
+            this->GetDisplayNameLength(),
+            this->GetShortDisplayNameOffset(), 
+            this->GetBoundPropertyRecords(), 
+            this->GetAttributes());
 
         if (this->GetScopeInfo() != nullptr)
         {
@@ -4478,14 +4469,15 @@ namespace Js
         SetFlags(set, Flags_NonUserCode);
 
         // Propagate setting for all functions in this scope (nested).
-        for (uint uIndex = 0; uIndex < this->m_nestedCount; uIndex++)
+        this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
         {
-            Js::FunctionBody * pBody = this->GetNestedFunc(uIndex)->GetFunctionBody();
+            Js::FunctionBody * pBody = proxy->GetFunctionBody();
             if (pBody != nullptr)
             {
                 pBody->SetIsNonUserCode(set);
             }
-        }
+            return true;
+        });
     }
 
     void FunctionBody::InsertSymbolToRegSlotList(JsUtil::CharacterBuffer<WCHAR> const& propName, RegSlot reg, RegSlot totalRegsCount)
@@ -4546,7 +4538,7 @@ namespace Js
 
         if (!fOnlyCurrent)
         {
-            for (uint uIndex = 0; uIndex < this->m_nestedCount; uIndex++)
+            for (uint uIndex = 0; uIndex < this->GetNestedCount(); uIndex++)
             {
                 Js::ParseableFunctionInfo * pBody = this->GetNestedFunctionForExecution(uIndex);
                 if (pBody == nullptr || !pBody->IsFunctionParsed())
@@ -4672,14 +4664,14 @@ namespace Js
     {
         // The current function is already compiled. In order to prep this function to ready for debug mode, most of the previous information need to be thrown away.
         // Clean up the nested functions
-        for (uint i = 0; i < m_nestedCount; i++)
+        this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
         {
-            FunctionProxy* proxy = GetNestedFunc(i);
             if (proxy && proxy->IsFunctionBody())
             {
                 proxy->GetFunctionBody()->CleanupToReparse();
             }
-        }
+            return true;
+        });
 
         CleanupRecyclerData(/* isShutdown */ false, true /* capture entry point cleanup stack trace */);
 
