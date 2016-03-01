@@ -141,7 +141,7 @@ PreReservedVirtualAllocWrapper::GetPreReservedStartAddress()
 LPVOID
 PreReservedVirtualAllocWrapper::GetPreReservedEndAddress()
 {
-    Assert(this && IsPreReservedRegionPresent());
+    Assert(IsPreReservedRegionPresent());
     return (char*)preReservedStartAddress + (PreReservedAllocationSegmentCount * AutoSystemInfo::Data.GetAllocationGranularityPageCount() * AutoSystemInfo::PageSize);
 }
 
@@ -173,7 +173,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
     {
         //This code is used where CFG is not available, but still PreReserve optimization for CFG can be tested
         startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
-        PreReservedHeapTrace(L"Reserving PreReservedSegment For the first time(CFG Non-Enabled). Address: 0x%p\n", preReservedStartAddress);
+        PreReservedHeapTrace(CH_WSTR("Reserving PreReservedSegment For the first time(CFG Non-Enabled). Address: 0x%p\n"), preReservedStartAddress);
         preReservedStartAddress = startAddress;
         return startAddress;
     }

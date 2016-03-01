@@ -1205,7 +1205,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
             return nullptr;
         }
 
-        pages = decommitSegment->DoAllocDecommitPages<notPageAligned>(pageCount, pageHeapFlags);
+        pages = decommitSegment->template DoAllocDecommitPages<notPageAligned>(pageCount, pageHeapFlags);
         if (pages != nullptr)
         {
 #if DBG_DUMP
