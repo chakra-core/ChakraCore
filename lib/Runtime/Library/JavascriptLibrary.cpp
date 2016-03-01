@@ -1671,13 +1671,14 @@ namespace Js
         {
             DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, library->nullValue, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
             DynamicObject* unscopablesList = DynamicObject::New(library->GetRecycler(), dynamicType);
-            unscopablesList->SetProperty(PropertyIds::find, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::findIndex, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::fill, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::find,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::findIndex,  JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::fill,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
             unscopablesList->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::entries, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::keys, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::values, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::entries,    JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::includes,   JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::keys,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::values,     JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
             library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopablesList, PropertyConfigurable);
         }
 
@@ -1687,10 +1688,8 @@ namespace Js
             /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
         }
 
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
-        {
-            builtinFuncs[BuiltinFunction::Array_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
-        }
+
+        builtinFuncs[BuiltinFunction::Array_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -1858,12 +1857,7 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::keys, &TypedArrayBase::EntryInfo::Keys, 0);
         JavascriptFunction* valuesFunc = library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::values, &TypedArrayBase::EntryInfo::Values, 0);
         library->AddMember(typedarrayPrototype, PropertyIds::_symbolIterator, valuesFunc);
-
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
-        {
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::includes, &TypedArrayBase::EntryInfo::Includes, 1);
-        }
-
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::includes, &TypedArrayBase::EntryInfo::Includes, 1);
 
         library->AddAccessorsToLibraryObject(typedarrayPrototype, PropertyIds::buffer, &TypedArrayBase::EntryInfo::GetterBuffer, nullptr);
         library->AddAccessorsToLibraryObject(typedarrayPrototype, PropertyIds::byteLength, &TypedArrayBase::EntryInfo::GetterByteLength, nullptr);
@@ -6455,10 +6449,7 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(of, JavascriptArray::EntryOf);
         }
 
-        if (config.IsES7BuiltinsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(includes, JavascriptArray::EntryIncludes);
-        }
+        REG_OBJECTS_LIB_FUNC(includes, JavascriptArray::EntryIncludes);
 
         return hr;
     }
@@ -6921,12 +6912,8 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(slice, TypedArrayBase::EntrySlice);
         REG_OBJECTS_LIB_FUNC(some, TypedArrayBase::EntrySome);
         REG_OBJECTS_LIB_FUNC(sort, TypedArrayBase::EntrySort);
+        REG_OBJECTS_LIB_FUNC(includes, TypedArrayBase::EntryIncludes);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.IsES7BuiltinsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(includes, TypedArrayBase::EntryIncludes);
-        }
 
         return hr;
     }
