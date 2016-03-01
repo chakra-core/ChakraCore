@@ -291,11 +291,9 @@ namespace Js
             if(elog->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                {
-                    elog->ReplayExternalCallEvent(scriptContext, &result);
-                }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+                elog->ReplayExternalCallEvent(scriptContext, &result);
+
                 scriptContext->TTDRootNestingCount--;
             }
             else if(elog->ShouldPerformRecordAction())
@@ -401,11 +399,9 @@ namespace Js
             if(elog->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
-                BEGIN_LEAVE_SCRIPT(scriptContext)
-                {
-                    elog->ReplayExternalCallEvent(scriptContext, &result);
-                }
-                END_LEAVE_SCRIPT(scriptContext);
+
+                elog->ReplayExternalCallEvent(scriptContext, &result);
+
                 scriptContext->TTDRootNestingCount--;
             }
             else if(elog->ShouldPerformRecordAction())

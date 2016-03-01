@@ -896,7 +896,18 @@ namespace TTD
         //replay anything that happens when we are out of the call
         if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
         {
-            this->ReplayActionLoopStep();
+            if(!ctx->GetThreadContext()->IsScriptActive())
+            {
+                this->ReplayActionLoopStep();
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
+                {
+                    this->ReplayActionLoopStep();
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+            }
         }
 
         //May have exited inside the external call without anything else
