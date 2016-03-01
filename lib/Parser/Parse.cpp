@@ -5781,18 +5781,19 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
                     ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
                     m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+                    ParseNodePtr * ppNodeLex = m_currentBlockInfo->m_ppnodeLex;
+                    Assert(ppNodeLex != nullptr);
+
                     ParseNodePtr paramPattern = nullptr;
                     ParseNodePtr pnodePattern = ParseDestructuredLiteral<buildAST>(tkLET, true /*isDecl*/, false /*topLevel*/);
 
-                    if (buildAST)
+                    // Instead of passing the STFormal all the way on many methods, it seems it is better to change the symbol type afterward.
+                    for (ParseNodePtr lexNode = *ppNodeLex; lexNode != nullptr; lexNode = lexNode->sxVar.pnodeNext)
                     {
-                        // Instead of passing the STFormal all the way on many methods, it seems it is better to change the symbol type afterward.
-                        Parser::MapBindIdentifier(pnodePattern, [&](ParseNodePtr item) {
-                            Assert(item->IsVarLetOrConst());
-                            UpdateOrCheckForDuplicateInFormals(item->sxVar.pid, &formals);
-                            item->sxVar.sym->SetSymbolType(STFormal);
-                        });
-                        Assert(pnodePattern->IsPattern() || pnodePattern->nop == knopAsg);
+                        Assert(lexNode->IsVarLetOrConst());
+                        UpdateOrCheckForDuplicateInFormals(lexNode->sxVar.pid, &formals);
+                        lexNode->sxVar.sym->SetSymbolType(STFormal);
                     }
 
                     m_ppnodeVar = ppnodeVarSave;
