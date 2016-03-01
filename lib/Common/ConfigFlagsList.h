@@ -782,8 +782,10 @@ FLAGR (String,  DumpOnLeak            , "Create a dump on failed memory leak che
 #endif
 FLAGNR(Boolean, CloneInlinedPolymorphicCaches, "Clones polymorphic inline caches in inlined functions", DEFAULT_CONFIG_CloneInlinedPolymorphicCaches)
 FLAGNR(Boolean, ConcurrentRuntime     , "Enable Concurrent GC and background JIT when creating runtime", DEFAULT_CONFIG_ConcurrentRuntime)
+#if CONFIG_CONSOLE_AVAILABLE
 FLAGNR(Boolean, Console               , "Create console window in GUI app", false)
 FLAGNR(Boolean, ConsoleExitPause      , "Pause on exit when a console window is created in GUI app", false)
+#endif
 FLAGNR(Number,  ConstructorInlineThreshold      , "Maximum size in bytecodes of a constructor inline candidate with monomorphic field access", DEFAULT_CONFIG_ConstructorInlineThreshold)
 FLAGNR(Number,  ConstructorCallsRequiredToFinalizeCachedType, "Number of calls to a constructor required before the type cached in the constructor cache is finalized", DEFAULT_CONFIG_ConstructorCallsRequiredToFinalizeCachedType)
 #ifdef SECURITY_TESTING
@@ -825,7 +827,7 @@ FLAGNR(Boolean, NoDynamicProfileInMemoryCache, "Enable in-memory cache for dynam
 FLAGNR(Boolean, ProfileBasedSpeculativeJit, "Enable dynamic profile based speculative JIT", DEFAULT_CONFIG_ProfileBasedSpeculativeJit)
 FLAGNR(Number,  ProfileBasedSpeculationCap, "In the presence of dynamic profile speculative JIT is capped to this many bytecode instructions", DEFAULT_CONFIG_ProfileBasedSpeculationCap)
 #ifdef DYNAMIC_PROFILE_MUTATOR
-FLAGNR(String,  DynamicProfileMutatorDll , "Path of the mutator DLL", L"DynamicProfileMutatorImpl.dll")
+FLAGNR(String, DynamicProfileMutatorDll , "Path of the mutator DLL", CH_WSTR("DynamicProfileMutatorImpl.dll"))
 FLAGNR(String,  DynamicProfileMutator , "Type of local, temp, return, param, loop implicit flag and implicit flag. \n\t\t\t\t\ti.e local=LikelyArray_NoMissingValues_NonInts_NonFloats;temp=Int8Array;param=LikelyNumber;return=LikelyString;loopimplicitflag=ImplicitCall_ToPrimitive;implicitflag=ImplicitCall_None\n\t\t\t\t\tor pass DynamicProfileMutator:random\n\t\t\t\t\tSee DynamicProfileInfo.h for enum values", nullptr)
 #endif
 FLAGNR(Boolean, ExecuteByteCodeBufferReturnsInvalidByteCode, "Serialized byte code execution always returns SCRIPT_E_INVALID_BYTECODE", false)
@@ -963,9 +965,9 @@ FLAGNR(Number,  FaultInjectionCount   , "Injects an out of memory at the specifi
 FLAGNR(String,  FaultInjectionType    , "FaultType (flag values) -  1 (Throw), 2 (NoThrow), 4 (MarkThrow), 8 (MarkNoThrow), FFFFFFFF (All)", nullptr)
 FLAGNR(String,  FaultInjectionFilter  , "A string to restrict the fault injection, the string can be like ArenaAllocator name", nullptr)
 FLAGNR(Number,  FaultInjectionAllocSize, "Do fault injection only this size", -1)
-FLAGNR(String,  FaultInjectionStackFile   , "Stacks to match, default: stack.txt in current directory", L"stack.txt")
+FLAGNR(String, FaultInjectionStackFile   , "Stacks to match, default: stack.txt in current directory", CH_WSTR("stack.txt"))
 FLAGNR(Number,  FaultInjectionStackLineCount   , "Count of lines in the stack file used for matching", -1)
-FLAGNR(String,  FaultInjectionStackHash, "Match stacks hash on Chakra frames to inject the fault, hex string", L"0")
+FLAGNR(String, FaultInjectionStackHash, "Match stacks hash on Chakra frames to inject the fault, hex string", CH_WSTR("0"))
 FLAGNR(Number,  FaultInjectionScriptContextToTerminateCount, "Script context# COUNT % (Number of script contexts) to terminate", 1)
 #endif
 FLAGNR(Number, InduceCodeGenFailure, "Probability of a codegen job failing.", DEFAULT_CONFIG_InduceCodeGenFailure)
@@ -1043,7 +1045,8 @@ FLAGR (Number,  AutoProfilingInterpreter1Limit, "Limit after which to transition
 FLAGR (Number,  SimpleJitLimit, "Limit after which to transition to the next execution mode", DEFAULT_CONFIG_SimpleJitLimit)
 FLAGR (Number,  ProfilingInterpreter1Limit, "Limit after which to transition to the next execution mode", DEFAULT_CONFIG_ProfilingInterpreter1Limit)
 
-FLAGNRA(String, ExecutionModeLimits,        Eml,  "Execution mode limits in th form: AutoProfilingInterpreter0.ProfilingInterpreter0.AutoProfilingInterpreter1.SimpleJit.ProfilingInterpreter1 - Example: -ExecutionModeLimits:12.4.0.132.12", L"")
+FLAGNRA(String, ExecutionModeLimits,        Eml,  "Execution mode limits in th form: AutoProfilingInterpreter0.ProfilingInterpreter0.AutoProfilingInterpreter1.SimpleJit.ProfilingInterpreter1 - Example: -ExecutionModeLimits:12.4.0.132.12", CH_WSTR(""))
+
 FLAGRA(Boolean, EnforceExecutionModeLimits, Eeml, "Enforces the execution mode limits such that they are never exceeded.", false)
 
 FLAGNRA(Number, SimpleJitAfter        , Sja, "Number of calls to a function after which to simple-JIT the function", 0)
@@ -1079,12 +1082,14 @@ FLAGNR(Boolean, NoWinRTFastSig        , "Disable fast call for common WinRT func
 FLAGNR(Phases,  Off                   , "Turn off specific phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  OffProfiledByteCode   , "Turn off specific byte code for phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  On                    , "Turn on specific phases or feature.(Might not work for all phases)", )
-FLAGNR(String,  OutputFile            , "Log the output to a specified file. Default: output.log in the working directory.", L"output.log")
-FLAGNR(String,  OutputFileOpenMode    , "File open mode for OutputFile. Default: wt, specify 'at' for append", L"wt")
+FLAGNR(String, OutputFile            , "Log the output to a specified file. Default: output.log in the working directory.", CH_WSTR("output.log"))
+FLAGNR(String, OutputFileOpenMode    , "File open mode for OutputFile. Default: wt, specify 'at' for append", CH_WSTR("wt"))
 #ifdef ENABLE_TRACE
 FLAGNR(Boolean, InMemoryTrace         , "Enable in-memory trace (investigate crash using trace in dump file). Use !jd.dumptrace to print it.", DEFAULT_CONFIG_InMemoryTrace)
 FLAGNR(Number,  InMemoryTraceBufferSize, "The size of circular buffer for in-memory trace (the units used is: number of trace calls). ", DEFAULT_CONFIG_InMemoryTraceBufferSize)
+#if CONFIG_RICH_TRACE_FORMAT
 FLAGNR(Boolean, RichTraceFormat, "Whether to use extra data in Output/Trace header.", DEFAULT_CONFIG_RichTraceFormat)
+#endif
 #ifdef STACK_BACK_TRACE
 FLAGNR(Boolean, TraceWithStack, "Whether the trace need to include stack trace (for each trace entry).", DEFAULT_CONFIG_TraceWithStack)
 #endif // STACK_BACK_TRACE
@@ -1264,7 +1269,7 @@ FLAGNR(Boolean, ChangeTypeOnProto, "When becoming a prototype should the object 
 FLAGNR(Boolean, ShareInlineCaches, "Determines whether inline caches are shared between all loads (or all stores) of the same property ID", DEFAULT_CONFIG_ShareInlineCaches)
 FLAGNR(Boolean, DisableDebugObject, "Disable test only Debug object properties", DEFAULT_CONFIG_DisableDebugObject)
 FLAGNR(Boolean, DumpHeap, "enable Debug.dumpHeap even when DisableDebugObject is set", DEFAULT_CONFIG_DumpHeap)
-FLAGNR(String, autoProxy, "enable creating proxy for each object creation", L"__msTestHandler")
+FLAGNR(String, autoProxy, "enable creating proxy for each object creation", CH_WSTR("__msTestHandler"))
 FLAGNR(Number,  PerfHintLevel, "Specifies the perf-hint level (1,2) 1 == critical, 2 == only noisy", DEFAULT_CONFIG_PerfHintLevel)
 #ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
 FLAGNR(Boolean, MemProtectHeap, "Use the mem protect heap as the default heap", DEFAULT_CONFIG_MemProtectHeap)

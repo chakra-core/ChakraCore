@@ -6,7 +6,16 @@
 
 #include "CommonMinMemory.h"
 
+#ifdef _WIN32
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+
+// If we're using the PAL for C++ standard library compat,
+// we don't need to include wchar for string handling
+#ifndef USING_PAL_STDLIB
 // === C Runtime Header Files ===
+#include <wchar.h>
 #include <stdarg.h>
 #include <float.h>
 #include <limits.h>
@@ -16,16 +25,10 @@
 #include <math.h>
 #endif
 #include <time.h>
-
-#ifdef _WIN32
-typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
-#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
-
-#include <wchar.h>
 #include <io.h>
+#include <malloc.h>
 #endif
 
-#include <malloc.h>
 extern "C" void * _AddressOfReturnAddress(void);
 
 #include "Common/GetCurrentFrameId.h"
@@ -138,9 +141,10 @@ class AutoExpDummyClass
 {
 };
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(HEAP_TRACK_ALLOC) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #include <typeinfo.h>
 #endif
 #pragma warning(pop)
-
+#endif

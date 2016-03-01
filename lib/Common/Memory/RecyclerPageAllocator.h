@@ -36,7 +36,10 @@ private:
     static size_t GetAllWriteWatchPageCount(DListBase<T> * segmentList);
 #endif
 #endif
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     ZeroPageQueue zeroPageQueue;
+#endif
+    
     Recycler* recycler;
 
     bool IsMemProtectMode();

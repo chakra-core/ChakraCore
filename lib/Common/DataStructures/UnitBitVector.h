@@ -461,7 +461,7 @@ public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     void DumpWord()
     {
-        Output::Print(L"%p", this->word);
+        Output::Print(CH_WSTR("%p"), this->word);
     }
 
     bool Dump(BVIndex base = 0, bool hasBits = false) const
@@ -470,9 +470,9 @@ public:
         {
             if (hasBits)
             {
-                Output::Print(L", ");
+                Output::Print(CH_WSTR(", "));
             }
-            Output::Print(L"%u", index + base);
+            Output::Print(CH_WSTR("%u"), index + base);
             hasBits = true;
         }
         NEXT_BITSET_IN_UNITBV;
@@ -484,8 +484,8 @@ public:
 typedef BVUnitT<UnitWord32> BVUnit32;
 typedef BVUnitT<UnitWord64> BVUnit64;
 
-template<> const LONG BVUnitT<UnitWord32>::ShiftValue = 5;
-template<> const LONG BVUnitT<UnitWord64>::ShiftValue = 6;
+template<> const __declspec(selectany) LONG BVUnitT<UnitWord32>::ShiftValue = 5;
+template<> const __declspec(selectany) LONG BVUnitT<UnitWord64>::ShiftValue = 6;
 
 #if defined(_M_X64_OR_ARM64)
     typedef BVUnit64 BVUnit;

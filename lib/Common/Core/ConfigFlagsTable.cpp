@@ -65,7 +65,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt LPWSTR psz)
+    String::String(__in_opt const wchar16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -89,7 +89,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt LPWSTR pszValue)
+    String::Set(__in_opt const wchar16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -283,7 +283,7 @@ namespace Js
         if ((int)parentName##Flag < FlagCount) this->flagIsParent[(int) parentName##Flag] = true;
 #include "ConfigFlagsList.h"
 #undef FLAG
-
+        
         // set all parent flags to their default (setting all child flags to their right values)
         this->SetAllParentFlagsAsDefaultValue();
     }
@@ -449,6 +449,7 @@ namespace Js
         VerifyExecutionModeLimits();
 
     #if ENABLE_DEBUG_CONFIG_OPTIONS
+    #if !DISABLE_JIT
         if(ForceDynamicProfile)
         {
             Force.Enable(DynamicProfilePhase);
@@ -457,11 +458,14 @@ namespace Js
         {
             Force.Enable(JITLoopBodyPhase);
         }
+    #endif
         if(NoDeferParse)
         {
             Off.Enable(DeferParsePhase);
         }
-
+    #endif
+        
+    #if ENABLE_DEBUG_CONFIG_OPTIONS && !DISABLE_JIT
         bool dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = false;
         if((IsEnabled(MinInterpretCountFlag) || IsEnabled(MaxInterpretCountFlag)) &&
             !(IsEnabled(SimpleJitAfterFlag) || IsEnabled(FullJitAfterFlag)))
@@ -491,7 +495,7 @@ namespace Js
                     SimpleJitAfter = MinInterpretCount;
                     dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = true;
                 }
-                if(IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag) ||
+                if((IsEnabled(MinInterpretCountFlag) && IsEnabled(MinSimpleJitRunCountFlag)) ||
                     IsEnabled(MaxSimpleJitRunCountFlag))
                 {
                     Enable(FullJitAfterFlag);
@@ -852,7 +856,7 @@ namespace Js
     #define FLAG(type, name, ...) \
             case name##Flag : \
                 return Flag##type; \
-
+                
     #include "ConfigFlagsList.h"
 
             default:
@@ -880,7 +884,7 @@ namespace Js
             \
             case name##Flag : \
                 return reinterpret_cast<void*>(const_cast<type*>(&##name)); \
-
+            
         #include "ConfigFlagsList.h"
 
             default:
@@ -913,9 +917,12 @@ namespace Js
             case FlagNumber: \
                 Output::Print(CH_WSTR(":%d"), *GetAsNumber(name##Flag)); \
                 break; \
+            default: \
+                break; \
             }; \
             Output::Print(CH_WSTR("\n")); \
         }
+        
 #include "ConfigFlagsList.h"
 #undef FLAG
     }
@@ -1053,7 +1060,7 @@ namespace Js
 #undef FLAGDOCALLBACKPhases
 #undef FLAGCALLBACKTRUE
 #undef FLAGCALLBACKFALSE
-#undef FLAG
+#undef FLAG        
 #endif
     }
 

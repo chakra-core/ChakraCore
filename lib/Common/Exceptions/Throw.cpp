@@ -4,11 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "CommonExceptionsPch.h"
+
+#ifndef USING_PAL_STDLIB
 // === C Runtime Header Files ===
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
 #include <strsafe.h>
 #pragma warning(pop)
+#endif
 
 #include "StackOverflowException.h"
 #include "AsmJsParseException.h"
@@ -85,7 +88,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(L"SystemException: OutOfMemory\n");
+            Output::Print(CH_WSTR("SystemException: OutOfMemory\n"));
             Output::Flush();
         }
 #endif
@@ -107,7 +110,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(L"SystemException: StackOverflow\n");
+            Output::Print(CH_WSTR("SystemException: StackOverflow\n"));
             Output::Flush();
         }
 #endif
@@ -253,7 +256,7 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const wchar_t * caption = L"CHAKRA ASSERT";
+    static const wchar_t * caption = CH_WSTR("CHAKRA ASSERT");
 #endif
 
     bool Throw::ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message)
@@ -284,7 +287,10 @@ namespace Js {
             return false;
 #endif
         }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+
+        // The following code is applicable only when we are hosted in an
+        // GUI environment 
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
         // Then if DumpOncrashFlag is not specified it directly returns,
         // otherwise if will raise a non-continuable exception, generate the dump and terminate the process.
         // the popup message box might be useful when testing in IE

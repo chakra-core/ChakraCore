@@ -88,7 +88,7 @@ private:
     template <class TBlockAttributes>
     friend class SmallHeapBlockT;
 #endif
-#ifdef PROFILE_RECYCLER_ALLOC
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(RECYCLER_MEMORY_VERIFY)
     HeapBucket * bucket;
 #endif
 
@@ -155,7 +155,7 @@ SmallHeapBlockAllocator<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t s
         ((TBlockType*)block)->VerifyPageHeapAllocation(memBlock, mode);
 #endif
 
-        PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Allocated from block 0x%p\n", smallBlock);
+        PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("Allocated from block 0x%p\n"), smallBlock);
 
         // Close off allocation from this block
         this->freeObjectList = (FreeObject*) this->endAddress;

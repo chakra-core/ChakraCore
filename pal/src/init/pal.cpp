@@ -83,9 +83,9 @@ extern "C" BOOL CRTInitStdStreams( void );
 
 SET_DEFAULT_DEBUG_CHANNEL(PAL);
 
-Volatile<INT> init_count = 0;
-Volatile<BOOL> shutdown_intent = 0;
-Volatile<LONG> g_coreclrInitialized = 0;
+Volatile<INT> init_count PAL_GLOBAL = 0;
+Volatile<BOOL> shutdown_intent PAL_GLOBAL = 0;
+Volatile<LONG> g_coreclrInitialized PAL_GLOBAL = 0;
 static BOOL g_fThreadDataAvailable = FALSE;
 static pthread_mutex_t init_critsec_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -101,21 +101,6 @@ static LPWSTR INIT_FindEXEPath(LPCSTR exe_name);
 #ifdef _DEBUG
 extern void PROCDumpThreadList(void);
 #endif
-
-#if defined(__APPLE__)
-static bool RunningNatively()
-{
-    int ret = 0;
-    size_t sz = sizeof(ret);
-    if (sysctlbyname("sysctl.proc_native", &ret, &sz, NULL, 0) != 0)
-    {
-        // if the sysctl failed, we'll assume this OS does not support
-        // binary translation - so we must be running natively.
-        return true;
-    }
-    return ret != 0;
-}
-#endif // __APPLE__
 
 /*++
 Function:
@@ -192,14 +177,6 @@ Initialize(
 
     /*Firstly initiate a lastError */
     SetLastError(ERROR_GEN_FAILURE);
-
-#ifdef __APPLE__
-    if (!RunningNatively())
-    {
-        SetLastError(ERROR_BAD_FORMAT);
-        goto exit;
-    }
-#endif // __APPLE__
 
     CriticalSectionSubSysInitialize();
 
@@ -621,10 +598,10 @@ Return:
 --*/
 PAL_ERROR
 PALAPI
-PAL_InitializeCoreCLR(const char *szExePath)
+PAL_InitializeChakraCore(const char *szExePath)
 {    
     // Fake up a command line to call PAL initialization with.
-    int result = Initialize(1, &szExePath, PAL_INITIALIZE_CORECLR);
+    int result = Initialize(1, &szExePath, PAL_INITIALIZE_CHAKRACORE);
     if (result != 0)
     {
         return GetLastError();
@@ -640,7 +617,7 @@ PAL_InitializeCoreCLR(const char *szExePath)
     // Now that the PAL is initialized it's safe to call the initialization methods for the code that used to
     // be dynamically loaded libraries but is now statically linked into CoreCLR just like the PAL, i.e. the
     // PAL RT and mscorwks.
-    if (!LOADInitializeCoreCLRModule())
+    if (!LOADInitializeChakraCoreModule())
     {
         return ERROR_DLL_INIT_FAILED;
     }

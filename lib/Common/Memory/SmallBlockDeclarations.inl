@@ -9,8 +9,10 @@
 
 template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages<true>(Recycler * recycler);
 template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePages<false>(Recycler * recycler);
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep<true>(Recycler* recycler);
 template void SmallHeapBlockT<TBlockTypeAttributes>::BackgroundReleasePagesSweep<false>(Recycler* recycler);
+#endif
 template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep<true>(Recycler * recycler);
 template void SmallHeapBlockT<TBlockTypeAttributes>::ReleasePagesSweep<false>(Recycler * recycler);
 template BOOL SmallHeapBlockT<TBlockTypeAttributes>::ReassignPages<true>(Recycler * recycler);

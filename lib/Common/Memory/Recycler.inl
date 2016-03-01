@@ -157,7 +157,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
-    SwbVerboseTrace(this->GetRecyclerFlagsTable(), L"Allocated SWB memory: 0x%p\n", memBlock);
+    SwbVerboseTrace(this->GetRecyclerFlagsTable(), CH_WSTR("Allocated SWB memory: 0x%p\n"), memBlock);
 
 #pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
     if (attributes & (NewTrackBit))
@@ -335,13 +335,15 @@ __inline RecyclerWeakReference<T>* Recycler::CreateWeakReferenceHandle(T* pStron
     // The entry returned is recycler-allocated memory
     RecyclerWeakReference<T>* weakRef = (RecyclerWeakReference<T>*) this->weakReferenceMap.Add((char*) pStrongReference, this);
 #if DBG
+#if ENABLE_RECYCLER_TYPE_TRACKING
     if (weakRef->typeInfo == nullptr)
     {
         weakRef->typeInfo = &typeid(T);
 #ifdef TRACK_ALLOC
         TrackAllocWeakRef(weakRef);
 #endif
-}
+    }
+#endif
 #endif
     return weakRef;
 }
@@ -355,9 +357,11 @@ __inline bool Recycler::FindOrCreateWeakReferenceHandle(T* pStrongReference, Rec
 #if DBG
     if (!ret)
     {
+#if ENABLE_RECYCLER_TYPE_TRACKING
         (*ppWeakRef)->typeInfo = &typeid(T);
 #ifdef TRACK_ALLOC
         TrackAllocWeakRef(*ppWeakRef);
+#endif
 #endif
     }
 #endif

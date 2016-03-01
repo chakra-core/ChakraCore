@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Common
+add_library (Chakra.Common.Common STATIC
     Api.cpp
     CfgLogger.cpp
     CommonCommonPch.cpp

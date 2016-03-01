@@ -4,7 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-__inline void ReportFatalException(
+#ifdef _MSC_VER
+__inline
+#endif
+void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,

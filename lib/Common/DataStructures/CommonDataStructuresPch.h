@@ -7,14 +7,16 @@
 #include "CommonMinMemory.h"
 
 // === C Runtime Header Files ===
-#ifdef _WIN32
+#ifndef USING_PAL_STDLIB
 #include <wchar.h>
-#endif
 
 #if defined(_UCRT)
 #include <cmath>
 #else
 #include <math.h>
+#endif
+#else
+#include "CommonPal.h"
 #endif
 
 // === Codex Header Files ===

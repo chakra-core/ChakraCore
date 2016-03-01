@@ -56,14 +56,14 @@ RecyclerObjectDumper::DumpObject(type_info const * typeinfo, bool isArray, void 
 {
     if (typeinfo == nullptr)
     {
-        Output::Print(L"Address %p", objectAddress);
+        Output::Print(CH_WSTR("Address %p"), objectAddress);
     }
     else
     {
         DumpFunction dumpFunction;
         if (dumpFunctionMap == nullptr || !dumpFunctionMap->TryGetValue(typeinfo, &dumpFunction) || !dumpFunction(typeinfo, isArray, objectAddress))
         {
-            Output::Print(isArray? L"%S[] %p" : L"%S %p", typeinfo->name(), objectAddress);
+            Output::Print(isArray? CH_WSTR("%S[] %p") : CH_WSTR("%S %p"), typeinfo->name(), objectAddress);
         }
     }
 }

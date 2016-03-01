@@ -4,13 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
-namespace Memory
-{
-    EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(SmallHeapBlockAllocator)
-
-    template __forceinline char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
-}
-
 template <typename TBlockType>
 SmallHeapBlockAllocator<TBlockType>::SmallHeapBlockAllocator() :
     freeObjectList(nullptr),
@@ -226,7 +219,7 @@ SmallHeapBlockAllocator<TBlockType>::TrackNativeAllocatedObjects()
     Assert(curr <= (char *)this->freeObjectList);
 
 #if DBG_DUMP
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"TrackNativeAllocatedObjects: recycler = 0x%p, sizeCat = %u, lastRuntimeAllocatedBlock = 0x%p, freeObjectList = 0x%p, nativeAllocatedObjectCount = %u\n",
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("TrackNativeAllocatedObjects: recycler = 0x%p, sizeCat = %u, lastRuntimeAllocatedBlock = 0x%p, freeObjectList = 0x%p, nativeAllocatedObjectCount = %u\n"),
         recycler, sizeCat, this->lastNonNativeBumpAllocatedBlock, this->freeObjectList, ((char *)this->freeObjectList - curr) / sizeCat);
 #endif
 
@@ -247,7 +240,7 @@ SmallHeapBlockAllocator<TBlockType>::TrackNativeAllocatedObjects()
     size_t byteCount = ((char *)this->freeObjectList - curr);
 
 #if DBG_DUMP
-    AllocationVerboseTrace(L"TrackNativeAllocatedObjects: recycler = 0x%p, sizeCat = %u, lastRuntimeAllocatedBlock = 0x%p, freeObjectList = 0x%p, nativeAllocatedObjectCount = %u\n",
+    AllocationVerboseTrace(CH_WSTR("TrackNativeAllocatedObjects: recycler = 0x%p, sizeCat = %u, lastRuntimeAllocatedBlock = 0x%p, freeObjectList = 0x%p, nativeAllocatedObjectCount = %u\n"),
         recycler, sizeCat, this->lastNonNativeBumpAllocatedBlock, this->freeObjectList, ((char *)this->freeObjectList - curr) / sizeCat);
 #endif
 
@@ -262,3 +255,10 @@ SmallHeapBlockAllocator<TBlockType>::TrackNativeAllocatedObjects()
 #endif
 }
 #endif
+
+namespace Memory
+{
+    EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(SmallHeapBlockAllocator)
+
+    template __forceinline char* SmallHeapBlockAllocator<SmallNormalHeapBlock>::InlinedAllocImpl</*canFaultInject*/true>(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes);
+}

@@ -18,7 +18,7 @@ public:
         void * scriptEngine;
     private:
         wchar_t const * url;
-        __time64_t time;
+        time_t time;
         DWORD tid;
         UrlRecord * next;
 
@@ -62,8 +62,10 @@ private:
 #define STRINGIFY(x,y) STRINGIFY2(x,y)
 #define LEAK_REPORT_PRINT(msg, ...) if (Js::Configuration::Global.flags.IsEnabled(Js::LeakReportFlag)) LeakReport::Print(msg, __VA_ARGS__)
 #define AUTO_LEAK_REPORT_SECTION(flags, msg, ...) AutoLeakReportSection STRINGIFY(__autoLeakReportSection, __COUNTER__)(flags, msg, __VA_ARGS__)
+#define AUTO_LEAK_REPORT_SECTION_0(flags, msg) AutoLeakReportSection STRINGIFY(__autoLeakReportSection, __COUNTER__)(flags, msg, "")
 #else
 #define LEAK_REPORT_PRINT(msg, ...)
-#define AUTO_LEAK_REPORT_SECTION(msg, ...)
+#define AUTO_LEAK_REPORT_SECTION(flags, msg, ...)
+#define AUTO_LEAK_REPORT_SECTION_0(flags, msg)
 #endif
 }

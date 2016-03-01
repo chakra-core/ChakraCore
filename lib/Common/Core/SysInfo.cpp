@@ -24,14 +24,46 @@
 #pragma warning(disable:4075)       // initializers put in unrecognized initialization area on purpose
 #pragma init_seg(".CRT$XCAB")
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#endif
 
-AutoSystemInfo AutoSystemInfo::Data;
+AutoSystemInfo AutoSystemInfo::Data INIT_PRIORITY(300);
+
+#if DBG
+bool
+AutoSystemInfo::IsInitialized()
+{
+    return AutoSystemInfo::Data.initialized;
+}
+#endif
+
+bool
+AutoSystemInfo::ShouldQCMoreFrequently()
+{
+    return Data.shouldQCMoreFrequently;
+}
+
+bool
+AutoSystemInfo::SupportsOnlyMultiThreadedCOM()
+{
+    return Data.supportsOnlyMultiThreadedCOM;
+}
+
+bool
+AutoSystemInfo::IsLowMemoryDevice()
+{
+    return Data.isLowMemoryDevice;
+}
 
 void
 AutoSystemInfo::Initialize()
 {
     Assert(!initialized);
+#ifndef _WIN32
+    PAL_InitializeChakraCore("/home/hiteshk/code/core/BuildLinux/bin/GCStress/GCStress");
+#endif
+
     processHandle = GetCurrentProcess();
     GetSystemInfo(this);
 
@@ -50,14 +82,17 @@ AutoSystemInfo::Initialize()
 
     binaryName[0] = L'\0';
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
     dllLoadAddress = (UINT_PTR)&__ImageBase;
     dllHighAddress = (UINT_PTR)&__ImageBase +
         ((PIMAGE_NT_HEADERS)(((char *)&__ImageBase) + __ImageBase.e_lfanew))->OptionalHeader.SizeOfImage;
-
+#endif
+    
     InitPhysicalProcessorCount();
 #if DBG
     initialized = true;
 #endif
+
     WCHAR DisableDebugScopeCaptureFlag[MAX_PATH];
     if (::GetEnvironmentVariable(CH_WSTR("JS_DEBUG_SCOPE"), DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
     {
@@ -67,7 +102,7 @@ AutoSystemInfo::Initialize()
     {
         disableDebugScopeCapture = false;
     }
-
+    
     this->shouldQCMoreFrequently = false;
     this->supportsOnlyMultiThreadedCOM = false;
     this->isLowMemoryDevice = false;
@@ -141,25 +176,26 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     return true;
 }
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
 bool
 AutoSystemInfo::IsJscriptModulePointer(void * ptr)
 {
     return ((UINT_PTR)ptr >= Data.dllLoadAddress && (UINT_PTR)ptr < Data.dllHighAddress);
 }
-
+#endif
 
 uint
 AutoSystemInfo::GetAllocationGranularityPageCount() const
 {
     Assert(initialized);
-    return allocationGranularityPageCount;
+    return this->allocationGranularityPageCount;
 }
 
 uint
 AutoSystemInfo::GetAllocationGranularityPageSize() const
 {
     Assert(initialized);
-    return allocationGranularityPageCount * PageSize;
+    return this->allocationGranularityPageCount * PageSize;
 }
 
 #if defined(_M_IX86) || defined(_M_X64)

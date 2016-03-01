@@ -25,22 +25,25 @@ typedef void* FunctionTableHandle;
 
 #define PAGE_ALLOC_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(false, false, format, __VA_ARGS__)
 #define PAGE_ALLOC_VERBOSE_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(true, false, format, __VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE_0(format) PAGE_ALLOC_TRACE_EX(true, false, format, "")
 
 #define PAGE_ALLOC_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(false, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(false, true, format, "")
 #define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(true, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(true, true, format, "")
 
-#define PAGE_ALLOC_TRACE_EX(verbose, stats, format, ...) \
+#define PAGE_ALLOC_TRACE_EX(verbose, stats, format, ...)                \
     if (this->pageAllocatorFlagTable.Trace.IsEnabled(Js::PageAllocatorPhase)) \
     { \
         if (!verbose || this->pageAllocatorFlagTable.Verbose) \
         {   \
-            Output::Print(L"%p : %p> PageAllocator(%p): ", GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
+            Output::Print(CH_WSTR("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
             if (debugName != nullptr) \
             { \
-                Output::Print(L"[%s] ", this->debugName); \
+                Output::Print(CH_WSTR("[%s] "), this->debugName);       \
             } \
             Output::Print(format, __VA_ARGS__);         \
-            Output::Print(L"\n"); \
+            Output::Print(CH_WSTR("\n"));                               \
             if (stats && this->pageAllocatorFlagTable.Stats.IsEnabled(Js::PageAllocatorPhase)) \
             { \
                 this->DumpStats();         \
@@ -51,9 +54,13 @@ typedef void* FunctionTableHandle;
 #else
 #define PAGE_ALLOC_TRACE(format, ...)
 #define PAGE_ALLOC_VERBOSE_TRACE(format, ...)
+#define PAGE_ALLOC_VERBOSE_TRACE_0(format)
 
 #define PAGE_ALLOC_TRACE_AND_STATS(format, ...)
 #define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...)
+#define PAGE_ALLOC_TRACE_AND_STATS_0(format)
+#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS_0(format)
+
 #endif
 
 #ifdef _M_X64
@@ -272,7 +279,7 @@ public:
 
     bool IsFreeOrDecommitted(void* address, uint pageCount) const
     {
-        Assert(IsInSegment(address));
+        Assert(this->IsInSegment(address));
 
         uint base = GetBitRangeBase(address);
         return this->TestRangeInDecommitPagesBitVector(base, pageCount) || this->TestRangeInFreePagesBitVector(base, pageCount);
@@ -280,7 +287,7 @@ public:
 
     bool IsFreeOrDecommitted(void* address) const
     {
-        Assert(IsInSegment(address));
+        Assert(this->IsInSegment(address));
 
         uint base = GetBitRangeBase(address);
         return this->TestInDecommitPagesBitVector(base) || this->TestInFreePagesBitVector(base);
@@ -396,6 +403,7 @@ public:
         Assert(false);
     }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
     struct BackgroundPageQueue
     {
         BackgroundPageQueue();
@@ -407,13 +415,17 @@ public:
         bool isZeroPageQueue;
 #endif
     };
+
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     struct ZeroPageQueue : BackgroundPageQueue
     {
         ZeroPageQueue();
 
         SLIST_HEADER pendingZeroPageList;
     };
-
+#endif
+#endif
+    
     PageAllocatorBase(AllocationPolicyManager * policyManager,
 #ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flags = Js::Configuration::Global.flags,
@@ -421,7 +433,9 @@ public:
         PageAllocatorType type = PageAllocatorType_Max,
         uint maxFreePageCount = DefaultMaxFreePageCount,
         bool zeroPages = false,
+#if ENABLE_BACKGROUND_PAGE_FREEING
         BackgroundPageQueue * backgroundPageQueue = nullptr,
+#endif
         uint maxAllocPageCount = DefaultMaxAllocPageCount,
         uint secondaryAllocPageCount = DefaultSecondaryAllocPageCount,
         bool stopAllocationOnOutOfMemory = false,
@@ -461,19 +475,25 @@ public:
     char * AllocPagesPageAligned(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
 
     void ReleasePages(__in void * address, uint pageCount, __in void * pageSegment);
+#if ENABLE_BACKGROUND_PAGE_FREEING
     void BackgroundReleasePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
-
+#endif
+    
     // Decommit
     void DecommitNow(bool all = true);
     void SuspendIdleDecommit();
     void ResumeIdleDecommit();
 
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     void StartQueueZeroPage();
     void StopQueueZeroPage();
     void ZeroQueuedPages();
     void BackgroundZeroQueuedPages();
+#endif
+#if ENABLE_BACKGROUND_PAGE_FREEING
     void FlushBackgroundPages();
-
+#endif
+    
     bool DisableAllocationOutOfMemory() const { return disableAllocationOutOfMemory; }
     void ResetDisableAllocationOutOfMemory() { disableAllocationOutOfMemory = false; }
 
@@ -552,11 +572,16 @@ protected:
     static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool external);
 
     // Zero Pages
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     void AddPageToZeroQueue(__in void * address, uint pageCount, __in PageSegmentBase<TVirtualAlloc> * pageSegment);
     bool HasZeroPageQueue() const;
+#endif
+    
     bool ZeroPages() const { return zeroPages; }
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     bool QueueZeroPages() const { return queueZeroPages; }
-
+#endif
+    
     FreePageEntry * PopPendingZeroPage();
 #if DBG
     void Check();
@@ -589,11 +614,15 @@ protected:
 #endif
 
     // zero pages
-    BackgroundPageQueue * backgroundPageQueue;
     bool zeroPages;
+#if ENABLE_BACKGROUND_PAGE_FREEING
+    BackgroundPageQueue * backgroundPageQueue;
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     bool queueZeroPages;
     bool hasZeroQueuedPages;
-
+#endif
+#endif
+    
     // Idle Decommit
     bool isUsed;
     size_t minFreePageCount;
@@ -638,8 +667,10 @@ protected:
 private:
     uint GetSecondaryAllocPageCount() const { return this->secondaryAllocPageCount; }
     void IntegrateSegments(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, uint segmentCount, size_t pageCount);
+#if ENABLE_BACKGROUND_PAGE_FREEING
     void QueuePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
-
+#endif
+    
     template <bool notPageAligned>
     char* AllocPagesInternal(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapModeFlags = PageHeapMode::PageHeapModeOff);
 

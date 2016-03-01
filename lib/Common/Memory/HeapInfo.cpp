@@ -15,6 +15,9 @@
 template <>
 __forceinline char* HeapInfo::RealAlloc<NoBit, false>(Recycler * recycler, size_t sizeCat);
 
+const uint SmallAllocationBlockAttributes::MaxSmallObjectCount;
+const uint MediumAllocationBlockAttributes::MaxSmallObjectCount;
+
 HeapInfo::ValidPointersMap<SmallAllocationBlockAttributes>  HeapInfo::smallAllocValidPointersMap;
 HeapInfo::ValidPointersMap<MediumAllocationBlockAttributes> HeapInfo::mediumAllocValidPointersMap;
 

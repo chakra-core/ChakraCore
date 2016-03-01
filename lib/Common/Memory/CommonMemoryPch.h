@@ -9,12 +9,14 @@
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 
+#ifndef USING_PAL_STDLIB
 // === C Runtime Header Files ===
 #include <time.h>
 #if defined(_UCRT)
 #include <cmath>
 #else
 #include <math.h>
+#endif
 #endif
 
 // Exceptions
@@ -32,11 +34,13 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include "Core/ProfileMemory.h"
 #include "Core/StackBackTrace.h"
 
+#ifdef _MSC_VER
 #pragma warning(push)
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(HEAP_TRACK_ALLOC) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #include <typeinfo.h>
 #endif
 #pragma warning(pop)
+#endif
 
 // Inl files
 #include "Memory/Recycler.inl"

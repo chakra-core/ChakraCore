@@ -205,8 +205,8 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         return allocation;
     }
 
-    VerboseHeapTrace(L"Bucket is %d\n", bucket);
-    VerboseHeapTrace(L"Requested: %d bytes. Allocated: %d bytes\n", bytes, bytesToAllocate);
+    VerboseHeapTrace(CH_WSTR("Bucket is %d\n"), bucket);
+    VerboseHeapTrace(CH_WSTR("Requested: %d bytes. Allocated: %d bytes\n"), bytes, bytesToAllocate);
 
     Page* page = nullptr;
     if(!this->buckets[bucket].Empty())
@@ -289,7 +289,7 @@ BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtect
 #if DBG_DUMP || defined(RECYCLER_TRACE)
         if (Js::Configuration::Global.flags.IsEnabled(Js::TraceProtectPagesFlag))
         {
-            Output::Print(L"Protecting large allocation\n");
+            Output::Print(CH_WSTR("Protecting large allocation\n"));
         }
 #endif
         segment = allocation->largeObjectAllocation.segment;
@@ -309,7 +309,7 @@ BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtect
             pageCount = allocation->GetPageCount();
         }
 
-        VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
+        VerboseHeapTrace(CH_WSTR("Protecting 0x%p with 0x%x\n"), address, dwVirtualProtectFlags);
         return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
     else
@@ -317,14 +317,14 @@ BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtect
 #if DBG_DUMP || defined(RECYCLER_TRACE)
         if (Js::Configuration::Global.flags.IsEnabled(Js::TraceProtectPagesFlag))
         {
-            Output::Print(L"Protecting small allocation\n");
+            Output::Print(CH_WSTR("Protecting small allocation\n"));
         }
 #endif
         segment = allocation->page->segment;
         address = allocation->page->address;
         pageCount = 1;
 
-        VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
+        VerboseHeapTrace(CH_WSTR("Protecting 0x%p with 0x%x\n"), address, dwVirtualProtectFlags);
         return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
 }
@@ -427,7 +427,7 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
             bool transfer = currentPage->segment == segment;
             if(transfer)
             {
-                VerboseHeapTrace(L"Moving page from bucket %d to full list because no XDATA allocations can be made\n", currentPage->currentBucket);
+                VerboseHeapTrace(CH_WSTR("Moving page from bucket %d to full list because no XDATA allocations can be made\n"), currentPage->currentBucket);
             }
             return transfer;
         } , this->buckets, this->fullPages);
@@ -442,7 +442,7 @@ void Heap::FreeDecommittedLargeObjects()
     Assert(inDtor);
     FOREACH_DLISTBASE_ENTRY_EDITING(Allocation, allocation, &this->decommittedLargeObjects, largeObjectIter)
     {
-        VerboseHeapTrace(L"Decommitting large object at address 0x%p of size %u\n", allocation.address, allocation.size);
+        VerboseHeapTrace(CH_WSTR("Decommitting large object at address 0x%p of size %u\n"), allocation.address, allocation.size);
 
         this->ReleaseDecommitted(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
@@ -558,18 +558,18 @@ Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushor
 #endif
 
     page->freeBitVector.ClearRange(index, length);
-    VerboseHeapTrace(L"ChunkSize: %d, Index: %d, Free bit vector in page: ", length, index);
+    VerboseHeapTrace(CH_WSTR("ChunkSize: %d, Index: %d, Free bit vector in page: "), length, index);
 
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
+    VerboseHeapTrace(CH_WSTR("\n"));
 
 
     if (this->ShouldBeInFullList(page))
     {
         BucketId bucket = page->currentBucket;
-        VerboseHeapTrace(L"Moving page from bucket %d to full list\n", bucket);
+        VerboseHeapTrace(CH_WSTR("Moving page from bucket %d to full list\n"), bucket);
 
         this->buckets[bucket].MoveElementTo(page, &this->fullPages[bucket]);
     }
@@ -585,7 +585,7 @@ Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushor
             bool transfer = currentPage->segment == page->segment;
             if(transfer)
             {
-                VerboseHeapTrace(L"Moving page from bucket %d to full list because no XDATA allocations can be made\n", page->currentBucket);
+                VerboseHeapTrace(CH_WSTR("Moving page from bucket %d to full list because no XDATA allocations can be made\n"), page->currentBucket);
             }
             return transfer;
         } , this->buckets, this->fullPages);
@@ -610,7 +610,7 @@ Heap::EnsurePreReservedPageAllocation(PreReservedVirtualAllocWrapper * preReserv
 
         if (preReservedRegionStartAddress == nullptr)
         {
-            VerboseHeapTrace(L"PRE-RESERVE: PreReserved Segment CANNOT be allocated \n");
+            VerboseHeapTrace(CH_WSTR("PRE-RESERVE: PreReserved Segment CANNOT be allocated \n"));
         }
         return preReservedRegionStartAddress;
 }
@@ -629,7 +629,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
 
             if (address == nullptr)
             {
-                VerboseHeapTrace(L"PRE-RESERVE: PreReserved Segment CANNOT be allocated \n");
+                VerboseHeapTrace(CH_WSTR("PRE-RESERVE: PreReserved Segment CANNOT be allocated \n"));
             }
         }
 
@@ -643,7 +643,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
         }
         else
         {
-            VerboseHeapTrace(L"PRE-RESERVE: Allocing new page in PreReserved Segment \n");
+            VerboseHeapTrace(CH_WSTR("PRE-RESERVE: Allocing new page in PreReserved Segment \n"));
         }
     }
 
@@ -669,7 +669,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
     ProtectPages(address, 1, pageSegment, protectFlags, PAGE_READWRITE);
 
     // Switch to allocating on a list of pages so we can do leak tracking later
-    VerboseHeapTrace(L"Allocing new page in bucket %d\n", bucket);
+    VerboseHeapTrace(CH_WSTR("Allocing new page in bucket %d\n"), bucket);
     Page* page = this->buckets[bucket].PrependNode(this->auxiliaryAllocator, address, pageSegment, bucket);
 
     if (page == nullptr)
@@ -740,9 +740,9 @@ Page* Heap::FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages
                 Page* page = &pageInBucket;
                 if (findPreReservedHeapPages)
                 {
-                    VerboseHeapTrace(L"PRE-RESERVE: Found page for splitting in Pre Reserved Segment\n");
+                    VerboseHeapTrace(CH_WSTR("PRE-RESERVE: Found page for splitting in Pre Reserved Segment\n"));
                 }
-                VerboseHeapTrace(L"Found page to split. Moving from bucket %d to %d\n", b, targetBucket);
+                VerboseHeapTrace(CH_WSTR("Found page to split. Moving from bucket %d to %d\n"), b, targetBucket);
                 return AddPageToBucket(page, targetBucket);
             }
         }
@@ -800,7 +800,7 @@ bool Heap::FreeAllocation(Allocation* object)
 
     if (this->ShouldBeInFullList(page))
     {
-        VerboseHeapTrace(L"Recycling page 0x%p because address 0x%p of size %d was freed\n", page->address, object->address, object->size);
+        VerboseHeapTrace(CH_WSTR("Recycling page 0x%p because address 0x%p of size %d was freed\n"), page->address, object->address, object->size);
 
         // If the object being freed is equal to the page size, we're
         // going to remove it anyway so don't add it to a bucket
@@ -830,7 +830,7 @@ bool Heap::FreeAllocation(Allocation* object)
                 AutoCriticalSection autocs(&this->cs);
                 this->ReleasePages(pageAddress, 1, segment);
             }
-            VerboseHeapTrace(L"FastPath: freeing page-sized object directly\n");
+            VerboseHeapTrace(CH_WSTR("FastPath: freeing page-sized object directly\n"));
             return true;
         }
     }
@@ -850,18 +850,18 @@ bool Heap::FreeAllocation(Allocation* object)
     // Fill the old buffer with debug breaks
     CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
 
-    VerboseHeapTrace(L"Setting %d bits starting at bit %d, Free bit vector in page was ", length, index);
+    VerboseHeapTrace(CH_WSTR("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
+    VerboseHeapTrace(CH_WSTR("\n"));
 
     page->freeBitVector.SetRange(index, length);
-    VerboseHeapTrace(L"Free bit vector in page: ", length, index);
+    VerboseHeapTrace(CH_WSTR("Free bit vector in page: "), length, index);
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
+    VerboseHeapTrace(CH_WSTR("\n"));
 
 #if DBG_DUMP
     this->freeObjectSize += object->size;
@@ -878,7 +878,7 @@ bool Heap::FreeAllocation(Allocation* object)
             // Templatize this to remove branches/make code more compact?
             if (&pageInBucket == page)
             {
-                VerboseHeapTrace(L"Removing page in bucket %d\n", page->currentBucket);
+                VerboseHeapTrace(CH_WSTR("Removing page in bucket %d\n"), page->currentBucket);
                 {
                     AutoCriticalSection autocs(&this->cs);
                     this->ReleasePages(page->address, 1, page->segment);
@@ -933,7 +933,7 @@ void Heap::FreePage(Page* page)
     EnsurePageWriteable(page);
     size_t freeSpace = page->freeBitVector.Count() * Page::Alignment;
 
-    VerboseHeapTrace(L"Removing page in bucket %d, freeSpace: %d\n", page->currentBucket, freeSpace);
+    VerboseHeapTrace(CH_WSTR("Removing page in bucket %d, freeSpace: %d\n"), page->currentBucket, freeSpace);
     this->ReleasePages(page->address, 1, page->segment);
 
 #if DBG_DUMP
@@ -986,7 +986,7 @@ void Heap::FreeXdata(XDataAllocation* xdata, void* segment)
             bool transfer = currentPage->segment == segment && !currentPage->HasNoSpace();
             if(transfer)
             {
-                VerboseHeapTrace(L"Recycling page 0x%p because XDATA was freed\n", currentPage->address);
+                VerboseHeapTrace(CH_WSTR("Recycling page 0x%p because XDATA was freed\n"), currentPage->address);
             }
             return transfer;
         }, this->fullPages, this->buckets);
@@ -1002,13 +1002,13 @@ void Heap::FreeXdata(XDataAllocation* xdata, void* segment)
 #if DBG_DUMP
 void Heap::DumpStats()
 {
-    HeapTrace(L"Total allocation size: %d\n", totalAllocationSize);
-    HeapTrace(L"Total free size: %d\n", freeObjectSize);
-    HeapTrace(L"Total allocations since last compact: %d\n", allocationsSinceLastCompact);
-    HeapTrace(L"Total frees since last compact: %d\n", freesSinceLastCompact);
-    HeapTrace(L"Large object count: %d\n", this->largeObjectAllocations.Count());
+    HeapTrace(CH_WSTR("Total allocation size: %d\n"), totalAllocationSize);
+    HeapTrace(CH_WSTR("Total free size: %d\n"), freeObjectSize);
+    HeapTrace(CH_WSTR("Total allocations since last compact: %d\n"), allocationsSinceLastCompact);
+    HeapTrace(CH_WSTR("Total frees since last compact: %d\n"), freesSinceLastCompact);
+    HeapTrace(CH_WSTR("Large object count: %d\n"), this->largeObjectAllocations.Count());
 
-    HeapTrace(L"Buckets: \n");
+    HeapTrace(CH_WSTR("Buckets: \n"));
     for (int i = 0; i < BucketId::NumBuckets; i++)
     {
         printf("\t%d => %u [", (1 << (i + 7)), buckets[i].Count());

@@ -187,25 +187,25 @@ template <class TBlockAttributes> class SmallNormalWithBarrierHeapBlockT;
 template <class TBlockAttributes> class SmallFinalizableWithBarrierHeapBlockT;
 
 #define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
-    template class TemplateType<SmallNormalHeapBlock>; \
-    template class TemplateType<SmallLeafHeapBlock>; \
-    template class TemplateType<SmallFinalizableHeapBlock>; \
-    template class TemplateType<SmallNormalWithBarrierHeapBlock>; \
-    template class TemplateType<SmallFinalizableWithBarrierHeapBlock>; \
-    template class TemplateType<MediumNormalHeapBlock>; \
-    template class TemplateType<MediumLeafHeapBlock>; \
-    template class TemplateType<MediumFinalizableHeapBlock>; \
-    template class TemplateType<MediumNormalWithBarrierHeapBlock>; \
-    template class TemplateType<MediumFinalizableWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalHeapBlock>;        \
+    template class TemplateType<Memory::SmallLeafHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalHeapBlock>; \
+    template class TemplateType<Memory::MediumLeafHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalWithBarrierHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableWithBarrierHeapBlock>; \
 
 #else
 #define EXPLICIT_INSTANTIATE_WITH_SMALL_HEAP_BLOCK_TYPE(TemplateType) \
-    template class TemplateType<SmallNormalHeapBlock>; \
-    template class TemplateType<SmallLeafHeapBlock>; \
-    template class TemplateType<SmallFinalizableHeapBlock>; \
-    template class TemplateType<MediumNormalHeapBlock>; \
-    template class TemplateType<MediumLeafHeapBlock>; \
-    template class TemplateType<MediumFinalizableHeapBlock>; \
+    template class TemplateType<Memory::SmallNormalHeapBlock>; \
+    template class TemplateType<Memory::SmallLeafHeapBlock>; \
+    template class TemplateType<Memory::SmallFinalizableHeapBlock>; \
+    template class TemplateType<Memory::MediumNormalHeapBlock>;     \
+    template class TemplateType<Memory::MediumLeafHeapBlock>; \
+    template class TemplateType<Memory::MediumFinalizableHeapBlock>; \
 
 #endif
 
@@ -622,9 +622,11 @@ public:
     template<bool pageheap>
     void ReleasePagesSweep(Recycler * recycler);
     void ReleasePagesShutdown(Recycler * recycler);
+#if ENABLE_BACKGROUND_PAGE_FREEING
     template<bool pageheap>
     void BackgroundReleasePagesSweep(Recycler* recycler);
-
+#endif
+    
     void Reset();
 
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));

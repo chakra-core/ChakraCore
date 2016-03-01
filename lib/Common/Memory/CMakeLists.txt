@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Memory
+add_library (Chakra.Common.Memory STATIC
     # xplat-todo: Include platform\XDataAllocator.cpp
     # Needed on windows, need a replacement for linux to do
     # amd64 stack walking
@@ -39,6 +39,7 @@ add_library (Chakra.Common.Memory
     SmallNormalHeapBucket.cpp
     StressTest.cpp
     VirtualAllocWrapper.cpp
+    amd64/amd64_SAVE_REGISTERS.S
     )
 
 include_directories(..)

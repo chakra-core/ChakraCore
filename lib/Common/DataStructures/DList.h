@@ -128,8 +128,8 @@ public:
         template <typename TAllocator>
         void RemoveCurrent(TAllocator * allocator)
         {
-            Assert(current != nullptr);
-            Assert(!list->IsHead(current));
+            Assert(this->current != nullptr);
+            Assert(!this->list->IsHead(this->current));
 
             NodeBase * last = this->current->Prev();
             NodeBase * node = const_cast<NodeBase *>(this->current);

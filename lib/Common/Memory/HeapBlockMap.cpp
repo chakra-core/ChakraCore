@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
+const uint Memory::HeapBlockMap32::L1Count;
+const uint Memory::HeapBlockMap32::L2Count;
+
 #if defined(_M_X64_OR_ARM64)
 HeapBlockMap32::HeapBlockMap32(__in char * startAddress) :
     startAddress(startAddress),
@@ -106,7 +109,7 @@ HeapBlockMap32::SetHeapBlockNoCheck(void * address, uint pageCount, HeapBlock * 
 
         id2 = 0;
         id1++;
-        currentPageCount = min(pageCount, L2Count);
+        currentPageCount = min(pageCount, Memory::HeapBlockMap32::L2Count);
     }
 }
 
