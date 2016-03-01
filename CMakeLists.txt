@@ -65,17 +65,17 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         )
 
+    add_compile_options(-fms-extensions)
+
+    # Disable some warnings
+    add_compile_options(-Wno-tautological-constant-out-of-range-compare)
+    set(CMAKE_CXX_STANDARD 11)
+
     # xplat-todo: enable the JIT for Linux
     add_definitions(
         -DDISABLE_JIT=1
         )
       
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fms-extensions")
-
-    # Disable some warnings
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-tautological-constant-out-of-range-compare")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
     # xplat-todo: revisit these
     # also, we should change this from add_definitions- the intent of that
     # is to just add -D flags
