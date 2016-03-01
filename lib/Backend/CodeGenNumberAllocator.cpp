@@ -106,7 +106,7 @@ CodeGenNumberThreadAllocator::AllocNewNumberBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), true);
+        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true);
         if (currentNumberSegment == nullptr)
         {
             currentNumberBlockEnd = nullptr;
@@ -153,7 +153,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), true);
+        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true);
         if (currentChunkSegment == nullptr)
         {
             currentChunkBlockEnd = nullptr;

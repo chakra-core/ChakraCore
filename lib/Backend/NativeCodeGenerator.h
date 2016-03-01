@@ -97,7 +97,6 @@ public:
     void UpdateQueueForDebugMode();
     bool IsBackgroundJIT() const;
     void EnterScriptStart();
-    bool IsNativeFunctionAddr(void * address);
     void FreeNativeCodeGenAllocation(void* address);
     bool TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem);
 
@@ -174,7 +173,6 @@ private:
         AllocateBackgroundAllocators(pageAllocator);
     }
 
-    bool IsInDebugMode() const;
     static ExecutionMode PrejitJitMode(Js::FunctionBody *const functionBody);
 
     bool TryAggressiveInlining(Js::FunctionBody *const topFunctionBody, Js::FunctionBody *const functionBody, InliningDecider &inliningDecider, uint32& inlineeCount, uint recursiveInlineDepth);

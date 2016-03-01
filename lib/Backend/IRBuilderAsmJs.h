@@ -29,7 +29,7 @@ public:
         , m_switchBuilder(&m_switchAdapter)
     {
         func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
-        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfo();
+        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
         if (func->IsLoopBody())
         {
             Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint());

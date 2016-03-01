@@ -69,6 +69,7 @@ namespace Js
         static uint32 GetOffsetOfEnvironment() { return offsetof(ScriptFunction, environment); }
         static uint32 GetOffsetOfCachedScopeObj() { return offsetof(ScriptFunction, cachedScopeObj); };
         static uint32 GetOffsetOfHasInlineCaches() { return offsetof(ScriptFunction, hasInlineCaches); };
+        static uint32 GetOffsetOfHomeObj() { return  offsetof(ScriptFunction, homeObj); }
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);

@@ -347,9 +347,109 @@ namespace Js
         UnifiedRegex::Matcher* matcher;
     };
 
+    template <bool updateHistory>
+    Var RegexHelper::RegexMatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
+    {
+        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
+
+        // Normally, this check would be done in JavascriptRegExp::EntrySymbolMatch. However,
+        // since the lowerer inlines String.prototype.match and directly calls the helper,
+        // the check then would be bypassed. That's the reason we do the check here.
+        if (scriptConfig->IsES6RegExSymbolsEnabled()
+            && IsRegexSymbolMatchObservable(thisObj, scriptContext))
+        {
+            // We don't need to pass "updateHistory" here since the call to "exec" will handle it.
+            return RegexEs6MatchImpl(scriptContext, thisObj, input, noResult, stackAllocationPointer);
+        }
+        else
+        {
+            PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
+                ? L"RegExp.prototype[Symbol.match]"
+                : L"String.prototype.match";
+            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
+            return RegexEs5MatchImpl<updateHistory>(scriptContext, regularExpression, input, noResult, stackAllocationPointer);
+        }
+    }
+
+    bool RegexHelper::IsRegexSymbolMatchObservable(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptRegExp::HasObservableExec(instance, scriptContext)
+            || JavascriptRegExp::HasObservableGlobalFlag(instance, scriptContext)
+            || JavascriptRegExp::HasObservableStickyFlag(instance, scriptContext)
+            || JavascriptRegExp::HasObservableUnicodeFlag(instance, scriptContext)
+            || JavascriptRegExp::HasObservableLastIndex(instance, scriptContext);
+    }
+
+    Var RegexHelper::RegexEs6MatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
+    {
+        PCWSTR const varName = L"RegExp.prototype[Symbol.match]";
+
+        bool global =
+            JavascriptConversion::ToBool(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::global, scriptContext),
+                scriptContext);
+        if (!global)
+        {
+            return JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
+        }
+        else
+        {
+            bool unicode = JavascriptConversion::ToBool(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::unicode, scriptContext),
+                scriptContext);
+
+            JavascriptRegExp::SetLastIndexProperty(thisObj, TaggedInt::ToVarUnchecked(0), scriptContext);
+
+            JavascriptArray* arrayResult = nullptr;
+
+            do
+            {
+                Var result = JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
+                if (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
+                {
+                    break;
+                }
+
+                PropertyRecord const * propertyRecord;
+                JavascriptOperators::GetPropertyIdForInt((uint32) 0, scriptContext, &propertyRecord);
+                Var property0 = JavascriptOperators::GetProperty(
+                    RecyclableObject::FromVar(result),
+                    propertyRecord->GetPropertyId(),
+                    scriptContext);
+                JavascriptString* matchStr = JavascriptConversion::ToString(property0, scriptContext);
+
+                if (arrayResult == nullptr)
+                {
+                    arrayResult = scriptContext->GetLibrary()->CreateArray();
+                }
+
+                arrayResult->DirectSetItemAt(arrayResult->GetLength(), matchStr);
+
+                if (matchStr->GetLength() == 0)
+                {
+                    int64 lastIndex = JavascriptConversion::ToLength(
+                        JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext),
+                        scriptContext);
+
+                    lastIndex = AdvanceStringIndex(input, lastIndex, unicode);
+
+                    JavascriptRegExp::SetLastIndexProperty(
+                        thisObj,
+                        JavascriptNumber::ToVar(lastIndex, scriptContext),
+                        scriptContext);
+                }
+            }
+            while (true);
+
+            return arrayResult != nullptr
+                ? arrayResult
+                : scriptContext->GetLibrary()->GetNull();
+        }
+    }
+
     // String.prototype.match (ES5 15.5.4.10)
     template <bool updateHistory>
-    Var RegexHelper::RegexMatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexEs5MatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
         const wchar_t* inputStr = input->GetString();
@@ -504,8 +604,6 @@ namespace Js
 
         return arrayResult;
     }
-    template Var RegexHelper::RegexMatchImpl<true>(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer);
-    template Var RegexHelper::RegexMatchImpl<false>(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer);
 
     // RegExp.prototype.exec (ES5 15.10.6.2)
     Var RegexHelper::RegexExecImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer)
@@ -1615,15 +1713,17 @@ namespace Js
         }
     }
 
-    Var RegexHelper::RegexMatch(ScriptContext* entryFunctionContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexMatch(ScriptContext* entryFunctionContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
-        Var result = RegexHelper::RegexMatchImpl<true>(entryFunctionContext, regularExpression, input, noResult, stackAllocationPointer);
+        Var result = RegexHelper::RegexMatchImpl<true>(entryFunctionContext, thisObj, input, noResult, stackAllocationPointer);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
     Var RegexHelper::RegexMatchNoHistory(ScriptContext* entryFunctionContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult)
     {
-        Var result = RegexHelper::RegexMatchImpl<false>(entryFunctionContext, regularExpression, input, noResult);
+        // RegexMatchNoHistory() is used only by Intl internally and there is no need for ES6
+        // observable RegExp actions. Therefore, we can directly use the ES5 logic.
+        Var result = RegexHelper::RegexEs5MatchImpl<false>(entryFunctionContext, regularExpression, input, noResult);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
@@ -1717,5 +1817,13 @@ namespace Js
     {
         Var result = RegexHelper::RegexSplitImpl(entryFunctionContext, regularExpression, input, limit, noResult, stackAllocationPointer);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
+    }
+
+    int64 RegexHelper::AdvanceStringIndex(JavascriptString* string, int64 index, bool isUnicode)
+    {
+        // TODO: Change the increment to 2 depending on the "unicode" flag and
+        // the code point at "index". The increment is currently constant at 1
+        // in order to be compatible with the rest of the RegExp code.
+        return index + 1;
     }
 }

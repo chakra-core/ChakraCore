@@ -103,15 +103,9 @@ namespace Js
 
 
         SIMDValue value = instance->GetValue();
-        JavascriptString *s0, *s1, *s2, *s3;
-        s0 = JavascriptNumber::ToStringRadix10((double)value.f32[0], scriptContext);
-        s1 = JavascriptNumber::ToStringRadix10((double)value.f32[1], scriptContext);
-        s2 = JavascriptNumber::ToStringRadix10((double)value.f32[2], scriptContext);
-        s3 = JavascriptNumber::ToStringRadix10((double)value.f32[3], scriptContext);
+        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
 
-        wchar_t stringBuffer[1024];
-
-        swprintf_s(stringBuffer, 1024, L"SIMD.Float32x4(%s, %s, %s, %s)", s0->GetSz(), s1->GetSz(), s2->GetSz(), s3->GetSz());
+        JavascriptSIMDFloat32x4::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX, scriptContext);
 
         JavascriptString* string = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 
@@ -119,6 +113,17 @@ namespace Js
     }
 
     // End Entry Points
+    
+    void JavascriptSIMDFloat32x4::ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext)
+    {
+        JavascriptString *s0, *s1, *s2, *s3;
+        s0 = JavascriptNumber::ToStringRadix10((double)value.f32[0], scriptContext);
+        s1 = JavascriptNumber::ToStringRadix10((double)value.f32[1], scriptContext);
+        s2 = JavascriptNumber::ToStringRadix10((double)value.f32[2], scriptContext);
+        s3 = JavascriptNumber::ToStringRadix10((double)value.f32[3], scriptContext);
+
+        swprintf_s(stringBuffer, countBuffer, L"SIMD.Float32x4(%s, %s, %s, %s)", s0->GetSz(), s1->GetSz(), s2->GetSz(), s3->GetSz());
+    }
 
     Var JavascriptSIMDFloat32x4::Copy(ScriptContext* requestContext)
     {

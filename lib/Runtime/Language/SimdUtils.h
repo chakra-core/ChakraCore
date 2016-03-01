@@ -16,6 +16,9 @@
 #define INT32_SIZE   4
 #define INT16_SIZE   2
 #define INT8_SIZE    1
+#define SIMD_INDEX_VALUE_MAX     5
+#define SIMD_STRING_BUFFER_MAX   1024
+
 
 struct _SIMDValue
 {

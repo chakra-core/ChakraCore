@@ -333,7 +333,7 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 
     uint GetLoopNumber() const override
     {
-        return functionBody->GetLoopNumber(loopHeader);
+        return functionBody->GetLoopNumberWithLock(loopHeader);
     }
 
     uint GetByteCodeCount() const override

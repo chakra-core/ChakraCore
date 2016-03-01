@@ -145,7 +145,7 @@ const Js::Var Js::MutationBreakpoint::GetBreakNewValueVar() const
 bool Js::MutationBreakpoint::IsFeatureEnabled(ScriptContext *scriptContext)
 {
     Assert(scriptContext != nullptr);
-    return scriptContext->IsInDebugMode() && !PHASE_OFF1(Js::ObjectMutationBreakpointPhase);
+    return scriptContext->IsScriptContextInDebugMode() && !PHASE_OFF1(Js::ObjectMutationBreakpointPhase);
 }
 
 bool Js::MutationBreakpoint::CanSet(Var object)

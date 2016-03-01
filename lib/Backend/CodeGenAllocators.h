@@ -4,27 +4,22 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if PDATA_ENABLED
-#define ALLOC_XDATA (true)
-#else
-#define ALLOC_XDATA (false)
-#endif
-
-struct CodeGenAllocators
+class CodeGenAllocators
 {
     // emitBufferManager depends on allocator which in turn depends on pageAllocator, make sure the sequence is right
+private:
     PageAllocator pageAllocator;
-    NoRecoverMemoryArenaAllocator    allocator;
+    NoRecoverMemoryArenaAllocator  allocator;
+public:
     EmitBufferManager<CriticalSection> emitBufferManager;
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     bool canCreatePreReservedSegment;
 #endif
 
-#ifdef PERF_COUNTERS
-    size_t staticNativeCodeData;
-#endif
-
-    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext);
-    PageAllocator *GetPageAllocator() { return &pageAllocator; };
+    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext);    
     ~CodeGenAllocators();
+
+#if DBG
+    void ClearConcurrentThreadId();
+#endif
 };

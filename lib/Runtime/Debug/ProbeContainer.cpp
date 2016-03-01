@@ -110,7 +110,7 @@ namespace Js
                 ScriptContext* frameScriptContext = walker.GetCurrentScriptContext();
                 Assert(frameScriptContext);
 
-                if (!fMatchWithCurrentScriptContext && !frameScriptContext->IsInDebugMode() && tempFramePointers->Count() == 0)
+                if (!fMatchWithCurrentScriptContext && !frameScriptContext->IsScriptContextInDebugMode() && tempFramePointers->Count() == 0)
                 {
                     // this means the top frame is not in the debug mode. We shouldn't be stopping for this break.
                     // This could happen if the exception happens on the diagnosticsScriptEngine.
@@ -119,7 +119,7 @@ namespace Js
 
                 // Ignore frames which are not in debug mode, which can happen when diag engine calls into user engine under debugger
                 // -- topmost frame is under debugger but some frames could be in non-debug mode as they are from diag engine.
-                if (frameScriptContext->IsInDebugMode() &&
+                if (frameScriptContext->IsScriptContextInDebugMode() &&
                     (!fMatchWithCurrentScriptContext || frameScriptContext == pScriptContext))
                 {
                     if (interpreterFrame)
@@ -391,7 +391,7 @@ namespace Js
                 pHaltState, pHaltState->IsValid(), pHaltState->topFrame && pHaltState->topFrame->IsInterpreterFrame());
 
             // The ByteCodeReader should be available at this point, but because of possibility of garbled frame, we shouldn't hit AV
-            if (pHaltState->IsValid() && pHaltState->GetFunction()->GetScriptContext()->IsInDebugMode())
+            if (pHaltState->IsValid() && pHaltState->GetFunction()->GetScriptContext()->IsScriptContextInDebugMode())
             {
 #if DBG
                 pHaltState->GetFunction()->MustBeInDebugMode();
@@ -570,7 +570,7 @@ namespace Js
         {
             // Usually we need to be in debug mode to UpdateStep. But during setting up new engine to debug mode we have an
             // ordering issue and the new engine will enter debug mode after this. So allow non-debug mode if fDuringSetupDebugApp.
-            AssertMsg(fDuringSetupDebugApp || (pScriptContext && pScriptContext->IsInDebugMode()), "Why UpdateStep when we are not in debug mode?");
+            AssertMsg(fDuringSetupDebugApp || (pScriptContext && pScriptContext->IsScriptContextInDebugMode()), "Why UpdateStep when we are not in debug mode?");
             debugManager->stepController.stepType = STEP_IN;
         }
     }
@@ -904,7 +904,7 @@ namespace Js
         // This will be called from ParseScriptText.
         // This is to ensure the every script will call EnterScript back to host once, in-order to synchronize PDM with document.
         Assert(this->pScriptContext);
-        if (this->pScriptContext->IsInDebugMode())
+        if (this->pScriptContext->IsScriptContextInDebugMode())
         {
             isForcedToEnterScriptStart = true;
         }
@@ -912,7 +912,7 @@ namespace Js
 
     void ProbeContainer::RegisterContextToDiag(DWORD_PTR context, ArenaAllocator *alloc)
     {
-        Assert(this->pScriptContext->IsInSourceRundownMode() || this->pScriptContext->IsInDebugMode());
+        Assert(this->pScriptContext->IsScriptContextInSourceRundownOrDebugMode());
         Assert(alloc);
 
         if (registeredFuncContextList == nullptr)

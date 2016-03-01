@@ -9,7 +9,7 @@
 #define NativeCodeDataNewArray(alloc, T, count) AllocatorNewArray(NativeCodeData::Allocator, alloc, T, count)
 #define NativeCodeDataNewArrayZ(alloc, T, count) AllocatorNewArrayZ(NativeCodeData::Allocator, alloc, T, count)
 
-struct CodeGenAllocators;
+class CodeGenAllocators;
 
 class NativeCodeData
 {

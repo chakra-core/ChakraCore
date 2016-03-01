@@ -3296,14 +3296,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
 
-    byteCodeFunction->SetIsByteCodeDebugMode(this->IsInDebugMode());
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (byteCodeFunction->IsByteCodeDebugMode() != scriptContext->IsInDebugMode()) // debug mode mismatch
+    if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
     {
         if (m_utf8SourceInfo->GetIsLibraryCode())
         {
-            Assert(!byteCodeFunction->IsByteCodeDebugMode()); // Library script byteCode is never in debug mode
+            Assert(!byteCodeFunction->IsInDebugMode()); // Library script byteCode is never in debug mode
         }
         else
         {
@@ -4325,6 +4323,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         }
         else
         {
+            Assert(funcInfo->frameObjRegister != Js::Constants::NoRegister);
             this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
         }
 
@@ -6187,11 +6186,17 @@ void EmitDestructuredObject(ParseNode *lhs,
 {
     Assert(lhs->nop == knopObjectPattern);
     ParseNodePtr pnode1 = lhs->sxUni.pnode1;
+
+    byteCodeGenerator->StartStatement(lhs);
+
+    Js::ByteCodeLabel skipThrow = byteCodeGenerator->Writer()->DefineLabel();
+    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, skipThrow, rhsLocation, funcInfo->undefinedConstantRegister);
+    byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_ObjectCoercible));
+    byteCodeGenerator->Writer()->MarkLabel(skipThrow);
+
     if (pnode1 != nullptr)
     {
         Assert(pnode1->nop == knopList || pnode1->nop == knopObjectPatternMember);
-
-        byteCodeGenerator->StartStatement(lhs);
 
         ParseNodePtr current = pnode1;
         while (current->nop == knopList)
@@ -6201,9 +6206,9 @@ void EmitDestructuredObject(ParseNode *lhs,
             current = current->sxBin.pnode2;
         }
         EmitDestructuredObjectMember(current, rhsLocation, byteCodeGenerator, funcInfo);
-
-        byteCodeGenerator->EndStatement(lhs);
     }
+
+    byteCodeGenerator->EndStatement(lhs);
 }
 
 void EmitAssignment(

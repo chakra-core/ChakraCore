@@ -728,13 +728,13 @@ bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
 bool ByteCodeGenerator::IsInDebugMode() const
 {
-    return scriptContext->IsInDebugMode() && !m_utf8SourceInfo->GetIsLibraryCode();
+    return m_utf8SourceInfo->IsInDebugMode();
 }
 
 // ByteCodeGenerator non-debug mode means we are not debugging, or we are generating library code which is always in non-debug mode.
 bool ByteCodeGenerator::IsInNonDebugMode() const
 {
-    return scriptContext->IsInNonDebugMode() || m_utf8SourceInfo->GetIsLibraryCode();
+    return scriptContext->IsScriptContextInNonDebugMode() || m_utf8SourceInfo->GetIsLibraryCode();
 }
 
 bool ByteCodeGenerator::ShouldTrackDebuggerMetadata() const
@@ -1079,8 +1079,6 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
         byteCodeFunction->ResetByteCodeGenVisitState();
         if (byteCodeFunction->GetBoundPropertyRecords() == nullptr)
         {
-            Assert(!IsInNonDebugMode());
-
             // This happens when we try to re-use the function body which was created due to serialized bytecode.
             byteCodeFunction->SetBoundPropertyRecords(EnsurePropertyRecordList());
         }

@@ -60,6 +60,7 @@ namespace Js
     #define PropertyDeletedDefaults (PropertyDeleted | PropertyWritable | PropertyConfigurable)
     #define PropertyNoRedecl        (PropertyLet | PropertyConst)
     #define PropertyClassMemberDefaults (PropertyConfigurable|PropertyWritable)
+    #define PropertyModuleNamespaceDefault (PropertyEnumerable|PropertyWritable)
 
     BEGIN_ENUM_UINT(InternalPropertyIds)
 #define INTERNALPROPERTY(n) n,

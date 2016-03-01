@@ -117,6 +117,10 @@ var tests = [
 
       assert.throws(function () { eval("let a; [...[a+1] = [{}];"); }, SyntaxError, "Under expression, having rest element as pattern which has operator is not valid syntax",   "Unexpected operator in destructuring expression");
       assert.throws(function () { eval("function foo() { return {x:1}; }; [...foo()] = [10];"); }, SyntaxError, "Under expression, having rest element as call expression is not valid syntax", "Invalid destructuring assignment target");
+      assert.throws(function () { eval("let [...[a] = []] = [[]];"); }, SyntaxError, "Under declaration - rest as array pattern cannot have initializer", "The rest parameter cannot have a default initializer.");
+      assert.throws(function () { eval("let [...{x} = {}] = [{}];"); }, SyntaxError, "Under declaration - rest as object pattern cannot have initializer", "The rest parameter cannot have a default initializer.");
+      assert.throws(function () { eval("let a; ([...[a] = []] = [[]]);"); }, SyntaxError, "Under assignment - rest as array pattern cannot have initializer", "The rest parameter cannot have a default initializer.");
+      assert.throws(function () { eval("let x; ([...{x} = {}] = [{}]);"); }, SyntaxError, "Under assignment - rest as object pattern cannot have initializer", "The rest parameter cannot have a default initializer.");
     }
    },
    {
@@ -180,6 +184,28 @@ var tests = [
         var { set: y } = { set: 4 };
         assert.areEqual(3, x, "`get` is a valid object destructuring name mapping");
         assert.areEqual(4, y, "`set` is a valid object destructuring name mapping");
+    }
+  },
+  {
+    name: "Object destructuring with shorthand initializer",
+    body: function () {
+        assert.doesNotThrow(function () { eval("({x = 1} = {});"); }, "Object pattern has shorthand with initializer is a valid syntax");
+        assert.doesNotThrow(function () { eval("({x, y = 1, z = 2} = {});"); }, "Object pattern has multiple shorthands with initializer is a valid syntax");
+        assert.throws(function () { eval("var a = 1; ({x, y = 1, z = 2} = {a = 2});"); }, SyntaxError,"Initializer is allowed on shorthand of object pattern but not on object literal", "Expected ':'");
+        assert.throws(function () { eval("var a = 1; ({x, y = {a = 1}} = {});"); }, SyntaxError,"Object literal is within object pattern but has shorthand initializer is not valid syntax", "Expected ':'");
+        assert.doesNotThrow(function () { eval("var a = 1; ({x = {a = 1} = {}} = {});"); }, "Chained object patterns have shorthand initializers is a valid syntax");
+        assert.doesNotThrow(function () { eval("var a = 1; var {x = {a = 1} = {}} = {};"); }, "Chained object declaration pattern have shorthand initializers is a valid syntax");
+        assert.doesNotThrow(function () { eval("[{x : [{y:{z = 1}}] }] = [{x:[{y:{}}]}];"); }, "Mixed nesting pattern has shorthand initializer is a valid syntax");
+        assert.doesNotThrow(function () { eval("[{x : [{y:{z = 1}, z1 = 2}] }, {x2 = 3}, {x3 : {y3:[{z3 = 4}]}} ] = [{x:[{y:{}}]}, {}, {x3:{y3:[{}]}}];"); }, 
+                                            "Mixed object patterns both on nested and on same level have initializers on shorthand and is a valid syntax");
+        assert.doesNotThrow(function () { eval("var [{x : [{y:{z = 1}, z1 = 2}] }, {x2 = 3}, {x3 : {y3:[{z3 = 4}]}} ] = [{x:[{y:{}}]}, {}, {x3:{y3:[{}]}}];"); }, 
+                                            "Declaration - mixed object patterns both on nested and on same level have initializers on shorthand and is a valid syntax");
+        assert.doesNotThrow(function () { eval("[...{x = 1}] = [{}]"); }, "Object pattern following rest has shorthand initializer is a valid syntax");
+        {
+            let a1 = 1;
+            ({x:{a1 = 2}} = {x:{}});
+            assert.areEqual(a1, 2);
+        }
     }
   },
   {

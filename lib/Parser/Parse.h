@@ -31,8 +31,7 @@ enum
 enum ParseType
 {
     ParseType_Upfront,
-    ParseType_Deferred,
-    ParseType_Reparse
+    ParseType_Deferred
 };
 
 enum DestructuringInitializerContext
@@ -168,7 +167,7 @@ public:
     // Used by deferred parsing to parse a deferred function.
     HRESULT ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
         bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber,
-        SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo, bool isReparse);
+        SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo);
 
 protected:
     HRESULT ParseSourceInternal(
@@ -314,8 +313,6 @@ public:
     ParseNodePtr CreateBlockScopedDeclNode(IdentPtr pid, OpCode nodeType);
 
     void RegisterRegexPattern(UnifiedRegex::RegexPattern *const regexPattern);
-    bool IsReparsing() const { return m_parseType == ParseType_Reparse; }
-
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     LPCWSTR GetParseType() const
@@ -326,8 +323,6 @@ public:
                 return CH_WSTR("Upfront");
             case ParseType_Deferred:
                 return CH_WSTR("Deferred");
-            case ParseType_Reparse:
-                return CH_WSTR("Reparse");
         }
         Assert(false);
         return NULL;
@@ -363,6 +358,9 @@ private:
     ParseNodePtr * m_ppnodeVar;  // variable list tail
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
+
+    // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
+    bool m_hasDeferredShorthandInitError;
     uint * m_pnestedCount; // count of functions nested at one level below the current node
 
     struct WellKnownPropertyPids

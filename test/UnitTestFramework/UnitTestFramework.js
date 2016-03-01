@@ -81,7 +81,17 @@ var helpers = function helpers() {
             for (name in o) {
                 this.writeln(name, o.hasOwnProperty(name) ? "" : " (inherited)", ": ", o[name]);
             }
-        }
+        },
+
+        withPropertyDeleted: function withPropertyDeleted(object, propertyName, callback) {
+            var descriptor = Object.getOwnPropertyDescriptor(object, propertyName);
+            try {
+                delete object[propertyName];
+                callback();
+            } finally {
+                Object.defineProperty(object, propertyName, descriptor);
+            }
+        },
     }
 }(); // helpers module.
 
