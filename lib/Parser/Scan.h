@@ -663,7 +663,7 @@ private:
     ErrHandler *m_perr;                // error handler to use
     uint16 m_fStringTemplateDepth;     // we should treat } as string template middle starting character (depth instead of flag)
     BOOL m_fHadEol;
-    BOOL m_fHtmlComments : 1;
+    BOOL m_fIsModuleCode : 1;
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
     BOOL m_fSyntaxColor : 1;            // whether we're just syntax coloring
@@ -761,26 +761,6 @@ private:
     OLECHAR ReadNextChar(void)
     {
         return ReadFull<true>(m_currentCharacter, m_pchLast);
-    }
-    OLECHAR NextNonWhiteChar(EncodedCharPtr p, EncodedCharPtr last)
-    {
-        OLECHAR ch;
-        do
-        {
-            ch = ReadFull<false>(p, last);
-        }
-        while (this->charClassifier->IsWhiteSpace(ch));
-        return ch;
-    }
-    OLECHAR NextNonWhiteCharPlusOne(EncodedCharPtr p, EncodedCharPtr last)
-    {
-        OLECHAR ch;
-        do
-        {
-            ch = ReadFull<false>(p, last);
-        }
-        while (this->charClassifier->IsWhiteSpace(ch));
-        return ReadFull<false>(p, last);
     }
 
     EncodedCharPtr AdjustedLast() const
