@@ -16,6 +16,7 @@ function asmModule(stdlib, imports) {
     var ui8or = ui8.or;
     var ui8xor = ui8.xor;
     var ui8not = ui8.not;
+    var ui8neg = ui8.neg;
 
     var globImportui8 = ui8check(imports.g1);       // global var import
 
@@ -41,6 +42,7 @@ function asmModule(stdlib, imports) {
             b = ui8or(c, c);
             d = ui8xor(b, d);
             d = ui8not(d);
+            d = ui8neg(d);
 
             loopIndex = (loopIndex + 1) | 0;
         }
@@ -62,6 +64,7 @@ function asmModule(stdlib, imports) {
             d = ui8or(d, b);
             d = ui8xor(d, globImportui8);
             d = ui8not(d);
+            d = ui8neg(d);
             
         }
 
@@ -82,6 +85,7 @@ function asmModule(stdlib, imports) {
             ui8g1 = ui8or(ui8g1, b);
             ui8g1 = ui8xor(ui8g1, c);
             ui8g1 = ui8not(ui8g1);
+            ui8g1 = ui8neg(ui8g1);
 
             loopIndex = (loopIndex - 1) | 0;
         }
@@ -96,7 +100,7 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint16x8(1065353216, 1073741824, 1077936128, 1082130432, 383829393, 39283838, 92929, 109483922)});
 
-equalSimd([65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535], m.func1(), SIMD.Uint16x8, "Func1");
-equalSimd([60502, 62134, 64870, 33301, 15826, 40115, 43697, 25202], m.func2(), SIMD.Uint16x8, "Func2");
-equalSimd([27089, 53198, 19771, 32235, 44581, 62229, 52442, 54132], m.func3(), SIMD.Uint16x8, "Func3");
+equalSimd([1, 1, 1, 1, 1, 1, 1, 1], m.func1(), SIMD.Uint16x8, "Func1");
+equalSimd([5034, 3402, 666, 32235, 49710, 25421, 21839, 40334], m.func2(), SIMD.Uint16x8, "Func2");
+equalSimd([38447, 12338, 45765, 33301, 20955, 3307, 13096, 11408], m.func3(), SIMD.Uint16x8, "Func3");
 print("PASS");

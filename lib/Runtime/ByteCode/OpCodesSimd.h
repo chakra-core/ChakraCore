@@ -206,6 +206,10 @@ MACRO_SIMD_WMS     ( Simd128_Or_B16                    , Bool8x16_3             
 MACRO_SIMD_WMS     ( Simd128_Xor_B16                   , Bool8x16_3                         , None           ,        None         ,       0)
 MACRO_SIMD_WMS     ( Simd128_Not_B16                   , Bool8x16_2                         , None           ,        None         ,       0)
 
+MACRO_SIMD_WMS     ( Simd128_Neg_U4                    , Uint32x4_2                         , None           ,        None         ,       0)
+MACRO_SIMD_WMS     ( Simd128_Neg_U8                    , Uint16x8_2                         , None           ,        None         ,       0)
+MACRO_SIMD_WMS     ( Simd128_Neg_U16                   , Uint8x16_2                         , None           ,        None         ,       0)
+
 
 MACRO_SIMD_BACKEND_ONLY     ( Simd128_LdC                       , Empty                             , None           ,        OpCanCSE                  )   // Load Simd128 const stack slot
 MACRO_SIMD                  ( Simd128_End                       , Empty                             , None           ,        None                      )   // Just a marker to indicate SIMD opcodes region

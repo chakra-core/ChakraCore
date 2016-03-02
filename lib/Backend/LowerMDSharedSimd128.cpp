@@ -209,6 +209,9 @@ IR::Instr* LowererMD::Simd128LowerUnMappedInstruction(IR::Instr *instr)
     case Js::OpCode::Simd128_Neg_I4:
     case Js::OpCode::Simd128_Neg_I8:
     case Js::OpCode::Simd128_Neg_I16:
+    case Js::OpCode::Simd128_Neg_U4:
+    case Js::OpCode::Simd128_Neg_U8:
+    case Js::OpCode::Simd128_Neg_U16:
         return Simd128LowerNeg(instr);
     
     case Js::OpCode::Simd128_Mul_I4:
@@ -1061,12 +1064,15 @@ IR::Instr* LowererMD::Simd128LowerNeg(IR::Instr *instr)
     switch (instr->m_opcode)
     {
     case Js::OpCode::Simd128_Neg_I4:
+    case Js::OpCode::Simd128_Neg_U4:
         break;
     case Js::OpCode::Simd128_Neg_I8:
+    case Js::OpCode::Simd128_Neg_U8:
         addOpcode = Js::OpCode::PADDW;
         allOnes = (void*)&X86_ALL_ONES_I8;
         break;
     case Js::OpCode::Simd128_Neg_I16:
+    case Js::OpCode::Simd128_Neg_U16:
         addOpcode = Js::OpCode::PADDB;
         allOnes = (void*)&X86_ALL_ONES_I16;
         break;

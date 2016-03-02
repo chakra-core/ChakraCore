@@ -12,6 +12,7 @@ function asmModule(stdlib, imports) {
     var ui16or = ui16.or;
     var ui16xor = ui16.xor;
     var ui16not = ui16.not;
+    var ui16neg = ui16.neg;
 
     var globImportui16 = ui16check(imports.g1);   
 
@@ -78,7 +79,21 @@ function asmModule(stdlib, imports) {
         return ui16check(result);
     }
     
-    return {testBitwiseOR:testBitwiseOR, testBitwiseAND:testBitwiseAND, testBitwiseXOR:testBitwiseXOR, testBitwiseNOT:testBitwiseNOT};
+        
+    function testBitwiseNEG() {
+        var a = ui16(255, 255, 255, 255, -128, 0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+        var result = ui16(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var loopIndex = 0;
+
+        while ( (loopIndex|0) < (loopCOUNT|0)) {
+            result = ui16neg(a);
+            loopIndex = (loopIndex + 1) | 0;
+        }
+
+        return ui16check(result);
+    }
+    
+    return {testBitwiseOR:testBitwiseOR, testBitwiseAND:testBitwiseAND, testBitwiseXOR:testBitwiseXOR, testBitwiseNOT:testBitwiseNOT, testBitwiseNEG:testBitwiseNEG};
 }
 
 var m = asmModule(this, { g1: SIMD.Uint8x16(100, -1073741824, -1028, -102, NaN, -38, -92929, Infinity, 52, 127, -127, -129, 129, 0, 88, 100234) });
@@ -87,5 +102,6 @@ equalSimd([255, 128, 0, 127, 28, 127, 15, 9, 9, 15, 15, 13, 13, 15, 15, 17], m.t
 equalSimd([255, 128, 0, 43, 0, 0, 2, 8, 8, 2, 2, 4, 4, 2, 2, 0], m.testBitwiseAND(), SIMD.Uint8x16, "testBitwiseAND");
 equalSimd([0, 127, 255, 212, 128, 127, 13, 1, 1, 13, 13, 9, 9, 13, 13, 17], m.testBitwiseXOR(), SIMD.Uint8x16, "testBitwiseXOR");
 equalSimd([0, 0, 0, 0, 127, 255, 248, 247, 246, 245, 244, 243, 242, 241, 240, 239], m.testBitwiseNOT(), SIMD.Uint8x16, "testBitwiseNOT");
+equalSimd([1, 1, 1, 1, 128, 0, 249, 248, 247, 246, 245, 244, 243, 242, 241, 240], m.testBitwiseNEG(), SIMD.Uint8x16, "testBitwiseNEG");
 
 print("PASS");

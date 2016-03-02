@@ -19,6 +19,7 @@ function asmModule(stdlib, imports) {
     var ui4or = ui4.or;
     var ui4xor = ui4.xor;
     var ui4not = ui4.not;
+    var ui4neg = ui4.neg;
 
     var globImportui4 = ui4check(imports.g1);       // global var import
 
@@ -44,6 +45,7 @@ function asmModule(stdlib, imports) {
             b = ui4or(c, c);
             d = ui4xor(b, d);
             d = ui4not(d);
+            d = ui4neg(d);
 
             loopIndex = (loopIndex + 1) | 0;
         }
@@ -65,6 +67,7 @@ function asmModule(stdlib, imports) {
             d = ui4or(d, b);
             d = ui4xor(d, globImportui4);
             d = ui4not(d);
+            d = ui4neg(d);
             
         }
 
@@ -85,6 +88,7 @@ function asmModule(stdlib, imports) {
             ui4g1 = ui4or(ui4g1, b);
             ui4g1 = ui4xor(ui4g1, c);
             ui4g1 = ui4not(ui4g1);
+            ui4g1 = ui4neg(ui4g1);
 
             loopIndex = (loopIndex - 1) | 0;
         }
@@ -99,7 +103,7 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
-equalSimd([4294967295, 4294967295, 4294967295, 4294967295], m.func1(), SIMD.Uint32x4, "Func1");
-equalSimd([4286478783, 3216376623, 4264992376, 4285473513], m.func2(), SIMD.Uint32x4, "Func2");
-equalSimd([4203886486, 4272527783, 3401886794, 3304444819], m.func3(), SIMD.Uint32x4, "Func3");
+equalSimd([1, 1, 1, 1], m.func1(), SIMD.Uint32x4, "Func1");
+equalSimd([8488513, 1078590673, 29974920, 9493783], m.func2(), SIMD.Uint32x4, "Func2");
+equalSimd([91080810, 22439513, 893080502, 990522477], m.func3(), SIMD.Uint32x4, "Func3");
 print("PASS");

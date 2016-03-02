@@ -263,6 +263,32 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Uint16x8.store");
     }
 
+    Var SIMDUint16x8Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count >= 2 && JavascriptSIMDUint16x8::Is(args[1]))
+        {
+            JavascriptSIMDUint16x8 *a = JavascriptSIMDUint16x8::FromVar(args[1]);
+            Assert(a);
+
+            SIMDValue value, result;
+
+            value = a->GetValue();
+            result = SIMDInt16x8Operation::OpNeg(value);
+
+            return JavascriptSIMDUint16x8::New(&result, scriptContext);
+        }
+
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"neg");
+    }
+
     Var SIMDUint16x8Lib::EntryNot(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

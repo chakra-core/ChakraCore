@@ -286,6 +286,32 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"not");
     }
 
+    Var SIMDUint32x4Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count >= 2 && JavascriptSIMDUint32x4::Is(args[1]))
+        {
+            JavascriptSIMDUint32x4 *a = JavascriptSIMDUint32x4::FromVar(args[1]);
+            Assert(a);
+
+            SIMDValue value, result;
+
+            value = a->GetValue();
+            result = SIMDInt32x4Operation::OpNeg(value);
+
+            return JavascriptSIMDUint32x4::New(&result, scriptContext);
+        }
+
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"neg");
+    }
+
     Var SIMDUint32x4Lib::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

@@ -622,6 +622,7 @@ BUILTIN(SIMDUint8x16Lib, FromUint32x4Bits, EntryFromUint32x4Bits, FunctionInfo::
 BUILTIN(SIMDUint8x16Lib, FromUint16x8Bits, EntryFromUint16x8Bits, FunctionInfo::None)
 // UnaryOps
 BUILTIN(SIMDUint8x16Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint8x16Lib, Neg, EntryNeg, FunctionInfo::None)
 // BinaryOps
 BUILTIN(SIMDUint8x16Lib, Add, EntryAdd, FunctionInfo::None)
 BUILTIN(SIMDUint8x16Lib, Sub, EntrySub, FunctionInfo::None)
@@ -668,6 +669,7 @@ BUILTIN(SIMDUint16x8Lib, FromUint8x16Bits, EntryFromUint8x16Bits, FunctionInfo::
 
 // UnaryOps
 BUILTIN(SIMDUint16x8Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint16x8Lib, Neg, EntryNeg, FunctionInfo::None)
 // BinaryOps
 BUILTIN(SIMDUint16x8Lib, Add, EntryAdd, FunctionInfo::None)
 BUILTIN(SIMDUint16x8Lib, Sub, EntrySub, FunctionInfo::None)
@@ -720,6 +722,7 @@ BUILTIN(SIMDUint32x4Lib, ReplaceLane, EntryReplaceLane, FunctionInfo::None)
 
 // UnaryOps
 BUILTIN(SIMDUint32x4Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, Neg, EntryNeg, FunctionInfo::None)
 
 // BinaryOps
 BUILTIN(SIMDUint32x4Lib, Add, EntryAdd, FunctionInfo::None)
