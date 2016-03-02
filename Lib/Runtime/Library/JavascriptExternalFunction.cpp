@@ -318,12 +318,22 @@ namespace Js
             else
             {
                 Var result = nullptr;
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                if(externalFunction->nativeMethod == nullptr)
                 {
-                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
-                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                    //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
+                    //We don't support this so it should be ok to return a Js string message.
+                    LPCWSTR msg = L"Non-Inspectable External Value";
+                    result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
                 }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+                else
+                {
+                    BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                    {
+                        // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                        result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                    }
+                    END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+                }
             }
         }
         else
