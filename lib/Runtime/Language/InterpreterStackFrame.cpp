@@ -767,6 +767,16 @@
 
 #define PROCESS_GET_ELEM_LOCALSLOTNonVar(name, func, layout) PROCESS_GET_ELEM_LOCALSLOTNonVar_COMMON(name, func, layout,)
 
+#define PROCESS_GET_ELEM_PARAMSLOTNonVar_COMMON(name, func, layout, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, layout, suffix); \
+        SetNonVarReg(playout->Value, func((Var*)GetParamClosure(), playout)); \
+        break; \
+    }
+
+#define PROCESS_GET_ELEM_PARAMSLOTNonVar(name, func, layout) PROCESS_GET_ELEM_PARAMSLOTNonVar_COMMON(name, func, layout,)
+
 #define PROCESS_GET_ELEM_INNERSLOTNonVar_COMMON(name, func, layout, suffix) \
     case OpCode::name: \
     { \
@@ -1071,6 +1081,7 @@ namespace Js
         newInstance->currentLoopCounter = 0;
         newInstance->m_flags        = InterpreterStackFrameFlags_None;
         newInstance->closureInitDone = false;
+        newInstance->isParamScopeDone = false;
 #if ENABLE_PROFILE_INFO
         newInstance->switchProfileMode = false;
         newInstance->isAutoProfiling = false;
@@ -1083,6 +1094,7 @@ namespace Js
         newInstance->retOffset = 0;
         newInstance->localFrameDisplay = nullptr;
         newInstance->localClosure = nullptr;
+        newInstance->paramClosure = nullptr;
         newInstance->innerScopeArray = nullptr;
 
         bool doInterruptProbe = newInstance->scriptContext->GetThreadContext()->DoInterruptProbe(this->executeFunction);
@@ -1362,6 +1374,11 @@ namespace Js
         FunctionBody *executeFunction = this->function->GetFunctionBody();
         Var environment;
 
+        if (executeFunction->IsParamAndBodyScopeMerged())
+        {
+            this->SetIsParamScopeDone(true);
+        }
+
         RegSlot thisRegForEventHandler = executeFunction->GetThisRegisterForEventHandler();
         if (thisRegForEventHandler != Constants::NoRegister)
         {
@@ -1369,6 +1386,13 @@ namespace Js
             SetReg(thisRegForEventHandler, varThis);
             environment = JavascriptOperators::OP_LdHandlerScope(varThis, GetScriptContext());
             this->SetEnv((FrameDisplay*)environment);
+        }
+        else if (this->paramClosure != nullptr)
+        {
+            // When paramClosure is non-null we are calling this method to initialize the closure for body scope.
+            // In this case we have to use the param scope's closure as the parent for the body scope's frame display.
+            Assert(!executeFunction->IsParamAndBodyScopeMerged());
+            environment = this->GetLocalFrameDisplay();
         }
         else
         {
@@ -6462,6 +6486,25 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                (this->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock);
     }
 
+    void InterpreterStackFrame::OP_BeginBodyScope()
+    {
+        // Currently we are using the closures created for the param scope.
+        // This marks the beginning of the body scope, so let's create new closures for the body scope.
+        FunctionBody *executeFunction = this->function->GetFunctionBody();
+        Assert(!this->IsParamScopeDone() && !executeFunction->IsParamAndBodyScopeMerged());
+
+        // Save the current closure. We have to use this while copying the initial value of body symbols
+        // from the corresponding symbols in the param.
+        this->SetParamClosure(this->GetLocalClosure());
+
+        this->SetIsParamScopeDone(true);
+
+        if (executeFunction->scopeSlotArraySize > 0)
+        {
+            this->InitializeClosures();
+        }
+    }
+
     void InterpreterStackFrame::OP_ResumeCatch()
     {
         this->m_flags |= InterpreterStackFrameFlags_WithinCatchBlock;
@@ -6826,6 +6869,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->localClosure = closure;
     }
 
+    Var InterpreterStackFrame::GetParamClosure() const
+    {
+        return this->paramClosure;
+    }
+
+    void InterpreterStackFrame::SetParamClosure(Var closure)
+    {
+        this->paramClosure = closure;
+    }
+
     void
     InterpreterStackFrame::OP_NewInnerScopeSlots(uint innerScopeIndex, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
     {
@@ -6873,7 +6926,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         Var * slotArray;
         FunctionBody * functionBody = this->m_functionBody;
-        uint scopeSlotCount = functionBody->scopeSlotArraySize;
+        uint scopeSlotCount = this->IsParamScopeDone() ? functionBody->scopeSlotArraySize : functionBody->paramScopeSlotArraySize;
         Assert(scopeSlotCount != 0);
 
         if (!functionBody->DoStackScopeSlots())

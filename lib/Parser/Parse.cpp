@@ -4615,14 +4615,16 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
-    // Function definition is inside the parent function's parameter scope  
+    // Function definition is inside the parent function's parameter scope    
     bool isEnclosedInParamScope = this->m_currentScope->GetScopeType() == ScopeType_Parameter;
 
-    if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr)
+    if (this->m_currentScope->GetScopeType() == ScopeType_FuncExpr || this->m_currentScope->GetScopeType() == ScopeType_Block)
     {
-        // Or this is a function expression enclosed in a parameter scope  
+        // Or this is a function expression or class enclosed in a parameter scope  
         isEnclosedInParamScope = this->m_currentScope->GetEnclosingScope() && this->m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter;
     }
+
+    Assert(!isEnclosedInParamScope || pnodeFncParent->sxFnc.HasNonSimpleParameterList());
 
     RestorePoint beginFormals;
     m_pscan->Capture(&beginFormals);
@@ -4859,44 +4861,52 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
             pnodeFnc->sxFnc.pnodeVars = nullptr;
             m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
 
-            // We can't merge the param scope and body scope any more as the nested methods may be capturing params.
             if (pnodeFnc->sxFnc.HasNonSimpleParameterList() && !fAsync)
             {
                 Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
+                Assert(paramScope != nullptr);
 
-                paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                    if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                if (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval())
+                {
+                    if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
                     {
-                        if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+                        Error(ERREvalNotSupportedInParamScope);
+                    }
+                }
+                else
+                {
+                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
                         {
-                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                            paramScope->SetCannotMergeWithBodyScope();
-                            return true;
+                            if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+                            {
+                                // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                                paramScope->SetCannotMergeWithBodyScope();
+                                return true;
+                            }
+                            else
+                            {
+                                Error(ERRFuncRefFormalNotSupportedInParamScope);
+                            }
                         }
                         else
                         {
-                            Error(ERRFuncRefFormalNotSupportedInParamScope);
+                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
+                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
                         }
-                    }
-                    else
-                    {
-                        Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                    }
-                    return false;
-                });
-
-                if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled() && (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval()))
-                {
-                    Error(ERREvalNotSupportedInParamScope);
+                        return false;
+                    });
                 }
 
                 if (!paramScope->GetCanMergeWithBodyScope())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
-                    // Now add a new symbol reference for each formal in the param scope to the body scope.
+                    // Add a new symbol reference for each formal in the param scope to the body scope.
                     paramScope->ForEachSymbol([this](Symbol* param) {
                         OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
-                        this->CreateVarDeclNode(param->GetPid(), param->GetSymbolType(), false, nullptr, false);
+                        ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
+                        Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
+                        paramNode->sxVar.sym->SetHasInit(true);
                     });
                 }
             }

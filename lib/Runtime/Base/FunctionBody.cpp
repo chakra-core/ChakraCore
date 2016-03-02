@@ -413,9 +413,9 @@ namespace Js
     FunctionBody::FunctionBody(ScriptContext* scriptContext, const wchar_t* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount,
         Utf8SourceInfo* utf8SourceInfo, uint uFunctionNumber, uint uScriptId,
         Js::LocalFunctionId  functionId, Js::PropertyRecordList* boundPropertyRecords, Attributes attributes
-    #ifdef PERF_COUNTERS
+#ifdef PERF_COUNTERS
         , bool isDeserializedFunction
-    #endif
+#endif
         ) :
         ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords),
         m_uScriptId(uScriptId),
@@ -458,6 +458,7 @@ namespace Js
         m_CallsEval(false),
         m_ChildCallsEval(false),
         m_hasReferenceableBuiltInArguments(false),
+        m_isParamAndBodyScopeMerged(true),
         m_firstFunctionObject(true),
         m_inlineCachesOnFunctionObject(false),
         m_hasDoneAllNonLocalReferenced(false),
@@ -1028,6 +1029,7 @@ namespace Js
         CopyDeferParseField(scopeObjectSize);
 #endif
         CopyDeferParseField(scopeSlotArraySize);
+        CopyDeferParseField(paramScopeSlotArraySize);
         other->SetCachedSourceString(this->GetCachedSourceString());
         other->SetDeferredStubs(this->GetDeferredStubs());
         CopyDeferParseField(m_isAsmjsMode);
@@ -1129,6 +1131,7 @@ namespace Js
       m_displayNameLength(0),
       m_displayShortNameOffset(0),
       scopeSlotArraySize(0),
+      paramScopeSlotArraySize(0),
       m_reparsed(false),
       m_isAsmJsFunction(false)
 #if DBG
@@ -3674,6 +3677,7 @@ namespace Js
         newFunctionInfo->m_isPublicLibraryCode = this->m_isPublicLibraryCode;
 
         newFunctionInfo->scopeSlotArraySize = this->scopeSlotArraySize;
+        newFunctionInfo->paramScopeSlotArraySize = this->paramScopeSlotArraySize;
 
         this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
         {

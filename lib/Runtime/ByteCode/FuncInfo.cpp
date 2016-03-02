@@ -141,36 +141,36 @@ BOOL FuncInfo::IsBaseClassConstructor() const
     return root->sxFnc.IsBaseClassConstructor();
 }
 
-void FuncInfo::EnsureThisScopeSlot()
+void FuncInfo::EnsureThisScopeSlot(Scope* scope)
 {
     if (this->thisScopeSlot == Js::Constants::NoRegister)
     {
-        Scope* scope = this->bodyScope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : this->bodyScope;
-        this->thisScopeSlot = scope->AddScopeSlot();
+        Scope* currentScope = scope->IsGlobalEvalBlockScope() ? this->GetGlobalEvalBlockScope() : scope;
+        this->thisScopeSlot = currentScope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureSuperScopeSlot()
+void FuncInfo::EnsureSuperScopeSlot(Scope* scope)
 {
     if (this->superScopeSlot == Js::Constants::NoRegister)
     {
-        this->superScopeSlot = this->bodyScope->AddScopeSlot();
+        this->superScopeSlot = scope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureSuperCtorScopeSlot()
+void FuncInfo::EnsureSuperCtorScopeSlot(Scope* scope)
 {
     if (this->superCtorScopeSlot == Js::Constants::NoRegister)
     {
-        this->superCtorScopeSlot = this->bodyScope->AddScopeSlot();
+        this->superCtorScopeSlot = scope->AddScopeSlot();
     }
 }
 
-void FuncInfo::EnsureNewTargetScopeSlot()
+void FuncInfo::EnsureNewTargetScopeSlot(Scope* scope)
 {
     if (this->newTargetScopeSlot == Js::Constants::NoRegister)
     {
-        this->newTargetScopeSlot = this->bodyScope->AddScopeSlot();
+        this->newTargetScopeSlot = scope->AddScopeSlot();
     }
 }
 
@@ -416,7 +416,6 @@ void FuncInfo::OnStartVisitFunction(ParseNode *pnodeFnc)
     Assert(this->GetCurrentChildFunction() == nullptr);
 
     this->SetCurrentChildFunction(pnodeFnc->sxFnc.funcInfo);
-    pnodeFnc->sxFnc.funcInfo->SetCurrentChildScope(pnodeFnc->sxFnc.funcInfo->bodyScope);
 }
 
 void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
@@ -440,36 +439,18 @@ void FuncInfo::OnStartVisitScope(Scope *scope)
     {
         if (scope->GetScopeType() == ScopeType_Parameter)
         {
-            // If the scopes are unmerged and we are visiting the parameter scope, the child scope will be the function body scope.  
-            Assert(!scope->GetCanMergeWithBodyScope() || childScope->GetEnclosingScope() == scope);
+            Assert(childScope->GetEnclosingScope() == scope);
+        }
+        else if (childScope->GetScopeType() == ScopeType_Parameter
+                 && childScope->GetCanMergeWithBodyScope()
+                 && scope->GetScopeType() == ScopeType_Block)
+        {
+            // If param and body are merged then the class declaration in param scope will have body as the parent
+            Assert(childScope == scope->GetEnclosingScope()->GetEnclosingScope());
         }
         else
         {
-            if (childScope->GetScopeType() == ScopeType_Parameter)
-            {
-                if (scope->GetScopeType() == ScopeType_FunctionBody)
-                {
-                    if (scope->GetFunc() == childScope->GetFunc())
-                    {
-                        Assert(scope->GetEnclosingScope() == childScope && childScope->GetCanMergeWithBodyScope());
-                    }
-                    else
-                    {
-                        Assert(!scope->GetFunc()->GetParamScope()->GetCanMergeWithBodyScope() && !childScope->GetCanMergeWithBodyScope());
-                    }
-                }
-                else
-                {
-                    if (childScope->GetCanMergeWithBodyScope())
-                    {
-                        Assert(childScope == scope->GetEnclosingScope()->GetEnclosingScope());
-                    }
-                    else
-                    {
-                        Assert(childScope == scope->GetEnclosingScope());
-                    }
-                }
-            }
+            Assert(childScope == scope->GetEnclosingScope());
         }
     }
 

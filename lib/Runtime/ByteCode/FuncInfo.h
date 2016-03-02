@@ -742,10 +742,10 @@ public:
         return profileId;
     }
 
-    void EnsureThisScopeSlot();
-    void EnsureSuperScopeSlot();
-    void EnsureSuperCtorScopeSlot();
-    void EnsureNewTargetScopeSlot();
+    void EnsureThisScopeSlot(Scope* scope);
+    void EnsureSuperScopeSlot(Scope* scope);
+    void EnsureSuperCtorScopeSlot(Scope* scope);
+    void EnsureNewTargetScopeSlot(Scope* scope);
 
     void SetIsThisLexicallyCaptured()
     {

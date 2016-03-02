@@ -689,7 +689,15 @@
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -nonative -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope.js</files>
+      <compile-flags>-force:deferparse -nonative -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>

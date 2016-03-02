@@ -76,6 +76,7 @@ namespace Js
         StackScriptFunction * stackNestedFunctions;
         FrameDisplay * localFrameDisplay;
         Var localClosure;
+        Var paramClosure;
         Var *innerScopeArray;
         ScriptContext* scriptContext;
         ScriptFunction * function;
@@ -103,6 +104,7 @@ namespace Js
         UINT16 m_flags;                // based on InterpreterStackFrameFlags
 
         bool closureInitDone : 1;
+        bool isParamScopeDone : 1;
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -231,6 +233,9 @@ namespace Js
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
+
+        bool IsParamScopeDone() const { return isParamScopeDone; }
+        void SetIsParamScopeDone(bool value) { isParamScopeDone = value; }
 
         static bool IsBrLong(OpCode op, const byte * ip)
         {
@@ -652,6 +657,7 @@ namespace Js
         template <class T> void OP_InitGetElemI(const unaligned T * playout);
         template <class T> void OP_InitComputedProperty(const unaligned T * playout);
         template <class T> void OP_InitProto(const unaligned T * playout);
+        void OP_BeginBodyScope();
 
         uint CallLoopBody(JavascriptMethod address);
         uint CallAsmJsLoopBody(JavascriptMethod address);
@@ -717,6 +723,8 @@ namespace Js
         void SetLocalFrameDisplay(FrameDisplay *frameDisplay);
         Var  GetLocalClosure() const;
         void SetLocalClosure(Var closure);
+        Var  GetParamClosure() const;
+        void SetParamClosure(Var closure);
         void TrySetRetOffset();
     };
 

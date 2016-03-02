@@ -381,6 +381,7 @@ MACRO_WMS_PROFILED(     LdSlot,                     ElementSlot,    OpTempNumber
 MACRO_WMS_PROFILED(     LdEnvSlot,                  ElementSlotI2,  OpTempNumberSources)
 MACRO_WMS_PROFILED(     LdInnerSlot,                ElementSlotI2,  OpTempNumberSources)
 MACRO_WMS_PROFILED(     LdLocalSlot,                ElementSlotI1,  OpTempNumberSources)
+MACRO_EXTEND_WMS_AND_PROFILED(LdParamSlot,          ElementSlotI1,  OpTempNumberSources)
 MACRO_BACKEND_ONLY(     LdSlotArr,                  ElementSlot,    OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdInnerObjSlot,       ElementSlotI2,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdObjSlot,            ElementSlot,    None)
@@ -734,6 +735,7 @@ MACRO_BACKEND_ONLY(     RestoreOutParam,    Empty,          None)
 
 MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
 MACRO_BACKEND_ONLY(     FrameDisplayCheck,  Empty,          OpCanCSE)
+MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)
