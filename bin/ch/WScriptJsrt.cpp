@@ -426,6 +426,60 @@ Error:
     return JS_INVALID_REFERENCE;
 }
 
+JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        fwprintf(stderr, L"Too too few arguments.\n");
+    }
+    else
+    {
+        const wchar_t *fileContent;
+        const wchar_t *fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            HRESULT hr;
+            UINT lengthBytes = 0;
+
+            hr = Helpers::LoadBinaryFile(fileName, fileContent, lengthBytes);
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, L"Couldn't load file.\n");
+            }
+            else
+            {
+                JsValueRef arrayBuffer;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer));
+                BYTE* buffer;
+                unsigned int bufferLength;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+                if (bufferLength < lengthBytes)
+                {
+                    fwprintf(stderr, L"Array buffer size is insufficient to store the binary file.\n");
+                }
+                else
+                {
+                    if (memcpy_s(buffer, bufferLength, (BYTE*)fileContent, lengthBytes) == 0)
+                    {
+                        returnValue = arrayBuffer;
+                    }
+                }
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
 bool WScriptJsrt::CreateNamedFunction(const wchar_t* nameString, JsNativeFunction callback, JsValueRef* functionVar)
 {
     JsValueRef nameVar;
@@ -583,6 +637,12 @@ bool WScriptJsrt::Initialize()
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadWasmName, loadWasm, true), false);
 #endif
 
+    JsValueRef loadBinaryFile;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateFunction(LoadBinaryFileCallback, nullptr, &loadBinaryFile), false);
+    JsPropertyIdRef loadBinaryFileName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"LoadBinaryFile", &loadBinaryFileName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadBinaryFileName, loadBinaryFile, true), false);
+
     JsValueRef echo;
     JsPropertyIdRef echoPropertyId;
     const wchar_t* echoString = L"Echo";
@@ -674,12 +734,12 @@ bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)
         {
             LPCWSTR errorMessage = nullptr;
             size_t errorMessageLength = 0;
-            
+
             JsValueRef errorString = JS_INVALID_REFERENCE;
 
             IfJsrtErrorFail(ChakraRTInterface::JsConvertValueToString(exception, &errorString), false);
             IfJsrtErrorFail(ChakraRTInterface::JsStringToPointer(errorString, &errorMessage, &errorMessageLength), false);
-            
+
             if (jsErrorCode == JsErrorCode::JsErrorScriptCompile)
             {
                 JsPropertyIdRef linePropertyId = JS_INVALID_REFERENCE;
@@ -687,10 +747,10 @@ bool WScriptJsrt::PrintException(LPCWSTR fileName, JsErrorCode jsErrorCode)
 
                 JsPropertyIdRef columnPropertyId = JS_INVALID_REFERENCE;
                 JsValueRef columnProperty = JS_INVALID_REFERENCE;
-                
+
                 int line;
                 int column;
-                
+
                 IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"line", &linePropertyId), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, linePropertyId, &lineProperty), false);
                 IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(lineProperty, &line), false);
