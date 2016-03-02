@@ -5,6 +5,11 @@
 #include "stdafx.h"
 #include "GCStress.h"
 
+// For converting from ANSI to UTF16
+#ifndef _WIN32
+#include <src/include/pal/utils.h>
+#endif
+
 void DoVerify(bool value, const char * expr, const char * file, int line)
 {
     if (!value)
@@ -20,9 +25,16 @@ static const unsigned int stackRootCount = 50;
 static const unsigned int globalRootCount = 50;
 static const unsigned int implicitRootCount = 50;
 
+#ifdef _WIN32
 static const unsigned int initializeCount = 1000000;
-
 static const unsigned int operationsPerHeapWalk = 1000000;
+#else
+// xplat-todo: Increase this number to match the windows numbers
+// Currently, the windows numbers seem to be really slow on linux
+// Need to investigate what operation is so much slower on linux
+static const unsigned int initializeCount = 10000;
+static const unsigned int operationsPerHeapWalk = 100000;
+#endif
 
 // Some global variables
 
@@ -405,7 +417,23 @@ int __cdecl wmain(int argc, __in_ecount(argc) WCHAR* argv[])
 #ifndef _WIN32
 int main(int argc, char** argv)
 {
-    int ret = wmain(0, NULL);
+    // Ignoring mem-alloc failures here as this is
+    // simply a test tool. We can add more error checking
+    // here later if desired.
+    wchar16** args = new wchar16*[argc];
+    for (int i = 0; i < argc; i++)
+    {
+        args[i] = UTIL_MBToWC_Alloc(argv[i], -1);
+    }
+    
+    int ret = wmain(argc, args);
+
+    for (int i = 0; i < argc; i++)
+    {
+        free(args[i]);
+    }
+    delete[] args;
+    
     PAL_Shutdown();
     return ret;
 }

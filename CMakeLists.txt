@@ -104,6 +104,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(
         -DDBG=1
         -DDEBUG=1
+        -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1        
     )
     # xplat-todo: reenable this warning

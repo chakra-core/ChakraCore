@@ -55,8 +55,7 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
 
 inline void DebugBreak()
 {
-    asm ("int3");
-    __builtin_unreachable();
+    __builtin_trap();
 }
 
 #define _BitScanForward BitScanForward
@@ -67,7 +66,7 @@ inline void DebugBreak()
 #define _bittestandset BitTestAndSet
 #define _interlockedbittestandset InterlockedBitTestAndSet
 
-#define DbgRaiseAssertionFailure() __asm__ volatile("int $0x03");
+#define DbgRaiseAssertionFailure() __builtin_trap()
 
 // These are not available in pal
 #define fwprintf_s      fwprintf
