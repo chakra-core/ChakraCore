@@ -13,7 +13,7 @@ target_include_directories (GCStress
   $<BUILD_INTERFACE:${ROOT_SOURCE_DIR}/lib/Common/Memory>  
   )
 
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -lsodium")
+set(CMAKE_EXE_LINKER_FLAGS "-lsodium")
 
 target_link_libraries (GCStress
   PRIVATE Chakra.Common.Memory
