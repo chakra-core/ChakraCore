@@ -404,7 +404,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language\JavascriptOperators.h"
 
 #include "Library\MathLibrary.h"
-
+#include "Library\WasmLibrary.h"
 
 #include "Base\HiResTimer.h"
 #include "Base\WindowsGlobalizationAdapter.h"

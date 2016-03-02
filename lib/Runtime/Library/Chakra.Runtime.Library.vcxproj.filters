@@ -95,6 +95,21 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptErrorDebug.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDInt16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUInt32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDUint8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool32x4.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool16x8.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Lib.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSIMDBool8x16.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Lib.cpp" />
+    <ClCompile Include="WasmLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -206,9 +221,23 @@
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptErrorDebug.h" />
-    <ClInclude Include="SimdLib.h" />
     <ClInclude Include="JavascriptStringObject.h" />
     <ClInclude Include="NullEnumerator.h" />
+    <ClInclude Include="JavascriptSIMDInt16x8.h" />
+    <ClInclude Include="JavascriptSIMDUInt32x4.h" />
+    <ClInclude Include="JavascriptSIMDUint16x8.h" />
+    <ClInclude Include="JavascriptSIMDUint8x16.h" />
+    <ClInclude Include="JavascriptSIMDBool32x4.h" />
+    <ClInclude Include="JavascriptSIMDBool16x8.h" />
+    <ClInclude Include="JavascriptSIMDBool8x16.h" />
+    <ClInclude Include="SIMDInt16x8Lib.h" />
+    <ClInclude Include="SIMDUInt32x4Lib.h" />
+    <ClInclude Include="SIMDUint16x8Lib.h" />
+    <ClInclude Include="SIMDUint8x16Lib.h" />
+    <ClInclude Include="SIMDBool32x4Lib.h" />
+    <ClInclude Include="SIMDBool16x8Lib.h" />
+    <ClInclude Include="SIMDBool8x16Lib.h" />
+    <ClInclude Include="WasmLibrary.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
