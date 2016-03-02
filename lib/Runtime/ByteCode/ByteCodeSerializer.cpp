@@ -124,7 +124,7 @@ struct SerializedFieldList {
 #include "SerializableFunctionFields.h"
     bool has_m_lineNumber: 1;
     bool has_m_columnNumber: 1;
-	bool has_m_nestedCount: 1;
+    bool has_m_nestedCount: 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
