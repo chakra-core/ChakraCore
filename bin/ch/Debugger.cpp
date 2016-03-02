@@ -13,16 +13,19 @@ wchar_t s_controllerScript[65536];
 
 void DBGPrintSend(char* msg, size_t length)
 {
+    /*
     printf("Send of %i>", (int)length);
     for(size_t i = 0; i < length && i < 256; ++i)
     {
         printf("%c", msg[i]);
     }
     printf("<End\n");
+    */
 }
 
 void DBGPrintRcv(char* msg, int length)
 {
+    /*
     if(length >= 0)
     {
         printf("Recv of %i>", (int)length);
@@ -32,6 +35,7 @@ void DBGPrintRcv(char* msg, int length)
         }
         printf("<End\n");
     }
+    */
 }
 
 //const WCHAR s_controllerScript[] = 
