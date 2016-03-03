@@ -5634,6 +5634,9 @@ InterlockedOr(
     return __sync_fetch_and_or(Destination, Value);
 }
 
+#define BITS_IN_BYTE 8
+#define BITS_IN_LONG (sizeof(LONG) * BITS_IN_BYTE)
+  
 EXTERN_C
 PALIMPORT
 inline
@@ -5643,7 +5646,13 @@ InterlockedBitTestAndReset(
     IN OUT LONG volatile *Base,
     IN LONG Bit)
 {
-    return (InterlockedAnd(Base, ~(1 << Bit)) & (1 << Bit)) != 0;
+    // The BitTestAndReset family of functions allow for arbitrary bit
+    // indices- so a bit index can be greater than the number of bits in
+    // LONG. We need to account for this in all BitTest/BitTestAndSet
+    // related functions.    
+    volatile LONG* longToTest = Base + (Bit / BITS_IN_LONG);
+    LONG bitToTest  = Bit % BITS_IN_LONG;
+    return (InterlockedAnd(longToTest, ~(1 << bitToTest)) & (1 << bitToTest)) != 0;
 }
 
 EXTERN_C
@@ -5655,10 +5664,11 @@ InterlockedBitTestAndSet(
     IN OUT LONG volatile *Base,
     IN LONG Bit)
 {
-    return (InterlockedOr(Base, (1 << Bit)) & (1 << Bit)) != 0;
+    volatile LONG* longToTest = Base + (Bit / BITS_IN_LONG);
+    LONG bitToTest  = Bit % BITS_IN_LONG;
+    return (InterlockedOr(longToTest, (1 << bitToTest)) & (1 << bitToTest)) != 0;
 }
-
-// xplat-todo: review this implementation
+  
 EXTERN_C
 PALIMPORT
 inline
@@ -5668,10 +5678,11 @@ BitTest(
     IN LONG *Base,
     IN LONG Bit)
 {
-    return ((*Base) & (1 << Bit)) != 0;
+    LONG* longToTest = Base + (Bit / BITS_IN_LONG);
+    LONG bitToTest  = Bit % BITS_IN_LONG;
+    return ((*longToTest) & (1 << bitToTest)) != 0;
 }
-
-// xplat-todo: review this implementation
+  
 EXTERN_C
 PALIMPORT
 inline
@@ -5681,7 +5692,16 @@ BitTestAndSet(
     IN OUT LONG *Base,
     IN LONG Bit)
 {
-    return (__sync_fetch_and_or(Base, (1 << Bit)) & (1 << Bit)) != 0;
+    // xplat-todo: Benchmark whether this is better than
+    // using the inline assembler to generate a bts instruction
+    LONG* longToTest = Base + (Bit / BITS_IN_LONG);
+    LONG bitToTest  = Bit % BITS_IN_LONG;
+
+    // Save whether the bit was set or not. Then, unconditionally set the
+    // bit. Return whether the bit was set or not.   
+    UCHAR wasBitSet = (((*longToTest) & (1 << bitToTest)) != 0);
+    *longToTest = *longToTest | (1 << bitToTest);
+    return wasBitSet;
 }
 
 #if defined(BIT64)
