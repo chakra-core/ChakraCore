@@ -72,8 +72,11 @@ namespace Wasm
             bSectFunctions      = 0x02,
             bSectGlobals        = 0x03,
             bSectDataSegments   = 0x04,
-            bSectFunctionTable  = 0x05,
+            bSectIndirectFunctionTable = 0x05,
             bSectEnd            = 0x06, // marks end of module
+            bSectStartFunction  = 0x07,
+            bSectImportTable    = 0x08,
+            bSectExportTable    = 0x09,
             bSectLimit
         };
 
@@ -111,6 +114,7 @@ namespace Wasm
             WasmOp GetWasmToken(WasmBinOp op);
             WasmBinOp ASTNode();
 
+            void ModuleHeader();
             void CallNode();
             void BlockNode();
             void BrNode();
@@ -126,7 +130,7 @@ namespace Wasm
             UINT32 Offset();
             UINT LEB128(UINT &length);
             template <typename T> T ReadConst();
-
+            SectionCode SectionHeader();
 
 
 
@@ -147,6 +151,7 @@ namespace Wasm
         private:
 
             static bool isInit;
+            static bool seenModuleHeader;
             static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
             static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
             // maps from binary format to sexpr codes
