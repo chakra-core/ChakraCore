@@ -35,3 +35,13 @@ CMakeFiles
 CMakeScripts
 cmake_install.cmake
 install_manifest.txt
+
+# xcode
+*.xcodeproj
+*.xcworkspace
+
+# additional *nix generated files
+*.a
+*.gch
+Makefile
+pal/src/config.h
