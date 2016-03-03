@@ -7821,9 +7821,17 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     }
                 }
             }
-            else if (nop == knopEllipsis && !fAllowEllipsis)
+            else if (nop == knopEllipsis)
             {
-                DeferOrEmitPotentialSpreadError(pnodeT);
+                if (!fAllowEllipsis)
+                {
+                    DeferOrEmitPotentialSpreadError(pnodeT);
+                }
+            }
+            else if (m_token.tk == tkExpo)
+            {
+                //Unary operator on the left hand-side of ** is unexpected, except ++, -- or ...
+                Error(ERRInvalidUseofExponentiationOperator);
             }
 
             if (buildAST)

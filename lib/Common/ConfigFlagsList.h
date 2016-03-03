@@ -508,7 +508,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
 #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#define DEFAULT_CONFIG_ES7ExponentionOperator  (false)
+#define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7Builtins             (false)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 
