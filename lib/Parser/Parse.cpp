@@ -7821,7 +7821,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     }
                 }
             }
-            else if (nop == knopEllipsis )
+            else if (nop == knopEllipsis)
             {
                 if (!fAllowEllipsis)
                 {
@@ -7830,7 +7830,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
             else if (m_token.tk == tkExpo)
             {
-                //Unary operator on the left handside of ** is unexpected, except ++, -- or ...
+                //Unary operator on the left hand-side of ** is unexpected, except ++, -- or ...
                 Error(ERRInvalidUseofExponentiationOperator);
             }
 
