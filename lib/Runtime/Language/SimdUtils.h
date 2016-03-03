@@ -89,14 +89,14 @@ struct _x86_SIMDValue
     static _x86_SIMDValue ToX86SIMDValue(const SIMDValue& val)
     {
         _x86_SIMDValue result;
-		result.m128_value = _mm_loadu_ps((float*) &val);
+        result.m128_value = _mm_loadu_ps((float*) &val);
         return result;
     }
 
     static SIMDValue ToSIMDValue(const _x86_SIMDValue& val)
     {
         SIMDValue result;
-		_mm_storeu_ps((float*) &result, val.m128_value);
+        _mm_storeu_ps((float*) &result, val.m128_value);
         return result;
     }
 };
