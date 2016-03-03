@@ -203,6 +203,7 @@ namespace Js
         static BOOL IsObjectOrNull(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
         static BOOL IsUndefinedOrNull(Var instance);
+        static BOOL IsNull(Var instance);
         static BOOL IsSpecialObjectType(TypeId typeId);
         static BOOL IsJsNativeObject(Var instance);
         static BOOL IsUndefinedObject(Var instance);
@@ -217,6 +218,7 @@ namespace Js
         static BOOL HasItem(RecyclableObject* instance, uint32 index);
         static BOOL HasItem(RecyclableObject* instance, uint64 index);
         static BOOL GetOwnItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
+        static Var GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(RecyclableObject* instance, uint32 index, Var* value, ScriptContext* requestContext);
         static BOOL GetItem(Var instance, RecyclableObject* propertyObject, uint32 index, Var* value, ScriptContext* requestContext);
