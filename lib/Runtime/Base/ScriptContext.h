@@ -1175,8 +1175,6 @@ private:
 
         RecyclableObject* GetMissingPropertyResult();
         RecyclableObject* GetMissingItemResult();
-        RecyclableObject *GetNullPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id);
-        RecyclableObject *GetNullItemResult(Js::RecyclableObject *instance, uint32 index);
 
         bool HasRecordedException() const { return threadContext->GetRecordedException() != nullptr; }
         Js::JavascriptExceptionObject * GetAndClearRecordedException(bool *considerPassingToDebugger = nullptr);

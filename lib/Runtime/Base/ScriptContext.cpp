@@ -860,16 +860,6 @@ namespace Js
         return GetLibrary()->GetUndefined();
     }
 
-    RecyclableObject *ScriptContext::GetNullPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id)
-    {
-        return GetLibrary()->GetNull();
-    }
-
-    RecyclableObject *ScriptContext::GetNullItemResult(Js::RecyclableObject *instance, uint32 index)
-    {
-        return GetLibrary()->GetUndefined();
-    }
-
     SRCINFO *ScriptContext::AddHostSrcInfo(SRCINFO const *pSrcInfo)
     {
         Assert(pSrcInfo != nullptr);
