@@ -1458,6 +1458,7 @@ class MemRefOpnd : public Opnd
 {
 public:
     static MemRefOpnd *     New(void * pMemLoc, IRType, Func * func, AddrOpndKind addrOpndKind = AddrOpndKindDynamicMisc);
+    static MemRefOpnd *     New(intptr_t pMemLoc, IRType, Func * func, AddrOpndKind addrOpndKind = AddrOpndKindDynamicMisc);
 
 public:
     // Note type: OpndKindMemRef
@@ -1465,13 +1466,13 @@ public:
     bool                    IsEqualInternal(Opnd *opnd);
     void                    FreeInternal(Func * func);
 
-    void *                  GetMemLoc() const;
-    void                    SetMemLoc(void * pMemLoc);
+    intptr_t                  GetMemLoc() const;
+    void                    SetMemLoc(intptr_t pMemLoc);
 
     IR::AddrOpndKind        GetAddrKind() const;
 
 private:
-    void *                  m_memLoc;
+    intptr_t                  m_memLoc;
 #if DBG_DUMP
     AddrOpndKind            m_addrKind;
 #endif

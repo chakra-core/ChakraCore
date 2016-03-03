@@ -2183,7 +2183,7 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     // TODO: Encode indir with base as address opnd instead
     IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
 
-    instr = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New((Js::Var)&Js::JavascriptNumber::UIntConvertConst,
+    instr = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetUIntConvertConstAddr(),
         IR::AddrOpndKindDynamicMisc, this->m_func), this->m_func);
 
     instrInsert->InsertBefore(instr);

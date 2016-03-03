@@ -1877,7 +1877,8 @@ void LowererMD::LegalizeSrc(IR::Instr *const instr, IR::Opnd *src, const uint fo
                 if (!instr->isInlineeEntryInstr)
                 {
                     Assert(forms & L_Reg);
-                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd(addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
+                    // TODO: michhol, remove cast after making m_address intptr
+                    IR::IndirOpnd * indirOpnd = instr->m_func->GetTopFunc()->GetConstantAddressIndirOpnd((intptr_t)addrOpnd->m_address, addrOpnd->GetAddrOpndKind(), TyMachPtr, Js::OpCode::MOV);
                     if (indirOpnd != nullptr)
                     {
                         if (indirOpnd->GetOffset() == 0)
@@ -5524,7 +5525,7 @@ IR::Instr * LowererMD::GenerateFloatAbs(IR::RegOpnd * regOpnd, IR::Instr * inser
     else
     {
         Assert(regOpnd->IsFloat32());
-        opnd = IR::MemRefOpnd::New((void *)&Js::JavascriptNumber::AbsFloatCst, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+        opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetAbsFloatCstAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
     }
 
     // ANDPS has smaller encoding then ANDPD
@@ -7771,7 +7772,7 @@ LowererMD::InsertConvertFloat64ToInt32(const RoundMode roundMode, IR::Opnd *cons
                 false /* needFlags */,
                 srcPlusHalf,
                 src,
-                IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, func,
+                IR::MemRefOpnd::New(func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, func,
                     IR::AddrOpndKindDynamicDoubleRef),
                 insertBeforeInstr);
 
@@ -8416,12 +8417,12 @@ LowererMD::LowerToFloat(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::XORPS;
         if (instr->GetDst()->IsFloat32())
         {
-            opnd = IR::MemRefOpnd::New((void*)&Js::JavascriptNumber::MaskNegFloat, TyMachDouble, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegFloatAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicFloatRef);
         }
         else
         {
             Assert(instr->GetDst()->IsFloat64());
-            opnd = IR::MemRefOpnd::New((void*)&Js::JavascriptNumber::MaskNegDouble, TyMachDouble, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegDoubleAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
         }
         instr->SetSrc2(opnd);
         Legalize(instr);
@@ -8805,12 +8806,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
             IR::Opnd * zero;
             if (src->IsFloat64())
             {
-                zero = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_Zero), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                zero = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleZeroAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
             }
             else
             {
                 Assert(src->IsFloat32());
-                zero = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32Zero, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                zero = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatZeroAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
             }
 
             IR::LabelInstr * skipRoundSd = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
@@ -8827,14 +8828,14 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (src->IsFloat64())
                 {
-                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
-                    negPointFive = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_NegPointFive, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegPointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
-                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
-                    negPointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegPointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    negPointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatNegPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // CMP 0.5, roundedFloat
@@ -8853,12 +8854,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     IR::Opnd * twoToFraction;
                     if (src->IsFloat64())
                     {
-                        twoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_TwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                        twoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleTwoToFractionAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                     }
                     else
                     {
                         Assert(src->IsFloat32());
-                        twoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32TwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                        twoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatTwoToFractionAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                     }
                     // CMP 2^fraction, roundedFloat
                     // JA $addHalfToRoundSrcLabel
@@ -8901,12 +8902,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     IR::Opnd * negTwoToFraction;
                     if (src->IsFloat64())
                     {
-                        negTwoToFraction = IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::k_NegTwoToFraction, TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                        negTwoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleNegTwoToFractionAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                     }
                     else
                     {
                         Assert(src->IsFloat32());
-                        negTwoToFraction = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32NegTwoToFraction, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                        negTwoToFraction = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatNegTwoToFractionAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
 
                     }
                     // CMP roundedFloat, negTwoToFraction
@@ -8918,12 +8919,12 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
                 if (src->IsFloat64())
                 {
-                    pointFive = IR::MemRefOpnd::New((double*)&(Js::JavascriptNumber::k_PointFive), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoublePointFiveAddr(), TyFloat64, this->m_func, IR::AddrOpndKindDynamicDoubleRef);
                 }
                 else
                 {
                     Assert(src->IsFloat32());
-                    pointFive = IR::MemRefOpnd::New((float*)&Js::JavascriptNumber::k_Float32PointFive, TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+                    pointFive = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetFloatPointFiveAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
                 }
 
                 // $addHalfToRoundSrcLabel

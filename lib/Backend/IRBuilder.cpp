@@ -2589,7 +2589,7 @@ IRBuilder::BuildUnsigned1(Js::OpCode newOpcode, uint32 offset, uint32 num)
                 this->m_saveLoopImplicitCallFlags[num] = saveOpnd;
                 // Note that we insert this instruction /before/ the actual ProfiledLoopStart opcode. This is because Lowering is backwards
                 //    and this is just a fake instruction which is only used to pass on the saveOpnd; this instruction will eventually be removed.
-                auto instr = IR::JitProfilingInstr::New(Js::OpCode::Ld_A, saveOpnd, IR::MemRefOpnd::New(0, ty, m_func), m_func);
+                auto instr = IR::JitProfilingInstr::New(Js::OpCode::Ld_A, saveOpnd, IR::MemRefOpnd::New((intptr_t)0, ty, m_func), m_func);
                 instr->isLoopHelper = true;
                 this->AddInstr(instr, offset);
 

@@ -1347,7 +1347,7 @@ Cloner::RetargetClonedBranches()
     NEXT_INSTR_IN_RANGE;
 }
 
-IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
+IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
 {
     Assert(this->GetTopFunc() == this);
     if (!canHoistConstantAddressLoad)
@@ -1398,7 +1398,8 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKi
     }
     IR::IndirOpnd * indirOpnd =  IR::IndirOpnd::New(addressRegOpnd, offset, type, this, true);
 #if DBG_DUMP
-    indirOpnd->SetAddrKind(kind, address);
+    // TODO: michhol make intptr_t
+    indirOpnd->SetAddrKind(kind, (void*)address);
 #endif
     return indirOpnd;
 }

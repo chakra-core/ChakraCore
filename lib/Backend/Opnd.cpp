@@ -2420,10 +2420,26 @@ IndirOpnd::SetAddrKind(IR::AddrOpndKind kind, void * originalAddress)
 ///----------------------------------------------------------------------------
 
 MemRefOpnd *
-MemRefOpnd::New(void * pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
+MemRefOpnd::New(intptr_t pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
 {
     MemRefOpnd * memRefOpnd = JitAnew(func->m_alloc, IR::MemRefOpnd);
     memRefOpnd->m_memLoc = pMemLoc;
+    memRefOpnd->m_type = type;
+
+    memRefOpnd->m_kind = OpndKindMemRef;
+#if DBG_DUMP
+    memRefOpnd->m_addrKind = addrOpndKind;
+#endif
+
+    return memRefOpnd;
+}
+
+// TODO: michhol OOP JIT, remove this signature
+MemRefOpnd *
+MemRefOpnd::New(void * pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
+{
+    MemRefOpnd * memRefOpnd = JitAnew(func->m_alloc, IR::MemRefOpnd);
+    memRefOpnd->m_memLoc = (intptr_t)pMemLoc;
     memRefOpnd->m_type = type;
 
     memRefOpnd->m_kind = OpndKindMemRef;
@@ -3057,7 +3073,8 @@ Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
     Output::Print(L"[");
     const size_t BUFFER_LEN = 128;
     wchar_t buffer[BUFFER_LEN];
-    GetAddrDescription(buffer, BUFFER_LEN, memRefOpnd->GetMemLoc(), memRefOpnd->GetAddrKind(), AsmDumpMode, true, func);
+    // TODO: michhol, make this intptr_t
+    GetAddrDescription(buffer, BUFFER_LEN, (void*)memRefOpnd->GetMemLoc(), memRefOpnd->GetAddrKind(), AsmDumpMode, true, func);
     Output::Print(L"%s", buffer);
     Output::Print(L"]");
 }
@@ -3366,15 +3383,15 @@ Opnd::GetAddrDescription(__out_ecount(count) wchar_t *const description, const s
             break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-#if 0 // TODO: michhol reenable dump of addresses
-            if (address == &Js::NullFrameDisplay)
+            if ((intptr_t)address == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())
             {
                 WriteToBuffer(&buffer, &n, L" (NullFrameDisplay)");
             }
-            else if (address == &Js::StrictNullFrameDisplay)
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr())
             {
                 WriteToBuffer(&buffer, &n, L" (StrictNullFrameDisplay)");
             }
+#if 0 // TODO: michhol reenable dump of addresses
             else if (address == func->GetScriptContext()->GetNumberAllocator())
             {
                 WriteToBuffer(&buffer, &n, L" (NumberAllocator)");

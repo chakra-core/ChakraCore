@@ -507,8 +507,7 @@ public:
         m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
         // TODO: OOP JIT, do we need to do this initialization in a different place?
         ThreadContextData contextData;
-        contextData.nullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::NullFrameDisplay);
-        contextData.strictNullFrameDisplayAddr = reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay);
+        contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
         contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
         contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());
         contextData.isThreadBound = GetIsThreadBound();

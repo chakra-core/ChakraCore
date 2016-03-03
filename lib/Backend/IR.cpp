@@ -2445,7 +2445,7 @@ Instr::HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpC
 #if defined(_M_IX86) || defined(_M_X64)
     Assert(!LowererMDArch::IsLegalMemLoc(memRefOpnd));
 #endif
-    void * address = memRefOpnd->GetMemLoc();
+    intptr_t address = memRefOpnd->GetMemLoc();
     IR::AddrOpndKind kind = memRefOpnd->GetAddrKind();
     Func *const func = m_func;
     IR::IndirOpnd * indirOpnd = func->GetTopFunc()->GetConstantAddressIndirOpnd(address, kind, memRefOpnd->GetType(), loadOpCode);
@@ -2463,7 +2463,8 @@ Instr::HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpC
 
         indirOpnd = IR::IndirOpnd::New(addressRegOpnd, 0, memRefOpnd->GetType(), func, true);
 #if DBG_DUMP
-        indirOpnd->SetAddrKind(kind, address);
+        // TODO: michhol oop jit, make intptr
+        indirOpnd->SetAddrKind(kind, (void*)address);
 #endif
     }
     return DeepReplace(memRefOpnd, indirOpnd)->AsIndirOpnd();

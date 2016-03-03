@@ -90,8 +90,7 @@ typedef struct ProfileData
 
 typedef struct ThreadContextData
 {
-    __int3264 nullFrameDisplayAddr;
-    __int3264 strictNullFrameDisplayAddr;
+    __int3264 chakraBaseAddress;
     __int3264 threadStackLimitAddr;
     __int3264 scriptStackLimit;
     boolean isThreadBound;

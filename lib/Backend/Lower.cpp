@@ -3077,9 +3077,9 @@ Lowerer::LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum 
     case LibraryValue::ValueNativeFloatArrayType:
         return IR::AddrOpnd::New(Js::JavascriptNativeFloatArray::GetInitialType(scriptContext), IR::AddrOpndKindDynamicType, instr->m_func);
     case LibraryValue::ValueConstructorCacheDefaultInstance:
-        return IR::AddrOpnd::New(&Js::ConstructorCache::DefaultInstance, IR::AddrOpndKindDynamicMisc, instr->m_func);
+        return IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetConstructorCacheDefaultInstanceAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func);
     case LibraryValue::ValueAbsDoubleCst:
-        return IR::MemRefOpnd::New((void*)&Js::JavascriptNumber::AbsDoubleCst, TyMachDouble, instr->m_func, IR::AddrOpndKindDynamicDoubleRef);
+        return IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetAbsDoubleCstAddr(), TyMachDouble, instr->m_func, IR::AddrOpndKindDynamicDoubleRef);
     case LibraryValue::ValueCharStringCache:
         return IR::AddrOpnd::New((Js::Var)&scriptContext->GetLibrary()->GetCharStringCache(), IR::AddrOpndKindDynamicCharStringCache, instr->m_func);
     default:
@@ -10354,7 +10354,7 @@ Lowerer::GenerateFastInlineBuiltInMathRandom(IR::Instr* instr)
         // ===================================================================
         // dst -= 1.0;
         // ===================================================================
-        this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New((double*)&Js::JavascriptNumber::ONE_POINT_ZERO, TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
+        this->m_lowererMD.CreateAssign(r4, IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetDoubleOnePointZeroAddr(), TyFloat64, m_func, IR::AddrOpndKindDynamicDoubleRef), instr);
         this->InsertSub(false, dst, dst, r4, instr);
     }
     else
@@ -15429,7 +15429,7 @@ Lowerer::GetMissingItemOpnd(IRType type, Func *func)
         return IR::IntConstOpnd::New(Js::JavascriptNativeIntArray::MissingItem, TyInt32, func, true);
     }
     Assert(type == TyFloat64);
-    return IR::MemRefOpnd::New((BYTE*)&Js::JavascriptNativeFloatArray::MissingItem, TyFloat64, func);
+    return IR::MemRefOpnd::New(func->GetThreadContextInfo()->GetNativeFloatArrayMissingItemAddr(), TyFloat64, func);
 }
 
 bool

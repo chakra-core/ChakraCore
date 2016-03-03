@@ -12,13 +12,133 @@ ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
 intptr_t
 ThreadContextInfo::GetNullFrameDisplayAddr() const
 {
-    return static_cast<intptr_t>(m_threadContextData->nullFrameDisplayAddr);
+    return reinterpret_cast<intptr_t>(&Js::NullFrameDisplay) - GetBaseAddressDifference();
 }
 
 intptr_t
 ThreadContextInfo::GetStrictNullFrameDisplayAddr() const
 {
-    return static_cast<intptr_t>(m_threadContextData->strictNullFrameDisplayAddr);
+    return reinterpret_cast<intptr_t>(&Js::StrictNullFrameDisplay) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetAbsDoubleCstAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::AbsDoubleCst) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetAbsFloatCstAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::AbsFloatCst) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetMaskNegFloatAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::MaskNegFloat) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetMaskNegDoubleAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::MaskNegDouble) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetUIntConvertConstAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::UIntConvertConst) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetUint8ClampedArraySetItemAddr() const
+{
+    return reinterpret_cast<intptr_t>((BOOL(*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetConstructorCacheDefaultInstanceAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::ConstructorCache::DefaultInstance) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetJavascriptObjectNewInstanceAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptObject::EntryInfo::NewInstance) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleOnePointZeroAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::ONE_POINT_ZERO) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoublePointFiveAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_PointFive) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetFloatPointFiveAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32PointFive) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleNegPointFiveAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_NegPointFive) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetFloatNegPointFiveAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32NegPointFive) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleTwoToFractionAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_TwoToFraction) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetFloatTwoToFractionAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32TwoToFraction) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleNegTwoToFractionAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_NegTwoToFraction) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetFloatNegTwoToFractionAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32NegTwoToFraction) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleZeroAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Zero) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetFloatZeroAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNumber::k_Float32Zero) - GetBaseAddressDifference();
+}
+
+intptr_t
+ThreadContextInfo::GetNativeFloatArrayMissingItemAddr() const
+{
+    return reinterpret_cast<intptr_t>(&Js::JavascriptNativeFloatArray::MissingItem) - GetBaseAddressDifference();
 }
 
 intptr_t
@@ -37,4 +157,16 @@ bool
 ThreadContextInfo::IsThreadBound() const
 {
     return m_threadContextData->isThreadBound != FALSE;
+}
+
+intptr_t
+ThreadContextInfo::GetRuntimeChakraBaseAddress() const
+{
+    return static_cast<intptr_t>(m_threadContextData->chakraBaseAddress);
+}
+
+ptrdiff_t
+ThreadContextInfo::GetBaseAddressDifference() const
+{
+    return m_localChakraBaseAddress - GetRuntimeChakraBaseAddress();
 }
