@@ -1211,7 +1211,6 @@ namespace Js
         return splitPattern;
     }
 
-    // String.prototype.split (ES5 15.5.4.14)
     Var RegexHelper::RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
         ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
@@ -1361,6 +1360,7 @@ namespace Js
         return flags;
     }
 
+    // String.prototype.split (ES5 15.5.4.14)
     Var RegexHelper::RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
         if (noResult && scriptContext->GetConfig()->SkipSplitOnNoResult())
