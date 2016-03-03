@@ -5,7 +5,7 @@
 #include "JsrtPch.h"
 #include "JsrtDebuggerObject.h"
 #include "JsrtDebugUtils.h"
-#include "jsrtdebug.h"
+#include "JsrtDebug.h"
 
 DebuggerObjectBase::DebuggerObjectBase(DebuggerObjectType type, DebuggerObjectsManager* debuggerObjectsManager) :
     type(type),
@@ -47,6 +47,7 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
 
     WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef = objectDisplayRef->CreateWalker();
     Js::IDiagObjectModelWalkerBase* walker = walkerRef->GetStrongReference();
+
     if (walker != nullptr)
     {
         ulong childrensCount = 0;

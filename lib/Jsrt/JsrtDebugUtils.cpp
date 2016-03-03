@@ -25,7 +25,10 @@ void JsrtDebugUtils::AddFileNameToObject(Js::DynamicObject* object, Js::Utf8Sour
     if (utf8SourceInfo->IsDynamic())
     {
         Js::FunctionBody* anyFunctionBody = utf8SourceInfo->GetAnyParsedFunction();
-        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::scriptType, anyFunctionBody->GetSourceName(), utf8SourceInfo->GetScriptContext());
+        if (anyFunctionBody != nullptr)
+        {
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::scriptType, anyFunctionBody->GetSourceName(), utf8SourceInfo->GetScriptContext());
+        }
     }
 
     JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::fileName, url, utf8SourceInfo->GetScriptContext());
@@ -48,6 +51,7 @@ void JsrtDebugUtils::AddLineColumnToObject(Js::DynamicObject* object, Js::Functi
 void JsrtDebugUtils::AddSourceLengthAndTextToObject(Js::DynamicObject* object, Js::FunctionBody* functionBody, int byteCodeOffset)
 {
     Js::FunctionBody::StatementMap* statementMap = functionBody->GetEnclosingStatementMapFromByteCode(byteCodeOffset);
+    Assert(statementMap != nullptr);
 
     LPCUTF8 source = functionBody->GetStartOfDocument(L"Source for debugging");
     size_t startByte = utf8::CharacterIndexToByteIndex(source, functionBody->GetUtf8SourceInfo()->GetCbLength(), (const charcount_t)statementMap->sourceSpan.begin);
@@ -82,13 +86,14 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
         utf8::DecodeIntoAndNullTerminate(sourceContent, utf8SourceInfo->GetSource(), cchLength, options);
     }
 
-    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, sourceContent, utf8SourceInfo->GetScriptContext());
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, sourceContent != nullptr ? sourceContent : L"", utf8SourceInfo->GetScriptContext());
 }
 
 void JsrtDebugUtils::AddVarPropertyToObject(Js::DynamicObject * object, const wchar_t * propertyName, Js::Var value, Js::ScriptContext * scriptContext)
 {
     const Js::PropertyRecord* propertyRecord;
 
+    // propertyName is the DEBUGOBJECTPROPERTY from JsrtDebugPropertiesEnum so it can't have embedded null, ok to use wcslen
     scriptContext->GetOrAddPropertyRecord(propertyName, static_cast<int>(wcslen(propertyName)), &propertyRecord);
 
     Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, value);
@@ -274,7 +279,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
     {
         LPCWSTR value = nullptr;
 
-        // Getting value might call getter which can throw
+        // Getting value might call getter which can throw so wrap in try catch
         try
         {
             value = objectDisplayRef->Value(10);
