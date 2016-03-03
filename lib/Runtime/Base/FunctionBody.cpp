@@ -418,6 +418,7 @@ namespace Js
 #endif
         ) :
         ParseableFunctionInfo(scriptContext->CurrentThunk, nestedCount, functionId, utf8SourceInfo, scriptContext, uFunctionNumber, displayName, displayNameLength, displayShortNameOffset, attributes, boundPropertyRecords),
+        counters(this),
         m_uScriptId(uScriptId),
         cleanedUp(false),
         sourceInfoCleanedUp(false),

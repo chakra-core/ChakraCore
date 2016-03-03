@@ -11,31 +11,37 @@ namespace Js
 {
     template<class T, typename CountT = T::CounterFields>
     struct CompactCounters
-    {
-        uint8 fieldSize;
-#if DBG
-        mutable bool bgThreadCallStarted;
-        bool isCleaningUp;
-#endif
-        union {
-            uint8 u8Fields[CountT::Max];
-            int8 i8Fields[CountT::Max];
-            WriteBarrierPtr<uint16> u16Fields;
-            WriteBarrierPtr<uint32> u32Fields;
-            WriteBarrierPtr<int16> i16Fields;
-            WriteBarrierPtr<int32> i32Fields;
+    {    
+        struct Fields {
+            union {
+                uint8 u8Fields[CountT::Max];
+                int8 i8Fields[CountT::Max];
+                uint16 u16Fields[CountT::Max];
+                int16 i16Fields[CountT::Max];
+                uint32 u32Fields[CountT::Max];
+                int32 i32Fields[CountT::Max];
+            };
+            Fields() {}
         };
 
-        CompactCounters()
-            :fieldSize(1)
+
+        uint8 fieldSize;
+#if DBG
+    
+        mutable bool bgThreadCallStarted;
+        bool isCleaningUp;
+#endif    
+        WriteBarrierPtr<Fields> fields;
+    
+        CompactCounters() { }
+        CompactCounters(T* host)
+            :fieldSize(sizeof(uint8))
 #if DBG
             , bgThreadCallStarted(false), isCleaningUp(false)
 #endif
         {
-            memset(u8Fields, 0, (uint8)CountT::Max);
+            AllocCounters<uint8>(host);
         }
-
-        void AllocCounters(T* host, uint8 newSize);
 
         uint32 Get(CountT typeEnum) const
         {
@@ -50,16 +56,16 @@ namespace Js
             uint32 value = 0;
             if (localFieldSize == 1)
             {
-                value = this->u8Fields[type];
+                value = this->fields->u8Fields[type];
             }
             else if (localFieldSize == 2)
             {
-                value = this->u16Fields[type];
+                value = this->fields->u16Fields[type];
             }
             else
             {
                 Assert(localFieldSize == 4);
-                value = this->u32Fields[type];
+                value = this->fields->u32Fields[type];
             }
 
             return value;
@@ -79,16 +85,16 @@ namespace Js
             int32 value = 0;
             if (localFieldSize == 1)
             {
-                value = this->i8Fields[type];
+                value = this->fields->i8Fields[type];
             }
             else if (localFieldSize == 2)
             {
-                value = this->i16Fields[type];
+                value = this->fields->i16Fields[type];
             }
             else
             {
                 Assert(localFieldSize == 4);
-                value = this->i32Fields[type];
+                value = this->fields->i32Fields[type];
             }
             return value;
         }
@@ -102,30 +108,30 @@ namespace Js
             {
                 if (val <= UINT8_MAX)
                 {
-                    return this->u8Fields[type] = static_cast<uint8>(val);
+                    return this->fields->u8Fields[type] = static_cast<uint8>(val);
                 }
                 else
                 {
-                    AllocCounters(host, val <= UINT16_MAX ? 2 : 4);
+                    (val <= UINT16_MAX) ? AllocCounters<uint16>(host) : AllocCounters<uint32>(host);
+                    return host->counters.Set(typeEnum, val, host);
                 }
-                return this->Set(typeEnum, val, host);
             }
 
             if (fieldSize == 2)
             {
                 if (val <= UINT16_MAX)
                 {
-                    return this->u16Fields[type] = static_cast<uint16>(val);
+                    return this->fields->u16Fields[type] = static_cast<uint16>(val);
                 }
                 else
                 {
-                    AllocCounters(host, 4);
+                    AllocCounters<uint32>(host);
+                    return host->counters.Set(typeEnum, val, host);
                 }
-                return this->Set(typeEnum, val, host);
             }
 
             Assert(fieldSize == 4);
-            return this->u32Fields[type] = val;
+            return this->fields->u32Fields[type] = val;
         }
 
         int32 SetSigned(CountT typeEnum, int32 val, T* host)
@@ -137,30 +143,30 @@ namespace Js
             {
                 if (val <= INT8_MAX && val >= INT8_MIN)
                 {
-                    return this->i8Fields[type] = static_cast<uint8>(val);
+                    return this->fields->i8Fields[type] = static_cast<uint8>(val);
                 }
                 else
                 {
-                    AllocCounters(host, (val <= INT16_MAX && val >= INT16_MIN) ? 2 : 4);
+                    (val <= INT16_MAX && val >= INT16_MIN)? AllocCounters<uint16>(host): AllocCounters<uint32>(host);
+                    return host->counters.SetSigned(typeEnum, val, host);
                 }
-                return this->SetSigned(typeEnum, val, host);
             }
 
             if (fieldSize == 2)
             {
                 if (val <= INT16_MAX && val >= INT16_MIN)
                 {
-                    return this->i16Fields[type] = static_cast<uint16>(val);
+                    return this->fields->i16Fields[type] = static_cast<uint16>(val);
                 }
                 else
                 {
-                    AllocCounters(host, 4);
+                    AllocCounters<uint32>(host);
+                    return host->counters.SetSigned(typeEnum, val, host);
                 }
-                return this->SetSigned(typeEnum, val, host);
             }
 
             Assert(fieldSize == 4);
-            return this->i32Fields[type] = val;
+            return this->fields->i32Fields[type] = val;
         }
 
         uint32 Increase(CountT typeEnum, T* host)
@@ -170,104 +176,92 @@ namespace Js
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
             {
-                if (this->u8Fields[type] < UINT8_MAX)
+                if (this->fields->u8Fields[type] < UINT8_MAX)
                 {
-                    return this->u8Fields[type]++;
+                    return this->fields->u8Fields[type]++;
                 }
                 else
                 {
-                    AllocCounters(host, 2);
+                    AllocCounters<uint16>(host);
+                    return host->counters.Increase(typeEnum, host);
                 }
-                return this->Increase(typeEnum, host);
             }
 
             if (fieldSize == 2)
             {
-                if (this->u16Fields[type] < UINT16_MAX)
+                if (this->fields->u16Fields[type] < UINT16_MAX)
                 {
-                    return this->u16Fields[type]++;
+                    return this->fields->u16Fields[type]++;
                 }
                 else
                 {
-                    AllocCounters(host, 4);
+                    AllocCounters<uint32>(host);
+                    return host->counters.Increase(typeEnum, host);
                 }
-                return this->Increase(typeEnum, host);
             }
 
             Assert(fieldSize == 4);
-            return this->u32Fields[type]++;
-        }
-    };
-
-
-    template<class T, typename CountT>
-    void CompactCounters<T, CountT>::AllocCounters(T* host, uint8 newSize)
-    {
-        Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
-
-        typedef CompactCounters<T, CountT> CounterT;
-        Assert(host->GetRecycler() != nullptr);
-
-        const uint8 signedStart = static_cast<uint8>(CountT::SignedFieldsStart);
-        const uint8 max = static_cast<uint8>(CountT::Max);
-
-        void* newFieldsArray = nullptr;
-        if (newSize == 2) 
-        {
-            newFieldsArray = RecyclerNewArrayLeafZ(host->GetRecycler(), uint16, max);
-        }
-        else 
-        {
-            Assert(newSize == 4);
-            newFieldsArray = RecyclerNewArrayLeafZ(host->GetRecycler(), uint32, max);
+            return this->fields->u32Fields[type]++;
         }
 
-        uint8 i = 0;
-        if (this->fieldSize == 1)
+        template<typename FieldT>
+        void AllocCounters(T* host)
         {
-            if (newSize == 2)
+            Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
+            Assert(host->GetRecycler() != nullptr);
+
+            const uint8 signedStart = static_cast<uint8>(CountT::SignedFieldsStart);
+            const uint8 max = static_cast<uint8>(CountT::Max);
+            typedef CompactCounters<T, CountT> CounterT;
+            CounterT::Fields* fieldsArray = (CounterT::Fields*)RecyclerNewArrayLeafZ(host->GetRecycler(), FieldT, sizeof(FieldT)*max);
+            CounterT::Fields* oldFieldsArray = host->counters.fields;
+            uint8 i = 0;
+            if (this->fieldSize == 1)
+            {
+                if (sizeof(FieldT) == 2)
+                {
+                    for (; i < signedStart; i++)
+                    {
+                        fieldsArray->u16Fields[i] = oldFieldsArray->u8Fields[i];
+                    }
+                    for (; i < max; i++)
+                    {
+                        fieldsArray->i16Fields[i] = oldFieldsArray->i8Fields[i];
+                    }
+                }
+                else if (sizeof(FieldT) == 4)
+                {
+                    for (; i < signedStart; i++)
+                    {
+                        fieldsArray->u32Fields[i] = oldFieldsArray->u8Fields[i];
+                    }
+                    for (; i < max; i++)
+                    {
+                        fieldsArray->i32Fields[i] = oldFieldsArray->i8Fields[i];
+                    }
+                }
+            }
+            else if (this->fieldSize == 2)
             {
                 for (; i < signedStart; i++)
                 {
-                    ((uint16*)newFieldsArray)[i] = this->u8Fields[i];
+                    fieldsArray->u32Fields[i] = oldFieldsArray->u16Fields[i];
                 }
                 for (; i < max; i++)
                 {
-                    ((int16*)newFieldsArray)[i] = this->i8Fields[i];
+                    fieldsArray->i32Fields[i] = oldFieldsArray->i16Fields[i];
                 }
             }
             else
             {
-                for (; i < signedStart; i++)
-                {
-                    ((uint32*)newFieldsArray)[i] = this->u8Fields[i];
-                }
-                for (; i < max; i++)
-                {
-                    ((int32*)newFieldsArray)[i] = this->i8Fields[i];
-                }
+                Assert(false);
             }
-        }
-        else if (this->fieldSize == 2)
-        {
-            for (; i < signedStart; i++)
-            {
-                ((uint32*)newFieldsArray)[i] = this->u16Fields[i];
-            }
-            for (; i < max; i++)
-            {
-                ((int32*)newFieldsArray)[i] = this->i16Fields[i];
-            }
-        }
-        else
-        {
-            Assert(false);
-        }
-        
-        this->fieldSize = newSize;
-        this->u16Fields = (uint16*)newFieldsArray;        
 
-    }
+            this->fieldSize = sizeof(FieldT);
+            this->fields = fieldsArray;
+        }
+
+    };
 }
 
 #pragma warning(pop)
