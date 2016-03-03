@@ -406,11 +406,11 @@ WasmBinaryReader::EndOfModule()
 void
 WasmBinaryReader::ReadMemorySection()
 {
-    // TODO: change to use multiple of page size
-    uint32 minSize = 1 << ReadConst<UINT8>();
-    uint32 maxSize = 1 << ReadConst<UINT8>();
+    UINT length = 0;
+    UINT minPage = LEB128(length);
+    UINT maxPage = LEB128(length);
     bool exported = ReadConst<UINT8>() != FALSE;
-    m_moduleInfo->InitializeMemory(minSize, maxSize, exported);
+    m_moduleInfo->InitializeMemory(minPage, maxPage, exported);
 }
 
 void
