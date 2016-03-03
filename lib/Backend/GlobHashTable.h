@@ -27,8 +27,8 @@ public:
 class Key
 {
 public:
-    static uint Get(Sym *sym) { return static_cast<uint>(sym->m_id); }
-    static uint Get(ExprHash hash) { return static_cast<uint>(hash); }
+    static uint64 Get(Sym *sym) { return static_cast<uint64>(sym->m_id); }
+    static uint64 Get(ExprHash hash) { return static_cast<uint64>(hash); }
 };
 
 #define FOREACH_GLOBHASHTABLE_ENTRY(bucket, hashTable) \
@@ -82,7 +82,7 @@ public:
 
     TElement * FindOrInsertNew(TData value)
     {
-        uint key = Key::Get(value);
+        uint64 key = Key::Get(value);
         uint hash = this->Hash(key);
 
 #if PROFILE_DICTIONARY
@@ -187,11 +187,11 @@ public:
 
     TElement * Get(TData value)
     {
-        uint key = Key::Get(value);
+        uint64 key = Key::Get(value);
         return Get(key);
     }
 
-    TElement * Get(uint key)
+    TElement * Get(uint64 key)
     {
         uint hash = this->Hash(key);
         // Assumes sorted lists
@@ -433,7 +433,7 @@ protected:
         }
     }
 private:
-    uint         Hash(uint key) { return (key % this->tableSize); }
+    uint         Hash(uint64 key) { return ((uint32)key % this->tableSize); }
 
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;

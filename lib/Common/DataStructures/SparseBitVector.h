@@ -10,19 +10,21 @@ typedef  BVUnit32 SparseBVUnit;
 typedef  BVUnit64 SparseBVUnit;
 #endif
 
-#define FOREACH_BITSET_IN_SPARSEBV(index, bv) \
+#define __FOREACH_BITSET_IN_SPARSEBV(index, bv, TBVIndex) \
 { \
-    BVIndex index; \
-    for(BVSparseNode * _curNode = (bv)->head; _curNode != 0 ; _curNode = _curNode->next) \
+    TBVIndex index; \
+    for(BVSparseNode<TBVIndex> * _curNode = (bv)->head; _curNode != 0 ; _curNode = _curNode->next) \
     { \
         BVIndex _offset; \
-        BVIndex _startIndex = _curNode->startIndex; \
-        SparseBVUnit  _unit = _curNode->data; \
+        TBVIndex _startIndex = _curNode->startIndex; \
+        SparseBVUnit _unit = _curNode->data; \
         for(_offset = _unit.GetNextBit(); _offset != -1; _offset = _unit.GetNextBit()) \
         { \
             index = _startIndex + _offset; \
             _unit.Clear(_offset); \
         \
+
+#define FOREACH_BITSET_IN_SPARSEBV(index, bv) __FOREACH_BITSET_IN_SPARSEBV(index, bv, BVIndex)
 
 #define BREAK_BITSET_IN_SPARSEBV \
             _curNode = 0; \
@@ -37,15 +39,15 @@ typedef  BVUnit64 SparseBVUnit;
     } \
 }
 
-#define FOREACH_BITSET_IN_SPARSEBV_EDITING(index, bv) \
+#define __FOREACH_BITSET_IN_SPARSEBV_EDITING(index, bv, TBVIndex) \
 { \
-    BVIndex index;  \
-    BVSparseNode * _curNodeEdit = (bv)->head; \
+    TBVIndex index;  \
+    BVSparseNode<TBVIndex> * _curNodeEdit = (bv)->head; \
     while (_curNodeEdit != nullptr) \
     { \
-        BVSparseNode * _next = _curNodeEdit->next; \
+        BVSparseNode<TBVIndex> * _next = _curNodeEdit->next; \
         BVIndex _offset; \
-        BVIndex _startIndex = _curNodeEdit->startIndex; \
+        TBVIndex _startIndex = _curNodeEdit->startIndex; \
         SparseBVUnit  _unit = _curNodeEdit->data; \
         for(_offset = _unit.GetNextBit(); _offset != -1; _offset = _unit.GetNextBit()) \
         { \
@@ -59,24 +61,26 @@ typedef  BVUnit64 SparseBVUnit;
     } \
 }
 
-#define SPARSEBV_CLEAR_CURRENT_BIT() _curNodeEdit->data.Clear(_offset)
+#define FOREACH_BITSET_IN_SPARSEBV_EDITING(index, bv) __FOREACH_BITSET_IN_SPARSEBV_EDITING(index, bv, BVIndex)
 
+#define SPARSEBV_CLEAR_CURRENT_BIT() _curNodeEdit->data.Clear(_offset)
+template <typename TBVIndex = BVIndex>
 struct BVSparseNode
 {
-    BVIndex         startIndex;
+    TBVIndex         startIndex;
 #if defined(_M_ARM64) || defined(_M_X64)
     //64-bit: the order is changed to make sure it fits in 16 bytes
     SparseBVUnit    data;
-    BVSparseNode *  next;
+    BVSparseNode<TBVIndex> *  next;
 #else //_M_IX86 and _M_ARM32
-    BVSparseNode *  next;
+    BVSparseNode<TBVIndex> *  next;
     SparseBVUnit    data;
 #endif
 
 
-    BVSparseNode(BVIndex beginIndex, BVSparseNode * nextNode);
+    BVSparseNode(TBVIndex beginIndex, BVSparseNode<TBVIndex> * nextNode);
 
-    void init(BVIndex beginIndex, BVSparseNode * nextNode);
+    void init(TBVIndex beginIndex, BVSparseNode<TBVIndex> * nextNode);
 
     // Needed for the NatVis Extension for visualizing BitVectors
     // in Visual Studio
@@ -91,18 +95,18 @@ struct BVSparseNode
 #endif
 };
 
-CompileAssert(sizeof(BVSparseNode) == 16); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
+CompileAssert(sizeof(BVSparseNode<>) == 16); // Performance assert, BVSparseNode is heavily used in the backend, do perf measurement before changing this.
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex = BVIndex>
 class BVSparse
 {
 // Data
 public:
-            BVSparseNode *      head;
+            BVSparseNode<TBVIndex> *      head;
 
 private:
             TAllocator *        alloc;
-            BVSparseNode **     lastUsedNodePrevNextField;
+            BVSparseNode<TBVIndex> **     lastUsedNodePrevNextField;
 
     static const SparseBVUnit       s_EmptyUnit;
 
@@ -114,79 +118,79 @@ public:
 // Implementation
 protected:
     template <class TOtherAllocator>
-    static  void            AssertBV(const BVSparse<TOtherAllocator> * bv);
+    static  void            AssertBV(const BVSparse<TOtherAllocator, TBVIndex> * bv);
 
 
-            SparseBVUnit *      BitsFromIndex(BVIndex i, bool create = true);
-            BVSparseNode*   NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create = true);
-            BVSparseNode *  DeleteNode(BVSparseNode *node, bool bResetLastUsed = true);
-            void            QueueInFreeList(BVSparseNode* node);
-            BVSparseNode *  Allocate(const BVIndex searchIndex, BVSparseNode *prevNode);
-
-    template<void (SparseBVUnit::*callback)(SparseBVUnit)>
-    void for_each(const BVSparse<TAllocator> *bv2);
+            SparseBVUnit *      BitsFromIndex(TBVIndex i, bool create = true);
+            BVSparseNode<TBVIndex>*   NodeFromIndex(TBVIndex i, BVSparseNode<TBVIndex> *** prevNextFieldOut, bool create = true);
+            BVSparseNode<TBVIndex> *  DeleteNode(BVSparseNode<TBVIndex> *node, bool bResetLastUsed = true);
+            void            QueueInFreeList(BVSparseNode<TBVIndex>* node);
+            BVSparseNode<TBVIndex> *  Allocate(const TBVIndex searchIndex, BVSparseNode<TBVIndex> *prevNode);
 
     template<void (SparseBVUnit::*callback)(SparseBVUnit)>
-    void for_each(const BVSparse<TAllocator> *bv1, const BVSparse<TAllocator> *bv2);
+    void for_each(const BVSparse<TAllocator, TBVIndex> *bv2);
+
+    template<void (SparseBVUnit::*callback)(SparseBVUnit)>
+    void for_each(const BVSparse<TAllocator, TBVIndex> *bv1, const BVSparse<TAllocator, TBVIndex> *bv2);
 
 // Methods
 public:
 
-            BOOLEAN         operator[](BVIndex i) const;
-            BOOLEAN         Test(BVIndex i);
-            BVIndex         GetNextBit(BVIndex i) const;
-            BVIndex         GetNextBit(BVSparseNode * node) const;
+            BOOLEAN         operator[](TBVIndex i) const;
+            BOOLEAN         Test(TBVIndex i);
+            TBVIndex         GetNextBit(TBVIndex i) const;
+            TBVIndex         GetNextBit(BVSparseNode<TBVIndex> * node) const;
 
             BOOLEAN         TestEmpty() const;
-            BOOLEAN         TestAndSet(BVIndex i);
-            BOOLEAN         TestAndClear(BVIndex i);
-            void            Set(BVIndex i);
-            void            Clear(BVIndex i);
-            void            Compliment(BVIndex i);
+            BOOLEAN         TestAndSet(TBVIndex i);
+            BOOLEAN         TestAndClear(TBVIndex i);
+            void            Set(TBVIndex i);
+            void            Clear(TBVIndex i);
+            void            Compliment(TBVIndex i);
 
 
             // this |= bv;
-            void            Or(const BVSparse<TAllocator> *bv);
+            void            Or(const BVSparse<TAllocator, TBVIndex> *bv);
             // this = bv1 | bv2;
-            void            Or(const BVSparse<TAllocator> *bv1, const BVSparse<TAllocator> *bv2);
+            void            Or(const BVSparse<TAllocator, TBVIndex> *bv1, const BVSparse<TAllocator, TBVIndex> *bv2);
             // newBv = this | bv;
-            BVSparse<TAllocator> *      OrNew(const BVSparse<TAllocator> *bv, TAllocator* allocator) const;
-            BVSparse<TAllocator> *      OrNew(const BVSparse<TAllocator> *bv) const { return this->OrNew(bv, this->alloc); }
+            BVSparse<TAllocator, TBVIndex> *      OrNew(const BVSparse<TAllocator, TBVIndex> *bv, TAllocator* allocator) const;
+            BVSparse<TAllocator, TBVIndex> *      OrNew(const BVSparse<TAllocator, TBVIndex> *bv) const { return this->OrNew(bv, this->alloc); }
 
             // this &= bv;
-            void            And(const BVSparse<TAllocator> *bv);
+            void            And(const BVSparse<TAllocator, TBVIndex> *bv);
             // this = bv1 & bv2;
-            void            And(const BVSparse<TAllocator> *bv1, const BVSparse<TAllocator> *bv2);
+            void            And(const BVSparse<TAllocator, TBVIndex> *bv1, const BVSparse<TAllocator, TBVIndex> *bv2);
             // newBv = this & bv;
-            BVSparse<TAllocator> *      AndNew(const BVSparse<TAllocator> *bv, TAllocator* allocator) const;
-            BVSparse<TAllocator> *      AndNew(const BVSparse<TAllocator> *bv) const { return this->AndNew(bv, this->alloc); }
+            BVSparse<TAllocator, TBVIndex> *      AndNew(const BVSparse<TAllocator, TBVIndex> *bv, TAllocator* allocator) const;
+            BVSparse<TAllocator, TBVIndex> *      AndNew(const BVSparse<TAllocator, TBVIndex> *bv) const { return this->AndNew(bv, this->alloc); }
 
             // this ^= bv;
-            void            Xor(const BVSparse<TAllocator> *bv);
+            void            Xor(const BVSparse<TAllocator, TBVIndex> *bv);
             // this = bv1 ^ bv2;
-            void            Xor(const BVSparse<TAllocator> *bv1, const BVSparse<TAllocator> *bv2);
+            void            Xor(const BVSparse<TAllocator, TBVIndex> *bv1, const BVSparse<TAllocator, TBVIndex> *bv2);
             // newBv = this ^ bv;
-            BVSparse<TAllocator> *      XorNew(const BVSparse<TAllocator> *bv, TAllocator* allocator) const;
-            BVSparse<TAllocator> *      XorNew(const BVSparse<TAllocator> *bv) const { return this->XorNew(bv, this->alloc); }
+            BVSparse<TAllocator, TBVIndex> *      XorNew(const BVSparse<TAllocator, TBVIndex> *bv, TAllocator* allocator) const;
+            BVSparse<TAllocator, TBVIndex> *      XorNew(const BVSparse<TAllocator, TBVIndex> *bv) const { return this->XorNew(bv, this->alloc); }
 
             // this -= bv;
-            void            Minus(const BVSparse<TAllocator> *bv);
+            void            Minus(const BVSparse<TAllocator, TBVIndex> *bv);
             // this = bv1 - bv2;
-            void            Minus(const BVSparse<TAllocator> *bv1, const BVSparse<TAllocator> *bv2);
+            void            Minus(const BVSparse<TAllocator, TBVIndex> *bv1, const BVSparse<TAllocator, TBVIndex> *bv2);
             // newBv = this - bv;
-            BVSparse<TAllocator> *      MinusNew(const BVSparse<TAllocator> *bv, TAllocator* allocator) const;
-            BVSparse<TAllocator> *      MinusNew(const BVSparse<TAllocator> *bv) const { return this->MinusNew(bv, this->alloc); }
+            BVSparse<TAllocator, TBVIndex> *      MinusNew(const BVSparse<TAllocator, TBVIndex> *bv, TAllocator* allocator) const;
+            BVSparse<TAllocator, TBVIndex> *      MinusNew(const BVSparse<TAllocator, TBVIndex> *bv) const { return this->MinusNew(bv, this->alloc); }
 
             template <class TSrcAllocator>
-            void            Copy(const BVSparse<TSrcAllocator> *bv);
-            BVSparse<TAllocator> *      CopyNew(TAllocator* allocator) const;
-            BVSparse<TAllocator> *      CopyNew() const;
+            void            Copy(const BVSparse<TSrcAllocator, TBVIndex> *bv);
+            BVSparse<TAllocator, TBVIndex> *      CopyNew(TAllocator* allocator) const;
+            BVSparse<TAllocator, TBVIndex> *      CopyNew() const;
             void            ComplimentAll();
             void            ClearAll();
 
-            BVIndex         Count() const;
+            TBVIndex         Count() const;
             bool            IsEmpty() const;
-            bool            Equal(BVSparse<TAllocator> const * bv) const;
+            bool            Equal(BVSparse<TAllocator, TBVIndex> const * bv) const;
 
             // this & bv != empty
             bool            Test(BVSparse const * bv) const;
@@ -221,34 +225,34 @@ inline void Dump(BVSparse<Recycler> * const& bv)
 }
 #endif
 
-template <class TAllocator>
-const SparseBVUnit BVSparse<TAllocator>::s_EmptyUnit(0);
+template <class TAllocator, typename TBVIndex>
+const SparseBVUnit BVSparse<TAllocator, TBVIndex>::s_EmptyUnit(0);
 
-template <class TAllocator>
-BVSparse<TAllocator>::BVSparse(TAllocator* allocator) :
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex>::BVSparse(TAllocator* allocator) :
    alloc(allocator),
    head(nullptr)
 {
     this->lastUsedNodePrevNextField = &this->head;
 }
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::QueueInFreeList(BVSparseNode *curNode)
+BVSparse<TAllocator, TBVIndex>::QueueInFreeList(BVSparseNode<TBVIndex> *curNode)
 {
     AllocatorDelete(TAllocator, this->alloc, curNode);
 }
 
-template <class TAllocator>
-BVSparseNode *
-BVSparse<TAllocator>::Allocate(const BVIndex searchIndex, BVSparseNode *nextNode)
+template <class TAllocator, typename TBVIndex>
+BVSparseNode<TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::Allocate(const TBVIndex searchIndex, BVSparseNode<TBVIndex> *nextNode)
 {
-    return AllocatorNew(TAllocator, this->alloc, BVSparseNode, searchIndex, nextNode);
+    return AllocatorNew(TAllocator, this->alloc, BVSparseNode<TBVIndex>, searchIndex, nextNode);
 }
 
-template <class TAllocator>
-BVSparse<TAllocator>::~BVSparse()
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex>::~BVSparse()
 {
-    BVSparseNode * curNode = this->head;
+    BVSparseNode<TBVIndex> * curNode = this->head;
     while (curNode != nullptr)
     {
         curNode = this->DeleteNode(curNode);
@@ -259,14 +263,14 @@ BVSparse<TAllocator>::~BVSparse()
 // Searches for a node which would contain the required bit. If not found, then it inserts
 // a new node in the appropriate position.
 //
-template <class TAllocator>
-BVSparseNode *
-BVSparse<TAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create)
+template <class TAllocator, typename TBVIndex>
+BVSparseNode<TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::NodeFromIndex(TBVIndex i, BVSparseNode<TBVIndex> *** prevNextFieldOut, bool create)
 {
-    const BVIndex searchIndex = SparseBVUnit::Floor(i);
+    const TBVIndex searchIndex = SparseBVUnit::Floor(i);
 
-    BVSparseNode ** prevNextField = this->lastUsedNodePrevNextField;
-    BVSparseNode * curNode = (*prevNextField);
+    BVSparseNode<TBVIndex> ** prevNextField = this->lastUsedNodePrevNextField;
+    BVSparseNode<TBVIndex> * curNode = (*prevNextField);
     if (curNode != nullptr)
     {
         if (curNode->startIndex == searchIndex)
@@ -304,7 +308,7 @@ BVSparse<TAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut
         return nullptr;
     }
 
-    BVSparseNode * newNode = Allocate(searchIndex, *prevNextField);
+    BVSparseNode<TBVIndex> * newNode = Allocate(searchIndex, *prevNextField);
     *prevNextField = newNode;
     *prevNextFieldOut = prevNextField;
     this->lastUsedNodePrevNextField = prevNextField;
@@ -313,12 +317,12 @@ BVSparse<TAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut
 
 
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 SparseBVUnit *
-BVSparse<TAllocator>::BitsFromIndex(BVIndex i, bool create)
+BVSparse<TAllocator, TBVIndex>::BitsFromIndex(TBVIndex i, bool create)
 {
-    BVSparseNode ** prevNextField;
-    BVSparseNode * node = NodeFromIndex(i, &prevNextField, create);
+    BVSparseNode<TBVIndex> ** prevNextField;
+    BVSparseNode<TBVIndex> * node = NodeFromIndex(i, &prevNextField, create);
     if (node)
     {
         return &node->data;
@@ -330,11 +334,11 @@ BVSparse<TAllocator>::BitsFromIndex(BVIndex i, bool create)
 }
 
 
-template <class TAllocator>
-BVSparseNode *
-BVSparse<TAllocator>::DeleteNode(BVSparseNode *node, bool bResetLastUsed)
+template <class TAllocator, typename TBVIndex>
+BVSparseNode<TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::DeleteNode(BVSparseNode<TBVIndex> *node, bool bResetLastUsed)
 {
-    BVSparseNode *next = node->next;
+    BVSparseNode<TBVIndex> *next = node->next;
     QueueInFreeList(node);
 
     if (bResetLastUsed)
@@ -348,13 +352,13 @@ BVSparse<TAllocator>::DeleteNode(BVSparseNode *node, bool bResetLastUsed)
     return next;
 }
 
-template <class TAllocator>
-BVIndex
-BVSparse<TAllocator>::GetNextBit(BVSparseNode *node) const
+template <class TAllocator, typename TBVIndex>
+TBVIndex
+BVSparse<TAllocator, TBVIndex>::GetNextBit(BVSparseNode<TBVIndex> *node) const
 {
     while(0 != node)
     {
-        BVIndex ret = node->data.GetNextBit();
+        TBVIndex ret = node->data.GetNextBit();
         if(-1 != ret)
         {
             return ret + node->startIndex;
@@ -363,17 +367,17 @@ BVSparse<TAllocator>::GetNextBit(BVSparseNode *node) const
     return -1;
 }
 
-template <class TAllocator>
-BVIndex
-BVSparse<TAllocator>::GetNextBit(BVIndex i) const
+template <class TAllocator, typename TBVIndex>
+TBVIndex
+BVSparse<TAllocator, TBVIndex>::GetNextBit(TBVIndex i) const
 {
-    const BVIndex startIndex = SparseBVUnit::Floor(i);
+    const TBVIndex startIndex = SparseBVUnit::Floor((BVIndex)i);
 
-    for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = node->next)
     {
         if(startIndex == node->startIndex)
         {
-            BVIndex ret = node->data.GetNextBit(SparseBVUnit::Offset(i));
+            TBVIndex ret = node->data.GetNextBit(SparseBVUnit::Offset(i));
             if(-1 != ret)
             {
                 return ret + node->startIndex;
@@ -392,20 +396,20 @@ BVSparse<TAllocator>::GetNextBit(BVIndex i) const
     return  -1;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 template <class TOtherAllocator>
 void
-BVSparse<TAllocator>::AssertBV(const BVSparse<TOtherAllocator> *bv)
+BVSparse<TAllocator, TBVIndex>::AssertBV(const BVSparse<TOtherAllocator, TBVIndex> *bv)
 {
     AssertMsg(nullptr != bv, "Cannot operate on NULL bitvector");
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::ClearAll()
+BVSparse<TAllocator, TBVIndex>::ClearAll()
 {
-    BVSparseNode* nextNode;
-    for(BVSparseNode * node = this->head; node != 0 ; node = nextNode)
+    BVSparseNode<TBVIndex>* nextNode;
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = nextNode)
     {
         nextNode = node->next;
         QueueInFreeList(node);
@@ -414,19 +418,19 @@ BVSparse<TAllocator>::ClearAll()
     this->lastUsedNodePrevNextField = &this->head;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Set(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::Set(TBVIndex i)
 {
-    this->BitsFromIndex(i)->Set(SparseBVUnit::Offset(i));
+    this->BitsFromIndex(i)->Set(SparseBVUnit::Offset((BVIndex)i));
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Clear(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::Clear(TBVIndex i)
 {
-    BVSparseNode ** prevNextField;
-    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
+    BVSparseNode<TBVIndex> ** prevNextField;
+    BVSparseNode<TBVIndex> * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
     if(current)
     {
         current->data.Clear(SparseBVUnit::Offset(i));
@@ -437,49 +441,49 @@ BVSparse<TAllocator>::Clear(BVIndex i)
     }
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Compliment(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::Compliment(TBVIndex i)
 {
-    this->BitsFromIndex(i)->Complement(SparseBVUnit::Offset(i));
+    this->BitsFromIndex(i)->Complement(SparseBVUnit::Offset((BVIndex)i));
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 BOOLEAN
-BVSparse<TAllocator>::TestEmpty() const
+BVSparse<TAllocator, TBVIndex>::TestEmpty() const
 {
     return this->head != nullptr;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 BOOLEAN
-BVSparse<TAllocator>::Test(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::Test(TBVIndex i)
 {
-    return this->BitsFromIndex(i, false)->Test(SparseBVUnit::Offset(i));
+    return this->BitsFromIndex(i, false)->Test(SparseBVUnit::Offset((BVIndex)i));
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 BOOLEAN
-BVSparse<TAllocator>::TestAndSet(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::TestAndSet(TBVIndex i)
 {
     SparseBVUnit * bvUnit = this->BitsFromIndex(i);
-    BVIndex bvIndex = SparseBVUnit::Offset(i);
+    TBVIndex bvIndex = SparseBVUnit::Offset(i);
     BOOLEAN bit = bvUnit->Test(bvIndex);
     bvUnit->Set(bvIndex);
     return bit;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 BOOLEAN
-BVSparse<TAllocator>::TestAndClear(BVIndex i)
+BVSparse<TAllocator, TBVIndex>::TestAndClear(TBVIndex i)
 {
-    BVSparseNode ** prevNextField;
-    BVSparseNode * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
+    BVSparseNode<TBVIndex> ** prevNextField;
+    BVSparseNode<TBVIndex> * current = this->NodeFromIndex(i, &prevNextField, false /* create */);
     if (current == nullptr)
     {
         return false;
     }
-    BVIndex bvIndex = SparseBVUnit::Offset(i);
+    TBVIndex bvIndex = SparseBVUnit::Offset(i);
     BOOLEAN bit = current->data.Test(bvIndex);
     current->data.Clear(bvIndex);
     if (current->data.IsEmpty())
@@ -489,23 +493,23 @@ BVSparse<TAllocator>::TestAndClear(BVIndex i)
     return bit;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 BOOLEAN
-BVSparse<TAllocator>::operator[](BVIndex i) const
+BVSparse<TAllocator, TBVIndex>::operator[](TBVIndex i) const
 {
     return this->Test(i);
 }
 
-template<class TAllocator>
+template<class TAllocator, typename TBVIndex>
 template<void (SparseBVUnit::*callback)(SparseBVUnit)>
-void BVSparse<TAllocator>::for_each(const BVSparse *bv2)
+void BVSparse<TAllocator, TBVIndex>::for_each(const BVSparse *bv2)
 {
     Assert(callback == &SparseBVUnit::And || callback == &SparseBVUnit::Or || callback == &SparseBVUnit::Xor || callback == &SparseBVUnit::Minus);
     AssertBV(bv2);
 
-          BVSparseNode * node1      = this->head;
-    const BVSparseNode * node2      = bv2->head;
-          BVSparseNode ** prevNodeNextField   = &this->head;
+          BVSparseNode<TBVIndex> * node1      = this->head;
+    const BVSparseNode<TBVIndex> * node2      = bv2->head;
+          BVSparseNode<TBVIndex> ** prevNodeNextField   = &this->head;
 
     while(node1 != nullptr && node2 != nullptr)
     {
@@ -535,7 +539,7 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv2)
         {
             if (callback == &SparseBVUnit::Or || callback == &SparseBVUnit::Xor)
             {
-                BVSparseNode * newNode = Allocate(node2->startIndex, node1);
+                BVSparseNode<TBVIndex> * newNode = Allocate(node2->startIndex, node1);
                 (newNode->data.*callback)(node2->data);
                 *prevNodeNextField = newNode;
                 prevNodeNextField = &newNode->next;
@@ -557,7 +561,7 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv2)
         while(node2 != 0)
         {
             Assert(*prevNodeNextField == nullptr);
-            BVSparseNode * newNode = Allocate(node2->startIndex, nullptr);
+            BVSparseNode<TBVIndex> * newNode = Allocate(node2->startIndex, nullptr);
             *prevNodeNextField = newNode;
 
             (newNode->data.*callback)(node2->data);
@@ -567,24 +571,24 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv2)
     }
 }
 
-template<class TAllocator>
+template<class TAllocator, typename TBVIndex>
 template<void (SparseBVUnit::*callback)(SparseBVUnit)>
-void BVSparse<TAllocator>::for_each(const BVSparse *bv1, const BVSparse *bv2)
+void BVSparse<TAllocator, TBVIndex>::for_each(const BVSparse *bv1, const BVSparse *bv2)
 {
     Assert(callback == &SparseBVUnit::And || callback == &SparseBVUnit::Or || callback == &SparseBVUnit::Xor || callback == &SparseBVUnit::Minus);
     Assert(this->IsEmpty());
     AssertBV(bv1);
     AssertBV(bv2);
 
-          BVSparseNode * node1      = bv1->head;
-    const BVSparseNode * node2      = bv2->head;
-          BVSparseNode * lastNode   = nullptr;
-          BVSparseNode ** prevNextField = &this->head;
+          BVSparseNode<TBVIndex> * node1      = bv1->head;
+    const BVSparseNode<TBVIndex> * node2      = bv2->head;
+          BVSparseNode<TBVIndex> * lastNode   = nullptr;
+          BVSparseNode<TBVIndex> ** prevNextField = &this->head;
 
     while(node1 != nullptr && node2 != nullptr)
     {
         lastNode = node1;
-        BVIndex startIndex;
+        TBVIndex startIndex;
         SparseBVUnit  bvUnit1;
         SparseBVUnit  bvUnit2;
 
@@ -612,7 +616,7 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv1, const BVSparse *bv2)
         (bvUnit1.*callback)(bvUnit2);
         if (!bvUnit1.IsEmpty())
         {
-            BVSparseNode * newNode = Allocate(startIndex, nullptr);
+            BVSparseNode<TBVIndex> * newNode = Allocate(startIndex, nullptr);
             newNode->data = bvUnit1;
             *prevNextField = newNode;
             prevNextField = &newNode->next;
@@ -622,13 +626,13 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv1, const BVSparse *bv2)
 
     if (callback == &SparseBVUnit::Minus || callback == &SparseBVUnit::Or || callback == &SparseBVUnit::Xor)
     {
-        BVSparseNode const * copyNode = (callback == &SparseBVUnit::Minus || node1 != nullptr)? node1 : node2;
+        BVSparseNode<TBVIndex> const * copyNode = (callback == &SparseBVUnit::Minus || node1 != nullptr)? node1 : node2;
 
         while (copyNode != nullptr)
         {
             if (!copyNode->data.IsEmpty())
             {
-                BVSparseNode * newNode = Allocate(copyNode->startIndex, nullptr);
+                BVSparseNode<TBVIndex> * newNode = Allocate(copyNode->startIndex, nullptr);
                 newNode->data = copyNode->data;
                 *prevNextField = newNode;
                 prevNextField = &newNode->next;
@@ -638,112 +642,112 @@ void BVSparse<TAllocator>::for_each(const BVSparse *bv1, const BVSparse *bv2)
     }
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Or(const BVSparse*bv)
+BVSparse<TAllocator, TBVIndex>::Or(const BVSparse*bv)
 {
     this->for_each<&SparseBVUnit::Or>(bv);
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Or(const BVSparse * bv1, const BVSparse * bv2)
+BVSparse<TAllocator, TBVIndex>::Or(const BVSparse * bv1, const BVSparse * bv2)
 {
     this->ClearAll();
     this->for_each<&SparseBVUnit::Or>(bv1, bv2);
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::OrNew(const BVSparse* bv,  TAllocator* allocator) const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::OrNew(const BVSparse* bv,  TAllocator* allocator) const
 {
     BVSparse * newBv = AllocatorNew(TAllocator, allocator, BVSparse, allocator);
     newBv->for_each<&SparseBVUnit::Or>(this, bv);
     return newBv;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::And(const BVSparse*bv)
+BVSparse<TAllocator, TBVIndex>::And(const BVSparse*bv)
 {
     this->for_each<&SparseBVUnit::And>(bv);
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::And(const BVSparse * bv1, const BVSparse * bv2)
+BVSparse<TAllocator, TBVIndex>::And(const BVSparse * bv1, const BVSparse * bv2)
 {
     this->ClearAll();
     this->for_each<&SparseBVUnit::And>(bv1, bv2);
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::AndNew(const BVSparse* bv, TAllocator* allocator) const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::AndNew(const BVSparse* bv, TAllocator* allocator) const
 {
     BVSparse * newBv = AllocatorNew(TAllocator, allocator, BVSparse, allocator);
     newBv->for_each<&SparseBVUnit::And>(this, bv);
     return newBv;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Xor(const BVSparse*bv)
+BVSparse<TAllocator, TBVIndex>::Xor(const BVSparse*bv)
 {
     this->for_each<&SparseBVUnit::Xor>(bv);
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Xor(const BVSparse * bv1, const BVSparse * bv2)
+BVSparse<TAllocator, TBVIndex>::Xor(const BVSparse * bv1, const BVSparse * bv2)
 {
     this->ClearAll();
     this->for_each<&SparseBVUnit::Xor>(bv1, bv2);
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::XorNew(const BVSparse* bv, TAllocator* allocator) const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::XorNew(const BVSparse* bv, TAllocator* allocator) const
 {
     BVSparse * newBv = AllocatorNew(TAllocator, allocator, BVSparse, allocator);
     newBv->for_each<&SparseBVUnit::Xor>(this, bv);
     return newBv;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Minus(const BVSparse*bv)
+BVSparse<TAllocator, TBVIndex>::Minus(const BVSparse*bv)
 {
     this->for_each<&SparseBVUnit::Minus>(bv);
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Minus(const BVSparse * bv1, const BVSparse * bv2)
+BVSparse<TAllocator, TBVIndex>::Minus(const BVSparse * bv1, const BVSparse * bv2)
 {
     this->ClearAll();
     this->for_each<&SparseBVUnit::Minus>(bv1, bv2);
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::MinusNew(const BVSparse* bv, TAllocator* allocator) const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::MinusNew(const BVSparse* bv, TAllocator* allocator) const
 {
     BVSparse * newBv = AllocatorNew(TAllocator, allocator, BVSparse, allocator);
     newBv->for_each<&SparseBVUnit::Minus>(this, bv);
     return newBv;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 template <class TSrcAllocator>
 void
-BVSparse<TAllocator>::Copy(const BVSparse<TSrcAllocator> * bv2)
+BVSparse<TAllocator, TBVIndex>::Copy(const BVSparse<TSrcAllocator, TBVIndex> * bv2)
 {
     AssertBV(bv2);
 
-          BVSparseNode * node1      = this->head;
-    const BVSparseNode * node2      = bv2->head;
-          BVSparseNode ** prevNextField = &this->head;
+          BVSparseNode<TBVIndex> * node1      = this->head;
+    const BVSparseNode<TBVIndex> * node2      = bv2->head;
+          BVSparseNode<TBVIndex> ** prevNextField = &this->head;
 
     while (node1 != nullptr && node2 != nullptr)
     {
@@ -772,7 +776,7 @@ BVSparse<TAllocator>::Copy(const BVSparse<TSrcAllocator> * bv2)
         {
             if (!node2->data.IsEmpty())
             {
-                BVSparseNode * newNode = Allocate(node2->startIndex, nullptr);
+                BVSparseNode<TBVIndex> * newNode = Allocate(node2->startIndex, nullptr);
                 newNode->data.Copy(node2->data);
                 *prevNextField = newNode;
                 prevNextField = &newNode->next;
@@ -782,49 +786,49 @@ BVSparse<TAllocator>::Copy(const BVSparse<TSrcAllocator> * bv2)
     }
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::CopyNew(TAllocator* allocator) const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::CopyNew(TAllocator* allocator) const
 {
     BVSparse * bv = AllocatorNew(TAllocator, allocator, BVSparse, allocator);
     bv->Copy(this);
     return bv;
 }
 
-template <class TAllocator>
-BVSparse<TAllocator> *
-BVSparse<TAllocator>::CopyNew() const
+template <class TAllocator, typename TBVIndex>
+BVSparse<TAllocator, TBVIndex> *
+BVSparse<TAllocator, TBVIndex>::CopyNew() const
 {
     return this->CopyNew(this->alloc);
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::ComplimentAll()
+BVSparse<TAllocator, TBVIndex>::ComplimentAll()
 {
-    for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = node->next)
     {
         node->data.ComplimentAll();
     }
 }
 
-template <class TAllocator>
-BVIndex
-BVSparse<TAllocator>::Count() const
+template <class TAllocator, typename TBVIndex>
+TBVIndex
+BVSparse<TAllocator, TBVIndex>::Count() const
 {
-    BVIndex sum = 0;
-    for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
+    TBVIndex sum = 0;
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = node->next)
     {
         sum += node->data.Count();
     }
     return sum;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 bool
-BVSparse<TAllocator>::IsEmpty() const
+BVSparse<TAllocator, TBVIndex>::IsEmpty() const
 {
-    for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = node->next)
     {
         if (!node->data.IsEmpty())
         {
@@ -834,12 +838,12 @@ BVSparse<TAllocator>::IsEmpty() const
     return true;
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 bool
-BVSparse<TAllocator>::Equal(BVSparse const * bv) const
+BVSparse<TAllocator, TBVIndex>::Equal(BVSparse const * bv) const
 {
-    BVSparseNode const * bvNode1 = this->head;
-    BVSparseNode const * bvNode2 = bv->head;
+    BVSparseNode<TBVIndex> const * bvNode1 = this->head;
+    BVSparseNode<TBVIndex> const * bvNode2 = bv->head;
 
     while (true)
     {
@@ -872,12 +876,12 @@ BVSparse<TAllocator>::Equal(BVSparse const * bv) const
     }
 }
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 bool
-BVSparse<TAllocator>::Test(BVSparse const * bv) const
+BVSparse<TAllocator, TBVIndex>::Test(BVSparse const * bv) const
 {
-    BVSparseNode const * bvNode1 = this->head;
-    BVSparseNode const * bvNode2 = bv->head;
+    BVSparseNode<TBVIndex> const * bvNode1 = this->head;
+    BVSparseNode<TBVIndex> const * bvNode2 = bv->head;
 
     while (bvNode1 != nullptr && bvNode2 != nullptr)
     {
@@ -905,9 +909,9 @@ BVSparse<TAllocator>::Test(BVSparse const * bv) const
 
 #ifdef _WIN32
 
-template<class TAllocator>
+template<class TAllocator, typename TBVIndex>
 template<class F>
-void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const size_t strSize, const F ReadNode) const
+void BVSparse<TAllocator, TBVIndex>::ToString(__out_ecount(strSize) char *const str, const size_t strSize, const F ReadNode) const
 {
     Assert(str);
 
@@ -920,11 +924,11 @@ void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const
     bool empty = true;
     bool isFirstInSequence = true;
     size_t length = 0;
-    BVSparseNode *nodePtr = head;
+    BVSparseNode<TBVIndex> *nodePtr = head;
     while (nodePtr)
     {
         bool readSuccess;
-        const BVSparseNode node(ReadNode(nodePtr, &readSuccess));
+        const BVSparseNode<TBVIndex> node(ReadNode(nodePtr, &readSuccess));
         if (!readSuccess)
         {
             str[0] = '\0';
@@ -954,13 +958,13 @@ void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const
     }
 }
 
-template<class TAllocator>
-void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const size_t strSize) const
+template<class TAllocator, typename TBVIndex>
+void BVSparse<TAllocator, TBVIndex>::ToString(__out_ecount(strSize) char *const str, const size_t strSize) const
 {
     ToString(
         str,
         strSize,
-        [](BVSparseNode *const nodePtr, bool *const successRef) -> BVSparseNode
+        [](BVSparseNode<TBVIndex> *const nodePtr, bool *const successRef) -> BVSparseNode<TBVIndex>
     {
         Assert(nodePtr);
         Assert(successRef);
@@ -973,16 +977,18 @@ void BVSparse<TAllocator>::ToString(__out_ecount(strSize) char *const str, const
 
 #if DBG_DUMP
 
-template <class TAllocator>
+template <class TAllocator, typename TBVIndex>
 void
-BVSparse<TAllocator>::Dump() const
+BVSparse<TAllocator, TBVIndex>::Dump() const
 {
     bool hasBits = false;
     Output::Print(_u("[  "));
-    for(BVSparseNode * node = this->head; node != 0 ; node = node->next)
+    for(BVSparseNode<TBVIndex> * node = this->head; node != 0 ; node = node->next)
     {
         hasBits = node->data.Dump(node->startIndex, hasBits);
     }
     Output::Print(_u("]\n"));
 }
 #endif
+
+

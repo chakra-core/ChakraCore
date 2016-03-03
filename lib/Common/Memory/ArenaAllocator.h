@@ -444,7 +444,7 @@ class JitArenaAllocator : public ArenaAllocator
     // Throughput improvement in the backend is substantial with this freeList.
 
 private:
-    BVSparseNode *bvFreeList;
+    BVSparseNode<> *bvFreeList;
 
 public:
 
@@ -456,13 +456,13 @@ public:
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         // Fast path
-        if (sizeof(BVSparseNode) == requestedBytes)
+        if (sizeof(BVSparseNode<>) == requestedBytes)
         {
             AssertMsg(Math::Align(requestedBytes, ArenaAllocatorBase::ObjectAlignment) == requestedBytes, "Assert for Perf, T should always be aligned");
             // Fast path for BVSparseNode allocation
             if (bvFreeList)
             {
-                BVSparseNode *node = bvFreeList;
+                BVSparseNode<> *node = bvFreeList;
                 bvFreeList = bvFreeList->next;
                 return (char*)node;
             }
@@ -482,11 +482,11 @@ public:
 
     __forceinline void FreeInline(void * buffer, size_t byteSize)
     {
-        if (sizeof(BVSparseNode) == byteSize)
+        if (sizeof(BVSparseNode<>) == byteSize)
         {
             //FastPath
-            ((BVSparseNode*)buffer)->next = bvFreeList;
-            bvFreeList = (BVSparseNode*)buffer;
+            ((BVSparseNode<>*)buffer)->next = bvFreeList;
+            bvFreeList = (BVSparseNode<>*)buffer;
             return;
         }
         return ArenaAllocator::Free(buffer, byteSize);
