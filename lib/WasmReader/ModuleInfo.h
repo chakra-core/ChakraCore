@@ -15,14 +15,15 @@ private:
         Memory() : minSize(0)
         {
         }
-        size_t minSize;
-        size_t maxSize;
+        uint64 minSize;
+        uint64 maxSize;
         bool exported;
+        static const uint64 PAGE_SIZE = 64 * 1024;
     } m_memory;
 public:
     ModuleInfo(ArenaAllocator * alloc);
 
-    bool InitializeMemory(size_t minSize, size_t maxSize, bool exported);
+    bool InitializeMemory(uint32 minSize, uint32 maxSize, bool exported);
 
 
     const Memory * GetMemory() const;

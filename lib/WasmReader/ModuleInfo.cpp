@@ -19,30 +19,21 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
 }
 
 bool
-ModuleInfo::InitializeMemory(size_t minSize, size_t maxSize, bool exported)
+ModuleInfo::InitializeMemory(uint32 minPage, uint32 maxPage, bool exported)
 {
     if (m_memory.minSize != 0)
     {
         return false;
     }
 
-    if (maxSize < minSize)
+    if (maxPage < minPage)
     {
         return false;
     }
 
-    if (minSize == 0 || minSize % AutoSystemInfo::PageSize != 0)
-    {
-        return false;
-    }
-
-    if (maxSize % AutoSystemInfo::PageSize != 0)
-    {
-        return false;
-    }
-
-    m_memory.minSize = minSize;
-    m_memory.maxSize = maxSize;
+    CompileAssert(Memory::PAGE_SIZE < INT_MAX);
+    m_memory.minSize = (uint64)minPage * Memory::PAGE_SIZE;
+    m_memory.maxSize = (uint64)maxPage * Memory::PAGE_SIZE;
     m_memory.exported = exported;
 
     return true;

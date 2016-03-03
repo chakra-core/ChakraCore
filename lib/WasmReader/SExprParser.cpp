@@ -431,21 +431,21 @@ SExprParser::ParseMemory()
         ThrowSyntaxError(); // wasm64 not yet supported
     }
 
-    int minSize = (int)m_token.u.lng;
+    int minPage = (int)m_token.u.lng;
     
     m_scanner->ScanToken(wtkINTLIT);
     if (m_token.u.lng < 0 || m_token.u.lng > INT_MAX)
     {
         ThrowSyntaxError(); // wasm64 not yet supported
     }
-    int maxSize = (int)m_token.u.lng;
+    int maxPage = (int)m_token.u.lng;
 
     m_scanner->ScanToken(wtkINTLIT);
     bool exported = m_token.u.lng != FALSE;
 
     m_scanner->ScanToken(wtkRPAREN);
 
-    if (!m_moduleInfo->InitializeMemory(minSize, maxSize, exported))
+    if (!m_moduleInfo->InitializeMemory(minPage, maxPage, exported))
     {
         ThrowSyntaxError();
     }
