@@ -1626,6 +1626,7 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdLocalSlot:
+            case OpCode::LdParamSlot:
             case OpCode::LdLocalObjSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
@@ -1633,7 +1634,6 @@ StoreCommon:
                     OpCodeUtil::ConvertNonCallOpToProfiled(op);
                 }
                 break;
-
             default:
             {
                 AssertMsg(false, "The specified OpCode is not intended for slot access");

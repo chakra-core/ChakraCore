@@ -35,7 +35,7 @@ MemoryLeakCheck MemoryLeakCheck::leakCheck;
 HeapAllocator HeapAllocator::Instance;
 NoThrowHeapAllocator NoThrowHeapAllocator::Instance;
 NoCheckHeapAllocator NoCheckHeapAllocator::Instance;
-HANDLE NoCheckHeapAllocator::processHeap = NULL;
+HANDLE NoCheckHeapAllocator::processHeap = nullptr;
 
 template <bool noThrow>
 char * HeapAllocator::AllocT(size_t byteSize)
@@ -77,7 +77,14 @@ char * HeapAllocator::AllocT(size_t byteSize)
     else
 #endif
     {
-        buffer = (char *)malloc(byteSize);
+        if (CONFIG_FLAG(PrivateHeap))
+        {
+            buffer = (char *)HeapAlloc(GetPrivateHeap(), 0, byteSize);
+        }
+        else
+        {
+            buffer = (char *)malloc(byteSize);
+        }
     }
 
     if (!noThrow && buffer == nullptr)
@@ -146,7 +153,39 @@ void HeapAllocator::Free(void * buffer, size_t byteSize)
         return;
     }
 #endif
-    free(buffer);
+
+    if (CONFIG_FLAG(PrivateHeap))
+    {
+        HeapFree(GetPrivateHeap(), 0, buffer);
+    }
+    else
+    {
+        free(buffer);
+    }
+}
+
+void HeapAllocator::InitPrivateHeap()
+{
+    if (this->m_privateHeap == nullptr)
+    {
+        this->m_privateHeap = HeapCreate(0, 0, 0); // no options, default initial size, no max size
+    }
+}
+
+void HeapAllocator::DestroyPrivateHeap()
+{
+    if (this->m_privateHeap != nullptr)
+    {
+        BOOL success = HeapDestroy(this->m_privateHeap);
+        Assert(success);
+        this->m_privateHeap = nullptr;
+    }
+}
+
+HANDLE HeapAllocator::GetPrivateHeap()
+{
+    InitPrivateHeap(); // will initialize PrivateHeap if not already initialized
+    return this->m_privateHeap;
 }
 
 #ifdef TRACK_ALLOC
@@ -225,12 +264,9 @@ HeapAllocator * HeapAllocator::GetNoMemProtectInstance()
 #endif
     return &Instance;
 }
+
 #ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
 HeapAllocator HeapAllocator::NoMemProtectInstance(false);
-
-HeapAllocator::HeapAllocator(bool allocMemProtect) : isUsed(false), memProtectHeapHandle(nullptr), allocMemProtect(allocMemProtect)
-{
-}
 
 bool HeapAllocator::DoUseMemProtectHeap()
 {
@@ -303,10 +339,27 @@ void NoThrowNoMemProtectHeapAllocator::ClearTrackAllocInfo(TrackAllocData* data 
 #endif // TRACK_ALLOC
 #endif
 
-#if defined(HEAP_TRACK_ALLOC) || defined(INTERNAL_MEM_PROTECT_HEAP_ALLOC)
+HeapAllocator::HeapAllocator(bool useAllocMemProtect)
+    : m_privateHeap(nullptr)
+#ifdef INTERNAL_MEM_PROTECT_HEAP_ALLOC
+    , isUsed(false)
+    , memProtectHeapHandle(nullptr)
+    , allocMemProtect(useAllocMemProtect)
+#endif
+{
+    if (CONFIG_FLAG(PrivateHeap))
+    {
+        this->InitPrivateHeap();
+    }
+}
 
 HeapAllocator::~HeapAllocator()
 {
+    if (CONFIG_FLAG(PrivateHeap))
+    {
+        this->DestroyPrivateHeap();
+    }
+
 #ifdef HEAP_TRACK_ALLOC
     bool hasFakeHeapLeak = false;
     auto fakeHeapLeak = [&]()
@@ -373,7 +426,6 @@ HeapAllocator::~HeapAllocator()
     }
 #endif // INTERNAL_MEM_PROTECT_HEAP_ALLOC
 }
-#endif // defined(HEAP_TRACK_ALLOC) || defined(INTERNAL_MEM_PROTECT_HEAP_ALLOC)
 
 #ifdef HEAP_TRACK_ALLOC
 void

@@ -832,6 +832,7 @@ namespace Js
                 Output::Print(L" [%d] = R%d ",data->SlotIndex, data->Value);
                 break;
             case OpCode::LdLocalSlot:
+            case OpCode::LdParamSlot:
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
                 Output::Print(L" R%d = [%d] ",data->Value, data->SlotIndex);

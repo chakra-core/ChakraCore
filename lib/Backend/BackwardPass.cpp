@@ -4015,12 +4015,13 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             Assert(guardedPropertyOps != nullptr);
             opnd->EnsureGuardedPropOps(this->func->m_alloc);
             opnd->AddGuardedPropOps(guardedPropertyOps);
-            if (bucket->NeedsMonoCheck())
+            if (bucket->NeedsMonoCheck() && !opnd->IsTypeAvailable())
             {
                 if (this->currentInstr->HasEquivalentTypeCheckBailOut())
                 {
                     // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
-                    // fixed field not loaded from prototype.)
+                    // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
+                    // the initial type check that protects this path.
                     opnd->SetMonoGuardType(bucket->GetMonoGuardType());
                     this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                 }

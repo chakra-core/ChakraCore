@@ -683,4 +683,11 @@
       <tags>exclude_fre,exclude_arm,exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>box_native_emptyframe.js</files>
+      <baseline>box_native_emptyframe.baseline</baseline>
+      <compile-flags>-lic:1</compile-flags>
+    </default>
+  </test>
 </regress-exe>

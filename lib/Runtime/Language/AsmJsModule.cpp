@@ -98,8 +98,8 @@ namespace Js
                 Assert(asmInfo->GetSimdByteOffset() % sizeof(AsmJsSIMDValue) == 0);
             }
 
-            functionBody->SetOutParamDepth(func->GetMaxArgOutDepth());
-            functionBody->SetVarCount(varCount);
+            functionBody->CheckAndSetOutParamMaxDepth(func->GetMaxArgOutDepth());
+            functionBody->CheckAndSetVarCount(varCount);
             // should be set in EmitOneFunction
             Assert(functionBody->GetIsAsmjsMode());
             Assert(functionBody->GetIsAsmJsFunction());
@@ -168,9 +168,9 @@ namespace Js
 
         functionBody->SetInParamsCount(4); // Always set 4 inParams so the memory space is the same (globalEnv,stdlib,foreign,buffer)
         functionBody->SetReportedInParamsCount(4);
-        functionBody->SetConstantCount(2); // Return register + Root
+        functionBody->CheckAndSetConstantCount(2); // Return register + Root
         functionBody->CreateConstantTable();
-        functionBody->SetVarCount(varCount);
+        functionBody->CheckAndSetVarCount(varCount);
         functionBody->SetIsAsmjsMode(true);
         functionBody->NewObjectLiteral(); // allocate one object literal for the export object
 

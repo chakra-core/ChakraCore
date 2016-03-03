@@ -73,6 +73,14 @@ var tests = [
       assert.throws(function () { eval("function f({}){}; f();"); }, TypeError, "Object pattern on function - evaluated to have undefined from assignment expression", "Cannot convert null or undefined to object");
       assert.throws(function () { eval("function f({}){}; f(null);"); }, TypeError, "Object pattern on function - evaluated to have null from assignment expression", "Cannot convert null or undefined to object");
     }
+  },
+  {
+    name: "Destructuring bug fix - a variable in body has the same name as param should not throw in the defer parse mode",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo() { function bar([a]) { var a = 1; } }"); }, "variable 'a' is not a re-declaration" );
+      assert.doesNotThrow(function () { eval("function foo() { function bar([a], {b, b1}, [c]) { var b1 = 1; } }"); }, "variable 'b1' is not a re-declaration" );
+      assert.doesNotThrow(function () { eval("function foo() { ({c}) => { var c = 1; } }"); }, "variable 'c' is not a re-declaration" );
+    }
   }
 ];
 

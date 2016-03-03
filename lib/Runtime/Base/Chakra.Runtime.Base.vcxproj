@@ -69,6 +69,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CompactCounters.h" />
     <ClInclude Include="RuntimeBasePch.h" />
     <ClInclude Include="AuxPtrs.h" />
     <ClInclude Include="CallInfo.h" />

@@ -1458,7 +1458,7 @@ namespace Js
         functionBody->DumpFunctionId(true);
         Js::ArgSlot paramcount = functionBody->GetProfiledInParamsCount();
         Output::Print(L": %-20s Interpreted:%6d, Param:%2d, ImpCall:%s, Callsite:%3d, ReturnType:%3d, LdElem:%3d, StElem:%3d, Fld%3d\n",
-            functionBody->GetDisplayName(), functionBody->interpretedCount, paramcount, DynamicProfileInfo::GetImplicitCallFlagsString(this->GetImplicitCallFlags()),
+            functionBody->GetDisplayName(), functionBody->GetInterpretedCount(), paramcount, DynamicProfileInfo::GetImplicitCallFlagsString(this->GetImplicitCallFlags()),
             functionBody->GetProfiledCallSiteCount(),
             functionBody->GetProfiledReturnTypeCount(),
             functionBody->GetProfiledLdElemCount(),
@@ -1645,7 +1645,7 @@ namespace Js
                     }
                 }
 
-                if (hasHotLoop || info->functionBody->interpretedCount >= 10)
+                if (hasHotLoop || info->functionBody->GetInterpretedCount() >= 10)
                 {
                     functionSaved++;
                     loopSaved += info->functionBody->GetLoopCount();
@@ -2123,7 +2123,7 @@ namespace Js
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);
             WriteData(info->functionBody->GetDisplayName(), file);
-            WriteData(info->functionBody->interpretedCount, file);
+            WriteData(info->functionBody->GetInterpretedCount(), file);
             uint loopCount = info->functionBody->GetLoopCount();
             WriteData(loopCount, file);
             for (uint i = 0; i < loopCount; i++)

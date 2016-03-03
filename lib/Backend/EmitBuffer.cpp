@@ -68,13 +68,6 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
     EmitBufferAllocation * allocation = this->allocations;
     while (allocation != nullptr)
     {
-        BOOL isFreed;
-        // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
-        if (!release && (scriptContext != nullptr) && allocation->recorded)
-        {
-            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
-            allocation->recorded = false;
-        }
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if(CONFIG_FLAG(CheckEmitBufferPermissions))
         {
@@ -83,21 +76,25 @@ EmitBufferManager<SyncObject>::FreeAllocations(bool release)
 #endif
         if (release)
         {
-            isFreed = this->allocationHeap.Free(allocation->allocation);
+            this->allocationHeap.Free(allocation->allocation);
         }
-        else
+        else if ((scriptContext != nullptr) && allocation->recorded)
         {
-            isFreed = this->allocationHeap.Decommit(allocation->allocation);
+            // In case of ThunkEmitter the script context would be null and we don't want to track that as code size.
+            this->scriptContext->GetThreadContext()->SubCodeSize(allocation->bytesCommitted);
+            allocation->recorded = false;
         }
 
-        Assert(isFreed);
         allocation = allocation->nextAllocation;
     }
     if (release)
     {
         this->allocations = nullptr;
     }
-
+    else
+    {
+        this->allocationHeap.DecommitAll();
+    }
 }
 
 template <typename SyncObject>

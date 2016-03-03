@@ -229,8 +229,7 @@ public:
         return scopeType == ScopeType_Block
             || scopeType == ScopeType_Catch
             || scopeType == ScopeType_CatchParamPattern
-            || scopeType == ScopeType_GlobalEvalBlock
-            || (scopeType == ScopeType_Parameter && !this->GetCanMergeWithBodyScope());
+            || scopeType == ScopeType_GlobalEvalBlock;
     }
 
     int Count() const
@@ -283,7 +282,7 @@ public:
     bool GetMustInstantiate() const { return mustInstantiate; }
 
     void SetCanMerge(bool can) { canMerge = can; }
-    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject && (this->scopeType != ScopeType::ScopeType_Parameter || this->GetCanMergeWithBodyScope()); }
+    bool GetCanMerge() const { return canMerge && !mustInstantiate && !isObject; }
 
     void SetScopeSlotCount(uint i) { scopeSlotCount = i; }
     uint GetScopeSlotCount() const { return scopeSlotCount; }

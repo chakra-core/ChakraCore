@@ -55,11 +55,15 @@ namespace Js
             ScriptContext * scriptContext;
             void * returnAddress;
 
-            Js::Var * BoxScopeSlots(Js::Var * scopeSlots, uint count);
+            Var * BoxScopeSlots(Var * scopeSlots, uint count);
             bool NeedBoxFrame(FunctionBody * functionBody);
             bool NeedBoxScriptFunction(ScriptFunction * scriptFunction);
             ScriptFunction * BoxStackFunction(StackScriptFunction * scriptFunction);
             FrameDisplay * BoxFrameDisplay(FrameDisplay * frameDisplay);
+            FrameDisplay * GetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody);
+            Var * GetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody);
+            void SetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, FrameDisplay * frameDisplay);
+            void SetScopeSlotsFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, Var * scopeSlots);
             void BoxNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody);
             void UpdateFrameDisplay(ScriptFunction *nestedFunc);
             void Finish();
@@ -70,6 +74,9 @@ namespace Js
             void ForEachStackNestedFunctionInterpreted(InterpreterStackFrame *interpreterFrame, FunctionBody * callerFunctionBody, Fn fn);
             template<class Fn>
             void ForEachStackNestedFunctionNative(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, Fn fn);
+
+            static uintptr_t GetNativeFrameDisplayIndex(FunctionBody * functionBody);
+            static uintptr_t GetNativeScopeSlotsIndex(FunctionBody * functionBody);
         };
 
         ScriptFunction * boxedScriptFunction;
