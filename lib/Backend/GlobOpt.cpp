@@ -5217,19 +5217,6 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     Value *initialValue;
     StackSym *symStore;
 
-#if 0
-    if (!DoFieldPRE(loop))
-    {
-        return;
-    }
-
-    if (!instr->GetDst())
-    {
-        // Consider: This needs to handle CheckFixedMethods
-        return;
-    }
-#endif
-
     if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
     {
         return;
