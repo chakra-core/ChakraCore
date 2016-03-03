@@ -4,20 +4,23 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonDataStructuresPch.h"
 
-BVSparseNode::BVSparseNode(BVIndex beginIndex, BVSparseNode * nextNode) :
+template <typename TBVIndex>
+BVSparseNode<TBVIndex>::BVSparseNode(TBVIndex beginIndex, BVSparseNode<TBVIndex> * nextNode) :
     startIndex(beginIndex),
     data(0),
     next(nextNode)
 {
 }
-void BVSparseNode::init(BVIndex beginIndex, BVSparseNode * nextNode)
+template <typename TBVIndex>
+void BVSparseNode<TBVIndex>::init(TBVIndex beginIndex, BVSparseNode * nextNode)
 {
     this->startIndex = beginIndex;
     this->data = 0;
     this->next = nextNode;
 }
 
-bool BVSparseNode::ToString(
+template <typename TBVIndex>
+bool BVSparseNode<TBVIndex>::ToString(
     __out_ecount(strSize) char *const str,
     const size_t strSize,
     size_t *const writtenLengthRef,
@@ -90,3 +93,7 @@ bool BVSparseNode::ToString(
     }
     return true;
 }
+
+template struct BVSparseNode<BVIndex>;
+template struct BVSparseNode<BVIndex64>;
+

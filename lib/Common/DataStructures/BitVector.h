@@ -7,6 +7,7 @@
 
 
 typedef uint             BVIndex;
+typedef uint64           BVIndex64;
 const BVIndex BVInvalidIndex = (uint)-1;
 
 const int               MachBits = 8;
