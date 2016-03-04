@@ -3694,19 +3694,24 @@ STDAPI_(JsErrorCode) JsTTDPrepContextsForTopLevelEventMove(JsRuntimeHandle runti
         scriptContext->GetAndClearRecordedException(nullptr);
     }
 
-    //a special indicator to use the time from the argument flag
+    //a special indicator to use the time from the argument flag or log diagnostic report
     if(targetEventTime == -2)
     {
-        targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+        TTD::TTDebuggerSourceLocation bpLocation;
+        bool foundTelementryBreak = scriptContext->GetThreadContext()->TTDLog->TryGetFirstTelemetryBreakLocation(bpLocation);
+        if(foundTelementryBreak)
+        {
+            targetEventTime = bpLocation.GetRootEventTime();
+        }
+        else
+        {
+            targetEventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+        }
     }
 
     bool createFreshCtxs = false;
     *targetStartSnapTime = scriptContext->GetThreadContext()->TTDLog->FindSnapTimeForEventTime(targetEventTime, &createFreshCtxs);
 
-    ////
-    //TEMP DEBUGGING CODE -- if we force createFreshCtxs = true everything works fine!!!
-    //createFreshCtxs = true;
-    ////
     if(createFreshCtxs)
     {
         try
@@ -3775,7 +3780,17 @@ STDAPI_(JsErrorCode) JsTTDMoveToTopLevelEvent(INT64 snapshotTime, INT64 eventTim
     //a special indicator to use the time from the argument flag
     if(eventTime == -2)
     {
-        eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+        TTD::TTDebuggerSourceLocation bpLocation;
+        bool foundTelementryBreak = scriptContext->GetThreadContext()->TTDLog->TryGetFirstTelemetryBreakLocation(bpLocation);
+        if(foundTelementryBreak)
+        {
+            eventTime = bpLocation.GetRootEventTime();
+            scriptContext->GetThreadContext()->TTDLog->SetPendingTTDBPInfo(bpLocation);
+        }
+        else
+        {
+            eventTime = scriptContext->GetThreadContext()->TTDLog->GetKthEventTime(Js::Configuration::Global.flags.TTDStartEvent);
+        }
     }
 
     try
@@ -3819,6 +3834,36 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
     {
         AssertMsg(false, "Should only happen in TT debugging mode.");
         return JsErrorCategoryUsage;
+    }
+
+    //If the log has a BP requested then we should the actual bp here
+    if(scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
+    {
+        TTD::TTDebuggerSourceLocation bpLocation; 
+        scriptContext->GetThreadContext()->TTDLog->GetPendingTTDBPInfo(bpLocation);
+
+        Js::Utf8SourceInfo* utf8SourceInfo = scriptContext->FindDocumentByFileName_TTD(bpLocation.GetSourceFile());
+        Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
+
+        charcount_t charPosition;
+        charcount_t byteOffset;
+        utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)bpLocation.GetLine(), &charPosition, &byteOffset);
+        long ibos = charPosition + bpLocation.GetColumn() + 1;
+
+        Js::StatementLocation statement;
+        BOOL stmtok = !debugDocument->GetStatementLocation(ibos, &statement);
+        AssertMsg(stmtok, "We have a bad line for setting a breakpoint.");
+
+        // Don't see a use case for supporting multiple breakpoints at same location.
+        // If a breakpoint already exists, just return that
+        Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
+        if(probe == nullptr)
+        {
+            probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+            AssertMsg(probe != nullptr, "We have a bad line or something for setting a breakpoint.");
+        }
+
+        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId());
     }
 
     JsErrorCode res = JsNoError;

@@ -1119,6 +1119,12 @@ private:
         FunctionBody* ResolveParentBody(FunctionBody* body) const;
 
         //
+        //TODO: we need to fix this later since filenames are not 100% always unique
+        //
+        //Find the document with the filename from our top-level function bodies
+        Utf8SourceInfo* FindDocumentByFileName_TTD(LPCWSTR filename) const;
+
+        //
         //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then
         //
         //Initialize the core object image for TTD

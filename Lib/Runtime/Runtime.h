@@ -163,6 +163,7 @@ namespace TTD
     class EventLog;
 
     class TTDebuggerAbortException;
+    class TTDebuggerSourceLocation;
 }
 ////////
 

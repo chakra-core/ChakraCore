@@ -481,8 +481,7 @@ namespace TTD
         m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
-        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
-        m_pendingTTDBPEvent(-1), m_pendingTTDBPFunctionTime(0), m_pendingTTDBPLoopTime(0), m_pendingTTDBPSourceDocumentId(0), m_pendingTTDBPLine(0), m_pendingTTDBPColumn(0),
+        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
@@ -652,6 +651,69 @@ namespace TTD
     void EventLog::AddPropertyRecord(const Js::PropertyRecord* record)
     {
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
+    }
+
+    void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool shouldPrint, int64 optUserEventId, bool shouldBreak)
+    {
+        AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
+
+        TTString infoString;
+        this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetSz(), infoStringJs->GetLength(), infoString);
+
+        //find the first frame that is not /telemetry.js
+        int32 fpos = this->m_callStack.Count() - 1;
+        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
+
+        LPCWSTR telemetrySrcFile = this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url;
+        while(fpos >= 0 && wcscmp(telemetrySrcFile, this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url) == 0)
+        {
+            fpos--;
+        }
+        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
+
+        const SingleCallCounter& clientFrame = this->m_callStack.Item(fpos);
+
+        ULONG stmtStartLineNumber;
+        LONG stmtStartColumnNumber;
+        clientFrame.Function->GetLineCharOffsetFromStartChar(clientFrame.CurrentStatementIndex, &stmtStartLineNumber, &stmtStartColumnNumber);
+
+        uint32 sourceId = clientFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+        LPCWSTR sourceFile = clientFrame.Function->GetSourceContextInfo()->url;
+
+        TTDebuggerSourceLocation sourceLocation;
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, clientFrame.FunctionTime, clientFrame.LoopTime, sourceFile, sourceId, stmtStartLineNumber, stmtStartColumnNumber);
+
+        TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
+
+        this->InsertEventAtHead(tevent);
+    }
+
+    void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
+    {
+        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
+
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(this->m_currentReplayEventIterator.Current());
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        AssertMsg(wcscmp(tevent->GetInfoString().Contents, infoStringJs->GetSz()) != 0, "Telemetry messages differ??");
+#endif
+
+        if(tevent->ShouldPrint())
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls", tevent->GetInfoString().Contents);
+        }
+
+        this->AdvanceTimeAndPositionForReplay();
     }
 
     void EventLog::RecordDateTimeEvent(double time)
@@ -1053,45 +1115,73 @@ namespace TTD
 
     bool EventLog::HasPendingTTDBP() const
     {
-        return this->m_pendingTTDBPEvent != -1;
+        return this->m_pendingTTDBP.HasValue();
     }
 
     int64 EventLog::GetPendingTTDBPTargetEventTime() const
     {
-        return this->m_pendingTTDBPEvent;
+        return this->m_pendingTTDBP.GetRootEventTime();
     }
 
-    void EventLog::GetPendingTTDBPInfo(int64& etime, uint64& ftime, uint64& ltime, uint32& docid, uint32& line, uint32& column) const
+    void EventLog::GetPendingTTDBPInfo(TTDebuggerSourceLocation& BPLocation) const
     {
-        etime = this->m_pendingTTDBPEvent;
-        ftime = this->m_pendingTTDBPFunctionTime;
-        ltime = this->m_pendingTTDBPLoopTime;
-
-        docid = this->m_pendingTTDBPSourceDocumentId;
-        line = this->m_pendingTTDBPLine;
-        column = this->m_pendingTTDBPColumn;
+        BPLocation.SetLocation(this->m_pendingTTDBP);
     }
 
     void EventLog::ClearPendingTTDBPInfo()
     {
-        this->m_pendingTTDBPEvent = -1;
-        this->m_pendingTTDBPFunctionTime = 0;
-        this->m_pendingTTDBPLoopTime = 0;
-
-        this->m_pendingTTDBPSourceDocumentId = 0;
-        this->m_pendingTTDBPLine = 0;
-        this->m_pendingTTDBPColumn = 0;
+        this->m_pendingTTDBP.Clear();
     }
 
-    void EventLog::SetPendingTTDBPInfo(int64 etime, uint64 ftime, uint64 ltime, uint32 docid, uint32 line, uint32 column)
+    void EventLog::SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation)
     {
-        this->m_pendingTTDBPEvent = etime;
-        this->m_pendingTTDBPFunctionTime = ftime;
-        this->m_pendingTTDBPLoopTime = ltime;
+        this->m_pendingTTDBP.SetLocation(BPLocation);
+    }
 
-        this->m_pendingTTDBPSourceDocumentId = docid;
-        this->m_pendingTTDBPLine = line;
-        this->m_pendingTTDBPColumn = column;
+    bool EventLog::HasActiveBP() const
+    {
+        return this->m_activeBPId != -1;
+    }
+
+    UINT EventLog::GetActiveBPId() const
+    {
+        AssertMsg(this->HasActiveBP(), "Should check this first!!!");
+
+        return (UINT)this->m_activeBPId;
+    }
+
+    void EventLog::ClearActiveBP()
+    {
+        this->m_activeBPId = -1;
+    }
+
+    void EventLog::SetActiveBP(UINT bpId)
+    {
+        this->m_activeBPId = bpId;
+    }
+
+    void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)
+    {
+        if(!this->ShouldPerformDebugAction())
+        {
+            return;
+        }
+
+        //Clear any old breakpoints we have set
+        if(this->HasActiveBP())
+        {
+            Js::DebugDocument* debugDocument = fb->GetUtf8SourceInfo()->GetDebugDocument();
+            Js::StatementLocation statement;
+            if(debugDocument->FindBPStatementLocation(this->GetActiveBPId(), &statement))
+            {
+                debugDocument->SetBreakPoint(statement, BREAKPOINT_DELETED);
+            }
+        }
+
+        if(this->HasPendingTTDBP())
+        {
+            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
+        }
     }
 #endif
 
@@ -1138,53 +1228,52 @@ namespace TTD
         }
     }
 
-    void EventLog::GetTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    void EventLog::GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        *rootEventTime = this->m_topLevelCallbackEventTime;
-        *ftime = cfinfo.FunctionTime;
-        *ltime = cfinfo.LoopTime;
 
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
         cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        *line = (uint32)srcLine;
-        *column = (uint32)srcColumn;
-        *sourceId = cfinfo.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+        uint32 sourceId = cfinfo.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+        LPCWSTR sourceFile = cfinfo.Function->GetSourceContextInfo()->url;
+
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, sourceFile, sourceId, srcLine, srcColumn);
     }
 
-    bool EventLog::GetPreviousTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        //this always works -- even if we are at the start of the function
-        *rootEventTime = this->m_topLevelCallbackEventTime;
 
         //check if we are at the first statement in the callback event
         if(this->m_callStack.Count() == 1 && cfinfo.LastStatementIndex == -1)
         {
+            //Set the position info to the current statement and return true
+            this->GetTimeAndPositionForDebugger(sourceLocation);
+
             return true;
         }
 
         //if we are at the first statement in the function then we want the parents current
         Js::FunctionBody* fbody = nullptr;
         int32 statementIndex = -1;
+        uint64 ftime = 0;
+        uint64 ltime = 0;
         if(cfinfo.LastStatementIndex == -1)
         {
             const SingleCallCounter& cfinfoCaller = this->GetTopCallCallerCounter();
-            *ftime = cfinfoCaller.FunctionTime;
-            *ltime = cfinfoCaller.CurrentStatementLoopTime;
+            ftime = cfinfoCaller.FunctionTime;
+            ltime = cfinfoCaller.CurrentStatementLoopTime;
 
             fbody = cfinfoCaller.Function;
             statementIndex = cfinfoCaller.CurrentStatementIndex;
         }
         else
         {
-            *ftime = cfinfo.FunctionTime;
-            *ltime = cfinfo.LastStatementLoopTime;
+            ftime = cfinfo.FunctionTime;
+            ltime = cfinfo.LastStatementLoopTime;
 
             fbody = cfinfo.Function;
             statementIndex = cfinfo.LastStatementIndex;
@@ -1195,75 +1284,54 @@ namespace TTD
         uint32 startOffset = fbody->GetStatementStartOffset(statementIndex);
         fbody->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        *line = (uint32)srcLine;
-        *column = (uint32)srcColumn;
-        *sourceId = fbody->GetUtf8SourceInfo()->GetSourceInfoId();
+        uint32 sourceId = fbody->GetUtf8SourceInfo()->GetSourceInfoId();
+        LPCWSTR sourceFile = cfinfo.Function->GetSourceContextInfo()->url;
+
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, ftime, ltime, sourceFile, sourceId, srcLine, srcColumn);
 
         return false;
     }
 
-    bool EventLog::GetExceptionTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetExceptionTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         if(!this->m_isExceptionFrame)
         {
-            *rootEventTime = -1;
-            *ftime = 0;
-            *ltime = 0;
-
-            *line = 0;
-            *column = 0;
-            *sourceId = 0;
-
+            sourceLocation.Clear();
             return false;
         }
         else
         {
-            *rootEventTime = this->m_topLevelCallbackEventTime;
-            *ftime = this->m_lastFrame.FunctionTime;
-            *ltime = this->m_lastFrame.CurrentStatementLoopTime;
-
             ULONG srcLine = 0;
             LONG srcColumn = -1;
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            *line = (uint32)srcLine;
-            *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+            uint32 sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+            LPCWSTR sourceFile = this->m_lastFrame.Function->GetSourceContextInfo()->url;
 
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, sourceFile, sourceId, srcLine, srcColumn);
             return true;
         }
     }
 
-    bool EventLog::GetImmediateReturnTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetImmediateReturnTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         if(!this->m_isReturnFrame)
         {
-            *rootEventTime = -1;
-            *ftime = 0;
-            *ltime = 0;
-
-            *line = 0;
-            *column = 0;
-            *sourceId = 0;
-
+            sourceLocation.Clear();
             return false;
         }
         else
         {
-            *rootEventTime = this->m_topLevelCallbackEventTime;
-            *ftime = this->m_lastFrame.FunctionTime;
-            *ltime = this->m_lastFrame.CurrentStatementLoopTime;
-
             ULONG srcLine = 0;
             LONG srcColumn = -1;
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            *line = (uint32)srcLine;
-            *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+            uint32 sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
+            LPCWSTR sourceFile = this->m_lastFrame.Function->GetSourceContextInfo()->url;
 
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, sourceFile, sourceId, srcLine, srcColumn);
             return true;
         }
     }
@@ -1319,6 +1387,25 @@ namespace TTD
 
         AssertMsg(false, "Bad event index!!!");
         return -1;
+    }
+
+    bool EventLog::TryGetFirstTelemetryBreakLocation(TTDebuggerSourceLocation& sourceLocation) const
+    {
+        for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
+        {
+            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry)
+            {
+                TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(iter.Current());
+                if(tevent->ShouldBreak())
+                {
+                    tevent->GetBreakSourceLocation(sourceLocation);
+                    return true;
+                }
+            }
+        }
+
+        sourceLocation.Clear();
+        return false;
     }
 #endif
 

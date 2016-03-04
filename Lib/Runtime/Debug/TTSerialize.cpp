@@ -540,6 +540,15 @@ namespace TTD
         this->WriteWCHAR('\"');
     }
 
+    void JSONWriter::WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator)
+    {
+        this->WriteKey(NSTokens::Key::uri, separator);
+
+        this->WriteWCHAR('\"');
+        this->WriteString_InternalNoEscape(filename, wcslen(filename));
+        this->WriteWCHAR('\"');
+    }
+
     //////////////////
 
     void FileReader::Fill()
@@ -1460,6 +1469,19 @@ namespace TTD
 
         this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
         LPCWSTR res = alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1); //remove first "
+
+        return res;
+    }
+
+    LPCWSTR JSONReader::ReadFileNameForSourceLocation(bool readSeparator)
+    {
+        this->ReadKey(NSTokens::Key::uri, readSeparator);
+
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+
+        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
+        LPCWSTR res = this->m_charListOpt.GetBuffer() + 1; //remove first "
 
         return res;
     }

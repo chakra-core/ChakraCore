@@ -40,6 +40,38 @@ namespace TTD
         LPCWSTR GetStaticAbortMessage() const;
     };
 
+    //A class to represent a source location
+    class TTDebuggerSourceLocation
+    {
+    private:
+        int64 m_etime;
+        uint64 m_ftime;
+        uint64 m_ltime;
+
+        wchar* m_sourceFile; //temp use until we make docid stable
+        uint32 m_docid; 
+        uint32 m_line;
+        uint32 m_column;
+
+    public:
+        TTDebuggerSourceLocation();
+        TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
+        ~TTDebuggerSourceLocation();
+
+        bool HasValue() const;
+        void Clear();
+        void SetLocation(const TTDebuggerSourceLocation& other);
+        void SetLocation(int64 etime, uint64 ftime, uint64 ltime, LPCWSTR sourceFile, uint32 docid, ULONG line, LONG column);
+
+        int64 GetRootEventTime() const;
+        LPCWSTR GetSourceFile() const;
+        uint32 GetLine() const;
+        uint32 GetColumn() const;
+
+        void Emit(FileWriter* writer, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) const;
+        static void ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator = false);
+    };
+
     //////////////////
 
     //A base class for our event log entries
@@ -50,6 +82,7 @@ namespace TTD
         enum class EventKind
         {
             SnapshotTag,
+            TelemetryLogEntry,
             DoubleTag,
             StringTag,
             RandomSeedTag,
@@ -134,6 +167,43 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static SnapshotEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
+    };
+
+    //////////////////
+
+    //A class that represents telemetry events from the user code
+    class TelemetryEventLogEntry : public EventLogEntry
+    {
+    private:
+        //A string that contains all of the info that is logged and if we should print it
+        const TTString m_infoString;
+        const bool m_shouldPrint;
+
+        //An id the user can provide for this event so we can vector clock with whatever is being logged in the code
+        const int64 m_optUserEventId;
+
+        //if we should break at this point during replay and the source line info
+        const bool m_shouldBreak;
+        TTDebuggerSourceLocation m_sourceLocation;
+
+    public:
+        TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
+
+        //Get the event as a snapshot event (and do tag checking for consistency)
+        static TelemetryEventLogEntry* As(EventLogEntry* e);
+
+        //Get the info about the event
+        const TTString& GetInfoString() const;
+        bool ShouldPrint() const;
+        int64 GetOptUserEventId() const;
+
+        //Get info about associated breakpoints
+        bool ShouldBreak() const;
+        void GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static TelemetryEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
     };
 
     //////////////////

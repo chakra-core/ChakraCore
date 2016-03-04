@@ -1603,6 +1603,70 @@ LHexError:
     }
 
 #if ENABLE_TTD
+    //Log a string in the telemetry system (and print to the console)
+    Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog == nullptr)
+        {
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->ReplayTelemetryLogEvent(jsString);
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                elog->RecordTelemetryLogEvent(jsString, true, -1, false);
+            }
+        }
+
+        //
+        //TODO: the host should give us a print callback which we can use here
+        //
+        wprintf(L"%ls", jsString->GetSz());
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    //Report an issue, take action with the TTD log, and optionally run a report handler?
+    Var GlobalObject::EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog == nullptr)
+        {
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->ReplayTelemetryLogEvent(jsString);
+            }
+
+            if(elog->ShouldPerformRecordAction())
+            {
+                elog->RecordTelemetryLogEvent(jsString, true, -1, true);
+            }
+        }
+
+        //
+        //TODO: the host should give us a print callback which we can use here
+        //
+        wprintf(L"%ls", jsString->GetSz());
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
     //Write a string to the console for TTD testing.
     Var GlobalObject::EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...)
     {

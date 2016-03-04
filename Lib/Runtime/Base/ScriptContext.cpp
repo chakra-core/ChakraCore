@@ -2548,6 +2548,25 @@ namespace Js
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
+    Utf8SourceInfo* ScriptContext::FindDocumentByFileName_TTD(LPCWSTR filename) const
+    {
+        AssertMsg(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
+
+        for(auto iter = this->m_ttdRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
+
+            LPCWSTR curi = cfb->GetSourceContextInfo()->url;
+            if(curi != nullptr && wcscmp(filename, curi) == 0)
+            {
+                return cfb->GetUtf8SourceInfo();
+            }
+        }
+
+        AssertMsg(false, "We should never get here!!!");
+        return nullptr;
+    }
+
     void ScriptContext::InitializeCoreImage_TTD()
     {
         AssertMsg(this->m_ttdAddtlRuntimeContext == nullptr, "This should only happen once!!!");

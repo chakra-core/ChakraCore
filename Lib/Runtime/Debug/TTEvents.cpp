@@ -59,6 +59,151 @@ namespace TTD
         return this->m_staticAbortMessage;
     }
 
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation()
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_line(0), m_column(0)
+    {
+        ;
+    }
+
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
+        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_line(other.m_line), m_column(other.m_column)
+    {
+        if(other.m_sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = HeapNewArray(wchar, wcharLength);
+            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
+        }
+    }
+
+    TTDebuggerSourceLocation::~TTDebuggerSourceLocation()
+    {
+        this->Clear();
+    }
+
+    bool TTDebuggerSourceLocation::HasValue() const
+    {
+        return this->m_etime != -1;
+    }
+
+    void TTDebuggerSourceLocation::Clear()
+    {
+        this->m_etime = -1;
+        this->m_ftime = 0;
+        this->m_ltime = 0;
+        this->m_docid = 0;
+        this->m_line = 0;
+        this->m_column = 0;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            HeapDeleteArray(wcslen(this->m_sourceFile) + 1, this->m_sourceFile);
+        }
+        this->m_sourceFile = nullptr;
+    }
+
+    void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
+    {
+        this->SetLocation(other.m_etime, other.m_ftime, other.m_ltime, other.m_sourceFile, other.m_docid, (ULONG)other.m_line, (LONG)other.m_column);
+    }
+
+    void TTDebuggerSourceLocation::SetLocation(int64 etime, uint64 ftime, uint64 ltime, LPCWSTR sourceFile, uint32 docid, ULONG line, LONG column)
+    {
+        this->m_etime = etime;
+        this->m_ftime = ftime;
+        this->m_ltime = ltime;
+        this->m_docid = docid;
+        this->m_line = (uint32)line;
+        this->m_column = (uint32)column;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            HeapDeleteArray(wcslen(this->m_sourceFile) + 1, this->m_sourceFile);
+        }
+        this->m_sourceFile = nullptr;
+
+        if(sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = HeapNewArray(wchar, wcharLength);
+            js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
+        }
+    }
+
+    int64 TTDebuggerSourceLocation::GetRootEventTime() const
+    {
+        return this->m_etime;
+    }
+
+    LPCWSTR TTDebuggerSourceLocation::GetSourceFile() const
+    {
+        return this->m_sourceFile;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetLine() const
+    {
+        return this->m_line;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetColumn() const
+    {
+        return this->m_column;
+    }
+
+    void TTDebuggerSourceLocation::Emit(FileWriter* writer, NSTokens::Separator separator) const
+    {
+        writer->WriteKey(NSTokens::Key::srcLocation, separator);
+        writer->WriteRecordStart();
+
+        writer->WriteBool(NSTokens::Key::isValid, this->HasValue());
+        if(this->HasValue())
+        {
+            writer->WriteInt64(NSTokens::Key::eventTime, this->m_etime, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::functionTime, this->m_ftime, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::documentId, this->m_docid, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::line, this->m_line, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::column, this->m_column, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteFileNameForSourceLocation(this->m_sourceFile, NSTokens::Separator::CommaSeparator);
+        }
+
+        writer->WriteRecordEnd();
+    }
+
+    void TTDebuggerSourceLocation::ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator)
+    {
+        reader->ReadKey(NSTokens::Key::srcLocation, readSeperator);
+        reader->ReadRecordStart();
+
+        bool hasValue = reader->ReadBool(NSTokens::Key::isValid);
+        if(!hasValue)
+        {
+            into.Clear();
+        }
+        else
+        {
+            int64 etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
+            uint64 ftime = reader->ReadUInt64(NSTokens::Key::functionTime, true);
+            uint64 ltime = reader->ReadUInt64(NSTokens::Key::loopTime, true);
+
+            uint32 docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
+            uint32 line = reader->ReadUInt32(NSTokens::Key::line, true);
+            uint32 column = reader->ReadUInt32(NSTokens::Key::column, true);
+
+            LPCWSTR sourceFile = reader->ReadFileNameForSourceLocation(true);
+
+            into.SetLocation(etime, ftime, ltime, sourceFile, docid, (ULONG)line, (LONG)column);
+        }
+
+        reader->ReadRecordEnd();
+    }
+
     //////////////////
 
     EventLogEntry::EventLogEntry(EventKind tag, int64 eventTimestamp)
@@ -115,6 +260,9 @@ namespace TTD
         {
         case EventKind::SnapshotTag:
             res = SnapshotEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
+        case EventKind::TelemetryLogEntry:
+            res = TelemetryEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
         case EventKind::DoubleTag:
             res = DoubleEventLogEntry::CompleteParse(true, reader, alloc, etime);
@@ -233,6 +381,88 @@ namespace TTD
         TTD_IDENTITY_TAG restoreIdentityTag = reader->ReadIdentityTag(NSTokens::Key::restoreIdentityTag, true);
 
         return alloc.SlabNew<SnapshotEventLogEntry>(eTime, nullptr, restoreTime, restoreLogTag, restoreIdentityTag);
+    }
+
+    //////////////////
+
+    TelemetryEventLogEntry::TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation)
+        : EventLogEntry(EventKind::TelemetryLogEntry, eTime), m_infoString(infoString), m_shouldPrint(shouldPrint), m_optUserEventId(optUserEventId), m_shouldBreak(shouldBreak), m_sourceLocation(sourceLocation)
+    {
+        ;
+    }
+
+    void TelemetryEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        alloc.UnlinkString(this->m_infoString);
+        if(this->m_shouldBreak)
+        {
+            this->m_sourceLocation.Clear();
+        }
+    }
+
+    TelemetryEventLogEntry* TelemetryEventLogEntry::As(EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry, "Not a telemetry event!");
+
+        return static_cast<TelemetryEventLogEntry*>(e);
+    }
+
+    const TTString& TelemetryEventLogEntry::GetInfoString() const
+    {
+        return this->m_infoString;
+    }
+
+    bool TelemetryEventLogEntry::ShouldPrint() const
+    {
+        return this->m_shouldPrint;
+    }
+
+    int64 TelemetryEventLogEntry::GetOptUserEventId() const
+    {
+        return this->m_optUserEventId;
+    }
+
+    bool TelemetryEventLogEntry::ShouldBreak() const
+    {
+        return this->m_shouldBreak;
+    }
+
+    void TelemetryEventLogEntry::GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const
+    {
+        AssertMsg(this->m_shouldBreak, "Need to check this first");
+
+        sourceLocation.SetLocation(this->m_sourceLocation);
+    }
+
+    void TelemetryEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+
+        writer->WriteString(NSTokens::Key::stringVal, this->m_infoString, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldPrint, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteInt64(NSTokens::Key::i64Val, this->m_optUserEventId, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldBreak, NSTokens::Separator::CommaSeparator);
+        this->m_sourceLocation.Emit(writer, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    TelemetryEventLogEntry* TelemetryEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
+    {
+        TTString infoString;
+        TTDebuggerSourceLocation sourceLocation;
+
+        reader->ReadString(NSTokens::Key::stringVal, alloc, infoString, true);
+        bool shouldPrint = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+        int64 optUserEventId = reader->ReadInt64(NSTokens::Key::i64Val, true);
+
+        bool shouldBreak = reader->ReadBool(NSTokens::Key::boolVal, true);
+        TTDebuggerSourceLocation::ParseInto(sourceLocation, reader, true);
+
+        return alloc.SlabNew<TelemetryEventLogEntry>(eTime, infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
     }
 
     //////////////////

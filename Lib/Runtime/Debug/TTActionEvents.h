@@ -391,16 +391,12 @@ namespace TTD
 
 #if ENABLE_TTD_DEBUGGING
         //Info on the time that this registration occours
-        mutable int64 m_register_eventTime;
-        mutable uint64 m_register_ftime;
-        mutable uint64 m_register_ltime;
-        mutable uint32 m_register_line;
-        mutable uint32 m_register_column;
-        mutable uint32 m_register_sourceId;
+        mutable TTDebuggerSourceLocation m_registerLocation;
 #endif
 
     public:
         JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         static JsRTCallbackAction* As(JsRTActionLogEntry* action);
 
@@ -415,7 +411,7 @@ namespace TTD
         bool IsCancelOp() const;
 
         //Get the time info for the debugger to set a breakpoint at this creation (return false if we haven't set the needed times yet)
-        bool GetActionTimeInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const;
+        bool GetActionTimeInfoForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
 
         virtual void ExecuteAction(ThreadContext* threadContext) const override;
 

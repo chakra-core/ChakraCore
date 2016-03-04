@@ -1077,10 +1077,17 @@ namespace TTD
     JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallbackOp), m_isCancel(isCancel), m_isRepeating(isRepeating), m_currentCallbackId(currentCallbackId), m_callbackFunctionTag(callbackFunctionTag), m_createdCallbackId(createdCallbackId)
 #if ENABLE_TTD_DEBUGGING
-        , m_register_eventTime(-1), m_register_ftime(0), m_register_ltime(0), m_register_line(0), m_register_column(0), m_register_sourceId(0)
+        , m_registerLocation()
 #endif
     {
         ;
+    }
+
+    void JsRTCallbackAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+#if ENABLE_TTD_DEBUGGING
+        this->m_registerLocation.Clear();
+#endif
     }
 
     JsRTCallbackAction* JsRTCallbackAction::As(JsRTActionLogEntry* action)
@@ -1110,24 +1117,18 @@ namespace TTD
         return this->m_isCancel;
     }
 
-    bool JsRTCallbackAction::GetActionTimeInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool JsRTCallbackAction::GetActionTimeInfoForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
 #if !ENABLE_TTD_DEBUGGING
         return false;
 #else
-        if(this->m_register_eventTime == -1)
+        if(!this->m_registerLocation.HasValue())
         {
+            sourceLocation.Clear();
             return false; //we haven't been re-executed in replay so we don't have our info yet
         }
 
-        *rootEventTime = this->m_register_eventTime;
-        *ftime = this->m_register_ftime;
-        *ltime = this->m_register_ltime;
-
-        *line = this->m_register_line;
-        *column = this->m_register_column;
-        *sourceId = this->m_register_sourceId;
-
+        sourceLocation.SetLocation(this->m_registerLocation);
         return true;
 #endif
     }
@@ -1137,9 +1138,9 @@ namespace TTD
 #if !ENABLE_TTD_DEBUGGING
         ; //we don't need to do anything
 #else
-        if(this->m_register_eventTime == -1)
+        if(!this->m_registerLocation.HasValue())
         {
-            threadContext->TTDLog->GetTimeAndPositionForDebugger(&this->m_register_eventTime, &this->m_register_ftime, &this->m_register_ltime, &this->m_register_line, &this->m_register_column, &this->m_register_sourceId);
+            threadContext->TTDLog->GetTimeAndPositionForDebugger(this->m_registerLocation);
         }
 #endif
     }
@@ -1435,35 +1436,6 @@ namespace TTD
         }
         Js::Arguments jsArgs(callInfo, this->m_execArgs);
 
-        ////  
-        //TEMP DEBUGGING CODE -- SET A BREAKPOINT AT THE START OF EVERY CALLBACK  
-        if(this->m_callbackDepth == 0)
-        {
-            Js::FunctionBody* fb = jsFunction->GetFunctionBody();
-            if(fb != nullptr)
-            {
-                Js::Utf8SourceInfo* utf8SourceInfo = fb->GetUtf8SourceInfo();
-                if(utf8SourceInfo->HasDebugDocument())
-                {
-                    Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
-
-                    uint startOffset = fb->GetStatementStartOffset(0);
-                    ULONG stmtStartLineNumber;
-                    LONG stmtStartColumnNumber;
-                    fb->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber);
-
-                    charcount_t charPosition;
-                    charcount_t byteOffset;
-                    utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)stmtStartLineNumber, &charPosition, &byteOffset);
-                    long ibos = charPosition + stmtStartColumnNumber + 1;
-
-                    debugDocument->SetBreakPoint(ibos, BREAKPOINT_ENABLED);
-                }
-            }
-        }
-        //
-        ////
-
         if(this->m_callbackDepth == 0)
         {
             threadContext->TTDLog->ResetCallStackForTopLevelCall(this->GetEventTime(), this->m_hostCallbackId);
@@ -1598,7 +1570,7 @@ namespace TTD
 
         this->m_lastExecuted_line = (uint32)srcLine;
         this->m_lastExecuted_column = (uint32)srcColumn;
-        this->m_lastExecuted_sourceId = lastFrame.CurrentStatementIndex;
+        this->m_lastExecuted_sourceId = lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
 #endif
     }
 

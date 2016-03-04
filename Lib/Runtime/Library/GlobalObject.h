@@ -52,6 +52,9 @@ namespace Js
             static FunctionInfo CollectGarbage;
 
 #if ENABLE_TTD
+            static FunctionInfo TelemetryLog;
+            static FunctionInfo TelemetryNotify;
+
             static FunctionInfo TTDTestWrite;
             static FunctionInfo TTDTestReport;
 #endif
@@ -79,6 +82,9 @@ namespace Js
         static Var EntryCollectGarbage(RecyclableObject* function, CallInfo callInfo, ...);
 
 #if ENABLE_TTD
+        static Var EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...);
+
         static Var EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryTTDTestReport(RecyclableObject* function, CallInfo callInfo, ...);
 #endif

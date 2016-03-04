@@ -83,14 +83,9 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchStepHandler(&haltState, &op);
 
 #if ENABLE_TTD
-                //If we have requested a reverse TTD operation compute the updated position info an bailout
-                TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
-                if(elog != nullptr && elog->ShouldPerformDebugAction())
+                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
                 {
-                    if(elog->HasPendingTTDBP())
-                    {
-                        throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
-                    }
+                    this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                 }
 #endif
 
@@ -116,7 +111,10 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchAsyncBreak(&haltState);
 
 #if ENABLE_TTD
-                AssertMsg(false, "TODO: we need to implement reverse step actions here if needed");
+                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                {
+                    this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
+                }
 #endif
 
                 if (prevOffset != m_reader.GetCurrentOffset())
@@ -397,14 +395,9 @@ SWAP_BP_FOR_OPCODE:
                     this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchProbeHandlers(&haltState);
 
 #if ENABLE_TTD
-                    //If we have requested a reverse TTD operation compute the updated position info an bailout
-                    TTD::EventLog* elog = this->scriptContext->GetThreadContext()->TTDLog;
-                    if(elog != nullptr && elog->ShouldPerformDebugAction())
+                    if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
                     {
-                        if(elog->HasPendingTTDBP())
-                        {
-                            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(elog->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
-                        }
+                        this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                     }
 #endif
 
@@ -428,7 +421,10 @@ SWAP_BP_FOR_OPCODE:
                         this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchInlineBreakpoint(&haltState);
 
 #if ENABLE_TTD
-                        AssertMsg(false, "TODO: we need to implement reverse step actions here if needed");
+                        if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                        {
+                            this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
+                        }
 #endif
 
                         if (prevOffset != m_reader.GetCurrentOffset())
