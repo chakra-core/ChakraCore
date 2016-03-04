@@ -1136,12 +1136,14 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
+            symbolReplace = CreateSymbol(BuiltInPropertyRecords::_symbolReplace);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
             symbolSplit = CreateSymbol(BuiltInPropertyRecords::_symbolSplit);
         }
         else
         {
             symbolMatch = nullptr;
+            symbolReplace = nullptr;
             symbolSearch = nullptr;
             symbolSplit = nullptr;
         }
@@ -2088,7 +2090,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 15);
+        typeHandler->Convert(symbolConstructor, mode, 16);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2127,6 +2129,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
+            library->AddMember(symbolConstructor, PropertyIds::replace, library->GetSymbolReplace(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::split, library->GetSymbolSplit(), PropertyNone);
         }
@@ -3865,7 +3868,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(regexPrototype, mode, 16);
+        typeHandler->Convert(regexPrototype, mode, 24);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
         JavascriptFunction * func;
@@ -3931,6 +3934,12 @@ namespace Js
                 PropertyIds::_RuntimeFunctionNameId_match,
                 &JavascriptRegExp::EntryInfo::SymbolMatch,
                 1);
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolReplace,
+                PropertyIds::_RuntimeFunctionNameId_replace,
+                &JavascriptRegExp::EntryInfo::SymbolReplace,
+                2);
             builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
                 regexPrototype,
                 PropertyIds::_symbolSearch,

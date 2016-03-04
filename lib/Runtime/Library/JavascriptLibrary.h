@@ -382,6 +382,7 @@ namespace Js
 
 
         JavascriptSymbol* symbolMatch;
+        JavascriptSymbol* symbolReplace;
         JavascriptSymbol* symbolSearch;
         JavascriptSymbol* symbolSplit;
 
@@ -532,6 +533,7 @@ namespace Js
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
         JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
+        JavascriptSymbol* GetSymbolReplace() { return symbolReplace; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSplit() { return symbolSplit; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }

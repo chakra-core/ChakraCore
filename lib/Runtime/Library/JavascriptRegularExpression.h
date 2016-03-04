@@ -57,7 +57,10 @@ namespace Js
         static CharCount GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext);
+        static bool GetGlobalProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool GetUnicodeProperty(RecyclableObject* instance, ScriptContext* scriptContext);
 
+        static CharCount AddIndex(CharCount base, CharCount offset);
         static CharCount GetIndexOrMax(int64 index);
 
         static bool HasOriginalRegExType(RecyclableObject* instance);
@@ -131,6 +134,7 @@ namespace Js
             static FunctionInfo Test;
             static FunctionInfo ToString;
             static FunctionInfo SymbolMatch;
+            static FunctionInfo SymbolReplace;
             static FunctionInfo SymbolSearch;
             static FunctionInfo SymbolSplit;
             static FunctionInfo GetterSymbolSpecies;
@@ -151,6 +155,7 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);

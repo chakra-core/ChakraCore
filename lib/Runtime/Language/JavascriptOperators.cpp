@@ -9979,6 +9979,11 @@ CommonNumber:
         return IsObjectType(typeId) || typeId == TypeIds_Null;
     }
 
+    BOOL JavascriptOperators::IsUndefined(Var instance)
+    {
+        return JavascriptOperators::GetTypeId(instance) == TypeIds_Undefined;
+    }
+
     BOOL JavascriptOperators::IsUndefinedOrNullType(TypeId typeId)
     {
         return typeId <= TypeIds_UndefinedOrNull;

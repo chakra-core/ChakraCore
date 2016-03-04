@@ -114,6 +114,27 @@ namespace Js
             static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable));
     }
 
+    bool JavascriptRegExp::GetGlobalProperty(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(instance, PropertyIds::global, scriptContext),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::GetUnicodeProperty(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(instance, PropertyIds::unicode, scriptContext),
+            scriptContext);
+    }
+
+    CharCount JavascriptRegExp::AddIndex(CharCount base, CharCount offset)
+    {
+        return (base + offset < base) // Overflow?
+            ? MaxCharCount
+            : base + offset;
+    }
+
     CharCount JavascriptRegExp::GetIndexOrMax(int64 index)
     {
         return (index > SIZE_MAX || IsValidCharCount((size_t) index))
@@ -696,6 +717,45 @@ namespace Js
         JavascriptLibrary* library = regexPrototype->GetLibrary();
         return regexPrototype->GetSlot(library->GetRegexUnicodeGetterSlotIndex())
                != library->GetRegexUnicodeGetterFunction();
+    }
+
+    Var JavascriptRegExp::EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolReplaceCount);
+
+        PCWSTR varName = L"RegExp.prototype[Symbol.replace]";
+
+        RecyclableObject* thisObj = GetThisObject(args, varName, scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+
+        Var replaceValue = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+
+        if (JavascriptFunction::Is(replaceValue))
+        {
+            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
+            JavascriptFunction* replaceFunction = JavascriptFunction::FromVar(replaceValue);
+            return RegexHelper::RegexReplaceFunction(
+                scriptContext,
+                regularExpression,
+                string,
+                replaceFunction);
+        }
+        else
+        {
+            JavascriptString* replaceString = JavascriptConversion::ToString(replaceValue, scriptContext);
+            return RegexHelper::RegexReplace(
+                scriptContext,
+                thisObj,
+                string,
+                replaceString,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
+        }
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
