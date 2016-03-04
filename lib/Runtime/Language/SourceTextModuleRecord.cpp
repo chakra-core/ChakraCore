@@ -409,8 +409,8 @@ namespace Js
             ModuleNameRecord* starResolution = nullptr;
             starExportRecordList->MapUntil([&](ModuleExportEntry starExportEntry) {
                 ModuleNameRecord* currentResolution = nullptr;
-                SourceTextModuleRecord* childModule;
-                if (!childrenModuleSet->TryGetValue(starExportEntry.moduleRequest->Psz(), &childModule))
+                SourceTextModuleRecord* childModule = GetChildModuleRecord(starExportEntry.moduleRequest->Psz());
+                if (childModule == nullptr)
                 {
                     JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CannotResolveModule, starExportEntry.moduleRequest->Psz());
                 }
@@ -617,7 +617,7 @@ namespace Js
         SourceTextModuleRecord* childModuleRecord = nullptr;
         if (childrenModuleSet == nullptr)
         {
-            AssertMsg(false, "there should have some child modulerecords first before trying to get child modulerecord.");
+            AssertMsg(false, "We should have some child modulerecords first before trying to get child modulerecord.");
             return nullptr;
         }
         if (!childrenModuleSet->TryGetValue(specifier, &childModuleRecord))
