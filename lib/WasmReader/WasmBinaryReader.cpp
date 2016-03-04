@@ -85,6 +85,9 @@ WasmBinaryReader::ReadFromModule()
         }
         else
         {
+            // TODO: Should check that previous section, if any, was of the correct
+            // length by comparing against m_moduleState.byteLen.
+
             // next section
             sectionId = m_moduleState.secId = SectionHeader();
             if (sectionId == bSectMemory || sectionId == bSectEnd)
@@ -94,7 +97,7 @@ WasmBinaryReader::ReadFromModule()
             else
             {
                 m_moduleState.size = LEB128(length);
-                if (sectionId == bSectFunctions)
+                if (sectionId == bSectFunSigs)
                 {
                     m_moduleInfo->SetFunctionCount(m_moduleState.size);
                 }
@@ -104,7 +107,7 @@ WasmBinaryReader::ReadFromModule()
         }
 
         // TODO: Skip unknown sections.
-        Assert(sectionId >= bSectMemory && sectionId <= bSectEnd);
+        Assert(sectionId >= bSectMemory && sectionId < bSectLimit);
 
         switch (sectionId)
         {
@@ -116,7 +119,7 @@ WasmBinaryReader::ReadFromModule()
         }
         case bSectSignatures:
             // signatures table
-            for (UINT i = 0; i < m_moduleState.size; i++)
+            for (UINT32 i = 0; i < m_moduleState.size; i++)
             {
                 TRACE_WASM_DECODER(L"Signature #%u", i);
                 Signature();
@@ -137,23 +140,35 @@ WasmBinaryReader::ReadFromModule()
             m_moduleState.count++;
             break; // This section is not used by bytecode generator, stay in decoder
 
-        case bSectFunctions:
+        case bSectFunSigs:
             if (!m_visitedSections->Test(bSectSignatures))
             {
                 ThrowDecodingError(L"Signatures section missing before function table");
             }
             FunctionHeader();
             m_moduleState.count++;
+            break;
 
+        case bSectFunBodies:
+            if (!m_visitedSections->Test(bSectFunSigs))
+            {
+                ThrowDecodingError(L"Function signatures section missing before function bodies");
+            }
+            if (m_moduleInfo->GetFunctionCount() != m_moduleState.size)
+            {
+                ThrowDecodingError(L"Function signatures and function bodies count mismatch");
+            }
+            FunctionBodyHeader();
+            m_moduleState.count++;
             return wnFUNC;
 
         case bSectIndirectFunctionTable:
-            if (!m_visitedSections->Test(bSectFunctions))
+            if (!m_visitedSections->Test(bSectFunSigs))
             {
-                ThrowDecodingError(L"Function declarations section missing before function table");
+                ThrowDecodingError(L"Function signatures section missing before indirect function table");
             }
 
-            for (UINT i = 0; i < m_moduleState.size; i++)
+            for (UINT32 i = 0; i < m_moduleState.size; i++)
             {
                 m_moduleInfo->AddIndirectFunctionIndex(ReadConst<UINT16>());
             }
@@ -173,20 +188,22 @@ SectionCode
 WasmBinaryReader::SectionHeader()
 {
     UINT len;
-    UINT sectionSize;
-    UINT idSize;
+    UINT32 sectionSize;
+    UINT32 idSize;
 
     sectionSize = LEB128(len);
     idSize = LEB128(len);
     const char *sectionName = (char*)(m_pc);
     m_pc += idSize;
     m_moduleState.count = 0;
+    m_moduleState.byteLen = sectionSize;
 
     auto cmp = [&sectionName, &idSize](const char* n) { return !memcmp(n, sectionName, idSize); };
     if (cmp("memory")) return bSectMemory;
     if (cmp("signatures")) return bSectSignatures;
     if (cmp("import_table")) return bSectImportTable;
-    if (cmp("functions")) return bSectFunctions;
+    if (cmp("function_signatures")) return bSectFunSigs;
+    if (cmp("function_bodies")) return bSectFunBodies;
     if (cmp("export_table")) return bSectExportTable;
     if (cmp("start_function")) return bSectStartFunction;
     if (cmp("data_segments")) return bSectDataSegments;
@@ -324,9 +341,7 @@ void
 WasmBinaryReader::CallNode()
 {
     UINT length = 0;
-    // [b-gekua] V8 says it's an LEB128 but it isn't clear that all encoders
-    // are following that.
-    UINT funcNum = LEB128(length);
+    UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetSignatureCount())
     {
@@ -339,27 +354,32 @@ WasmBinaryReader::CallNode()
 void
 WasmBinaryReader::BlockNode()
 {
-    m_currentNode.block.count = ReadConst<UINT8>();
-    m_funcState.count++;
+    UINT len = 0;
+    m_currentNode.block.count = LEB128(len);
+    m_funcState.count += len;
 }
 
 void
 WasmBinaryReader::BrNode()
 {
-    m_currentNode.br.depth = ReadConst<UINT8>();
+    UINT len = 0;
+    m_currentNode.br.depth = LEB128(len);
+    m_funcState.count += len;
     // TODO: binary encoding doesn't yet support br yielding value
     m_currentNode.br.hasSubExpr = false;
-    m_funcState.count++;
 }
 
 void
 WasmBinaryReader::TableSwitchNode()
 {
-    m_currentNode.tableswitch.numCases = ReadConst<UINT16>();
-    m_currentNode.tableswitch.numEntries = ReadConst<UINT16>();
-    m_funcState.count += 2*sizeof(UINT16);
+    UINT len = 0;
+    m_currentNode.tableswitch.numCases = LEB128(len);
+    m_funcState.count += len;
+    m_currentNode.tableswitch.numEntries = LEB128(len);
+    m_funcState.count += len;
     m_currentNode.tableswitch.jumpTable = AnewArray(&m_alloc, UINT16, m_currentNode.tableswitch.numEntries);
-    for (int i = 0; i < m_currentNode.tableswitch.numEntries; i++)
+    // TODO tableswitch to BR_TABLE
+    for (UINT32 i = 0; i < m_currentNode.tableswitch.numEntries; i++)
     {
         m_currentNode.tableswitch.jumpTable[i] = ReadConst<UINT16>();
         m_funcState.count += sizeof(UINT16);
@@ -398,11 +418,12 @@ WasmBinaryReader::VarNode()
 template <WasmTypes::LocalType localType>
 void WasmBinaryReader::ConstNode()
 {
+    UINT len = 0;
     switch (localType)
     {
     case WasmTypes::bAstI32:
-        m_currentNode.cnst.i32 = ReadConst<INT32>();
-        m_funcState.count += sizeof(INT32);
+        m_currentNode.cnst.i32 = SLEB128(len);
+        m_funcState.count += len;
         break;
     case WasmTypes::bAstF32:
         m_currentNode.cnst.f32 = ReadConst<float>();
@@ -454,8 +475,8 @@ void
 WasmBinaryReader::ReadMemorySection()
 {
     UINT length = 0;
-    UINT minPage = LEB128(length);
-    UINT maxPage = LEB128(length);
+    UINT32 minPage = LEB128(length);
+    UINT32 maxPage = LEB128(length);
     bool exported = ReadConst<UINT8>() != FALSE;
     m_moduleInfo->InitializeMemory(minPage, maxPage, exported);
 }
@@ -463,14 +484,15 @@ WasmBinaryReader::ReadMemorySection()
 void
 WasmBinaryReader::Signature()
 {
+    UINT len = 0;
     WasmSignature * sig = Anew(&m_alloc, WasmSignature, &m_alloc);
 
     // TODO: use param count to create fixed size array
-    uint8 paramCount = ReadConst<UINT8>();
+    UINT32 paramCount = LEB128(len);
 
     sig->SetResultType(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
 
-    for (uint8 i = 0; i < paramCount; i++)
+    for (UINT32 i = 0; i < paramCount; i++)
     {
         sig->AddParam(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
     }
@@ -482,21 +504,21 @@ WasmBinaryReader::Signature()
 void
 WasmBinaryReader::FunctionHeader()
 {
+    // TODO: Split this up into FunSig and Names sections
+    UINT len = 0;
     UINT8 flags;
-    UINT16 sigId;
+    UINT32 sigId;
     UINT32 nameOffset, nameLen;
-    UINT16 i32Count = 0, i64Count = 0, f32Count = 0, f64Count = 0;
     const char* funcName = nullptr;
     LPCUTF8 utf8FuncName = nullptr;
     WasmSignature * sig;
 
-    Assert(m_moduleState.secId == bSectFunctions && m_moduleState.count < m_moduleState.size);
+    Assert(m_moduleState.secId == bSectFunSigs && m_moduleState.count < m_moduleState.size);
     m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
-    m_currentNode.func.info = m_funcInfo;
+    m_moduleInfo->AddFunSig(m_funcInfo);
 
-    m_funcInfo->SetNumber(m_moduleState.count);
     flags = ReadConst<UINT8>();
-    sigId = ReadConst<UINT16>();
+    sigId = LEB128(len);
 
     if (sigId >= m_moduleInfo->GetSignatureCount())
     {
@@ -530,39 +552,70 @@ WasmBinaryReader::FunctionHeader()
     sig = m_moduleInfo->GetSignature(sigId);
     m_funcInfo->SetSignature(sig);
 
-    // locals
-    if (flags & bFuncDeclLocals)
-    {
-        // has locals
-        i32Count = ReadConst<UINT16>();
-        i64Count = ReadConst<UINT16>();
-        f32Count = ReadConst<UINT16>();
-        f64Count = ReadConst<UINT16>();
+    TRACE_WASM_DECODER(L"Function header: flags = %x, sig = %u, size = %u", flags, sigId, m_funcState.size);
+}
 
-        for (UINT i = 0; i < i32Count; i ++)
-        {
-            m_funcInfo->AddLocal(Wasm::WasmTypes::I32);
-        }
-        for (UINT i = 0; i < i64Count; i++)
-        {
-            m_funcInfo->AddLocal(Wasm::WasmTypes::I64);
-        }
-        for (UINT i = 0; i < f32Count; i++)
-        {
-            m_funcInfo->AddLocal(Wasm::WasmTypes::F32);
-        }
-        for (UINT i = 0; i < f64Count; i++)
-        {
-            m_funcInfo->AddLocal(Wasm::WasmTypes::F64);
-        }
-    }
+void
+WasmBinaryReader::FunctionBodyHeader()
+{
+    UINT32 i32Count = 0, i64Count = 0, f32Count = 0, f64Count = 0;
+    UINT len = 0;
+
+    m_currentNode.func.info = m_moduleInfo->GetFunSig(m_moduleState.count);
 
     // Reset func state
     m_funcState.count = 0;
-    m_funcState.size = ReadConst<UINT16>(); // AST Size in bytes
+    m_funcState.size = LEB128(len); // function body size in bytes including AST
     CheckBytesLeft(m_funcState.size);
 
-    TRACE_WASM_DECODER(L"Function header: flags = %x, sig = %u, i32 = %u, i64 = %u, f32 = %u, f64 = %u, size = %u", flags, sigId, i32Count, i64Count, f32Count, f64Count, m_funcState.size);
+    UINT32 entryCount = LEB128(len);
+    m_funcState.size += len;
+
+    // locals
+    for (UINT32 i = 0; i < entryCount; i++)
+    {
+        UINT32 count = LEB128(len);
+        m_funcState.size += len;
+        UINT8 type = ReadConst<UINT8>();
+        m_funcState.size++;
+
+        switch (type)
+        {
+        case Wasm::WasmTypes::WasmType::I32:
+            i32Count += count;
+            break;
+        case Wasm::WasmTypes::WasmType::I64:
+            i64Count += count;
+            break;
+        case Wasm::WasmTypes::WasmType::F32:
+            f32Count += count;
+            break;
+        case Wasm::WasmTypes::WasmType::F64:
+            f64Count += count;
+            break;
+        default:
+            ThrowDecodingError(L"Unexpected local type");
+        }
+    }
+
+    for (UINT32 i = 0; i < i32Count; i++)
+    {
+        m_funcInfo->AddLocal(Wasm::WasmTypes::I32);
+    }
+    for (UINT32 i = 0; i < i64Count; i++)
+    {
+        m_funcInfo->AddLocal(Wasm::WasmTypes::I64);
+    }
+    for (UINT32 i = 0; i < f32Count; i++)
+    {
+        m_funcInfo->AddLocal(Wasm::WasmTypes::F32);
+    }
+    for (UINT32 i = 0; i < f64Count; i++)
+    {
+        m_funcInfo->AddLocal(Wasm::WasmTypes::F64);
+    }
+
+    TRACE_WASM_DECODER(L"Function body header: i32 = %u, i64 = %u, f32 = %u, f64 = %u", i32Count, i64Count, f32Count, f64Count);
 }
 
 const char *
@@ -590,7 +643,8 @@ WasmBinaryReader::Name(UINT offset, UINT &length)
 UINT
 WasmBinaryReader::Offset()
 {
-    UINT32 offset = ReadConst<UINT32>();
+    UINT len = 0;
+    UINT32 offset = LEB128(len);
     if (offset > (UINT)(m_end - m_start))
     {
         ThrowDecodingError(L"Offset is out of range");
@@ -599,22 +653,32 @@ WasmBinaryReader::Offset()
 }
 
 UINT
-WasmBinaryReader::LEB128(UINT &length)
+WasmBinaryReader::LEB128(UINT &length, bool sgn)
 {
+    UINT result = 0;
+    UINT shamt = 0;
+    byte b;
+
     // LEB128 needs at least one byte
     CheckBytesLeft(1);
 
-    UINT result = 0, shamt = 0;;
-    byte b;
-    length = 1;
     for (UINT i = 0; i < 5; i++, length++)
     {
         // 5 bytes at most
         b = *m_pc++;
         result = result | ((b & 0x7f) << shamt);
-        if ((b & 0x80) == 0)
-            break;
-        shamt += 7;
+        if (sgn)
+        {
+            shamt += 7;
+            if ((b & 0x80) == 0)
+                break;
+        }
+        else
+        {
+            if ((b & 0x80) == 0)
+                break;
+            shamt += 7;
+        }
     }
 
     if (b & 0x80)
@@ -622,7 +686,26 @@ WasmBinaryReader::LEB128(UINT &length)
         ThrowDecodingError(L"Invalid LEB128 format");
     }
 
-    TRACE_WASM_DECODER(L"Binary decoder: LEB128 value = %u, length = %u", result, length);
+    if (sgn && (shamt + 7 < sizeof(INT) * 8) && (0x40 & b))
+    {
+        result |= -(1 << shamt);
+    }
+
+    if (!sgn)
+    {
+        TRACE_WASM_DECODER(L"Binary decoder: LEB128 value = %u, length = %u", result, length);
+    }
+
+    return result;
+}
+
+// Signed LEB128
+INT
+WasmBinaryReader::SLEB128(UINT &length)
+{
+    INT result = LEB128(length, true);
+
+    TRACE_WASM_DECODER(L"Binary decoder: LEB128 value = %d, length = %u", result, length);
     return result;
 }
 

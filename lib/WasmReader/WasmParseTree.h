@@ -59,7 +59,7 @@ namespace Wasm
 
     struct WasmBlockNode
     {
-        UINT8 count;
+        uint32 count;
     };
 
     struct WasmMemOpNode
@@ -70,14 +70,14 @@ namespace Wasm
 
     struct WasmBrNode
     {
-        UINT8 depth;
+        uint32 depth;
         bool hasSubExpr;
     };
 
     struct WasmTableSwitchNode
     {
-        UINT16 numCases;
-        UINT16 numEntries;
+        uint32 numCases;
+        uint32 numEntries;
         UINT16* jumpTable;
     };
 

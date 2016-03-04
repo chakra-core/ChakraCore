@@ -69,7 +69,7 @@ namespace Wasm
             bSectInvalid        = -1,
             bSectMemory         = 0x00,
             bSectSignatures     = 0x01,
-            bSectFunctions      = 0x02,
+            bSectFunSigs        = 0x02,
             bSectGlobals        = 0x03,
             bSectDataSegments   = 0x04,
             bSectIndirectFunctionTable = 0x05,
@@ -77,6 +77,7 @@ namespace Wasm
             bSectStartFunction  = 0x07,
             bSectImportTable    = 0x08,
             bSectExportTable    = 0x09,
+            bSectFunBodies      = 0x0A,
             bSectLimit
         };
 
@@ -104,9 +105,9 @@ namespace Wasm
             struct ReaderState
             {
                 SectionCode secId;
-                UINT count;         // current entry
-                UINT size;          // number of entries
-
+                UINT32 count;         // current entry
+                UINT32 size;          // number of entries
+                UINT32 byteLen;       // byte length of section excluding the LEB128 length field
             };
 
             void ResetModuleData();
@@ -126,13 +127,13 @@ namespace Wasm
             void ReadMemorySection();
             void Signature();
             void FunctionHeader();
+            void FunctionBodyHeader();
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
-            UINT LEB128(UINT &length);
+            UINT LEB128(UINT &length, bool sgn = false);
+            INT SLEB128(UINT &length);
             template <typename T> T ReadConst();
             SectionCode SectionHeader();
-
-
 
             void CheckBytesLeft(UINT bytesNeeded);
             bool EndOfFunc();
