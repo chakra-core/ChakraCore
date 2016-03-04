@@ -24,7 +24,6 @@ namespace Js
             Fields() {}
         };
 
-
         uint8 fieldSize;
 #if DBG
     
@@ -101,7 +100,7 @@ namespace Js
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
         {            
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
+            Assert(bgThreadCallStarted == false || isCleaningUp == true || host->IsInDebugMode());
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -136,7 +135,7 @@ namespace Js
 
         int32 SetSigned(CountT typeEnum, int32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true);
+            Assert(bgThreadCallStarted == false || isCleaningUp == true || host->IsInDebugMode());
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -171,7 +170,7 @@ namespace Js
 
         uint32 Increase(CountT typeEnum, T* host)
         {
-            Assert(bgThreadCallStarted == false);
+            Assert(bgThreadCallStarted == false || host->IsInDebugMode());
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)
@@ -207,7 +206,7 @@ namespace Js
         template<typename FieldT>
         void AllocCounters(T* host)
         {
-            Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked());
+            Assert(ThreadContext::GetContextForCurrentThread() || ThreadContext::GetCriticalSection()->IsLocked() || host->IsInDebugMode());
             Assert(host->GetRecycler() != nullptr);
 
             const uint8 signedStart = static_cast<uint8>(CountT::SignedFieldsStart);
