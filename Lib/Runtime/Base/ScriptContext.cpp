@@ -2548,18 +2548,18 @@ namespace Js
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
-    Utf8SourceInfo* ScriptContext::FindDocumentByFileName_TTD(LPCWSTR filename) const
+    FunctionBody* ScriptContext::FindFunctionBodyByFileName_TTD(LPCWSTR filename) const
     {
         AssertMsg(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
 
-        for(auto iter = this->m_ttdRootSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+        for(auto iter = this->m_ttdPinnedRootFunctionSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
 
             LPCWSTR curi = cfb->GetSourceContextInfo()->url;
             if(curi != nullptr && wcscmp(filename, curi) == 0)
             {
-                return cfb->GetUtf8SourceInfo();
+                return cfb;
             }
         }
 
@@ -2585,6 +2585,10 @@ namespace Js
     {
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
         this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
+
+#if TTD_FORCE_DEBUG_MODE_IN_RECORD
+        this->ForceNoNative();
+#endif
     }
 
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()

@@ -673,15 +673,14 @@ namespace TTD
 
         const SingleCallCounter& clientFrame = this->m_callStack.Item(fpos);
 
-        ULONG stmtStartLineNumber;
-        LONG stmtStartColumnNumber;
-        clientFrame.Function->GetLineCharOffsetFromStartChar(clientFrame.CurrentStatementIndex, &stmtStartLineNumber, &stmtStartColumnNumber);
 
-        uint32 sourceId = clientFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
-        LPCWSTR sourceFile = clientFrame.Function->GetSourceContextInfo()->url;
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = clientFrame.Function->GetStatementStartOffset(clientFrame.CurrentStatementIndex);
+        clientFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
         TTDebuggerSourceLocation sourceLocation;
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, clientFrame.FunctionTime, clientFrame.LoopTime, sourceFile, sourceId, stmtStartLineNumber, stmtStartColumnNumber);
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, clientFrame.FunctionTime, clientFrame.LoopTime, clientFrame.Function, srcLine, srcColumn);
 
         TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
 
@@ -702,7 +701,7 @@ namespace TTD
         TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(this->m_currentReplayEventIterator.Current());
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(wcscmp(tevent->GetInfoString().Contents, infoStringJs->GetSz()) != 0, "Telemetry messages differ??");
+        AssertMsg(wcscmp(tevent->GetInfoString().Contents, infoStringJs->GetSz()) == 0, "Telemetry messages differ??");
 #endif
 
         if(tevent->ShouldPrint())
@@ -1167,7 +1166,6 @@ namespace TTD
             return;
         }
 
-        //Clear any old breakpoints we have set
         if(this->HasActiveBP())
         {
             Js::DebugDocument* debugDocument = fb->GetUtf8SourceInfo()->GetDebugDocument();
@@ -1176,6 +1174,8 @@ namespace TTD
             {
                 debugDocument->SetBreakPoint(statement, BREAKPOINT_DELETED);
             }
+
+            this->ClearActiveBP();
         }
 
         if(this->HasPendingTTDBP())
@@ -1237,10 +1237,7 @@ namespace TTD
         uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
         cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        uint32 sourceId = cfinfo.Function->GetUtf8SourceInfo()->GetSourceInfoId();
-        LPCWSTR sourceFile = cfinfo.Function->GetSourceContextInfo()->url;
-
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, sourceFile, sourceId, srcLine, srcColumn);
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, cfinfo.Function, srcLine, srcColumn);
     }
 
     bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
@@ -1284,10 +1281,7 @@ namespace TTD
         uint32 startOffset = fbody->GetStatementStartOffset(statementIndex);
         fbody->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        uint32 sourceId = fbody->GetUtf8SourceInfo()->GetSourceInfoId();
-        LPCWSTR sourceFile = cfinfo.Function->GetSourceContextInfo()->url;
-
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, ftime, ltime, sourceFile, sourceId, srcLine, srcColumn);
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, ftime, ltime, fbody, srcLine, srcColumn);
 
         return false;
     }
@@ -1306,10 +1300,7 @@ namespace TTD
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            uint32 sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
-            LPCWSTR sourceFile = this->m_lastFrame.Function->GetSourceContextInfo()->url;
-
-            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, sourceFile, sourceId, srcLine, srcColumn);
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, this->m_lastFrame.Function, srcLine, srcColumn);
             return true;
         }
     }
@@ -1328,10 +1319,7 @@ namespace TTD
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            uint32 sourceId = this->m_lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
-            LPCWSTR sourceFile = this->m_lastFrame.Function->GetSourceContextInfo()->url;
-
-            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, sourceFile, sourceId, srcLine, srcColumn);
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, this->m_lastFrame.Function, srcLine, srcColumn);
             return true;
         }
     }
@@ -2039,12 +2027,12 @@ namespace TTD
         } while(nextActionValid & !nextActionRootCall);
     }
 
-    void EventLog::EmitLogIfNeeded()
+    LPCWSTR EventLog::EmitLogIfNeeded()
     {
         //See if we have been running record mode (even if we are suspended for runtime execution) -- if we aren't then we don't want to emit anything
         if((this->m_currentMode & TTDMode::RecordEnabled) != TTDMode::RecordEnabled)
         {
-            return;
+            return L"Record Disabled -- No Log Written!";
         }
 
 #if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
@@ -2147,6 +2135,8 @@ namespace TTD
         writer.WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
 
         writer.FlushAndClose();
+
+        return this->m_logInfoRootDir.Contents;
 #endif
     }
 

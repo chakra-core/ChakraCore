@@ -524,7 +524,7 @@ namespace TTD
         ////////////////////////////////
         //Emit code and support
 
-        void EmitLogIfNeeded();
+        LPCWSTR EmitLogIfNeeded();
         void ParseLogInto();
     };
 }

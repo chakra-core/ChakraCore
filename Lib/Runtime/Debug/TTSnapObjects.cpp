@@ -126,10 +126,13 @@ namespace TTD
             for(int32 i = 0; i < dynObj->GetPropertyCount(); i++)
             {
                 Js::PropertyId pid = dynObj->GetPropertyId((Js::PropertyIndex)i);
-                propertyReset.AddNew(pid);
+                if(pid != Js::Constants::NoProperty)
+                {
+                    propertyReset.AddNew(pid);
 
-                hasInternalProperty |= Js::IsInternalPropertyId(pid);
-                hasNonConfigProperty |= !dynObj->IsConfigurable(pid);
+                    hasInternalProperty |= Js::IsInternalPropertyId(pid);
+                    hasNonConfigProperty |= !dynObj->IsConfigurable(pid);
+                }
             }
 
             //We don't want to deal with internal property ids and their semantics so clean up and create a new object instead of trying to reuse

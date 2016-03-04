@@ -44,12 +44,20 @@ namespace TTD
     class TTDebuggerSourceLocation
     {
     private:
+        //The time aware parts of this location
         int64 m_etime;
         uint64 m_ftime;
         uint64 m_ltime;
 
+        //The document
         wchar* m_sourceFile; //temp use until we make docid stable
         uint32 m_docid; 
+
+        //The position of the function in the document
+        uint32 m_functionLine;
+        uint32 m_functionColumn;
+
+        //The location in the fnuction
         uint32 m_line;
         uint32 m_column;
 
@@ -61,10 +69,11 @@ namespace TTD
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(int64 etime, uint64 ftime, uint64 ltime, LPCWSTR sourceFile, uint32 docid, ULONG line, LONG column);
+        void SetLocation(int64 etime, uint64 ftime, uint64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
-        LPCWSTR GetSourceFile() const;
+
+        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
         uint32 GetLine() const;
         uint32 GetColumn() const;
 

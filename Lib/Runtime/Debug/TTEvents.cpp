@@ -60,20 +60,20 @@ namespace TTD
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation()
-        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_line(0), m_column(0)
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
         ;
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
-        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_line(other.m_line), m_column(other.m_column)
+        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_functionLine(other.m_functionLine), m_functionColumn(other.m_functionColumn), m_line(other.m_line), m_column(other.m_column)
     {
         if(other.m_sourceFile != nullptr)
         {
             size_t wcharLength = wcslen(other.m_sourceFile) + 1;
             size_t byteLength = wcharLength * sizeof(wchar);
 
-            this->m_sourceFile = HeapNewArray(wchar, wcharLength);
+            this->m_sourceFile = new wchar[wcharLength];
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
     }
@@ -93,43 +93,79 @@ namespace TTD
         this->m_etime = -1;
         this->m_ftime = 0;
         this->m_ltime = 0;
+
         this->m_docid = 0;
+
+        this->m_functionLine = 0;
+        this->m_functionColumn = 0;
+
         this->m_line = 0;
         this->m_column = 0;
 
         if(this->m_sourceFile != nullptr)
         {
-            HeapDeleteArray(wcslen(this->m_sourceFile) + 1, this->m_sourceFile);
+            delete[] this->m_sourceFile;
         }
         this->m_sourceFile = nullptr;
     }
 
     void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
     {
-        this->SetLocation(other.m_etime, other.m_ftime, other.m_ltime, other.m_sourceFile, other.m_docid, (ULONG)other.m_line, (LONG)other.m_column);
+        this->m_etime = other.m_etime;
+        this->m_ftime = other.m_ftime;
+        this->m_ltime = other.m_ltime;
+
+        this->m_docid = other.m_docid;
+
+        this->m_functionLine = other.m_functionLine;
+        this->m_functionColumn = other.m_functionColumn;
+
+        this->m_line = other.m_line;
+        this->m_column = other.m_column;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            delete[] this->m_sourceFile;
+        }
+        this->m_sourceFile = nullptr;
+
+        if(other.m_sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
+        }
     }
 
-    void TTDebuggerSourceLocation::SetLocation(int64 etime, uint64 ftime, uint64 ltime, LPCWSTR sourceFile, uint32 docid, ULONG line, LONG column)
+    void TTDebuggerSourceLocation::SetLocation(int64 etime, uint64 ftime, uint64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
     {
         this->m_etime = etime;
         this->m_ftime = ftime;
         this->m_ltime = ltime;
-        this->m_docid = docid;
+
+        this->m_docid = body->GetUtf8SourceInfo()->GetSourceInfoId();
+
+        this->m_functionLine = body->GetLineNumber();
+        this->m_functionColumn = body->GetColumnNumber();
+
         this->m_line = (uint32)line;
         this->m_column = (uint32)column;
 
         if(this->m_sourceFile != nullptr)
         {
-            HeapDeleteArray(wcslen(this->m_sourceFile) + 1, this->m_sourceFile);
+            delete[] this->m_sourceFile;
         }
         this->m_sourceFile = nullptr;
 
+        LPCWSTR sourceFile = body->GetSourceContextInfo()->url;
         if(sourceFile != nullptr)
         {
             size_t wcharLength = wcslen(sourceFile) + 1;
             size_t byteLength = wcharLength * sizeof(wchar);
 
-            this->m_sourceFile = HeapNewArray(wchar, wcharLength);
+            this->m_sourceFile = new wchar[wcharLength];
             js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
         }
     }
@@ -139,9 +175,46 @@ namespace TTD
         return this->m_etime;
     }
 
-    LPCWSTR TTDebuggerSourceLocation::GetSourceFile() const
+    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
     {
-        return this->m_sourceFile;
+        Js::FunctionBody* resBody = ctx->FindFunctionBodyByFileName_TTD(this->m_sourceFile);
+
+        while(true)
+        {
+            for(uint32 i = 0; i < resBody->GetNestedCount(); ++i)
+            {
+                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunc(i)->EnsureDeserialized();
+                Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
+
+                if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
+                {
+                    return ifb;
+                }
+
+                //if it starts on a larger line or if same line but larger column then we don't contain the target
+                AssertMsg(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
+
+                uint32 endLine = UINT32_MAX;
+                uint32 endColumn = UINT32_MAX;
+                if(i + 1 < resBody->GetNestedCount())
+                {
+                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunc(i + 1)->EnsureDeserialized();
+                    Js::FunctionBody* ifbnext = JsSupport::ForceAndGetFunctionBody(ipfinext);
+
+                    endLine = ifbnext->GetLineNumber();
+                    endColumn = ifbnext->GetColumnNumber();
+                }
+
+                if(endLine > this->m_functionLine || (endLine == this->m_functionLine && endColumn > this->m_functionColumn))
+                {
+                    resBody = ifb;
+                    break;
+                }
+            }
+        }
+
+        AssertMsg(false, "We should never get here!!!");
+        return nullptr;
     }
 
     uint32 TTDebuggerSourceLocation::GetLine() const
@@ -167,6 +240,10 @@ namespace TTD
             writer->WriteUInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteUInt32(NSTokens::Key::documentId, this->m_docid, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::functionLine, this->m_functionLine, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::functionColumn, this->m_functionColumn, NSTokens::Separator::CommaSeparator);
+
             writer->WriteUInt32(NSTokens::Key::line, this->m_line, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::column, this->m_column, NSTokens::Separator::CommaSeparator);
 
@@ -188,17 +265,25 @@ namespace TTD
         }
         else
         {
-            int64 etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
-            uint64 ftime = reader->ReadUInt64(NSTokens::Key::functionTime, true);
-            uint64 ltime = reader->ReadUInt64(NSTokens::Key::loopTime, true);
+            into.m_etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
+            into.m_ftime = reader->ReadUInt64(NSTokens::Key::functionTime, true);
+            into.m_ltime = reader->ReadUInt64(NSTokens::Key::loopTime, true);
 
-            uint32 docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
-            uint32 line = reader->ReadUInt32(NSTokens::Key::line, true);
-            uint32 column = reader->ReadUInt32(NSTokens::Key::column, true);
+            into.m_docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
+
+            into.m_functionLine = reader->ReadUInt32(NSTokens::Key::functionLine, true);
+            into.m_functionColumn = reader->ReadUInt32(NSTokens::Key::functionColumn, true);
+
+            into.m_line = reader->ReadUInt32(NSTokens::Key::line, true);
+            into.m_column = reader->ReadUInt32(NSTokens::Key::column, true);
 
             LPCWSTR sourceFile = reader->ReadFileNameForSourceLocation(true);
 
-            into.SetLocation(etime, ftime, ltime, sourceFile, docid, (ULONG)line, (LONG)column);
+            size_t wcharLength = wcslen(sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            into.m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(into.m_sourceFile, byteLength, sourceFile, byteLength);
         }
 
         reader->ReadRecordEnd();

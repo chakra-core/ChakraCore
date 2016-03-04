@@ -3842,7 +3842,8 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
         TTD::TTDebuggerSourceLocation bpLocation; 
         scriptContext->GetThreadContext()->TTDLog->GetPendingTTDBPInfo(bpLocation);
 
-        Js::Utf8SourceInfo* utf8SourceInfo = scriptContext->FindDocumentByFileName_TTD(bpLocation.GetSourceFile());
+        Js::FunctionBody* body = bpLocation.ResolveAssociatedSourceInfo(scriptContext);
+        Js::Utf8SourceInfo* utf8SourceInfo = body->GetUtf8SourceInfo();
         Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
 
         charcount_t charPosition;
@@ -3851,7 +3852,7 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
         long ibos = charPosition + bpLocation.GetColumn() + 1;
 
         Js::StatementLocation statement;
-        BOOL stmtok = !debugDocument->GetStatementLocation(ibos, &statement);
+        BOOL stmtok = debugDocument->GetStatementLocation(ibos, &statement);
         AssertMsg(stmtok, "We have a bad line for setting a breakpoint.");
 
         // Don't see a use case for supporting multiple breakpoints at same location.
@@ -3859,8 +3860,12 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
         Js::BreakpointProbe* probe = debugDocument->FindBreakpointId(statement);
         if(probe == nullptr)
         {
-            probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
-            AssertMsg(probe != nullptr, "We have a bad line or something for setting a breakpoint.");
+            BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
+            {
+                probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+                AssertMsg(probe != nullptr, "We have a bad line or something for setting a breakpoint.");
+            }
+            END_JS_RUNTIME_CALL(scriptContext);
         }
 
         scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId());

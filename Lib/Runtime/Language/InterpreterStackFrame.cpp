@@ -1879,7 +1879,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
@@ -1920,7 +1920,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 exceptionFramePopper.PopInfo();
                 elog->PopCallEvent(executeFunction, aReturn);
@@ -2254,7 +2254,7 @@ namespace Js
 
 #if ENABLE_TTD_DEBUGGING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        if(threadContext->TTDLog != nullptr && (threadContext->TTDLog->ShouldPerformDebugAction() | threadContext->TTDLog->ShouldPerformRecordAction()))
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
@@ -2292,7 +2292,7 @@ namespace Js
 
 #if ENABLE_TTD_DEBUGGING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        if(threadContext->TTDLog != nullptr && (threadContext->TTDLog->ShouldPerformDebugAction() | threadContext->TTDLog->ShouldPerformRecordAction()))
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
@@ -5541,7 +5541,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
@@ -5619,7 +5619,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
@@ -6381,7 +6381,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #if ENABLE_TTD_DEBUGGING
         //Clear any previous Exception Info
         TTD::EventLog* elog = this->function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr && elog->ShouldPerformDebugAction())
+        if(elog != nullptr && (elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction()))
         {
             elog->ClearExceptionFrame();
         }

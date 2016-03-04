@@ -1614,29 +1614,38 @@ LHexError:
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
 
         TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog == nullptr)
+        if(elog != nullptr)
         {
             if(elog->ShouldPerformDebugAction())
             {
                 elog->ReplayTelemetryLogEvent(jsString);
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else
             {
-                elog->RecordTelemetryLogEvent(jsString, true, -1, false);
+                //
+                //TODO: the host should give us a print callback which we can use here
+                //
+                wprintf(L"%ls\n", jsString->GetSz());
+
+                if(elog->ShouldPerformRecordAction())
+                {
+                    elog->RecordTelemetryLogEvent(jsString, true, -1, false);
+                }
             }
         }
-
-        //
-        //TODO: the host should give us a print callback which we can use here
-        //
-        wprintf(L"%ls", jsString->GetSz());
+        else
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls\n", jsString->GetSz());
+        }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
 
     //Report an issue, take action with the TTD log, and optionally run a report handler?
-    Var GlobalObject::EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...)
+    Var GlobalObject::EntryTelemetryErrorRecord(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
@@ -1646,23 +1655,52 @@ LHexError:
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
 
         TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog == nullptr)
+        if(elog != nullptr)
         {
             if(elog->ShouldPerformDebugAction())
             {
                 elog->ReplayTelemetryLogEvent(jsString);
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else
             {
-                elog->RecordTelemetryLogEvent(jsString, true, -1, true);
+                //
+                //TODO: the host should give us a print callback which we can use here
+                //
+                wprintf(L"%ls\n", jsString->GetSz());
+
+                if(elog->ShouldPerformRecordAction())
+                {
+                    elog->RecordTelemetryLogEvent(jsString, true, -1, true);
+                }
             }
         }
+        else
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls\n", jsString->GetSz());
+        }
 
-        //
-        //TODO: the host should give us a print callback which we can use here
-        //
-        wprintf(L"%ls", jsString->GetSz());
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    Var GlobalObject::EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 1, "Bad arguments!!!");
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog != nullptr)
+        {
+            if(elog->ShouldPerformRecordAction())
+            {
+                LPCWSTR logLocation = elog->EmitLogIfNeeded();
+                wprintf(L"Log written: %ls\n", logLocation);
+            }
+        }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }

@@ -545,7 +545,7 @@ namespace TTD
         this->WriteKey(NSTokens::Key::uri, separator);
 
         this->WriteWCHAR('\"');
-        this->WriteString_InternalNoEscape(filename, wcslen(filename));
+        this->WriteString_Internal(filename, wcslen(filename));
         this->WriteWCHAR('\"');
     }
 
