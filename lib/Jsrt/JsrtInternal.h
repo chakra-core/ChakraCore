@@ -230,7 +230,6 @@ JsErrorCode ContextAPINoScriptWrapper(Fn fn, bool allowInObjectBeforeCollectCall
 
 void HandleScriptCompileError(Js::ScriptContext * scriptContext, CompileScriptException * se);
 
-
 #if DBG
 #define _PREPARE_RETURN_NO_EXCEPTION __debugCheckNoException.hasException = false;
 #else

@@ -44,6 +44,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)JsrtSourceHolder.cpp" />
+    <ClCompile Include="JsrtHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChakraCommon.h" />
@@ -51,6 +52,7 @@
     <ClInclude Include="JsrtContext.h" />
     <ClInclude Include="JsrtExternalArrayBuffer.h" />
     <ClInclude Include="JsrtExternalObject.h" />
+    <ClInclude Include="JsrtHelper.h" />
     <ClInclude Include="JsrtRuntime.h" />
     <ClInclude Include="JsrtSourceHolder.h" />
     <ClInclude Include="JsrtThreadService.h" />

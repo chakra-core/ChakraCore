@@ -386,6 +386,7 @@ public:
         }
         this->isThreadBound = true;
     }
+    bool IsJSRT() const { return !this->isThreadBound; }
     bool GetIsThreadBound() const { return this->isThreadBound; }
     void SetStackProber(StackProber * stackProber);
     PBYTE GetScriptStackLimit() const;
