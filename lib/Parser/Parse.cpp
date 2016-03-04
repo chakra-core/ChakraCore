@@ -1873,6 +1873,49 @@ void Parser::RegisterRegexPattern(UnifiedRegex::RegexPattern *const regexPattern
     }
 }
 
+void Parser::CaptureState(ParserState *state)
+{
+    Assert(state != nullptr);
+
+    state->m_funcInArraySave = m_funcInArray;
+    state->m_funcInArrayDepthSave = m_funcInArrayDepth;
+    state->m_nestedCountSave = *m_pnestedCount;
+    state->m_ppnodeScopeSave = m_ppnodeScope;
+    state->m_ppnodeExprScopeSave = m_ppnodeExprScope;
+    state->m_pCurrentAstSizeSave = m_pCurrentAstSize;
+
+    Assert(state->m_ppnodeScopeSave == nullptr || *state->m_ppnodeScopeSave == nullptr);
+    Assert(state->m_ppnodeExprScopeSave == nullptr || *state->m_ppnodeExprScopeSave == nullptr);
+
+#if DEBUG
+    state->m_currentBlockInfo = m_currentBlockInfo;
+#endif
+}
+
+void Parser::RestoreStateFrom(ParserState *state)
+{
+    Assert(state != nullptr);
+    Assert(state->m_currentBlockInfo == m_currentBlockInfo);
+
+    m_funcInArray = state->m_funcInArraySave;
+    m_funcInArrayDepth = state->m_funcInArrayDepthSave;
+    *m_pnestedCount = state->m_nestedCountSave;
+    m_pCurrentAstSize = state->m_pCurrentAstSizeSave;
+
+    if (state->m_ppnodeScopeSave != nullptr)
+    {
+        *state->m_ppnodeScopeSave = nullptr;
+    }
+
+    if (state->m_ppnodeExprScopeSave != nullptr)
+    {
+        *state->m_ppnodeExprScopeSave = nullptr;
+    }
+
+    m_ppnodeScope = state->m_ppnodeScopeSave;
+    m_ppnodeExprScope = state->m_ppnodeExprScopeSave;
+}
+
 void Parser::AddToNodeListEscapedUse(ParseNode ** ppnodeList, ParseNode *** pppnodeLast,
                            ParseNode * pnodeAdd)
 {
@@ -7710,6 +7753,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     ulong hintLength = 0;
     ulong hintOffset = 0;
 
+    ParserState parserState;
+
     if (pHintLength != nullptr)
     {
         hintLength = *pHintLength;
@@ -7721,6 +7766,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
 
     EnsureStackAvailable();
+
+    // Storing the state here as we need to restore this state back when we need to reparse the grammar under lambda syntax.
+    CaptureState(&parserState);
 
     m_pscan->Capture(&termStart);
 
@@ -8083,6 +8131,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             ushort flags = fFncLambda;
             size_t iecpMin = 0;
             bool isAsyncMethod = false;
+
+            RestoreStateFrom(&parserState);
+
             m_pscan->SeekTo(termStart);
             if (m_token.tk == tkID && m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {

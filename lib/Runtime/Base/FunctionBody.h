@@ -1223,7 +1223,7 @@ namespace Js
         void SetUtf8SourceInfo(Utf8SourceInfo* utf8SourceInfo) { m_utf8SourceInfo = utf8SourceInfo; }
         void SetReferenceInParentFunction(FunctionProxyPtrPtr reference);
         void UpdateReferenceInParentFunction(FunctionProxy* newFunctionInfo);
-        bool IsInDebugMode() const { return this->m_utf8SourceInfo->IsInDebugMode(); }
+        bool IsInDebugMode() const { return this->m_utf8SourceInfo!=nullptr && this->m_utf8SourceInfo->IsInDebugMode(); }
 
         DWORD_PTR GetSecondaryHostSourceContext() const;
         DWORD_PTR GetHostSourceContext() const;
