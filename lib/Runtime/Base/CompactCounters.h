@@ -24,7 +24,6 @@ namespace Js
             Fields() {}
         };
 
-
         uint8 fieldSize;
 #if DBG
     
@@ -46,7 +45,7 @@ namespace Js
         uint32 Get(CountT typeEnum) const
         {
 #if DBG
-            if (ThreadContext::GetContextForCurrentThread() == nullptr)
+            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
             {
                 bgThreadCallStarted = true;
             }
@@ -74,7 +73,7 @@ namespace Js
         int32 GetSigned(CountT typeEnum) const
         {
 #if DBG
-            if (ThreadContext::GetContextForCurrentThread() == nullptr)
+            if (!bgThreadCallStarted && ThreadContext::GetContextForCurrentThread() == nullptr)
             {
                 bgThreadCallStarted = true;
             }
