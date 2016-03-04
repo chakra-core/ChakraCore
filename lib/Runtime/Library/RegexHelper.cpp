@@ -373,11 +373,12 @@ namespace Js
 
     bool RegexHelper::IsRegexSymbolMatchObservable(RecyclableObject* instance, ScriptContext* scriptContext)
     {
-        return JavascriptRegExp::HasObservableExec(instance, scriptContext)
-            || JavascriptRegExp::HasObservableGlobalFlag(instance, scriptContext)
-            || JavascriptRegExp::HasObservableStickyFlag(instance, scriptContext)
-            || JavascriptRegExp::HasObservableUnicodeFlag(instance, scriptContext)
-            || JavascriptRegExp::HasObservableLastIndex(instance, scriptContext);
+        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
+        return !JavascriptRegExp::HasOriginalRegExType(instance)
+            || JavascriptRegExp::HasObservableExec(regexPrototype)
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableUnicodeFlag(regexPrototype);
     }
 
     Var RegexHelper::RegexEs6MatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
@@ -1232,12 +1233,13 @@ namespace Js
 
     bool RegexHelper::IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext)
     {
-        return JavascriptRegExp::HasObservableConstructor(instance, scriptContext)
-            || JavascriptRegExp::HasObservableFlags(instance, scriptContext)
-            || JavascriptRegExp::HasObservableLastIndex(instance, scriptContext)
-            || JavascriptRegExp::HasObservableExec(instance, scriptContext)
-            || JavascriptRegExp::HasObservableGlobalFlag(instance, scriptContext)
-            || JavascriptRegExp::HasObservableStickyFlag(instance, scriptContext);
+        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
+        return !JavascriptRegExp::HasOriginalRegExType(instance)
+            || JavascriptRegExp::HasObservableConstructor(regexPrototype)
+            || JavascriptRegExp::HasObservableFlags(regexPrototype)
+            || JavascriptRegExp::HasObservableExec(regexPrototype)
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
     }
 
     Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)

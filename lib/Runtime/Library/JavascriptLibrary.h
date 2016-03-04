@@ -276,6 +276,7 @@ namespace Js
         DynamicType * numberTypeDynamic;
         DynamicType * objectTypes[PreInitializedObjectTypeCount];
         DynamicType * objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        DynamicType * regexPrototypeType;
         DynamicType * regexType;
         DynamicType * regexResultType;
         StaticType  * stringTypeStatic;
@@ -385,11 +386,17 @@ namespace Js
         JavascriptSymbol* symbolSplit;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
+        int regexConstructorSlotIndex;
         JavascriptFunction* regexExecFunction;
+        int regexExecSlotIndex;
         JavascriptFunction* regexFlagsGetterFunction;
+        int regexFlagsGetterSlotIndex;
         JavascriptFunction* regexGlobalGetterFunction;
+        int regexGlobalGetterSlotIndex;
         JavascriptFunction* regexStickyGetterFunction;
+        int regexStickyGetterSlotIndex;
         JavascriptFunction* regexUnicodeGetterFunction;
+        int regexUnicodeGetterSlotIndex;
 
         mutable CharStringCache charStringCache;
 
@@ -673,6 +680,7 @@ namespace Js
         DynamicType * GetCopyOnAccessNativeIntArrayType() const { return copyOnAccessNativeIntArrayType; }
 #endif
         DynamicType * GetNativeFloatArrayType() const { return nativeFloatArrayType; }
+        DynamicType * GetRegexPrototypeType() const { return regexPrototypeType; }
         DynamicType * GetRegexType() const { return regexType; }
         DynamicType * GetRegexResultType() const { return regexResultType; }
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
@@ -718,11 +726,17 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
+        int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
         JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        int GetRegexExecSlotIndex() const { return regexExecSlotIndex;  }
         JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
+        int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
+        int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
+        int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
