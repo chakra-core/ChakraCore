@@ -38,6 +38,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     m_loopParamSym(nullptr),
     m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
+    m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
@@ -964,6 +965,13 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
+
+    if (!this->GetJnFunction()->IsParamAndBodyScopeMerged())
+    {
+        Assert(this->GetParamClosureSym() == nullptr);
+        this->m_paramClosureSym = StackSym::New(TyVar, this);
+    }
+
     regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
     if (regSlot != Js::Constants::NoRegister)
     {

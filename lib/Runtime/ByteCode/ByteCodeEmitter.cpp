@@ -1866,7 +1866,8 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     else if (funcInfo->frameSlotsRegister != Js::Constants::NoRegister)
     {
         int scopeSlotCount = funcInfo->bodyScope->GetScopeSlotCount();
-        if (scopeSlotCount == 0)
+        int paramSlotCount = funcInfo->paramScope->GetScopeSlotCount();
+        if (scopeSlotCount == 0 && paramSlotCount == 0)
         {
             AssertMsg(funcInfo->frameDisplayRegister != Js::Constants::NoRegister, "Why do we need scope slots?");
             m_writer.Reg1(Js::OpCode::LdC_A_Null, funcInfo->frameSlotsRegister);
@@ -3485,7 +3486,6 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, bool breakOnNonFunc)
                     ParseNodePtr paramBlock = pnode->sxFnc.pnodeScopes;
                     Assert(paramBlock->nop == knopBlock && paramBlock->sxBlock.blockType == Parameter);
 
-                    // Push the param scope
                     PushScope(paramScope);
 
                     // While emitting the functions we have to stop when we see the body scope block.
