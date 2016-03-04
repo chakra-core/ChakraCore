@@ -6344,7 +6344,7 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
                 if (m_token.tk == tkAsg)
                 {
                     // Eat the default expression
-                    m_pscan->ScanNoKeywords();
+                    m_pscan->Scan();
                     ParseExpr<false>(koplCma);
                 }
             }
@@ -10231,7 +10231,10 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        if (pnodeFnc->sxFnc.pnodeBody == nullptr)
+        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it 
+        // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
+        // will remain deferred untill they are called.
+        if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
         {
             // Go back and generate an AST for this function.
             JS_ETW(EventWriteJSCRIPT_PARSE_FUNC(this->GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/TRUE));
@@ -12125,6 +12128,28 @@ void Indent(int indentAmt) {
     }
 }
 
+void PrintBlockType(PnodeBlockType type)
+{
+    switch (type)
+    {
+    case Global:
+        Output::Print(L"(Global)");
+        break;
+    case Function:
+        Output::Print(L"(Function)");
+        break;
+    case Regular:
+        Output::Print(L"(Regular)");
+        break;
+    case Parameter:
+        Output::Print(L"(Parameter)");
+        break;
+    default:
+        Output::Print(L"(unknown blocktype)");
+        break;
+    }
+}
+
 void PrintScopesWIndent(ParseNode *pnode,int indentAmt) {
     ParseNode *scope = nullptr;
     bool firstOnly = false;
@@ -12141,6 +12166,7 @@ void PrintScopesWIndent(ParseNode *pnode,int indentAmt) {
     case knopForOf: scope = pnode->sxForInOrForOf.pnodeBlock; firstOnly = true; break;
     }
     if (scope) {
+        Output::Print(L"[%4d, %4d): ", scope->ichMin, scope->ichLim);
         Indent(indentAmt);
         Output::Print(L"Scopes: ");
         ParseNode *next = nullptr;
@@ -12148,7 +12174,7 @@ void PrintScopesWIndent(ParseNode *pnode,int indentAmt) {
         while (scope) {
             switch (scope->nop) {
             case knopFncDecl: Output::Print(L"knopFncDecl"); next = scope->sxFnc.pnodeNext; break;
-            case knopBlock: Output::Print(L"knopBlock"); next = scope->sxBlock.pnodeNext; break;
+            case knopBlock: Output::Print(L"knopBlock"); PrintBlockType(scope->sxBlock.blockType); next = scope->sxBlock.pnodeNext; break;
             case knopCatch: Output::Print(L"knopCatch"); next = scope->sxCatch.pnodeNext; break;
             case knopWith: Output::Print(L"knopWith"); next = scope->sxWith.pnodeNext; break;
             default: Output::Print(L"unknown"); break;
@@ -12177,7 +12203,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
     if (pnode==NULL)
         return;
 
-    Output::Print(L"[%d, %d): ", pnode->ichMin, pnode->ichLim);
+    Output::Print(L"[%4d, %4d): ", pnode->ichMin, pnode->ichLim);
     switch (pnode->nop) {
         //PTNODE(knopName       , "name"        ,None    ,Pid  ,fnopLeaf)
   case knopName:
@@ -12786,6 +12812,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       Output::Print(L"block ");
       if (pnode->grfpn & fpnSyntheticNode)
           Output::Print(L"synthetic ");
+      PrintBlockType(pnode->sxBlock.blockType);
       Output::Print(L"(%d-%d)\n",pnode->ichMin,pnode->ichLim);
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       if (pnode->sxBlock.pnodeStmt!=NULL)
