@@ -34,7 +34,7 @@ var tests = [
     {
         name: "All valid (non-default) export statements",
         body: function () {
-            assert.doesNotThrow(function () { WScript.LoadModuleFile('.\\module\\ValidExportStatements.js', 'samethread'); }, "Valid export statements");
+            assert.doesNotThrow(function () { WScript.LoadModuleFile('ValidExportStatements.js', 'samethread'); }, "Valid export statements");
         }
     },
     {
@@ -121,7 +121,7 @@ var tests = [
     {
         name: "All valid re-export statements",
         body: function () {
-            assert.doesNotThrow(function () { WScript.LoadModuleFile('.\\module\\ValidReExportStatements.js', 'samethread'); }, "Valid re-export statements");
+            assert.doesNotThrow(function () { WScript.LoadModuleFile('ValidReExportStatements.js', 'samethread'); }, "Valid re-export statements");
         }
     },
     {

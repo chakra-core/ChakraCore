@@ -421,6 +421,13 @@ namespace Js
                 }
                 break;
 
+            case TypeIds_ModuleNamespace:
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Module") == 0)
+                {
+                    return library->CreateStringFromCppLiteral(L"[object Module]");
+                }
+                break;
+
             case TypeIds_Proxy:
                 if (JavascriptOperators::IsArray(JavascriptProxy::FromVar(thisArg)->GetTarget()))
                 {

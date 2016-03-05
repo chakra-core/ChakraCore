@@ -34,7 +34,7 @@ var tests = [
     {
         name: "All valid import statements",
         body: function () {
-            assert.doesNotThrow(function () { WScript.LoadModuleFile('.\\module\\ValidImportStatements.js', 'samethread'); }, "Valid import statements");
+            assert.doesNotThrow(function () { WScript.LoadModuleFile('ValidImportStatements.js', 'samethread'); }, "Valid import statements");
         }
     },
 ];

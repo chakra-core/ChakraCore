@@ -100,6 +100,7 @@ ENTRY(Uint8x16)
 ENTRY(zero)
 ENTRY(splat)
 ENTRY2(bool_, L"bool") // "bool" cannot be an identifier in C++ so using "bool_" instead
+ENTRY2(default_, L"default")
 
 ENTRY(fromFloat32x4)
 
