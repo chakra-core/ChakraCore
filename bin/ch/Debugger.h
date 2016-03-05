@@ -39,7 +39,7 @@ private:
     wchar_t* PopMessage();
     void SendMsg(const wchar_t* msg, size_t msgLen);
     void SendMsgWHeader(const wchar_t* header, const wchar_t* body, size_t bodyLen);
-    bool IsEmpty();
+    bool IsEmpty(bool blockUntilNonEmpty = false);
     bool ShouldContinue();
     void WaitForMessage();
 

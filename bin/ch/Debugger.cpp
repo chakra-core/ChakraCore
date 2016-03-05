@@ -83,6 +83,12 @@ wchar_t* DebuggerCh::PopMessage()
 
 void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
 {
+    ////
+    //
+    //Sleep(10); //<------------------------------------------------------- Add a delay to response to keep VSCode from getting angry when running in debug build
+    //
+    ////
+
     this->SendMsgWHeader(nullptr, msg, msgLen);
 }
 
@@ -113,15 +119,48 @@ void DebuggerCh::SendMsgWHeader(const wchar_t* header, const wchar_t* body, size
     }
 }
 
-bool DebuggerCh::IsEmpty()
+bool DebuggerCh::IsEmpty(bool blockUntilMsg)
 {
     //if this is empty try reading out as many messages as we can
     if(this->m_msgQueue.empty())
     {
+        bool doBlock = blockUntilMsg;
         int iResult;
         do
         {
-            iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
+            ////
+            //set our listening socket to blocking
+            if(!doBlock)
+            {
+                iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
+            }
+            else
+            {
+                DWORD blocking = 0;
+                DWORD nonblocking = 1;
+
+                if(ioctlsocket(this->m_dbgSocket, FIONBIO, &blocking) == SOCKET_ERROR)
+                {
+                    wprintf(L"ioctl failed with error: %ld\n", GetLastError());
+                    exit(1);
+                }
+
+                //Now IsEmpty should block until the message is recieved
+                iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
+
+                //set our listening socket back to non-blocking
+                if(ioctlsocket(this->m_dbgSocket, FIONBIO, &nonblocking) == SOCKET_ERROR)
+                {
+                    wprintf(L"ioctl failed with error: %ld\n", GetLastError());
+                    exit(1);
+                }
+
+                //don't block again since we have a msg
+                doBlock = false;
+            }
+            ////
+
+            //iResult = recv(this->m_dbgSocket, this->m_buf, (int)this->m_buflen, 0);
 
             DBGPrintRcv(this->m_buf, iResult);
 
@@ -186,13 +225,7 @@ bool DebuggerCh::ShouldContinue()
 
 void DebuggerCh::WaitForMessage()
 {
-    //
-    //We single threaded spin wait
-    //
-    while(this->IsEmpty()) 
-    {
-        Sleep(50);
-    }
+    this->IsEmpty(true);
 }
 
 void DebuggerCh::ProcessDebuggerMessage()
