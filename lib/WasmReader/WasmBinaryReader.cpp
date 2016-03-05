@@ -22,6 +22,7 @@ namespace Binary
 {
 
 bool WasmBinaryReader::isInit = false;
+bool WasmBinaryReader::seenModuleHeader = false;
 WasmTypes::Signature WasmBinaryReader::opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
 WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
 const Wasm::WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { Wasm::WasmTypes::WasmType::Void, Wasm::WasmTypes::WasmType::I32, Wasm::WasmTypes::WasmType::I64, Wasm::WasmTypes::WasmType::F32, Wasm::WasmTypes::WasmType::F64 };
@@ -72,6 +73,9 @@ WasmBinaryReader::ReadFromModule()
 
     SectionCode sectionId;
     UINT length = 0;
+
+    ModuleHeader();
+
     while (!EndOfModule())
     {
         if (m_moduleState.secId > bSectSignatures && m_moduleState.count < m_moduleState.size)
@@ -82,8 +86,7 @@ WasmBinaryReader::ReadFromModule()
         else
         {
             // next section
-            sectionId = m_moduleState.secId = (SectionCode)ReadConst<UINT8>();
-            m_moduleState.count = 0;
+            sectionId = m_moduleState.secId = SectionHeader();
             if (sectionId == bSectMemory || sectionId == bSectEnd)
             {
                 m_moduleState.size = 1;
@@ -100,6 +103,7 @@ WasmBinaryReader::ReadFromModule()
             m_visitedSections->Set(sectionId);
         }
 
+        // TODO: Skip unknown sections.
         Assert(sectionId >= bSectMemory && sectionId <= bSectEnd);
 
         switch (sectionId)
@@ -143,7 +147,7 @@ WasmBinaryReader::ReadFromModule()
 
             return wnFUNC;
 
-        case bSectFunctionTable:
+        case bSectIndirectFunctionTable:
             if (!m_visitedSections->Test(bSectFunctions))
             {
                 ThrowDecodingError(L"Function declarations section missing before function table");
@@ -157,14 +161,39 @@ WasmBinaryReader::ReadFromModule()
             break;
 
         case bSectEnd:
-            // ResetModuleData();
-
-            // One module per file for now. possibly another module in same file ? We will have to skip over global/func names.
+            // One module per file. We will have to skip over func names and data segments.
             m_pc = m_end; // skip to end, we are done.
             return wnLIMIT;
         }
     }
      return wnLIMIT;
+}
+
+SectionCode
+WasmBinaryReader::SectionHeader()
+{
+    UINT len;
+    UINT sectionSize;
+    UINT idSize;
+
+    sectionSize = LEB128(len);
+    idSize = LEB128(len);
+    const char *sectionName = (char*)(m_pc);
+    m_pc += idSize;
+    m_moduleState.count = 0;
+
+    auto cmp = [&sectionName, &idSize](const char* n) { return !memcmp(n, sectionName, idSize); };
+    if (cmp("memory")) return bSectMemory;
+    if (cmp("signatures")) return bSectSignatures;
+    if (cmp("import_table")) return bSectImportTable;
+    if (cmp("functions")) return bSectFunctions;
+    if (cmp("export_table")) return bSectExportTable;
+    if (cmp("start_function")) return bSectStartFunction;
+    if (cmp("data_segments")) return bSectDataSegments;
+    if (cmp("function_table")) return bSectIndirectFunctionTable;
+    if (cmp("end")) return bSectEnd;
+
+    return bSectInvalid;
 }
 
 
@@ -236,7 +265,7 @@ WasmBinaryReader::ASTNode()
         m_funcState.count += sizeof(INT8);
         break;
     case wbI32Const:
-        this->ConstNode<WasmTypes::bAstI32>();
+        ConstNode<WasmTypes::bAstI32>();
         break;
     case wbF32Const:
         ConstNode<WasmTypes::bAstF32>();
@@ -271,6 +300,24 @@ WasmBinaryReader::ASTNode()
     }
 
     return op;
+}
+
+void
+WasmBinaryReader::ModuleHeader()
+{
+    if (!seenModuleHeader)
+    {
+        if (ReadConst<UINT32>() != 0x6d736100)
+        {
+            ThrowDecodingError(L"Malformed WASM module header!");
+        }
+
+        if (ReadConst<UINT32>() != 10)
+        {
+            ThrowDecodingError(L"Invalid WASM version!");
+        }
+        seenModuleHeader = true;
+    }
 }
 
 void
@@ -479,7 +526,6 @@ WasmBinaryReader::FunctionHeader()
     {
         ThrowDecodingError(L"Imports and exports must be named!");
     }
-
     // params
     sig = m_moduleInfo->GetSignature(sigId);
     m_funcInfo->SetSignature(sig);
