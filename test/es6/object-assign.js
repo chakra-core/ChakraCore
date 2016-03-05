@@ -135,7 +135,7 @@ var tests = [
                     var o1 = "aaa";
                     var o2 = "babbb";
                     Object.assign(o1, o2);
-            }), TypeError, "Exception is not thrown when SetProperty fails", "Cannot modify non-writable property '0'");
+            }), TypeError, "Exception is not thrown when SetProperty fails", "Cannot redefine non-configurable property '0'");
         }
     },
 

@@ -42,8 +42,8 @@ function verifyHasRestrictedOwnProperties(obj, name) {
     assert.areEqual(null, obj.caller, name + " says 'caller' property is null")
     assert.areEqual(null, obj.arguments, name + " says 'arguments' property is null")
 
-    assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, name + " has 'arguments' property as non-writable, non-configurable", "Cannot modify non-writable property 'arguments'");
-    assert.throws(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, TypeError, name + " has 'caller' property as non-writable, non-configurable", "Cannot modify non-writable property 'caller'");
+    assert.throws(function() { Object.defineProperty(obj, 'arguments', { value: 123 }); }, TypeError, name + " has 'arguments' property as non-writable, non-configurable", "Cannot redefine non-configurable property 'arguments'");
+    assert.throws(function() { Object.defineProperty(obj, 'caller', { value: 123 }); }, TypeError, name + " has 'caller' property as non-writable, non-configurable", "Cannot redefine non-configurable property 'caller'");
 
     assert.isFalse(delete obj.arguments, name + " has 'arguments' property as non-configurable so delete returns false");
     assert.isFalse(delete obj.caller, name + " has 'caller' property as non-configurable so delete returns false");
