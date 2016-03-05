@@ -77,9 +77,9 @@ namespace Js
 
         bool GetDidCauseBreak() const;
         const PropertyId GetBreakPropertyId() const;
-        const wchar_t * GetBreakPropertyName() const;
+        const char16 * GetBreakPropertyName() const;
         const PropertyId GetParentPropertyId() const;
-        const wchar_t * GetParentPropertyName() const;
+        const char16 * GetParentPropertyName() const;
         MutationType GetBreakMutationType() const;
 
         const Var GetMutationObjectVar() const;
@@ -100,8 +100,8 @@ namespace Js
         static bool HandleSetProperty(ScriptContext *scriptContext, RecyclableObject *object, PropertyId propertyId, Var newValue);
         static void HandleDeleteProperty(ScriptContext *scriptContext, Var instance, PropertyId propertyId);
 
-        static const wchar_t * GetBreakMutationTypeName(MutationType mutationType);
-        static const wchar_t * GetMutationTypeForConditionalEval(MutationType mutationType);
+        static const char16 * GetBreakMutationTypeName(MutationType mutationType);
+        static const char16 * GetMutationTypeForConditionalEval(MutationType mutationType);
 
         /* Override methods - FinalizableObject */
         virtual void Finalize(bool isShutdown);

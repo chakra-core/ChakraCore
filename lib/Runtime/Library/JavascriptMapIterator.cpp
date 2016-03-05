@@ -42,7 +42,7 @@ namespace Js
 
         if (!JavascriptMapIterator::Is(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedMapIterator, L"Map Iterator.prototype.next");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedMapIterator, _u("Map Iterator.prototype.next"));
         }
 
         JavascriptMapIterator* iterator = JavascriptMapIterator::FromVar(thisObj);

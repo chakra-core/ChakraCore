@@ -488,15 +488,15 @@ CommonNumber:
 
         if (hint == JavascriptHint::HintString)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(L"string");
+            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("string"));
         }
         else if (hint == JavascriptHint::HintNumber)
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(L"number");
+            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("number"));
         }
         else
         {
-            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(L"default");
+            hintString = requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("default"));
         }
 
         // If exoticToPrim is not undefined, then
@@ -530,7 +530,7 @@ CommonNumber:
         else
         {
             // Don't error if we disabled implicit calls
-            JavascriptError::TryThrowTypeError(scriptContext, requestContext, JSERR_FunctionArgument_Invalid, L"[Symbol.toPrimitive]");
+            JavascriptError::TryThrowTypeError(scriptContext, requestContext, JSERR_FunctionArgument_Invalid, _u("[Symbol.toPrimitive]"));
             return requestContext->GetLibrary()->GetNull();
         }
     }
@@ -563,7 +563,7 @@ CommonNumber:
         return result;
     }
 
-    JavascriptString *JavascriptConversion::CoerseString(Var aValue, ScriptContext* scriptContext, const wchar_t* apiNameForErrorMsg)
+    JavascriptString *JavascriptConversion::CoerseString(Var aValue, ScriptContext* scriptContext, const char16* apiNameForErrorMsg)
     {
         if (!JavascriptConversion::CheckObjectCoercible(aValue, scriptContext))
         {

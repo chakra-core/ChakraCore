@@ -186,28 +186,28 @@ namespace Js
     // Only include the opcode name on debug and test build
 #if DBG_DUMP || ENABLE_DEBUG_CONFIG_OPTIONS
 
-    wchar_t const * const OpCodeUtil::OpCodeNames[] =
+    char16 const * const OpCodeUtil::OpCodeNames[] =
     {
-#define DEF_OP(x, y, ...) L"" STRINGIZEW(x) L"",
+#define DEF_OP(x, y, ...) _u("") STRINGIZEW(x) _u(""),
 #include "OpCodeList.h"
 #undef DEF_OP
     };
 
-    wchar_t const * const OpCodeUtil::ExtendedOpCodeNames[] =
+    char16 const * const OpCodeUtil::ExtendedOpCodeNames[] =
     {
-#define DEF_OP(x, y, ...) L"" STRINGIZEW(x) L"",
+#define DEF_OP(x, y, ...) _u("") STRINGIZEW(x) _u(""),
 #include "ExtendedOpCodeList.h"
 #undef DEF_OP
     };
 
-    wchar_t const * const OpCodeUtil::BackendOpCodeNames[] =
+    char16 const * const OpCodeUtil::BackendOpCodeNames[] =
     {
-#define DEF_OP(x, y, ...) L"" STRINGIZEW(x) L"",
+#define DEF_OP(x, y, ...) _u("") STRINGIZEW(x) _u(""),
 #include "BackendOpCodeList.h"
 #undef DEF_OP
     };
 
-    wchar_t const * OpCodeUtil::GetOpCodeName(OpCode op)
+    char16 const * OpCodeUtil::GetOpCodeName(OpCode op)
     {
         if (op <= Js::OpCode::MaxByteSizedOpcodes)
         {
@@ -231,7 +231,7 @@ namespace Js
 #else
     wchar const * OpCodeUtil::GetOpCodeName(OpCode op)
     {
-        return L"<NotAvail>";
+        return _u("<NotAvail>");
     }
 #endif
 

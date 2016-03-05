@@ -114,13 +114,13 @@ namespace Js
 
         if (args.Info.Count == 0 || JavascriptOperators::GetTypeId(args[0]) != TypeIds_SIMDInt32x4)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDInt32x4.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, _u("SIMDInt32x4.toString"));
         }
 
         JavascriptSIMDInt32x4* instance = JavascriptSIMDInt32x4::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
+        char16 stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
         JavascriptSIMDInt32x4::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);

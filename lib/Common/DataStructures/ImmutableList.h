@@ -964,7 +964,7 @@ namespace regex
 
         void AppendBool(bool value)
         {
-            this->Append(value ? L"true" : L"false");
+            this->Append(value ? _u("true") : _u("false"));
         }
 
         void Append(LPCWSTR str)
@@ -1009,7 +1009,7 @@ namespace regex
         template<class TAllocator>
         LPCWSTR Get(TAllocator *allocator)
         {
-            wchar_t *str = AllocatorNewArray(TAllocator, allocator, wchar_t, stringSize);
+            char16 *str = AllocatorNewArray(TAllocator, allocator, char16, stringSize);
             str[0] = L'\0';
 
             auto current = head;

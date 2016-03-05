@@ -32,7 +32,7 @@ namespace Js {
 
     struct SZS
     {
-        wchar_t *psz;           // string
+        char16 *psz;           // string
         short cch;              // length of string
         short szst;             // type of entry
         long lwVal;             // value
@@ -48,7 +48,7 @@ namespace Js {
 
     const static SZS g_rgszs[] =
     {
-#define Szs(sz, val) { L##sz, sizeof(L##sz) - 1, ParseStringTokenType::##szst, val }
+#define Szs(sz, val) { _u(sz), sizeof(_u(sz)) - 1, ParseStringTokenType::##szst, val }
 
         // bc and ad
 #undef szst
@@ -217,28 +217,28 @@ namespace Js {
         CompoundString *const bs = CompoundString::NewWithCharCapacity(30, m_scriptContext->GetLibrary());
 
         GetDateComponent(bs, DateData::FullYear, 0);
-        bs->AppendChars(L'-');
+        bs->AppendChars(_u('-'));
         // month
         GetDateComponent(bs, DateData::Month, 1/*adjustment*/);
-        bs->AppendChars(L'-');
+        bs->AppendChars(_u('-'));
         // date
         GetDateComponent(bs, DateData::Date, 0);
-        bs->AppendChars(L'T');
+        bs->AppendChars(_u('T'));
         // hours
         GetDateComponent(bs, DateData::Hours, 0);
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         // minutes
         GetDateComponent(bs, DateData::Minutes, 0);
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         // seconds
         GetDateComponent(bs, DateData::Seconds, 0);
 
         // ES5 fill in milliseconds but v5.8 does not
-        bs->AppendChars(L'.');
+        bs->AppendChars(_u('.'));
         // milliseconds
         GetDateComponent(bs, DateData::Milliseconds, 0);
 
-        bs->AppendChars(L'Z');
+        bs->AppendChars(_u('Z'));
 
         return bs;
     }
@@ -261,13 +261,13 @@ namespace Js {
                         // representation should:
                         //     - always include the sign
                         //     - have 2 extra digits (6 digits total)
-                        bs->AppendChars(ival < 0 ? L'-' : L'+');
+                        bs->AppendChars(ival < 0 ? _u('-') : _u('+'));
                         if(ivalAbs < 100000)
                         {
-                            bs->AppendChars(L'0');
+                            bs->AppendChars(_u('0'));
                             if(ivalAbs < 10000)
                             {
-                                bs->AppendChars(L'0');
+                                bs->AppendChars(_u('0'));
                             }
                         }
                     }
@@ -275,7 +275,7 @@ namespace Js {
                     // Years are zero-padded to at least 4 digits in ES5
                     if(ivalAbs < 1000)
                     {
-                        bs->AppendChars(L'0');
+                        bs->AppendChars(_u('0'));
                         // will fall through to next case for additional padding
                     }
                     else
@@ -287,7 +287,7 @@ namespace Js {
                 case DateData::Milliseconds:
                     if (ivalAbs < 100)
                     {
-                        bs->AppendChars(L'0');
+                        bs->AppendChars(_u('0'));
                         // will fall through to next case for additional padding
                     }
                     else
@@ -299,16 +299,16 @@ namespace Js {
                 default:
                     if (ivalAbs < 10)
                     {
-                        bs->AppendChars(L'0');
+                        bs->AppendChars(_u('0'));
                     }
             }
 
-            // _itow_s makes use of max 12 bytes for a base-10 32-bit int (L"-2147483648\0"), although we don't need the sign
+            // _itow_s makes use of max 12 bytes for a base-10 32-bit int (_u("-2147483648\0")), although we don't need the sign
             // and our numbers shouldn't be that big anyway
             bs->AppendChars(
                 ivalAbs,
                 10,
-                [](const int value, wchar_t *const buffer, const CharCount charCapacity)
+                [](const int value, char16 *const buffer, const CharCount charCapacity)
                 {
                     errno_t err = _itow_s(value, buffer, charCapacity, 10);
                     Assert(err == 0);
@@ -387,24 +387,24 @@ namespace Js {
 
         CompoundString *const bs = CompoundString::NewWithCharCapacity(30, scriptContext->GetLibrary());
 
-        const auto ConvertUInt16ToString_ZeroPad_2 = [](const uint16 value, wchar_t *const buffer, const CharCount charCapacity)
+        const auto ConvertUInt16ToString_ZeroPad_2 = [](const uint16 value, char16 *const buffer, const CharCount charCapacity)
         {
             const charcount_t cchWritten = NumberUtilities::UInt16ToString(value, buffer, charCapacity, 2);
             Assert(cchWritten != 0);
         };
-        const auto ConvertLongToString = [](const long value, wchar_t *const buffer, const CharCount charCapacity)
+        const auto ConvertLongToString = [](const long value, char16 *const buffer, const CharCount charCapacity)
         {
             const errno_t err = _ltow_s(value, buffer, charCapacity, 10);
             Assert(err == 0);
         };
 
         bs->AppendChars(g_rgpszDay[pymd->wday]);
-        bs->AppendChars(L", ");
+        bs->AppendChars(_u(", "));
         // sz - as %02d - output is "01" to "31"
         bs->AppendChars(static_cast<WORD>(pymd->mday + 1), 2, ConvertUInt16ToString_ZeroPad_2);
-        bs->AppendChars(L' ');
+        bs->AppendChars(_u(' '));
         bs->AppendChars(g_rgpszMonth[pymd->mon]);
-        bs->AppendChars(L' ');
+        bs->AppendChars(_u(' '));
 
         // Add the year.
         if (pymd->year > 0)
@@ -414,22 +414,22 @@ namespace Js {
         else
         {
             bs->AppendChars(1 - pymd->year, 10, ConvertLongToString);
-            bs->AppendChars(L" B.C.");
+            bs->AppendChars(_u(" B.C."));
         }
 
         // Add the time.
-        bs->AppendChars(L' ');
+        bs->AppendChars(_u(' '));
         // sz - as %02d - HOUR
         bs->AppendChars(static_cast<WORD>(pymd->time / 3600000), 2, ConvertUInt16ToString_ZeroPad_2);
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         // sz - as %02d - MINUTE
         bs->AppendChars(static_cast<WORD>((pymd->time / 60000) % 60), 2, ConvertUInt16ToString_ZeroPad_2);
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         // sz - as %02d - SECOND
         bs->AppendChars(static_cast<WORD>((pymd->time / 1000) % 60), 2, ConvertUInt16ToString_ZeroPad_2);
-        bs->AppendChars(L' ');
+        bs->AppendChars(_u(' '));
 
-        bs->AppendChars(L"GMT");
+        bs->AppendChars(_u("GMT"));
 
         return bs;
     }
@@ -539,7 +539,7 @@ namespace Js {
             cch -= (c-1);
             if( !(noDateTime & DateTimeFlag::NoTime))
             {
-                *p++ = L' ';
+                *p++ = _u(' ');
                 cch--;
             }
 
@@ -634,13 +634,13 @@ Error:
     }
 
     inline bool
-    DateImplementation::FBig(wchar_t ch)
+    DateImplementation::FBig(char16 ch)
     {
         return (unsigned int)ch >= 128;
     }
 
     inline bool
-    DateImplementation::FDateDelimiter(wchar_t ch)
+    DateImplementation::FDateDelimiter(char16 ch)
     {
         return (ch == '/' || ch == '-');
     }
@@ -662,7 +662,7 @@ Error:
             return dbl;
         }
         unsigned int ulength = pParseString->GetLength();
-        const wchar_t *psz =  pParseString->GetSz();
+        const char16 *psz =  pParseString->GetSz();
 
         if(UtcTimeFromStrCore(psz, ulength, dbl, scriptContext))
         {
@@ -674,7 +674,7 @@ Error:
     }
 
     bool DateImplementation::TryParseDecimalDigits(
-        const wchar_t *const str,
+        const char16 *const str,
         const size_t length,
         const size_t startIndex,
         const size_t numDigits,
@@ -691,13 +691,13 @@ Error:
         size_t i = 0;
 
         // Skip leading zeroes
-        while(str[startIndex + i] == L'0' && ++i < numDigits);
+        while(str[startIndex + i] == _u('0') && ++i < numDigits);
 
         // Parse remaining digits
         int v = 0;
         for(; i < numDigits; ++i)
         {
-            const unsigned short d = str[startIndex + i] - L'0';
+            const unsigned short d = str[startIndex + i] - _u('0');
             if(d > 9)
                 break;
             v = v * 10 + d;
@@ -708,13 +708,13 @@ Error:
         value = v;
 
         // The next character must not be a digit
-        return !(i < length - startIndex && static_cast<unsigned short>(str[startIndex + i] - L'0') <= 9);
+        return !(i < length - startIndex && static_cast<unsigned short>(str[startIndex + i] - _u('0')) <= 9);
     }
 
     // Either 1 digit or 2 digits or 3 digits
     // Ignore any digits after the third
     bool DateImplementation::TryParseMilliseconds(
-        const wchar_t *const str,
+        const char16 *const str,
         const size_t length,
         const size_t startIndex,
         int &value,
@@ -733,13 +733,13 @@ Error:
         size_t i = 0;
 
         // Skip leading zeroes
-        while(str[startIndex + i] == L'0' && ++i < allDigits);
+        while(str[startIndex + i] == _u('0') && ++i < allDigits);
 
         // Parse remaining digits
         int v = 0;
         for(; i < allDigits ; ++i)
         {
-            const unsigned short d = str[startIndex + i] - L'0';
+            const unsigned short d = str[startIndex + i] - _u('0');
             if(d > 9)
                 break;
             if (i < 3) // not past the 3rd digit in the milliseconds, don't ignore
@@ -757,11 +757,11 @@ Error:
         value = v;
 
         // The next character must not be a digit
-        return !(i < length - startIndex && static_cast<unsigned short>(str[startIndex + i] - L'0') <= 9);
+        return !(i < length - startIndex && static_cast<unsigned short>(str[startIndex + i] - _u('0')) <= 9);
     }
 
     bool DateImplementation::TryParseTwoDecimalDigits(
-        const wchar_t *const str,
+        const char16 *const str,
         const size_t length,
         const size_t startIndex,
         int &value,
@@ -774,21 +774,21 @@ Error:
         if(length - startIndex < 2)
             return false;
 
-        unsigned short d = str[startIndex] - L'0';
+        unsigned short d = str[startIndex] - _u('0');
         if(d > 9)
             return false;
         short v = d * 10;
-        d = str[startIndex + 1] - L'0';
+        d = str[startIndex + 1] - _u('0');
         if(d > 9)
             return false;
         value = v + d;
 
         // The next character must not be a digit if canHaveTrailingDigit is false
-        bool hasNoTrailingDigit = !(length - startIndex > 2 && static_cast<unsigned short>(str[startIndex + 2] - L'0') <= 9);
+        bool hasNoTrailingDigit = !(length - startIndex > 2 && static_cast<unsigned short>(str[startIndex + 2] - _u('0')) <= 9);
         return canHaveTrailingDigit || hasNoTrailingDigit;
     }
 
-    bool DateImplementation::TryParseIsoString(const wchar_t *const str, const size_t length, double &timeValue, ScriptContext *scriptContext)
+    bool DateImplementation::TryParseIsoString(const char16 *const str, const size_t length, double &timeValue, ScriptContext *scriptContext)
     {
         Assert(str);
 
@@ -806,14 +806,14 @@ Error:
         int year;
         switch(str[i])
         {
-            case L'+':
+            case _u('+'):
                 ++i;
                 if(!TryParseDecimalDigits(str, length, i, 6, year))
                     return false;
                 i += 6;
                 break;
 
-            case L'-':
+            case _u('-'):
                 ++i;
                 if(!TryParseDecimalDigits(str, length, i, 6, year) || year == 0)
                     return false;
@@ -821,16 +821,16 @@ Error:
                 i += 6;
                 break;
 
-            case L'0':
-            case L'1':
-            case L'2':
-            case L'3':
-            case L'4':
-            case L'5':
-            case L'6':
-            case L'7':
-            case L'8':
-            case L'9':
+            case _u('0'):
+            case _u('1'):
+            case _u('2'):
+            case _u('3'):
+            case _u('4'):
+            case _u('5'):
+            case _u('6'):
+            case _u('7'):
+            case _u('8'):
+            case _u('9'):
                 if(!TryParseDecimalDigits(str, length, i, 4, year))
                     return false;
                 i += 4;
@@ -854,7 +854,7 @@ Error:
             do // while(false);
             {
                 // -MM
-                if(i >= length || str[i] != L'-')
+                if(i >= length || str[i] != _u('-'))
                     break;
                 ++i;
                 if(!TryParseTwoDecimalDigits(str, length, i, month))
@@ -868,7 +868,7 @@ Error:
                 i += classifier->SkipBiDirectionalChars(str, i, length);
 
                 // -DD
-                if(i >= length || str[i] != L'-')
+                if(i >= length || str[i] != _u('-'))
                     break;
                 ++i;
                 if(!TryParseTwoDecimalDigits(str, length, i, day))
@@ -883,7 +883,7 @@ Error:
             } while(false);
 
             // THH:mm
-            if(i >= length || str[i] != L'T')
+            if(i >= length || str[i] != _u('T'))
                 break;
             ++i;
             int t;
@@ -895,7 +895,7 @@ Error:
             // Skip bidirectional characters, for Round tripping locale formatted date
             i += classifier->SkipBiDirectionalChars(str, i, length);
 
-            if(i >= length || str[i] != L':')
+            if(i >= length || str[i] != _u(':'))
                 return false;
             ++i;
             if(!TryParseTwoDecimalDigits(str, length, i, t) || t > 59)
@@ -909,7 +909,7 @@ Error:
             do // while(false);
             {
                 // :ss
-                if(i >= length || str[i] != L':')
+                if(i >= length || str[i] != _u(':'))
                     break;
                 ++i;
                 if(!TryParseTwoDecimalDigits(str, length, i, t) || t > 59)
@@ -921,7 +921,7 @@ Error:
                 i += classifier->SkipBiDirectionalChars(str, i, length);
 
                 // .sss
-                if(i >= length || str[i] != L'.')
+                if(i >= length || str[i] != _u('.'))
                     break;
                 ++i;
                 // Require one or more decimal digits. Ignore digits beyond the third
@@ -941,13 +941,13 @@ Error:
                 isLocalTime = true;
                 break;
             }
-            const wchar_t utcOffsetSign = str[i];
-            if(utcOffsetSign == L'Z')
+            const char16 utcOffsetSign = str[i];
+            if(utcOffsetSign == _u('Z'))
             {
                 ++i;
                 break;
             }
-            if(utcOffsetSign != L'+' && utcOffsetSign != L'-')
+            if(utcOffsetSign != _u('+') && utcOffsetSign != _u('-'))
             {
                 isLocalTime = true;
                 break;
@@ -965,7 +965,7 @@ Error:
             if(i >= length)
                 return false;
             // The ':' is optional in ISO 8601
-            if (str[i] == L':')
+            if (str[i] == _u(':'))
             {
                 ++i;
             }
@@ -977,7 +977,7 @@ Error:
             // Skip bidirectional characters, for Round tripping locale formatted date
             i += classifier->SkipBiDirectionalChars(str, i, length);
 
-            if(utcOffsetSign == L'-')
+            if(utcOffsetSign == _u('-'))
                 utcOffsetMilliseconds = -utcOffsetMilliseconds;
         } while(false);
 
@@ -1005,7 +1005,7 @@ Error:
     }
 
     boolean DateImplementation::UtcTimeFromStrCore(
-        __in_ecount_z(ulength) const wchar_t *psz,
+        __in_ecount_z(ulength) const char16 *psz,
         unsigned int ulength,
         double &retVal,
         ScriptContext *const scriptContext)
@@ -1042,10 +1042,10 @@ Error:
             ssYear
         };
 
-        wchar_t *pchBase;
-        wchar_t *pch;
-        wchar_t ch;
-        wchar_t *pszSrc = nullptr;
+        char16 *pchBase;
+        char16 *pch;
+        char16 ch;
+        char16 *pszSrc = nullptr;
 
         const long lwNil = 0x80000000;
         long cch;
@@ -1069,11 +1069,11 @@ Error:
         double tv = JavascriptNumber::NaN; // Initialized for error handling.
 
         //Create a copy to analyze
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"UtcTimeFromStr");
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("UtcTimeFromStr"));
 
-        pszSrc = AnewArray(tempAllocator, wchar_t, ulength + 1);
+        pszSrc = AnewArray(tempAllocator, char16, ulength + 1);
 
-        size_t size = sizeof(wchar_t) * (ulength + 1);
+        size_t size = sizeof(char16) * (ulength + 1);
         js_memcpy_s(pszSrc, size, psz, size);
 
         _wcslwr_s(pszSrc,ulength+1);
@@ -1201,7 +1201,7 @@ Error:
                     if (pszs-- <= g_rgszs)
                         goto LError;
                     if (cch <= pszs->cch &&
-                        0 == memcmp(pchBase, pszs->psz, cch * sizeof(wchar_t)))
+                        0 == memcmp(pchBase, pszs->psz, cch * sizeof(char16)))
                     {
                         break;
                     }

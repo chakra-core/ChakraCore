@@ -95,7 +95,7 @@ namespace Js
 
         if (args.Info.Count == 0 || JavascriptOperators::GetTypeId(args[0]) != TypeIds_SIMDFloat32x4)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDFloat32x4.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, _u("SIMDFloat32x4.toString"));
         }
 
         JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[0]);
@@ -103,7 +103,7 @@ namespace Js
 
 
         SIMDValue value = instance->GetValue();
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
+        char16 stringBuffer[SIMD_STRING_BUFFER_MAX];
 
         JavascriptSIMDFloat32x4::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX, scriptContext);
 
@@ -114,7 +114,7 @@ namespace Js
 
     // End Entry Points
     
-    void JavascriptSIMDFloat32x4::ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext)
+    void JavascriptSIMDFloat32x4::ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext)
     {
         JavascriptString *s0, *s1, *s2, *s3;
         s0 = JavascriptNumber::ToStringRadix10((double)value.f32[0], scriptContext);
@@ -122,7 +122,7 @@ namespace Js
         s2 = JavascriptNumber::ToStringRadix10((double)value.f32[2], scriptContext);
         s3 = JavascriptNumber::ToStringRadix10((double)value.f32[3], scriptContext);
 
-        swprintf_s(stringBuffer, countBuffer, L"SIMD.Float32x4(%s, %s, %s, %s)", s0->GetSz(), s1->GetSz(), s2->GetSz(), s3->GetSz());
+        swprintf_s(stringBuffer, countBuffer, _u("SIMD.Float32x4(%s, %s, %s, %s)"), s0->GetSz(), s1->GetSz(), s2->GetSz(), s3->GetSz());
     }
 
     Var JavascriptSIMDFloat32x4::Copy(ScriptContext* requestContext)

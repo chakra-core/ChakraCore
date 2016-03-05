@@ -107,7 +107,7 @@ namespace UnifiedRegex
     {
         w->Indent();
         if (isAccepting)
-            w->PrintEOL(L"<accept>");
+            w->PrintEOL(_u("<accept>"));
         for (int i = 0; i < count; i++)
         {
             w->PrintQuotedChar(children[i].c);

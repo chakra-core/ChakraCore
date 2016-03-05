@@ -364,7 +364,7 @@ HELPERCALL(AdjustSlots, Js::DynamicTypeHandler::AdjustSlots_Jit, 0)
 HELPERCALL(InvalidateProtoCaches, Js::JavascriptOperators::OP_InvalidateProtoCaches, 0)
 HELPERCALL(CheckProtoHasNonWritable, Js::JavascriptOperators::DoCheckIfPrototypeChainHasOnlyWritableDataProperties, 0)
 
-HELPERCALL(GetStringForChar, (Js::JavascriptString * (*)(Js::CharStringCache *, wchar_t))&Js::CharStringCache::GetStringForChar, 0)
+HELPERCALL(GetStringForChar, (Js::JavascriptString * (*)(Js::CharStringCache *, char16))&Js::CharStringCache::GetStringForChar, 0)
 HELPERCALL(GetStringForCharCodePoint, (Js::JavascriptString * (*)(Js::CharStringCache *, codepoint_t))&Js::CharStringCache::GetStringForCharCodePoint, 0)
 
 HELPERCALL(ProfiledLdElem, Js::ProfilingHelpers::ProfiledLdElem, 0)

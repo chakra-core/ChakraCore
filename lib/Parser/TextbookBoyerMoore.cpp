@@ -143,16 +143,16 @@ namespace UnifiedRegex
     }
 
     template <uint equivClassSize, uint compareCount>
-    static bool MatchPatternAt(uint inputChar, wchar_t const * pat, CharCount index);
+    static bool MatchPatternAt(uint inputChar, char16 const * pat, CharCount index);
 
     template <>
-    static bool MatchPatternAt<1, 1>(uint inputChar, wchar_t  const* pat, CharCount index)
+    static bool MatchPatternAt<1, 1>(uint inputChar, char16  const* pat, CharCount index)
     {
         return inputChar == pat[index];
     }
 
     template <>
-    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, CaseInsensitive::EquivClassSize>(uint inputChar, wchar_t const * pat, CharCount index)
+    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, CaseInsensitive::EquivClassSize>(uint inputChar, char16 const * pat, CharCount index)
     {
         CompileAssert(CaseInsensitive::EquivClassSize == 4);
         return inputChar == pat[index * CaseInsensitive::EquivClassSize]
@@ -162,7 +162,7 @@ namespace UnifiedRegex
     }
 
     template <>
-    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, 1>(uint inputChar, wchar_t const * pat, CharCount index)
+    static bool MatchPatternAt<CaseInsensitive::EquivClassSize, 1>(uint inputChar, char16 const * pat, CharCount index)
     {
         CompileAssert(CaseInsensitive::EquivClassSize == 4);
         return inputChar == pat[index * 4];
@@ -419,12 +419,12 @@ namespace UnifiedRegex
     }
 
     // explicit instantiation
-    template struct TextbookBoyerMooreSetup<wchar_t>;
-    template class TextbookBoyerMoore<wchar_t>;
-    template class TextbookBoyerMooreWithLinearMap<wchar_t>;
+    template struct TextbookBoyerMooreSetup<char16>;
+    template class TextbookBoyerMoore<char16>;
+    template class TextbookBoyerMooreWithLinearMap<char16>;
 
     template
-    bool TextbookBoyerMoore<wchar_t>::Match<1>
+    bool TextbookBoyerMoore<char16>::Match<1>
         ( const Char *const input
         , const CharCount inputLength
         , CharCount& inputOffset
@@ -436,7 +436,7 @@ namespace UnifiedRegex
         ) const;
 
     template
-    bool TextbookBoyerMoore<wchar_t>::Match<CaseInsensitive::EquivClassSize>
+    bool TextbookBoyerMoore<char16>::Match<CaseInsensitive::EquivClassSize>
         ( const Char *const input
         , const CharCount inputLength
         , CharCount& inputOffset
@@ -448,7 +448,7 @@ namespace UnifiedRegex
         ) const;
 
     template
-    bool TextbookBoyerMoore<wchar_t>::Match<CaseInsensitive::EquivClassSize, 1>
+    bool TextbookBoyerMoore<char16>::Match<CaseInsensitive::EquivClassSize, 1>
         ( const Char *const input
         , const CharCount inputLength
         , CharCount& inputOffset
@@ -460,7 +460,7 @@ namespace UnifiedRegex
         ) const;
 
     template
-    bool TextbookBoyerMooreWithLinearMap<wchar_t>::Match<1>
+    bool TextbookBoyerMooreWithLinearMap<char16>::Match<1>
         ( const Char *const input
         , const CharCount inputLength
         , CharCount& inputOffset

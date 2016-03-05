@@ -33,7 +33,7 @@ namespace Js
     template <>
     JavascriptString* JavascriptTypedNumber<__int64>::ToString(Var value, ScriptContext* scriptContext)
     {
-        wchar_t szBuffer[30];
+        char16 szBuffer[30];
         __int64 val = JavascriptTypedNumber<__int64>::FromVar(value)->GetValue();
         errno_t err = _i64tow_s(val, szBuffer, 30, 10);
         AssertMsg(err == 0, "convert int64 to string failed");
@@ -43,7 +43,7 @@ namespace Js
     template <>
     JavascriptString* JavascriptTypedNumber<unsigned __int64>::ToString(Var value, ScriptContext* scriptContext)
     {
-        wchar_t szBuffer[30];
+        char16 szBuffer[30];
         unsigned __int64 val = JavascriptUInt64Number::FromVar(value)->GetValue();
         errno_t err = _ui64tow_s(val, szBuffer, 30, 10);
         AssertMsg(err == 0, "convert int64 to string failed");

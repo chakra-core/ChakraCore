@@ -104,20 +104,20 @@ namespace Js
         asmJsInterpreterThunkEmitter(nullptr),
         asmJsCodeGenerator(nullptr),
 #endif
-        generalAllocator(L"SC-General", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        generalAllocator(_u("SC-General"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
 #ifdef ENABLE_BASIC_TELEMETRY
-        telemetryAllocator(L"SC-Telemetry", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        telemetryAllocator(_u("SC-Telemetry"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
 #endif
-        dynamicProfileInfoAllocator(L"SC-DynProfileInfo", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        dynamicProfileInfoAllocator(_u("SC-DynProfileInfo"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
 #ifdef SEPARATE_ARENA
-        sourceCodeAllocator(L"SC-Code", threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        regexAllocator(L"SC-Regex", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        sourceCodeAllocator(_u("SC-Code"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        regexAllocator(_u("SC-Regex"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
 #endif
 #ifdef NEED_MISC_ALLOCATOR
-        miscAllocator(L"GC-Misc", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        miscAllocator(_u("GC-Misc"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
 #endif
-        inlineCacheAllocator(L"SC-InlineCache", threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        isInstInlineCacheAllocator(L"SC-IsInstInlineCache", threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
+        isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         hasRegisteredInlineCache(false),
         hasRegisteredIsInstInlineCache(false),
         entryInScriptContextWithInlineCachesRegistry(nullptr),
@@ -150,7 +150,7 @@ namespace Js
         , fieldAccessStatsByFunctionNumber(nullptr)
 #endif
         , webWorkerId(Js::Constants::NonWebWorkerContextId)
-        , url(L"")
+        , url(_u(""))
         , startupComplete(false)
         , isEnumeratingRecyclerObjects(false)
 #ifdef EDIT_AND_CONTINUE
@@ -498,8 +498,8 @@ namespace Js
 
         charcount_t length = SysStringLen(bstrUrl) + 1; // Add 1 for the NULL.
 
-        wchar_t* urlCopy = AnewArray(this->GeneralAllocator(), wchar_t, length);
-        js_memcpy_s(urlCopy, (length - 1) * sizeof(wchar_t), bstrUrl, (length - 1) * sizeof(wchar_t));
+        char16* urlCopy = AnewArray(this->GeneralAllocator(), char16, length);
+        js_memcpy_s(urlCopy, (length - 1) * sizeof(char16), bstrUrl, (length - 1) * sizeof(char16));
         urlCopy[length - 1] = L'\0';
 
         this->url = urlCopy;
@@ -545,7 +545,7 @@ namespace Js
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.TraceWin8Allocations)
         {
-            Output::Print(L"MemoryTrace: ScriptContext Close\n");
+            Output::Print(_u("MemoryTrace: ScriptContext Close\n"));
             Output::Flush();
         }
 #endif
@@ -744,7 +744,7 @@ namespace Js
         return true;
     }
 
-    PropertyString* ScriptContext::GetPropertyString2(wchar_t ch1, wchar_t ch2)
+    PropertyString* ScriptContext::GetPropertyString2(char16 ch1, char16 ch2)
     {
         if (ch1 < '0' || ch1 > 'z' || ch2 < '0' || ch2 > 'z')
         {
@@ -870,78 +870,78 @@ namespace Js
 #ifdef PROFILE_TYPES
     void ScriptContext::ProfileTypes()
     {
-        Output::Print(L"===============================================================================\n");
-        Output::Print(L"Types Profile\n");
-        Output::Print(L"-------------------------------------------------------------------------------\n");
-        Output::Print(L"Dynamic Type Conversions:\n");
-        Output::Print(L"    Null to Simple                 %8d\n", convertNullToSimpleCount);
-        Output::Print(L"    Deferred to SimpleMap          %8d\n", convertDeferredToSimpleDictionaryCount);
-        Output::Print(L"    Simple to Map                  %8d\n", convertSimpleToDictionaryCount);
-        Output::Print(L"    Simple to SimpleMap            %8d\n", convertSimpleToSimpleDictionaryCount);
-        Output::Print(L"    Path to SimpleMap (set)        %8d\n", convertPathToDictionaryCount1);
-        Output::Print(L"    Path to SimpleMap (delete)     %8d\n", convertPathToDictionaryCount2);
-        Output::Print(L"    Path to SimpleMap (attribute)  %8d\n", convertPathToDictionaryCount3);
-        Output::Print(L"    Path to SimpleMap              %8d\n", convertPathToSimpleDictionaryCount);
-        Output::Print(L"    SimplePath to Path             %8d\n", convertSimplePathToPathCount);
-        Output::Print(L"    Shared SimpleMap to non-shared %8d\n", convertSimpleSharedDictionaryToNonSharedCount);
-        Output::Print(L"    Deferred to Map                %8d\n", convertDeferredToDictionaryCount);
-        Output::Print(L"    Path to Map (accessor)         %8d\n", convertPathToDictionaryCount4);
-        Output::Print(L"    SimpleMap to Map               %8d\n", convertSimpleDictionaryToDictionaryCount);
-        Output::Print(L"    Path Cache Hits                %8d\n", cacheCount);
-        Output::Print(L"    Path Branches                  %8d\n", branchCount);
-        Output::Print(L"    Path Promotions                %8d\n", promoteCount);
-        Output::Print(L"    Path Length (max)              %8d\n", maxPathLength);
-        Output::Print(L"    SimplePathTypeHandlers         %8d\n", simplePathTypeHandlerCount);
-        Output::Print(L"    PathTypeHandlers               %8d\n", pathTypeHandlerCount);
-        Output::Print(L"\n");
-        Output::Print(L"Type Statistics:                   %8s   %8s\n", L"Types", L"Instances");
-        Output::Print(L"    Undefined                      %8d   %8d\n", typeCount[TypeIds_Undefined], instanceCount[TypeIds_Undefined]);
-        Output::Print(L"    Null                           %8d   %8d\n", typeCount[TypeIds_Null], instanceCount[TypeIds_Null]);
-        Output::Print(L"    Boolean                        %8d   %8d\n", typeCount[TypeIds_Boolean], instanceCount[TypeIds_Boolean]);
-        Output::Print(L"    Integer                        %8d   %8d\n", typeCount[TypeIds_Integer], instanceCount[TypeIds_Integer]);
-        Output::Print(L"    Number                         %8d   %8d\n", typeCount[TypeIds_Number], instanceCount[TypeIds_Number]);
-        Output::Print(L"    String                         %8d   %8d\n", typeCount[TypeIds_String], instanceCount[TypeIds_String]);
-        Output::Print(L"    Object                         %8d   %8d\n", typeCount[TypeIds_Object], instanceCount[TypeIds_Object]);
-        Output::Print(L"    Function                       %8d   %8d\n", typeCount[TypeIds_Function], instanceCount[TypeIds_Function]);
-        Output::Print(L"    Array                          %8d   %8d\n", typeCount[TypeIds_Array], instanceCount[TypeIds_Array]);
-        Output::Print(L"    Date                           %8d   %8d\n", typeCount[TypeIds_Date], instanceCount[TypeIds_Date] + instanceCount[TypeIds_WinRTDate]);
-        Output::Print(L"    Symbol                         %8d   %8d\n", typeCount[TypeIds_Symbol], instanceCount[TypeIds_Symbol]);
-        Output::Print(L"    RegEx                          %8d   %8d\n", typeCount[TypeIds_RegEx], instanceCount[TypeIds_RegEx]);
-        Output::Print(L"    Error                          %8d   %8d\n", typeCount[TypeIds_Error], instanceCount[TypeIds_Error]);
-        Output::Print(L"    Proxy                          %8d   %8d\n", typeCount[TypeIds_Proxy], instanceCount[TypeIds_Proxy]);
-        Output::Print(L"    BooleanObject                  %8d   %8d\n", typeCount[TypeIds_BooleanObject], instanceCount[TypeIds_BooleanObject]);
-        Output::Print(L"    NumberObject                   %8d   %8d\n", typeCount[TypeIds_NumberObject], instanceCount[TypeIds_NumberObject]);
-        Output::Print(L"    StringObject                   %8d   %8d\n", typeCount[TypeIds_StringObject], instanceCount[TypeIds_StringObject]);
-        Output::Print(L"    SymbolObject                   %8d   %8d\n", typeCount[TypeIds_SymbolObject], instanceCount[TypeIds_SymbolObject]);
-        Output::Print(L"    GlobalObject                   %8d   %8d\n", typeCount[TypeIds_GlobalObject], instanceCount[TypeIds_GlobalObject]);
-        Output::Print(L"    Enumerator                     %8d   %8d\n", typeCount[TypeIds_Enumerator], instanceCount[TypeIds_Enumerator]);
-        Output::Print(L"    Int8Array                      %8d   %8d\n", typeCount[TypeIds_Int8Array], instanceCount[TypeIds_Int8Array]);
-        Output::Print(L"    Uint8Array                     %8d   %8d\n", typeCount[TypeIds_Uint8Array], instanceCount[TypeIds_Uint8Array]);
-        Output::Print(L"    Uint8ClampedArray              %8d   %8d\n", typeCount[TypeIds_Uint8ClampedArray], instanceCount[TypeIds_Uint8ClampedArray]);
-        Output::Print(L"    Int16Array                     %8d   %8d\n", typeCount[TypeIds_Int16Array], instanceCount[TypeIds_Int16Array]);
-        Output::Print(L"    Int16Array                     %8d   %8d\n", typeCount[TypeIds_Uint16Array], instanceCount[TypeIds_Uint16Array]);
-        Output::Print(L"    Int32Array                     %8d   %8d\n", typeCount[TypeIds_Int32Array], instanceCount[TypeIds_Int32Array]);
-        Output::Print(L"    Uint32Array                    %8d   %8d\n", typeCount[TypeIds_Uint32Array], instanceCount[TypeIds_Uint32Array]);
-        Output::Print(L"    Float32Array                   %8d   %8d\n", typeCount[TypeIds_Float32Array], instanceCount[TypeIds_Float32Array]);
-        Output::Print(L"    Float64Array                   %8d   %8d\n", typeCount[TypeIds_Float64Array], instanceCount[TypeIds_Float64Array]);
-        Output::Print(L"    DataView                       %8d   %8d\n", typeCount[TypeIds_DataView], instanceCount[TypeIds_DataView]);
-        Output::Print(L"    ModuleRoot                     %8d   %8d\n", typeCount[TypeIds_ModuleRoot], instanceCount[TypeIds_ModuleRoot]);
-        Output::Print(L"    HostObject                     %8d   %8d\n", typeCount[TypeIds_HostObject], instanceCount[TypeIds_HostObject]);
-        Output::Print(L"    VariantDate                    %8d   %8d\n", typeCount[TypeIds_VariantDate], instanceCount[TypeIds_VariantDate]);
-        Output::Print(L"    HostDispatch                   %8d   %8d\n", typeCount[TypeIds_HostDispatch], instanceCount[TypeIds_HostDispatch]);
-        Output::Print(L"    Arguments                      %8d   %8d\n", typeCount[TypeIds_Arguments], instanceCount[TypeIds_Arguments]);
-        Output::Print(L"    ActivationObject               %8d   %8d\n", typeCount[TypeIds_ActivationObject], instanceCount[TypeIds_ActivationObject]);
-        Output::Print(L"    Map                            %8d   %8d\n", typeCount[TypeIds_Map], instanceCount[TypeIds_Map]);
-        Output::Print(L"    Set                            %8d   %8d\n", typeCount[TypeIds_Set], instanceCount[TypeIds_Set]);
-        Output::Print(L"    WeakMap                        %8d   %8d\n", typeCount[TypeIds_WeakMap], instanceCount[TypeIds_WeakMap]);
-        Output::Print(L"    WeakSet                        %8d   %8d\n", typeCount[TypeIds_WeakSet], instanceCount[TypeIds_WeakSet]);
-        Output::Print(L"    ArrayIterator                  %8d   %8d\n", typeCount[TypeIds_ArrayIterator], instanceCount[TypeIds_ArrayIterator]);
-        Output::Print(L"    MapIterator                    %8d   %8d\n", typeCount[TypeIds_MapIterator], instanceCount[TypeIds_MapIterator]);
-        Output::Print(L"    SetIterator                    %8d   %8d\n", typeCount[TypeIds_SetIterator], instanceCount[TypeIds_SetIterator]);
-        Output::Print(L"    StringIterator                 %8d   %8d\n", typeCount[TypeIds_StringIterator], instanceCount[TypeIds_StringIterator]);
-        Output::Print(L"    Generator                      %8d   %8d\n", typeCount[TypeIds_Generator], instanceCount[TypeIds_Generator]);
+        Output::Print(_u("===============================================================================\n"));
+        Output::Print(_u("Types Profile\n"));
+        Output::Print(_u("-------------------------------------------------------------------------------\n"));
+        Output::Print(_u("Dynamic Type Conversions:\n"));
+        Output::Print(_u("    Null to Simple                 %8d\n"), convertNullToSimpleCount);
+        Output::Print(_u("    Deferred to SimpleMap          %8d\n"), convertDeferredToSimpleDictionaryCount);
+        Output::Print(_u("    Simple to Map                  %8d\n"), convertSimpleToDictionaryCount);
+        Output::Print(_u("    Simple to SimpleMap            %8d\n"), convertSimpleToSimpleDictionaryCount);
+        Output::Print(_u("    Path to SimpleMap (set)        %8d\n"), convertPathToDictionaryCount1);
+        Output::Print(_u("    Path to SimpleMap (delete)     %8d\n"), convertPathToDictionaryCount2);
+        Output::Print(_u("    Path to SimpleMap (attribute)  %8d\n"), convertPathToDictionaryCount3);
+        Output::Print(_u("    Path to SimpleMap              %8d\n"), convertPathToSimpleDictionaryCount);
+        Output::Print(_u("    SimplePath to Path             %8d\n"), convertSimplePathToPathCount);
+        Output::Print(_u("    Shared SimpleMap to non-shared %8d\n"), convertSimpleSharedDictionaryToNonSharedCount);
+        Output::Print(_u("    Deferred to Map                %8d\n"), convertDeferredToDictionaryCount);
+        Output::Print(_u("    Path to Map (accessor)         %8d\n"), convertPathToDictionaryCount4);
+        Output::Print(_u("    SimpleMap to Map               %8d\n"), convertSimpleDictionaryToDictionaryCount);
+        Output::Print(_u("    Path Cache Hits                %8d\n"), cacheCount);
+        Output::Print(_u("    Path Branches                  %8d\n"), branchCount);
+        Output::Print(_u("    Path Promotions                %8d\n"), promoteCount);
+        Output::Print(_u("    Path Length (max)              %8d\n"), maxPathLength);
+        Output::Print(_u("    SimplePathTypeHandlers         %8d\n"), simplePathTypeHandlerCount);
+        Output::Print(_u("    PathTypeHandlers               %8d\n"), pathTypeHandlerCount);
+        Output::Print(_u("\n"));
+        Output::Print(_u("Type Statistics:                   %8s   %8s\n"), _u("Types"), _u("Instances"));
+        Output::Print(_u("    Undefined                      %8d   %8d\n"), typeCount[TypeIds_Undefined], instanceCount[TypeIds_Undefined]);
+        Output::Print(_u("    Null                           %8d   %8d\n"), typeCount[TypeIds_Null], instanceCount[TypeIds_Null]);
+        Output::Print(_u("    Boolean                        %8d   %8d\n"), typeCount[TypeIds_Boolean], instanceCount[TypeIds_Boolean]);
+        Output::Print(_u("    Integer                        %8d   %8d\n"), typeCount[TypeIds_Integer], instanceCount[TypeIds_Integer]);
+        Output::Print(_u("    Number                         %8d   %8d\n"), typeCount[TypeIds_Number], instanceCount[TypeIds_Number]);
+        Output::Print(_u("    String                         %8d   %8d\n"), typeCount[TypeIds_String], instanceCount[TypeIds_String]);
+        Output::Print(_u("    Object                         %8d   %8d\n"), typeCount[TypeIds_Object], instanceCount[TypeIds_Object]);
+        Output::Print(_u("    Function                       %8d   %8d\n"), typeCount[TypeIds_Function], instanceCount[TypeIds_Function]);
+        Output::Print(_u("    Array                          %8d   %8d\n"), typeCount[TypeIds_Array], instanceCount[TypeIds_Array]);
+        Output::Print(_u("    Date                           %8d   %8d\n"), typeCount[TypeIds_Date], instanceCount[TypeIds_Date] + instanceCount[TypeIds_WinRTDate]);
+        Output::Print(_u("    Symbol                         %8d   %8d\n"), typeCount[TypeIds_Symbol], instanceCount[TypeIds_Symbol]);
+        Output::Print(_u("    RegEx                          %8d   %8d\n"), typeCount[TypeIds_RegEx], instanceCount[TypeIds_RegEx]);
+        Output::Print(_u("    Error                          %8d   %8d\n"), typeCount[TypeIds_Error], instanceCount[TypeIds_Error]);
+        Output::Print(_u("    Proxy                          %8d   %8d\n"), typeCount[TypeIds_Proxy], instanceCount[TypeIds_Proxy]);
+        Output::Print(_u("    BooleanObject                  %8d   %8d\n"), typeCount[TypeIds_BooleanObject], instanceCount[TypeIds_BooleanObject]);
+        Output::Print(_u("    NumberObject                   %8d   %8d\n"), typeCount[TypeIds_NumberObject], instanceCount[TypeIds_NumberObject]);
+        Output::Print(_u("    StringObject                   %8d   %8d\n"), typeCount[TypeIds_StringObject], instanceCount[TypeIds_StringObject]);
+        Output::Print(_u("    SymbolObject                   %8d   %8d\n"), typeCount[TypeIds_SymbolObject], instanceCount[TypeIds_SymbolObject]);
+        Output::Print(_u("    GlobalObject                   %8d   %8d\n"), typeCount[TypeIds_GlobalObject], instanceCount[TypeIds_GlobalObject]);
+        Output::Print(_u("    Enumerator                     %8d   %8d\n"), typeCount[TypeIds_Enumerator], instanceCount[TypeIds_Enumerator]);
+        Output::Print(_u("    Int8Array                      %8d   %8d\n"), typeCount[TypeIds_Int8Array], instanceCount[TypeIds_Int8Array]);
+        Output::Print(_u("    Uint8Array                     %8d   %8d\n"), typeCount[TypeIds_Uint8Array], instanceCount[TypeIds_Uint8Array]);
+        Output::Print(_u("    Uint8ClampedArray              %8d   %8d\n"), typeCount[TypeIds_Uint8ClampedArray], instanceCount[TypeIds_Uint8ClampedArray]);
+        Output::Print(_u("    Int16Array                     %8d   %8d\n"), typeCount[TypeIds_Int16Array], instanceCount[TypeIds_Int16Array]);
+        Output::Print(_u("    Int16Array                     %8d   %8d\n"), typeCount[TypeIds_Uint16Array], instanceCount[TypeIds_Uint16Array]);
+        Output::Print(_u("    Int32Array                     %8d   %8d\n"), typeCount[TypeIds_Int32Array], instanceCount[TypeIds_Int32Array]);
+        Output::Print(_u("    Uint32Array                    %8d   %8d\n"), typeCount[TypeIds_Uint32Array], instanceCount[TypeIds_Uint32Array]);
+        Output::Print(_u("    Float32Array                   %8d   %8d\n"), typeCount[TypeIds_Float32Array], instanceCount[TypeIds_Float32Array]);
+        Output::Print(_u("    Float64Array                   %8d   %8d\n"), typeCount[TypeIds_Float64Array], instanceCount[TypeIds_Float64Array]);
+        Output::Print(_u("    DataView                       %8d   %8d\n"), typeCount[TypeIds_DataView], instanceCount[TypeIds_DataView]);
+        Output::Print(_u("    ModuleRoot                     %8d   %8d\n"), typeCount[TypeIds_ModuleRoot], instanceCount[TypeIds_ModuleRoot]);
+        Output::Print(_u("    HostObject                     %8d   %8d\n"), typeCount[TypeIds_HostObject], instanceCount[TypeIds_HostObject]);
+        Output::Print(_u("    VariantDate                    %8d   %8d\n"), typeCount[TypeIds_VariantDate], instanceCount[TypeIds_VariantDate]);
+        Output::Print(_u("    HostDispatch                   %8d   %8d\n"), typeCount[TypeIds_HostDispatch], instanceCount[TypeIds_HostDispatch]);
+        Output::Print(_u("    Arguments                      %8d   %8d\n"), typeCount[TypeIds_Arguments], instanceCount[TypeIds_Arguments]);
+        Output::Print(_u("    ActivationObject               %8d   %8d\n"), typeCount[TypeIds_ActivationObject], instanceCount[TypeIds_ActivationObject]);
+        Output::Print(_u("    Map                            %8d   %8d\n"), typeCount[TypeIds_Map], instanceCount[TypeIds_Map]);
+        Output::Print(_u("    Set                            %8d   %8d\n"), typeCount[TypeIds_Set], instanceCount[TypeIds_Set]);
+        Output::Print(_u("    WeakMap                        %8d   %8d\n"), typeCount[TypeIds_WeakMap], instanceCount[TypeIds_WeakMap]);
+        Output::Print(_u("    WeakSet                        %8d   %8d\n"), typeCount[TypeIds_WeakSet], instanceCount[TypeIds_WeakSet]);
+        Output::Print(_u("    ArrayIterator                  %8d   %8d\n"), typeCount[TypeIds_ArrayIterator], instanceCount[TypeIds_ArrayIterator]);
+        Output::Print(_u("    MapIterator                    %8d   %8d\n"), typeCount[TypeIds_MapIterator], instanceCount[TypeIds_MapIterator]);
+        Output::Print(_u("    SetIterator                    %8d   %8d\n"), typeCount[TypeIds_SetIterator], instanceCount[TypeIds_SetIterator]);
+        Output::Print(_u("    StringIterator                 %8d   %8d\n"), typeCount[TypeIds_StringIterator], instanceCount[TypeIds_StringIterator]);
+        Output::Print(_u("    Generator                      %8d   %8d\n"), typeCount[TypeIds_Generator], instanceCount[TypeIds_Generator]);
 #if !DBG
-        Output::Print(L"    ** Instance statistics only available on debug builds...\n");
+        Output::Print(_u("    ** Instance statistics only available on debug builds...\n"));
 #endif
         Output::Flush();
     }
@@ -951,20 +951,20 @@ namespace Js
 #ifdef PROFILE_OBJECT_LITERALS
     void ScriptContext::ProfileObjectLiteral()
     {
-        Output::Print(L"===============================================================================\n");
-        Output::Print(L"    Object Lit Instances created.. %d\n", objectLiteralInstanceCount);
-        Output::Print(L"    Object Lit Path Types......... %d\n", objectLiteralPathCount);
-        Output::Print(L"    Object Lit Simple Map......... %d\n", objectLiteralSimpleDictionaryCount);
-        Output::Print(L"    Object Lit Max # of properties %d\n", objectLiteralMaxLength);
-        Output::Print(L"    Object Lit Promote count...... %d\n", objectLiteralPromoteCount);
-        Output::Print(L"    Object Lit Cache Hits......... %d\n", objectLiteralCacheCount);
-        Output::Print(L"    Object Lit Branch count....... %d\n", objectLiteralBranchCount);
+        Output::Print(_u("===============================================================================\n"));
+        Output::Print(_u("    Object Lit Instances created.. %d\n"), objectLiteralInstanceCount);
+        Output::Print(_u("    Object Lit Path Types......... %d\n"), objectLiteralPathCount);
+        Output::Print(_u("    Object Lit Simple Map......... %d\n"), objectLiteralSimpleDictionaryCount);
+        Output::Print(_u("    Object Lit Max # of properties %d\n"), objectLiteralMaxLength);
+        Output::Print(_u("    Object Lit Promote count...... %d\n"), objectLiteralPromoteCount);
+        Output::Print(_u("    Object Lit Cache Hits......... %d\n"), objectLiteralCacheCount);
+        Output::Print(_u("    Object Lit Branch count....... %d\n"), objectLiteralBranchCount);
 
         for (int i = 0; i < TypePath::MaxPathTypeHandlerLength; i++)
         {
             if (objectLiteralCount[i] != 0)
             {
-                Output::Print(L"    Object Lit properties [ %2d] .. %d\n", i, objectLiteralCount[i]);
+                Output::Print(_u("    Object Lit properties [ %2d] .. %d\n"), i, objectLiteralCount[i]);
             }
         }
 
@@ -1083,7 +1083,7 @@ namespace Js
 
     void ScriptContext::InitializePreGlobal()
     {
-        this->guestArena = this->GetRecycler()->CreateGuestArena(L"Guest", Throw::OutOfMemory);
+        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         if (DynamicProfileInfo::NeedProfileInfoList())
@@ -1242,7 +1242,7 @@ namespace Js
     {
         if (this->diagnosticArena == nullptr)
         {
-            this->diagnosticArena = HeapNew(ArenaAllocator, L"Diagnostic", this->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
+            this->diagnosticArena = HeapNew(ArenaAllocator, _u("Diagnostic"), this->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
         }
         Assert(this->diagnosticArena != nullptr);
         return this->diagnosticArena;
@@ -1410,7 +1410,7 @@ namespace Js
     }
     PropertyString* ScriptContext::AddPropertyString2(const Js::PropertyRecord* propString)
     {
-        const wchar_t* buf = propString->GetBuffer();
+        const char16* buf = propString->GetBuffer();
         const uint i = PropertyStringMap::PStrMapIndex(buf[0]);
         if (propertyStrings[i] == NULL)
         {
@@ -1428,7 +1428,7 @@ namespace Js
     PropertyString* ScriptContext::CachePropertyString2(const PropertyRecord* propString)
     {
         Assert(propString->GetLength() == 2);
-        const wchar_t* propertyName = propString->GetBuffer();
+        const char16* propertyName = propString->GetBuffer();
         if ((propertyName[0] <= 'z') && (propertyName[1] <= 'z') && (propertyName[0] >= '0') && (propertyName[1] >= '0') && ((propertyName[0] > '9') || (propertyName[1] > '9')))
         {
             return AddPropertyString2(propString);
@@ -1532,7 +1532,7 @@ namespace Js
             }
             else
             {
-                wchar_t stringBuffer[20];
+                char16 stringBuffer[20];
 
                 TaggedInt::ToBuffer(value, stringBuffer, _countof(stringBuffer));
                 string = JavascriptString::NewCopySzFromArena(stringBuffer, this, this->GeneralAllocator());
@@ -1580,7 +1580,7 @@ namespace Js
         SRCINFO const * pSrcInfo,
         CompileScriptException * pse,
         Utf8SourceInfo** ppSourceInfo,
-        const wchar_t *rootDisplayName,
+        const char16 *rootDisplayName,
         LoadScriptFlag loadScriptFlag,
         uint* sourceIndex)
     {
@@ -1598,7 +1598,7 @@ namespace Js
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             // Convert to UTF8 and then load that
-            length = cb / sizeof(wchar_t);
+            length = cb / sizeof(char16);
             if (!IsValidCharCount(length))
             {
                 Js::Throw::OutOfMemory();
@@ -1614,15 +1614,15 @@ namespace Js
 
             utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
 
-            cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const wchar_t*)script, static_cast<charcount_t>(length));
+            cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const char16*)script, static_cast<charcount_t>(length));
 
 #if DBG_DUMP
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
             {
-                Output::Print(L"Loading script.\n"
-                    L"  Unicode (in bytes)    %u\n"
-                    L"  UTF-8 size (in bytes) %u\n"
-                    L"  Expected savings      %d\n", length * sizeof(wchar_t), cbNeeded, length * sizeof(wchar_t) - cbNeeded);
+                Output::Print(_u("Loading script.\n")
+                    _u("  Unicode (in bytes)    %u\n")
+                    _u("  UTF-8 size (in bytes) %u\n")
+                    _u("  Expected savings      %d\n"), length * sizeof(char16), cbNeeded, length * sizeof(char16) - cbNeeded);
             }
 #endif
 
@@ -1712,7 +1712,7 @@ namespace Js
         return parseTree;
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const wchar_t *rootDisplayName, LoadScriptFlag loadScriptFlag)
+    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag)
     {
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
@@ -1759,12 +1759,12 @@ namespace Js
         }
     }
 
-    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const wchar_t *rootDisplayName)
+    JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName)
     {
         HRESULT hr;
 
         // Get the source code to keep it alive during the bytecode generation process
-        LPCUTF8 source = this->GetSource(sourceIndex)->GetSource(L"ScriptContext::GenerateRootFunction");
+        LPCUTF8 source = this->GetSource(sourceIndex)->GetSource(_u("ScriptContext::GenerateRootFunction"));
         Assert(source != nullptr); // Source should not have been reclaimed by now
 
         // Generate bytecode and native code
@@ -1885,7 +1885,7 @@ namespace Js
         bool fNew = false;
         if (this->interpreterArena == nullptr)
         {
-            this->interpreterArena = this->GetRecycler()->CreateGuestArena(L"Interpreter", Throw::OutOfMemory);
+            this->interpreterArena = this->GetRecycler()->CreateGuestArena(_u("Interpreter"), Throw::OutOfMemory);
             fNew = true;
         }
         *ppAlloc = this->interpreterArena;
@@ -2048,11 +2048,11 @@ namespace Js
             charcount_t len = key.str.GetLength();
             if (dict->TryGetValue(key, ppFuncScript))
             {
-                Output::Print(L"EvalMap cache hit:\t source size = %d\n", len);
+                Output::Print(_u("EvalMap cache hit:\t source size = %d\n"), len);
             }
             else
             {
-                Output::Print(L"EvalMap cache miss:\t source size = %d\n", len);
+                Output::Print(_u("EvalMap cache miss:\t source size = %d\n"), len);
             }
         }
 #endif
@@ -2191,7 +2191,7 @@ namespace Js
 
         if (this->cache->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
         {
-            OUTPUT_TRACE(Js::DynamicProfilePhase, L"Max of dynamic script profile info reached.\n");
+            OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Max of dynamic script profile info reached.\n"));
             return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
         }
 
@@ -2216,8 +2216,8 @@ namespace Js
     //
     // Makes a copy of the URL to be stored in the map.
     //
-    SourceContextInfo * ScriptContext::CreateSourceContextInfo(DWORD_PTR sourceContext, wchar_t const * url, size_t len,
-        IActiveScriptDataCache* profileDataCache, wchar_t const * sourceMapUrl /*= NULL*/, size_t sourceMapUrlLen /*= 0*/)
+    SourceContextInfo * ScriptContext::CreateSourceContextInfo(DWORD_PTR sourceContext, char16 const * url, size_t len,
+        IActiveScriptDataCache* profileDataCache, char16 const * sourceMapUrl /*= NULL*/, size_t sourceMapUrlLen /*= 0*/)
     {
         // Take etw rundown lock on this thread context. We are going to init/add to sourceContextInfoMap.
         AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
@@ -2255,10 +2255,10 @@ namespace Js
     }
 
     // static
-    const wchar_t* ScriptContext::CopyString(const wchar_t* str, size_t charCount, ArenaAllocator* alloc)
+    const char16* ScriptContext::CopyString(const char16* str, size_t charCount, ArenaAllocator* alloc)
     {
         size_t length = charCount + 1; // Add 1 for the NULL.
-        wchar_t* copy = AnewArray(alloc, wchar_t, length);
+        char16* copy = AnewArray(alloc, char16, length);
         js_wmemcpy_s(copy, length, str, charCount);
         copy[length - 1] = L'\0';
         return copy;
@@ -2480,12 +2480,12 @@ namespace Js
             return ACTIVPROF_E_PROFILER_PRESENT;
         }
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RegisterProfileProbe\n");
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"Info\nThunks Address :\n");
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"DefaultEntryThunk : 0x%08X, CrossSite::DefaultThunk : 0x%08X, DefaultDeferredParsingThunk : 0x%08X\n", DefaultEntryThunk, CrossSite::DefaultThunk, DefaultDeferredParsingThunk);
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ProfileEntryThunk : 0x%08X, CrossSite::ProfileThunk : 0x%08X, ProfileDeferredParsingThunk : 0x%08X, ProfileDeferredDeserializeThunk : 0x%08X,\n", ProfileEntryThunk, CrossSite::ProfileThunk, ProfileDeferredParsingThunk, ProfileDeferredDeserializeThunk);
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptType :\n");
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"PROFILER_SCRIPT_TYPE_USER : 0, PROFILER_SCRIPT_TYPE_DYNAMIC : 1, PROFILER_SCRIPT_TYPE_NATIVE : 2, PROFILER_SCRIPT_TYPE_DOM : 3\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterProfileProbe\n"));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("Info\nThunks Address :\n"));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("DefaultEntryThunk : 0x%08X, CrossSite::DefaultThunk : 0x%08X, DefaultDeferredParsingThunk : 0x%08X\n"), DefaultEntryThunk, CrossSite::DefaultThunk, DefaultDeferredParsingThunk);
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ProfileEntryThunk : 0x%08X, CrossSite::ProfileThunk : 0x%08X, ProfileDeferredParsingThunk : 0x%08X, ProfileDeferredDeserializeThunk : 0x%08X,\n"), ProfileEntryThunk, CrossSite::ProfileThunk, ProfileDeferredParsingThunk, ProfileDeferredDeserializeThunk);
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptType :\n"));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("PROFILER_SCRIPT_TYPE_USER : 0, PROFILER_SCRIPT_TYPE_DYNAMIC : 1, PROFILER_SCRIPT_TYPE_NATIVE : 2, PROFILER_SCRIPT_TYPE_DOM : 3\n"));
 
         HRESULT hr = pProfileCallback->Initialize(dwContext);
         if (SUCCEEDED(hr))
@@ -2566,7 +2566,7 @@ namespace Js
             return ACTIVPROF_E_PROFILER_ABSENT;
         }
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::DeRegisterProfileProbe\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::DeRegisterProfileProbe\n"));
 
 #if ENABLE_NATIVE_CODEGEN
         // Acquire the code gen working queue - we are going to change the thunks
@@ -2642,7 +2642,7 @@ namespace Js
             return ACTIVPROF_E_PROFILER_ABSENT;
         }
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RegisterScript, fRegisterScript : %s, IsFunctionDefer : %s\n", IsTrueOrFalse(fRegisterScript), IsTrueOrFalse(proxy->IsDeferred()));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterScript, fRegisterScript : %s, IsFunctionDefer : %s\n"), IsTrueOrFalse(fRegisterScript), IsTrueOrFalse(proxy->IsDeferred()));
 
         AssertMsg(proxy != nullptr, "Function body cannot be null when calling reporting");
         AssertMsg(proxy->GetScriptContext() == this, "wrong script context while reporting the function?");
@@ -2665,7 +2665,7 @@ namespace Js
     {
         AssertMsg(m_pProfileCallback != nullptr, "Called register scripts when we don't have profile callback");
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RegisterAllScripts started\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterAllScripts started\n"));
 
         // Future Work: Once Utf8SourceInfo can generate the debug document text without requiring a function body,
         // this code can be considerably simplified to doing the following:
@@ -2692,7 +2692,7 @@ namespace Js
             pFuncBody->RegisterFunction(TRUE, TRUE); // Ignore potential failure (worst case is not profiling).
         });
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RegisterAllScripts ended\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterAllScripts ended\n"));
         return S_OK;
     }
 
@@ -2722,7 +2722,7 @@ namespace Js
 
     HRESULT ScriptContext::OnDebuggerAttached()
     {
-        OUTPUT_TRACE(Js::DebuggerPhase, L"ScriptContext::OnDebuggerAttached: start 0x%p\n", this);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: start 0x%p\n"), this);
 
         Js::StepController* stepController = &this->GetThreadContext()->GetDebugManager()->stepController;
         if (stepController->IsActive())
@@ -2762,7 +2762,7 @@ namespace Js
                 HRESULT hrEntryPointUpdate = S_OK;
                 BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
 #ifdef ASMJS_PLAT
-                    TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(L"DebuggerTransition");
+                    TempArenaAllocatorObject* tmpAlloc = GetTemporaryAllocator(_u("DebuggerTransition"));
                     debugTransitionAlloc = tmpAlloc->GetAllocator();
 
                     asmJsEnvironmentMap = Anew(debugTransitionAlloc, AsmFunctionMap, debugTransitionAlloc);
@@ -2818,7 +2818,7 @@ namespace Js
             RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
         }
 
-        OUTPUT_TRACE(Js::DebuggerPhase, L"ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n", this, hr);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerAttached: done 0x%p, hr = 0x%X\n"), this, hr);
 
         return hr;
     }
@@ -2826,7 +2826,7 @@ namespace Js
     // Reverts the script context state back to the state before debugging began.
     HRESULT ScriptContext::OnDebuggerDetached()
     {
-        OUTPUT_TRACE(Js::DebuggerPhase, L"ScriptContext::OnDebuggerDetached: start 0x%p\n", this);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: start 0x%p\n"), this);
 
         Js::StepController* stepController = &this->GetThreadContext()->GetDebugManager()->stepController;
         if (stepController->IsActive())
@@ -2865,7 +2865,7 @@ namespace Js
             RAISE_FATL_INTERNAL_ERROR_IFFAILED(hr);
         }
 
-        OUTPUT_TRACE(Js::DebuggerPhase, L"ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n", this, hr);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n"), this, hr);
 
         return hr;
     }
@@ -3042,7 +3042,7 @@ namespace Js
     {
         Assert(m_pProfileCallback != NULL);
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RegisterBuiltinFunctions\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RegisterBuiltinFunctions\n"));
 
         HRESULT hr = S_OK;
         // Consider creating ProfileArena allocator instead of General allocator
@@ -3076,7 +3076,7 @@ namespace Js
 
     void ScriptContext::SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly/* = false*/)
     {
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::SetFunctionInRecyclerToProfileMode started (m_fTraceDomCall : %s)\n", IsTrueOrFalse(m_fTraceDomCall));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::SetFunctionInRecyclerToProfileMode started (m_fTraceDomCall : %s)\n"), IsTrueOrFalse(m_fTraceDomCall));
 
         // Mark this script context isEnumeratingRecyclerObjects
         AutoEnumeratingRecyclerObjects enumeratingRecyclerObjects(this);
@@ -3085,7 +3085,7 @@ namespace Js
 
         this->recycler->EnumerateObjects(JavascriptLibrary::EnumFunctionClass, &ScriptContext::RecyclerEnumClassEnumeratorCallback);
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::SetFunctionInRecyclerToProfileMode ended\n");
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::SetFunctionInRecyclerToProfileMode ended\n"));
     }
 
     void ScriptContext::UpdateRecyclerFunctionEntryPointsForDebugger()
@@ -3262,17 +3262,17 @@ namespace Js
         if (proxy != NULL)
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::RecyclerEnumClassEnumeratorCallback\n");
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\tFunctionProxy : 0x%08X, FunctionNumber : %s, DeferredParseAttributes : %d, EntryPoint : 0x%08X",
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RecyclerEnumClassEnumeratorCallback\n"));
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\tFunctionProxy : 0x%08X, FunctionNumber : %s, DeferredParseAttributes : %d, EntryPoint : 0x%08X"),
                 (DWORD_PTR)proxy, proxy->GetDebugNumberSet(debugStringBuffer), proxy->GetAttributes(), (DWORD_PTR)entryPoint);
 #if ENABLE_NATIVE_CODEGEN
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L" (IsIntermediateCodeGenThunk : %s, isNative : %s)\n",
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u(" (IsIntermediateCodeGenThunk : %s, isNative : %s)\n"),
                 IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\n");
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\n"));
 
             FunctionInfo * info = pFunction->GetFunctionInfo();
             if (proxy != info)
@@ -3293,13 +3293,13 @@ namespace Js
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
 #endif
             {
-                OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\t\tJs::ScriptContext::GetProfileModeThunk : 0x%08X\n", (DWORD_PTR)Js::ScriptContext::GetProfileModeThunk(entryPoint));
+                OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\t\tJs::ScriptContext::GetProfileModeThunk : 0x%08X\n"), (DWORD_PTR)Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
                 ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
                 scriptFunction->ChangeEntryPoint(proxy->GetDefaultEntryPointInfo(), Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
 #if ENABLE_NATIVE_CODEGEN
-                OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\tUpdated entrypoint : 0x%08X (isNative : %s)\n", (DWORD_PTR)pFunction->GetEntryPoint(), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
+                OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\tUpdated entrypoint : 0x%08X (isNative : %s)\n"), (DWORD_PTR)pFunction->GetEntryPoint(), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             }
         }
@@ -3395,15 +3395,15 @@ namespace Js
     Js::JavascriptMethod ScriptContext::ProfileModeDeferredParse(ScriptFunction ** functionRef)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::ProfileModeDeferredParse FunctionNumber : %s, startEntrypoint : 0x%08X\n", (*functionRef)->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer), (*functionRef)->GetEntryPoint());
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::ProfileModeDeferredParse FunctionNumber : %s, startEntrypoint : 0x%08X\n"), (*functionRef)->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer), (*functionRef)->GetEntryPoint());
 
         BOOL fParsed = FALSE;
         JavascriptMethod entryPoint = Js::JavascriptFunction::DeferredParseCore(functionRef, fParsed);
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"\t\tIsParsed : %s, updatedEntrypoint : 0x%08X\n", IsTrueOrFalse(fParsed), entryPoint);
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\t\tIsParsed : %s, updatedEntrypoint : 0x%08X\n"), IsTrueOrFalse(fParsed), entryPoint);
 
         //To get the scriptContext we only need the functionProxy
         FunctionProxy *pRootBody = (*functionRef)->GetFunctionProxy();
@@ -3449,10 +3449,10 @@ namespace Js
     Js::JavascriptMethod ScriptContext::ProfileModeDeferredDeserialize(ScriptFunction *function)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::ProfileModeDeferredDeserialize FunctionNumber : %s\n", function->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer));
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::ProfileModeDeferredDeserialize FunctionNumber : %s\n"), function->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer));
 
         JavascriptMethod entryPoint = Js::JavascriptFunction::DeferredDeserialize(function);
 
@@ -3563,8 +3563,8 @@ namespace Js
 
         const bool isProfilingUserCode = scriptContext->GetThreadContext()->IsProfilingUserCode();
         const bool isUserCode = !function->IsLibraryCode();
-        wchar_t *pwszExtractedFunctionName = NULL;
-        const wchar_t *pwszFunctionName = NULL;
+        char16 *pwszExtractedFunctionName = NULL;
+        const char16 *pwszFunctionName = NULL;
         HRESULT hrOfEnterEvent = S_OK;
 
         // We can come here when profiling is not on
@@ -3588,8 +3588,8 @@ namespace Js
 
                 if (pBody && pBody->GetProfileSession() != pBody->GetScriptContext()->GetProfileSession())
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    OUTPUT_TRACE_DEBUGONLY(Js::ScriptProfilerPhase, L"ScriptContext::ProfileProbeThunk, ProfileSession does not match (%d != %d), functionNumber : %s, functionName : %s\n",
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    OUTPUT_TRACE_DEBUGONLY(Js::ScriptProfilerPhase, _u("ScriptContext::ProfileProbeThunk, ProfileSession does not match (%d != %d), functionNumber : %s, functionName : %s\n"),
                         pBody->GetProfileSession(), pBody->GetScriptContext()->GetProfileSession(), pBody->GetDebugNumberSet(debugStringBuffer), pBody->GetDisplayName());
                 }
                 AssertMsg(pBody == NULL || pBody->GetProfileSession() == pBody->GetScriptContext()->GetProfileSession(), "Function info wasn't reported for this profile session");
@@ -3612,20 +3612,20 @@ namespace Js
                     {
                         // it is string because user had called in toString extract name from it
                         Assert(JavascriptString::Is(sourceString));
-                        const wchar_t *pwszToString = ((JavascriptString *)sourceString)->GetSz();
-                        const wchar_t *pwszNameStart = wcsstr(pwszToString, L" ");
-                        const wchar_t *pwszNameEnd = wcsstr(pwszToString, L"(");
+                        const char16 *pwszToString = ((JavascriptString *)sourceString)->GetSz();
+                        const char16 *pwszNameStart = wcsstr(pwszToString, _u(" "));
+                        const char16 *pwszNameEnd = wcsstr(pwszToString, _u("("));
                         if (pwszNameStart == nullptr || pwszNameEnd == nullptr || ((int)(pwszNameEnd - pwszNameStart) <= 0))
                         {
                             int len = ((JavascriptString *)sourceString)->GetLength() + 1;
-                            pwszExtractedFunctionName = new wchar_t[len];
+                            pwszExtractedFunctionName = new char16[len];
                             wcsncpy_s(pwszExtractedFunctionName, len, pwszToString, _TRUNCATE);
                         }
                         else
                         {
                             int len = (int)(pwszNameEnd - pwszNameStart);
                             AssertMsg(len > 0, "Allocating array with zero or negative length?");
-                            pwszExtractedFunctionName = new wchar_t[len];
+                            pwszExtractedFunctionName = new char16[len];
                             wcsncpy_s(pwszExtractedFunctionName, len, pwszNameStart + 1, _TRUNCATE);
                         }
                         pwszFunctionName = pwszExtractedFunctionName;
@@ -3660,8 +3660,8 @@ namespace Js
                 function->IsLibraryCode() &&
                 !AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext());
 
-            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"DebugProfileProbeThunk: calling function: %s isWrapperRegistered=%d useDebugWrapper=%d\n",
-                function->GetFunctionInfo()->HasBody() ? function->GetFunctionBody()->GetDisplayName() : L"built-in/library", AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext()), useDebugWrapper);
+            OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("DebugProfileProbeThunk: calling function: %s isWrapperRegistered=%d useDebugWrapper=%d\n"),
+                function->GetFunctionInfo()->HasBody() ? function->GetFunctionBody()->GetDisplayName() : _u("built-in/library"), AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext()), useDebugWrapper);
 
             if (scriptContext->IsScriptContextInDebugMode())
             {
@@ -3759,7 +3759,7 @@ namespace Js
         // TODO : can we do a delay send of these events or can we send an event before doing all this stuff that could calculate overhead?
         Assert(m_pProfileCallback != NULL);
 
-        OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnScriptCompiled scriptId : %d, ScriptType : %d\n", scriptId, type);
+        OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::OnScriptCompiled scriptId : %d, ScriptType : %d\n"), scriptId, type);
 
         HRESULT hr = S_OK;
 
@@ -3785,7 +3785,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (scriptId != BuiltInFunctionsScriptId || Js::Configuration::Global.flags.Verbose)
         {
-            OUTPUT_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnFunctionCompiled scriptId : %d, functionId : %d, FunctionName : %s, FunctionNameHint : %s\n", scriptId, functionId, pwszFunctionName, pwszFunctionNameHint);
+            OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::OnFunctionCompiled scriptId : %d, functionId : %d, FunctionName : %s, FunctionNameHint : %s\n"), scriptId, functionId, pwszFunctionName, pwszFunctionNameHint);
         }
 #endif
 
@@ -3808,7 +3808,7 @@ namespace Js
             return ACTIVPROF_E_PROFILER_ABSENT;
         }
 
-        OUTPUT_VERBOSE_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnFunctionEnter scriptId : %d, functionId : %d\n", scriptId, functionId);
+        OUTPUT_VERBOSE_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::OnFunctionEnter scriptId : %d, functionId : %d\n"), scriptId, functionId);
 
         HRESULT hr = S_OK;
 
@@ -3829,7 +3829,7 @@ namespace Js
             return ACTIVPROF_E_PROFILER_ABSENT;
         }
 
-        OUTPUT_VERBOSE_TRACE(Js::ScriptProfilerPhase, L"ScriptContext::OnFunctionExit scriptId : %d, functionId : %d\n", scriptId, functionId);
+        OUTPUT_VERBOSE_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::OnFunctionExit scriptId : %d, functionId : %d\n"), scriptId, functionId);
 
         HRESULT hr = S_OK;
 
@@ -3848,7 +3848,7 @@ namespace Js
         return pScriptContext->OnFunctionExit(scriptId, functionId);
     }
 
-    HRESULT ScriptContext::FunctionExitByNameSenderThunk(const wchar_t *pwszFunctionName, ScriptContext *pScriptContext)
+    HRESULT ScriptContext::FunctionExitByNameSenderThunk(const char16 *pwszFunctionName, ScriptContext *pScriptContext)
     {
         return pScriptContext->OnDispatchFunctionExit(pwszFunctionName);
     }
@@ -3858,10 +3858,10 @@ namespace Js
         return (m_pBuiltinFunctionIdMap == NULL) ? -1 : m_pBuiltinFunctionIdMap->Lookup(entryPoint, -1);
     }
 
-    HRESULT ScriptContext::RegisterLibraryFunction(const wchar_t *pwszObjectName, const wchar_t *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint)
+    HRESULT ScriptContext::RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint)
     {
 #if DEBUG
-        const wchar_t *pwszObjectNameFromProperty = const_cast<wchar_t *>(GetPropertyName(functionPropertyId)->GetBuffer());
+        const char16 *pwszObjectNameFromProperty = const_cast<char16 *>(GetPropertyName(functionPropertyId)->GetBuffer());
         if (GetPropertyName(functionPropertyId)->IsSymbol())
         {
             // The spec names functions whose property is a well known symbol as the description from the symbol
@@ -3879,11 +3879,11 @@ namespace Js
         // Create the propertyId as object.functionName if it is not global function
         // the global functions would be recognized by just functionName
         // e.g. with functionName, toString, depending on objectName, it could be Object.toString, or Date.toString
-        wchar_t szTempName[70];
+        char16 szTempName[70];
         if (pwszObjectName != NULL)
         {
             // Create name as "object.function"
-            swprintf_s(szTempName, 70, L"%s.%s", pwszObjectName, pwszFunctionName);
+            swprintf_s(szTempName, 70, _u("%s.%s"), pwszObjectName, pwszFunctionName);
             functionPropertyId = GetOrAddPropertyIdTracked(szTempName, (uint)wcslen(szTempName));
         }
 
@@ -4464,7 +4464,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 if (bytesWritten > 0)
                 {
                     JS_ETW(EventWriteJSCRIPT_PROFILE_SAVE(info->dwHostSourceContext, this, bytesWritten, isSaveOnClose));
-                    OUTPUT_TRACE(Js::DynamicProfilePhase, L"Profile saving succeeded\n");
+                    OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Profile saving succeeded\n"));
                 }
             });
 #endif
@@ -4578,7 +4578,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
         if (Configuration::Global.flags.ProfileBailOutRecordMemory)
         {
-            Output::Print(L"CodeSize: %6d\nBailOutRecord Size: %6d\nLocalOffsets Size: %6d\n", codeSize, bailOutRecordBytes, bailOutOffsetBytes);
+            Output::Print(_u("CodeSize: %6d\nBailOutRecord Size: %6d\nLocalOffsets Size: %6d\n"), codeSize, bailOutRecordBytes, bailOutOffsetBytes);
         }
 #endif
 
@@ -4614,7 +4614,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #if DBG_DUMP
         if (PHASE_STATS1(Js::ByteCodePhase))
         {
-            Output::Print(L" Total Bytecode size: <%d, %d, %d> = %d\n",
+            Output::Print(_u(" Total Bytecode size: <%d, %d, %d> = %d\n"),
                 byteCodeDataSize,
                 byteCodeAuxiliaryDataSize,
                 byteCodeAuxiliaryContextDataSize,
@@ -4623,8 +4623,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
         if (Configuration::Global.flags.BytecodeHist)
         {
-            Output::Print(L"ByteCode Histogram\n");
-            Output::Print(L"\n");
+            Output::Print(_u("ByteCode Histogram\n"));
+            Output::Print(_u("\n"));
 
             uint total = 0;
             uint unique = 0;
@@ -4636,8 +4636,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     unique++;
                 }
             }
-            Output::Print(L"%9u                     Total executed ops\n", total);
-            Output::Print(L"\n");
+            Output::Print(_u("%9u                     Total executed ops\n"), total);
+            Output::Print(_u("\n"));
 
             uint max = UINT_MAX;
             double pctcume = 0.0;
@@ -4669,12 +4669,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                         double pct = ((double)max) / total;
                         pctcume += pct;
 
-                        Output::Print(L"%9u  %5.1lf  %5.1lf  %04x %s\n", max, pct * 100, pctcume * 100, j, OpCodeUtil::GetOpCodeName(j));
+                        Output::Print(_u("%9u  %5.1lf  %5.1lf  %04x %s\n"), max, pct * 100, pctcume * 100, j, OpCodeUtil::GetOpCodeName(j));
                     }
                 }
             }
-            Output::Print(L"\n");
-            Output::Print(L"Unique opcodes: %d\n", unique);
+            Output::Print(_u("\n"));
+            Output::Print(_u("Unique opcodes: %d\n"), unique);
         }
 
 #endif
@@ -4695,15 +4695,15 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             uint zeroInterpretedFunctions = 0;
             uint oneInterpretedFunctions = 0;
             uint nonZeroBytecodeFunctions = 0;
-            Output::Print(L"Script Context: 0x%p Url: %s\n", this, this->url);
+            Output::Print(_u("Script Context: 0x%p Url: %s\n"), this, this->url);
 
             FunctionBody* anyFunctionBody = this->FindFunction([](FunctionBody* body) { return body != nullptr; });
 
             if (anyFunctionBody)
             {
-                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, L"Function list\n");
-                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, L"===============================\n");
-                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, L"%-24s, %-8s, %-10s, %-10s, %-10s, %-10s, %-10s\n", L"Function", L"InterpretedCount", L"ByteCodeInLoopSize", L"ByteCodeSize", L"IsJitted", L"IsUsed", L"NativeCodeSize");
+                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, _u("Function list\n"));
+                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, _u("===============================\n"));
+                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, _u("%-24s, %-8s, %-10s, %-10s, %-10s, %-10s, %-10s\n"), _u("Function"), _u("InterpretedCount"), _u("ByteCodeInLoopSize"), _u("ByteCodeSize"), _u("IsJitted"), _u("IsUsed"), _u("NativeCodeSize"));
 
                 this->MapFunction([&](FunctionBody* body)
                 {
@@ -4714,18 +4714,18 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     {
                         body->MapEntryPoints([&](uint entryPointIndex, FunctionEntryPointInfo* entryPoint)
                         {
-                            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                             char rejit = entryPointIndex > 0 ? '*' : ' ';
                             isNativeCode = entryPoint->IsNativeCode() | isNativeCode;
-                            OUTPUT_VERBOSE_STATS(Js::BGJitPhase, L"%-20s %16s %c, %8d , %10d , %10d, %-10s, %-10s, %10d\n",
+                            OUTPUT_VERBOSE_STATS(Js::BGJitPhase, _u("%-20s %16s %c, %8d , %10d , %10d, %-10s, %-10s, %10d\n"),
                                 body->GetExternalDisplayName(),
                                 body->GetDebugNumberSet(debugStringBuffer),
                                 rejit,
                                 body->GetInterpretedCount(),
                                 body->GetByteCodeInLoopCount(),
                                 body->GetByteCodeCount(),
-                                entryPoint->IsNativeCode() ? L"Jitted" : L"Interpreted",
-                                body->GetNativeEntryPointUsed() ? L"Used" : L"NotUsed",
+                                entryPoint->IsNativeCode() ? _u("Jitted") : _u("Interpreted"),
+                                body->GetNativeEntryPointUsed() ? _u("Used") : _u("NotUsed"),
                                 entryPoint->IsNativeCode() ? entryPoint->GetCodeSize() : 0);
                         });
                     }
@@ -4782,23 +4782,23 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
                     body->MapLoopHeaders([&](uint loopNumber, LoopHeader* header)
                     {
-                        wchar_t loopBodyName[256];
+                        char16 loopBodyName[256];
                         body->GetLoopBodyName(loopNumber, loopBodyName, _countof(loopBodyName));
                         header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
                         {
                             if (entryPoint->IsNativeCode())
                             {
-                                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 char rejit = index > 0 ? '*' : ' ';
-                                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, L"%-20s %16s %c, %8d , %10d , %10d, %-10s, %-10s, %10d\n",
+                                OUTPUT_VERBOSE_STATS(Js::BGJitPhase, _u("%-20s %16s %c, %8d , %10d , %10d, %-10s, %-10s, %10d\n"),
                                     loopBodyName,
                                     body->GetDebugNumberSet(debugStringBuffer),
                                     rejit,
                                     header->interpretCount,
                                     header->GetByteCodeCount(),
                                     header->GetByteCodeCount(),
-                                    L"Jitted",
-                                    entryPoint->IsUsed() ? L"Used" : L"NotUsed",
+                                    _u("Jitted"),
+                                    entryPoint->IsUsed() ? _u("Used") : _u("NotUsed"),
                                     entryPoint->GetCodeSize());
                                 if (entryPoint->IsUsed())
                                 {
@@ -4810,14 +4810,14 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 });
             }
 
-            Output::Print(L"**  SpeculativelyJitted: %6d FunctionsJitted: %6d JittedUsed: %6d Usage:%f ByteCodesJitted: %6d JitCodeUsed: %6d Usage: %f \n",
+            Output::Print(_u("**  SpeculativelyJitted: %6d FunctionsJitted: %6d JittedUsed: %6d Usage:%f ByteCodesJitted: %6d JitCodeUsed: %6d Usage: %f \n"),
                 speculativeJitCount, funcJITCount, funcJitCodeUsed, ((float)(funcJitCodeUsed) / funcJITCount) * 100, bytecodeJITCount, jitCodeUsed, ((float)(jitCodeUsed) / bytecodeJITCount) * 100);
-            Output::Print(L"** LoopJITCount: %6d LoopJitCodeUsed: %6d Usage: %f\n",
+            Output::Print(_u("** LoopJITCount: %6d LoopJitCodeUsed: %6d Usage: %f\n"),
                 loopJITCount, loopJitCodeUsed, ((float)loopJitCodeUsed / loopJITCount) * 100);
-            Output::Print(L"** TotalInterpretedCalls: %6d MaxFuncInterp: %6d  InterpretedHighPri: %6d \n",
+            Output::Print(_u("** TotalInterpretedCalls: %6d MaxFuncInterp: %6d  InterpretedHighPri: %6d \n"),
                 interpretedCount, maxFuncInterpret, interpretedCallsHighPri);
-            Output::Print(L"** ZeroInterpretedFunctions: %6d OneInterpretedFunctions: %6d ZeroInterpretedWithNonZeroBytecode: %6d \n ", zeroInterpretedFunctions, oneInterpretedFunctions, nonZeroBytecodeFunctions);
-            Output::Print(L"** %-24s : %-10s %-10s %-10s %-10s %-10s\n", L"InterpretedCounts", L"Total", L"NativeCode", L"Used", L"Usage", L"Rejits");
+            Output::Print(_u("** ZeroInterpretedFunctions: %6d OneInterpretedFunctions: %6d ZeroInterpretedWithNonZeroBytecode: %6d \n "), zeroInterpretedFunctions, oneInterpretedFunctions, nonZeroBytecodeFunctions);
+            Output::Print(_u("** %-24s : %-10s %-10s %-10s %-10s %-10s\n"), _u("InterpretedCounts"), _u("Total"), _u("NativeCode"), _u("Used"), _u("Usage"), _u("Rejits"));
             uint low = 0;
             uint high = 0;
             for (uint i = 0; i < _countof(totalBuckets); i++)
@@ -4834,9 +4834,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     high = 100000;
                 }
-                Output::Print(L"** %10d - %10d : %10d %10d %10d %7.2f %10d\n", low, high, totalBuckets[i], nativeCodeBuckets[i], usedNativeCodeBuckets[i], ((float)usedNativeCodeBuckets[i] / nativeCodeBuckets[i]) * 100, rejits[i]);
+                Output::Print(_u("** %10d - %10d : %10d %10d %10d %7.2f %10d\n"), low, high, totalBuckets[i], nativeCodeBuckets[i], usedNativeCodeBuckets[i], ((float)usedNativeCodeBuckets[i] / nativeCodeBuckets[i]) * 100, rejits[i]);
             }
-            Output::Print(L"\n\n");
+            Output::Print(_u("\n\n"));
         }
 #endif
 
@@ -4848,43 +4848,43 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             WCHAR buf[256];
 
             // Dump bailout data.
-            Output::Print(L"%-40s %6s\n", L"Bailout Reason,", L"Count");
+            Output::Print(_u("%-40s %6s\n"), _u("Bailout Reason,"), _u("Count"));
 
             bailoutReasonCounts->Map([&totalBailouts](uint kind, uint val) {
                 WCHAR buf[256];
                 totalBailouts += val;
                 if (val != 0)
                 {
-                    swprintf_s(buf, L"%S,", GetBailOutKindName((IR::BailOutKind)kind));
-                    Output::Print(L"%-40s %6d\n", buf, val);
+                    swprintf_s(buf, _u("%S,"), GetBailOutKindName((IR::BailOutKind)kind));
+                    Output::Print(_u("%-40s %6d\n"), buf, val);
                 }
             });
 
 
-            Output::Print(L"%-40s %6d\n", L"TOTAL,", totalBailouts);
-            Output::Print(L"\n\n");
+            Output::Print(_u("%-40s %6d\n"), _u("TOTAL,"), totalBailouts);
+            Output::Print(_u("\n\n"));
 
             // Dump rejit data.
-            Output::Print(L"%-40s %6s\n", L"Rejit Reason,", L"Count");
+            Output::Print(_u("%-40s %6s\n"), _u("Rejit Reason,"), _u("Count"));
             for (uint i = 0; i < NumRejitReasons; ++i)
             {
                 totalRejits += rejitReasonCounts[i];
                 if (rejitReasonCounts[i] != 0)
                 {
-                    swprintf_s(buf, L"%S,", RejitReasonNames[i]);
-                    Output::Print(L"%-40s %6d\n", buf, rejitReasonCounts[i]);
+                    swprintf_s(buf, _u("%S,"), RejitReasonNames[i]);
+                    Output::Print(_u("%-40s %6d\n"), buf, rejitReasonCounts[i]);
                 }
             }
-            Output::Print(L"%-40s %6d\n", L"TOTAL,", totalRejits);
-            Output::Print(L"\n\n");
+            Output::Print(_u("%-40s %6d\n"), _u("TOTAL,"), totalRejits);
+            Output::Print(_u("\n\n"));
 
             // If in verbose mode, dump data for each FunctionBody
             if (Configuration::Global.flags.Verbose && rejitStatsMap != NULL)
             {
                 // Aggregated data
-                Output::Print(L"%-30s %14s %14s\n", L"Function (#),", L"Bailout Count,", L"Rejit Count");
+                Output::Print(_u("%-30s %14s %14s\n"), _u("Function (#),"), _u("Bailout Count,"), _u("Rejit Count"));
                 rejitStatsMap->Map([](Js::FunctionBody const *body, RejitStats *stats, RecyclerWeakReference<const Js::FunctionBody> const*) {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     for (uint i = 0; i < NumRejitReasons; ++i)
                         stats->m_totalRejits += stats->m_rejitReasonCounts[i];
 
@@ -4894,49 +4894,49 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
                     WCHAR buf[256];
 
-                    swprintf_s(buf, L"%s (%s),", body->GetExternalDisplayName(), (const_cast<Js::FunctionBody*>(body))->GetDebugNumberSet(debugStringBuffer)); //TODO Kount
-                    Output::Print(L"%-30s %14d, %14d\n", buf, stats->m_totalBailouts, stats->m_totalRejits);
+                    swprintf_s(buf, _u("%s (%s),"), body->GetExternalDisplayName(), (const_cast<Js::FunctionBody*>(body))->GetDebugNumberSet(debugStringBuffer)); //TODO Kount
+                    Output::Print(_u("%-30s %14d, %14d\n"), buf, stats->m_totalBailouts, stats->m_totalRejits);
 
                 });
-                Output::Print(L"\n\n");
+                Output::Print(_u("\n\n"));
 
                 // Per FunctionBody data
                 rejitStatsMap->Map([](Js::FunctionBody const *body, RejitStats *stats, RecyclerWeakReference<const Js::FunctionBody> const *) {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     WCHAR buf[256];
 
-                    swprintf_s(buf, L"%s (%s),", body->GetExternalDisplayName(), (const_cast<Js::FunctionBody*>(body))->GetDebugNumberSet(debugStringBuffer)); //TODO Kount
-                    Output::Print(L"%-30s\n\n", buf);
+                    swprintf_s(buf, _u("%s (%s),"), body->GetExternalDisplayName(), (const_cast<Js::FunctionBody*>(body))->GetDebugNumberSet(debugStringBuffer)); //TODO Kount
+                    Output::Print(_u("%-30s\n\n"), buf);
 
                     // Dump bailout data
                     if (stats->m_totalBailouts != 0)
                     {
-                        Output::Print(L"%10sBailouts:\n", L"");
+                        Output::Print(_u("%10sBailouts:\n"), _u(""));
 
                         stats->m_bailoutReasonCounts->Map([](uint kind, uint val) {
                             if (val != 0)
                             {
                                 WCHAR buf[256];
-                                swprintf_s(buf, L"%S,", GetBailOutKindName((IR::BailOutKind)kind));
-                                Output::Print(L"%10s%-40s %6d\n", L"", buf, val);
+                                swprintf_s(buf, _u("%S,"), GetBailOutKindName((IR::BailOutKind)kind));
+                                Output::Print(_u("%10s%-40s %6d\n"), _u(""), buf, val);
                             }
                         });
                     }
-                    Output::Print(L"\n");
+                    Output::Print(_u("\n"));
 
                     // Dump rejit data.
                     if (stats->m_totalRejits != 0)
                     {
-                        Output::Print(L"%10sRejits:\n", L"");
+                        Output::Print(_u("%10sRejits:\n"), _u(""));
                         for (uint i = 0; i < NumRejitReasons; ++i)
                         {
                             if (stats->m_rejitReasonCounts[i] != 0)
                             {
-                                swprintf_s(buf, L"%S,", RejitReasonNames[i]);
-                                Output::Print(L"%10s%-40s %6d\n", L"", buf, stats->m_rejitReasonCounts[i]);
+                                swprintf_s(buf, _u("%S,"), RejitReasonNames[i]);
+                                Output::Print(_u("%10s%-40s %6d\n"), _u(""), buf, stats->m_rejitReasonCounts[i]);
                             }
                         }
-                        Output::Print(L"\n\n");
+                        Output::Print(_u("\n\n"));
                     }
                 });
 
@@ -4961,12 +4961,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 if (PHASE_VERBOSE_STATS1(Js::ObjTypeSpecPhase))
                 {
                     FunctionBody* functionBody = entry->functionBodyWeakRef->Get();
-                    const wchar_t* functionName = functionBody != nullptr ? functionBody->GetDisplayName() : L"<unknown>";
-                    Output::Print(L"FieldAccessStats: function %s (#%u): inline cache stats:\n", functionName, functionNumber);
-                    Output::Print(L"    overall: total %u, no profile info %u\n", functionStats.totalInlineCacheCount, functionStats.noInfoInlineCacheCount);
-                    Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+                    const char16* functionName = functionBody != nullptr ? functionBody->GetDisplayName() : _u("<unknown>");
+                    Output::Print(_u("FieldAccessStats: function %s (#%u): inline cache stats:\n"), functionName, functionNumber);
+                    Output::Print(_u("    overall: total %u, no profile info %u\n"), functionStats.totalInlineCacheCount, functionStats.noInfoInlineCacheCount);
+                    Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
                         functionStats.monoInlineCacheCount, functionStats.emptyMonoInlineCacheCount, functionStats.clonedMonoInlineCacheCount);
-                    Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+                    Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
                         functionStats.polyInlineCacheCount, functionStats.highUtilPolyInlineCacheCount, functionStats.lowUtilPolyInlineCacheCount,
                         functionStats.nullPolyInlineCacheCount, functionStats.emptyPolyInlineCacheCount, functionStats.ignoredPolyInlineCacheCount, functionStats.disabledPolyInlineCacheCount,
                         functionStats.equivPolyInlineCacheCount, functionStats.nonEquivPolyInlineCacheCount, functionStats.clonedPolyInlineCacheCount);
@@ -4976,11 +4976,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             });
         }
 
-        Output::Print(L"FieldAccessStats: totals\n");
-        Output::Print(L"    overall: total %u, no profile info %u\n", globalStats.totalInlineCacheCount, globalStats.noInfoInlineCacheCount);
-        Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+        Output::Print(_u("FieldAccessStats: totals\n"));
+        Output::Print(_u("    overall: total %u, no profile info %u\n"), globalStats.totalInlineCacheCount, globalStats.noInfoInlineCacheCount);
+        Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
             globalStats.monoInlineCacheCount, globalStats.emptyMonoInlineCacheCount, globalStats.clonedMonoInlineCacheCount);
-        Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+        Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
             globalStats.polyInlineCacheCount, globalStats.highUtilPolyInlineCacheCount, globalStats.lowUtilPolyInlineCacheCount,
             globalStats.nullPolyInlineCacheCount, globalStats.emptyPolyInlineCacheCount, globalStats.ignoredPolyInlineCacheCount, globalStats.disabledPolyInlineCacheCount,
             globalStats.equivPolyInlineCacheCount, globalStats.nonEquivPolyInlineCacheCount, globalStats.clonedPolyInlineCacheCount);
@@ -4990,7 +4990,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #ifdef MISSING_PROPERTY_STATS
     if (PHASE_STATS1(Js::MissingPropertyCachePhase))
     {
-        Output::Print(L"MissingPropertyStats: hits = %d, misses = %d, cache attempts = %d.\n",
+        Output::Print(_u("MissingPropertyStats: hits = %d, misses = %d, cache attempts = %d.\n"),
             this->missingPropertyHits, this->missingPropertyMisses, this->missingPropertyCacheAttempts);
     }
 #endif
@@ -4999,20 +4999,20 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #ifdef INLINE_CACHE_STATS
         if (PHASE_STATS1(Js::PolymorphicInlineCachePhase))
         {
-            Output::Print(L"%s,%s,%s,%s,%s,%s,%s,%s,%s\n", L"Function", L"Property", L"Kind", L"Accesses", L"Misses", L"Miss Rate", L"Collisions", L"Collision Rate", L"Slot Count");
+            Output::Print(_u("%s,%s,%s,%s,%s,%s,%s,%s,%s\n"), _u("Function"), _u("Property"), _u("Kind"), _u("Accesses"), _u("Misses"), _u("Miss Rate"), _u("Collisions"), _u("Collision Rate"), _u("Slot Count"));
             cacheDataMap->Map([this](Js::PolymorphicInlineCache const *cache, CacheData *data) {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 uint total = data->hits + data->misses;
-                wchar_t const *propName = this->threadContext->GetPropertyName(data->propertyId)->GetBuffer();
+                char16 const *propName = this->threadContext->GetPropertyName(data->propertyId)->GetBuffer();
 
                 wchar funcName[1024];
 
-                swprintf_s(funcName, L"%s (%s)", cache->functionBody->GetExternalDisplayName(), cache->functionBody->GetDebugNumberSet(debugStringBuffer));
+                swprintf_s(funcName, _u("%s (%s)"), cache->functionBody->GetExternalDisplayName(), cache->functionBody->GetDebugNumberSet(debugStringBuffer));
 
-                Output::Print(L"%s,%s,%s,%d,%d,%f,%d,%f,%d\n",
+                Output::Print(_u("%s,%s,%s,%d,%d,%f,%d,%f,%d\n"),
                     funcName,
                     propName,
-                    data->isGetCache ? L"get" : L"set",
+                    data->isGetCache ? _u("get") : _u("set"),
                     total,
                     data->misses,
                     static_cast<float>(data->misses) / total,
@@ -5028,11 +5028,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         if (regexStatsDatabase != 0)
             regexStatsDatabase->Print(GetRegexDebugWriter());
 #endif
-        OUTPUT_STATS(Js::EmitterPhase, L"Script Context: 0x%p Url: %s\n", this, this->url);
-        OUTPUT_STATS(Js::EmitterPhase, L"  Total thread committed code size = %d\n", this->GetThreadContext()->GetCodeSize());
+        OUTPUT_STATS(Js::EmitterPhase, _u("Script Context: 0x%p Url: %s\n"), this, this->url);
+        OUTPUT_STATS(Js::EmitterPhase, _u("  Total thread committed code size = %d\n"), this->GetThreadContext()->GetCodeSize());
 
-        OUTPUT_STATS(Js::ParsePhase, L"Script Context: 0x%p Url: %s\n", this, this->url);
-        OUTPUT_STATS(Js::ParsePhase, L"  Total ThreadContext source size %d\n", this->GetThreadContext()->GetSourceSize());
+        OUTPUT_STATS(Js::ParsePhase, _u("Script Context: 0x%p Url: %s\n"), this, this->url);
+        OUTPUT_STATS(Js::ParsePhase, _u("  Total ThreadContext source size %d\n"), this->GetThreadContext()->GetSourceSize());
 #endif
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -5307,7 +5307,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         }
 
         Assert(EventEnabledJSCRIPT_STACKTRACE() || EventEnabledJSCRIPT_ASYNCCAUSALITY_STACKTRACE_V2() || PHASE_TRACE1(Js::StackFramesEventPhase));
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, this, L"StackTraceEvent")
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, this, _u("StackTraceEvent"))
         {
             JsUtil::List<StackFrameInfo, ArenaAllocator> stackFrames(tempAllocator);
             Js::JavascriptStackWalker walker(this);
@@ -5315,7 +5315,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             Js::StringBuilder<ArenaAllocator> nameBuffer(tempAllocator);
             nameBuffer.Reset();
 
-            OUTPUT_TRACE(Js::StackFramesEventPhase, L"\nPosting stack trace via ETW:\n");
+            OUTPUT_TRACE(Js::StackFramesEventPhase, _u("\nPosting stack trace via ETW:\n"));
 
             ushort frameCount = walker.WalkUntil((ushort)maxFrameCount, [&](Js::JavascriptFunction* function, ushort frameIndex) -> bool
             {
@@ -5358,8 +5358,8 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     methodIdOrNameId,
                     isFrameIndex);
 
-                OUTPUT_TRACE(Js::StackFramesEventPhase, L"Frame : (%s : %u) (%s), LineNumber : %u, ColumnNumber : %u\n",
-                    (isFrameIndex == 1) ? (L"NameBufferIndex") : (L"MethodID"),
+                OUTPUT_TRACE(Js::StackFramesEventPhase, _u("Frame : (%s : %u) (%s), LineNumber : %u, ColumnNumber : %u\n"),
+                    (isFrameIndex == 1) ? (_u("NameBufferIndex")) : (_u("MethodID")),
                     methodIdOrNameId,
                     name,
                     lineNumber,
@@ -5465,7 +5465,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         // Adjust nameLen based on any escape characters we added to escape the '\"' in name.
         nameLen = (unsigned short)AppendWithEscapeCharacters(nameBuffer, name, nameLen, '\\', '\"');
 
-        nameBuffer->AppendCppLiteral(L"\";");
+        nameBuffer->AppendCppLiteral(_u("\";"));
 
         // Add 3 padding characters here - one for initial '\"' character, too.
         nameLen += 3;

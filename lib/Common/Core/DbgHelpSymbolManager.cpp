@@ -27,12 +27,12 @@ DbgHelpSymbolManager DbgHelpSymbolManager::Instance;
 void
 DbgHelpSymbolManager::Initialize()
 {
-    wchar_t *wszSearchPath = nullptr;
-    wchar_t *wszModuleDrive = nullptr;
-    wchar_t *wszModuleDir = nullptr;
-    wchar_t *wszOldSearchPath = nullptr;
-    wchar_t *wszNewSearchPath = nullptr;
-    wchar_t *wszModuleName = nullptr;
+    char16 *wszSearchPath = nullptr;
+    char16 *wszModuleDrive = nullptr;
+    char16 *wszModuleDir = nullptr;
+    char16 *wszOldSearchPath = nullptr;
+    char16 *wszNewSearchPath = nullptr;
+    char16 *wszModuleName = nullptr;
 
     const size_t ceModuleName = _MAX_PATH;
     const size_t ceOldSearchPath = 32767;
@@ -53,14 +53,14 @@ DbgHelpSymbolManager::Initialize()
 
     // Let's make sure the directory where chakra.dll is, is on the symbol path.
 
-    wchar_t const * wszModule = AutoSystemInfo::GetJscriptDllFileName();
-    wszModuleName = NoCheckHeapNewArray(wchar_t, ceModuleName);
+    char16 const * wszModule = AutoSystemInfo::GetJscriptDllFileName();
+    wszModuleName = NoCheckHeapNewArray(char16, ceModuleName);
     if (wszModuleName == nullptr)
     {
         goto end;
     }
 
-    if (wcscmp(wszModule, L"") == 0)
+    if (wcscmp(wszModule, _u("")) == 0)
     {
         if (GetModuleFileName(NULL, wszModuleName, static_cast<DWORD>(ceModuleName)))
         {
@@ -74,13 +74,13 @@ DbgHelpSymbolManager::Initialize()
 
     if (wszModule != nullptr)
     {
-        wszModuleDrive = NoCheckHeapNewArray(wchar_t, _MAX_DRIVE);
+        wszModuleDrive = NoCheckHeapNewArray(char16, _MAX_DRIVE);
         if (wszModuleDrive == nullptr)
         {
             goto end;
         }
 
-        wszModuleDir = NoCheckHeapNewArray(wchar_t, _MAX_DIR);
+        wszModuleDir = NoCheckHeapNewArray(char16, _MAX_DIR);
         if (wszModuleDir == nullptr)
         {
             goto end;
@@ -89,21 +89,21 @@ DbgHelpSymbolManager::Initialize()
         _wsplitpath_s(wszModule, wszModuleDrive, _MAX_DRIVE, wszModuleDir, _MAX_DIR, NULL, 0, NULL, 0);
         _wmakepath_s(wszModuleName, ceModuleName, wszModuleDrive, wszModuleDir, NULL, NULL);
 
-        wszOldSearchPath = NoCheckHeapNewArray(wchar_t, ceOldSearchPath);
+        wszOldSearchPath = NoCheckHeapNewArray(char16, ceOldSearchPath);
         if (wszOldSearchPath == nullptr)
         {
             goto end;
         }
 
-        wszNewSearchPath = NoCheckHeapNewArray(wchar_t, ceNewSearchPath);
+        wszNewSearchPath = NoCheckHeapNewArray(char16, ceNewSearchPath);
         if (wszNewSearchPath == nullptr)
         {
             goto end;
         }
 
-        if (GetEnvironmentVariable(L"_NT_SYMBOL_PATH", wszOldSearchPath, static_cast<DWORD>(ceOldSearchPath)) != 0)
+        if (GetEnvironmentVariable(_u("_NT_SYMBOL_PATH"), wszOldSearchPath, static_cast<DWORD>(ceOldSearchPath)) != 0)
         {
-            swprintf_s(wszNewSearchPath, ceNewSearchPath, L"%s;%s", wszOldSearchPath, wszModuleName);
+            swprintf_s(wszNewSearchPath, ceNewSearchPath, _u("%s;%s"), wszOldSearchPath, wszModuleName);
             wszSearchPath = wszNewSearchPath;
         }
         else
@@ -112,7 +112,7 @@ DbgHelpSymbolManager::Initialize()
         }
     }
 
-    hDbgHelpModule = LoadLibraryEx(L"dbghelp.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    hDbgHelpModule = LoadLibraryEx(_u("dbghelp.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (hDbgHelpModule == nullptr)
     {
         goto end;
@@ -233,18 +233,18 @@ size_t DbgHelpSymbolManager::PrintSymbol(PVOID address)
         DWORD dwDisplacementDWord = static_cast<DWORD>(dwDisplacement);
         if (DbgHelpSymbolManager::SymGetLineFromAddr64(address, &dwDisplacementDWord, &lineInfo))
         {
-            retValue += Output::Print(L"0x%p %s+0x%llx (%s:%d)", address, pSymbol->Name, dwDisplacement, lineInfo.FileName, lineInfo.LineNumber);
+            retValue += Output::Print(_u("0x%p %s+0x%llx (%s:%d)"), address, pSymbol->Name, dwDisplacement, lineInfo.FileName, lineInfo.LineNumber);
         }
         else
         {
             // SymGetLineFromAddr64 failed
-            retValue += Output::Print(L"0x%p %s+0x%llx", address, pSymbol->Name, dwDisplacement);
+            retValue += Output::Print(_u("0x%p %s+0x%llx"), address, pSymbol->Name, dwDisplacement);
         }
     }
     else
     {
         // SymFromAddr failed
-        retValue += Output::Print(L"0x%p", address);
+        retValue += Output::Print(_u("0x%p"), address);
     }
     return retValue;
 }

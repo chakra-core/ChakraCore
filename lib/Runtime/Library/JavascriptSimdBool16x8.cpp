@@ -88,13 +88,13 @@ namespace Js
 
         if (args.Info.Count == 0 || !JavascriptSIMDBool16x8::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDBool32x4.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, _u("SIMDBool32x4.toString"));
         }
 
         JavascriptSIMDBool16x8 *instance = JavascriptSIMDBool16x8::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
+        char16 stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
         
         JavascriptSIMDBool16x8::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);

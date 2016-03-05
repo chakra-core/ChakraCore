@@ -22,7 +22,7 @@ bool JsUtil::ExternalApi::RaiseOnIntOverflow()
 
 LPWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
-    return L"";
+    return _u("");
 }
 
 bool JsUtil::ExternalApi::RaiseStackOverflowIfScriptActive(Js::ScriptContext * scriptContext, PVOID returnAddress)

@@ -78,13 +78,13 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0 || JavascriptOperators::GetTypeId(args[0]) != TypeIds_SIMDUint16x8)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDUint16x8.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, _u("SIMDUint16x8.toString"));
         }
 
         JavascriptSIMDUint16x8* instance = JavascriptSIMDUint16x8::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
+        char16 stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
         JavascriptSIMDUint16x8::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);

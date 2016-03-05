@@ -70,7 +70,7 @@ namespace Js
             // this->srcInfo.moduleID = moduleId;
             LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                 (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, L"module", loadScriptFlag, &sourceIndex);
+            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
             if (parseTree == nullptr)
             {
                 // Assert have error.
@@ -160,7 +160,7 @@ namespace Js
     {
         if (tempAllocatorObject == nullptr)
         {
-            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(L"Module");
+            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(_u("Module"));
         }
         return tempAllocatorObject->GetAllocator();
     }
@@ -276,7 +276,7 @@ namespace Js
         uint sourceIndex = scriptContext->SaveSourceNoCopy(this->pSourceInfo, static_cast<charcount_t>(this->pSourceInfo->GetCchLength()), /*isCesu8*/ true);
         CompileScriptException se;
          //TODO: fix up byte code generation. moduleID in the SRCINFO is the moduleId of current module.
-        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, L"module");
+        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         CleanupBeforeExecution();
         if (rootFunction == nullptr)
         {

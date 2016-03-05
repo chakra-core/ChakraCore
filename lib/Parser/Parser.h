@@ -20,7 +20,7 @@ namespace UnifiedRegex {
     struct Program;
     template <typename T> class StandardChars;
     typedef StandardChars<uint8> UTF8StandardChars;
-    typedef StandardChars<wchar_t> UnicodeStandardChars;
+    typedef StandardChars<char16> UnicodeStandardChars;
 #if ENABLE_REGEX_CONFIG_OPTIONS
     class DebugWriter;
     struct RegexStats;

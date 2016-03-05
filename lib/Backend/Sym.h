@@ -304,7 +304,7 @@ public:
     Func *          m_loadInlineCacheFunc;
     uint            m_loadInlineCacheIndex;
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const wchar_t* GetName() const;
+    const char16* GetName() const;
 #endif
 private:
     uint32          m_propertyIdIndex;

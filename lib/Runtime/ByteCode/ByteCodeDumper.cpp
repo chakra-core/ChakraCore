@@ -32,32 +32,32 @@ namespace Js
         StatementReader statementReader;
         statementReader.Create(dumpFunction);
         dumpFunction->DumpFullFunctionName();
-        Output::Print(L" (");
+        Output::Print(_u(" ("));
         ArgSlot inParamCount = dumpFunction->GetInParamsCount();
         for (ArgSlot paramIndex = 0; paramIndex < inParamCount; paramIndex++)
         {
             if (paramIndex > 0)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"In%hu", paramIndex);
+            Output::Print(_u("In%hu"), paramIndex);
         }
-        Output::Print(L") ");
-        Output::Print(L"(size: %d [%d])\n", dumpFunction->GetByteCodeCount(), dumpFunction->GetByteCodeWithoutLDACount());
+        Output::Print(_u(") "));
+        Output::Print(_u("(size: %d [%d])\n"), dumpFunction->GetByteCodeCount(), dumpFunction->GetByteCodeWithoutLDACount());
 #if defined(DBG) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
         if (dumpFunction->IsInDebugMode())
         {
-            Output::Print(L"[Bytecode was generated for debug mode]\n");
+            Output::Print(_u("[Bytecode was generated for debug mode]\n"));
         }
 #endif
 #if DBG
         if (dumpFunction->IsReparsed())
         {
-            Output::Print(L"[A reparse is being done]\n");
+            Output::Print(_u("[A reparse is being done]\n"));
         }
 #endif
         Output::Print(
-            L"      %u locals (%u temps from R%u), %u inline cache\n",
+            _u("      %u locals (%u temps from R%u), %u inline cache\n"),
             dumpFunction->GetLocalsCount(),
             dumpFunction->GetTempCount(),
             dumpFunction->GetFirstTmpReg(),
@@ -80,7 +80,7 @@ namespace Js
                 Assert(reader.GetCurrentOffset() == dumpFunction->GetByteCode()->GetLength());
                 break;
             }
-            Output::Print(L"    %04x %2s", byteOffset, layoutSize == LargeLayout? L"L-" : layoutSize == MediumLayout? L"M-" : L"");
+            Output::Print(_u("    %04x %2s"), byteOffset, layoutSize == LargeLayout? _u("L-") : layoutSize == MediumLayout? _u("M-") : _u(""));
             DumpOp(op, layoutSize, reader, dumpFunction);
             if (Js::Configuration::Global.flags.Verbose)
             {
@@ -89,13 +89,13 @@ namespace Js
                 Output::SkipToColumn(70);
                 if (layoutSize == LargeLayout)
                 {
-                    Output::Print(L"%02X ",
+                    Output::Print(_u("%02X "),
                         op > Js::OpCode::MaxByteSizedOpcodes?
                             Js::OpCode::ExtendedLargeLayoutPrefix : Js::OpCode::LargeLayoutPrefix);
                 }
                 else if (layoutSize == MediumLayout)
                 {
-                    Output::Print(L"%02X ",
+                    Output::Print(_u("%02X "),
                         op > Js::OpCode::MaxByteSizedOpcodes?
                             Js::OpCode::ExtendedMediumLayoutPrefix : Js::OpCode::MediumLayoutPrefix);
                 }
@@ -104,34 +104,34 @@ namespace Js
                     Assert(layoutSize == SmallLayout);
                     if (op > Js::OpCode::MaxByteSizedOpcodes)
                     {
-                        Output::Print(L"%02X ", Js::OpCode::ExtendedOpcodePrefix);
+                        Output::Print(_u("%02X "), Js::OpCode::ExtendedOpcodePrefix);
                     }
                     else
                     {
-                        Output::Print(L"   ");
+                        Output::Print(_u("   "));
                         layoutStart--; // don't have a prefix
                     }
                 }
 
-                Output::Print(L"%02x", (byte)op);
+                Output::Print(_u("%02x"), (byte)op);
                 for (int i = layoutStart; i < endByteOffset; i++)
                 {
-                    Output::Print(L" %02x", reader.GetRawByte(i));
+                    Output::Print(_u(" %02x"), reader.GetRawByte(i));
                 }
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         if (statementReader.AtStatementBoundary(&reader))
         {
             dumpFunction->PrintStatementSourceLine(statementIndex);
             statementIndex = statementReader.MoveNextStatementBoundary();
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
     void ByteCodeDumper::DumpConstantTable(FunctionBody *dumpFunction)
     {
-        Output::Print(L"    Constant Table:\n    ======== =====\n    ");
+        Output::Print(_u("    Constant Table:\n    ======== =====\n    "));
         uint count = dumpFunction->GetConstantCount();
         for (RegSlot reg = FunctionBody::FirstRegSlot; reg < count; reg++)
         {
@@ -141,28 +141,28 @@ namespace Js
             if (TaggedInt::Is(varConst))
             {
 #if ENABLE_NATIVE_CODEGEN
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdC_A_I4));
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdC_A_I4));
 #else
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
                 DumpI4(TaggedInt::ToInt32(varConst));
             }
             else if (varConst == (Js::Var)&Js::NullFrameDisplay)
             {
 #if ENABLE_NATIVE_CODEGEN
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdNullDisplay));
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdNullDisplay));
 #else
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
-                Output::Print(L" (NullDisplay)");
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                Output::Print(_u(" (NullDisplay)"));
 #endif
             }
             else if (varConst == (Js::Var)&Js::StrictNullFrameDisplay)
             {
 #if ENABLE_NATIVE_CODEGEN
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdStrictNullDisplay));
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdStrictNullDisplay));
 #else
-                Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
-                Output::Print(L" (StrictNullDisplay)");
+                Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                Output::Print(_u(" (StrictNullDisplay)"));
 #endif
             }
             else
@@ -170,45 +170,45 @@ namespace Js
                 switch (JavascriptOperators::GetTypeId(varConst))
                 {
                 case Js::TypeIds_Undefined:
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
-                    Output::Print(L" (undefined)");
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u(" (undefined)"));
                     break;
                 case Js::TypeIds_Null:
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
-                    Output::Print(L" (null)");
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u(" (null)"));
                     break;
                 case Js::TypeIds_Boolean:
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(
                         JavascriptBoolean::FromVar(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
                     break;
                 case Js::TypeIds_Number:
 #if ENABLE_NATIVE_CODEGEN
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdC_A_R8));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdC_A_R8));
 #else
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
-                    Output::Print(L"%G", JavascriptNumber::GetValue(varConst));
+                    Output::Print(_u("%G"), JavascriptNumber::GetValue(varConst));
                     break;
                 case Js::TypeIds_String:
 #if ENABLE_NATIVE_CODEGEN
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdStr));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdStr));
 #else
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
-                    Output::Print(L" (\"%s\")", JavascriptString::FromVar(varConst)->GetSz());
+                    Output::Print(_u(" (\"%s\")"), JavascriptString::FromVar(varConst)->GetSz());
                     break;
                 case Js::TypeIds_GlobalObject:
 #if ENABLE_NATIVE_CODEGEN
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdRoot));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdRoot));
 #else
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
                     break;
                 case Js::TypeIds_ModuleRoot:
 #if ENABLE_NATIVE_CODEGEN
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::LdModuleRoot));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdModuleRoot));
 #else
-                    Output::Print(L"%-10s", OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
                     DumpI4(dumpFunction->GetModuleID());
                     break;
@@ -216,17 +216,17 @@ namespace Js
                     // ES5Array objects in the constant table are always string template callsite objects.
                     // If we later put other ES5Array objects in the constant table, we'll need another way
                     // to decide the constant type.
-                    Output::Print(L"%-10s", L"LdStringTemplate");
-                    Output::Print(L" (\"%s\")", dumpFunction->GetScriptContext()->GetLibrary()->GetStringTemplateCallsiteObjectKey(varConst));
+                    Output::Print(_u("%-10s"), _u("LdStringTemplate"));
+                    Output::Print(_u(" (\"%s\")"), dumpFunction->GetScriptContext()->GetLibrary()->GetStringTemplateCallsiteObjectKey(varConst));
                     break;
                 default:
                     AssertMsg(UNREACHED, "Unexpected object type in CloneConstantTable");
                     break;
                 }
             }
-            Output::Print(L"\n    ");
+            Output::Print(_u("\n    "));
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
     void ByteCodeDumper::DumpImplicitArgIns(FunctionBody * dumpFunction)
     {
@@ -234,50 +234,50 @@ namespace Js
         {
             return;
         }
-        Output::Print(L"    Implicit Arg Ins:\n    ======== === ===\n    ");
+        Output::Print(_u("    Implicit Arg Ins:\n    ======== === ===\n    "));
         for (RegSlot reg = 1;
             reg < dumpFunction->GetInParamsCount(); reg++)
         {
             DumpReg((RegSlot)(reg + dumpFunction->GetConstantCount() - 1));
             // DisableJIT-TODO: Should this entire function be ifdefed?
 #if ENABLE_NATIVE_CODEGEN
-            Output::Print(L"%-11s", OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_A));
+            Output::Print(_u("%-11s"), OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_A));
 #endif
-            Output::Print(L"In%d\n    ", reg);
+            Output::Print(_u("In%d\n    "), reg);
         }
         if (dumpFunction->GetHasRestParameter())
         {
             DumpReg(dumpFunction->GetRestParamRegSlot());
 #if ENABLE_NATIVE_CODEGEN
-            Output::Print(L"%-11s", OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_Rest));
+            Output::Print(_u("%-11s"), OpCodeUtil::GetOpCodeName(Js::OpCode::ArgIn_Rest));
 #endif
-            Output::Print(L"In%d\n    ", dumpFunction->GetInParamsCount());
+            Output::Print(_u("In%d\n    "), dumpFunction->GetInParamsCount());
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
     void ByteCodeDumper::DumpU4(uint32 value)
     {
-        Output::Print(L" uint:%u ", value);
+        Output::Print(_u(" uint:%u "), value);
     }
     void ByteCodeDumper::DumpI4(int value)
     {
-        Output::Print(L" int:%d ", value);
+        Output::Print(_u(" int:%d "), value);
     }
     void ByteCodeDumper::DumpU2(ushort value)
     {
-        Output::Print(L" ushort:%d ", value);
+        Output::Print(_u(" ushort:%d "), value);
     }
     void ByteCodeDumper::DumpOffset(int byteOffset, ByteCodeReader const& reader)
     {
-        Output::Print(L" x:%04x (%4d) ", reader.GetCurrentOffset() + byteOffset, byteOffset);
+        Output::Print(_u(" x:%04x (%4d) "), reader.GetCurrentOffset() + byteOffset, byteOffset);
     }
     void ByteCodeDumper::DumpAddr(void* addr)
     {
-        Output::Print(L" addr:%04x ", addr);
+        Output::Print(_u(" addr:%04x "), addr);
     }
     void ByteCodeDumper::DumpOp(OpCode op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction)
     {
-        Output::Print(L"%-20s", OpCodeUtil::GetOpCodeName(op));
+        Output::Print(_u("%-20s"), OpCodeUtil::GetOpCodeName(op));
         OpLayoutType nType = OpCodeUtil::GetOpCodeLayout(op);
         switch (layoutSize * OpLayoutType::Count + nType)
         {
@@ -308,23 +308,23 @@ namespace Js
 
     void ByteCodeDumper::DumpR8(double value)
     {
-        Output::Print(L" double:%g ", value);
+        Output::Print(_u(" double:%g "), value);
     }
     void ByteCodeDumper::DumpReg(RegSlot registerID)
     {
-        Output::Print(L" R%d ", (int) registerID);
+        Output::Print(_u(" R%d "), (int) registerID);
     }
     void ByteCodeDumper::DumpReg(RegSlot_TwoByte registerID)
     {
-        Output::Print(L" R%d ", (int) registerID);
+        Output::Print(_u(" R%d "), (int) registerID);
     }
     void ByteCodeDumper::DumpReg(RegSlot_OneByte registerID)
     {
-        Output::Print(L" R%d ", (int) registerID);
+        Output::Print(_u(" R%d "), (int) registerID);
     }
     void ByteCodeDumper::DumpProfileId(uint id)
     {
-        Output::Print(L" <%d> ", id);
+        Output::Print(_u(" <%d> "), id);
     }
     void ByteCodeDumper::DumpEmpty(OpCode op, const unaligned OpLayoutEmpty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -335,9 +335,9 @@ namespace Js
         if (data->Return != Constants::NoRegister)
         {
             DumpReg((RegSlot)data->Return);
-            Output::Print(L"=");
+            Output::Print(_u("="));
         }
-        Output::Print(L" R%d(ArgCount: %d)", data->Function, data->ArgCount);
+        Output::Print(_u(" R%d(ArgCount: %d)"), data->Function, data->ArgCount);
     }
     template <class T>
     void ByteCodeDumper::DumpCallIExtended(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -346,28 +346,28 @@ namespace Js
         if (data->Options & Js::CallIExtended_SpreadArgs)
         {
             const Js::AuxArray<uint32> *arr = reader.ReadAuxArray<uint32>(data->SpreadAuxOffset, dumpFunction);
-            Output::Print(L" spreadArgs [", arr->count);
+            Output::Print(_u(" spreadArgs ["), arr->count);
             for (uint i = 0; i < arr->count; i++)
             {
                 if (i > 10)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                     break;
                 }
                 if (i != 0)
                 {
-                    Output::Print(L", ");
+                    Output::Print(_u(", "));
                 }
-                Output::Print(L"%u", arr->elements[i]);
+                Output::Print(_u("%u"), arr->elements[i]);
             }
-            Output::Print(L"]");
+            Output::Print(_u("]"));
         }
     }
     template <class T>
     void ByteCodeDumper::DumpCallIFlags(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpCallI(op, data, dumpFunction, reader);
-        Output::Print(L" <%04x> ", data->callFlags);
+        Output::Print(_u(" <%04x> "), data->callFlags);
     }
     template <class T>
     void ByteCodeDumper::DumpCallIExtendedFlags(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -376,21 +376,21 @@ namespace Js
         if (data->Options & Js::CallIExtended_SpreadArgs)
         {
             const Js::AuxArray<uint32> *arr = reader.ReadAuxArray<uint32>(data->SpreadAuxOffset, dumpFunction);
-            Output::Print(L" spreadArgs [", arr->count);
+            Output::Print(_u(" spreadArgs ["), arr->count);
             for (uint i = 0; i < arr->count; i++)
             {
                 if (i > 10)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                     break;
                 }
                 if (i != 0)
                 {
-                    Output::Print(L", ");
+                    Output::Print(_u(", "));
                 }
-                Output::Print(L"%u", arr->elements[i]);
+                Output::Print(_u("%u"), arr->elements[i]);
             }
-            Output::Print(L"]");
+            Output::Print(_u("]"));
         }
     }
     template <class T>
@@ -401,35 +401,35 @@ namespace Js
         if (data->Options & Js::CallIExtended_SpreadArgs)
         {
             const Js::AuxArray<uint32> *arr = reader.ReadAuxArray<uint32>(data->SpreadAuxOffset, dumpFunction);
-            Output::Print(L" spreadArgs [", arr->count);
+            Output::Print(_u(" spreadArgs ["), arr->count);
             for (uint i = 0; i < arr->count; i++)
             {
                 if (i > 10)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                     break;
                 }
                 if (i != 0)
                 {
-                    Output::Print(L", ");
+                    Output::Print(_u(", "));
                 }
-                Output::Print(L"%u", arr->elements[i]);
+                Output::Print(_u("%u"), arr->elements[i]);
             }
-            Output::Print(L"]");
+            Output::Print(_u("]"));
         }
     }
     template <class T>
     void ByteCodeDumper::DumpCallIWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpCallI(op, data, dumpFunction, reader);
-        Output::Print(L" <%d> ", data->inlineCacheIndex);
+        Output::Print(_u(" <%d> "), data->inlineCacheIndex);
     }
     template <class T>
     void ByteCodeDumper::DumpCallIFlagsWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpCallI(op, data, dumpFunction, reader);
-        Output::Print(L" <%d> ", data->inlineCacheIndex);
-        Output::Print(L" <%d> ", data->callFlags);
+        Output::Print(_u(" <%d> "), data->inlineCacheIndex);
+        Output::Print(_u(" <%d> "), data->callFlags);
     }
     template <class T>
     void ByteCodeDumper::DumpCallIExtendedWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -438,21 +438,21 @@ namespace Js
         if (data->Options & Js::CallIExtended_SpreadArgs)
         {
             const Js::AuxArray<uint32> *arr = reader.ReadAuxArray<uint32>(data->SpreadAuxOffset, dumpFunction);
-            Output::Print(L" spreadArgs [", arr->count);
+            Output::Print(_u(" spreadArgs ["), arr->count);
             for (uint i=0; i < arr->count; i++)
             {
                 if (i > 10)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                     break;
                 }
                 if (i != 0)
                 {
-                    Output::Print(L", ");
+                    Output::Print(_u(", "));
                 }
-                Output::Print(L"%u", arr->elements[i]);
+                Output::Print(_u("%u"), arr->elements[i]);
             }
-            Output::Print(L"]");
+            Output::Print(_u("]"));
         }
     }
     template <class T>
@@ -465,7 +465,7 @@ namespace Js
             case OpCode::LdMethodElem:
             case OpCode::TypeofElem:
             {
-                Output::Print(L" R%d = R%d[R%d]", data->Value, data->Instance, data->Element);
+                Output::Print(_u(" R%d = R%d[R%d]"), data->Value, data->Instance, data->Element);
                 break;
             }
             case OpCode::ProfiledStElemI_A:
@@ -479,13 +479,13 @@ namespace Js
             case OpCode::InitClassMemberGetComputedName:
             case OpCode::InitClassMemberSetComputedName:
             {
-                Output::Print(L" R%d[R%d] = R%d", data->Instance, data->Element, data->Value);
+                Output::Print(_u(" R%d[R%d] = R%d"), data->Instance, data->Element, data->Value);
                 break;
             }
             case OpCode::DeleteElemI_A:
             case OpCode::DeleteElemIStrict_A:
             {
-                Output::Print(L" R%d[R%d]", data->Instance, data->Element);
+                Output::Print(_u(" R%d[R%d]"), data->Instance, data->Element);
                 break;
             }
             default:
@@ -502,18 +502,18 @@ namespace Js
         {
             case OpCode::LdThis:
             case OpCode::ProfiledLdThis:
-                Output::Print(L" R%d = R%d, %d", data->R0, data->R1, data->C1);
+                Output::Print(_u(" R%d = R%d, %d"), data->R0, data->R1, data->C1);
                 break;
             case OpCode::LdIndexedFrameDisplay:
-                Output::Print(L" R%d = [%d], R%d ", data->R0, data->C1, data->R1);
+                Output::Print(_u(" R%d = [%d], R%d "), data->R0, data->C1, data->R1);
                 break;
             case OpCode::GetCachedFunc:
                 DumpReg(data->R0);
-                Output::Print(L"= func(");
+                Output::Print(_u("= func("));
                 DumpReg(data->R1);
-                Output::Print(L",");
+                Output::Print(_u(","));
                 DumpI4(data->C1);
-                Output::Print(L")");
+                Output::Print(_u(")"));
                 break;
             default:
                 AssertMsg(false, "Unknown OpCode for OpLayoutReg2Int1");
@@ -531,13 +531,13 @@ namespace Js
         {
             case OpCode::LdElemUndefScoped:
             {
-                Output::Print(L" %s = undefined, R%d", pPropertyName->GetBuffer(), Js::FunctionBody::RootObjectRegSlot);
+                Output::Print(_u(" %s = undefined, R%d"), pPropertyName->GetBuffer(), Js::FunctionBody::RootObjectRegSlot);
                 break;
             }
             case OpCode::InitUndeclConsoleLetFld:
             case OpCode::InitUndeclConsoleConstFld:
             {
-                Output::Print(L" %s = undefined", pPropertyName->GetBuffer());
+                Output::Print(_u(" %s = undefined"), pPropertyName->GetBuffer());
                 break;
             }
             default:
@@ -558,7 +558,7 @@ namespace Js
         {
             case OpCode::LdElemUndef:
             {
-                Output::Print(L" R%d.%s = undefined", data->Instance, pPropertyName->GetBuffer());
+                Output::Print(_u(" R%d.%s = undefined"), data->Instance, pPropertyName->GetBuffer());
                 break;
             }
             // TODO: Change InitUndeclLetFld and InitUndeclConstFld to ElementU layout
@@ -566,21 +566,21 @@ namespace Js
             // case OpCode::InitUndeclConstFld:
             // {
             //     PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(data->PropertyIndex);
-            //     Output::Print(L" R%d.%s", data->Instance, pPropertyName->GetBuffer());
+            //     Output::Print(_u(" R%d.%s"), data->Instance, pPropertyName->GetBuffer());
             //     break;
             // }
             case OpCode::ClearAttributes:
             {
-                Output::Print(L" R%d.%s.writable/enumerable/configurable = 0", data->Instance, pPropertyName->GetBuffer());
+                Output::Print(_u(" R%d.%s.writable/enumerable/configurable = 0"), data->Instance, pPropertyName->GetBuffer());
                 break;
             }
 
             case OpCode::DeleteLocalFld:
-                Output::Print(L" R%d = %s ", data->Instance, pPropertyName->GetBuffer());
+                Output::Print(_u(" R%d = %s "), data->Instance, pPropertyName->GetBuffer());
                 break;
 
             case OpCode::StLocalFuncExpr:
-                Output::Print(L" %s = R%d", pPropertyName->GetBuffer(), data->Instance);
+                Output::Print(_u(" %s = R%d"), pPropertyName->GetBuffer(), data->Instance);
                 break;
 
             default:
@@ -604,12 +604,12 @@ namespace Js
             case OpCode::EnsureNoRootFld:
             case OpCode::EnsureNoRootRedeclFld:
             {
-                Output::Print(L" root.%s", pPropertyName->GetBuffer());
+                Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
                 break;
             }
             case OpCode::LdLocalElemUndef:
             {
-                Output::Print(L" %s = undefined", pPropertyName->GetBuffer());
+                Output::Print(_u(" %s = undefined"), pPropertyName->GetBuffer());
                 break;
             }
             default:
@@ -632,12 +632,12 @@ namespace Js
             case OpCode::ScopedDeleteFld:
             case OpCode::ScopedDeleteFldStrict:
             {
-                Output::Print(L" %s, R%d", pPropertyName->GetBuffer(), data->Value);
+                Output::Print(_u(" %s, R%d"), pPropertyName->GetBuffer(), data->Value);
                 break;
             }
             case OpCode::ScopedInitFunc:
             {
-                Output::Print(L" %s = R%d, R%d", pPropertyName->GetBuffer(), data->Value,
+                Output::Print(_u(" %s = R%d, R%d"), pPropertyName->GetBuffer(), data->Value,
                     Js::FunctionBody::RootObjectRegSlot);
                 break;
             }
@@ -662,7 +662,7 @@ namespace Js
             case OpCode::DeleteFldStrict:
             case OpCode::DeleteRootFldStrict:
             {
-                Output::Print(L" R%d.%s", data->Instance, pPropertyName->GetBuffer());
+                Output::Print(_u(" R%d.%s"), data->Instance, pPropertyName->GetBuffer());
                 break;
             }
             case OpCode::InitSetFld:
@@ -670,14 +670,14 @@ namespace Js
             case OpCode::InitClassMemberGet:
             case OpCode::InitClassMemberSet:
             {
-                Output::Print(L" R%d.%s = (Set/Get) R%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s = (Set/Get) R%d"), data->Instance, pPropertyName->GetBuffer(),
                         data->Value);
                 break;
             }
             case OpCode::StFuncExpr:
             case OpCode::InitProto:
             {
-                Output::Print(L" R%d.%s = R%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s = R%d"), data->Instance, pPropertyName->GetBuffer(),
                         data->Value);
                 break;
             }
@@ -699,7 +699,7 @@ namespace Js
         {
             case OpCode::ScopedLdInst:
             {
-                Output::Print(L" R%d, R%d = %s", data->Value, data->Value2, pPropertyName->GetBuffer());
+                Output::Print(_u(" R%d, R%d = %s"), data->Value, data->Value2, pPropertyName->GetBuffer());
                 break;
             }
             default:
@@ -720,26 +720,26 @@ namespace Js
         {
             case OpCode::LdSuperFld:
             {
-                Output::Print(L" R%d = R%d(this=R%d).%s #%d", data->Value, data->Instance, data->Value2,
+                Output::Print(_u(" R%d = R%d(this=R%d).%s #%d"), data->Value, data->Instance, data->Value2,
                         pPropertyName->GetBuffer(), data->PropertyIdIndex);
                 break;
             }
             case OpCode::ProfiledLdSuperFld:
             {
-                Output::Print(L" R%d = R%d(this=R%d).%s #%d", data->Value, data->Instance, data->Value2,
+                Output::Print(_u(" R%d = R%d(this=R%d).%s #%d"), data->Value, data->Instance, data->Value2,
                         pPropertyName->GetBuffer(), data->PropertyIdIndex);
                 DumpProfileId(data->PropertyIdIndex);
                 break;
             }
             case OpCode::StSuperFld:
             {
-                Output::Print(L" R%d.%s(this=R%d) = R%d #%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
                 break;
             }
             case OpCode::ProfiledStSuperFld:
             {
-                Output::Print(L" R%d.%s(this=R%d) = R%d #%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
                 DumpProfileId(data->PropertyIdIndex);
                 break;
@@ -761,23 +761,23 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             case OpCode::NewScopeSlots:
 #endif
-                Output::Print(L" R%u[%u]", data->R0, data->C1);
+                Output::Print(_u(" R%u[%u]"), data->R0, data->C1);
                 break;
             case OpCode::NewRegEx:
             {
                 DumpReg(data->R0);
 #if DBG
-                Output::Print(L"=");
+                Output::Print(_u("="));
                 UnifiedRegex::DebugWriter w;
                 dumpFunction->GetLiteralRegex(data->C1)->Print(&w);
 #else
-                Output::Print(L"=<regex>");
+                Output::Print(_u("=<regex>"));
 #endif
                 break;
             }
             default:
                 DumpReg(data->R0);
-                Output::Print(L"=");
+                Output::Print(_u("="));
                 DumpU4(data->C1);
                 break;
         };
@@ -793,7 +793,7 @@ namespace Js
             case OpCode::NewInnerScGenFunc:
             {
                 FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
-                Output::Print(L" R%d = env:R%d, %s()", data->Value, data->Instance,
+                Output::Print(_u(" R%d = env:R%d, %s()"), data->Value, data->Instance,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
             }
@@ -803,14 +803,14 @@ namespace Js
 #endif
             case OpCode::StObjSlot:
             case OpCode::StObjSlotChkUndecl:
-                Output::Print(L" R%d[%d] = R%d ",data->Instance,data->SlotIndex,data->Value);
+                Output::Print(_u(" R%d[%d] = R%d "),data->Instance,data->SlotIndex,data->Value);
                 break;
             case OpCode::LdSlot:
 #if ENABLE_NATIVE_CODEGEN
             case OpCode::LdSlotArr:
 #endif
             case OpCode::LdObjSlot:
-                Output::Print(L" R%d = R%d[%d] ",data->Value,data->Instance,data->SlotIndex);
+                Output::Print(_u(" R%d = R%d[%d] "),data->Value,data->Instance,data->SlotIndex);
                 break;
             default:
             {
@@ -829,20 +829,20 @@ namespace Js
             case OpCode::StLocalObjSlot:
             case OpCode::StLocalSlotChkUndecl:
             case OpCode::StLocalObjSlotChkUndecl:
-                Output::Print(L" [%d] = R%d ",data->SlotIndex, data->Value);
+                Output::Print(_u(" [%d] = R%d "),data->SlotIndex, data->Value);
                 break;
             case OpCode::LdLocalSlot:
             case OpCode::LdParamSlot:
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
-                Output::Print(L" R%d = [%d] ",data->Value, data->SlotIndex);
+                Output::Print(_u(" R%d = [%d] "),data->Value, data->SlotIndex);
                 break;
             case OpCode::NewScFunc:
             case OpCode::NewStackScFunc:
             case OpCode::NewScGenFunc:
             {
                 FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
-                Output::Print(L" R%d = %s()", data->Value,
+                Output::Print(_u(" R%d = %s()"), data->Value,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
             }
@@ -867,13 +867,13 @@ namespace Js
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvSlotChkUndecl:
             case OpCode::StEnvObjSlotChkUndecl:
-                Output::Print(L" [%d][%d] = R%d ",data->SlotIndex1, data->SlotIndex2, data->Value);
+                Output::Print(_u(" [%d][%d] = R%d "),data->SlotIndex1, data->SlotIndex2, data->Value);
                 break;
             case OpCode::LdInnerSlot:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
             case OpCode::LdEnvObjSlot:
-                Output::Print(L" R%d = [%d][%d] ",data->Value, data->SlotIndex1, data->SlotIndex2);
+                Output::Print(_u(" R%d = [%d][%d] "),data->Value, data->SlotIndex1, data->SlotIndex2);
                 break;
             default:
             {
@@ -893,23 +893,23 @@ namespace Js
         {
             case OpCode::ScopedLdFldForTypeOf:
             case OpCode::ScopedLdFld:
-                Output::Print(L" R%d = %s, R%d #%d", data->Value, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d = %s, R%d #%d"), data->Value, pPropertyName->GetBuffer(),
                     Js::FunctionBody::RootObjectRegSlot, data->inlineCacheIndex);
                 break;
 
             case OpCode::ScopedStFld:
             case OpCode::ConsoleScopedStFld:
             case OpCode::ScopedStFldStrict:
-                Output::Print(L" %s = R%d, R%d #%d", pPropertyName->GetBuffer(), data->Value,
+                Output::Print(_u(" %s = R%d, R%d #%d"), pPropertyName->GetBuffer(), data->Value,
                     Js::FunctionBody::RootObjectRegSlot, data->inlineCacheIndex);
                 break;
 
             case OpCode::LdLocalFld:
-                Output::Print(L" R%d = %s #%d", data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
+                Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 break;
 
             case OpCode::ProfiledLdLocalFld:
-                Output::Print(L" R%d = %s #%d", data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
+                Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
                 
@@ -918,12 +918,12 @@ namespace Js
             case OpCode::InitLocalLetFld:
             case OpCode::InitUndeclLocalLetFld:
             case OpCode::InitUndeclLocalConstFld:
-                Output::Print(L" %s = R%d #%d", pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
+                Output::Print(_u(" %s = R%d #%d"), pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
                 break;
 
             case OpCode::ProfiledStLocalFld:
             case OpCode::ProfiledInitLocalFld:
-                Output::Print(L" %s = R%d #%d", pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
+                Output::Print(_u(" %s = R%d #%d"), pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
 
@@ -947,7 +947,7 @@ namespace Js
             case OpCode::InitInnerLetFld:
             case OpCode::InitUndeclLetFld:
             case OpCode::InitUndeclConstFld:
-                Output::Print(L" [%d].%s = R%d #%d", data->scopeIndex, pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
+                Output::Print(_u(" [%d].%s = R%d #%d"), data->scopeIndex, pPropertyName->GetBuffer(), data->Value, data->inlineCacheIndex);
                 break;
 
             default:
@@ -972,7 +972,7 @@ namespace Js
             case OpCode::LdMethodFld:
             case OpCode::ScopedLdMethodFld:
             {
-                Output::Print(L" R%d = R%d.%s #%d", data->Value, data->Instance,
+                Output::Print(_u(" R%d = R%d.%s #%d"), data->Value, data->Instance,
                         pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 break;
             }
@@ -983,7 +983,7 @@ namespace Js
             case OpCode::StFldStrict:
             case OpCode::InitClassMember:
             {
-                Output::Print(L" R%d.%s = R%d #%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                         data->Value, data->inlineCacheIndex);
                 break;
             }
@@ -992,7 +992,7 @@ namespace Js
             case OpCode::ProfiledLdFldForCallApplyTarget:
             case OpCode::ProfiledLdMethodFld:
             {
-                Output::Print(L" R%d = R%d.%s #%d", data->Value, data->Instance,
+                Output::Print(_u(" R%d = R%d.%s #%d"), data->Value, data->Instance,
                         pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1001,7 +1001,7 @@ namespace Js
             case OpCode::ProfiledStFld:
             case OpCode::ProfiledStFldStrict:
             {
-                Output::Print(L" R%d.%s = R%d #%d", data->Instance, pPropertyName->GetBuffer(),
+                Output::Print(_u(" R%d.%s = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                         data->Value, data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1026,7 +1026,7 @@ namespace Js
             case OpCode::LdRootMethodFld:
             case OpCode::LdRootFldForTypeOf:
             {
-                Output::Print(L" R%d = root.%s #%d", data->Value,
+                Output::Print(_u(" R%d = root.%s #%d"), data->Value,
                         pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 break;
             }
@@ -1036,7 +1036,7 @@ namespace Js
             case OpCode::StRootFld:
             case OpCode::StRootFldStrict:
             {
-                Output::Print(L" root.%s = R%d #%d", pPropertyName->GetBuffer(),
+                Output::Print(_u(" root.%s = R%d #%d"), pPropertyName->GetBuffer(),
                         data->Value, data->inlineCacheIndex);
                 break;
             }
@@ -1044,7 +1044,7 @@ namespace Js
             case OpCode::ProfiledLdRootFldForTypeOf:
             case OpCode::ProfiledLdRootMethodFld:
             {
-                Output::Print(L" R%d = root.%s #%d", data->Value,
+                Output::Print(_u(" R%d = root.%s #%d"), data->Value,
                         pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1053,7 +1053,7 @@ namespace Js
             case OpCode::ProfiledStRootFld:
             case OpCode::ProfiledStRootFldStrict:
             {
-                Output::Print(L" root.%s = R%d #%d", pPropertyName->GetBuffer(),
+                Output::Print(_u(" root.%s = R%d #%d"), pPropertyName->GetBuffer(),
                         data->Value, data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1075,9 +1075,9 @@ namespace Js
             case OpCode::StArrItemI_CI4:
             case OpCode::StArrSegItem_CI4:
             case OpCode::StArrInlineItem_CI4:
-                Output::Print(L" R%d[", data->Instance);
+                Output::Print(_u(" R%d["), data->Instance);
                 DumpI4(data->Element);
-                Output::Print(L"] = R%d", data->Value);
+                Output::Print(_u("] = R%d"), data->Value);
                 break;
             default:
                 AssertMsg(false, "Unknown OpCode for OpLayoutElementUnsigned1");
@@ -1094,7 +1094,7 @@ namespace Js
             case OpCode::ArgOut_A:
             case OpCode::ArgOut_ANonVar:
             {
-                Output::Print(L" Out%d =", (int) data->Arg);
+                Output::Print(_u(" Out%d ="), (int) data->Arg);
                 DumpReg(data->Reg);
                 break;
             }
@@ -1113,7 +1113,7 @@ namespace Js
         {
             case Js::OpCode::ArgOut_Env:
             {
-                Output::Print(L" Out%d ", (int) data->Arg);
+                Output::Print(_u(" Out%d "), (int) data->Arg);
                 break;
             }
             default:
@@ -1128,7 +1128,7 @@ namespace Js
     ByteCodeDumper::DumpStartCall(OpCode op, const unaligned OpLayoutStartCall * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         Assert(op == OpCode::StartCall );
-        Output::Print(L" ArgCount: %d", data->ArgCount);
+        Output::Print(_u(" ArgCount: %d"), data->ArgCount);
     }
 
     template <class T> void
@@ -1143,7 +1143,7 @@ namespace Js
         switch (op)
         {
         case OpCode::ObjectFreeze:
-            Output::Print(L" R%d.freeze()", data->R0);
+            Output::Print(_u(" R%d.freeze()"), data->R0);
             break;
         default:
             DumpReg(data->R0);
@@ -1162,7 +1162,7 @@ namespace Js
     ByteCodeDumper::DumpReg2WithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpReg2(op, data, dumpFunction, reader);
-        Output::Print(L" <%d> ", data->inlineCacheIndex);
+        Output::Print(_u(" <%d> "), data->inlineCacheIndex);
     }
 
     template <class T> void
@@ -1171,7 +1171,7 @@ namespace Js
         switch (op)
         {
         case OpCode::NewInnerScopeSlots:
-            Output::Print(L" [%d], %d, %d ", data->R0, data->R1, data->R2);
+            Output::Print(_u(" [%d], %d, %d "), data->R0, data->R1, data->R2);
             break;
 
         default:
@@ -1188,7 +1188,7 @@ namespace Js
         switch (op)
         {
         case OpCode::IsInst:
-            Output::Print(L"R%d = R%d instanceof R%d #%d",
+            Output::Print(_u("R%d = R%d instanceof R%d #%d"),
                 data->R0, data->R1, data->R2, data->inlineCacheIndex);
             break;
         default:
@@ -1242,7 +1242,7 @@ namespace Js
     ByteCodeDumper::DumpReg1Int2(OpCode op, const unaligned OpLayoutReg1Int2 * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpReg(data->R0);
-        Output::Print(L"=");
+        Output::Print(_u("="));
         DumpI4(data->C1);
         DumpI4(data->C2);
     }
@@ -1256,33 +1256,33 @@ namespace Js
             {
                 const Js::PropertyIdArray *propIds = reader.ReadPropertyIdArray(playout->Offset, dumpFunction);
                 ScriptContext* scriptContext = dumpFunction->GetScriptContext();
-                Output::Print(L" %d [", propIds->count);
+                Output::Print(_u(" %d ["), propIds->count);
                 for (uint i=0; i < propIds->count && i < 3; i++)
                 {
                     PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(propIds->elements[i]);
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%s", pPropertyName->GetBuffer());
+                    Output::Print(_u("%s"), pPropertyName->GetBuffer());
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             case Js::OpCode::InitCachedFuncs:
             {
                 const Js::FuncInfoArray *arr = reader.ReadAuxArray<FuncInfoEntry>(playout->Offset, dumpFunction);
-                Output::Print(L" %d [", arr->count);
+                Output::Print(_u(" %d ["), arr->count);
                 for (uint i = 0; i < arr->count && i < 3; i++)
                 {
                     Js::ParseableFunctionInfo *info = dumpFunction->GetNestedFunctionForExecution(arr->elements[i].nestedIndex);
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%s", info->GetDisplayName());
+                    Output::Print(_u("%s"), info->GetDisplayName());
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             default:
@@ -1302,82 +1302,82 @@ namespace Js
                 const Js::PropertyIdArray *propIds = reader.ReadPropertyIdArray(playout->Offset, dumpFunction);
                 ScriptContext* scriptContext = dumpFunction->GetScriptContext();
                 DumpReg(playout->R0);
-                Output::Print(L"= %d [", propIds->count);
+                Output::Print(_u("= %d ["), propIds->count);
                 for (uint i=0; i< propIds->count && i < 3; i++)
                 {
                     PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(propIds->elements[i]);
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%s", pPropertyName->GetBuffer());
+                    Output::Print(_u("%s"), pPropertyName->GetBuffer());
                 }
                 if (propIds->count >= 3)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                 }
-                Output::Print(L"], LiteralId %d", playout->C1);
+                Output::Print(_u("], LiteralId %d"), playout->C1);
                 break;
             }
             case OpCode::StArrSegItem_A:
             {
                 const Js::VarArray *vars = reader.ReadAuxArray<Var>(playout->Offset, dumpFunction);
                 DumpReg(playout->R0);
-                Output::Print(L"= %d [", vars->count);
+                Output::Print(_u("= %d ["), vars->count);
                 uint i=0;
                 for (; i<vars->count && i < 3; i++)
                 {
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%d", vars->elements[i]);
+                    Output::Print(_u("%d"), vars->elements[i]);
                 }
                 if (i != vars->count)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             case OpCode::NewScIntArray:
             {
                 const Js::AuxArray<int32> *intArray = reader.ReadAuxArray<int32>(playout->Offset, dumpFunction);
-                Output::Print(L" R%d = %d [", playout->R0, intArray->count);
+                Output::Print(_u(" R%d = %d ["), playout->R0, intArray->count);
                 uint i;
                 for (i = 0; i<intArray->count && i < 3; i++)
                 {
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%d", intArray->elements[i]);
+                    Output::Print(_u("%d"), intArray->elements[i]);
                 }
                 if (i != intArray->count)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             case OpCode::NewScFltArray:
             {
                 const Js::AuxArray<double> *dblArray = reader.ReadAuxArray<double>(playout->Offset, dumpFunction);
-                Output::Print(L" R%d = %d [", playout->R0, dblArray->count);
+                Output::Print(_u(" R%d = %d ["), playout->R0, dblArray->count);
                 uint i;
                 for (i = 0; i<dblArray->count && i < 3; i++)
                 {
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
-                    Output::Print(L"%f", dblArray->elements[i]);
+                    Output::Print(_u("%f"), dblArray->elements[i]);
                 }
                 if (i != dblArray->count)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             case OpCode::NewScObject_A:
@@ -1385,21 +1385,21 @@ namespace Js
                 const Js::VarArrayVarCount *vars = reader.ReadVarArrayVarCount(playout->Offset, dumpFunction);
                 DumpReg(playout->R0);
                 int count = Js::TaggedInt::ToInt32(vars->count);
-                Output::Print(L"= %d [", count);
+                Output::Print(_u("= %d ["), count);
                 int i=0;
                 for (; i<count && i < 3; i++)
                 {
                     if (i != 0)
                     {
-                        Output::Print(L", ");
+                        Output::Print(_u(", "));
                     }
                     if (TaggedInt::Is(vars->elements[i]))
                     {
-                        Output::Print(L"%d", TaggedInt::ToInt32(vars->elements[i]));
+                        Output::Print(_u("%d"), TaggedInt::ToInt32(vars->elements[i]));
                     }
                     else if (JavascriptNumber::Is(vars->elements[i]))
                     {
-                        Output::Print(L"%g", JavascriptNumber::GetValue(vars->elements[i]));
+                        Output::Print(_u("%g"), JavascriptNumber::GetValue(vars->elements[i]));
                     }
                     else
                     {
@@ -1408,9 +1408,9 @@ namespace Js
                 }
                 if (i != count)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                 }
-                Output::Print(L"]");
+                Output::Print(_u("]"));
                 break;
             }
             default:
@@ -1427,21 +1427,21 @@ namespace Js
         case Js::OpCode::SpreadArrayLiteral:
         {
             const Js::AuxArray<uint32> *arr = reader.ReadAuxArray<uint32>(playout->Offset, dumpFunction);
-            Output::Print(L" R%u <- R%u, %u spreadArgs [", playout->R0, playout->R1, arr->count);
+            Output::Print(_u(" R%u <- R%u, %u spreadArgs ["), playout->R0, playout->R1, arr->count);
             for (uint i = 0; i < arr->count; i++)
             {
                 if (i > 10)
                 {
-                    Output::Print(L", ...");
+                    Output::Print(_u(", ..."));
                     break;
                 }
                 if (i != 0)
                 {
-                    Output::Print(L", ");
+                    Output::Print(_u(", "));
                 }
-                Output::Print(L"%u", arr->elements[i]);
+                Output::Print(_u("%u"), arr->elements[i]);
             }
-            Output::Print(L"]");
+            Output::Print(_u("]"));
             break;
         }
         default:
@@ -1456,7 +1456,7 @@ namespace Js
         DumpReg(data->Constructor);
         if (data->Extends != Js::Constants::NoRegister)
         {
-            Output::Print(L"extends");
+            Output::Print(_u("extends"));
             DumpReg((RegSlot)data->Extends);
         }
     }
@@ -1500,7 +1500,7 @@ namespace Js
         ScriptContext* scriptContext = dumpFunction->GetScriptContext();
         PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(
             dumpFunction->GetReferencedPropertyId(data->PropertyIdIndex));
-        Output::Print(L"R%d.%s", data->Instance, pPropertyName->GetBuffer());
+        Output::Print(_u("R%d.%s"), data->Instance, pPropertyName->GetBuffer());
     }
 
     void ByteCodeDumper::DumpBrLocalProperty(OpCode op, const unaligned OpLayoutBrLocalProperty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -1509,7 +1509,7 @@ namespace Js
         ScriptContext* scriptContext = dumpFunction->GetScriptContext();
         PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(
             dumpFunction->GetReferencedPropertyId(data->PropertyIdIndex));
-        Output::Print(L"%s", pPropertyName->GetBuffer());
+        Output::Print(_u("%s"), pPropertyName->GetBuffer());
     }
 
     void ByteCodeDumper::DumpBrEnvProperty(OpCode op, const unaligned OpLayoutBrEnvProperty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
@@ -1518,7 +1518,7 @@ namespace Js
         ScriptContext* scriptContext = dumpFunction->GetScriptContext();
         PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(
             dumpFunction->GetReferencedPropertyId(data->PropertyIdIndex));
-        Output::Print(L"[%d].%s", data->SlotIndex, pPropertyName->GetBuffer());
+        Output::Print(_u("[%d].%s"), data->SlotIndex, pPropertyName->GetBuffer());
     }
 
 } // namespace Js
