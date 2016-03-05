@@ -29,6 +29,8 @@ namespace Js
 
         UINT GetId() const { return this->breakPointId; }
         void GetStatementLocation(StatementLocation * statement);
+        FunctionBody* GetFunctionBody() const { return this->functionBody; }
+        int GetBytecodeOffset() const { return this->byteOffset; }
 
         DebugDocument* GetDbugDocument() { return this->debugDocument; }
         int GetCharacterOffset() { return this->characterOffset; }

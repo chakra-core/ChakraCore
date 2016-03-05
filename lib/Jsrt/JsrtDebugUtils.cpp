@@ -141,10 +141,20 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             break;
 
         case Js::TypeIds_Number:
+        {
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptNumber::GetValue(varValue), scriptContext);
-            break;
 
+            double numberValue = Js::JavascriptNumber::GetValue(varValue);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, numberValue, scriptContext);
+
+            // If number is not finite (NaN, Infinity, -Infinity) or is -0 add display as well so that we can display special strings
+            if (!Js::NumberUtilities::IsFinite(numberValue) || Js::JavascriptNumber::IsNegZero(numberValue))
+            {
+                addDisplay = true;
+            }
+
+            break;
+        }
         case Js::TypeIds_Int64Number:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString()->GetSz(), scriptContext);
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);

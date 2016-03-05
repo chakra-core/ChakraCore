@@ -431,27 +431,30 @@ JsDiagGetFunctionPosition(
         if (functionBody != nullptr)
         {
             Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
-            ULONG lineNumber = functionBody->GetLineNumber();
-            ULONG columnNumber = functionBody->GetColumnNumber();
-            uint startOffset = functionBody->GetStatementStartOffset(0);
-            ULONG stmtStartLineNumber;
-            LONG stmtStartColumnNumber;
-
-            if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber))
+            if (utf8SourceInfo != nullptr && !utf8SourceInfo->GetIsLibraryCode())
             {
-                Js::DynamicObject* funcInfoObject = scriptContext->GetLibrary()->CreateObject();
+                ULONG lineNumber = functionBody->GetLineNumber();
+                ULONG columnNumber = functionBody->GetColumnNumber();
+                uint startOffset = functionBody->GetStatementStartOffset(0);
+                ULONG stmtStartLineNumber;
+                LONG stmtStartColumnNumber;
 
-                if (funcInfoObject != nullptr)
+                if (functionBody->GetLineCharOffsetFromStartChar(startOffset, &stmtStartLineNumber, &stmtStartColumnNumber))
                 {
-                    JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
-                    JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
-                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
-                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
-                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartLine, stmtStartLineNumber, scriptContext);
-                    JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartColumn, stmtStartColumnNumber, scriptContext);
+                    Js::DynamicObject* funcInfoObject = scriptContext->GetLibrary()->CreateObject();
 
-                    *funcInfo = funcInfoObject;
-                    return JsNoError;
+                    if (funcInfoObject != nullptr)
+                    {
+                        JsrtDebugUtils::AddScriptIdToObject(funcInfoObject, utf8SourceInfo);
+                        JsrtDebugUtils::AddFileNameToObject(funcInfoObject, utf8SourceInfo);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::column, columnNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartLine, stmtStartLineNumber, scriptContext);
+                        JsrtDebugUtils::AddPropertyToObject(funcInfoObject, JsrtDebugPropertyId::stmtStartColumn, stmtStartColumnNumber, scriptContext);
+
+                        *funcInfo = funcInfoObject;
+                        return JsNoError;
+                    }
                 }
             }
         }

@@ -11,6 +11,7 @@ namespace Js
 
     class DebugManager;
     struct Probe;
+    struct DebuggerPropertyDisplayInfo;
     typedef JsUtil::List<Probe*, ArenaAllocator> ProbeList;
     class DiagStackFrame;
     typedef JsUtil::Stack<DiagStackFrame*> DiagStack;

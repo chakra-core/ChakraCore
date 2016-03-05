@@ -13,6 +13,7 @@ public:
     virtual HRESULT SetThreadDescription(__in LPCWSTR url) = 0;
     virtual HRESULT DbgRegisterFunction(Js::ScriptContext * scriptContext, Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title) = 0;
     virtual void ReParentToCaller(Js::Utf8SourceInfo* sourceInfo) = 0;
+    virtual void SortMembersList(JsUtil::List<Js::DebuggerPropertyDisplayInfo *, ArenaAllocator> * pMembersList, Js::ScriptContext* scriptContext) {/*Do nothing*/}
 
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
 

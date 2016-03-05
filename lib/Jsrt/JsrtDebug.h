@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "..\Runtime\Debug\RuntimeDebugPch.h"
+#include "../Runtime/Debug/RuntimeDebugPch.h"
 #include "JsrtDebuggerObject.h"
 #include "JsrtDebugEventObject.h"
 

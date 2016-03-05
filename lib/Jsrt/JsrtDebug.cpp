@@ -152,7 +152,6 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
 
         Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
 
-        JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddFileNameToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
         JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
@@ -163,6 +162,9 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
         {
             // Report JsDiagDebugEventCompileError event
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::error, compileException->ei.bstrDescription, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::line, compileException->line, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::column, compileException->ichMin - compileException->ichMinLine - 1, scriptContext); // Converted to 0-based
+            JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceText, compileException->bstrLine, scriptContext);
         }
         else
         {
@@ -174,10 +176,13 @@ void JsrtDebug::ReportScriptCompile(Js::JavascriptFunction * scriptFunction, Js:
             if (debugDocument != nullptr)
             {
                 utf8SourceInfo->SetDebugDocument(debugDocument);
+
+                // Only add scriptId if everything is ok as scriptId is used for other operations
+                JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
             }
             jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
         }
-        
+
         this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext);
     }
 }
@@ -543,6 +548,7 @@ Js::DynamicObject* JsrtDebug::SetBreakPoint(Js::Utf8SourceInfo* utf8SourceInfo, 
 
         JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, probe->GetId(), scriptContext);
         JsrtDebugUtils::AddLineColumnToObject(bpObject, statement.function, statement.bytecodeSpan.begin);
+        JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
 
         return bpObject;
     }
@@ -559,19 +565,11 @@ void JsrtDebug::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::ScriptContext
         Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
         Js::DynamicObject* bpObject = scriptContext->GetLibrary()->CreateObject();
 
-        Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
-
         JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::breakpointId, bp->GetId(), scriptContext);
+        JsrtDebugUtils::AddLineColumnToObject(bpObject, bp->GetFunctionBody(), bp->GetBytecodeOffset());
 
+        Js::Utf8SourceInfo* utf8SourceInfo = bp->GetDbugDocument()->GetUtf8SourceInfo();
         JsrtDebugUtils::AddScriptIdToObject(bpObject, utf8SourceInfo);
-
-        charcount_t lineNumber = 0;
-        charcount_t column = 0;
-        charcount_t byteOffset = 0;
-        utf8SourceInfo->GetLineInfoForCharPosition(bp->GetCharacterOffset(), &lineNumber, &column, &byteOffset);
-
-        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::line, lineNumber, scriptContext);
-        JsrtDebugUtils::AddPropertyToObject(bpObject, JsrtDebugPropertyId::column, column, scriptContext);
 
         Js::Var marshaledObj = Js::CrossSite::MarshalVar(arrayScriptContext, bpObject);
         Js::JavascriptOperators::OP_SetElementI((Js::Var)(*bpsArray), Js::JavascriptNumber::ToVar((*bpsArray)->GetLength(), arrayScriptContext), marshaledObj, arrayScriptContext);

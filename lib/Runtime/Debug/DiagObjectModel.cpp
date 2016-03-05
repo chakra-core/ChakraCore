@@ -39,30 +39,6 @@ namespace Js
 #define RETURN_VALUE_MAX_NAME   255
 #define PENDING_MUTATION_VALUE_MAX_NAME   255
 
-    //
-    // Some helper routines
-    /*
-    int __cdecl ElementsComparer(__in void* context, __in const void* item1, __in const void* item2)
-    {
-        ScriptContext *scriptContext = (ScriptContext *)context;
-        Assert(scriptContext);
-
-        const DWORD_PTR *p1 = reinterpret_cast<const DWORD_PTR*>(item1);
-        const DWORD_PTR *p2 = reinterpret_cast<const DWORD_PTR*>(item2);
-
-        DebuggerPropertyDisplayInfo * pPVItem1 = (DebuggerPropertyDisplayInfo *)(*p1);
-        DebuggerPropertyDisplayInfo * pPVItem2 = (DebuggerPropertyDisplayInfo *)(*p2);
-
-        const Js::PropertyRecord *propertyRecord1 = scriptContext->GetPropertyName(pPVItem1->propId);
-        const Js::PropertyRecord *propertyRecord2 = scriptContext->GetPropertyName(pPVItem2->propId);
-
-        const wchar_t *str1 = propertyRecord1->GetBuffer();
-        const wchar_t *str2 = propertyRecord2->GetBuffer();
-
-        // Do the natural comparison, for example test2 comes before test11.
-        return StrCmpLogicalW(str1, str2);
-    }
-    */
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
     {
         Assert(scriptContext);
@@ -2552,7 +2528,11 @@ namespace Js
             }
 
             // Sort current pMembersList.
-            //pMembersList->Sort(ElementsComparer, scriptContext);
+            HostDebugContext* hostDebugContext = scriptContext->GetDebugContext()->GetHostDebugContext();
+            if (hostDebugContext != nullptr)
+            {
+                hostDebugContext->SortMembersList(pMembersList, scriptContext);
+            }
         }
 
         ulong childrenCount =
@@ -3719,7 +3699,11 @@ namespace Js
 
     void RecyclableMethodsGroupWalker::Sort()
     {
-        //pMembersList->Sort(ElementsComparer, scriptContext);
+        HostDebugContext* hostDebugContext = this->scriptContext->GetDebugContext()->GetHostDebugContext();
+        if (hostDebugContext != nullptr)
+        {
+            hostDebugContext->SortMembersList(pMembersList, scriptContext);
+        }
     }
 
     RecyclableMethodsGroupDisplay::RecyclableMethodsGroupDisplay(RecyclableMethodsGroupWalker *_methodGroupWalker, ResolvedObject* resolvedObject)
