@@ -382,9 +382,11 @@ namespace Js
 
         JavascriptSymbol* symbolMatch;
         JavascriptSymbol* symbolSearch;
+        JavascriptSymbol* symbolSplit;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
         JavascriptFunction* regexExecFunction;
+        JavascriptFunction* regexFlagsGetterFunction;
         JavascriptFunction* regexGlobalGetterFunction;
         JavascriptFunction* regexStickyGetterFunction;
         JavascriptFunction* regexUnicodeGetterFunction;
@@ -431,6 +433,7 @@ namespace Js
         JavascriptFunction * AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes = PropertyBuiltInMethodDefaults);
 
         JavascriptFunction * AddFunctionToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * functionInfo, int length);
+        RuntimeFunction* AddGetterToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo* functionInfo);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo);
         void AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, RecyclableObject * getterFunction, RecyclableObject * setterFunction);
         void AddAccessorsToLibraryObjectWithName(DynamicObject* object, PropertyId propertyId, PropertyId nameId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunction);
@@ -523,6 +526,7 @@ namespace Js
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
         JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
+        JavascriptSymbol* GetSymbolSplit() { return symbolSplit; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
         JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
         JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
@@ -715,6 +719,7 @@ namespace Js
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
         JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
+        JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }

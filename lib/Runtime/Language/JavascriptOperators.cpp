@@ -3187,7 +3187,7 @@ CommonNumber:
             }
         }
 
-        *result = scriptContext->GetMissingItemResult(arr, indexInt);
+        *result = scriptContext->GetMissingItemResult();
         return true;
     }
 
@@ -3606,7 +3606,7 @@ CommonNumber:
             }
         }
 
-        return scriptContext->GetMissingItemResult(object, indexVal);
+        return scriptContext->GetMissingItemResult();
     }
 
     int32 JavascriptOperators::OP_GetNativeIntElementI(Var instance, Var index)
@@ -9439,7 +9439,7 @@ CommonNumber:
         {
             return result;
         }
-        return scriptContext->GetMissingItemResult(arrayObject, index);
+        return scriptContext->GetMissingItemResult();
     }
 
     template<>
@@ -9450,7 +9450,7 @@ CommonNumber:
         {
             return result;
         }
-        return scriptContext->GetMissingItemResult(arrayObject, index);
+        return scriptContext->GetMissingItemResult();
     }
 
     template<>
@@ -9461,7 +9461,7 @@ CommonNumber:
         {
             return result;
         }
-        return scriptContext->GetMissingItemResult(arrayObject, index);
+        return scriptContext->GetMissingItemResult();
     }
 
     template<>
@@ -9989,6 +9989,11 @@ CommonNumber:
         return IsUndefinedOrNullType(JavascriptOperators::GetTypeId(instance));
     }
 
+    BOOL JavascriptOperators::IsNull(Var instance)
+    {
+        return JavascriptOperators::GetTypeId(instance) == TypeIds_Null;
+    }
+
     BOOL JavascriptOperators::IsSpecialObjectType(TypeId typeId)
     {
         return typeId > TypeIds_LastTrueJavascriptObjectType;
@@ -10182,7 +10187,7 @@ CommonNumber:
         {
             return value;
         }
-        return requestContext->GetMissingPropertyResult(propertyObject, propertyId);
+        return requestContext->GetMissingPropertyResult();
     }
 
     Var JavascriptOperators::GetRootProperty(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, PropertyValueInfo* info)
@@ -10192,12 +10197,23 @@ CommonNumber:
         {
             return value;
         }
-        return requestContext->GetMissingPropertyResult(instance, propertyId);
+        return requestContext->GetMissingPropertyResult();
     }
 
     BOOL JavascriptOperators::GetPropertyReference(RecyclableObject *instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info)
     {
         return JavascriptOperators::GetPropertyReference(instance, instance, propertyId, value, requestContext, info);
+    }
+
+    Var JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, ScriptContext* requestContext)
+    {
+        Var value;
+        if (GetItem(instance, index, &value, requestContext))
+        {
+            return value;
+        }
+
+        return requestContext->GetMissingItemResult();
     }
 
     BOOL JavascriptOperators::GetItem(RecyclableObject* instance, uint64 index, Var* value, ScriptContext* requestContext)
