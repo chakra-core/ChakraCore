@@ -1745,7 +1745,6 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutOnImplicitCalls:
             case IR::BailOutOnImplicitCallsPreOp:
-            case IR::BailOutExpectingObject:
                 // Check if the implicit call flags in the profile have changed since we last JITed this
                 // function body. If so, and they indicate an implicit call of some sort occurred
                 // then we need to reJIT.
@@ -2173,7 +2172,6 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutOnImplicitCalls:
             case IR::BailOutOnImplicitCallsPreOp:
-            case IR::BailOutExpectingObject:
                 rejitReason = RejitReason::ImplicitCallFlagsChanged;
                 break;
 

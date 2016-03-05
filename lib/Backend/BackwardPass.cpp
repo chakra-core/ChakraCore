@@ -2029,7 +2029,7 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
     // Currently only try to eliminate these bailout kinds. The others are required in cases
     // where we don't necessarily have live/hoisted fields.
     const bool mayNeedBailOnImplicitCall = BailOutInfo::IsBailOutOnImplicitCalls(kind);
-    if (!mayNeedBailOnImplicitCall && kind != IR::BailOutExpectingObject)
+    if (!mayNeedBailOnImplicitCall)
     {
         if (kind & IR::BailOutMarkTempObject)
         {
