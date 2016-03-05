@@ -81,6 +81,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonMemoryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="MemUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator.h" />
@@ -109,6 +110,7 @@
     <ClInclude Include="leakreport.h" />
     <ClInclude Include="LargeHeapBucket.h" />
     <ClInclude Include="MarkContext.h" />
+    <ClInclude Include="MemUtils.h" />
     <ClInclude Include="MemoryTracking.h" />
     <ClInclude Include="PageAllocator.h" />
     <ClInclude Include="PageAllocatorDefines.h" />

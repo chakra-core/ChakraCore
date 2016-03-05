@@ -35,6 +35,12 @@ ScriptContextInfo::GetFalseAddr() const
 }
 
 intptr_t
+ScriptContextInfo::GetUndeclBlockVarAddr() const
+{
+    return m_contextData->undeclBlockVarAddr;
+}
+
+intptr_t
 ScriptContextInfo::GetAddr() const
 {
     return m_contextData->scriptContextAddr;

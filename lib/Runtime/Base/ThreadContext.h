@@ -507,6 +507,23 @@ public:
         m_codeGenManager.ConnectRpcServer(m_jitProcessId, m_jitConnectionId);
         // TODO: OOP JIT, do we need to do this initialization in a different place?
         ThreadContextData contextData;
+        HANDLE targetHandle;
+        HANDLE jitProcHandle = OpenProcess(PROCESS_DUP_HANDLE, FALSE, m_jitProcessId);
+        BOOL succeeded = DuplicateHandle(
+            GetCurrentProcess(), GetCurrentProcess(),
+            jitProcHandle, &targetHandle,
+            NULL, FALSE, DUPLICATE_SAME_ACCESS);
+
+        if (!succeeded)
+        {
+            // TODO: michhol OOP JIT is this correct?
+            Js::Throw::InternalError();
+        }
+        if (!CloseHandle(jitProcHandle))
+        {
+            Js::Throw::InternalError();
+        }
+        contextData.processHandle = (intptr_t)targetHandle;
         contextData.chakraBaseAddress = (intptr_t)GetModuleHandle(L"Chakra.dll");
         contextData.threadStackLimitAddr = reinterpret_cast<intptr_t>(GetAddressOfStackLimitForCurrentThread());
         contextData.scriptStackLimit = reinterpret_cast<size_t>(GetScriptStackLimit());

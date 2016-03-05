@@ -5,19 +5,8 @@
 
 #pragma once
 
-class ScriptContextInfo
+namespace Memory
 {
-public:
-    ScriptContextInfo(ScriptContextData * contextData);
-
-    intptr_t GetNullAddr() const;
-    intptr_t GetUndefinedAddr() const;
-    intptr_t GetTrueAddr() const;
-    intptr_t GetFalseAddr() const;
-    intptr_t GetUndeclBlockVarAddr() const;
-    intptr_t GetAddr() const;
-
-
-private:
-    ScriptContextData * m_contextData;
-};
+    void ChakraMemSet(__bcount(sizeInBytes) void *dst, int val, size_t sizeInBytes, HANDLE processHandle = GetCurrentProcess());
+    void ChakraMemCopy(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count, HANDLE processHandle = GetCurrentProcess());
+} // namespace Memory

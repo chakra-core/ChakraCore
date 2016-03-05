@@ -16,8 +16,8 @@ namespace Memory
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
-    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
+    LPVOID  Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = nullptr);
+    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process = nullptr);
     bool        IsPreReservedRegionPresent();
     bool        IsInRange(void * address);
     LPVOID      GetPreReservedStartAddress();
@@ -43,8 +43,8 @@ public:
 public:
     PreReservedVirtualAllocWrapper();
     BOOL Shutdown();
-    LPVOID      Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
-    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType);
+    LPVOID      Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false, HANDLE process = nullptr);
+    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process = nullptr);
     bool        IsPreReservedRegionPresent();
     bool        IsInRange(void * address);
     LPVOID      GetPreReservedStartAddress();

@@ -845,6 +845,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     int nRegs = body->GetLocalsCount();
     AssertMsg((nRegs + 1) == (int)(SymID)(nRegs + 1), "SymID too small...");
 
+#if 0 // TODO: michhol oop jit; what to do?
     CodeGenAllocators *const allocators =
         foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
 
@@ -853,6 +854,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         foreground ? EnsureForegroundCodeGenProfiler() : GetBackgroundCodeGenProfiler(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
 #else
         nullptr;
+#endif
 #endif
 
     NoRecoverMemoryJitArenaAllocator funcAlloc(L"BE-FuncAlloc", pageAllocator, Js::Throw::OutOfMemory);
@@ -873,26 +875,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         JITTimeWorkItem * jitWorkItem = JitAnew(&funcAlloc, JITTimeWorkItem, workItem->GetJITData());
 
-        Func *func =
-            JitAnew(
-                (&funcAlloc),
-                Func,
-                (&funcAlloc),
-                jitWorkItem,
-                nullptr,
-                nullptr,
-                workItem->RecyclableData()->JitTimeData(),
-                nullptr,
-                workItem->GetEntryPoint()->GetPolymorphicInlineCacheInfo()->GetSelfInfo(),
-                allocators,
-                &numberAllocator,
-                nullptr,
-                codeGenProfiler,
-                !foreground);
-#if DBG_DUMP
-        CurrentFunc = func;
-#endif
-        
+        auto funcEPInfo = (Js::FunctionEntryPointInfo*)workItem->GetEntryPoint();
+        workItem->GetJITData()->readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
+
         JITOutputData jitWriteData;
         ProfileData profileData;
         JITTimeProfileInfo::InitializeJITProfileData(body->HasDynamicProfileInfo() ? body->GetAnyDynamicProfileInfo() : nullptr, body, &profileData);
@@ -906,14 +891,12 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         {
             __fastfail((uint)-1);
         }
+        scriptContext->GetThreadContext()->SetValidCallTargetForCFG((PVOID)jitWriteData.codeAddress);
+        workItem->SetCodeAddress(jitWriteData.codeAddress);
+
+        workItem->GetEntryPoint()->SetCodeGenRecorded((PVOID)jitWriteData.codeAddress, jitWriteData.codeSize, nullptr, nullptr, nullptr);
         try
         {
-            // Although we don't need to release the Arena memory, we need to invoke Func destructor.
-            // Use an auto object for it. Put it here to ensure "func" is cleared whenever we have an
-            // exception (RejitException or AbortException).
-            AutoAllocatorObjectPtr<Func, JitArenaAllocator> autoFunc(func, &funcAlloc);
-
-
             {
                 if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))
                 {
@@ -1034,8 +1017,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
                 throw Js::OperationAbortedException();
             }
-
-            func->Codegen();
 
             {
                 if (IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))

@@ -33,7 +33,7 @@ SegmentBase<T>::~SegmentBase()
     if (this->address)
     {
         char* originalAddress = this->address - (leadingGuardPageCount * AutoSystemInfo::PageSize);
-        allocator->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+        allocator->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE, this->allocator->processHandle);
         allocator->ReportFree(this->segmentPageCount * AutoSystemInfo::PageSize); //Note: We reported the guard pages free when we decommitted them during segment initialization
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
         RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
@@ -95,7 +95,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return nullptr;
     }
 
-    this->address = (char *) GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
+    this->address = (char *) GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator(), this->allocator->processHandle);
 
     originalAddress = this->address;
 
@@ -110,23 +110,23 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
             GUARD_PAGE_TRACE(L"Starting address of Trailing Guard Pages: 0x%p\n", address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize));
 #endif
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
             this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount)*AutoSystemInfo::PageSize);
             this->address = this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize);
         }
 
         if (!allocator->CreateSecondaryAllocator(this, &this->secondaryAllocator))
         {
-            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE, this->allocator->processHandle);
             this->allocator->ReportFree(totalPages * AutoSystemInfo::PageSize);
             this->address = nullptr;
         }
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
         else if (!RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount))
         {
-            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE, this->allocator->processHandle);
             this->allocator->ReportFree(totalPages * AutoSystemInfo::PageSize);
             this->address = nullptr;
         }
@@ -187,7 +187,7 @@ PageSegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         if (freePageCount != 0)
         {
             DWORD oldProtect;
-            BOOL vpresult = ::VirtualProtect(this->address, this->GetAvailablePageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
+            BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, this->address, this->GetAvailablePageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
             Assert(vpresult && oldProtect == PAGE_READWRITE);
         }
         return true;
@@ -288,7 +288,7 @@ PageSegmentBase<T>::AllocPages(uint pageCount, PageHeapMode pageHeapFlags)
 
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
                 DWORD oldProtect;
-                BOOL vpresult = ::VirtualProtect(allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+                BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
                 Assert(vpresult && oldProtect == PAGE_NOACCESS);
 #endif
             return allocAddress;
@@ -342,7 +342,7 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
                 }
             }
 
-            void * ret = GetAllocator()->GetVirtualAllocator()->Alloc(pages, pageCount * AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator());
+            void * ret = GetAllocator()->GetVirtualAllocator()->Alloc(pages, pageCount * AutoSystemInfo::PageSize, MEM_COMMIT, PAGE_READWRITE, this->IsInCustomHeapAllocator(), this->allocator->processHandle);
             if (ret != nullptr)
             {
                 Assert(ret == pages);
@@ -388,7 +388,7 @@ PageSegmentBase<T>::ReleasePages(__in void * address, uint pageCount)
 
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
     DWORD oldProtect;
-    BOOL vpresult = ::VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
+    BOOL vpresult = VirtualProtectEx(this->allocator->processHandle, address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
     Assert(vpresult && oldProtect == PAGE_READWRITE);
 #endif
 
@@ -429,11 +429,11 @@ PageSegmentBase<T>::ChangeSegmentProtection(DWORD protectFlags, DWORD expectedOl
 
 #if DBG
             MEMORY_BASIC_INFORMATION info = { 0 };
-            ::VirtualQuery(address, &info, sizeof(MEMORY_BASIC_INFORMATION));
+            VirtualQueryEx(this->allocator->processHandle, address, &info, sizeof(MEMORY_BASIC_INFORMATION));
             Assert(info.Protect == expectedOldProtectFlags);
 #endif
 
-            BOOL fSuccess = ::VirtualProtect(address, regionSize, protectFlags, &oldProtect);
+            BOOL fSuccess = VirtualProtectEx(this->allocator->processHandle, address, regionSize, protectFlags, &oldProtect);
             Assert(fSuccess == TRUE);
             Assert(oldProtect == expectedOldProtectFlags);
 
@@ -460,7 +460,7 @@ PageSegmentBase<T>::DecommitPages(__in void * address, uint pageCount)
     if (!onlyUpdateState)
     {
 #pragma warning(suppress: 6250)
-        GetAllocator()->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+        GetAllocator()->GetVirtualAllocator()->Free(address, pageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
     }
 
     Assert(decommitPageCount == (uint)this->GetCountOfDecommitPages());
@@ -481,7 +481,7 @@ PageSegmentBase<T>::DecommitFreePages(size_t pageToDecommit)
             this->ClearBitInFreePagesBitVector(i);
             this->SetBitInDecommitPagesBitVector(i);
 #pragma warning(suppress: 6250)
-            GetAllocator()->GetVirtualAllocator()->Free(currentAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            GetAllocator()->GetVirtualAllocator()->Free(currentAddress, AutoSystemInfo::PageSize, MEM_DECOMMIT, this->allocator->processHandle);
             decommitCount++;
         }
         currentAddress += AutoSystemInfo::PageSize;
@@ -558,7 +558,7 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
 #endif
     PageAllocatorType type,
     uint maxFreePageCount, bool zeroPages,  BackgroundPageQueue * backgroundPageQueue, uint maxAllocPageCount, uint secondaryAllocPageCount,
-    bool stopAllocationOnOutOfMemory, bool excludeGuardPages) :
+    bool stopAllocationOnOutOfMemory, bool excludeGuardPages, HANDLE processHandle) :
     policyManager(policyManager),
 #ifndef JD_PRIVATE
     pageAllocatorFlagTable(flagTable),
@@ -584,6 +584,7 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
     , committedBytes(0)
     , usedBytes(0)
     , numberOfSegments(0)
+    , processHandle(processHandle)
 {
     AssertMsg(Math::IsPow2(maxAllocPageCount + secondaryAllocPageCount), "Illegal maxAllocPageCount: Why is this not a power of 2 aligned?");
 
@@ -826,7 +827,7 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
             else
             {
                 pages = (char *)freePage;
-                memset(pages, 0, sizeof(FreePageEntry));
+                ChakraMemSet(pages, 0, sizeof(FreePageEntry), this->processHandle);
             }
             this->FillAllocPages(pages, pageCount);
             return (char *)pages;
@@ -840,13 +841,32 @@ template<typename T>
 void
 PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
 {
+    const size_t bufferSize = AutoSystemInfo::PageSize * pageCount;
 
 #if DBG
 #ifdef RECYCLER_ZERO_MEM_CHECK
-    for (size_t i = 0; i < AutoSystemInfo::PageSize * pageCount; i++)
+    const bool isLocalProc = this->processHandle == GetCurrentProcess();
+    byte * readBuffer;
+    if (isLocalProc)
+    {
+        readBuffer = (byte*)address;
+    }
+    else
+    {
+        readBuffer = HeapNewArray(byte, bufferSize);
+        if (!ReadProcessMemory(this->processHandle, address, readBuffer, bufferSize, NULL))
+        {
+            Js::Throw::InternalError();
+        }
+    }
+    for (size_t i = 0; i < bufferSize; i++)
     {
         // new pages are filled with zeros, old pages are filled with DbgMemFill
-        Assert(((byte *)address)[i] == 0 || ((byte *)address)[i] == DbgMemFill);
+        Assert(readBuffer[i] == 0 || readBuffer[i] == DbgMemFill);
+    }
+    if (!isLocalProc)
+    {
+        HeapDeleteArray(bufferSize, readBuffer);
     }
 #endif
 #endif
@@ -854,7 +874,7 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        memset(address, Recycler::VerifyMemFill, AutoSystemInfo::PageSize * pageCount);
+        ChakraMemSet(address, Recycler::VerifyMemFill, bufferSize, this->processHandle);
         return;
     }
 #endif
@@ -863,7 +883,7 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
     if (ZeroPages())
     {
         // for release build, the page is zeroed in ReleasePages
-        memset(address, 0, AutoSystemInfo::PageSize * pageCount);
+        ChakraMemSet(address, 0, bufferSize, this->processHandle);
     }
 #endif
 }
@@ -873,7 +893,7 @@ void
 PageAllocatorBase<T>::FillFreePages(__in void * address, uint pageCount)
 {
 #if DBG
-    memset(address, DbgMemFill, AutoSystemInfo::PageSize * pageCount);
+    ChakraMemSet(address, DbgMemFill, AutoSystemInfo::PageSize * pageCount, this->processHandle);
 #else
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
@@ -992,7 +1012,7 @@ PageAllocatorBase<T>::AllocSegment(size_t pageCount)
 #ifdef RECYCLER_MEMORY_VERIFY
     if (verifyEnabled)
     {
-        memset(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount());
+        ChakraMemSet(segment->GetAddress(), Recycler::VerifyMemFill, AutoSystemInfo::PageSize * segment->GetPageCount(), this->processHandle);
     }
 #endif
 
@@ -1305,7 +1325,7 @@ PageAllocatorBase<T>::ReleaseSegment(SegmentBase<T> * segment)
     if (disablePageReuse)
     {
         DWORD oldProtect;
-        BOOL vpresult = ::VirtualProtect(segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
+        BOOL vpresult = VirtualProtectEx(this->processHandle, segment->GetAddress(), segment->GetPageCount() * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
         Assert(vpresult && oldProtect == PAGE_READWRITE);
         return;
     }
@@ -1339,7 +1359,7 @@ PageAllocatorBase<T>::ReleasePages(__in void * address, uint pageCount, __in voi
     if (disablePageReuse)
     {
         DWORD oldProtect;
-        BOOL vpresult = ::VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
+        BOOL vpresult = VirtualProtectEx(this->processHandle, address, pageCount * AutoSystemInfo::PageSize, PAGE_NOACCESS, &oldProtect);
         Assert(vpresult && oldProtect == PAGE_READWRITE);
         return;
     }
@@ -1379,7 +1399,7 @@ PageAllocatorBase<T>::ReleasePages(__in void * address, uint pageCount, __in voi
 
 #if DBG
             UpdateMinimum(this->debugMinFreePageCount, this->freePageCount);
-            memset(address, DbgMemFill, AutoSystemInfo::PageSize * pageCount);
+            ChakraMemSet(address, DbgMemFill, AutoSystemInfo::PageSize * pageCount, this->processHandle);
 #endif
             segment->ReleasePages(address, pageCount);
             LogFreePages(pageCount);
@@ -1484,7 +1504,7 @@ PageAllocatorBase<T>::ZeroQueuedPages()
         }
         PageSegmentBase<T> * segment = freePageEntry->segment;
         uint pageCount = freePageEntry->pageCount;
-        memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
+        ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
         QueuePages(freePageEntry, pageCount, segment);
     }
     this->hasZeroQueuedPages = false;
@@ -1534,7 +1554,7 @@ PageAllocatorBase<T>::FlushBackgroundPages()
         DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(segment);
         Assert(fromSegmentList != nullptr);
 
-        memset(freePageEntry, 0, sizeof(FreePageEntry));
+        ChakraMemSet(freePageEntry, 0, sizeof(FreePageEntry), this->processHandle);
 
         segment->ReleasePages(freePageEntry, pageCount);
         newFreePages += pageCount;
@@ -1633,7 +1653,7 @@ PageAllocatorBase<T>::DecommitNow(bool all)
             else
             {
                 // Zero them and release them in case we don't decommit them.
-                memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
+                ChakraMemSet(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize, this->processHandle);
                 segment->ReleasePages(freePageEntry, pageCount);
                 LogFreePages(pageCount);
             }
@@ -2129,7 +2149,7 @@ PageAllocatorBase<T>::Check()
 #endif
 
 template<typename T>
-HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages) :
+HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager, bool allocXdata, bool excludeGuardPages, HANDLE processHandle) :
     PageAllocatorBase(policyManager,
         Js::Configuration::Global.flags,
         PageAllocatorType_CustomHeap,
@@ -2139,7 +2159,8 @@ HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager,
         /*maxAllocPageCount*/ allocXdata ? (DefaultMaxAllocPageCount - XDATA_RESERVE_PAGE_COUNT) : DefaultMaxAllocPageCount,
         /*secondaryAllocPageCount=*/ allocXdata ? XDATA_RESERVE_PAGE_COUNT : 0,
         /*stopAllocationOnOutOfMemory*/ false,
-        excludeGuardPages),
+        excludeGuardPages,
+        processHandle),
     allocXdata(allocXdata)
 {
 }
@@ -2211,7 +2232,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 #if DBG_DUMP || defined(RECYCLER_TRACE)
     if (this->pageAllocatorFlagTable.IsEnabled(Js::TraceProtectPagesFlag))
     {
-        Output::Print(L"VirtualProtect(0x%p, %d, %d, %d)\n", address, pageCount, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags);
+        Output::Print(L"VirtualProtectEx(%d, 0x%p, %d, %d, %d)\n", this->processHandle, address, pageCount, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags);
     }
 #endif
 
@@ -2227,7 +2248,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
     MEMORY_BASIC_INFORMATION memBasicInfo;
 
     // check old protection on all pages about to change, ensure the fidelity
-    size_t bytes = VirtualQuery(address, &memBasicInfo, sizeof(memBasicInfo));
+    size_t bytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
     if (bytes == 0
         || memBasicInfo.RegionSize < pageCount * AutoSystemInfo::PageSize
         || desiredOldProtectFlag != memBasicInfo.Protect)
@@ -2254,7 +2275,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 #endif
 
     DWORD oldProtect; // this is only for first page
-    BOOL retVal = ::VirtualProtect(address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
+    BOOL retVal = VirtualProtectEx(this->processHandle, address, pageCount * AutoSystemInfo::PageSize, dwVirtualProtectFlags, &oldProtect);
     Assert(oldProtect == desiredOldProtectFlag);
 
     return retVal;

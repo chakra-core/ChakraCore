@@ -311,50 +311,6 @@ void CodeGenWorkItem::OnRemoveFromJitQueue(NativeCodeGenerator* generator)
     }
 }
 
-void CodeGenWorkItem::RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize)
-{
-    BYTE *buffer;
-#if defined(_M_ARM32_OR_ARM64)
-    bool canAllocInPreReservedHeapPageSegment = false;
-#else
-    bool canAllocInPreReservedHeapPageSegment = func->CanAllocInPreReservedHeapPageSegment();
-#endif
-    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
-
-#if DBG
-    MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQuery(allocation->allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
-#endif
-
-    Assert(allocation != nullptr);
-    if (buffer == nullptr)
-        Js::Throw::OutOfMemory();
-
-    SetCodeAddress((size_t)buffer);
-    SetCodeSize(bytes);
-    SetPdataCount(pdataCount);
-    SetXdataSize(xdataSize);
-    SetAllocation(allocation);
-}
-
-void CodeGenWorkItem::RecordNativeCode(Func *func, const BYTE* sourceBuffer)
-{
-    if (!func->GetEmitBufferManager()->CommitBuffer(this->GetAllocation(), (BYTE *)GetCodeAddress(), GetCodeSize(), sourceBuffer))
-    {
-        Js::Throw::OutOfMemory();
-    }
-
-    this->isAllocationCommitted = true;
-
-#if DBG_DUMP
-    if (Type() == JsLoopBodyWorkItemType)
-    {
-        func->GetEmitBufferManager()->totalBytesLoopBody += GetCodeSize();
-    }
-#endif
-}
-
 void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 {
     if (!isAllocationCommitted && this->allocation != nullptr && this->allocation->allocation != nullptr)

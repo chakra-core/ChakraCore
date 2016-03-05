@@ -190,7 +190,8 @@ const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(AllocationPolicyManager * policyManager, ArenaAllocator* allocator, void * interpreterThunk) :
-    emitBufferManager(policyManager, allocator, /*scriptContext*/ nullptr, L"Interpreter thunk buffer", /*allocXdata*/ false),
+    // TODO: michhol oop JIT move interpreter thunk emitter out of process
+    emitBufferManager(policyManager, allocator, /*scriptContext*/ nullptr, L"Interpreter thunk buffer", /*allocXdata*/ false, GetCurrentProcess()),
     allocation(nullptr),
     allocator(allocator),
     thunkCount(0),
@@ -521,7 +522,8 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(__out_bcount_full(count) BYTE* des
 #elif defined(_M_ARM64)
     Assert(count % 4 == 0);
 #endif
-    CustomHeap::FillDebugBreak(dest, count);
+    // TODO: michhol OOP JIT. after mving OOP, change to runtime process handle
+    CustomHeap::FillDebugBreak(dest, count, GetCurrentProcess());
     return count;
 }
 

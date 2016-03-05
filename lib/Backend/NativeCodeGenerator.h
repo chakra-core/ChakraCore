@@ -126,7 +126,7 @@ private:
 
     CodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
-        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext);
+        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, nullptr);
     }
 
     CodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)

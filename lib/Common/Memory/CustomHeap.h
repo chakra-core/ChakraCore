@@ -141,7 +141,7 @@ struct Allocation
 class Heap
 {
 public:
-    Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata);
+    Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata, HANDLE processHandle);
 
     Allocation* Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     bool Free(__in Allocation* allocation);
@@ -461,6 +461,7 @@ private:
     // Critical section synchronize in the BGJIT thread and IsInRange in the main thread
     CriticalSection        cs;
     bool                   allocXdata;
+    HANDLE                 processHandle;
 #if DBG
     bool inDtor;
 #endif
@@ -469,6 +470,6 @@ private:
 // Helpers
 unsigned int log2(size_t number);
 BucketId GetBucketForSize(size_t bytes);
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount);
-};
-}
+void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount, HANDLE processHandle);
+} // namespace CustomHeap
+} // namespace Memory

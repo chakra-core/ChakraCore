@@ -21,7 +21,8 @@ XDataAllocator::XDataAllocator(BYTE* address, uint size) :
     functionTableHandles(nullptr)
 {
 #ifdef RECYCLER_MEMORY_VERIFY
-        memset(this->start, Recycler::VerifyMemFill, this->size);
+    // TODO: michhol OOP JIT, WriteProcessMemory?
+        // memset(this->start, Recycler::VerifyMemFill, this->size);
 #endif
     Assert(size > 0);
     Assert(address != nullptr);

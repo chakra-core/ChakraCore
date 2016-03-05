@@ -8,7 +8,7 @@
 * class VirtualAllocWrapper
 */
 
-LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process)
 {
     Assert(this == nullptr);
     LPVOID address = nullptr;
@@ -44,19 +44,34 @@ LPVOID VirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocat
         {
             allocProtectFlags = PAGE_EXECUTE_READWRITE;
         }
-        address = VirtualAlloc(lpAddress, dwSize, allocationType, allocProtectFlags);
-        VirtualProtect(address, dwSize, protectFlags, &oldProtectFlags);
+        if (process)
+        {
+            address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, allocProtectFlags);
+            VirtualProtectEx(process, address, dwSize, protectFlags, &oldProtectFlags);
+        }
+        else
+        {
+            address = VirtualAlloc(lpAddress, dwSize, allocationType, allocProtectFlags);
+            VirtualProtect(address, dwSize, protectFlags, &oldProtectFlags);
+        }
     }
     else
 #endif
     {
-        address = VirtualAlloc(lpAddress, dwSize, allocationType, protectFlags);
+        if (process)
+        {
+            address = VirtualAllocEx(process, lpAddress, dwSize, allocationType, protectFlags);
+        }
+        else
+        {
+            address = VirtualAlloc(lpAddress, dwSize, allocationType, protectFlags);
+        }
     }
 
     return address;
 }
 
-BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType)
+BOOL VirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process)
 {
     Assert(this == nullptr);
     AnalysisAssert(dwFreeType == MEM_RELEASE || dwFreeType == MEM_DECOMMIT);
@@ -169,8 +184,9 @@ PreReservedVirtualAllocWrapper::GetPreReservedEndAddress()
 *   -   Tracks the committed pages
 */
 
-LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
+LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process)
 {
+    UNREFERENCED_PARAMETER(process);
     Assert(this);
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
     AssertMsg(AutoSystemInfo::Data.IsCFGEnabled() || PHASE_FORCE1(Js::PreReservedHeapAllocPhase), "PreReservation without CFG ?");
@@ -316,8 +332,9 @@ LPVOID PreReservedVirtualAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 */
 
 BOOL
-PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType)
+PreReservedVirtualAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process)
 {
+    UNREFERENCED_PARAMETER(process);
     Assert(this);
     {
         AutoCriticalSection autocs(&this->cs);

@@ -5,7 +5,14 @@
 #include "Backend.h"
 
 ThreadContextInfo::ThreadContextInfo(ThreadContextData * data) :
-    m_threadContextData(data)
+    m_threadContextData(data),
+    m_policyManager(true),
+    m_pageAlloc(&m_policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+        AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount),
+    m_codeGenAlloc(&m_policyManager, nullptr, (HANDLE)data->processHandle),
+    m_isAllJITCodeInPreReservedRegion(true)
 {
 }
 
@@ -157,6 +164,42 @@ bool
 ThreadContextInfo::IsThreadBound() const
 {
     return m_threadContextData->isThreadBound != FALSE;
+}
+
+PageAllocator *
+ThreadContextInfo::GetPageAllocator()
+{
+    return &m_pageAlloc;
+}
+
+CodeGenAllocators *
+ThreadContextInfo::GetCodeGenAllocators()
+{
+    return &m_codeGenAlloc;
+}
+
+AllocationPolicyManager *
+ThreadContextInfo::GetAllocationPolicyManager()
+{
+    return &m_policyManager;
+}
+
+HANDLE
+ThreadContextInfo::GetProcessHandle() const
+{
+    return reinterpret_cast<HANDLE>(m_threadContextData->processHandle);
+}
+
+bool
+ThreadContextInfo::IsAllJITCodeInPreReservedRegion() const
+{
+    return m_isAllJITCodeInPreReservedRegion;
+}
+
+void
+ThreadContextInfo::ResetIsAllJITCodeInPreReservedRegion()
+{
+    m_isAllJITCodeInPreReservedRegion = false;
 }
 
 intptr_t

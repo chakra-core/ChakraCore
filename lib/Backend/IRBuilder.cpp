@@ -1597,7 +1597,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         return;
 
     case Js::OpCode::InitUndecl:
-        srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, m_func, true);
+        srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
         srcOpnd->SetValueType(ValueType::PrimitiveOrObject);
         newOpcode = Js::OpCode::Ld_A;
         break;
@@ -4033,13 +4033,13 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         // Store
         if (newOpcode == Js::OpCode::InitUndeclLocalLetFld)
         {
-            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, this->m_func, true);
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, this->m_func, true);
             srcOpnd->SetValueType(ValueType::PrimitiveOrObject);
             newOpcode = Js::OpCode::InitLetFld;
         }
         else if (newOpcode == Js::OpCode::InitUndeclLocalConstFld)
         {
-            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, this->m_func, true);
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, this->m_func, true);
             srcOpnd->SetValueType(ValueType::PrimitiveOrObject);
             newOpcode = Js::OpCode::InitConstFld;
         }
@@ -4263,13 +4263,13 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         // Store
         if (newOpcode == Js::OpCode::InitUndeclLetFld)
         {
-            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, this->m_func, true);
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, this->m_func, true);
             srcOpnd->SetValueType(ValueType::PrimitiveOrObject);
             newOpcode = Js::OpCode::InitLetFld;
         }
         else if (newOpcode == Js::OpCode::InitUndeclConstFld)
         {
-            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(), IR::AddrOpndKindDynamicVar, this->m_func, true);
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, this->m_func, true);
             srcOpnd->SetValueType(ValueType::PrimitiveOrObject);
             newOpcode = Js::OpCode::InitConstFld;
         }
@@ -6446,7 +6446,7 @@ IRBuilder::BuildBrReg1(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     srcOpnd = this->BuildSrcOpnd(srcRegSlot);
 
     if (newOpcode == Js::OpCode::BrNotUndecl_A) {
-        IR::AddrOpnd *srcOpnd2 = IR::AddrOpnd::New(this->m_func->GetScriptContext()->GetLibrary()->GetUndeclBlockVar(),
+        IR::AddrOpnd *srcOpnd2 = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(),
             IR::AddrOpndKindDynamicVar, this->m_func);
         branchInstr = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, nullptr, srcOpnd, srcOpnd2, m_func);
     } else {

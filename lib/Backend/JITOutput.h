@@ -8,13 +8,25 @@
 class JITOutput
 {
 public:
-    JITOutput();
+    JITOutput(JITOutputData * outputData);
 
     void SetHasJITStackClosure();
 
     void SetVarSlotsOffset(int32 offset);
     void SetVarChangedOffset(int32 offset);
 
+    intptr_t GetCodeAddress() const;
+
+    EmitBufferAllocation * RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize);
+    void RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc);
+
+#if _M_X64 || _M_ARM
+    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle);
+#endif
+
+    void FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc);
+
+    JITOutputData * GetOutputData();
 private:
-    JITOutputData m_outputData;
+    JITOutputData * m_outputData;
 };

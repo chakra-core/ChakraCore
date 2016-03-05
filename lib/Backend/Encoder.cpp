@@ -239,11 +239,13 @@ Encoder::Encode()
         }
     }
 #endif
+#if 0 // TODO: michhol OOP JIT, understand this code
     for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i ++)
     {
         IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
         inst->RecordThrowMap(iter, inst->m_offsetInBuffer);
     }
+#endif
 
     JITTimeWorkItem * workItem = m_func->GetWorkItem();
 
@@ -271,7 +273,12 @@ Encoder::Encode()
 
     TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(m_encodeBuffer, codeSize, jumpTableListForSwitchStatement, totalJmpTableSizeInBytes);
 
-    workItem->RecordNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+    EmitBufferAllocation * alloc = m_func->GetJITOutput()->RecordNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+
+    if (!alloc->inPrereservedRegion)
+    {
+        m_func->GetThreadContextInfo()->ResetIsAllJITCodeInPreReservedRegion();
+    }
 
     this->m_bailoutRecordMap->MapAddress([=](int index, LazyBailOutRecord* record)
     {
@@ -279,25 +286,25 @@ Encoder::Encode()
     });
 
     // Relocs
-    m_encoderMD.ApplyRelocs((size_t) workItem->GetCodeAddress());
+    m_encoderMD.ApplyRelocs((size_t)alloc->allocation->address);
 
-    workItem->RecordNativeCode(m_func, m_encodeBuffer);
-
-    m_func->GetScriptContext()->GetThreadContext()->SetValidCallTargetForCFG((PVOID) workItem->GetCodeAddress());
+    m_func->GetJITOutput()->RecordNativeCode(m_func, m_encodeBuffer, alloc);
 
 #ifdef _M_X64
     m_func->m_prologEncoder.FinalizeUnwindInfo();
-    workItem->RecordUnwindInfo(0, m_func->m_prologEncoder.GetUnwindInfo(), m_func->m_prologEncoder.SizeOfUnwindInfo());
+    m_func->GetJITOutput()->RecordUnwindInfo(
+        0,
+        m_func->m_prologEncoder.GetUnwindInfo(),
+        m_func->m_prologEncoder.SizeOfUnwindInfo(),
+        alloc->allocation->xdata.address,
+        m_func->GetThreadContextInfo()->GetProcessHandle());
 #elif _M_ARM
     m_func->m_unwindInfo.EmitUnwindInfo(workItem);
     workItem->SetCodeAddress(workItem->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
 
-    Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
+    Js::EntryPointInfo* entryPointInfo = nullptr;
     const bool isSimpleJit = m_func->IsSimpleJit();
-    Assert(
-        isSimpleJit ||
-        entryPointInfo->GetJitTransferData() != nullptr && !entryPointInfo->GetJitTransferData()->GetIsReady());
 
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
@@ -477,13 +484,7 @@ Encoder::Encode()
 
         entryPointInfo->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
     }
-
-    if(!isSimpleJit)
-    {
-        entryPointInfo->GetJitTransferData()->SetIsReady();
-    }
-
-    workItem->FinalizeNativeCode(m_func);
+    m_func->GetJITOutput()->FinalizeNativeCode(m_func, alloc);
 
     END_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
@@ -503,9 +504,9 @@ Encoder::Encode()
             __analysis_assume(m_instrNumber < instrCount);
             instr->DumpGlobOptInstrString();
 #ifdef _WIN64
-            Output::Print(L"%12IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)workItem->GetCodeAddress());
+            Output::Print(L"%12IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #else
-            Output::Print(L"%8IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)workItem->GetCodeAddress());
+            Output::Print(L"%8IX  ", m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #endif
             instr->Dump();
         } NEXT_INSTR_IN_FUNC;
@@ -518,7 +519,7 @@ Encoder::Encode()
     {
         workItem->DumpNativeOffsetMaps();
         workItem->DumpNativeThrowSpanSequence();
-        this->DumpInlineeFrameMap(workItem->GetCodeAddress());
+        this->DumpInlineeFrameMap(m_func->GetJITOutput()->GetCodeAddress());
         Output::Flush();
     }
 #endif

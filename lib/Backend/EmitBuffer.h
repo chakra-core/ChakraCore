@@ -12,6 +12,7 @@ struct EmitBufferAllocation
     CustomHeap::Allocation* allocation;
     size_t bytesUsed;
     size_t bytesCommitted;
+    bool   inPrereservedRegion;
     bool   recorded;
     EmitBufferAllocation * nextAllocation;
 
@@ -30,7 +31,7 @@ template <class SyncObject = FakeCriticalSection>
 class EmitBufferManager
 {
 public:
-    EmitBufferManager(AllocationPolicyManager * policyManager, ArenaAllocator * allocator, Js::ScriptContext * scriptContext, LPCWSTR name, bool allocXdata);
+    EmitBufferManager(AllocationPolicyManager * policyManager, ArenaAllocator * allocator, Js::ScriptContext * scriptContext, LPCWSTR name, bool allocXdata, HANDLE processHandle);
     ~EmitBufferManager();
 
     // All the following methods are guarded with the SyncObject
@@ -126,6 +127,7 @@ private:
     CustomHeap::Heap allocationHeap;
 
     SyncObject  criticalSection;
+    HANDLE processHandle;
 #if DBG_DUMP
 
 public:

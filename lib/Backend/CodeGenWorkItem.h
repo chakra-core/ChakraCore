@@ -134,9 +134,6 @@ public:
         return this->entryPointInfo;
     }
 
-    void RecordNativeCodeSize(Func *func, size_t bytes, ushort pdataCount, ushort xdataSize);
-    void RecordNativeCode(Func *func, const BYTE* sourceBuffer);
-
     Js::CodeGenRecyclableData *RecyclableData() const
     {
         return recyclableData;
@@ -193,25 +190,6 @@ public:
         return jitData.isJitInDebugMode != 0;
     }
 
-#if _M_X64 || _M_ARM
-    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size)
-    {
-#if _M_X64
-        Assert(offset == 0);
-        Assert(XDATA_SIZE >= size);
-        js_memcpy_s(GetAllocation()->allocation->xdata.address, XDATA_SIZE, unwindInfo, size);
-        return 0;
-#else
-        BYTE *xdataFinal = GetAllocation()->allocation->xdata.address + offset;
-
-        Assert(xdataFinal);
-        Assert(((DWORD)xdataFinal & 0x3) == 0); // 4 byte aligned
-        js_memcpy_s(xdataFinal, size, unwindInfo, size);
-        return (size_t)xdataFinal;
-#endif
-    }
-#endif
-
 #if _M_ARM
     void RecordPdataEntry(int index, DWORD beginAddress, DWORD unwindData)
     {
@@ -251,9 +229,6 @@ struct JsFunctionCodeGen sealed : public CodeGenWorkItem
         bool isJitInDebugMode)
         : CodeGenWorkItem(manager, functionBody, entryPointInfo, isJitInDebugMode, JsFunctionType)
     {
-        auto funcEPInfo = (Js::FunctionEntryPointInfo*)entryPointInfo;
-        this->jitData.readOnlyEPData.callsCountAddress = (uintptr_t)&funcEPInfo->callsCount;
-
         size_t sizeInChars = this->GetDisplayName(nullptr, 256);
 
         WCHAR * displayName = HeapNewArray(WCHAR, sizeInChars);

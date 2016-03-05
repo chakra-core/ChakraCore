@@ -9,6 +9,7 @@
 Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     ThreadContextInfo * threadContextInfo,
     ScriptContextInfo * scriptContextInfo,
+    JITOutputData * outputData,
     const Js::FunctionCodeGenJitTimeData *const jitTimeData,
     const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -19,6 +20,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_alloc(alloc),
     m_workItem(workItem),
     m_jitTimeData(jitTimeData),
+    m_output(outputData),
     m_threadContextInfo(threadContextInfo),
     m_scriptContextInfo(scriptContextInfo),
     m_runtimeData(runtimeData),
@@ -299,6 +301,7 @@ Func::Codegen()
             this->m_fg = nullptr;
         }
 
+        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::GlobOptPhase);
 #endif /* IR_VIEWER */
@@ -309,6 +312,7 @@ Func::Codegen()
         lowerer.Lower();
         END_CODEGEN_PHASE(this, Js::LowererPhase);
 
+        Dump();
 #ifdef IR_VIEWER
         IRtoJSObjectBuilder::DumpIRtoGlobalObject(this, Js::LowererPhase);
 #endif /* IR_VIEWER */

@@ -90,6 +90,7 @@ typedef struct ProfileData
 
 typedef struct ThreadContextData
 {
+    __int3264 processHandle;
     __int3264 chakraBaseAddress;
     __int3264 threadStackLimitAddr;
     __int3264 scriptStackLimit;
@@ -102,6 +103,7 @@ typedef struct ScriptContextData
     __int3264 undefinedAddr;
     __int3264 trueAddr;
     __int3264 falseAddr;
+    __int3264 undeclBlockVarAddr;
     __int3264 scriptContextAddr;
 } ScriptContextData;
 
@@ -200,6 +202,11 @@ typedef struct CodeGenWorkItemJITData
 typedef struct JITOutputData
 {
     EntryPointInfoJITWriteData writeableEPData;
+    __int3264 codeAddress;
+    __int3264 codeSize;
+    unsigned short pdataCount;
+    unsigned short xdataSize;
+    boolean isInPrereservedRegion;
 } JITOutputData;
 
 [

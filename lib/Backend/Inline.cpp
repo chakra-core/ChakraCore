@@ -1204,6 +1204,7 @@ Inline::BuildInlinee(Js::FunctionBody* funcBody, const InlineeData& inlineeData,
                             jitWorkItem,
                             this->topFunc->GetThreadContextInfo(),
                             this->topFunc->GetScriptContextInfo(),
+                            this->topFunc->GetJITOutput()->GetOutputData(),
                             workItem->RecyclableData()->JitTimeData(),
                             inlineeData.inlineeRuntimeData,
                             entryPointPolymorphicInlineCacheInfo ? entryPointPolymorphicInlineCacheInfo->GetInlineeInfo(funcBody) : nullptr,
@@ -2661,6 +2662,7 @@ Inline::InlineCallApplyTarget_Shared(IR::Instr *callInstr, StackSym* originalCal
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
                          this->topFunc->GetScriptContextInfo(),
+                         this->topFunc->GetJITOutput()->GetOutputData(),
                          workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
@@ -3408,6 +3410,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const Js::FunctionC
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
                          this->topFunc->GetScriptContextInfo(),
+                         this->topFunc->GetJITOutput()->GetOutputData(),
                          workItem->RecyclableData()->JitTimeData(),
                          accessorInstr->m_func->m_runtimeData ?
                             accessorInstr->m_func->m_runtimeData->GetLdFldInlinee(inlineCacheIndex) :
@@ -3724,6 +3727,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const Js::FunctionCodeGenJitT
                          jitWorkItem,
                          this->topFunc->GetThreadContextInfo(),
                          this->topFunc->GetScriptContextInfo(),
+                         this->topFunc->GetJITOutput()->GetOutputData(),
                          workItem->RecyclableData()->JitTimeData(),
                          callInstr->m_func->m_runtimeData ?
                             callInstr->m_func->m_runtimeData->GetInlineeForTargetInlinee(profileId, funcBody) :

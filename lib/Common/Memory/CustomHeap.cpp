@@ -20,7 +20,7 @@ namespace CustomHeap
 
 #pragma region "Constructor and Destructor"
 
-Heap::Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata):
+Heap::Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata, HANDLE processHandle):
     auxiliaryAllocator(alloc),
     allocXdata(allocXdata),
 #if DBG_DUMP
@@ -32,9 +32,10 @@ Heap::Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool
 #if DBG
     inDtor(false),
 #endif
-    pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/),
+    pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, processHandle),
     preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/),
-    cs(4000)
+    cs(4000),
+    processHandle(processHandle)
 {
     for (int i = 0; i < NumBuckets; i++)
     {
@@ -199,7 +200,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
         allocation = AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
 #if defined(DBG)
         MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+        size_t resultBytes = VirtualQueryEx(this->processHandle, allocation->address, &memBasicInfo, sizeof(memBasicInfo));
         Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
         return allocation;
@@ -231,7 +232,7 @@ Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool 
 
 #if defined(DBG)
     MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
+    size_t resultBytes = VirtualQueryEx(this->processHandle, page->address, &memBasicInfo, sizeof(memBasicInfo));
     Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
@@ -370,7 +371,7 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
             return nullptr;
         }
 
-        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize);
+        FillDebugBreak((BYTE*) address, pages*AutoSystemInfo::PageSize, this->processHandle);
         DWORD protectFlags = 0;
         if (AutoSystemInfo::Data.IsCFGEnabled())
         {
@@ -652,7 +653,7 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
         return nullptr;
     }
 
-    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize);
+    FillDebugBreak((BYTE*) address, AutoSystemInfo::PageSize, this->processHandle);
 
     DWORD protectFlags = 0;
 
@@ -813,7 +814,7 @@ bool Heap::FreeAllocation(Allocation* object)
             EnsureAllocationWriteable(object);
 
             // Fill the old buffer with debug breaks
-            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+            CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
 
             void* pageAddress = page->address;
 
@@ -848,7 +849,7 @@ bool Heap::FreeAllocation(Allocation* object)
     }
 
     // Fill the old buffer with debug breaks
-    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
+    CustomHeap::FillDebugBreak((BYTE *)object->address, object->size, this->processHandle);
 
     VerboseHeapTrace(L"Setting %d bits starting at bit %d, Free bit vector in page was ", length, index);
 #if VERBOSE_HEAP
@@ -1075,7 +1076,7 @@ inline BucketId GetBucketForSize(size_t bytes)
 // Fills the specified buffer with "debug break" instruction encoding.
 // If there is any space left after that due to alignment, fill it with 0.
 // static
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount)
+void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount, HANDLE processHandle)
 {
 #if defined(_M_ARM)
     // On ARM there is breakpoint instruction (BKPT) which is 0xBEii, where ii (immediate 8) can be any value, 0xBE in particular.
@@ -1104,7 +1105,7 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     }
 #else
     // On Intel just use "INT 3" instruction which is 0xCC.
-    memset(buffer, 0xCC, byteCount);
+    ChakraMemSet(buffer, 0xCC, byteCount, processHandle);
 #endif
 }
 

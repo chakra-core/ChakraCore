@@ -70,6 +70,7 @@ public:
     Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         ThreadContextInfo * threadContextInfo,
         ScriptContextInfo * scriptContextInfo,
+        JITOutputData * outputData,
         const Js::FunctionCodeGenJitTimeData *const jitTimeData, const Js::FunctionCodeGenRuntimeData *const runtimeData,
         Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
         CodeGenNumberAllocator * numberAllocator, JITTimeProfileInfo *const profileInfo,
@@ -173,6 +174,11 @@ public:
     ScriptContextInfo * GetScriptContextInfo() const
     {
         return m_scriptContextInfo;
+    }
+
+    JITOutput* GetJITOutput()
+    {
+        return &m_output;
     }
 
     const JITTimeFunctionBody * const GetJITFunctionBody() const

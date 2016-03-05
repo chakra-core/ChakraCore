@@ -90,7 +90,16 @@ ServerInitializeThreadContext(
 {
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
+    AllocationPolicyManager * policyManager = HeapNew(AllocationPolicyManager, true);
+
     ThreadContextInfo * contextInfo = HeapNew(ThreadContextInfo, threadContextData);
+
+    PageAllocator backgroundPageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
+        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
+            PageAllocator::DefaultLowMaxFreePageCount :
+            PageAllocator::DefaultMaxFreePageCount));
+    HeapNew(CodeGenAllocators, policyManager, nullptr, nullptr);
+
     *threadContextRoot = (intptr_t)contextInfo;
     return S_OK;
 }
@@ -100,8 +109,10 @@ ServerCleanupThreadContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 threadContextRoot)
 {
-    ThreadContextInfo * contextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
-    HeapDelete(contextInfo);
+    ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextRoot);
+    CloseHandle(threadContextInfo->GetProcessHandle());
+
+    HeapDelete(threadContextInfo);
     return S_OK;
 }
 
@@ -123,8 +134,8 @@ ServerCleanupScriptContext(
     /* [in] */ handle_t binding,
     /* [in] */ __int3264 scriptContextRoot)
 {
-    ScriptContextInfo * contextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
-    HeapDelete(contextInfo);
+    ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextRoot);
+    HeapDelete(scriptContextInfo);
     return S_OK;
 }
 
@@ -140,20 +151,15 @@ ServerRemoteCodeGen(
     UNREFERENCED_PARAMETER(binding);
     AUTO_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
 
-    AllocationPolicyManager * policyManager = HeapNew(AllocationPolicyManager, true);
-    // TODO: store this
-    PageAllocator backgroundPageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
-        (AutoSystemInfo::Data.IsLowMemoryProcess() ?
-            PageAllocator::DefaultLowMaxFreePageCount :
-            PageAllocator::DefaultMaxFreePageCount));
-    JitArenaAllocator jitArena(L"JITArena", &backgroundPageAllocator, Js::Throw::OutOfMemory);
-
-    JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
     ThreadContextInfo * threadContextInfo = reinterpret_cast<ThreadContextInfo*>(threadContextInfoAddress);
+
+    JitArenaAllocator jitArena(L"JITArena", threadContextInfo->GetPageAllocator(), Js::Throw::OutOfMemory);
     ScriptContextInfo * scriptContextInfo = reinterpret_cast<ScriptContextInfo*>(scriptContextInfoAddress);
 
+    JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItemData);
+
     JITTimeProfileInfo profileInfo(profileData);
-    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, nullptr, nullptr, nullptr, nullptr, nullptr, &profileInfo, nullptr, true);
+    Func func(&jitArena, jitWorkItem, threadContextInfo, scriptContextInfo, jitData, nullptr, nullptr, nullptr, threadContextInfo->GetCodeGenAllocators(), nullptr, &profileInfo, nullptr, true);
     func.m_symTable->SetStartingID(static_cast<SymID>(jitWorkItem->GetJITFunctionBody()->GetLocalsCount() + 1));
     func.Codegen();
     return S_OK;

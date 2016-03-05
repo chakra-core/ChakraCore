@@ -39,9 +39,24 @@ public:
     size_t GetScriptStackLimit() const;
     bool IsThreadBound() const;
 
+    PageAllocator * GetPageAllocator();
+    CodeGenAllocators * GetCodeGenAllocators();
+    AllocationPolicyManager * GetAllocationPolicyManager();
+    HANDLE GetProcessHandle() const;
+
+    void ResetIsAllJITCodeInPreReservedRegion();
+    bool IsAllJITCodeInPreReservedRegion() const;
+
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     ptrdiff_t GetBaseAddressDifference() const;
+
+    PageAllocator m_pageAlloc;
+    AllocationPolicyManager m_policyManager;
+    CodeGenAllocators m_codeGenAlloc;
+
     ThreadContextData * m_threadContextData;
+
     intptr_t m_localChakraBaseAddress;
+    bool m_isAllJITCodeInPreReservedRegion;
 };

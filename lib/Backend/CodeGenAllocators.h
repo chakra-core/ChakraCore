@@ -24,7 +24,7 @@ struct CodeGenAllocators
     size_t staticNativeCodeData;
 #endif
 
-    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext);
+    CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, HANDLE processHandle);
     PageAllocator *GetPageAllocator() { return &pageAllocator; };
     ~CodeGenAllocators();
 };
