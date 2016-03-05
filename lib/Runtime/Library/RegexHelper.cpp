@@ -405,7 +405,7 @@ namespace Js
             do
             {
                 Var result = JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
-                if (JavascriptOperators::GetTypeId(result) == TypeIds_Null)
+                if (JavascriptOperators::IsNull(result))
                 {
                     break;
                 }
@@ -423,20 +423,13 @@ namespace Js
                     arrayResult = scriptContext->GetLibrary()->CreateArray();
                 }
 
-                arrayResult->DirectSetItemAt(arrayResult->GetLength(), matchStr);
+                arrayResult->DirectAppendItem(matchStr);
 
                 if (matchStr->GetLength() == 0)
                 {
-                    int64 lastIndex = JavascriptConversion::ToLength(
-                        JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext),
-                        scriptContext);
-
+                    CharCount lastIndex = JavascriptRegExp::GetLastIndexProperty(thisObj, scriptContext);
                     lastIndex = AdvanceStringIndex(input, lastIndex, unicode);
-
-                    JavascriptRegExp::SetLastIndexProperty(
-                        thisObj,
-                        JavascriptNumber::ToVar(lastIndex, scriptContext),
-                        scriptContext);
+                    JavascriptRegExp::SetLastIndexProperty(thisObj, lastIndex, scriptContext);
                 }
             }
             while (true);
@@ -1156,19 +1149,25 @@ namespace Js
         return input;
     }
 
-    void RegexHelper::AppendSubString(ScriptContext* scriptContext, JavascriptArray* ary, CharCount& numElems, JavascriptString* input, CharCount startInclusive, CharCount endExclusive)
+    void RegexHelper::AppendSubString(ScriptContext* scriptContext, JavascriptArray* ary, JavascriptString* input, CharCount startInclusive, CharCount endExclusive)
     {
         Assert(endExclusive >= startInclusive);
         Assert(endExclusive <= input->GetLength());
         CharCount length = endExclusive - startInclusive;
+        JavascriptString* subString;
         if (length == 0)
         {
-            ary->DirectSetItemAt(numElems++, scriptContext->GetLibrary()->GetEmptyString());
+            subString = scriptContext->GetLibrary()->GetEmptyString();
         }
         else if (length == 1)
-            ary->DirectSetItemAt(numElems++, scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(input->GetString()[startInclusive]));
+        {
+            subString = scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(input->GetString()[startInclusive]);
+        }
         else
-            ary->DirectSetItemAt(numElems++, SubString::New(input, startInclusive, length));
+        {
+            subString = SubString::New(input, startInclusive, length);
+        }
+        ary->DirectAppendItem(subString);
     }
 
     __inline UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression)
@@ -1212,8 +1211,157 @@ namespace Js
         return splitPattern;
     }
 
+    Var RegexHelper::RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    {
+        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
+
+        if (scriptConfig->IsES6RegExSymbolsEnabled()
+            && IsRegexSymbolSplitObservable(thisObj, scriptContext))
+        {
+            return RegexEs6SplitImpl(scriptContext, thisObj, input, limit, noResult, stackAllocationPointer);
+        }
+        else
+        {
+            PCWSTR varName = scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+                ? L"RegExp.prototype[Symbol.split]"
+                : L"String.prototype.split";
+            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
+            return RegexEs5SplitImpl(scriptContext, regularExpression, input, limit, noResult, stackAllocationPointer);
+        }
+    }
+
+    bool RegexHelper::IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptRegExp::HasObservableConstructor(instance, scriptContext)
+            || JavascriptRegExp::HasObservableFlags(instance, scriptContext)
+            || JavascriptRegExp::HasObservableLastIndex(instance, scriptContext)
+            || JavascriptRegExp::HasObservableExec(instance, scriptContext)
+            || JavascriptRegExp::HasObservableGlobalFlag(instance, scriptContext)
+            || JavascriptRegExp::HasObservableStickyFlag(instance, scriptContext);
+    }
+
+    Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    {
+        PCWSTR const varName = L"RegExp.prototype[Symbol.split]";
+
+        Var speciesConstructor = JavascriptOperators::SpeciesConstructor(
+            thisObj,
+            scriptContext->GetLibrary()->GetRegExpConstructor(),
+            scriptContext);
+
+        JavascriptString* flags = JavascriptConversion::ToString(
+            JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
+            scriptContext);
+        bool unicode = wcsstr(flags->GetString(), L"u") != nullptr;
+        flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
+
+        Js::Var args[] = { speciesConstructor, thisObj, flags };
+        Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));
+        Var regEx = JavascriptOperators::NewScObject(
+            speciesConstructor,
+            Js::Arguments(callInfo, args),
+            scriptContext);
+        RecyclableObject* splitter = RecyclableObject::FromVar(regEx);
+
+        JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
+
+        if (limit == 0)
+        {
+            return arrayResult;
+        }
+
+        CharCount inputLength = input->GetLength();
+        if (inputLength == 0)
+        {
+            Var result = JavascriptRegExp::CallExec(splitter, input, varName, scriptContext);
+            if (!JavascriptOperators::IsNull(result))
+            {
+                return arrayResult;
+            }
+
+            arrayResult->DirectAppendItem(input);
+            return arrayResult;
+        }
+
+        CharCount substringStartIndex = 0; // 'p' in spec
+        CharCount substringEndIndex = substringStartIndex; // 'q' in spec
+        do // inputLength > 0
+        {
+            JavascriptRegExp::SetLastIndexProperty(splitter, substringEndIndex, scriptContext);
+            Var result = JavascriptRegExp::CallExec(splitter, input, varName, scriptContext); // 'z' in spec
+            if (JavascriptOperators::IsNull(result))
+            {
+                substringEndIndex = AdvanceStringIndex(input, substringEndIndex, unicode);
+            }
+            else
+            {
+                CharCount endIndex = JavascriptRegExp::GetLastIndexProperty(splitter, scriptContext); // 'e' in spec
+                endIndex = min(endIndex, inputLength);
+                if (endIndex == substringStartIndex)
+                {
+                    substringEndIndex = AdvanceStringIndex(input, substringEndIndex, unicode);
+                }
+                else
+                {
+                    AppendSubString(scriptContext, arrayResult, input, substringStartIndex, substringEndIndex);
+                    if (arrayResult->GetLength() == limit)
+                    {
+                        return arrayResult;
+                    }
+
+                    substringStartIndex = endIndex;
+
+                    // "result" is the result of the "exec" call. "CallExec" makes sure that it is either
+                    // an Object or Null. We have the Null check above, so "result" is guaranteed to be
+                    // an Object.
+                    RecyclableObject* resultObject = RecyclableObject::FromVar(result);
+
+                    int64 length = JavascriptConversion::ToLength(
+                        JavascriptOperators::GetProperty(resultObject, PropertyIds::length, scriptContext),
+                        scriptContext);
+                    uint64 numberOfCaptures = max(length - 1, (int64) 0);
+                    for (uint64 i = 1; i <= numberOfCaptures; ++i)
+                    {
+                        Var nextCapture = JavascriptOperators::GetItem(resultObject, i, scriptContext);
+                        arrayResult->DirectAppendItem(nextCapture);
+
+                        if (arrayResult->GetLength() == limit)
+                        {
+                            return arrayResult;
+                        }
+                    }
+
+                    substringEndIndex = substringStartIndex;
+                }
+            }
+        }
+        while (substringEndIndex < inputLength);
+
+        AppendSubString(scriptContext, arrayResult, input, substringStartIndex, substringEndIndex);
+
+        return arrayResult;
+    }
+
+    JavascriptString* RegexHelper::AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext)
+    {
+        const wchar_t* flagsString = flags->GetString();
+        if (wcsstr(flagsString, L"y") == nullptr)
+        {
+            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"RegexHelper")
+            {
+                StringBuilder<ArenaAllocator> bs(tempAlloc, flags->GetLength() + 1);
+                bs.Append(flagsString, flags->GetLength());
+                bs.Append(L'y');
+                flags = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
+            }
+            END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+        }
+
+        return flags;
+    }
+
     // String.prototype.split (ES5 15.5.4.14)
-    Var RegexHelper::RegexSplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
         if (noResult && scriptContext->GetConfig()->SkipSplitOnNoResult())
         {
@@ -1249,13 +1397,12 @@ namespace Js
             // SPECIAL CASE: Empty string
             UnifiedRegex::GroupInfo match = PrimMatch(state, scriptContext, splitPattern, inputLength, 0);
             if (match.IsUndefined())
-                ary->DirectSetItemAt(0, input);
+                ary->DirectAppendItem(input);
             else
                 lastSuccessfulMatch = match;
         }
         else
         {
-            CharCount numElems = 0;    // i in spec
             CharCount copyOffset = 0;  // p in spec
             CharCount startOffset = 0; // q in spec
 
@@ -1280,23 +1427,23 @@ namespace Js
                     startOffset++;
                 else
                 {
-                    AppendSubString(scriptContext, ary, numElems, input, copyOffset, startOffset);
-                    if (numElems >= limit)
+                    AppendSubString(scriptContext, ary, input, copyOffset, startOffset);
+                    if (ary->GetLength() >= limit)
                         break;
 
                     startOffset = copyOffset = endOffset;
 
                     for (int groupId = 1; groupId < numGroups; groupId++)
                     {
-                        ary->DirectSetItemAt(numElems++, GetGroup(scriptContext, splitPattern, input, nonMatchValue, groupId));
-                        if (numElems >= limit)
+                        ary->DirectAppendItem(GetGroup(scriptContext, splitPattern, input, nonMatchValue, groupId));
+                        if (ary->GetLength() >= limit)
                             break;
                     }
                 }
             }
 
-            if (numElems < limit)
-                AppendSubString(scriptContext, ary, numElems, input, copyOffset, inputLength);
+            if (ary->GetLength() < limit)
+                AppendSubString(scriptContext, ary, input, copyOffset, inputLength);
         }
 
         PrimEndMatch(state, scriptContext, splitPattern);
@@ -1813,17 +1960,24 @@ namespace Js
         }
     }
 
-    Var RegexHelper::RegexSplit(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexSplit(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
-        Var result = RegexHelper::RegexSplitImpl(entryFunctionContext, regularExpression, input, limit, noResult, stackAllocationPointer);
+        Var result = RegexHelper::RegexSplitImpl(entryFunctionContext, thisObj, input, limit, noResult, stackAllocationPointer);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    int64 RegexHelper::AdvanceStringIndex(JavascriptString* string, int64 index, bool isUnicode)
+    CharCount RegexHelper::AdvanceStringIndex(JavascriptString* string, CharCount index, bool isUnicode)
     {
         // TODO: Change the increment to 2 depending on the "unicode" flag and
         // the code point at "index". The increment is currently constant at 1
         // in order to be compatible with the rest of the RegExp code.
-        return index + 1;
+
+        if (index + 1 < index) // Overflow
+        {
+            return MaxCharCount;
+        }
+
+        int64 newIndex = index + 1;
+        return JavascriptRegExp::GetIndexOrMax(newIndex);
     }
 }

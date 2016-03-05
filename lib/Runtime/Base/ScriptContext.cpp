@@ -600,7 +600,7 @@ namespace Js
                 // because otherwise ETW events might not get fired if a GC doesn't happen
                 // and the thread context isn't shut down cleanly (process detach case)
                 this->MapFunction([this](Js::FunctionBody* functionBody) {
-                    Assert(functionBody->GetScriptContext() == this);
+                    Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
                     functionBody->Cleanup(/* isScriptContextClosing */ true);
                 });
             }
@@ -850,27 +850,12 @@ namespace Js
         this->weakReferenceDictionaryList.Prepend(this->GeneralAllocator(), weakReferenceDictionary);
     }
 
-    RecyclableObject *ScriptContext::GetMissingPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id)
+    RecyclableObject *ScriptContext::GetMissingPropertyResult()
     {
         return GetLibrary()->GetUndefined();
     }
 
-    RecyclableObject *ScriptContext::GetMissingItemResult(Js::RecyclableObject *instance, uint32 index)
-    {
-        return GetLibrary()->GetUndefined();
-    }
-
-    RecyclableObject *ScriptContext::GetMissingParameterValue(Js::JavascriptFunction *function, uint32 paramIndex)
-    {
-        return GetLibrary()->GetUndefined();
-    }
-
-    RecyclableObject *ScriptContext::GetNullPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id)
-    {
-        return GetLibrary()->GetNull();
-    }
-
-    RecyclableObject *ScriptContext::GetNullItemResult(Js::RecyclableObject *instance, uint32 index)
+    RecyclableObject *ScriptContext::GetMissingItemResult()
     {
         return GetLibrary()->GetUndefined();
     }
@@ -4438,7 +4423,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
                 *dynamicProfileInfo = newDynamicProfileInfo;
             }
-            Assert(functionBody->interpretedCount == 0);
+            Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
             if (profileInfoList)
             {
@@ -4725,7 +4710,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                     bool isNativeCode = false;
 
                     // Filtering interpreted count lowers a lot of noise
-                    if (body->interpretedCount > 1 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag))
+                    if (body->GetInterpretedCount() > 1 || Js::Configuration::Global.flags.IsEnabled(Js::ForceFlag))
                     {
                         body->MapEntryPoints([&](uint entryPointIndex, FunctionEntryPointInfo* entryPoint)
                         {
@@ -4736,7 +4721,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                                 body->GetExternalDisplayName(),
                                 body->GetDebugNumberSet(debugStringBuffer),
                                 rejit,
-                                body->interpretedCount,
+                                body->GetInterpretedCount(),
                                 body->GetByteCodeInLoopCount(),
                                 body->GetByteCodeCount(),
                                 entryPoint->IsNativeCode() ? L"Jitted" : L"Interpreted",
@@ -4744,7 +4729,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                                 entryPoint->IsNativeCode() ? entryPoint->GetCodeSize() : 0);
                         });
                     }
-                    if (body->interpretedCount == 0)
+                    if (body->GetInterpretedCount() == 0)
                     {
                         zeroInterpretedFunctions++;
                         if (body->GetByteCodeCount() > 0)
@@ -4752,7 +4737,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                             nonZeroBytecodeFunctions++;
                         }
                     }
-                    else if (body->interpretedCount == 1)
+                    else if (body->GetInterpretedCount() == 1)
                     {
                         oneInterpretedFunctions++;
                     }
@@ -4760,7 +4745,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
                     // Generate a histogram using interpreted counts.
                     uint bucket;
-                    uint intrpCount = body->interpretedCount;
+                    uint intrpCount = body->GetInterpretedCount();
                     if (intrpCount < 100)
                     {
                         bucket = intrpCount / bucketSize1;

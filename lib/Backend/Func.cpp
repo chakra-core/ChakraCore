@@ -38,6 +38,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     m_loopParamSym(nullptr),
     m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
+    m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
@@ -956,7 +957,7 @@ void Func::InitLocalClosureSyms()
     // Allocate stack space for closure pointers. Do this only if we're jitting for stack closures, and
     // tell bailout that these are not byte code symbols so that we don't try to encode them in the bailout record,
     // as they don't have normal lifetimes.
-    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureReg();
+    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localClosureSym =
@@ -964,7 +965,14 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
-    regSlot = this->GetJnFunction()->GetLocalFrameDisplayReg();
+
+    if (!this->GetJnFunction()->IsParamAndBodyScopeMerged())
+    {
+        Assert(this->GetParamClosureSym() == nullptr);
+        this->m_paramClosureSym = StackSym::New(TyVar, this);
+    }
+
+    regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localFrameDisplaySym =

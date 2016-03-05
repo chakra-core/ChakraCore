@@ -1137,11 +1137,13 @@ namespace Js
         {
             symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
+            symbolSplit = CreateSymbol(BuiltInPropertyRecords::_symbolSplit);
         }
         else
         {
             symbolMatch = nullptr;
             symbolSearch = nullptr;
+            symbolSplit = nullptr;
         }
 
         debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(L"[Uninitialized block variable]");
@@ -1671,13 +1673,14 @@ namespace Js
         {
             DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, library->nullValue, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
             DynamicObject* unscopablesList = DynamicObject::New(library->GetRecycler(), dynamicType);
-            unscopablesList->SetProperty(PropertyIds::find, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::findIndex, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::fill, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::find,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::findIndex,  JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::fill,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
             unscopablesList->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::entries, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::keys, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-            unscopablesList->SetProperty(PropertyIds::values, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::entries,    JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::includes,   JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::keys,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::values,     JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
             library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopablesList, PropertyConfigurable);
         }
 
@@ -1687,10 +1690,8 @@ namespace Js
             /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
         }
 
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
-        {
-            builtinFuncs[BuiltinFunction::Array_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
-        }
+
+        builtinFuncs[BuiltinFunction::Array_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -1858,12 +1859,7 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::keys, &TypedArrayBase::EntryInfo::Keys, 0);
         JavascriptFunction* valuesFunc = library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::values, &TypedArrayBase::EntryInfo::Values, 0);
         library->AddMember(typedarrayPrototype, PropertyIds::_symbolIterator, valuesFunc);
-
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
-        {
-            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::includes, &TypedArrayBase::EntryInfo::Includes, 1);
-        }
-
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::includes, &TypedArrayBase::EntryInfo::Includes, 1);
 
         library->AddAccessorsToLibraryObject(typedarrayPrototype, PropertyIds::buffer, &TypedArrayBase::EntryInfo::GetterBuffer, nullptr);
         library->AddAccessorsToLibraryObject(typedarrayPrototype, PropertyIds::byteLength, &TypedArrayBase::EntryInfo::GetterByteLength, nullptr);
@@ -2092,7 +2088,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 14);
+        typeHandler->Convert(symbolConstructor, mode, 15);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2132,6 +2128,7 @@ namespace Js
         {
             library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
+            library->AddMember(symbolConstructor, PropertyIds::split, library->GetSymbolSplit(), PropertyNone);
         }
 
         library->AddFunctionToLibraryObject(symbolConstructor, PropertyIds::for_, &JavascriptSymbol::EntryInfo::For, 1);
@@ -3868,7 +3865,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(regexPrototype, mode, 5);
+        typeHandler->Convert(regexPrototype, mode, 16);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
         JavascriptFunction * func;
@@ -3890,30 +3887,26 @@ namespace Js
 
         if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         {
-            RuntimeFunction* globalGetter = library->CreateGetterFunction(PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
-            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::global, globalGetter, nullptr);
-            library->regexGlobalGetterFunction = globalGetter;
-
+            library->regexGlobalGetterFunction =
+                library->AddGetterToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
-            library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags, nullptr);
+            library->regexFlagsGetterFunction =
+                library->AddGetterToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags);
 
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
-                RuntimeFunction* stickyGetter = library->CreateGetterFunction(PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::sticky, stickyGetter, nullptr);
-                library->regexStickyGetterFunction = stickyGetter;
+                library->regexStickyGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
             }
 
             if (scriptConfig->IsES6UnicodeExtensionsEnabled())
             {
-                RuntimeFunction* unicodeGetter = library->CreateGetterFunction(PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
-                library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::unicode, unicodeGetter, nullptr);
-                library->regexUnicodeGetterFunction = unicodeGetter;
+                library->regexUnicodeGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
             }
-
         }
 
         if (scriptConfig->IsES6RegExSymbolsEnabled())
@@ -3930,6 +3923,12 @@ namespace Js
                 PropertyIds::_RuntimeFunctionNameId_search,
                 &JavascriptRegExp::EntryInfo::SymbolSearch,
                 1);
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolSplit,
+                PropertyIds::_RuntimeFunctionNameId_split,
+                &JavascriptRegExp::EntryInfo::SymbolSplit,
+                2);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
@@ -4472,6 +4471,14 @@ namespace Js
         AddMember(object, propertyId, function);
         return function;
     }
+
+    RuntimeFunction* JavascriptLibrary::AddGetterToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo* functionInfo)
+    {
+        RuntimeFunction* getter = CreateGetterFunction(propertyId, functionInfo);
+        AddAccessorsToLibraryObject(object, propertyId, getter, nullptr);
+        return getter;
+    }
+
     void JavascriptLibrary::AddAccessorsToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * getterFunctionInfo, FunctionInfo * setterFunctionInfo)
     {
         AddAccessorsToLibraryObjectWithName(object, propertyId, propertyId, getterFunctionInfo, setterFunctionInfo);
@@ -6455,10 +6462,7 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(of, JavascriptArray::EntryOf);
         }
 
-        if (config.IsES7BuiltinsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(includes, JavascriptArray::EntryIncludes);
-        }
+        REG_OBJECTS_LIB_FUNC(includes, JavascriptArray::EntryIncludes);
 
         return hr;
     }
@@ -6921,12 +6925,8 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(slice, TypedArrayBase::EntrySlice);
         REG_OBJECTS_LIB_FUNC(some, TypedArrayBase::EntrySome);
         REG_OBJECTS_LIB_FUNC(sort, TypedArrayBase::EntrySort);
+        REG_OBJECTS_LIB_FUNC(includes, TypedArrayBase::EntryIncludes);
 
-        ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.IsES7BuiltinsEnabled())
-        {
-            REG_OBJECTS_LIB_FUNC(includes, TypedArrayBase::EntryIncludes);
-        }
 
         return hr;
     }

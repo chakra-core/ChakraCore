@@ -1173,11 +1173,8 @@ private:
 
         void CheckEvalRestriction();
 
-        RecyclableObject* GetMissingPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id);
-        RecyclableObject* GetMissingItemResult(Js::RecyclableObject *instance, uint32 index);
-        RecyclableObject* GetMissingParameterValue(Js::JavascriptFunction *function, uint32 paramIndex);
-        RecyclableObject *GetNullPropertyResult(Js::RecyclableObject *instance, Js::PropertyId id);
-        RecyclableObject *GetNullItemResult(Js::RecyclableObject *instance, uint32 index);
+        RecyclableObject* GetMissingPropertyResult();
+        RecyclableObject* GetMissingItemResult();
 
         bool HasRecordedException() const { return threadContext->GetRecordedException() != nullptr; }
         Js::JavascriptExceptionObject * GetAndClearRecordedException(bool *considerPassingToDebugger = nullptr);

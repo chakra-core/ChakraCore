@@ -5217,17 +5217,6 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     Value *initialValue;
     StackSym *symStore;
 
-    if (!DoFieldPRE(loop))
-    {
-        return;
-    }
-
-    if (!instr->GetDst())
-    {
-        // Consider: This needs to handle CheckFixedMethods
-        return;
-    }
-
     if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
     {
         return;
@@ -18144,54 +18133,68 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    if (sym->IsStackSym() && sym->AsStackSym()->IsTypeSpec())
+    if (sym->IsStackSym())
     {
-        StackSym *varSym = sym->AsStackSym()->GetVarEquivSym(this->func);
-        // Make sure the int32/float64 version of this is available.
-        // Note: We could handle this by converting the src, but usually the
-        // conversion is hoistable if this is hoistable anyway.
-        // In some weird cases it may not be however, so we'll bail out.
-        if (sym->AsStackSym()->IsInt32())
+        if (sym->AsStackSym()->IsTypeSpec())
         {
-            Assert(block->globOptData.liveInt32Syms->Test(varSym->m_id));
-            if (!loop->landingPad->globOptData.liveInt32Syms->Test(varSym->m_id) ||
-                loop->landingPad->globOptData.liveLossyInt32Syms->Test(varSym->m_id) &&
-                !block->globOptData.liveLossyInt32Syms->Test(varSym->m_id))
+            StackSym *varSym = sym->AsStackSym()->GetVarEquivSym(this->func);
+            // Make sure the int32/float64 version of this is available.
+            // Note: We could handle this by converting the src, but usually the
+            // conversion is hoistable if this is hoistable anyway.
+            // In some weird cases it may not be however, so we'll bail out.
+            if (sym->AsStackSym()->IsInt32())
             {
-                // Either the int32 sym is not live in the landing pad, or it's lossy in the landing pad and the
-                // instruction's block is using the lossless version. In either case, the instruction cannot be hoisted
-                // without doing a conversion of this operand.
-                return false;
+                Assert(block->globOptData.liveInt32Syms->Test(varSym->m_id));
+                if (!loop->landingPad->globOptData.liveInt32Syms->Test(varSym->m_id) ||
+                    loop->landingPad->globOptData.liveLossyInt32Syms->Test(varSym->m_id) &&
+                    !block->globOptData.liveLossyInt32Syms->Test(varSym->m_id))
+                {
+                    // Either the int32 sym is not live in the landing pad, or it's lossy in the landing pad and the
+                    // instruction's block is using the lossless version. In either case, the instruction cannot be hoisted
+                    // without doing a conversion of this operand.
+                    return false;
+                }
             }
-        }
-        else if (sym->AsStackSym()->IsFloat64())
-        {
-            if (!loop->landingPad->globOptData.liveFloat64Syms->Test(varSym->m_id))
+            else if (sym->AsStackSym()->IsFloat64())
             {
-                return false;
+                if (!loop->landingPad->globOptData.liveFloat64Syms->Test(varSym->m_id))
+                {
+                    return false;
+                }
             }
+            else
+            {
+                Assert(sym->AsStackSym()->IsSimd128());
+                if (!loop->landingPad->globOptData.liveSimd128F4Syms->Test(varSym->m_id) && !loop->landingPad->globOptData.liveSimd128I4Syms->Test(varSym->m_id))
+                {
+                    return false;
+                }
+            }
+
+            sym = sym->AsStackSym()->GetVarEquivSym(this->func);
         }
         else
         {
-            Assert(sym->AsStackSym()->IsSimd128());
-            if (!loop->landingPad->globOptData.liveSimd128F4Syms->Test(varSym->m_id) && !loop->landingPad->globOptData.liveSimd128I4Syms->Test(varSym->m_id))
+            // Make sure the var version of this is available.
+            // Note: We could handle this by converting the src, but usually the
+            // conversion is hoistable if this is hoistable anyway.
+            // In some weird cases it may not be however, so we'll bail out.
+            if (!loop->landingPad->globOptData.liveVarSyms->Test(sym->m_id))
             {
                 return false;
             }
         }
-
-        sym = sym->AsStackSym()->GetVarEquivSym(this->func);
     }
-    else
+    else if (sym->IsPropertySym())
     {
-        // Make sure the var version of this is available.
-        // Note: We could handle this by converting the src, but usually the
-        // conversion is hoistable if this is hoistable anyway.
-        // In some weird cases it may not be however, so we'll bail out.
-        if (!loop->landingPad->globOptData.liveVarSyms->Test(sym->m_id))
+        if (!loop->landingPad->globOptData.liveFields->Test(sym->m_id))
         {
             return false;
         }
+    }
+    else
+    {
+        return false;
     }
 
     // We rely on having a value.

@@ -173,6 +173,7 @@ var tests = [
             verifySymbol("species");
             verifySymbol("search");
             verifySymbol("match");
+            verifySymbol("split");
         }
     },
     {

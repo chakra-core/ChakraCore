@@ -2638,7 +2638,7 @@ namespace Js
         {
             if (!RecyclableObjectDisplay::GetPropertyWithScriptEnter(originalInstance, instance, propertyId, &obj, scriptContext))
             {
-                return instance->GetScriptContext()->GetMissingPropertyResult(instance, propertyId);
+                return instance->GetScriptContext()->GetMissingPropertyResult();
             }
         }
         catch(Js::JavascriptExceptionObject * exceptionObject)

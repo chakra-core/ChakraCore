@@ -287,16 +287,12 @@ namespace Js
 
     JavascriptString* JavascriptSymbol::ToString(ScriptContext * requestContext)
     {
-        // Reject implicit call
-        ThreadContext* threadContext = requestContext->GetThreadContext();
-        if (threadContext->IsDisableImplicitCall())
+        if (requestContext->GetThreadContext()->RecordImplicitException())
         {
-            threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-            return nullptr;
+            JavascriptError::ThrowTypeError(requestContext, VBSERR_OLENoPropOrMethod, L"ToString");
         }
-        // This keeps getting revisited but as of ES6 spec revision 20,
-        // implicit string conversion of symbol primitives is supposed to throw a TypeError.
-        JavascriptError::ThrowTypeError(requestContext, VBSERR_OLENoPropOrMethod, L"ToString");
+
+        return requestContext->GetLibrary()->GetEmptyString();
     }
 
     JavascriptString* JavascriptSymbol::ToString(const PropertyRecord* propertyRecord, ScriptContext * requestContext)

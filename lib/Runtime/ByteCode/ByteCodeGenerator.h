@@ -176,6 +176,8 @@ public:
 
     void InitScopeSlotArray(FuncInfo * funcInfo);
     void FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
+    void SetClosureRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction);
+    void EnsureSpecialScopeSlots(FuncInfo* funcInfo, Scope* scope);
     void SetHasTry(bool has);
     void SetHasFinally(bool has);
     void SetNumberOfInArgs(Js::ArgSlot argCount);
@@ -278,13 +280,13 @@ public:
 
     void DefineLabels(FuncInfo *funcInfo);
     void EmitProgram(ParseNode *pnodeProg);
-    void EmitScopeList(ParseNode *pnode);
+    void EmitScopeList(ParseNode *pnode, bool breakOnNonFunc = false);
     void EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode);
     void EmitOneFunction(ParseNode *pnode);
     void EmitGlobalFncDeclInit(Js::RegSlot rhsLocation, Js::PropertyId propertyId, FuncInfo * funcInfo);
     void EmitLocalPropInit(Js::RegSlot rhsLocation, Symbol *sym, FuncInfo *funcInfo);
     void EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool isLet = false, bool isConst = false, bool isFncDeclVar = false);
-    void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
+    void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool useParamScope = false);
     void EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1);
@@ -378,7 +380,7 @@ public:
     static bool NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNode *pnodeFnc);
 
     Js::OpCode GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo);
-    Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo);
+    Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo, bool useParamScope = false);
     Js::OpCode GetInitFldOp(Scope *scope, Js::RegSlot scopeLocation, FuncInfo *funcInfo, bool letDecl = false);
 
 private:
