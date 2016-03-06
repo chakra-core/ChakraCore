@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -56,12 +56,12 @@ PAL_Enter(PAL_Boundary boundary)
     }
     else
     {
-        // If this assert fires, we'll have to pipe this information so that 
-        // CPalThread's RunPostCreateInitializers call to SEHEnable 
+        // If this assert fires, we'll have to pipe this information so that
+        // CPalThread's RunPostCreateInitializers call to SEHEnable
         // can know what direction.
         _ASSERT_MSG(PAL_BoundaryTop == boundary, "How are we entering a PAL "
             "thread for the first time not from the top? (boundary=%u)", boundary);
-            
+
         palError = AllocatePalThread(&pThread);
         if (NO_ERROR != palError)
         {
@@ -78,9 +78,9 @@ Function:
   CreateCurrentThreadData
 
 Abstract:
-  This function is called by the InternalGetOrCreateCurrentThread inlined 
+  This function is called by the InternalGetOrCreateCurrentThread inlined
   function to create the thread data when it is null meaning the thread has
-  never been in this PAL. 
+  never been in this PAL.
 
 Warning:
   If the allocation fails, this function asserts and exits the process.
@@ -121,9 +121,9 @@ AllocatePalThread(CPalThread **ppThread)
         pThread->ReleaseThreadReference();
         goto exit;
     }
-    
-    // Like CreateInitialProcessAndThreadObjects, we do not need this 
-    // thread handle, since we're not returning it to anyone who will 
+
+    // Like CreateInitialProcessAndThreadObjects, we do not need this
+    // thread handle, since we're not returning it to anyone who will
     // possibly release it.
     (void)g_pObjectManager->RevokeHandle(pThread, hThread);
 
@@ -195,7 +195,7 @@ PAL_HasEntered()
     }
 
     LOGEXIT("PAL_HasEntered returned\n");
-    
+
     return pThread->IsInPal();
 }
 
@@ -278,7 +278,7 @@ PALAPI
 PAL_Leave(PAL_Boundary boundary)
 {
     ENTRY("PAL_Leave(boundary=%u)\n", boundary);
-    
+
     CPalThread *pThread = GetCurrentPalThread();
     // We ignore the return code.  This call should only fail on internal
     // error, and we assert at the actual failure.

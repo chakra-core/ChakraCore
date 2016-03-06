@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -53,12 +53,12 @@ Function:
 
 See MSDN doc.
 --*/
-char * 
-__cdecl 
+char *
+__cdecl
 _gcvt_s( char * buffer, int iSize, double value, int digits )
 {
     PERF_ENTRY(_gcvt);
-    ENTRY( "_gcvt( value:%f digits=%d, buffer=%p )\n", value, digits, buffer );    
+    ENTRY( "_gcvt( value:%f digits=%d, buffer=%p )\n", value, digits, buffer );
 
     if ( !buffer )
     {
@@ -74,20 +74,20 @@ _gcvt_s( char * buffer, int iSize, double value, int digits )
     case 15 :
         /* Fall through */
     case 17 :
-        
+
         sprintf_s( buffer, iSize, "%.*g", digits, value );
         break;
-    
+
     default :
         ASSERT( "Only the digits 7, 8, 15, and 17 are valid.\n" );
         *buffer = '\0';
     }
-    
+
     LOGEXIT( "_gcvt returns %p (%s)\n", buffer , buffer );
     PERF_EXIT(_gcvt);
     return buffer;
 }
-    
+
 
 /*++
 Function :
@@ -97,7 +97,7 @@ Function :
 See MSDN for more details.
 --*/
 int
-__cdecl 
+__cdecl
 __iscsym( int c )
 {
     PERF_ENTRY(__iscsym);
@@ -121,7 +121,7 @@ __iscsym( int c )
 Function :
 
     PAL_errno
-    
+
     Returns the address of the errno.
 
 --*/
@@ -139,21 +139,21 @@ int * __cdecl PAL_errno( int caller )
 /*++
 
 Function : _putenv.
-    
+
 See MSDN for more details.
 
 Note:   The BSD implementation can cause
         memory leaks. See man pages for more details.
 --*/
 int
-__cdecl 
+__cdecl
 _putenv( const char * envstring )
 {
     int ret = -1;
 
     PERF_ENTRY(_putenv);
     ENTRY( "_putenv( %p (%s) )\n", envstring ? envstring : "NULL", envstring ? envstring : "NULL") ;
-    
+
     if (!envstring)
     {
         ERROR( "_putenv() called with NULL envstring!\n");
@@ -162,7 +162,7 @@ _putenv( const char * envstring )
 
     ret = MiscPutenv(envstring, TRUE) ? 0 : -1;
 
-EXIT:    
+EXIT:
     LOGEXIT( "_putenv returning %d\n", ret);
     PERF_EXIT(_putenv);
     return ret;
@@ -171,7 +171,7 @@ EXIT:
 /*++
 
 Function : PAL_getenv
-    
+
 See MSDN for more details.
 --*/
 char * __cdecl PAL_getenv(const char *varname)
@@ -180,7 +180,7 @@ char * __cdecl PAL_getenv(const char *varname)
 
     PERF_ENTRY(getenv);
     ENTRY("getenv (%p (%s))\n", varname ? varname : "NULL", varname ? varname : "NULL");
-    
+
     if (strcmp(varname, "") == 0)
     {
         ERROR("getenv called with a empty variable name\n");
@@ -203,8 +203,8 @@ Function:
 See MSDN for more details.
 --*/
 
-PAL_time_t 
-__cdecl 
+PAL_time_t
+__cdecl
 PAL_mktime(struct PAL_tm *tm)
 {
     time_t result;
@@ -243,7 +243,7 @@ Function:
 See MSDN for more details.
 --*/
 int
-__cdecl 
+__cdecl
 PAL_rand(void)
 {
     int ret;
@@ -258,16 +258,16 @@ PAL_rand(void)
 }
 
 
-PALIMPORT 
-void __cdecl 
-PAL_qsort(void *base, size_t nmemb, size_t size, 
+PALIMPORT
+void __cdecl
+PAL_qsort(void *base, size_t nmemb, size_t size,
           int (__cdecl *compar )(const void *, const void *))
 {
     PERF_ENTRY(qsort);
     ENTRY("qsort(base=%p, nmemb=%lu, size=%lu, compar=%p\n",
           base,(unsigned long) nmemb,(unsigned long) size, compar);
 
-/* reset ENTRY nesting level back to zero, qsort will invoke app-defined 
+/* reset ENTRY nesting level back to zero, qsort will invoke app-defined
    callbacks and we want their entry traces... */
 #if _ENABLE_DEBUG_MESSAGES_
 {
@@ -287,18 +287,18 @@ PAL_qsort(void *base, size_t nmemb, size_t size,
     PERF_EXIT(qsort);
 }
 
-PALIMPORT 
-void * __cdecl 
+PALIMPORT
+void * __cdecl
 PAL_bsearch(const void *key, const void *base, size_t nmemb, size_t size,
             int (__cdecl *compar)(const void *, const void *))
 {
     void *retval;
 
     PERF_ENTRY(bsearch);
-    ENTRY("bsearch(key=%p, base=%p, nmemb=%lu, size=%lu, compar=%p\n", 
+    ENTRY("bsearch(key=%p, base=%p, nmemb=%lu, size=%lu, compar=%p\n",
           key, base, (unsigned long) nmemb, (unsigned long) size, compar);
 
-/* reset ENTRY nesting level back to zero, bsearch will invoke app-defined 
+/* reset ENTRY nesting level back to zero, bsearch will invoke app-defined
    callbacks and we want their entry traces... */
 #if _ENABLE_DEBUG_MESSAGES_
 {
@@ -319,7 +319,7 @@ PAL_bsearch(const void *key, const void *base, size_t nmemb, size_t size,
     return retval;
 }
 
-#ifdef _AMD64_ 
+#ifdef _AMD64_
 
 PALIMPORT
 unsigned int PAL__mm_getcsr(void)
@@ -333,7 +333,7 @@ void PAL__mm_setcsr(unsigned int i)
     _mm_setcsr(i);
 }
 
-#endif // _AMD64_ 
+#endif // _AMD64_
 
 /*++
 Function:
@@ -341,8 +341,8 @@ Function:
 
 Get a reference to the process's environ array into palEnvironment
 
-NOTE: This function MUST be called while holding the gcsEnvironment 
-      critical section (except if the caller is the initialization 
+NOTE: This function MUST be called while holding the gcsEnvironment
+      critical section (except if the caller is the initialization
       routine)
 --*/
 void
@@ -362,8 +362,8 @@ Function:
 
 Make sure the process's environ array is in sync with palEnvironment variable
 
-NOTE: This function MUST be called while holding the gcsEnvironment 
-      critical section (except if the caller is the initialization 
+NOTE: This function MUST be called while holding the gcsEnvironment
+      critical section (except if the caller is the initialization
       routine)
 --*/
 void
@@ -436,8 +436,8 @@ char *MiscGetenv(const char *name)
             {
                 pRet = (char *) "";
                 goto done;
-            } 
-            else if (*equals == '=') 
+            }
+            else if (*equals == '=')
             {
                 pRet = equals + 1;
                 goto done;
@@ -468,7 +468,7 @@ BOOL MiscPutenv(const char *string, BOOL deleteIfEmpty)
     bool fOwningCS = false;
     BOOL result = FALSE;
     CPalThread * pthrCurrent = InternalGetCurrentThread();
-    
+
     equals = strchr(string, '=');
     if (equals == string || equals == NULL)
     {
@@ -496,19 +496,19 @@ BOOL MiscPutenv(const char *string, BOOL deleteIfEmpty)
     else
     {
         // See if we are replacing an item or adding one.
-        
+
         // Make our copy up front, since we'll use it either way.
         copy = InternalStrdup(string);
         if (copy == NULL)
         {
             goto done;
         }
-        
+
         length = equals - string;
 
         InternalEnterCriticalSection(pthrCurrent, &gcsEnvironment);
         fOwningCS = true;
-        
+
         for(i = 0; palEnvironment[i] != NULL; i++)
         {
             existingEquals = strchr(palEnvironment[i], '=');
@@ -529,25 +529,25 @@ BOOL MiscPutenv(const char *string, BOOL deleteIfEmpty)
                     // references to it that were acquired via
                     // getenv. This is an unavoidable memory leak.
                     palEnvironment[i] = copy;
-                    
+
                     // Set 'copy' to NULL so it won't be freed
                     copy = NULL;
-                    
+
                     result = TRUE;
                     break;
                 }
             }
         }
         if (palEnvironment[i] == NULL)
-        {            
+        {
             static BOOL sAllocatedEnviron = FALSE;
             // Add a new environment variable.
             // We'd like to realloc palEnvironment, but we can't do that the
             // first time through.
             char **newEnviron = NULL;
-            
+
             if (sAllocatedEnviron) {
-                if (NULL == (newEnviron = 
+                if (NULL == (newEnviron =
                         (char **)InternalRealloc(palEnvironment, (i + 2) * sizeof(char *))))
                 {
                     goto done;
@@ -574,7 +574,7 @@ BOOL MiscPutenv(const char *string, BOOL deleteIfEmpty)
 
             // Set 'copy' to NULL so it won't be freed
             copy = NULL;
-            
+
             result = TRUE;
         }
     }
@@ -604,7 +604,7 @@ void MiscUnsetenv(const char *name)
     int length;
     int i, j;
     CPalThread * pthrCurrent = InternalGetCurrentThread();
-    
+
     length = strlen(name);
 
     InternalEnterCriticalSection(pthrCurrent, &gcsEnvironment);

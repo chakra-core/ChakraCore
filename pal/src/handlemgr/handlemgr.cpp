@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -43,7 +43,7 @@ CSimpleHandleManager::Initialize(
     )
 {
     PAL_ERROR palError = NO_ERROR;
-    
+
     InternalInitializeCriticalSection(&m_csLock);
     m_fLockInitialized = TRUE;
 
@@ -52,7 +52,7 @@ CSimpleHandleManager::Initialize(
     /* initialize the handle table - the free list is stored in the 'object'
        field, with the head in the global 'm_hiFreeListStart'. */
     m_dwTableSize = m_dwTableGrowthRate;
-    
+
     m_rghteHandleTable = reinterpret_cast<HANDLE_TABLE_ENTRY*>(InternalMalloc((m_dwTableSize * sizeof(HANDLE_TABLE_ENTRY))));
     if(NULL == m_rghteHandleTable)
     {
@@ -68,14 +68,14 @@ CSimpleHandleManager::Initialize(
     }
 
     m_rghteHandleTable[m_dwTableSize - 1].u.hiNextIndex = (HANDLE_INDEX)-1;
-    
+
     m_hiFreeListStart = 0;
     m_hiFreeListEnd = m_dwTableSize - 1;
 
     TRACE("Handle Manager initialization complete.\n");
 
 InitializeExit:
-    
+
     return palError;
 }
 
@@ -115,7 +115,7 @@ CSimpleHandleManager::AllocateHandle(
         rghteTempTable = reinterpret_cast<HANDLE_TABLE_ENTRY*>(InternalRealloc(
             m_rghteHandleTable,
             (m_dwTableSize + m_dwTableGrowthRate) * sizeof(HANDLE_TABLE_ENTRY)));
-        
+
         if (NULL == rghteTempTable)
         {
             WARN("not enough memory to grow handle table!\n");
@@ -139,7 +139,7 @@ CSimpleHandleManager::AllocateHandle(
         m_dwTableSize += m_dwTableGrowthRate;
         m_rghteHandleTable[m_dwTableSize - 1].u.hiNextIndex = (HANDLE_INDEX)-1;
         m_hiFreeListEnd = m_dwTableSize - 1;
-        
+
     }
 
     /* take the next free handle */
@@ -147,16 +147,16 @@ CSimpleHandleManager::AllocateHandle(
 
     /* remove the handle from the pool */
     m_hiFreeListStart = m_rghteHandleTable[dwIndex].u.hiNextIndex;
-    
+
     /* clear the tail record if this is the last handle slot available */
-    if(m_hiFreeListStart == c_hiInvalid) 
+    if(m_hiFreeListStart == c_hiInvalid)
     {
         m_hiFreeListEnd = c_hiInvalid;
     }
 
     /* save the data associated with the new handle */
     *ph = HandleIndexToHandle(dwIndex);
-    
+
     pObject->AddReference();
     m_rghteHandleTable[dwIndex].u.pObject = pObject;
     m_rghteHandleTable[dwIndex].dwAccessRights = dwAccessRights;
@@ -167,7 +167,7 @@ AllocateHandleExit:
 
     Unlock(pThread);
 
-    return palError;    
+    return palError;
 }
 
 PAL_ERROR
@@ -182,20 +182,20 @@ CSimpleHandleManager::GetObjectFromHandle(
     HANDLE_INDEX hi;
 
     Lock(pThread);
-    
+
     if (!ValidateHandle(h))
     {
         ERROR("Tried to dereference an invalid handle %p\n", h);
         palError = ERROR_INVALID_HANDLE;
         goto GetObjectFromHandleExit;
     }
-    
+
     hi = HandleToHandleIndex(h);
 
     *pdwRightsGranted = m_rghteHandleTable[hi].dwAccessRights;
     *ppObject = m_rghteHandleTable[hi].u.pObject;
     (*ppObject)->AddReference();
-    
+
 GetObjectFromHandleExit:
 
     Unlock(pThread);
@@ -241,11 +241,11 @@ CSimpleHandleManager::FreeHandle(
     {
         m_hiFreeListStart = hi;
     }
-    
+
     m_rghteHandleTable[hi].u.hiNextIndex = c_hiInvalid;
     m_hiFreeListEnd = hi;
 
-FreeHandleExit:    
+FreeHandleExit:
 
     Unlock(pThread);
 
@@ -272,13 +272,13 @@ Return Value :
 bool CSimpleHandleManager::ValidateHandle(HANDLE handle)
 {
     DWORD dwIndex;
-    
+
     if (NULL == m_rghteHandleTable)
     {
         ASSERT("Handle Manager is not initialized!\n");
         return FALSE;
     }
-    
+
     if (handle == INVALID_HANDLE_VALUE || handle == 0)
     {
         TRACE( "INVALID_HANDLE_VALUE or NULL value is not a valid handle.\n" );
@@ -294,7 +294,7 @@ bool CSimpleHandleManager::ValidateHandle(HANDLE handle)
         // (since clients of the handle manager should have already dealt with
         // the specialness of the handle) so we assert here.
         //
-        
+
         ASSERT ("Handle %p is a special handle, returning FALSE.\n", handle);
         return FALSE;
     }
@@ -325,4 +325,3 @@ CorUnix::HandleIsSpecial(
             hPseudoCurrentThread == h ||
             hPseudoGlobalIOCP == h);
 }
-

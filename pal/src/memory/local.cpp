@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -48,8 +48,8 @@ AllocFlagsToHeapAllocFlags (IN  UINT  AllocFlags,
     }
     return success;
 }
-        
-    
+
+
 
 /*++
 Function:
@@ -135,7 +135,7 @@ LocalFree(
     {
         bRetVal = TRUE;
     }
-    
+
     LOGEXIT( "LocalFree returning %p.\n", bRetVal == TRUE ? (HLOCAL)NULL : hMem );
     PERF_EXIT(LocalFree);
     return bRetVal == TRUE ? (HLOCAL)NULL : hMem;

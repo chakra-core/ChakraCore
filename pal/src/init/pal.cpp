@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -182,7 +182,7 @@ Initialize(
 
     if(NULL == init_critsec)
     {
-        pthread_mutex_lock(&init_critsec_mutex); // prevents race condition of two threads 
+        pthread_mutex_lock(&init_critsec_mutex); // prevents race condition of two threads
                                                  // initializing the critical section.
         if(NULL == init_critsec)
         {
@@ -194,7 +194,7 @@ Initialize(
             if(NULL != InterlockedCompareExchangePointer(&init_critsec, &temp_critsec, NULL))
             {
                 // Another thread got in before us! shouldn't happen, if the PAL
-                // isn't initialized there shouldn't be any other threads 
+                // isn't initialized there shouldn't be any other threads
                 WARN("Another thread initialized the critical section\n");
                 InternalDeleteCriticalSection(&temp_critsec);
             }
@@ -398,7 +398,7 @@ Initialize(
         palError = InitializeProcessCommandLine(
             command_line,
             exe_path);
-        
+
         if (NO_ERROR != palError)
         {
             ERROR("Unable to initialize command line\n");
@@ -410,11 +410,11 @@ Initialize(
 
 #ifdef PAL_PERF
         // Initialize the Profiling structure
-        if(FALSE == PERFInitialize(command_line, exe_path)) 
+        if(FALSE == PERFInitialize(command_line, exe_path))
         {
             ERROR("Performance profiling initial failed\n");
             goto CLEANUP2;
-        }    
+        }
         PERFAllocThreadInfo();
 #endif
 
@@ -497,7 +497,7 @@ Initialize(
         }
 
         TRACE("First-time PAL initialization complete.\n");
-        init_count++;        
+        init_count++;
 
         /* Set LastError to a non-good value - functions within the
            PAL startup may set lasterror to a nonzero value. */
@@ -521,7 +521,7 @@ Initialize(
     }
     goto done;
 
-    /* No cleanup required for CRTInitStdStreams */ 
+    /* No cleanup required for CRTInitStdStreams */
 CLEANUP15:
     FILECleanupStdHandles();
 CLEANUP13:
@@ -550,7 +550,7 @@ CLEANUP0:
     ERROR("PAL_Initialize failed\n");
     SetLastError(palError);
 done:
-#ifdef PAL_PERF 
+#ifdef PAL_PERF
     if( retval == 0)
     {
          PERFEnableProcessProfile();
@@ -599,7 +599,7 @@ Return:
 PAL_ERROR
 PALAPI
 PAL_InitializeChakraCore(const char *szExePath)
-{    
+{
     // Fake up a command line to call PAL initialization with.
     int result = Initialize(1, &szExePath, PAL_INITIALIZE_CHAKRACORE);
     if (result != 0)
@@ -816,7 +816,7 @@ Function:
 Utility function to prepare for shutdown.
 
 --*/
-void 
+void
 PALCommonCleanup()
 {
     static bool cleanupDone = false;
@@ -843,10 +843,10 @@ PALCommonCleanup()
 Function:
   PALShutdown
 
-  sets the PAL's initialization count to zero, so that PALIsInitialized will 
+  sets the PAL's initialization count to zero, so that PALIsInitialized will
   return FALSE. called by PROCCleanupProcess to tell some functions that the
   PAL isn't fully functional, and that they should use an alternate code path
-  
+
 (no parameters, no retun vale)
 --*/
 void PALShutdown()
@@ -857,10 +857,10 @@ void PALShutdown()
 BOOL PALIsShuttingDown()
 {
     /* ROTORTODO: This function may be used to provide a reader/writer-like
-       mechanism (or a ref counting one) to prevent PAL APIs that need to access 
-       PAL runtime data, from working when PAL is shutting down. Each of those API 
+       mechanism (or a ref counting one) to prevent PAL APIs that need to access
+       PAL runtime data, from working when PAL is shutting down. Each of those API
        should acquire a read access while executing. The shutting down code would
-       acquire a write lock, i.e. suspending any new incoming reader, and waiting 
+       acquire a write lock, i.e. suspending any new incoming reader, and waiting
        for the current readers to be done. That would allow us to get rid of the
        dangerous suspend-all-other-threads at shutdown time */
     return shutdown_intent;
@@ -876,7 +876,7 @@ void PALSetShutdownIntent()
 Function:
   PALInitLock
 
-Take the initializaiton critical section (init_critsec). necessary to serialize 
+Take the initializaiton critical section (init_critsec). necessary to serialize
 TerminateProcess along with PAL_Terminate and PAL_Initialize
 
 (no parameters)
@@ -891,10 +891,10 @@ BOOL PALInitLock(void)
     {
         return FALSE;
     }
-    
-    CPalThread * pThread = 
+
+    CPalThread * pThread =
         (PALIsThreadDataInitialized() ? InternalGetCurrentThread() : NULL);
-    
+
     InternalEnterCriticalSection(pThread, init_critsec);
     return TRUE;
 }
@@ -903,7 +903,7 @@ BOOL PALInitLock(void)
 Function:
   PALInitUnlock
 
-Release the initialization critical section (init_critsec). 
+Release the initialization critical section (init_critsec).
 
 (no parameters, no return value)
 --*/
@@ -914,7 +914,7 @@ void PALInitUnlock(void)
         return;
     }
 
-    CPalThread * pThread = 
+    CPalThread * pThread =
         (PALIsThreadDataInitialized() ? InternalGetCurrentThread() : NULL);
 
     InternalLeaveCriticalSection(pThread, init_critsec);
@@ -937,7 +937,7 @@ static BOOL INIT_IncreaseDescriptorLimit(void)
 {
     struct rlimit rlp;
     int result;
-    
+
     result = getrlimit(RLIMIT_NOFILE, &rlp);
     if (result != 0)
     {
@@ -971,7 +971,7 @@ Return value :
     pointer to Unicode command line. This is a buffer allocated with malloc;
     caller is responsible for freeing it with free()
 
-Note : not all peculiarities of Windows command-line processing are supported; 
+Note : not all peculiarities of Windows command-line processing are supported;
 
 -what is supported :
     -arguments with white-space must be double quoted (we'll just double-quote
@@ -979,11 +979,11 @@ Note : not all peculiarities of Windows command-line processing are supported;
     -some characters must be escaped with \ : particularly, the double-quote,
      to avoid confusion with the double-quotes at the start and end of
      arguments, and \ itself, to avoid confusion with escape sequences.
--what is not supported:    
+-what is not supported:
     -under Windows, \\ is interpreted as an escaped \ ONLY if it's followed by
      an escaped double-quote \". \\\" is passed to argv as \", but \\a is
      passed to argv as \\a... there may be other similar cases
-    -there may be other characters which must be escaped 
+    -there may be other characters which must be escaped
 --*/
 static LPWSTR INIT_FormatCommandLine (int argc, const char * const *argv)
 {
@@ -1148,7 +1148,7 @@ static LPWSTR INIT_FindEXEPath(LPCSTR exe_name)
             }
             else
             {
-                if(!MultiByteToWideChar(CP_ACP, 0, real_path, -1, 
+                if(!MultiByteToWideChar(CP_ACP, 0, real_path, -1,
                                         return_value, return_size))
                 {
                     ASSERT("MultiByteToWideChar failure\n");
@@ -1226,7 +1226,7 @@ static LPWSTR INIT_FindEXEPath(LPCSTR exe_name)
             ERROR("Not enough memory!\n");
             break;
         }
-        
+
         if (strcpy_s(full_path, iLength, cur_dir) != SAFECRT_SUCCESS)
         {
             ERROR("strcpy_s failed!\n");
@@ -1338,7 +1338,7 @@ last_resort:
             }
             else
             {
-                if(!MultiByteToWideChar(CP_ACP, 0, real_path, -1, 
+                if(!MultiByteToWideChar(CP_ACP, 0, real_path, -1,
                                         return_value, return_size))
                 {
                     ASSERT("MultiByteToWideChar failure\n");
@@ -1356,7 +1356,7 @@ last_resort:
         {
             ERROR("found %s in current directory, but it isn't executable!\n",
                   exe_name);
-        }                                                                   
+        }
     }
     else
     {
@@ -1394,7 +1394,7 @@ last_resort:
     }
     else
     {
-        if(!MultiByteToWideChar(CP_ACP, 0, exec_path, -1, 
+        if(!MultiByteToWideChar(CP_ACP, 0, exec_path, -1,
                                 return_value, return_size))
         {
             ASSERT("MultiByteToWideChar failure\n");

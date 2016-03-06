@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -85,11 +85,11 @@ SET_DEFAULT_DEBUG_CHANNEL(FILE);
    89 * 366 + 280 * 365 = 134744 days between epochs. Of course
    60 * 60 * 24 = 86400 seconds per day, so 134744 * 86400 =
    11644473600 = SECS_BETWEEN_1601_AND_1970_EPOCHS.
-   
+
    To 2001:
    Again, both epochs are Gregorian. 2001 - 1601 = 400. Assuming a leap
    year every four years, 400 / 4 = 100. However, 1700, 1800, and 1900
-   were NOT leap years (2000 was because it was divisible by 400), so 
+   were NOT leap years (2000 was because it was divisible by 400), so
    97 leap years, 303 non-leap years.
    97 * 366 + 303 * 365 = 146097 days between epochs. 146097 * 86400 =
    12622780800 = SECS_BETWEEN_1601_AND_2001_EPOCHS.
@@ -122,7 +122,7 @@ CompareFileTime(
     long Ret;
 
     PERF_ENTRY(CompareFileTime);
-    ENTRY("CompareFileTime(lpFileTime1=%p lpFileTime2=%p)\n", 
+    ENTRY("CompareFileTime(lpFileTime1=%p lpFileTime2=%p)\n",
           lpFileTime1, lpFileTime2);
 
     First = ((__int64)lpFileTime1->dwHighDateTime << 32) +
@@ -142,7 +142,7 @@ CompareFileTime(
     {
         Ret = 0;
     }
-    
+
     LOGEXIT("CompareFileTime returns LONG %ld\n", Ret);
     PERF_EXIT(CompareFileTime);
     return Ret;
@@ -176,17 +176,17 @@ SetFileTime(
 
     PERF_ENTRY(SetFileTime);
     ENTRY("SetFileTime(hFile=%p, lpCreationTime=%p, lpLastAccessTime=%p, "
-          "lpLastWriteTime=%p)\n", hFile, lpCreationTime, lpLastAccessTime, 
+          "lpLastWriteTime=%p)\n", hFile, lpCreationTime, lpLastAccessTime,
           lpLastWriteTime);
 
     pThread = InternalGetCurrentThread();
 
     /* validate filetime values */
-    if ( (lpCreationTime && (((UINT64)lpCreationTime->dwHighDateTime   << 32) + 
-          lpCreationTime->dwLowDateTime   >= MAX_FILETIMEVALUE)) ||        
-         (lpLastAccessTime && (((UINT64)lpLastAccessTime->dwHighDateTime << 32) + 
+    if ( (lpCreationTime && (((UINT64)lpCreationTime->dwHighDateTime   << 32) +
+          lpCreationTime->dwLowDateTime   >= MAX_FILETIMEVALUE)) ||
+         (lpLastAccessTime && (((UINT64)lpLastAccessTime->dwHighDateTime << 32) +
           lpLastAccessTime->dwLowDateTime >= MAX_FILETIMEVALUE)) ||
-         (lpLastWriteTime && (((UINT64)lpLastWriteTime->dwHighDateTime  << 32) + 
+         (lpLastWriteTime && (((UINT64)lpLastWriteTime->dwHighDateTime  << 32) +
           lpLastWriteTime->dwLowDateTime  >= MAX_FILETIMEVALUE)))
     {
         pThread->SetLastError(ERROR_INVALID_HANDLE);
@@ -250,7 +250,7 @@ CorUnix::InternalSetFileTime(
 
     palError = pFileObject->GetProcessLocalData(
         pThread,
-        ReadLock, 
+        ReadLock,
         &pLocalDataLock,
         reinterpret_cast<void**>(&pLocalData)
         );
@@ -259,7 +259,7 @@ CorUnix::InternalSetFileTime(
     {
         goto InternalSetFileTimeExit;
     }
-    
+
     if (lpCreationTime)
     {
         palError = ERROR_NOT_SUPPORTED;
@@ -267,7 +267,7 @@ CorUnix::InternalSetFileTime(
     }
 
     if( !lpLastAccessTime && !lpLastWriteTime )
-    { 
+    {
 	// if both pointers are NULL, the function simply returns.
         goto InternalSetFileTimeExit;
     }
@@ -280,7 +280,7 @@ CorUnix::InternalSetFileTime(
           TRACE("pLocalData = [%p], fd = %d\n", pLocalData, fd);
           palError = ERROR_INVALID_HANDLE;
           goto InternalSetFileTimeExit;
-        } 
+        }
 
 	if ( fstat(fd, &stat_buf) != 0 )
     	{
@@ -426,7 +426,7 @@ CorUnix::InternalGetFileTime(
 
     palError = pFileObject->GetProcessLocalData(
         pThread,
-        ReadLock, 
+        ReadLock,
         &pLocalDataLock,
         reinterpret_cast<void**>(&pLocalData)
         );
@@ -508,7 +508,7 @@ GetSystemTimeAsFileTime(
     struct timeval Time;
 
     PERF_ENTRY(GetSystemTimeAsFileTime);
-    ENTRY("GetSystemTimeAsFileTime(lpSystemTimeAsFileTime=%p)\n", 
+    ENTRY("GetSystemTimeAsFileTime(lpSystemTimeAsFileTime=%p)\n",
           lpSystemTimeAsFileTime);
 
     if ( gettimeofday( &Time, NULL ) != 0 )
@@ -537,23 +537,23 @@ Function:
 Convert a CFAbsoluteTime value to a win32 FILETIME structure, as described
 in MSDN documentation. CFAbsoluteTime is the number of seconds elapsed since
 00:00 01 January 2001 UTC (Mac OS X epoch), while FILETIME represents a
-64-bit number of 100-nanosecond intervals that have passed since 00:00 
+64-bit number of 100-nanosecond intervals that have passed since 00:00
 01 January 1601 UTC (win32 epoch).
 --*/
 FILETIME FILECFAbsoluteTimeToFileTime( CFAbsoluteTime sec )
 {
     __int64 Result;
     FILETIME Ret;
-    
+
     Result = ((__int64)sec + SECS_BETWEEN_1601_AND_2001_EPOCHS) * SECS_TO_100NS;
 
     Ret.dwLowDateTime = (DWORD)Result;
     Ret.dwHighDateTime = (DWORD)(Result >> 32);
 
-    TRACE("CFAbsoluteTime = [%9f] converts to Win32 FILETIME = [%#x:%#x]\n", 
+    TRACE("CFAbsoluteTime = [%9f] converts to Win32 FILETIME = [%#x:%#x]\n",
           sec, Ret.dwHighDateTime, Ret.dwLowDateTime);
 
-    return Ret;    
+    return Ret;
 }
 #endif // __APPLE__
 
@@ -563,9 +563,9 @@ Function:
   FILEUnixTimeToFileTime
 
 Convert a time_t value to a win32 FILETIME structure, as described in
-MSDN documentation. time_t is the number of seconds elapsed since 
-00:00 01 January 1970 UTC (Unix epoch), while FILETIME represents a 
-64-bit number of 100-nanosecond intervals that have passed since 00:00 
+MSDN documentation. time_t is the number of seconds elapsed since
+00:00 01 January 1970 UTC (Unix epoch), while FILETIME represents a
+64-bit number of 100-nanosecond intervals that have passed since 00:00
 01 January 1601 UTC (win32 epoch).
 --*/
 FILETIME FILEUnixTimeToFileTime( time_t sec, long nsec )
@@ -579,7 +579,7 @@ FILETIME FILEUnixTimeToFileTime( time_t sec, long nsec )
     Ret.dwLowDateTime = (DWORD)Result;
     Ret.dwHighDateTime = (DWORD)(Result >> 32);
 
-    TRACE("Unix time = [%ld.%09ld] converts to Win32 FILETIME = [%#x:%#x]\n", 
+    TRACE("Unix time = [%ld.%09ld] converts to Win32 FILETIME = [%#x:%#x]\n",
           sec, nsec, Ret.dwHighDateTime, Ret.dwLowDateTime);
 
     return Ret;
@@ -607,7 +607,7 @@ time_t FILEFileTimeToUnixTime( FILETIME FileTime, long *nsec )
     __int64 UnixTime;
 
     /* get the full win32 value, in 100ns */
-    UnixTime = ((__int64)FileTime.dwHighDateTime << 32) + 
+    UnixTime = ((__int64)FileTime.dwHighDateTime << 32) +
         FileTime.dwLowDateTime;
 
     /* convert to the Unix epoch */
@@ -628,7 +628,7 @@ time_t FILEFileTimeToUnixTime( FILETIME FileTime, long *nsec )
         WARN("Resulting value is too big for a time_t value\n");
     }
 
-    TRACE("Win32 FILETIME = [%#x:%#x] converts to Unix time = [%ld.%09ld]\n", 
+    TRACE("Win32 FILETIME = [%#x:%#x] converts to Unix time = [%ld.%09ld]\n",
           FileTime.dwHighDateTime, FileTime.dwLowDateTime ,(long) UnixTime,
           nsec?*nsec:0L);
 
@@ -638,16 +638,16 @@ time_t FILEFileTimeToUnixTime( FILETIME FileTime, long *nsec )
 
 
 /**
-Function 
+Function
 
     FileTimeToSystemTime()
-    
+
     Helper function for FileTimeToDosTime.
     Converts the necessary file time attibutes to system time, for
     easier manipulation in FileTimeToDosTime.
-        
+
 --*/
-BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime, 
+BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
                                   LPSYSTEMTIME lpSystemTime )
 {
     UINT64 FileTime = 0;
@@ -663,7 +663,7 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
             SECS_BETWEEN_1601_AND_1970_EPOCHS * SECS_TO_100NS,
             FileTime);
 
-    if (isSafe == true) 
+    if (isSafe == true)
     {
 #if HAVE_GMTIME_R
         struct tm timeBuf;
@@ -671,7 +671,7 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
         /* Convert file time to unix time. */
         if (((INT64)FileTime) < 0)
         {
-            UnixFileTime =  -1 - ( ( -FileTime - 1 ) / 10000000 );            
+            UnixFileTime =  -1 - ( ( -FileTime - 1 ) / 10000000 );
         }
         else
         {
@@ -687,12 +687,12 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
 
         /* Convert unix system time to Windows system time. */
         lpSystemTime->wDay      = UnixSystemTime->tm_mday;
-    
+
         /* Unix time counts January as a 0, under Windows it is 1*/
         lpSystemTime->wMonth    = UnixSystemTime->tm_mon + 1;
         /* Unix time returns the year - 1900, Windows returns the current year*/
         lpSystemTime->wYear     = UnixSystemTime->tm_year + 1900;
-        
+
         lpSystemTime->wSecond   = UnixSystemTime->tm_sec;
         lpSystemTime->wMinute   = UnixSystemTime->tm_min;
         lpSystemTime->wHour     = UnixSystemTime->tm_hour;
@@ -707,16 +707,16 @@ BOOL PALAPI FileTimeToSystemTime( CONST FILETIME * lpFileTime,
 }
 
 
-    
+
 /**
 Function:
     FileTimeToDosDateTime
-    
+
     Notes due to the difference between how BSD and Windows
     calculates time, this function can only repersent dates between
-    1980 and 2037. 2037 is the upperlimit for the BSD time functions( 1900 - 
+    1980 and 2037. 2037 is the upperlimit for the BSD time functions( 1900 -
     2037 range ).
-    
+
 See msdn for more details.
 --*/
 BOOL
@@ -764,7 +764,7 @@ FileTimeToDosDateTime(
 
                 *lpFatTime |= ( ( SysTime.wMinute & 0x3F ) << 5 );
                 *lpFatTime |= ( ( SysTime.wHour & 0x1F ) << 11 );
-                
+
                 bRetVal = TRUE;
             }
             else
@@ -786,4 +786,3 @@ FileTimeToDosDateTime(
     PERF_EXIT(FileTimeToDosDateTime);
     return bRetVal;
 }
-

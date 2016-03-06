@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -60,7 +60,7 @@ CSharedMemoryObjectManager::Initialize(
     PAL_ERROR palError = NO_ERROR;
 
     ENTRY("CSharedMemoryObjectManager::Initialize (this=%p)\n", this);
-    
+
     InitializeListHead(&m_leNamedObjects);
     InitializeListHead(&m_leAnonymousObjects);
 
@@ -70,7 +70,7 @@ CSharedMemoryObjectManager::Initialize(
     palError = m_HandleManager.Initialize();
 
     LOGEXIT("CSharedMemoryObjectManager::Initialize returns %d", palError);
-    
+
     return palError;
 }
 
@@ -95,7 +95,7 @@ CSharedMemoryObjectManager::Shutdown(
     CSharedMemoryObject *pshmobj;
 
     _ASSERTE(NULL != pthr);
-    
+
     ENTRY("CSharedMemoryObjectManager::Shutdown (this=%p, pthr=%p)\n",
         this,
         pthr
@@ -122,7 +122,7 @@ CSharedMemoryObjectManager::Shutdown(
     InternalLeaveCriticalSection(pthr, &m_csListLock);
 
     LOGEXIT("CSharedMemoryObjectManager::Shutdown returns %d\n", NO_ERROR);
-    
+
     return NO_ERROR;
 }
 
@@ -263,7 +263,7 @@ CSharedMemoryObjectManager::RegisterObject(
 
     potObj = pobjToRegister->GetObjectType();
     fShared = (SharedObject == pshmobj->GetObjectDomain());
-    
+
     InternalEnterCriticalSection(pthr, &m_csListLock);
 
     if (fShared)
@@ -272,7 +272,7 @@ CSharedMemoryObjectManager::RegisterObject(
         // We only need to acquire the shared memory lock if this
         // object is actually shared.
         //
-        
+
         SHMLock();
     }
 
@@ -285,7 +285,7 @@ CSharedMemoryObjectManager::RegisterObject(
         //
 
         _ASSERTE(fShared);
-        
+
         //
         // Check if an object by this name alredy exists
         //
@@ -308,7 +308,7 @@ CSharedMemoryObjectManager::RegisterObject(
                 pobjExisting,
                 dwRightsRequested,
                 fInherit,
-                NULL, 
+                NULL,
                 pHandle
                 );
 
@@ -356,7 +356,7 @@ CSharedMemoryObjectManager::RegisterObject(
         if (SHMNULL != shmObjectListHead)
         {
             SHMObjData *psmodListHead;
-            
+
             psmodListHead = SHMPTR_TO_TYPED_PTR(SHMObjData, shmObjectListHead);
             if (NULL != psmodListHead)
             {
@@ -411,7 +411,7 @@ CSharedMemoryObjectManager::RegisterObject(
         {
             VOID *pvSharedImmutableData =
                 SHMPTR_TO_TYPED_PTR(VOID, psmod->shmObjImmutableData);
-            
+
             if (NULL != pvSharedImmutableData)
             {
                 CopyMemory(
@@ -444,7 +444,7 @@ CSharedMemoryObjectManager::RegisterObject(
         pobjToRegister,
         dwRightsRequested,
         fInherit,
-        NULL, 
+        NULL,
         pHandle
         );
 
@@ -457,14 +457,14 @@ CSharedMemoryObjectManager::RegisterObject(
         *ppobjRegistered = pobjToRegister;
         pobjToRegister = NULL;
     }
-        
+
 RegisterObjectExit:
 
     if (fShared)
     {
         SHMRelease();
     }
-    
+
     InternalLeaveCriticalSection(pthr, &m_csListLock);
 
     if (NULL != pobjToRegister)
@@ -561,8 +561,8 @@ CSharedMemoryObjectManager::LocateObject(
         //
 
         pobjExisting = static_cast<IPalObject*>(pshmobj);
-        break;        
-    } 
+        break;
+    }
 
     if (NULL != pobjExisting)
     {
@@ -575,7 +575,7 @@ CSharedMemoryObjectManager::LocateObject(
                 ))
         {
             TRACE("Local object exists with compatible type\n");
-            
+
             //
             // Add a reference to the found object
             //
@@ -585,19 +585,19 @@ CSharedMemoryObjectManager::LocateObject(
         }
         else
         {
-            TRACE("Local object exists w/ incompatible type\n");            
+            TRACE("Local object exists w/ incompatible type\n");
             palError = ERROR_INVALID_HANDLE;
         }
-        
+
         goto LocateObjectExit;
     }
 
     //
     // Search the shared memory named object list for a matching object
     //
-    
+
     SHMLock();
-    
+
     shmObjectListEntry = SHMGetInfo(SIID_NAMED_OBJECTS);
     while (SHMNULL != shmObjectListEntry)
     {
@@ -623,7 +623,7 @@ CSharedMemoryObjectManager::LocateObject(
                 {
                     ASSERT("Unable to map psmod->shmObjName\n");
                     break;
-                }                
+                }
             }
 
             shmObjectListEntry = psmod->shmNextObj;
@@ -650,11 +650,11 @@ CSharedMemoryObjectManager::LocateObject(
             palError = ERROR_INVALID_HANDLE;
             goto LocateObjectExitSHMRelease;
         }
-        
+
         //
         // Get the local instance of the CObjectType
         //
-        
+
         CObjectType *pot = CObjectType::GetObjectTypeById(psmod->eTypeId);
         if (NULL == pot)
         {
@@ -663,7 +663,7 @@ CSharedMemoryObjectManager::LocateObject(
         }
 
         TRACE("Remote object exists compatible type -- importing\n");
-        
+
         //
         // Create the local state for the shared object
         //
@@ -679,7 +679,7 @@ CSharedMemoryObjectManager::LocateObject(
             );
 
         if (NO_ERROR == palError)
-        {   
+        {
             *ppobj = static_cast<IPalObject*>(pshmobj);
         }
         else
@@ -687,7 +687,7 @@ CSharedMemoryObjectManager::LocateObject(
             ERROR("Failure initializing object from shared data\n");
             goto LocateObjectExitSHMRelease;
         }
-        
+
     }
     else
     {
@@ -728,7 +728,7 @@ Parameters:
   pNewHandle -- on success, receives the newly allocated handle
 --*/
 
-PAL_ERROR   
+PAL_ERROR
 CSharedMemoryObjectManager::ObtainHandleForObject(
     CPalThread *pthr,
     IPalObject *pobj,
@@ -776,7 +776,7 @@ CSharedMemoryObjectManager::ObtainHandleForObject(
 
     LOGEXIT("CSharedMemoryObjectManager::ObtainHandleForObject return %d\n", palError);
 
-    return palError;    
+    return palError;
 }
 
 /*++
@@ -807,7 +807,7 @@ CSharedMemoryObjectManager::RevokeHandle(
         pthr,
         hHandleToRevoke
         );
-    
+
     palError = m_HandleManager.FreeHandle(pthr, hHandleToRevoke);
 
     LOGEXIT("CSharedMemoryObjectManager::RevokeHandle returns %d\n", palError);
@@ -892,7 +892,7 @@ CSharedMemoryObjectManager::ReferenceObjectByHandle(
         palError
         );
 
-    return palError;    
+    return palError;
 }
 
 /*++
@@ -949,7 +949,7 @@ CSharedMemoryObjectManager::ReferenceMultipleObjectsByHandleArray(
     m_HandleManager.Lock(pthr);
 
     for (dw = 0; dw < dwHandleCount; dw += 1)
-    {        
+    {
         palError = m_HandleManager.GetObjectFromHandle(
             pthr,
             rghHandlesToReference[dw],
@@ -998,7 +998,7 @@ CSharedMemoryObjectManager::ReferenceMultipleObjectsByHandleArray(
         // dw's current value is the failing index, so we want
         // to free from dw - 1.
         //
-        
+
         while (dw > 0)
         {
             rgpobjs[--dw]->ReleaseReference(pthr);
@@ -1110,7 +1110,7 @@ CSharedMemoryObjectManager::ImportSharedObjectIntoProcess(
         fAddRefSharedData,
         ppshmobj
         );
-    
+
     if (CObjectType::WaitableObject == pot->GetSynchronizationSupport())
     {
         pshmobj = InternalNew<CSharedMemoryWaitableObject>(pot,
@@ -1141,7 +1141,7 @@ CSharedMemoryObjectManager::ImportSharedObjectIntoProcess(
             {
                 pleObjectList = &m_leAnonymousObjects;
             }
-            
+
             InsertTailList(pleObjectList, pshmobj->GetObjectListLink());
         }
         else
@@ -1167,7 +1167,7 @@ ImportSharedObjectIntoProcessExit:
 
 static PalObjectTypeId RemotableObjectTypes[] =
     {otiManualResetEvent, otiAutoResetEvent, otiMutex, otiProcess};
-    
+
 static CAllowedObjectTypes aotRemotable PAL_GLOBAL (
     RemotableObjectTypes,
     sizeof(RemotableObjectTypes) / sizeof(RemotableObjectTypes[0])
@@ -1241,7 +1241,7 @@ PAL_LocalHandleToRemote(IN HANDLE hLocal)
     }
 
     SHMLock();
-    
+
     psmod = SHMPTR_TO_TYPED_PTR(SHMObjData, pshmobj->GetShmObjData());
     if (NULL != psmod)
     {
@@ -1250,7 +1250,7 @@ PAL_LocalHandleToRemote(IN HANDLE hLocal)
         // increase the ref count when it converts the remote handle to
         // local.
         //
-        
+
         psmod->lProcessRefCount += 1;
 
         //
@@ -1281,7 +1281,7 @@ PAL_LocalHandleToRemoteExitNoLockRelease:
     {
         pthr->SetLastError(palError);
     }
-    
+
     LOGEXIT("PAL_LocalHandleToRemote returns RHANDLE 0x%lx\n", hRemote);
     PERF_EXIT(PAL_LocalHandleToRemote);
     return hRemote;
@@ -1370,7 +1370,7 @@ CSharedMemoryObjectManager::ConvertRemoteHandleToLocal(
             && reinterpret_cast<SHMPTR>(rhRemote) == pshmobj->GetShmObjData())
         {
             TRACE("Object for remote handle already present in this process\n");
-            
+
             //
             // PAL_LocalHandleToRemote bumped up the process refcount on the
             // object. Since this process already had a reference to the object
@@ -1397,18 +1397,18 @@ CSharedMemoryObjectManager::ConvertRemoteHandleToLocal(
     {
         CObjectType *pot;
         CObjectAttributes oa;
-        
+
         //
         // Get the local instance of the CObjectType
         //
-        
+
         pot = CObjectType::GetObjectTypeById(psmod->eTypeId);
         if (NULL == pot)
         {
             ASSERT("Invalid object type ID in shared memory info\n");
             goto ConvertRemoteHandleToLocalExit;
         }
-        
+
         //
         // Create the local state for the shared object
         //
@@ -1426,7 +1426,7 @@ CSharedMemoryObjectManager::ConvertRemoteHandleToLocal(
         if (NO_ERROR != palError)
         {
             goto ConvertRemoteHandleToLocalExit;
-        }        
+        }
     }
 
     //
@@ -1441,7 +1441,7 @@ CSharedMemoryObjectManager::ConvertRemoteHandleToLocal(
         NULL,
         phLocal
         );
-        
+
 ConvertRemoteHandleToLocalExit:
 
     SHMRelease();
@@ -1496,7 +1496,7 @@ PAL_RemoteHandleToLocal(IN RHANDLE rhRemote)
     {
         pthr->SetLastError(palError);
     }
-    
+
     LOGEXIT("PAL_RemoteHandleToLocal returns HANDLE 0x%lx\n", hLocal);
     PERF_EXIT(PAL_RemoteHandleToLocal);
     return hLocal;
@@ -1548,7 +1548,7 @@ CheckObjectTypeAndRights(
         // This is where the access right check would occur if Win32 object
         // security were supported.
         //
-        
+
         if ((dwRightsRequired & dwRightsGranted) != dwRightsRequired)
         {
             palError = ERROR_ACCESS_DENIED;
@@ -1564,5 +1564,3 @@ CheckObjectTypeAndRights(
 
     return palError;
 }
-    
-

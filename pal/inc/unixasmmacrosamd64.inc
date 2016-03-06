@@ -121,16 +121,16 @@ C_FUNC(\Name\()_End):
 .macro save_xmm128_postrsp Reg, Offset
         __Offset = \Offset
         movdqa  xmmword ptr [rsp + __Offset], \Reg
-        // NOTE: We cannot use ".cfi_rel_offset \Reg, __Offset" here, 
+        // NOTE: We cannot use ".cfi_rel_offset \Reg, __Offset" here,
         // the xmm registers are not supported by the libunwind
 .endm
 
 .macro restore_xmm128 Reg, ofs
         __Offset = \ofs
         movdqa          \Reg, xmmword ptr [rsp + __Offset]
-        // NOTE: We cannot use ".cfi_restore \Reg" here, 
+        // NOTE: We cannot use ".cfi_restore \Reg" here,
         // the xmm registers are not supported by the libunwind
-        
+
 .endm
 
 .macro PUSH_CALLEE_SAVED_REGISTERS

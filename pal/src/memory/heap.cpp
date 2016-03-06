@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -48,7 +48,7 @@ SET_DEFAULT_DEBUG_CHANNEL(MEM);
  *
  * We need to know whether an instruction pointer fault is in our executable
  * heap, but the intersection between the HeapX functions on Windows and the
- * malloc_zone functions on Mac OS X are somewhat at odds and we'd have to 
+ * malloc_zone functions on Mac OS X are somewhat at odds and we'd have to
  * implement an unnecessarily complicated HeapWalk. Instead, we cache the only
  * "heap" we create, knowing it's the executable heap, and use that instead
  * with the much simpler malloc_zone_from_ptr.
@@ -71,11 +71,11 @@ RtlMoveMemory(
           IN SIZE_T Length)
 {
     PERF_ENTRY(RtlMoveMemory);
-    ENTRY("RtlMoveMemory(Destination:%p, Source:%p, Length:%d)\n", 
+    ENTRY("RtlMoveMemory(Destination:%p, Source:%p, Length:%d)\n",
           Destination, Source, Length);
-    
+
     memmove(Destination, Source, Length);
-    
+
     LOGEXIT("RtlMoveMemory returning\n");
     PERF_EXIT(RtlMoveMemory);
 }
@@ -95,9 +95,9 @@ RtlZeroMemory(
 {
     PERF_ENTRY(RtlZeroMemory);
     ENTRY("RtlZeroMemory(Destination:%p, Length:%x)\n", Destination, Length);
-    
+
     memset(Destination, 0, Length);
-    
+
     LOGEXIT("RtlZeroMemory returning.\n");
     PERF_EXIT(RtlZeroMemory);
 }
@@ -139,7 +139,7 @@ HeapCreate(
     {
         ret = (HANDLE)malloc_create_zone(dwInitialSize, 0 /* flags */);
     }
-    
+
 #else // __APPLE__
     ret = (HANDLE)DUMMY_HEAP;
 #endif // __APPLE__
@@ -183,7 +183,7 @@ GetProcessHeap(
 #else
     ret = (HANDLE) DUMMY_HEAP;
 #endif
-  
+
     LOGEXIT("GetProcessHeap returning HANDLE %p\n", ret);
     PERF_EXIT(GetProcessHeap);
     return ret;
@@ -282,7 +282,7 @@ HeapFree(
     BOOL bRetVal = FALSE;
 
     PERF_ENTRY(HeapFree);
-    ENTRY("HeapFree (hHeap=%p, dwFlags = %#x, lpMem=%p)\n", 
+    ENTRY("HeapFree (hHeap=%p, dwFlags = %#x, lpMem=%p)\n",
           hHeap, dwFlags, lpMem);
 
 #ifdef __APPLE__

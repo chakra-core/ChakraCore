@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -568,7 +568,7 @@ __inline long __cdecl get_long_arg(va_list *pargptr);
 __inline long long __cdecl get_long_long_arg(va_list *pargptr);
 #endif  /* !LONGLONG_IS_INT64 */
 
-#if _INTEGRAL_MAX_BITS >= 64   
+#if _INTEGRAL_MAX_BITS >= 64
 __inline __int64 __cdecl get_int64_arg(va_list *pargptr);
 #endif  /* _INTEGRAL_MAX_BITS >= 64    */
 
@@ -1256,7 +1256,7 @@ int __cdecl _output (
                 /* correct radix, setting text and textlen */
                 /* appropriately. */
 
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
                 __uint64_t number;    /* number to convert */
                 int digit;              /* ascii value of digit */
                 __int64 l;              /* temp long value */
@@ -1267,7 +1267,7 @@ int __cdecl _output (
 #endif  /* _INTEGRAL_MAX_BITS >= 64        */
 
                 /* 1. read argument into l, sign extend as needed */
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
                 if (flags & FL_I64)
                     l = get_int64_arg(&argptr);
                 else
@@ -1308,7 +1308,7 @@ int __cdecl _output (
                     number = l;
                 }
 
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
                 if ( (flags & FL_I64) == 0 && (flags & FL_LONGLONG) == 0 ) {
                     /*
                      * Unless printing a full 64-bit value, insure values
@@ -1358,7 +1358,7 @@ int __cdecl _output (
                     *--sz = '0';
                     ++textlen;      /* add a zero */
                 }
-                
+
                 text.sz = sz;
             }
             break;
@@ -1725,7 +1725,7 @@ __inline long long __cdecl get_long_long_arg (
 }
 #endif  /* !LONGLONG_IS_INT64 */
 
-#if _INTEGRAL_MAX_BITS >= 64   
+#if _INTEGRAL_MAX_BITS >= 64
 __inline __int64 __cdecl get_int64_arg (
     va_list *pargptr
     )
@@ -1739,4 +1739,3 @@ __inline __int64 __cdecl get_int64_arg (
 #endif  /* _UNICODE */
 
 #endif // __GNUC_VA_LIST
-

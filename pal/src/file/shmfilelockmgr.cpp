@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -30,10 +30,10 @@ SET_DEFAULT_DEBUG_CHANNEL(FILE);
 PAL_ERROR
 FILEAddNewLockedRgn(
     SHMFILELOCKS* fileLocks,
-    PVOID pvControllerInstance, 
+    PVOID pvControllerInstance,
     SHMFILELOCKRGNS *insertAfter,
-    UINT64 lockRgnStart, 
-    UINT64 nbBytesToLock, 
+    UINT64 lockRgnStart,
+    UINT64 nbBytesToLock,
     LOCK_TYPE lockType
     );
 
@@ -41,7 +41,7 @@ PAL_ERROR
 FILELockFileRegion(
     SHMPTR shmFileLocks,
     PVOID pvControllerInstance,
-    UINT64 lockRgnStart, 
+    UINT64 lockRgnStart,
     UINT64 nbBytesToLock,
     LOCK_TYPE lockAction
     );
@@ -49,8 +49,8 @@ FILELockFileRegion(
 PAL_ERROR
 FILEUnlockFileRegion(
     SHMPTR shmFileLocks,
-    PVOID pvControllerInstance, 
-    UINT64 unlockRgnStart, 
+    PVOID pvControllerInstance,
+    UINT64 unlockRgnStart,
     UINT64 nbBytesToUnlock,
     LOCK_TYPE unlockType
     );
@@ -78,13 +78,13 @@ FILEGetSHMFileLocks(
 #define IS_LOCK_INTERSECT(LockToTest, lockRgn) \
     (!IS_LOCK_BEFORE(LockToTest, lockRgn) && !IS_LOCK_BEFORE(lockRgn, LockToTest))
 
-/* return TRUE if LockToTest region and lockRgn have the same file pointer and 
+/* return TRUE if LockToTest region and lockRgn have the same file pointer and
    the same process Id, FALSE otherwise */
 #define IS_LOCK_HAVE_SAME_OWNER(LockToTest, lockRgn) \
     (((LockToTest)->pvControllerInstance == (lockRgn)->pvControllerInstance) && \
      ((LockToTest)->processId == (lockRgn)->processId))
 
-/* return TRUE if LockToTest region and lockRgn represent the same lock, 
+/* return TRUE if LockToTest region and lockRgn represent the same lock,
    FALSE otherwise*/
 #define IS_LOCK_EQUAL(LockToTest, lockRgn) \
         (((LockToTest)->processId == (lockRgn)->processId)           && \
@@ -121,7 +121,7 @@ CSharedMemoryFileLockMgr::GetLockControllerForFile(
         palError = ERROR_INTERNAL_ERROR;
         goto GetLockControllerForFileExit;
     }
-        
+
     if(SHARE_MODE_NOT_INITALIZED == fileLocks->share_mode)
     {
         /* this is the first time this file is open */
@@ -135,17 +135,17 @@ CSharedMemoryFileLockMgr::GetLockControllerForFile(
         goto GetLockControllerForFileExit;
     }
     /* check for if the desired access is allowed by the share mode */
-    else if( (dwAccessRights & GENERIC_READ) && 
+    else if( (dwAccessRights & GENERIC_READ) &&
              !(fileLocks->share_mode & FILE_SHARE_READ) )
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
-    else if( (dwAccessRights & GENERIC_WRITE) && 
+    else if( (dwAccessRights & GENERIC_WRITE) &&
              !(fileLocks->share_mode & FILE_SHARE_WRITE) )
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
     /* The case when changing to a conflicting share mode is particular.
        The general rule is: changing from conflicting share mode is invalid
@@ -155,49 +155,49 @@ CSharedMemoryFileLockMgr::GetLockControllerForFile(
        the result is valid. (Please note that FILE_SHARE_READ is ignored
        in this case).
     */
-    else if( (dwShareMode & FILE_SHARE_READ) && 
+    else if( (dwShareMode & FILE_SHARE_READ) &&
              !(dwShareMode & FILE_SHARE_WRITE) &&
              !(fileLocks->share_mode & FILE_SHARE_READ))
-                         
+
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
-    else if( (dwShareMode & FILE_SHARE_WRITE) && 
+    else if( (dwShareMode & FILE_SHARE_WRITE) &&
              !(dwShareMode & FILE_SHARE_READ) &&
              !(fileLocks->share_mode & FILE_SHARE_WRITE))
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
     /* Changing to a less permissive sharing permissions is valid
        if the file handle doesn't have an access right that conflicts with
        the sharing permissions we are trying to set
        (ex: changing from FILE_SHARE_READ|FILE_SHARE_WRITE to FILE_SHARE_WRITE
        isn't valid if the file descriptor still has a GENERIC_READ permission).
-    */     
-    else if( (fileLocks->nbReadAccess) && 
+    */
+    else if( (fileLocks->nbReadAccess) &&
              !(dwShareMode & FILE_SHARE_READ) )
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
-    else if( (fileLocks->nbWriteAccess) && 
+    else if( (fileLocks->nbWriteAccess) &&
              !(dwShareMode & FILE_SHARE_WRITE) )
     {
         palError = ERROR_SHARING_VIOLATION;
-        goto GetLockControllerForFileExit;     
+        goto GetLockControllerForFileExit;
     }
 
-    /* we are trying to change to a less restrictive sharing permission set 
-       keep the current permissions */  
-    if( (dwShareMode & FILE_SHARE_READ) && 
+    /* we are trying to change to a less restrictive sharing permission set
+       keep the current permissions */
+    if( (dwShareMode & FILE_SHARE_READ) &&
               !(fileLocks->share_mode & FILE_SHARE_READ) )
     {
         dwShareMode = fileLocks->share_mode;
     }
 
-    if( (dwShareMode & FILE_SHARE_WRITE) && 
+    if( (dwShareMode & FILE_SHARE_WRITE) &&
               !(fileLocks->share_mode & FILE_SHARE_WRITE) )
     {
         dwShareMode = fileLocks->share_mode;
@@ -222,7 +222,7 @@ CSharedMemoryFileLockMgr::GetLockControllerForFile(
     fileLocks->share_mode = dwShareMode;
     if( dwAccessRights & GENERIC_READ )
     {
-        fileLocks->nbReadAccess++;  
+        fileLocks->nbReadAccess++;
     }
     if( dwAccessRights & GENERIC_WRITE )
     {
@@ -322,13 +322,13 @@ CSharedMemoryFileLockController::GetTransactionLock(
     UINT64 nbBytesToLock;
 
     lockRgnStart  = ((UINT64)dwOffsetHigh) << 32  | dwOffsetLow;
-    nbBytesToLock = ((UINT64)nNumberOfBytesToLockHigh) << 32  | 
+    nbBytesToLock = ((UINT64)nNumberOfBytesToLockHigh) << 32  |
                              nNumberOfBytesToLockLow;
 
     palError = FILELockFileRegion(
         m_shmFileLocks,
         reinterpret_cast<PVOID>(this),
-        lockRgnStart, 
+        lockRgnStart,
         nbBytesToLock,
         RDWR_LOCK_RGN
         );
@@ -337,7 +337,7 @@ CSharedMemoryFileLockController::GetTransactionLock(
     {
         *ppTransactionLock = InternalNew<CSharedMemoryFileTransactionLock>(m_shmFileLocks,
                                                                            reinterpret_cast<PVOID>(this),
-                                                                           lockRgnStart, 
+                                                                           lockRgnStart,
                                                                            nbBytesToLock);
         if (NULL == *ppTransactionLock)
         {
@@ -345,7 +345,7 @@ CSharedMemoryFileLockController::GetTransactionLock(
             FILEUnlockFileRegion(
                 m_shmFileLocks,
                 reinterpret_cast<PVOID>(this),
-                lockRgnStart, 
+                lockRgnStart,
                 nbBytesToLock,
                 RDWR_LOCK_RGN
                 );
@@ -379,13 +379,13 @@ CSharedMemoryFileLockController::CreateFileLock(
     }
 
     lockRgnStart  = ((UINT64)dwOffsetHigh) << 32  | dwOffsetLow;
-    nbBytesToLock = ((UINT64)nNumberOfBytesToLockHigh) << 32  | 
+    nbBytesToLock = ((UINT64)nNumberOfBytesToLockHigh) << 32  |
                              nNumberOfBytesToLockLow;
 
     palError = FILELockFileRegion(
         m_shmFileLocks,
         reinterpret_cast<PVOID>(this),
-        lockRgnStart, 
+        lockRgnStart,
         nbBytesToLock,
         USER_LOCK_RGN
         );
@@ -409,13 +409,13 @@ CSharedMemoryFileLockController::ReleaseFileLock(
     UINT64 nbBytesToUnlock;
 
     unlockRgnStart  = ((UINT64)dwOffsetHigh) << 32  | dwOffsetLow;
-    nbBytesToUnlock = ((UINT64)nNumberOfBytesToUnlockHigh) << 32  | 
+    nbBytesToUnlock = ((UINT64)nNumberOfBytesToUnlockHigh) << 32  |
                              nNumberOfBytesToUnlockLow;
 
     palError = FILEUnlockFileRegion(
         m_shmFileLocks,
         reinterpret_cast<PVOID>(this),
-        unlockRgnStart, 
+        unlockRgnStart,
         nbBytesToUnlock,
         USER_LOCK_RGN
         );
@@ -444,7 +444,7 @@ CSharedMemoryFileTransactionLock::ReleaseLock()
     FILEUnlockFileRegion(
         m_shmFileLocks,
         m_pvControllerInstance,
-        m_lockRgnStart, 
+        m_lockRgnStart,
         m_nbBytesToLock,
         RDWR_LOCK_RGN
         );
@@ -456,25 +456,25 @@ PAL_ERROR
 FILELockFileRegion(
     SHMPTR shmFileLocks,
     PVOID pvControllerInstance,
-    UINT64 lockRgnStart, 
+    UINT64 lockRgnStart,
     UINT64 nbBytesToLock,
     LOCK_TYPE lockAction
     )
 {
     PAL_ERROR palError = NO_ERROR;
-    SHMFILELOCKRGNS *curLock, *prevLock, *insertAfter, 
+    SHMFILELOCKRGNS *curLock, *prevLock, *insertAfter,
                      lockRgn, fakeLock = {0,0,0,0};
     SHMFILELOCKS *fileLocks;
 
     SHMLock();
-    
+
     /* nothing to do if the region to lock is empty */
-    if (nbBytesToLock == 0) 
+    if (nbBytesToLock == 0)
     {
         TRACE("Locking an empty region (%I64d, %I64d)\n", lockRgnStart, nbBytesToLock);
         goto EXIT;
     }
-    
+
     if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKS, fileLocks, shmFileLocks) == FALSE || fileLocks == NULL)
     {
         ASSERT("Unable to get pointer from shm pointer.\n");
@@ -483,17 +483,17 @@ FILELockFileRegion(
     }
 
     if (fileLocks->fileLockedRgns != 0)
-    {        
+    {
         prevLock = &fakeLock;
-        
-        if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLock, fileLocks->fileLockedRgns) 
+
+        if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLock, fileLocks->fileLockedRgns)
             == FALSE)
         {
             ASSERT("Unable to get pointer from shm pointer.\n");
             palError = ERROR_INTERNAL_ERROR;
             goto EXIT;
         }
-        
+
         lockRgn.lockRgnStart = lockRgnStart;
         lockRgn.nbBytesLocked = nbBytesToLock;
         lockRgn.pvControllerInstance = pvControllerInstance;
@@ -501,8 +501,8 @@ FILELockFileRegion(
         lockRgn.lockType = lockAction;
 
         while((curLock != NULL) && IS_LOCK_BEFORE(curLock, &lockRgn))
-        {            
-            prevLock = curLock; 
+        {
+            prevLock = curLock;
             if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLock, curLock->next) == FALSE)
             {
                 ASSERT("Unable to get pointer from shm pointer.\n");
@@ -510,21 +510,21 @@ FILELockFileRegion(
                 goto EXIT;
             }
         }
-                
+
         while((curLock != NULL) && IS_LOCK_INTERSECT(curLock, &lockRgn))
         {
-            /* we couldn't lock the requested region if it overlap with other 
+            /* we couldn't lock the requested region if it overlap with other
                region locked explicitly (by LockFile call) by other file pointer */
-            if ((lockAction == USER_LOCK_RGN) || 
-                ((curLock->lockType  == USER_LOCK_RGN) && 
+            if ((lockAction == USER_LOCK_RGN) ||
+                ((curLock->lockType  == USER_LOCK_RGN) &&
                  !IS_LOCK_HAVE_SAME_OWNER(curLock, &lockRgn)))
             {
                 WARN("The requested lock region overlaps an existing locked region\n");
                 palError = ERROR_LOCK_VIOLATION;
                 goto EXIT;
             }
-            
-            prevLock = curLock; 
+
+            prevLock = curLock;
             if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLock, curLock->next) == FALSE)
             {
                 ASSERT("Unable to get pointer from shm pointer.\n");
@@ -532,24 +532,24 @@ FILELockFileRegion(
                 goto EXIT;
             }
         }
-        
+
         /* save the previous lock in case we need to insert the requested lock */
-        insertAfter = prevLock;         
-                
+        insertAfter = prevLock;
+
         while(((curLock != NULL) && IS_LOCK_INTERSECT(&lockRgn, curLock)))
         {
-            /* we couldn't lock the requested region if it overlap with other region 
+            /* we couldn't lock the requested region if it overlap with other region
                locked explicitly (by LockFile call) by other file pointer */
-            if ((lockAction == USER_LOCK_RGN) || 
-                ((curLock->lockType  == USER_LOCK_RGN) &&  
+            if ((lockAction == USER_LOCK_RGN) ||
+                ((curLock->lockType  == USER_LOCK_RGN) &&
                  !IS_LOCK_HAVE_SAME_OWNER(curLock, &lockRgn)))
             {
                 WARN("The requested lock region overlaps an existing locked region\n");
                 palError = ERROR_LOCK_VIOLATION;
                 goto EXIT;
             }
-            
-            prevLock = curLock; 
+
+            prevLock = curLock;
             if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLock, curLock->next) == FALSE)
             {
                 ASSERT("Unable to get pointer from shm pointer.\n");
@@ -557,8 +557,8 @@ FILELockFileRegion(
                 goto EXIT;
             }
         }
-       
-        if (insertAfter == &fakeLock) 
+
+        if (insertAfter == &fakeLock)
         {
             insertAfter = NULL;
         }
@@ -588,13 +588,13 @@ FILELockFileRegion(
             nbBytesToLock,
             lockAction
             );
-        
+
         if (NO_ERROR != palError)
         {
             ERROR("Couldn't add the first file locked region \n");
             goto EXIT;
         }
-    }  
+    }
 
 EXIT:
     SHMRelease();
@@ -605,7 +605,7 @@ PAL_ERROR
 FILEUnlockFileRegion(
     SHMPTR shmFileLocks,
     PVOID pvControllerInstance,
-    UINT64 unlockRgnStart, 
+    UINT64 unlockRgnStart,
     UINT64 nbBytesToUnlock,
     LOCK_TYPE unlockType
     )
@@ -617,16 +617,16 @@ FILEUnlockFileRegion(
 
     SHMLock();
 
-    
+
     /* check if the region to unlock is empty or not */
-    if (nbBytesToUnlock == 0) 
+    if (nbBytesToUnlock == 0)
     {
         palError = ERROR_NOT_LOCKED;
         WARN("Attempt to unlock an empty region\n");
         goto EXIT;
     }
-    
-    if ((SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKS, fileLocks, shmFileLocks) == FALSE) || 
+
+    if ((SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKS, fileLocks, shmFileLocks) == FALSE) ||
         (fileLocks == NULL) ||
         (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLockRgn, fileLocks->fileLockedRgns) == FALSE))
     {
@@ -634,7 +634,7 @@ FILEUnlockFileRegion(
         palError = ERROR_INTERNAL_ERROR;
         goto EXIT;
     }
-    
+
     unlockRgn.processId = GetCurrentProcessId();
     unlockRgn.pvControllerInstance = pvControllerInstance;
     unlockRgn.lockRgnStart = unlockRgnStart;
@@ -642,10 +642,10 @@ FILEUnlockFileRegion(
     unlockRgn.lockType = unlockType;
 
     shmcurLockRgn = fileLocks->fileLockedRgns;
-    
+
     while((curLockRgn != NULL) && !IS_LOCK_EQUAL(curLockRgn, &unlockRgn))
     {
-        prevLock = curLockRgn; 
+        prevLock = curLockRgn;
         shmcurLockRgn = curLockRgn->next;
         if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLockRgn, shmcurLockRgn) == FALSE)
         {
@@ -653,13 +653,13 @@ FILEUnlockFileRegion(
             goto EXIT;
         }
     }
-    
-    if (curLockRgn != NULL) 
+
+    if (curLockRgn != NULL)
     {
-        TRACE("removing the lock region (%I64u, %I64u)\n", 
+        TRACE("removing the lock region (%I64u, %I64u)\n",
                curLockRgn->lockRgnStart, curLockRgn->nbBytesLocked);
 
-        if (prevLock == NULL) 
+        if (prevLock == NULL)
         {
             /* removing the first lock */
             fileLocks->fileLockedRgns = curLockRgn->next;
@@ -677,8 +677,8 @@ FILEUnlockFileRegion(
         palError = ERROR_NOT_LOCKED;
         goto EXIT;
     }
-    
-EXIT:    
+
+EXIT:
     SHMRelease();
     return palError;
 }
@@ -701,7 +701,7 @@ FILEGetSHMFileLocks(
     shmPtrRet = SHMGetInfo(SIID_FILE_LOCKS);
 
     while(shmPtrRet != 0)
-    {        
+    {
         if ( (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKS, filelocksPtr, shmPtrRet) == FALSE) ||
              (SHMPTR_TO_TYPED_PTR_BOOL(char, unix_filename, filelocksPtr->unix_filename) == FALSE))
         {
@@ -716,13 +716,13 @@ FILEGetSHMFileLocks(
             palError = ERROR_INTERNAL_ERROR;
             goto EXIT;
         }
-        
+
         if (strcmp(unix_filename, filename) == 0)
         {
             filelocksPtr->refCount++;
             goto EXIT;
         }
-        
+
         shmPtrRet = filelocksPtr->next;
     }
 
@@ -772,7 +772,7 @@ FILEGetSHMFileLocks(
         palError = ERROR_INTERNAL_ERROR;
         goto CLEANUP2;
     }
-    
+
     if (nextFilelocksPtr != NULL)
     {
         nextFilelocksPtr->prev = shmPtrRet;
@@ -786,24 +786,24 @@ CLEANUP2:
 CLEANUP1:
     SHMfree(shmPtrRet);
     shmPtrRet = 0;
-EXIT:    
+EXIT:
     SHMRelease();
 
     if (NO_ERROR == palError)
     {
         *pshmFileLocks = shmPtrRet;
     }
-    
+
     return palError;
 }
 
 PAL_ERROR
 FILEAddNewLockedRgn(
     SHMFILELOCKS* fileLocks,
-    PVOID pvControllerInstance, 
+    PVOID pvControllerInstance,
     SHMFILELOCKRGNS *insertAfter,
-    UINT64 lockRgnStart, 
-    UINT64 nbBytesToLock, 
+    UINT64 lockRgnStart,
+    UINT64 nbBytesToLock,
     LOCK_TYPE lockType
     )
 {
@@ -818,11 +818,11 @@ FILEAddNewLockedRgn(
     }
 
     SHMLock();
-    
+
     /* Create a new entry for the new locked region */
-    TRACE("Create a new entry for the new lock region (%I64u %I64u)\n", 
+    TRACE("Create a new entry for the new lock region (%I64u %I64u)\n",
           lockRgnStart, nbBytesToLock);
-    
+
     if ((shmNewLockRgn = SHMalloc(sizeof(SHMFILELOCKRGNS))) == SHMNULL)
     {
         ERROR("Can't allocate SHMFILELOCKRGNS structure\n");
@@ -836,13 +836,13 @@ FILEAddNewLockedRgn(
         palError = ERROR_INTERNAL_ERROR;
         goto EXIT;
     }
-    
+
     newLockRgn->processId = GetCurrentProcessId();
     newLockRgn->pvControllerInstance = pvControllerInstance;
     newLockRgn->lockRgnStart = lockRgnStart;
     newLockRgn->nbBytesLocked = nbBytesToLock;
     newLockRgn->lockType = lockType;
-    
+
     /* All locked regions with the same offset should be sorted ascending */
     /* the sort is based on the length of the locked byte range */
     if (insertAfter != NULL)
@@ -863,7 +863,7 @@ FILEAddNewLockedRgn(
             goto EXIT;
         }
     }
-    
+
     while(lockRgnPtr != NULL)
     {
         if ( (lockRgnPtr->lockRgnStart == newLockRgn->lockRgnStart) &&
@@ -881,10 +881,10 @@ FILEAddNewLockedRgn(
 
         break;
     }
-    
+
     if (insertAfter != NULL)
-    {       
-        TRACE("Adding lock after the lock rgn (%I64d %I64d)\n", 
+    {
+        TRACE("Adding lock after the lock rgn (%I64d %I64d)\n",
               insertAfter->lockRgnStart,insertAfter->nbBytesLocked);
         newLockRgn->next = insertAfter->next;
         insertAfter->next = shmNewLockRgn;
@@ -902,9 +902,9 @@ EXIT:
     {
         SHMfree(shmNewLockRgn);
     }
-   
+
     SHMRelease();
-    
+
     return palError;
 }
 
@@ -917,7 +917,7 @@ FILECleanUpLockedRgn(
 {
     SHMFILELOCKRGNS *curLockRgn = NULL, *prevLock = NULL;
     SHMFILELOCKS *fileLocks, *prevFileLocks, *nextFileLocks;
-    SHMPTR shmcurLockRgn;    
+    SHMPTR shmcurLockRgn;
 
     SHMLock();
 
@@ -930,24 +930,24 @@ FILECleanUpLockedRgn(
     if (fileLocks != NULL)
     {
         if(fileLocks->fileLockedRgns !=0)
-        {        
+        {
             shmcurLockRgn = fileLocks->fileLockedRgns;
             if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLockRgn, shmcurLockRgn) == FALSE)
             {
                 ASSERT("Unable to get pointer from shm pointer.\n");
                 goto EXIT;
             }
-            
+
             while(curLockRgn != NULL)
             {
-                if ((curLockRgn->pvControllerInstance == pvControllerInstance) && 
+                if ((curLockRgn->pvControllerInstance == pvControllerInstance) &&
                     (curLockRgn->processId == GetCurrentProcessId()))
                 {
                     /* found the locked rgn to remove from SHM */
-                    TRACE("Removing the locked region (%I64u, %I64u) from SMH\n", 
+                    TRACE("Removing the locked region (%I64u, %I64u) from SMH\n",
                           curLockRgn->lockRgnStart, curLockRgn->nbBytesLocked);
-                    
-                    if (prevLock == NULL) 
+
+                    if (prevLock == NULL)
                     {
                         /* removing the first lock */
                         fileLocks->fileLockedRgns = curLockRgn->next;
@@ -972,7 +972,7 @@ FILECleanUpLockedRgn(
                     }
                     continue;
                 }
-                
+
                 prevLock = curLockRgn;
                 shmcurLockRgn = curLockRgn->next;
                 if (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKRGNS, curLockRgn, shmcurLockRgn) == FALSE)
@@ -982,20 +982,20 @@ FILECleanUpLockedRgn(
                 }
             }
         }
-    
+
         if (dwAccessRights & GENERIC_READ)
-        {   
-            fileLocks->nbReadAccess--;      
+        {
+            fileLocks->nbReadAccess--;
         }
         if (dwAccessRights & GENERIC_WRITE)
         {
-            fileLocks->nbWriteAccess--; 
-        }  
+            fileLocks->nbWriteAccess--;
+        }
 
-        /* remove the SHMFILELOCKS structure from SHM if there's no more locked 
-           region left and no more reference to it */        
+        /* remove the SHMFILELOCKS structure from SHM if there's no more locked
+           region left and no more reference to it */
         if ((--(fileLocks->refCount) == 0) && (fileLocks->fileLockedRgns == 0))
-        {            
+        {
             TRACE("Removing the SHMFILELOCKS structure from SHM\n");
 
             if ( (SHMPTR_TO_TYPED_PTR_BOOL(SHMFILELOCKS, prevFileLocks, fileLocks->prev) == FALSE) ||
@@ -1005,7 +1005,7 @@ FILECleanUpLockedRgn(
                 goto EXIT;
             }
 
-            if (prevFileLocks == NULL) 
+            if (prevFileLocks == NULL)
             {
                 /* removing the first lock file*/
                 SHMSetInfo(SIID_FILE_LOCKS, fileLocks->next);
@@ -1025,9 +1025,8 @@ FILECleanUpLockedRgn(
 
             SHMfree(shmFileLocks);
         }
-    }    
+    }
 EXIT:
     SHMRelease();
     return;
 }
-

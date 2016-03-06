@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -75,8 +75,8 @@ time. The system time is expressed in Coordinated Universal Time
 
 Parameters
 
-lpSystemTime 
-       [out] Pointer to a SYSTEMTIME structure to receive the current system date and time. 
+lpSystemTime
+       [out] Pointer to a SYSTEMTIME structure to receive the current system date and time.
 
 Return Values
 
@@ -101,10 +101,10 @@ GetSystemTime(
 
     tt = time(NULL);
 
-    /* We can't get millisecond resolution from time(), so we get it from 
+    /* We can't get millisecond resolution from time(), so we get it from
        gettimeofday() */
     timeofday_retval = gettimeofday(&timeval,NULL);
-    
+
 #if HAVE_GMTIME_R
     utPtr = &ut;
     if (gmtime_r(&tt, utPtr) == NULL)
@@ -134,20 +134,20 @@ GetSystemTime(
     {
         int old_seconds;
         int new_seconds;
-    
+
         lpSystemTime->wMilliseconds = timeval.tv_usec/tccMillieSecondsToMicroSeconds;
-    
+
         old_seconds = utPtr->tm_sec;
         new_seconds = timeval.tv_sec%60;
-   
-        /* just in case we reached the next second in the interval between 
+
+        /* just in case we reached the next second in the interval between
            time() and gettimeofday() */
         if( old_seconds!=new_seconds )
         {
             TRACE("crossed seconds boundary; setting milliseconds to 999\n");
             lpSystemTime->wMilliseconds = 999;
-        }  
-    }                        
+        }
+    }
 EXIT:
     LOGEXIT("GetSystemTime returns void\n");
     PERF_EXIT(GetSystemTime);
@@ -164,7 +164,7 @@ use the GetSystemTimeAdjustment function.
 
 Parameters
 
-This function has no parameters. 
+This function has no parameters.
 
 Return Values
 
@@ -212,7 +212,7 @@ QueryPerformanceCounter(
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
+        lpPerformanceCount->QuadPart =
             (LONGLONG)ts.tv_sec * (LONGLONG)tccSecondsToNanoSeconds + (LONGLONG)ts.tv_nsec;
     }
 #elif HAVE_MACH_ABSOLUTE_TIME
@@ -233,22 +233,22 @@ QueryPerformanceCounter(
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
+        lpPerformanceCount->QuadPart =
             (LONGLONG)tb.tb_high * (LONGLONG)tccSecondsToNanoSeconds + (LONGLONG)tb.tb_low;
     }
 #else
     {
-        struct timeval tv;    
+        struct timeval tv;
         if (gettimeofday(&tv, NULL) == -1)
         {
             ASSERT("gettimeofday() failed; errno is %d (%s)\n", errno, strerror(errno));
             retval = FALSE;
             break;
         }
-        lpPerformanceCount->QuadPart = 
-            (LONGLONG)tv.tv_sec * (LONGLONG)tccSecondsToMicroSeconds + (LONGLONG)tv.tv_usec;    
+        lpPerformanceCount->QuadPart =
+            (LONGLONG)tv.tv_sec * (LONGLONG)tccSecondsToMicroSeconds + (LONGLONG)tv.tv_usec;
     }
-#endif // HAVE_CLOCK_MONOTONIC 
+#endif // HAVE_CLOCK_MONOTONIC
     while (false);
 
     LOGEXIT("QueryPerformanceCounter\n");
@@ -280,7 +280,7 @@ QueryPerformanceFrequency(
     }
 #else
     lpFrequency->QuadPart = (LONGLONG)tccSecondsToMicroSeconds;
-#endif // HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC 
+#endif // HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC
     LOGEXIT("QueryPerformanceFrequency\n");
     PERF_EXIT(QueryPerformanceFrequency);
     return retval;
@@ -341,7 +341,7 @@ GetTickCount64()
 
 #if HAVE_CLOCK_MONOTONIC_COARSE || HAVE_CLOCK_MONOTONIC
     {
-        clockid_t clockType = 
+        clockid_t clockType =
 #if HAVE_CLOCK_MONOTONIC_COARSE
             CLOCK_MONOTONIC_COARSE; // good enough resolution, fastest speed
 #else
@@ -382,7 +382,7 @@ GetTickCount64()
     }
 #else
     {
-        struct timeval tv;    
+        struct timeval tv;
         if (gettimeofday(&tv, NULL) == -1)
         {
             ASSERT("gettimeofday() failed; errno is %d (%s)\n", errno, strerror(errno));
@@ -390,8 +390,7 @@ GetTickCount64()
         }
         retval = (tv.tv_sec * tccSecondsToMillieSeconds) + (tv.tv_usec / tccMillieSecondsToMicroSeconds);
     }
-#endif // HAVE_CLOCK_MONOTONIC 
-EXIT:    
+#endif // HAVE_CLOCK_MONOTONIC
+EXIT:
     return retval;
 }
-

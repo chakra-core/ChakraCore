@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -13,7 +13,7 @@ Module Name:
 
 Abstract:
 
-    Implementation of mutex synchroniztion object as described in 
+    Implementation of mutex synchroniztion object as described in
     the WIN32 API
 
 Revision History:
@@ -79,13 +79,13 @@ CreateMutexA(
     HANDLE hMutex = NULL;
     CPalThread *pthr = NULL;
     PAL_ERROR palError;
-    
+
     PERF_ENTRY(CreateMutexA);
     ENTRY("CreateMutexA(lpMutexAttr=%p, bInitialOwner=%d, lpName=%p (%s)\n",
           lpMutexAttributes, bInitialOwner, lpName, lpName?lpName:"NULL");
 
     pthr = InternalGetCurrentThread();
-    
+
     if (lpName != nullptr)
     {
         ASSERT("lpName: Cross-process named objects are not supported in PAL");
@@ -110,7 +110,7 @@ CreateMutexA(
     //
 
     pthr->SetLastError(palError);
-    
+
     LOGEXIT("CreateMutexA returns HANDLE %p\n", hMutex);
     PERF_EXIT(CreateMutexA);
     return hMutex;
@@ -262,7 +262,7 @@ CorUnix::InternalCreateMutex(
     palError = g_pObjectManager->RegisterObject(
         pthr,
         pobjMutex,
-        &aotMutex, 
+        &aotMutex,
         0, // should be MUTEX_ALL_ACCESS -- currently ignored (no Win32 security)
         phMutex,
         &pobjRegisteredMutex
@@ -273,7 +273,7 @@ CorUnix::InternalCreateMutex(
     // out here to ensure that we don't try to release a reference on
     // it down the line.
     //
-    
+
     pobjMutex = NULL;
 
 InternalCreateMutexExit:
@@ -307,12 +307,12 @@ ReleaseMutex( IN HANDLE hMutex )
 {
     PAL_ERROR palError = NO_ERROR;
     CPalThread *pthr = NULL;
-    
+
     PERF_ENTRY(ReleaseMutex);
     ENTRY("ReleaseMutex(hMutex=%p)\n", hMutex);
 
     pthr = InternalGetCurrentThread();
-    
+
     palError = InternalReleaseMutex(pthr, hMutex);
 
     if (NO_ERROR != palError)
@@ -365,7 +365,7 @@ CorUnix::InternalReleaseMutex(
         ERROR("Unable to obtain object for handle %p (error %d)!\n", hMutex, palError);
         goto InternalReleaseMutexExit;
     }
-    
+
     palError = pobjMutex->GetSynchStateController(
         pthr,
         &pssc
@@ -423,9 +423,9 @@ OpenMutexA (
     HANDLE hMutex = NULL;
     CPalThread *pthr = NULL;
     PAL_ERROR palError;
-    
+
     PERF_ENTRY(OpenMutexA);
-    ENTRY("OpenMutexA(dwDesiredAccess=%#x, bInheritHandle=%d, lpName=%p (%s))\n", 
+    ENTRY("OpenMutexA(dwDesiredAccess=%#x, bInheritHandle=%d, lpName=%p (%s))\n",
           dwDesiredAccess, bInheritHandle, lpName, lpName?lpName:"NULL");
 
     pthr = InternalGetCurrentThread();
@@ -446,7 +446,7 @@ OpenMutexA (
     {
         pthr->SetLastError(palError);
     }
-        
+
     LOGEXIT("OpenMutexA returns HANDLE %p\n", hMutex);
     PERF_EXIT(OpenMutexA);
     return hMutex;
@@ -475,7 +475,7 @@ OpenMutexW(
     CPalThread *pthr = NULL;
 
     PERF_ENTRY(OpenMutexW);
-    ENTRY("OpenMutexW(dwDesiredAccess=%#x, bInheritHandle=%d, lpName=%p (%S))\n", 
+    ENTRY("OpenMutexW(dwDesiredAccess=%#x, bInheritHandle=%d, lpName=%p (%S))\n",
           dwDesiredAccess, bInheritHandle, lpName, lpName?lpName:W16_NULLSTRING);
 
     pthr = InternalGetCurrentThread();
@@ -514,7 +514,7 @@ Note:
 Parameters:
   pthr -- thread data for calling thread
   phEvent -- on success, receives the allocated mutex handle
-  
+
   See MSDN docs on OpenMutex for all other parameters.
 --*/
 
@@ -578,7 +578,7 @@ InternalOpenMutexExit:
     }
 
     LOGEXIT("InternalOpenMutex returns %d\n", palError);
-    
+
     return palError;
 }
 
@@ -603,10 +603,10 @@ void SPINLOCKAcquire (LONG * lock, unsigned int flags)
             nanosleep(&tsSleepTime, NULL);
 #else
             sched_yield();
-#endif 
+#endif
         }
     }
-    
+
 }
 
 void SPINLOCKRelease (LONG * lock)

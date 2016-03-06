@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -49,4 +49,3 @@ errno_t __cdecl _FUNC_NAME(_CHAR *_DEST, size_t _SIZE, const _CHAR *_SRC)
     _FILL_STRING(_DEST, _SIZE, _SIZE - available + 1);
     _RETURN_NO_ERROR;
 }
-

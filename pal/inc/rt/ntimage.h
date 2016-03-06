@@ -6,8 +6,8 @@
 
 //
 // ===========================================================================
-// File: ntimage.h 
-// 
+// File: ntimage.h
+//
 // ===========================================================================
 
 //
@@ -17,7 +17,7 @@
 //
 //Author:
 //
-//     
+//
 //
 //Revision History:
 //
@@ -31,7 +31,7 @@
 #endif
 
 //
-// Define the linker version number.  
+// Define the linker version number.
 
 #define IMAGE_MAJOR_LINKER_VERSION 2
 
@@ -1007,7 +1007,7 @@ typedef IMAGE_RELOCATION UNALIGNED *PIMAGE_RELOCATION;
 #define IMAGE_REL_IA64_SECREL22         0x000C
 #define IMAGE_REL_IA64_SECREL64I        0x000D
 #define IMAGE_REL_IA64_SECREL32         0x000E
-// 
+//
 #define IMAGE_REL_IA64_DIR32NB          0x0010
 #define IMAGE_REL_IA64_SREL14           0x0011
 #define IMAGE_REL_IA64_SREL22           0x0012
@@ -1585,7 +1585,7 @@ typedef struct _IMAGE_DEBUG_DIRECTORY {
 
 // end_winnt
 
-// 
+//
 
 // begin_winnt
 
@@ -1808,24 +1808,24 @@ typedef enum ReplacesCorHdrNumericDefines
     COR_VTABLEGAP_NAME_LENGTH           =8,
 
 // Maximum size of a NativeType descriptor.
-    NATIVE_TYPE_MAX_CB                  =1,   
+    NATIVE_TYPE_MAX_CB                  =1,
     COR_ILMETHOD_SECT_SMALL_MAX_DATASIZE=0xFF,
 
 // #defines for the MIH FLAGS
     IMAGE_COR_MIH_METHODRVA             =0x01,
-    IMAGE_COR_MIH_EHRVA                 =0x02,    
+    IMAGE_COR_MIH_EHRVA                 =0x02,
     IMAGE_COR_MIH_BASICBLOCK            =0x08,
 
 // V-table constants
-    COR_VTABLE_32BIT                    =0x01,          // V-table slots are 32-bits in size.   
-    COR_VTABLE_64BIT                    =0x02,          // V-table slots are 64-bits in size.   
+    COR_VTABLE_32BIT                    =0x01,          // V-table slots are 32-bits in size.
+    COR_VTABLE_64BIT                    =0x02,          // V-table slots are 64-bits in size.
     COR_VTABLE_FROM_UNMANAGED           =0x04,          // If set, transition from unmanaged.
     COR_VTABLE_CALL_MOST_DERIVED        =0x10,          // Call most derived method described by
 
 // EATJ constants
     IMAGE_COR_EATJ_THUNK_SIZE           =32,            // Size of a jump thunk reserved range.
 
-// Max name lengths    
+// Max name lengths
     //<TODO> Change to unlimited name lengths. </TODO>
     MAX_CLASS_NAME                      =1024,
     MAX_PACKAGE_NAME                    =1024,
@@ -1835,13 +1835,13 @@ typedef enum ReplacesCorHdrNumericDefines
 typedef struct IMAGE_COR20_HEADER
 {
     // Header versioning
-    ULONG                   cb;              
+    ULONG                   cb;
     USHORT                  MajorRuntimeVersion;
     USHORT                  MinorRuntimeVersion;
-    
+
     // Symbol table and startup information
-    IMAGE_DATA_DIRECTORY    MetaData;        
-    ULONG                   Flags;           
+    IMAGE_DATA_DIRECTORY    MetaData;
+    ULONG                   Flags;
 
     // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is not set, EntryPointToken represents a managed entrypoint.
     // If COMIMAGE_FLAGS_NATIVE_ENTRYPOINT is set, EntryPointRVA represents an RVA to a native entrypoint.
@@ -1849,7 +1849,7 @@ typedef struct IMAGE_COR20_HEADER
         ULONG               EntryPointToken;
         ULONG               EntryPointRVA;
     };
-    
+
     // Binding information
     IMAGE_DATA_DIRECTORY    Resources;
     IMAGE_DATA_DIRECTORY    StrongNameSignature;
@@ -1861,7 +1861,7 @@ typedef struct IMAGE_COR20_HEADER
 
     // Precompiled image info (internal use only - set to zero)
     IMAGE_DATA_DIRECTORY    ManagedNativeHeader;
-    
+
 } IMAGE_COR20_HEADER, *PIMAGE_COR20_HEADER;
 
 #endif // __IMAGE_COR20_HEADER_DEFINED__

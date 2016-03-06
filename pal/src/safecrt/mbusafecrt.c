@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -134,14 +134,14 @@ int _ungetc_nolock( char inChar, miniFILE* inStream )
 int _ungetwc_nolock( wchar_t inChar, miniFILE* inStream )
 {
     int returnValue = WEOF;
-    
+
     if ( ( size_t )( ( inStream->_ptr ) - ( inStream->_base ) ) >= ( sizeof( wchar_t ) ) )
     {
         inStream->_cnt += sizeof( wchar_t );
         inStream->_ptr -= sizeof( wchar_t );
         returnValue = ( unsigned short )inChar;
     }
-    
+
     return returnValue;
 }
 
@@ -225,10 +225,10 @@ void _safecrt_wfassign(int flag, void* argument, wchar_t* number )
     // without using any system functions. To do this,
     // we'll assume that the numbers are in the 0-9 range and
     // do a simple conversion.
-    
+
     char* numberAsChars = ( char* )number;
     int position = 0;
-    
+
     // do the convert
     while ( number[ position ] != 0 )
     {
@@ -236,7 +236,7 @@ void _safecrt_wfassign(int flag, void* argument, wchar_t* number )
         position++;
     }
     numberAsChars[ position ] = ( char )( number[ position ] & 0x00FF );
-    
+
     // call the normal char version
     _safecrt_fassign( flag, argument, numberAsChars );
 }
@@ -251,5 +251,3 @@ int _minimal_chartowchar( wchar_t* outWChar, const char* inChar )
     *outWChar = ( wchar_t )( ( unsigned short )( ( unsigned char )( *inChar ) ) );
     return 1;
 }
-
-

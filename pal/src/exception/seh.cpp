@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -74,7 +74,7 @@ Return value :
     TRUE  if SEH support initialization succeeded
     FALSE otherwise
 --*/
-BOOL 
+BOOL
 SEHInitialize (CPalThread *pthrCurrent, DWORD flags)
 {
 #if !HAVE_MACH_EXCEPTIONS
@@ -99,9 +99,9 @@ Parameters :
     None
 
     (no return value)
-    
+
 --*/
-VOID 
+VOID
 SEHCleanup()
 {
     TRACE("Cleaning up SEH\n");
@@ -126,7 +126,7 @@ Return value:
     None
 --*/
 VOID
-PALAPI 
+PALAPI
 PAL_SetHardwareExceptionHandler(
     IN PHARDWARE_EXCEPTION_HANDLER exceptionHandler)
 {
@@ -163,7 +163,7 @@ SEHProcessException(PEXCEPTION_POINTERS pointers)
         }
     }
 
-    TRACE("Unhandled hardware exception %08x at %p\n", 
+    TRACE("Unhandled hardware exception %08x at %p\n",
         pointers->ExceptionRecord->ExceptionCode, pointers->ExceptionRecord->ExceptionAddress);
 }
 
@@ -252,7 +252,7 @@ bool CatchHardwareExceptionHolder::IsEnabled()
 --*/
 
 #ifdef __llvm__
-__thread 
+__thread
 #else // __llvm__
 __declspec(thread)
 #endif // !__llvm__
@@ -275,7 +275,7 @@ NativeExceptionHolderBase::~NativeExceptionHolderBase()
     }
 }
 
-void 
+void
 NativeExceptionHolderBase::Push()
 {
     NativeExceptionHolderBase **head = &t_nativeExceptionHolderHead;
@@ -292,7 +292,7 @@ NativeExceptionHolderBase::FindNextHolder(NativeExceptionHolderBase *currentHold
     while (holder != nullptr)
     {
         if (((void *)holder > stackLowAddress) && ((void *)holder < stackHighAddress))
-        { 
+        {
             return holder;
         }
         // Get next holder

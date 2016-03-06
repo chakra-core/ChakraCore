@@ -159,7 +159,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
       unwind-x86_64
     )
   endif()
-    
+
   target_link_libraries(Chakra.Pal
     gcc_s
     pthread

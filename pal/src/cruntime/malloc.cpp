@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -51,8 +51,8 @@ CorUnix::InternalRealloc(
     void *pvMem;
 
     PERF_ENTRY(InternalRealloc);
-    ENTRY("realloc (memblock:%p size=%d)\n", pvMemblock, szSize);    
-       
+    ENTRY("realloc (memblock:%p size=%d)\n", pvMemblock, szSize);
+
     if (szSize == 0)
     {
         // If pvMemblock is NULL, there's no reason to call free.
@@ -89,7 +89,7 @@ CorUnix::InternalFree(
     free(pvMem);
 }
 
-void * 
+void *
 __cdecl
 PAL_malloc(
     size_t szSize

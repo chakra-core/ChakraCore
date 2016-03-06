@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -69,7 +69,7 @@ int GetLibRotorNameViaLoadQuery(LPSTR pszBuf)
     }
 
     pThread = InternalGetCurrentThread();
-    // Loop trying to call loadquery with enough memory until either 
+    // Loop trying to call loadquery with enough memory until either
     // 1) we succeed, 2) we run out of memory or 3) loadquery throws
     // an error other than ENOMEM
     while (iLQRetVal != 0)
@@ -99,13 +99,13 @@ int GetLibRotorNameViaLoadQuery(LPSTR pszBuf)
         }
     }
 
-    // We successfully called loadquery, so now see if we can find 
+    // We successfully called loadquery, so now see if we can find
     // librotor_pal.a in the module list
     if (pLoadQueryBuf)
     {
-        pInfo = (struct ld_info *)pLoadQueryBuf;        
+        pInfo = (struct ld_info *)pLoadQueryBuf;
         while (TRUE)
-        {  
+        {
             if (strstr(pInfo->ldinfo_filename, "librotor_pal.a"))
             {
                 UINT cchFileName = strlen(pInfo->ldinfo_filename);
@@ -126,7 +126,7 @@ int GetLibRotorNameViaLoadQuery(LPSTR pszBuf)
             }
             else
             {
-                // The (wacky) design of ld_info is that the value of next is an offset in 
+                // The (wacky) design of ld_info is that the value of next is an offset in
                 // bytes rather than a pointer.  So we need this weird cast to char * to get
                 // the pointer math correct.
                 if (pInfo->ldinfo_next == 0)
@@ -157,7 +157,7 @@ Return value:
 
     NULL if error occurred.
 
-Notes: 
+Notes:
     The string returned by this function is owned by the OS.
     If you need to keep it, strdup() it, because it is unknown how long
     this ptr will point at the string you want (over the lifetime of
@@ -198,11 +198,10 @@ const char *PAL_dladdr(LPVOID ProcAddress)
         /* If we get an error, return NULL */
         return (NULL);
     }
-    else 
+    else
     {
-        /* Return the module name */ 
+        /* Return the module name */
         return dl_info.dli_fname;
     }
 #endif
 }
-

@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -63,7 +63,7 @@ Abstract:
 MachMessage::MachMessage()
 {
     m_fPortsOwned = false;
-    
+
     ResetMessage();
 }
 
@@ -72,7 +72,7 @@ MachMessage::MachMessage()
 void MachMessage::Receive(mach_port_t hPort)
 {
     kern_return_t machret;
-    
+
     // Erase any stale data.
     ResetMessage();
 
@@ -107,7 +107,7 @@ void MachMessage::Receive(mach_port_t hPort)
     default:
         FATAL_ERROR("Unsupported message type: %u", m_pMessage->header.msgh_id);
     }
-    
+
     m_fPortsOwned = true;
 }
 
@@ -224,7 +224,7 @@ void MachMessage::GetPorts(bool fCalculate, bool fValidThread)
     case SET_THREAD_MESSAGE_ID:
         m_hThread = m_pMessage->data.set_thread.thread;
         break;
-    
+
     case EXCEPTION_RAISE_MESSAGE_ID:
         m_hThread = m_pMessage->data.raise.thread_port.name;
         m_hTask = m_pMessage->data.raise.task_port.name;
@@ -262,7 +262,7 @@ void MachMessage::GetPorts(bool fCalculate, bool fValidThread)
         m_hThread = m_pMessage->data.raise_state_identity_64.thread_port.name;
         m_hTask = m_pMessage->data.raise_state_identity_64.task_port.name;
         break;
-        
+
     default:
         if (fValidThread)
         {
@@ -624,7 +624,7 @@ mach_port_t MachMessage::ForwardNotification(CorUnix::MachExceptionHandler *pHan
 {
     kern_return_t machret;
     mach_port_t hReplyPort;
-    
+
     // Allocate a new port dedicated to receiving the reply for this forward. This will allow us to match the
     // reply to the original request later on.
     machret = mach_port_allocate(mach_task_self(),
@@ -819,14 +819,14 @@ void MachMessage::ResetMessage()
     if (m_fPortsOwned)
     {
         kern_return_t machret;
-        
+
         GetPorts(false /* fCalculate */, false /* fValidThread */);
         if (m_hThread != MACH_PORT_NULL)
         {
             machret = mach_port_deallocate(mach_task_self(), m_hThread);
             MACH_CHECK("mach_port_deallocate(m_hThread)");
         }
-        
+
         if (m_hTask != MACH_PORT_NULL)
         {
             machret = mach_port_deallocate(mach_task_self(), m_hTask);
@@ -934,7 +934,7 @@ void MachMessage::InitFixedFields()
     }
 
     m_pMessage->header.msgh_reserved = 0;
-    
+
     if (m_hTask)
     {
         kern_return_t machret;
@@ -1065,7 +1065,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
         targetSP = ((x86_thread_state64_t*)pState)->__rsp;
         break;
 #endif // _AMD64_
-        
+
     default:
         FATAL_ERROR("Unhandled thread state flavor: %u", eFlavor);
     }
@@ -1083,7 +1083,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
     for (mach_msg_type_number_t i = 0; i < cThreads; i++)
     {
         // Get the general register state of each thread.
-#ifdef _X86_        
+#ifdef _X86_
         x86_thread_state32_t sThreadState;
         const thread_state_flavor_t sThreadStateFlavor = x86_THREAD_STATE32;
 #elif defined(_AMD64_)
@@ -1111,7 +1111,7 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
 #endif
             {
                 thread_act_t hThread = pThreads[i];
-                
+
                 // Increment the refcount; the thread is a "send" right.
                 machret = mach_port_mod_refs(mach_task_self(), hThread, MACH_PORT_RIGHT_SEND, 1);
                 MACH_CHECK("mach_port_mod_refs()");
@@ -1257,7 +1257,7 @@ void MachMessage::SetThread(thread_act_t hThread)
         FATAL_ERROR("Unsupported message type: %u", m_pMessage->header.msgh_id);
         fSet = false;
     }
-    
+
     if (fSet)
     {
         // Addref the thread port.

@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -67,9 +67,9 @@ TlsAlloc(
     /* Yes, this could be ever so slightly improved. It's not
        likely to be called enough to matter, though, so we won't
        optimize here until or unless we need to. */
-       
+
     PROCProcessLock();
-    
+
     for(i = 0; i < sizeof(sTlsSlotFields) * 8; i++)
     {
         if ((sTlsSlotFields & ((unsigned __int64) 1 << i)) == 0)
@@ -87,7 +87,7 @@ TlsAlloc(
     {
         dwIndex = i;
     }
-    
+
     PROCProcessUnlock();
 
     LOGEXIT("TlsAlloc returns DWORD %u\n", dwIndex);
@@ -108,10 +108,10 @@ TlsGetValue(
         IN DWORD dwTlsIndex)
 {
     CPalThread *pThread;
-    
+
     PERF_ENTRY(TlsGetValue);
     ENTRY("TlsGetValue()\n");
-    
+
     if (dwTlsIndex == (DWORD) -1 || dwTlsIndex >= TLS_SLOT_SIZE)
     {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -123,10 +123,10 @@ TlsGetValue(
     /* From MSDN : "The TlsGetValue function calls SetLastError to clear a
        thread's last error when it succeeds." */
     pThread->SetLastError(NO_ERROR);
-    
+
     LOGEXIT("TlsGetValue \n" );
     PERF_EXIT(TlsGetValue);
-    
+
     return pThread->tlsInfo.tlsSlots[dwTlsIndex];
 }
 
@@ -157,7 +157,7 @@ TlsSetValue(
     pThread = InternalGetCurrentThread();
     pThread->tlsInfo.tlsSlots[dwTlsIndex] = lpTlsValue;
     bRet = TRUE;
-    
+
 EXIT:
     LOGEXIT("TlsSetValue returns BOOL %d\n", bRet);
     PERF_EXIT(TlsSetValue);
@@ -181,7 +181,7 @@ TlsFree(
     PERF_ENTRY(TlsFree);
     ENTRY("TlsFree(dwTlsIndex=%u)\n", dwTlsIndex);
 
-    
+
     if (dwTlsIndex == (DWORD) -1 || dwTlsIndex >= TLS_SLOT_SIZE)
     {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -193,13 +193,13 @@ TlsFree(
     PROCProcessLock();
 
     /* Reset all threads' values to zero for this index. */
-    for(pThread = pGThreadList; 
+    for(pThread = pGThreadList;
         pThread != NULL; pThread = pThread->GetNext())
     {
         pThread->tlsInfo.tlsSlots[dwTlsIndex] = 0;
     }
     sTlsSlotFields &= ~((unsigned __int64) 1 << dwTlsIndex);
-    
+
     PROCProcessUnlock();
 
     LOGEXIT("TlsFree returns BOOL TRUE\n");
@@ -215,7 +215,7 @@ CThreadTLSInfo::InitializePostCreate(
     )
 {
     PAL_ERROR palError = NO_ERROR;
-    
+
     if (pthread_setspecific(thObjKey, reinterpret_cast<void*>(pThread)))
     {
         ASSERT("Unable to set the thread object key's value\n");
@@ -224,4 +224,3 @@ CThreadTLSInfo::InitializePostCreate(
 
     return palError;
 }
-
