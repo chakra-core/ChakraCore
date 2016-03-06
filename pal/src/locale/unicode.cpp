@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -148,7 +148,7 @@ BOOL GetUnicodeData(INT nUnicodeValue, UnicodeDataRec *pDataRec)
     {
         UnicodeDataRec *dataRec;
         INT nNumOfChars = UNICODE_DATA_SIZE;
-        dataRec = (UnicodeDataRec *) bsearch(&nUnicodeValue, UnicodeData, nNumOfChars, 
+        dataRec = (UnicodeDataRec *) bsearch(&nUnicodeValue, UnicodeData, nNumOfChars,
                        sizeof(UnicodeDataRec), UnicodeDataComp);
         if (dataRec == NULL)
         {
@@ -164,16 +164,16 @@ BOOL GetUnicodeData(INT nUnicodeValue, UnicodeDataRec *pDataRec)
 }
 #endif /* !HAVE_COREFOUNDATION */
 
-/*++ 
+/*++
 Function:
 CODEPAGEGetData
-    
+
     IN UINT CodePage - The code page the caller
     is attempting to retrieve data on.
-    
+
     Returns a pointer to structure, NULL otherwise.
 --*/
-const CP_MAPPING * 
+const CP_MAPPING *
 CODEPAGEGetData( IN UINT CodePage )
 {
     UINT nSize = sizeof( CP_TO_NATIVE_TABLE ) / sizeof( CP_TO_NATIVE_TABLE[ 0 ] );
@@ -193,7 +193,7 @@ CODEPAGEGetData( IN UINT CodePage )
         }
         nIndex++;
     }
-    return NULL;    
+    return NULL;
 }
 
 #if HAVE_COREFOUNDATION
@@ -331,7 +331,7 @@ GetConsoleCP(
     UINT nRet = 0;
     PERF_ENTRY(GetConsoleCP);
     ENTRY("GetConsoleCP()\n");
-     
+
     nRet = GetACP();
 
     LOGEXIT("GetConsoleCP returns UINT %d\n", nRet );
@@ -403,7 +403,7 @@ IsValidCodePage(
         retval = (NULL != CODEPAGEGetData( CodePage ));
         break;
     }
-       
+
     LOGEXIT("IsValidCodePage returns BOOL %d\n",retval);
     PERF_EXIT(IsValidCodePage);
     return retval;
@@ -533,7 +533,7 @@ GetCPInfo(
 {
     const CP_MAPPING * lpStruct = NULL;
     BOOL bRet = FALSE;
-     
+
     PERF_ENTRY(GetCPInfo);
     ENTRY("GetCPInfo(CodePage=%hu, lpCPInfo=%p)\n", CodePage, lpCPInfo);
 
@@ -626,9 +626,9 @@ IsDBCSLeadByteEx(
         {
             goto done;
         }
-         
+
         /*check if the given char is in one of the lead byte ranges*/
-        if( cpinfo.LeadByte[i] <= TestChar && TestChar<= cpinfo.LeadByte[i+1] ) 
+        if( cpinfo.LeadByte[i] <= TestChar && TestChar<= cpinfo.LeadByte[i+1] )
         {
             bRet = TRUE;
             goto done;
@@ -822,14 +822,14 @@ WideCharToMultiByte(
           lpDefaultChar, lpUsedDefaultChar);
 
     if (dwFlags & ~WC_NO_BEST_FIT_CHARS)
-    {  
+    {
         ERROR("dwFlags %d invalid\n", dwFlags);
         SetLastError(ERROR_INVALID_FLAGS);
         goto EXIT;
     }
 
     // No special action is needed for WC_NO_BEST_FIT_CHARS. The default
-    // behavior of this API on Unix is not to find the best fit for a unicode 
+    // behavior of this API on Unix is not to find the best fit for a unicode
     // character that does not map directly into a code point in the given
     // code page. The best fit functionality is not available in wctomb on Unix
     // and is better left unimplemented for security reasons anyway.
@@ -856,7 +856,7 @@ WideCharToMultiByte(
     {
         if (cchWideChar == -1)
         {
-            cchWideChar = PAL_wcslen(lpWideCharStr) + 1; 
+            cchWideChar = PAL_wcslen(lpWideCharStr) + 1;
         }
         retval = UnicodeToUTF8(lpWideCharStr, cchWideChar, lpMultiByteStr, cbMultiByte);
         goto EXIT;
@@ -941,12 +941,12 @@ EXIT:
     /* Flag the cases when WC_NO_BEST_FIT_CHARS was not specified
      * but we found characters that had to be replaced with default
      * characters. Note that Windows would have attempted to find
-     * best fit characters under these conditions and that could pose 
-     * a security risk. 
+     * best fit characters under these conditions and that could pose
+     * a security risk.
      */
     _ASSERT_MSG((dwFlags & WC_NO_BEST_FIT_CHARS) || !usedDefaultChar,
           "WideCharToMultiByte found a string which doesn't round trip: (%p)%S "
-          "and WC_NO_BEST_FIT_CHARS was not specified\n", 
+          "and WC_NO_BEST_FIT_CHARS was not specified\n",
           lpWideCharStr, lpWideCharStr);
 
     LOGEXIT("WideCharToMultiByte returns INT %d\n", retval);
@@ -977,7 +977,7 @@ PAL_GetResourceString(
     // resource. In our case, that will be the English string.
     LPCSTR resourceString = dgettext(lpDomain, lpResourceStr);
 #else // __APPLE__
-    // UNIXTODO: Implement for OSX using the native localization API 
+    // UNIXTODO: Implement for OSX using the native localization API
 
     // This is a temporary solution until we add the real native resource support.
     LPCSTR resourceString = lpResourceStr;

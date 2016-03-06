@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -46,9 +46,9 @@ Buffer size required to be passed to _gcvt, fcvt and other fp conversion routine
 
 //------------------------------------------------------------------------------
 // This code was taken from the 'ouput.c' file located in Visual Studio 8 (i.e. 2005)
-// in the '\Microsoft Visual Studio 8\VC\crt\src' directory. It was moved into 
+// in the '\Microsoft Visual Studio 8\VC\crt\src' directory. It was moved into
 // this file to support only the '_output' function used by _vscprintf() in vsprintf.c
-// UNUSED / NON-RELEVANT PORTIONS OF THE CODE HAVE BEEN REMOVED - do not try and 
+// UNUSED / NON-RELEVANT PORTIONS OF THE CODE HAVE BEEN REMOVED - do not try and
 // use it to generate any other safecrt 'output' functions
 //
 // Noteable modifications
@@ -358,7 +358,7 @@ const char __lookuptable[] = {
 
 #else  /* FORMAT_VALIDATIONS */
 // SNIP -srs 7/3/07
-#error code has been removed 
+#error code has been removed
 #endif  /* FORMAT_VALIDATIONS */
 
 #define FIND_CHAR_CLASS(lookuptbl, c)      \
@@ -430,7 +430,7 @@ __inline long __cdecl get_long_arg(va_list *pargptr);
 __inline long long __cdecl get_long_long_arg(va_list *pargptr);
 #endif  /* !LONGLONG_IS_INT64 */
 
-#if _INTEGRAL_MAX_BITS >= 64   
+#if _INTEGRAL_MAX_BITS >= 64
 __inline __int64 __cdecl get_int64_arg(va_list *pargptr);
 #endif  /* _INTEGRAL_MAX_BITS >= 64    */
 
@@ -1117,7 +1117,7 @@ int __cdecl _output (
                 /* correct radix, setting text and textlen */
                 /* appropriately. */
 
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
 //                unsigned __int64 number;    /* number to convert */
                 __uint64_t number;      /* number to convert */
                 int digit;              /* ascii value of digit */
@@ -1129,7 +1129,7 @@ int __cdecl _output (
 #endif  /* _INTEGRAL_MAX_BITS >= 64        */
 
                 /* 1. read argument into l, sign extend as needed */
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
                 if (flags & FL_I64)
                     l = get_int64_arg(&argptr);
                 else
@@ -1170,7 +1170,7 @@ int __cdecl _output (
                     number = l;
                 }
 
-#if _INTEGRAL_MAX_BITS >= 64       
+#if _INTEGRAL_MAX_BITS >= 64
                 if ( (flags & FL_I64) == 0 && (flags & FL_LONGLONG) == 0 ) {
                     /*
                      * Unless printing a full 64-bit value, insure values
@@ -1220,7 +1220,7 @@ int __cdecl _output (
                     *--sz = '0';
                     ++textlen;      /* add a zero */
                 }
-                
+
                 text.sz = sz;
             }
             break;
@@ -1587,7 +1587,7 @@ __inline long long __cdecl get_long_long_arg (
 }
 #endif  /* !LONGLONG_IS_INT64 */
 
-#if _INTEGRAL_MAX_BITS >= 64   
+#if _INTEGRAL_MAX_BITS >= 64
 __inline __int64 __cdecl get_int64_arg (
     va_list *pargptr
     )
@@ -1626,4 +1626,3 @@ __inline short __cdecl get_short_arg (
 #endif  /* _UNICODE */
 
 #endif // __GNUC_VA_LIST
-

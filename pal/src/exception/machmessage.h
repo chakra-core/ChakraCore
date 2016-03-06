@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -335,7 +335,7 @@ private:
     //  * fCalculate -- calculate the thread port if the message did not contain it.
     //  * fValidate  -- failfast if the message was not one expected to have a (calculable) thread port.
     void GetPorts(bool fCalculate, bool fValidThread);
-    
+
     // Given a thread's register context, locate and return the Mach port representing that thread. Only the
     // x86_THREAD_STATE and x86_THREAD_STATE32 state flavors are supported.
     thread_act_t GetThreadFromState(thread_state_flavor_t eFlavor, thread_state_t pState);
@@ -377,10 +377,10 @@ private:
 
     // Cached value of GetThread() or MACH_PORT_NULL if that has not been computed yet.
     thread_act_t    m_hThread;
-    
+
     // Cached value of the task port or MACH_PORT_NULL if the message doesn't have one.
     mach_port_t     m_hTask;
-    
+
     // Considered whether we are responsible for the deallocation of the ports in
     // this message. It is true for messages we receive, and false for messages we send.
     bool m_fPortsOwned;

@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -31,11 +31,11 @@ namespace CorUnix
     typedef struct
     {
         SHMPTR unix_filename;
-        SHMPTR fileLockedRgns;    
+        SHMPTR fileLockedRgns;
         UINT refCount;
         SHMPTR next;
         SHMPTR prev;
-        DWORD  share_mode; /* FILE_SHARE_READ, FILE_SHARE_WRITE, 
+        DWORD  share_mode; /* FILE_SHARE_READ, FILE_SHARE_WRITE,
                               FILE_SHARE_DELETE,  0 ( not shared ) or
                               SHARE_MODE_NOT_INITALIZED */
         int nbReadAccess;  /* used to keep track of the minimal
@@ -46,7 +46,7 @@ namespace CorUnix
     typedef enum
     {
         USER_LOCK_RGN, /* Used only for user locks (LockFile or UnlockFile call) */
-        RDWR_LOCK_RGN  /* Used to distinguish between the user locks and the internal 
+        RDWR_LOCK_RGN  /* Used to distinguish between the user locks and the internal
                           locks made when  reading, writing or truncating file */
     } LOCK_TYPE;
 
@@ -54,17 +54,17 @@ namespace CorUnix
     {
         DWORD processId;
         PVOID pvControllerInstance;
-        UINT64 lockRgnStart; 
+        UINT64 lockRgnStart;
         UINT64 nbBytesLocked;
         LOCK_TYPE lockType;
 
         SHMPTR next;
     } SHMFILELOCKRGNS;
-    
+
     class CSharedMemoryFileLockMgr : public IFileLockManager
     {
     public:
-        
+
         virtual
         PAL_ERROR
         GetLockControllerForFile(
@@ -93,7 +93,7 @@ namespace CorUnix
         virtual ~CSharedMemoryFileLockController()
         {
         };
-        
+
     public:
 
         CSharedMemoryFileLockController(
@@ -148,7 +148,7 @@ namespace CorUnix
     class CSharedMemoryFileTransactionLock : public IFileTransactionLock
     {
         template <class T> friend void InternalDelete(T *p);
-          
+
     private:
 
         SHMPTR m_shmFileLocks;
@@ -159,7 +159,7 @@ namespace CorUnix
         virtual ~CSharedMemoryFileTransactionLock()
         {
         };
-        
+
     public:
 
         CSharedMemoryFileTransactionLock(
@@ -183,4 +183,3 @@ namespace CorUnix
 }
 
 #endif /* _PAL_SHMFILELOCKMGR_H_ */
-

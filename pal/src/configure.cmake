@@ -943,7 +943,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
   else()
     message(FATAL_ERROR "Cannot find libc on this system.")
   endif()
-  
+
 elseif(CMAKE_SYSTEM_NAME STREQUAL SunOS)
   if(NOT HAVE_LIBUNWIND_H)
     unset(HAVE_LIBUNWIND_H CACHE)
@@ -989,4 +989,3 @@ else() # Anything else is Linux
 endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-

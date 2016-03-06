@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -26,7 +26,7 @@ Abstract:
 #include "pal/thread.hpp"
 
 namespace CorUnix
-{   
+{
     class CSimpleDataLock : IDataLock
     {
     private:
@@ -82,13 +82,13 @@ namespace CorUnix
         {
             InternalLeaveCriticalSection(pthr, &m_cs);
         };
-        
+
     };
-    
+
     class CPalObjectBase : public IPalObject
-    { 
+    {
         template <class T> friend void InternalDelete(T *p);
-        
+
     protected:
 
         LONG m_lRefCount;
@@ -146,7 +146,7 @@ namespace CorUnix
         //
         // IPalObject routines
         //
-        
+
         virtual
         CObjectType *
         GetObjectType(
@@ -189,4 +189,3 @@ namespace CorUnix
 }
 
 #endif // _PALOBJBASE_HPP_
-

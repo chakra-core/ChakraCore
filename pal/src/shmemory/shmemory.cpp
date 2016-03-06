@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -178,7 +178,7 @@ is still alive).
 #if HAVE_YIELD_SYSCALL
 #include <sys/syscall.h>
 #endif  /* HAVE_YIELD_SYSCALL */
-        
+
 SET_DEFAULT_DEBUG_CHANNEL(SHMEM);
 
 /* Macro-definitions **********************************************************/
@@ -347,7 +347,7 @@ memory. Rationale :
  spinlocks, but this would introduce more busy-wait.
 */
 static CRITICAL_SECTION shm_critsec PAL_GLOBAL;
-                        
+
 /* number of segments the current process knows about */
 int shm_numsegments;
 
@@ -360,7 +360,7 @@ SHMLock/SHMRelease pair, this is actually the number of locks held by a single
 thread. */
 static Volatile<LONG> lock_count PAL_GLOBAL;
 
-/* thread ID of thread holding the SHM lock. used for debugging purposes : 
+/* thread ID of thread holding the SHM lock. used for debugging purposes :
    SHMGet/SetInfo will verify that the calling thread holds the lock */
 static Volatile<HANDLE> locking_thread PAL_GLOBAL;
 
@@ -396,7 +396,7 @@ BOOL SHMInitialize(void)
     InternalInitializeCriticalSection(&shm_critsec);
 
     init_waste();
-    
+
         int size;
         SHM_FIRST_HEADER *header;
         SHMPTR pool_start;
@@ -404,7 +404,7 @@ BOOL SHMInitialize(void)
         enum SHM_POOL_SIZES sps;
 
         TRACE("Now initializing global shared memory system\n");
-        
+
         // Not really shared in CoreCLR; we don't try to talk to other CoreCLRs.
         shm_segment_bases[0] = mmap(NULL, segment_size,PROT_READ|PROT_WRITE,
                                     MAP_ANON|MAP_PRIVATE, -1, 0);
@@ -419,17 +419,17 @@ BOOL SHMInitialize(void)
         header = (SHM_FIRST_HEADER *)shm_segment_bases[0].Load();
 
         InterlockedExchange((LONG *)&header->spinlock, 0);
-        
+
 #ifdef TRACK_SHMLOCK_OWNERSHIP
         header->dwHeadCanaries[0] = HeadSignature;
         header->dwHeadCanaries[1] = HeadSignature;
         header->dwTailCanaries[0] = TailSignature;
-        header->dwTailCanaries[1] = TailSignature;        
+        header->dwTailCanaries[1] = TailSignature;
 
         // Check spinlock size
         _ASSERTE(sizeof(DWORD) == sizeof(header->spinlock));
         // Check spinlock alignment
-        _ASSERTE(0 == ((DWORD_PTR)&header->spinlock % (DWORD_PTR)sizeof(void *)));        
+        _ASSERTE(0 == ((DWORD_PTR)&header->spinlock % (DWORD_PTR)sizeof(void *)));
 #endif // TRACK_SHMLOCK_OWNERSHIP
 
 #ifdef TRACK_SHMLOCK_OWNERSHIP
@@ -514,7 +514,7 @@ void SHMCleanup(void)
 
     _ASSERT_MSG(header->spinlock != my_pid,
             "SHMCleanup called while the current process still owns the lock "
-            "[owner thread=%u, current thread: %u]\n", 
+            "[owner thread=%u, current thread: %u]\n",
             locking_thread.Load(), THREADSilentGetCurrentThreadId());
 
     /* Now for the interprocess stuff. */
@@ -525,7 +525,7 @@ void SHMCleanup(void)
     while(shm_numsegments)
     {
         shm_numsegments--;
-        if ( -1 == munmap( shm_segment_bases[ shm_numsegments ], 
+        if ( -1 == munmap( shm_segment_bases[ shm_numsegments ],
                            segment_size ) )
         {
             ASSERT( "munmap() failed; errno is %d (%s).\n",
@@ -632,7 +632,7 @@ SHMPTR SHMalloc(size_t size)
     if(( 0 == header->pools[sps].free_items && 0 != next_free) ||
        ( 0 != header->pools[sps].free_items && 0 == next_free))
     {
-        ASSERT("free block count is %d, but next free block is %#x\n", 
+        ASSERT("free block count is %d, but next free block is %#x\n",
                header->pools[sps].free_items, next_free);
         /* assume all remaining blocks in the pool are corrupt */
         header->pools[sps].first_free = 0;
@@ -771,7 +771,7 @@ int SHMLock(void)
 
     _ASSERTE((0 == lock_count && 0 == locking_thread) ||
              (0 < lock_count && (HANDLE)pthread_self() == locking_thread));
-             
+
     if(lock_count == 0)
     {
         SHM_FIRST_HEADER *header;
@@ -785,12 +785,12 @@ int SHMLock(void)
 
         header = (SHM_FIRST_HEADER *)shm_segment_bases[0].Load();
 
-        // Store the id of the current thread as the (only) one that is 
+        // Store the id of the current thread as the (only) one that is
         // trying to grab the spinlock from the current process
         locking_thread = (HANDLE)pthread_self();
 
         my_pid = gPID;
-        
+
         while(TRUE)
         {
 #ifdef TRACK_SHMLOCK_OWNERSHIP
@@ -812,14 +812,14 @@ int SHMLock(void)
 #ifdef _HPUX_
             //
             // TODO: workaround for VSW # 381564
-            // 
+            //
             if (0 == tmp_pid && my_pid != header->spinlock)
             {
                 ERROR("InterlockedCompareExchange returned the Comperand but "
                       "failed to store the Exchange value to the Destination: "
                       "looping again [my_pid=%u header->spinlock=%u tmp_pid=%u "
-                      "spincount=%d locking_thread=%u]\n", (DWORD)my_pid, 
-                      (DWORD)header->spinlock, (DWORD)tmp_pid, (int)spincount, 
+                      "spincount=%d locking_thread=%u]\n", (DWORD)my_pid,
+                      (DWORD)header->spinlock, (DWORD)tmp_pid, (int)spincount,
                       (HANDLE)locking_thread);
 
                 // Keep looping
@@ -848,14 +848,14 @@ int SHMLock(void)
             }
             else
             {
-                /* another process is holding the lock... we want to yield and 
+                /* another process is holding the lock... we want to yield and
                    give the holder a chance to release the lock
-                   The function sched_yield() only yields to a thread in the 
-                   current process; this doesn't help us much, anddoens't help 
-                   at all if there's only 1 thread. There doesn't seem to be 
-                   any clean way to force a yield to another process, but the 
-                   FreeBSD syscall "yield" does the job. We alternate between 
-                   both methods to give other threads of this process a chance 
+                   The function sched_yield() only yields to a thread in the
+                   current process; this doesn't help us much, anddoens't help
+                   at all if there's only 1 thread. There doesn't seem to be
+                   any clean way to force a yield to another process, but the
+                   FreeBSD syscall "yield" does the job. We alternate between
+                   both methods to give other threads of this process a chance
                    to run while we wait.
                  */
 #if HAVE_YIELD_SYSCALL
@@ -867,8 +867,8 @@ int SHMLock(void)
                 }
                 else
                 {
-                    /* use the syscall first, since we know we'l need to yield 
-                       to another process eventually - the lock can't be held 
+                    /* use the syscall first, since we know we'l need to yield
+                       to another process eventually - the lock can't be held
                        by the current process, thanks to the critical section */
                     syscall(SYS_yield, 0);
                 }
@@ -883,8 +883,8 @@ int SHMLock(void)
             "\n(my_pid = %u) != (header->spinlock = %u)\n"
             "tmp_pid         = %u\n"
             "spincount       = %d\n"
-            "locking_thread  = %u\n", 
-            (DWORD)my_pid, (DWORD)header->spinlock, 
+            "locking_thread  = %u\n",
+            (DWORD)my_pid, (DWORD)header->spinlock,
             (DWORD)tmp_pid,
             (int)spincount,
             (HANDLE)locking_thread);
@@ -896,14 +896,14 @@ int SHMLock(void)
         header->pidtidCurrentOwner.pid = my_pid;
         header->pidtidCurrentOwner.tid = locking_thread;
 
-        ulIdx = header->ulOwnersIdx % (sizeof(header->pidtidOwners) / sizeof(header->pidtidOwners[0])); 
-        
+        ulIdx = header->ulOwnersIdx % (sizeof(header->pidtidOwners) / sizeof(header->pidtidOwners[0]));
+
         header->pidtidOwners[ulIdx].pid = my_pid;
         header->pidtidOwners[ulIdx].tid = locking_thread;
 
         header->ulOwnersIdx += 1;
 #endif // TRACK_SHMLOCK_OWNERSHIP
-        
+
     }
 
     lock_count++;
@@ -948,13 +948,13 @@ int SHMRelease(void)
         TRACE("Releasing first-level SHM lock : resetting spinlock\n");
 
         my_pid = gPID;
-        
+
         header = (SHM_FIRST_HEADER *)shm_segment_bases[0].Load();
 
 #ifdef TRACK_SHMLOCK_OWNERSHIP
         CHECK_CANARIES(header);
         _ASSERTE(0 != my_pid);
-        _ASSERTE(getpid() == my_pid);        
+        _ASSERTE(getpid() == my_pid);
         _ASSERTE(my_pid == header->spinlock);
         _ASSERTE(header->pidtidCurrentOwner.pid == my_pid);
         _ASSERTE(pthread_self() == header->pidtidCurrentOwner.tid);
@@ -967,7 +967,7 @@ int SHMRelease(void)
 
 #ifdef _HPUX_
         //
-        // TODO: workaround for VSW # 381564 
+        // TODO: workaround for VSW # 381564
         //
         do
 #endif // _HPUX_
@@ -1129,7 +1129,7 @@ SHMPTR SHMGetInfo(SHM_INFO_ID element)
         return 0;
     }
 
-    /* verify that this thread holds the SHM lock. No race condition: if the 
+    /* verify that this thread holds the SHM lock. No race condition: if the
        current thread is here, it can't be in SHMLock or SHMUnlock */
     if( (HANDLE)pthread_self() != locking_thread )
     {
@@ -1170,8 +1170,8 @@ BOOL SHMSetInfo(SHM_INFO_ID element, SHMPTR value)
         ASSERT("Invalid SHM info element %d\n", element);
         return FALSE;
     }
-    
-    /* verify that this thread holds the SHM lock. No race condition: if the 
+
+    /* verify that this thread holds the SHM lock. No race condition: if the
        current thread is here, it can't be in SHMLock or SHMUnlock */
     if( (HANDLE)pthread_self() != locking_thread )
     {
@@ -1501,7 +1501,7 @@ SHMPTR SHMStrDup( LPCSTR string )
 
         retVal = SHMalloc( ++length );
 
-        if ( retVal != 0 ) 
+        if ( retVal != 0 )
         {
             LPVOID ptr = SHMPTR_TO_PTR( retVal );
             _ASSERT_MSG(ptr != NULL, "SHMPTR_TO_PTR returned NULL.\n");
@@ -1541,10 +1541,10 @@ SHMPTR SHMWStrDup( LPCWSTR string )
     if ( string )
     {
         length = ( PAL_wcslen( string ) + 1 ) * sizeof( WCHAR );
-        
+
         retVal = SHMalloc( length );
 
-        if ( retVal != 0 ) 
+        if ( retVal != 0 )
         {
             LPVOID ptr = SHMPTR_TO_PTR(retVal);
             _ASSERT_MSG(ptr != NULL, "SHMPTR_TO_PTR returned NULL.\n");
@@ -1593,18 +1593,18 @@ SHMPTR SHMFindNamedObjectByName( LPCWSTR lpName, SHM_NAMED_OBJECTS_ID oid,
         ASSERT("Invalid named object type.\n");
         return 0;
     }
-    
+
     if (pbNameExists == NULL)
     {
         ASSERT("pbNameExists must be non-NULL.\n");
     }
 
     SHMLock();
-    
+
     *pbNameExists = FALSE;
     shmNamedObject = SHMGetInfo( SIID_NAMED_OBJECTS );
-    
-    TRACE( "Entering SHMFindNamedObjectByName looking for %S .\n", 
+
+    TRACE( "Entering SHMFindNamedObjectByName looking for %S .\n",
            lpName?lpName:W16_NULLSTRING );
 
     while ( shmNamedObject )
@@ -1616,13 +1616,13 @@ SHMPTR SHMFindNamedObjectByName( LPCWSTR lpName, SHM_NAMED_OBJECTS_ID oid,
                    "corrupted.\n");
             break;
         }
-        
+
         if ( pNamedObject->ShmObjectName )
         {
             object_name = (LPWSTR)SHMPTR_TO_PTR( pNamedObject->ShmObjectName );
         }
 
-        if ( object_name && 
+        if ( object_name &&
              PAL_wcscmp( lpName, object_name ) == 0 )
         {
             if(oid == pNamedObject->ObjectType)
@@ -1648,7 +1648,7 @@ Exit:
 
 }
 
-/*++ 
+/*++
 SHMRemoveNamedObject
 
 Removes the specified named object from the list
@@ -1665,7 +1665,7 @@ void SHMRemoveNamedObject( SHMPTR shmNamedObject )
     TRACE( "Entered SHMDeleteNamedObject shmNamedObject = %d\n", shmNamedObject );
     SHMLock();
 
-    pshmCurrent = 
+    pshmCurrent =
         (PSHM_NAMED_OBJECTS)SHMPTR_TO_PTR( SHMGetInfo( SIID_NAMED_OBJECTS ) );
     pshmLast = pshmCurrent;
 
@@ -1674,7 +1674,7 @@ void SHMRemoveNamedObject( SHMPTR shmNamedObject )
         if ( pshmCurrent->ShmSelf == shmNamedObject )
         {
             TRACE( "Patching the list.\n" );
-            
+
             /* Patch the list, and delete the object. */
             if ( pshmLast->ShmSelf == pshmCurrent->ShmSelf )
             {
@@ -1690,7 +1690,7 @@ void SHMRemoveNamedObject( SHMPTR shmNamedObject )
                 /* Only one left. */
                 pshmLast->ShmNext = 0;
             }
-            
+
             break;
         }
         else
@@ -1713,18 +1713,18 @@ No return.
 void SHMAddNamedObject( SHMPTR shmNewNamedObject )
 {
     PSHM_NAMED_OBJECTS pshmNew = 0;
-   
+
     pshmNew = (PSHM_NAMED_OBJECTS)SHMPTR_TO_PTR( shmNewNamedObject );
-   
+
     if ( pshmNew == NULL )
     {
         ASSERT( "pshmNew should not be NULL\n" );
     }
- 
+
     SHMLock();
-    
+
     pshmNew->ShmNext = SHMGetInfo( SIID_NAMED_OBJECTS );
-    
+
     if ( !SHMSetInfo( SIID_NAMED_OBJECTS, shmNewNamedObject ) )
     {
         ASSERT( "Unable to add the mapping object to shared memory.\n" );

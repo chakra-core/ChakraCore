@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -40,19 +40,19 @@ Function:
 compare at most count characters from two strings, ignoring case
 
 The strnicmp() function compares, with case insensitivity, at most count
-characters from s1 to s2. All uppercase characters from s1 and s2 are 
+characters from s1 to s2. All uppercase characters from s1 and s2 are
 mapped to lowercase for the purposes of doing the comparison.
 
 Returns:
 
 Value Meaning
 
-< 0   s1 is less than s2 
-0     s1 is equal to s2 
+< 0   s1 is less than s2
+0     s1 is equal to s2
 > 0   s1 is greater than s2
 
 --*/
-int 
+int
 __cdecl
 _strnicmp( const char *s1, const char *s2, size_t count )
 {
@@ -83,15 +83,15 @@ Returns:
 
 Value Meaning
 
-< 0   s1 is less than s2 
-0     s1 is equal to s2 
+< 0   s1 is less than s2
+0     s1 is equal to s2
 > 0   s1 is greater than s2
 
 --*/
-int 
+int
 __cdecl
 _stricmp(
-         const char *s1, 
+         const char *s1,
          const char *s2)
 {
     int ret;
@@ -131,7 +131,7 @@ current locale. Other characters are not affected. For more
 information on LC_CTYPE, see setlocale.
 
 --*/
-char *  
+char *
 __cdecl
 _strlwr(
         char *str)
@@ -145,8 +145,8 @@ _strlwr(
     {
         *str = tolower(*str);
         str++;
-    } 
-   
+    }
+
     LOGEXIT("_strlwr returning char* %p (%s)\n", orig?orig:"NULL", orig?orig:"NULL");
     PERF_EXIT(_strlwr);
     return orig;
@@ -243,30 +243,30 @@ Notes :
     tests indicate that other whitespace characters (newline, carriage return,
     etc) are also accepted. This matches the behavior on Unix systems.
 
-    For strtoul, we need to check if the value to be returned 
+    For strtoul, we need to check if the value to be returned
     is outside the 32 bit range. If so, the returned value needs to be set
-    as appropriate, according to the MSDN pages and in all instances errno 
-    must be set to ERANGE (The one exception is converting a string 
+    as appropriate, according to the MSDN pages and in all instances errno
+    must be set to ERANGE (The one exception is converting a string
     representing a negative value to unsigned long).
     Note that on 64 bit Windows, long's are still 32 bit. Thus, to match
     Windows behavior, we must return long's in the 32 bit range.
     --*/
 
-/* The use of ULONG is by design, to ensure that a 32 bit value is always 
+/* The use of ULONG is by design, to ensure that a 32 bit value is always
 returned from this function. If "unsigned long" is used instead of ULONG,
 then a 64 bit value could be returned on 64 bit platforms like HP-UX, thus
 breaking Windows behavior. */
-ULONG 
-__cdecl 
+ULONG
+__cdecl
 PAL_strtoul(const char *szNumber, char **pszEnd, int nBase)
 {
     unsigned long ulResult;
-    
+
     PERF_ENTRY(strtoul);
-    ENTRY("strtoul (szNumber=%p (%s), pszEnd=%p, nBase=%d)\n", 
-        szNumber?szNumber:"NULL", 
+    ENTRY("strtoul (szNumber=%p (%s), pszEnd=%p, nBase=%d)\n",
         szNumber?szNumber:"NULL",
-        pszEnd, 
+        szNumber?szNumber:"NULL",
+        pszEnd,
         nBase);
 
     ulResult = strtoul(szNumber, pszEnd, nBase);
@@ -279,7 +279,7 @@ PAL_strtoul(const char *szNumber, char **pszEnd, int nBase)
         {
 	    ch = *szNumber++;
         }
-        /* If the string represents a positive number that is greater than 
+        /* If the string represents a positive number that is greater than
             _UI32_MAX, set errno to ERANGE. Otherwise, don't set errno
             to match Windows behavior. */
         if (ch != '-')
@@ -292,17 +292,17 @@ PAL_strtoul(const char *szNumber, char **pszEnd, int nBase)
 
     LOGEXIT("strtoul returning unsigned long %lu\n", ulResult);
     PERF_EXIT(wcstoul);
-    
-    /* When returning unsigned long res from this function, it will be 
+
+    /* When returning unsigned long res from this function, it will be
         implicitly cast to ULONG. This handles situations where a string that
         represents a negative number is passed in to strtoul. The Windows
         behavior is analogous to taking the binary equivalent of the negative
         value and treating it as a positive number. Returning a ULONG from
         this function, as opposed to native unsigned long, allows us to match
         this behavior. The explicit cast to ULONG below is used to silence any
-        potential warnings due to the implicit casting.  */    
+        potential warnings due to the implicit casting.  */
     return (ULONG)ulResult;
-    
+
 }
 
 
@@ -314,7 +314,7 @@ Convert string to a long value.
 
 Return Value
 
-atol returns the converted value, if any. In the case of overflow, 
+atol returns the converted value, if any. In the case of overflow,
 the return value is undefined.
 
 Parameters
@@ -322,21 +322,21 @@ Parameters
 szNumber  Null-terminated string to convert to a LONG
 --*/
 
-/* The use of LONG is by design, to ensure that a 32 bit value is always 
-returned from this function. If "long" is used instead of LONG, then a 64 bit 
-value could be returned on 64 bit platforms like HP-UX, thus breaking 
+/* The use of LONG is by design, to ensure that a 32 bit value is always
+returned from this function. If "long" is used instead of LONG, then a 64 bit
+value could be returned on 64 bit platforms like HP-UX, thus breaking
 Windows behavior. */
-LONG 
+LONG
 __cdecl
 PAL_atol(const char *szNumber)
 {
     long lResult;
 
     PERF_ENTRY(atol);
-    ENTRY("atol (szNumber=%p (%s))\n", 
+    ENTRY("atol (szNumber=%p (%s))\n",
         szNumber?szNumber:"NULL"
         );
-    
+
     lResult = atol(szNumber);
 
     LOGEXIT("atol returning long %ld\n", (LONG)lResult);
@@ -344,6 +344,5 @@ PAL_atol(const char *szNumber)
     /* This explicit cast to LONG is used to silence any potential warnings
         due to implicitly casting the native long lResult to LONG when returning. */
     return (LONG)lResult;
-    
-}
 
+}

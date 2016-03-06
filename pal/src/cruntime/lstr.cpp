@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -30,19 +30,19 @@ SET_DEFAULT_DEBUG_CHANNEL(CRT);
 Function:
   lstrcatW
 
-The lstrcat function appends one string to another. 
+The lstrcat function appends one string to another.
 
 Parameters
 
 lpString1        [in/out] Pointer to a null-terminated string. The buffer must be large
-                          enough to contain both strings. 
+                          enough to contain both strings.
 lpString2        [in]     Pointer to the null-terminated string to be appended to the
-                          string specified in the lpString1 parameter. 
+                          string specified in the lpString1 parameter.
 
 Return Values
 
 If the function succeeds, the return value is a pointer to the buffer.
-If the function fails, the return value is NULL. 
+If the function fails, the return value is NULL.
 
 --*/
 LPWSTR
@@ -99,7 +99,7 @@ lstrcatW(
 Function:
   lstrcpyW
 
-The lstrcpy function copies a string to a buffer. 
+The lstrcpy function copies a string to a buffer.
 
 To copy a specified number of characters, use the lstrcpyn function.
 
@@ -107,14 +107,14 @@ Parameters
 
 lpString1        [out] Pointer to a buffer to receive the contents of the string pointed
                        to by the lpString2 parameter. The buffer must be large enough to
-                       contain the string, including the terminating null character. 
+                       contain the string, including the terminating null character.
 
-lpString2        [in] Pointer to the null-terminated string to be copied. 
+lpString2        [in] Pointer to the null-terminated string to be copied.
 
 Return Values
 
 If the function succeeds, the return value is a pointer to the buffer.
-If the function fails, the return value is NULL. 
+If the function fails, the return value is NULL.
 
 --*/
 LPWSTR
@@ -171,7 +171,7 @@ the terminating null character).
 
 Parameters
 
-lpString        [in] Pointer to a null-terminated string. 
+lpString        [in] Pointer to a null-terminated string.
 
 Return Values
 
@@ -192,7 +192,7 @@ lstrlenA( IN LPCSTR lpString)
     {
         while (*lpString++)
         {
-            nChar++;      
+            nChar++;
         }
     }
     LOGEXIT("lstrlenA returning int %d\n", nChar);
@@ -211,7 +211,7 @@ the terminating null character).
 
 Parameters
 
-lpString        [in] Pointer to a null-terminated string. 
+lpString        [in] Pointer to a null-terminated string.
 
 Return Values
 
@@ -233,7 +233,7 @@ lstrlenW(
     {
         while (*lpString++)
         {
-            nChar++;      
+            nChar++;
         }
     }
     LOGEXIT("lstrlenW returning int %d\n", nChar);
@@ -253,9 +253,9 @@ Parameters
 
 lpString1        [out] Pointer to a buffer into which the function copies characters.
                        The buffer must be large enough to contain the number of TCHARs
-                       specified by iMaxLength, including room for a terminating null character. 
+                       specified by iMaxLength, including room for a terminating null character.
 lpString2        [in]  Pointer to a null-terminated string from which the function copies
-                       characters. 
+                       characters.
 iMaxLength       [in]  Specifies the number of TCHARs to be copied from the string pointed
                        to by lpString2 into the buffer pointed to by lpString1, including a
                        terminating null character.
@@ -263,7 +263,7 @@ iMaxLength       [in]  Specifies the number of TCHARs to be copied from the stri
 Return Values
 
 If the function succeeds, the return value is a pointer to the buffer.
-If the function fails, the return value is NULL. 
+If the function fails, the return value is NULL.
 
 --*/
 LPWSTR
@@ -313,5 +313,3 @@ lstrcpynW(
     return lpStart;
 
 }
-
-

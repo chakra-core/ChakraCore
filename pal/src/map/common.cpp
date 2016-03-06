@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -57,7 +57,7 @@ INT W32toUnixAccessControl( IN DWORD flProtect )
     case PAGE_NOACCESS :
         MemAccessControl = PROT_NONE;
         break;
-    
+
     default:
         MemAccessControl = 0;
         ERROR( "Incorrect or no protection flags specified.\n" );

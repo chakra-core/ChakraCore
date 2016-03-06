@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -41,12 +41,12 @@ characters.
 
 Parameters
 
-lpName 
-       [in] Pointer to a null-terminated string that specifies the environment variable. 
-lpBuffer 
-       [out] Pointer to a buffer to receive the value of the specified environment variable. 
-nSize 
-       [in] Specifies the size, in TCHARs, of the buffer pointed to by the lpBuffer parameter. 
+lpName
+       [in] Pointer to a null-terminated string that specifies the environment variable.
+lpBuffer
+       [out] Pointer to a buffer to receive the value of the specified environment variable.
+nSize
+       [in] Specifies the size, in TCHARs, of the buffer pointed to by the lpBuffer parameter.
 
 Return Values
 
@@ -76,7 +76,7 @@ GetEnvironmentVariableA(
     ENTRY("GetEnvironmentVariableA(lpName=%p (%s), lpBuffer=%p, nSize=%u)\n",
         lpName?lpName:"NULL",
         lpName?lpName:"NULL", lpBuffer, nSize);
-    
+
     if (lpName == NULL)
     {
         ERROR("lpName is NULL\n");
@@ -90,7 +90,7 @@ GetEnvironmentVariableA(
         SetLastError(ERROR_ENVVAR_NOT_FOUND);
         goto done;
     }
-    
+
     if (strchr(lpName, '=') != NULL)
     {
         // GetEnvironmentVariable doesn't permit '=' in variable names.
@@ -100,7 +100,7 @@ GetEnvironmentVariableA(
     {
         value = MiscGetenv(lpName);
     }
-    
+
     if (value == NULL)
     {
         TRACE("%s is not found\n", lpName);
@@ -112,8 +112,8 @@ GetEnvironmentVariableA(
     {
         strcpy_s(lpBuffer, nSize, value);
         dwRet = strlen(value);
-    } 
-    else 
+    }
+    else
     {
         dwRet = strlen(value)+1;
     }
@@ -149,7 +149,7 @@ GetEnvironmentVariableW(
           lpName?lpName:W16_NULLSTRING,
           lpName?lpName:W16_NULLSTRING, lpBuffer, nSize);
 
-    inBuffSize = WideCharToMultiByte( CP_ACP, 0, lpName, -1, 
+    inBuffSize = WideCharToMultiByte( CP_ACP, 0, lpName, -1,
                                       inBuff, 0, NULL, NULL);
     if ( 0 == inBuffSize )
     {
@@ -165,7 +165,7 @@ GetEnvironmentVariableW(
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         goto done;
     }
-    
+
     if (nSize) {
         outBuff = (CHAR *)PAL_malloc(nSize*2);
         if (outBuff == NULL)
@@ -176,7 +176,7 @@ GetEnvironmentVariableW(
         }
     }
 
-    if ( 0 == WideCharToMultiByte( CP_ACP, 0, lpName, -1, inBuff, 
+    if ( 0 == WideCharToMultiByte( CP_ACP, 0, lpName, -1, inBuff,
                                    inBuffSize, NULL, NULL ) )
     {
         ASSERT( "WideCharToMultiByte failed!\n" );
@@ -228,7 +228,7 @@ variable for the current process.
 
 Parameters
 
-lpName 
+lpName
        [in] Pointer to a null-terminated string that specifies the
        environment variable whose value is being set. The operating
        system creates the environment variable if it does not exist
@@ -269,7 +269,7 @@ SetEnvironmentVariableW(
         lpName?lpName:W16_NULLSTRING,
         lpName?lpName:W16_NULLSTRING, lpValue?lpValue:W16_NULLSTRING, lpValue?lpValue:W16_NULLSTRING);
 
-    if ((nameSize = WideCharToMultiByte(CP_ACP, 0, lpName, -1, name, 0, 
+    if ((nameSize = WideCharToMultiByte(CP_ACP, 0, lpName, -1, name, 0,
                                         NULL, NULL)) == 0)
     {
         ERROR("WideCharToMultiByte failed\n");
@@ -284,8 +284,8 @@ SetEnvironmentVariableW(
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
         goto done;
     }
-    
-    if ( 0 == WideCharToMultiByte(CP_ACP, 0, lpName,  -1, 
+
+    if ( 0 == WideCharToMultiByte(CP_ACP, 0, lpName,  -1,
                                   name,  nameSize, NULL, NULL ) )
     {
         ASSERT( "WideCharToMultiByte returned 0\n" );
@@ -295,7 +295,7 @@ SetEnvironmentVariableW(
 
     if ( NULL != lpValue )
     {
-        if ((valueSize = WideCharToMultiByte(CP_ACP, 0, lpValue, -1, value, 
+        if ((valueSize = WideCharToMultiByte(CP_ACP, 0, lpValue, -1, value,
                                              0, NULL, NULL)) == 0)
         {
             ERROR("WideCharToMultiByte failed\n");
@@ -304,15 +304,15 @@ SetEnvironmentVariableW(
         }
 
         value = (PCHAR)PAL_malloc(sizeof(CHAR)*valueSize);
-        
+
         if ( NULL == value )
         {
             ERROR("malloc failed\n");
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
             goto done;
         }
-        
-        if ( 0 == WideCharToMultiByte( CP_ACP, 0, lpValue, -1, 
+
+        if ( 0 == WideCharToMultiByte( CP_ACP, 0, lpValue, -1,
                                        value, valueSize, NULL, NULL ) )
         {
             ASSERT("WideCharToMultiByte failed\n");
@@ -320,13 +320,13 @@ SetEnvironmentVariableW(
             goto done;
         }
     }
-    
+
 
     bRet = SetEnvironmentVariableA(name, value);
 done:
     PAL_free(value);
     PAL_free(name);
-    
+
     LOGEXIT("SetEnvironmentVariableW returning BOOL %d\n", bRet);
     PERF_EXIT(SetEnvironmentVariableW);
     return bRet;
@@ -370,7 +370,7 @@ GetEnvironmentStringsW(
     PERF_ENTRY(GetEnvironmentStringsW);
     ENTRY("GetEnvironmentStringsW()\n");
 
-    PALCEnterCriticalSection(&gcsEnvironment);    
+    PALCEnterCriticalSection(&gcsEnvironment);
 
     envNum = 0;
     len    = 0;
@@ -383,7 +383,7 @@ GetEnvironmentStringsW(
     }
 
     wenviron = (WCHAR *)PAL_malloc(sizeof(WCHAR)* (envNum + 1));
-    if (wenviron == NULL) 
+    if (wenviron == NULL)
     {
         ERROR("malloc failed\n");
         SetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -400,7 +400,7 @@ GetEnvironmentStringsW(
     }
 
     *tempEnviron = 0; /* Put an extra NULL at the end */
-    
+
  EXIT:
     PALCLeaveCriticalSection(&gcsEnvironment);
 
@@ -428,7 +428,7 @@ GetEnvironmentStringsA(
     PERF_ENTRY(GetEnvironmentStringsA);
     ENTRY("GetEnvironmentStringsA()\n");
 
-    PALCEnterCriticalSection(&gcsEnvironment);    
+    PALCEnterCriticalSection(&gcsEnvironment);
 
     envNum = 0;
     len    = 0;
@@ -459,7 +459,7 @@ GetEnvironmentStringsA(
     }
 
     *tempEnviron = 0; /* Put an extra NULL at the end */
-    
+
  EXIT:
     PALCLeaveCriticalSection(&gcsEnvironment);
 
@@ -479,7 +479,7 @@ Parameters
 
 lpszEnvironmentBlock   [in] Pointer to a block of environment strings. The pointer to
                             the block must be obtained by calling the
-                            GetEnvironmentStrings function. 
+                            GetEnvironmentStrings function.
 
 Return Values
 
@@ -618,15 +618,15 @@ SetEnvironmentVariableA(
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
             goto done;
         }
-        
+
         sprintf_s(string, iLen, "%s=%s", lpName, lpValue);
         nResult = MiscPutenv(string, FALSE) ? 0 : -1;
 
         PAL_free(string);
         string = NULL;
-        
+
         // If MiscPutenv returns FALSE, it almost certainly failed to
-        // allocate memory.        
+        // allocate memory.
         if(nResult == -1)
         {
             bRet = FALSE;
@@ -637,9 +637,7 @@ SetEnvironmentVariableA(
     }
     bRet = TRUE;
 done:
-    LOGEXIT("SetEnvironmentVariableA returning BOOL %d\n", bRet);    
+    LOGEXIT("SetEnvironmentVariableA returning BOOL %d\n", bRet);
     PERF_EXIT(SetEnvironmentVariableA);
     return bRet;
 }
-
-

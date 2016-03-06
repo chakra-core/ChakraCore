@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -26,7 +26,7 @@ Abstract:
 #include "pal/debug.h"
 #include "pal/thread.hpp"
 
-#include <sys/ptrace.h> 
+#include <sys/ptrace.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -184,7 +184,7 @@ BOOL CONTEXT_GetRegisters(DWORD processId, LPCONTEXT lpContext)
 #endif  // HAVE_BSD_REGS_T
     BOOL bRet = FALSE;
 
-    if (processId == GetCurrentProcessId()) 
+    if (processId == GetCurrentProcessId())
     {
         CONTEXT_CaptureContext(lpContext);
     }
@@ -217,7 +217,7 @@ BOOL CONTEXT_GetRegisters(DWORD processId, LPCONTEXT lpContext)
 
         CONTEXTFromNativeContext(&registers, lpContext, lpContext->ContextFlags);
     }
-    
+
     bRet = TRUE;
 #if HAVE_BSD_REGS_T
     if (regFd != -1)
@@ -239,7 +239,7 @@ CONTEXT_GetThreadContext(
          DWORD dwProcessId,
          pthread_t self,
          LPCONTEXT lpContext)
-{    
+{
     BOOL ret = FALSE;
 
     if (lpContext == NULL)
@@ -248,11 +248,11 @@ CONTEXT_GetThreadContext(
         SetLastError(ERROR_NOACCESS);
         goto EXIT;
     }
-    
+
     /* How to consider the case when self is different from the current
        thread of its owner process. Machine registers values could be retreived
-       by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content. 
-       Unfortunately, these two methods only depend on process ID, not on 
+       by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content.
+       Unfortunately, these two methods only depend on process ID, not on
        thread ID. */
 
     if (dwProcessId == GetCurrentProcessId())
@@ -279,14 +279,14 @@ CONTEXT_GetThreadContext(
 
     }
 
-    if (lpContext->ContextFlags & 
+    if (lpContext->ContextFlags &
         (CONTEXT_CONTROL | CONTEXT_INTEGER))
-    {        
+    {
         if (CONTEXT_GetRegisters(dwProcessId, lpContext) == FALSE)
         {
             SetLastError(ERROR_INTERNAL_ERROR);
             goto EXIT;
-        }  
+        }
     }
 
     ret = TRUE;
@@ -321,13 +321,13 @@ CONTEXT_SetThreadContext(
         SetLastError(ERROR_NOACCESS);
         goto EXIT;
     }
-    
+
     /* How to consider the case when self is different from the current
        thread of its owner process. Machine registers values could be retreived
-       by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content. 
-       Unfortunately, these two methods only depend on process ID, not on 
+       by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content.
+       Unfortunately, these two methods only depend on process ID, not on
        thread ID. */
-        
+
     if (dwProcessId == GetCurrentProcessId())
     {
 #ifdef FEATURE_PAL_SXS
@@ -338,10 +338,10 @@ CONTEXT_SetThreadContext(
         SetLastError(ERROR_INVALID_PARAMETER);
         goto EXIT;
     }
-    
-    if (lpContext->ContextFlags  & 
+
+    if (lpContext->ContextFlags  &
         (CONTEXT_CONTROL | CONTEXT_INTEGER))
-    {   
+    {
 #if HAVE_PT_REGS
         if (ptrace((__ptrace_request)PT_GETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
 #elif HAVE_BSD_REGS_T
@@ -373,7 +373,7 @@ CONTEXT_SetThreadContext(
         }
 #undef ASSIGN_REG
 
-#if HAVE_PT_REGS        
+#if HAVE_PT_REGS
         if (ptrace((__ptrace_request)PT_SETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
 #elif HAVE_BSD_REGS_T
         if (ptrace(PT_SETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
@@ -394,7 +394,7 @@ CONTEXT_SetThreadContext(
 /*++
 Function :
     CONTEXTToNativeContext
-    
+
     Converts a CONTEXT record to a native context.
 
 Parameters :
@@ -448,7 +448,7 @@ void CONTEXTToNativeContext(CONST CONTEXT *lpContext, native_context_t *native)
 /*++
 Function :
     CONTEXTFromNativeContext
-    
+
     Converts a native context to a CONTEXT record.
 
 Parameters :
@@ -477,7 +477,7 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
         ASSIGN_INTEGER_REGS
     }
 #undef ASSIGN_REG
-    
+
     if ((contextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT)
     {
 #ifdef _AMD64_
@@ -507,7 +507,7 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
 /*++
 Function :
     GetNativeContextPC
-    
+
     Returns the program counter from the native context.
 
 Parameters :
@@ -535,7 +535,7 @@ LPVOID GetNativeContextPC(const native_context_t *context)
 /*++
 Function :
     CONTEXTGetExceptionCodeForSignal
-    
+
     Translates signal and context information to a Win32 exception code.
 
 Parameters :
@@ -629,9 +629,9 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
                     return EXCEPTION_SINGLE_STEP;
                 default:
                     // We don't want to use ASSERT here since it raises SIGTRAP and we
-                    // might again end up here resulting in an infinite loop! 
-                    // so, we print out an error message and return 
-                    DBG_PRINTF(DLI_ASSERT, defdbgchan, TRUE) 
+                    // might again end up here resulting in an infinite loop!
+                    // so, we print out an error message and return
+                    DBG_PRINTF(DLI_ASSERT, defdbgchan, TRUE)
                     ("Got unknown SIGTRAP signal (%d) with code %d\n", SIGTRAP, siginfo->si_code);
 
                     return EXCEPTION_ILLEGAL_INSTRUCTION;
@@ -705,7 +705,7 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
     {
         case T_PRIVINFLT : /* privileged instruction */
             TRACE("Trap code T_PRIVINFLT mapped to EXCEPTION_PRIV_INSTRUCTION\n");
-            return EXCEPTION_PRIV_INSTRUCTION; 
+            return EXCEPTION_PRIV_INSTRUCTION;
         case T_BPTFLT :    /* breakpoint instruction */
             TRACE("Trap code T_BPTFLT mapped to EXCEPTION_BREAKPOINT\n");
             return EXCEPTION_BREAKPOINT;
@@ -713,7 +713,7 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
             TRACE("Trap code T_ARITHTRAP maps to floating point exception...\n");
             return 0;      /* let the caller pick an exception code */
 #ifdef T_ASTFLT
-        case T_ASTFLT :    /* system forced exception : ^C, ^\. SIGINT signal 
+        case T_ASTFLT :    /* system forced exception : ^C, ^\. SIGINT signal
                               handler shouldn't be calling this function, since
                               it doesn't need an exception code */
             ASSERT("Trap code T_ASTFLT received, shouldn't get here\n");
@@ -721,7 +721,7 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
 #endif  // T_ASTFLT
         case T_PROTFLT :   /* protection fault */
             TRACE("Trap code T_PROTFLT mapped to EXCEPTION_ACCESS_VIOLATION\n");
-            return EXCEPTION_ACCESS_VIOLATION; 
+            return EXCEPTION_ACCESS_VIOLATION;
         case T_TRCTRAP :   /* debug exception (sic) */
             TRACE("Trap code T_TRCTRAP mapped to EXCEPTION_SINGLE_STEP\n");
             return EXCEPTION_SINGLE_STEP;
@@ -742,31 +742,31 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
             return EXCEPTION_INT_OVERFLOW;
         case T_BOUND :     /* bound instruction fault */
             TRACE("Trap code T_BOUND mapped to EXCEPTION_ARRAY_BOUNDS_EXCEEDED\n");
-            return EXCEPTION_ARRAY_BOUNDS_EXCEEDED; 
+            return EXCEPTION_ARRAY_BOUNDS_EXCEEDED;
         case T_DNA :       /* device not available fault */
             TRACE("Trap code T_DNA mapped to EXCEPTION_ILLEGAL_INSTRUCTION\n");
-            return EXCEPTION_ILLEGAL_INSTRUCTION; 
+            return EXCEPTION_ILLEGAL_INSTRUCTION;
         case T_DOUBLEFLT : /* double fault */
             TRACE("Trap code T_DOUBLEFLT mapped to EXCEPTION_ILLEGAL_INSTRUCTION\n");
-            return EXCEPTION_ILLEGAL_INSTRUCTION; 
+            return EXCEPTION_ILLEGAL_INSTRUCTION;
         case T_FPOPFLT :   /* fp coprocessor operand fetch fault */
             TRACE("Trap code T_FPOPFLT mapped to EXCEPTION_FLT_INVALID_OPERATION\n");
-            return EXCEPTION_FLT_INVALID_OPERATION; 
+            return EXCEPTION_FLT_INVALID_OPERATION;
         case T_TSSFLT :    /* invalid tss fault */
             TRACE("Trap code T_TSSFLT mapped to EXCEPTION_ILLEGAL_INSTRUCTION\n");
-            return EXCEPTION_ILLEGAL_INSTRUCTION; 
+            return EXCEPTION_ILLEGAL_INSTRUCTION;
         case T_SEGNPFLT :  /* segment not present fault */
             TRACE("Trap code T_SEGNPFLT mapped to EXCEPTION_ACCESS_VIOLATION\n");
-            return EXCEPTION_ACCESS_VIOLATION; 
+            return EXCEPTION_ACCESS_VIOLATION;
         case T_STKFLT :    /* stack fault */
             TRACE("Trap code T_STKFLT mapped to EXCEPTION_STACK_OVERFLOW\n");
-            return EXCEPTION_STACK_OVERFLOW; 
+            return EXCEPTION_STACK_OVERFLOW;
         case T_MCHK :      /* machine check trap */
             TRACE("Trap code T_MCHK mapped to EXCEPTION_ILLEGAL_INSTRUCTION\n");
-            return EXCEPTION_ILLEGAL_INSTRUCTION; 
+            return EXCEPTION_ILLEGAL_INSTRUCTION;
         case T_RESERVED :  /* reserved (unknown) */
             TRACE("Trap code T_RESERVED mapped to EXCEPTION_ILLEGAL_INSTRUCTION\n");
-            return EXCEPTION_ILLEGAL_INSTRUCTION; 
+            return EXCEPTION_ILLEGAL_INSTRUCTION;
         default:
             ASSERT("Got unknown trap code %d\n", trap);
             break;
@@ -793,14 +793,14 @@ CONTEXT_GetThreadContextFromPort(
         LPCONTEXT lpContext)
 {
     // Extract the CONTEXT from the Mach thread.
-    
+
     kern_return_t MachRet = KERN_SUCCESS;
     mach_msg_type_number_t StateCount;
     thread_state_flavor_t StateFlavor;
-  
+
     if (lpContext->ContextFlags & (CONTEXT_CONTROL|CONTEXT_INTEGER))
     {
-#ifdef _X86_  
+#ifdef _X86_
         x86_thread_state32_t State;
         StateFlavor = x86_THREAD_STATE32;
 #elif defined(_AMD64_)
@@ -871,7 +871,7 @@ CONTEXT_GetThreadContextFromPort(
 #error Unexpected architecture.
 #endif
     }
-    
+
     if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING) {
 #ifdef _X86_
         x86_float_state32_t State;
@@ -883,7 +883,7 @@ CONTEXT_GetThreadContextFromPort(
 #error Unexpected architecture.
 #endif
         StateCount = sizeof(State) / sizeof(natural_t);
-        
+
         MachRet = thread_get_state(Port,
             StateFlavor,
             (thread_state_t)&State,
@@ -893,7 +893,7 @@ CONTEXT_GetThreadContextFromPort(
             ASSERT("thread_get_state(FLOAT_STATE) failed: %d\n", MachRet);
             goto EXIT;
         }
-        
+
         if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT)
         {
             // Copy the FPRs
@@ -906,7 +906,7 @@ CONTEXT_GetThreadContextFromPort(
             lpContext->FloatSave.DataOffset = State.fpu_dp;
             lpContext->FloatSave.DataSelector = State.fpu_ds;
             lpContext->FloatSave.Cr0NpxState = State.fpu_mxcsr;
-            
+
             // Windows stores the floating point registers in a packed layout (each 10-byte register end to end
             // for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably for
             // alignment purposes). So we can't just memcpy the registers over in a single block, we need to copy
@@ -923,14 +923,14 @@ CONTEXT_GetThreadContextFromPort(
             lpContext->FltSave.DataSelector = State.__fpu_ds;
             lpContext->FltSave.MxCsr = State.__fpu_mxcsr;
             lpContext->FltSave.MxCsr_Mask = State.__fpu_mxcsrmask; // note: we don't save the mask for x86
-            
+
             // Windows stores the floating point registers in a packed layout (each 10-byte register end to end
             // for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably for
             // alignment purposes). So we can't just memcpy the registers over in a single block, we need to copy
             // them individually.
             for (int i = 0; i < 8; i++)
                 memcpy(&lpContext->FltSave.FloatRegisters[i], (&State.__fpu_stmm0)[i].__mmst_reg, 10);
-            
+
             // AMD64's FLOATING_POINT includes the xmm registers.
             memcpy(&lpContext->Xmm0, &State.__fpu_xmm0, 8 * 16);
 #else
@@ -972,16 +972,16 @@ CONTEXT_GetThreadContext(
         SetLastError(ERROR_NOACCESS);
         goto EXIT;
     }
-    
+
     if (GetCurrentProcessId() == dwProcessId)
     {
         if (self != pthread_self())
         {
-            // the target thread is in the current process, but isn't 
-            // the current one: extract the CONTEXT from the Mach thread.            
+            // the target thread is in the current process, but isn't
+            // the current one: extract the CONTEXT from the Mach thread.
             mach_port_t mptPort;
             mptPort = pthread_mach_thread_np(self);
-   
+
             ret = (CONTEXT_GetThreadContextFromPort(mptPort, lpContext) == KERN_SUCCESS);
         }
         else
@@ -1015,12 +1015,12 @@ CONTEXT_SetThreadContextOnPort(
     mach_msg_type_number_t StateCount;
     thread_state_flavor_t StateFlavor;
 
-    if (lpContext->ContextFlags & (CONTEXT_CONTROL|CONTEXT_INTEGER)) 
+    if (lpContext->ContextFlags & (CONTEXT_CONTROL|CONTEXT_INTEGER))
     {
 #ifdef _X86_
         x86_thread_state32_t State;
         StateFlavor = x86_THREAD_STATE32;
-        
+
         State.eax = lpContext->Eax;
         State.ebx = lpContext->Ebx;
         State.ecx = lpContext->Ecx;
@@ -1084,7 +1084,7 @@ CONTEXT_SetThreadContextOnPort(
 
     if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING)
     {
-        
+
 #ifdef _X86_
         x86_float_state32_t State;
         StateFlavor = x86_FLOAT_STATE32;
@@ -1178,7 +1178,7 @@ CONTEXT_SetThreadContextOnPort(
             ASSERT("thread_set_state(FLOAT_STATE) failed: %d\n", MachRet);
             goto EXIT;
         }
-    }    
+    }
 
 EXIT:
     return MachRet;
@@ -1198,14 +1198,14 @@ CONTEXT_SetThreadContext(
 {
     BOOL ret = FALSE;
 
-    if (lpContext == NULL) 
+    if (lpContext == NULL)
     {
         ERROR("Invalid lpContext parameter value\n");
         SetLastError(ERROR_NOACCESS);
         goto EXIT;
     }
 
-    if (dwProcessId != GetCurrentProcessId()) 
+    if (dwProcessId != GetCurrentProcessId())
     {
         // GetThreadContext() of a thread in another process
         ASSERT("Cross-process GetThreadContext() is not supported\n");
@@ -1221,10 +1221,10 @@ CONTEXT_SetThreadContext(
         mach_port_t mptPort;
 
         mptPort = pthread_mach_thread_np(self);
-    
+
         ret = (CONTEXT_SetThreadContextOnPort(mptPort, lpContext) == KERN_SUCCESS);
-    } 
-    else 
+    }
+    else
     {
         MachSetThreadContext(const_cast<CONTEXT *>(lpContext));
         ASSERT("MachSetThreadContext should never return\n");
@@ -1238,7 +1238,7 @@ EXIT:
 
 /*++
 Function:
-  DBG_FlushInstructionCache: processor-specific portion of 
+  DBG_FlushInstructionCache: processor-specific portion of
   FlushInstructionCache
 
 See MSDN doc.

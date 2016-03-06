@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -129,7 +129,7 @@ int UTF8ToUnicode(
                                 // Error: Buffer too small, we didn't process this character
                                 SetLastError(ERROR_INSUFFICIENT_BUFFER);
                                 return (0);
-                            }                                
+                            }
 
                             lpDestStr[cchWC]   = (WCHAR)
                                                  (((dwUnicodeChar - 0x10000) >> 10) + HIGH_SURROGATE_START);
@@ -148,7 +148,7 @@ int UTF8ToUnicode(
                     {
                         if (cchDest)
                         {
-                            
+
                             if (cchWC >= cchDest)
                             {
                                 // Error: Buffer too small, we didn't process this character
@@ -164,18 +164,18 @@ int UTF8ToUnicode(
                         //
                         cchWC++;
                     }
-                      
+
                 }
 
             }
             else
             {
-                if (bCheckInvalidBytes) 
+                if (bCheckInvalidBytes)
                 {
                     SetLastError(ERROR_NO_UNICODE_TRANSLATION);
                     return (0);
                 }
-                
+
                 // error - not expecting a trail byte. That is, there is a trailing byte without leading byte.
                 bSurrogatePair = FALSE;
             }
@@ -188,7 +188,7 @@ int UTF8ToUnicode(
             if (nTB > 0)
             {
                 // error - A leading byte before the previous sequence is completed.
-                if (bCheckInvalidBytes) 
+                if (bCheckInvalidBytes)
                 {
                     SetLastError(ERROR_NO_UNICODE_TRANSLATION);
                     return (0);
@@ -220,7 +220,7 @@ int UTF8ToUnicode(
 
                 //
                 // Check for non-shortest form.
-                // 
+                //
                 switch (nTB)
                 {
                     case 1:
@@ -245,7 +245,7 @@ int UTF8ToUnicode(
                             }
                         }
                         break;
-                    case 4:                    
+                    case 4:
                         //
                         // This is a surrogate unicode pair
                         //
@@ -253,7 +253,7 @@ int UTF8ToUnicode(
                         {
                             WORD word = (((WORD)*pUTF8) << 8) | *(pUTF8 + 1);
                             // Look ahead to check for non-shortest form.
-                            // 11110XXX 10XXxxxx 10xxxxxx 10xxxxxx                        
+                            // 11110XXX 10XXxxxx 10xxxxxx 10xxxxxx
                             // Check if the 5 X bits are all zero.
                             // 0x0730 == 00000111 00110000
                             if ( (word & 0x0730) == 0 ||
@@ -266,22 +266,22 @@ int UTF8ToUnicode(
                                      // Therefore, if the 21 bit (the most significant bit) is 1, we should verify that the 17 ~ 20
                                      // bit are all zero.
                                      // I.e., in 11110XXX 10XXxxxx 10xxxxxx 10xxxxxx,
-                                     // XXXXX can only be 10000.    
+                                     // XXXXX can only be 10000.
                                      // 0x0330 = 0000 0011 0011 0000
                                     (word & 0x0330) != 0 ) )
                             {
                                 // Not shortest form
                                 nTB = 0;
-                            }                              
+                            }
                             else
-                            { 
+                            {
                                 // A real surrogate pair
                                 bSurrogatePair = TRUE;
                             }
-                        }                        
+                        }
                         break;
-                    default:                    
-                        // 
+                    default:
+                        //
                         // If the bits is greater than 4, this is an invalid
                         // UTF8 lead byte.
                         //
@@ -289,7 +289,7 @@ int UTF8ToUnicode(
                         break;
                 }
 
-                if (nTB != 0) 
+                if (nTB != 0)
                 {
                     //
                     //  Store the value from the first byte and decrement
@@ -297,9 +297,9 @@ int UTF8ToUnicode(
                     //
                     dwUnicodeChar = UTF8;
                     nTB--;
-                } else 
+                } else
                 {
-                    if (bCheckInvalidBytes) 
+                    if (bCheckInvalidBytes)
                     {
                         SetLastError(ERROR_NO_UNICODE_TRANSLATION);
                         return (0);
@@ -310,7 +310,7 @@ int UTF8ToUnicode(
         pUTF8++;
     }
 
-    if ((bCheckInvalidBytes && nTB != 0) || (cchWC == 0)) 
+    if ((bCheckInvalidBytes && nTB != 0) || (cchWC == 0))
     {
         // About (cchWC == 0):
         // Because we now throw away non-shortest form, it is possible that we generate 0 chars.
@@ -457,11 +457,11 @@ int UnicodeToUTF8(
                 //
                 if (cchDest)
                 {
-                    if (cchU8 < cchDest) 
+                    if (cchU8 < cchDest)
                     {
                         lpDestStr[cchU8] = (char)*lpWC;
-                    } 
-                    else 
+                    }
+                    else
                     {
                         //
                         //  Error - buffer too small.

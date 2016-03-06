@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -120,7 +120,7 @@ Parameters:
 
 Return Value:
 
-    BOOL - 
+    BOOL -
         TRUE <=> successful
 
 --*/
@@ -133,7 +133,7 @@ RemoveDirectoryHelper (
 )
 {
     BOOL  bRet = FALSE;
-    *dwLastError = 0; 
+    *dwLastError = 0;
 
     FILEDosToUnixPathA( lpPathName );
     if ( !FILEGetFileNameFromSymLink(lpPathName))
@@ -154,8 +154,8 @@ RemoveDirectoryHelper (
         case ENOENT:
         {
             struct stat stat_data;
-            
-            if ( stat( lpPathName, &stat_data) == 0 && 
+
+            if ( stat( lpPathName, &stat_data) == 0 &&
                  (stat_data.st_mode & S_IFMT) == S_IFREG )
             {
                 /* Not a directory, it is a file. */
@@ -199,13 +199,13 @@ RemoveDirectoryA(
     PathCharString mb_dirPathString;
     size_t length;
     char * mb_dir;
-    
+
     PERF_ENTRY(RemoveDirectoryA);
     ENTRY("RemoveDirectoryA(lpPathName=%p (%s))\n",
           lpPathName,
           lpPathName);
 
-    if (lpPathName == NULL) 
+    if (lpPathName == NULL)
     {
         dwLastError = ERROR_PATH_NOT_FOUND;
         goto done;
@@ -218,7 +218,7 @@ RemoveDirectoryA(
         dwLastError = ERROR_NOT_ENOUGH_MEMORY;
         goto done;
     }
-    
+
     if (strncpy_s (mb_dir, sizeof(char) * (length+1), lpPathName, MAX_LONGPATH) != SAFECRT_SUCCESS)
     {
         mb_dirPathString.CloseBuffer(length);
@@ -264,7 +264,7 @@ RemoveDirectoryW(
           lpPathName?lpPathName:W16_NULLSTRING,
           lpPathName?lpPathName:W16_NULLSTRING);
 
-    if (lpPathName == NULL) 
+    if (lpPathName == NULL)
     {
         dwLastError = ERROR_PATH_NOT_FOUND;
         goto done;
@@ -275,7 +275,7 @@ RemoveDirectoryW(
     if (NULL == mb_dir)
     {
         dwLastError = ERROR_NOT_ENOUGH_MEMORY;
-        goto done;        
+        goto done;
     }
 
     mb_size = WideCharToMultiByte( CP_ACP, 0, lpPathName, -1, mb_dir, length,
@@ -457,7 +457,7 @@ SetCurrentDirectoryW(
     int  size;
     size_t length;
     char * dir;
-    
+
     PERF_ENTRY(SetCurrentDirectoryW);
     ENTRY("SetCurrentDirectoryW(lpPathName=%p (%S))\n",
           lpPathName?lpPathName:W16_NULLSTRING,
@@ -481,11 +481,11 @@ SetCurrentDirectoryW(
         bRet = FALSE;
         goto done;
     }
-    
+
     size = WideCharToMultiByte( CP_ACP, 0, lpPathName, -1, dir, length,
                                 NULL, NULL );
     dirPathString.CloseBuffer(size);
-    
+
     if( size == 0 )
     {
         dwLastError = GetLastError();
@@ -593,7 +593,7 @@ CreateDirectoryA(
     }
     else
     {
-        const char *cwd = PAL__getcwd(NULL, MAX_LONGPATH);        
+        const char *cwd = PAL__getcwd(NULL, MAX_LONGPATH);
         if (NULL == cwd)
         {
             WARN("Getcwd failed with errno=%d [%s]\n", errno, strerror(errno));
@@ -608,7 +608,7 @@ CreateDirectoryA(
 
         PAL_free((char *)cwd);
     }
-    
+
     // Canonicalize the path so we can determine its length.
     FILECanonicalizePath(realPath);
 

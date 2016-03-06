@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -33,7 +33,7 @@
 #define __in_z
 #define __in
 
-/* 
+/*
  * The original SafeCRT implemention allows runtine control over buffer checking.
  * For now we'll key this off the debug flag.
  */

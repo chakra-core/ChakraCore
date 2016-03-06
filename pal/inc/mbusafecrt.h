@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -29,7 +29,7 @@ typedef int errno_t;
 /* errno value that specific to SafeCRT */
 #define STRUNCATE       80
 
-// define the return value for success 
+// define the return value for success
 #define SAFECRT_SUCCESS 0
 
 /*
