@@ -9206,7 +9206,7 @@ LDefaultTokenFor:
             }
 
             m_pscan->Scan();
-            ParseNodePtr pnodeObj = ParseExpr<buildAST>();
+            ParseNodePtr pnodeObj = ParseExpr<buildAST>(isForOf ? koplCma : koplNo);
             charcount_t ichLim = m_pscan->IchLimTok();
             ChkCurTok(tkRParen, ERRnoRparen);
 
