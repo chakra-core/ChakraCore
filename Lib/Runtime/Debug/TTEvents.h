@@ -45,9 +45,9 @@ namespace TTD
     {
     private:
         //The time aware parts of this location
-        int64 m_etime;
-        uint64 m_ftime;
-        uint64 m_ltime;
+        int64 m_etime;  //-1 indicates an INVALID location
+        int64 m_ftime;  //-1 indicates any ftime is OK
+        int64 m_ltime;  //-1 indicates any ltime is OK
 
         //The document
         wchar* m_sourceFile; //temp use until we make docid stable
@@ -69,7 +69,7 @@ namespace TTD
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(int64 etime, uint64 ftime, uint64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
+        void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
 

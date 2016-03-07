@@ -139,7 +139,7 @@ namespace TTD
         }
     }
 
-    void TTDebuggerSourceLocation::SetLocation(int64 etime, uint64 ftime, uint64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
+    void TTDebuggerSourceLocation::SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
     {
         this->m_etime = etime;
         this->m_ftime = ftime;
@@ -236,8 +236,8 @@ namespace TTD
         if(this->HasValue())
         {
             writer->WriteInt64(NSTokens::Key::eventTime, this->m_etime, NSTokens::Separator::CommaSeparator);
-            writer->WriteUInt64(NSTokens::Key::functionTime, this->m_ftime, NSTokens::Separator::CommaSeparator);
-            writer->WriteUInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::functionTime, this->m_ftime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteUInt32(NSTokens::Key::documentId, this->m_docid, NSTokens::Separator::CommaSeparator);
 
@@ -266,8 +266,8 @@ namespace TTD
         else
         {
             into.m_etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
-            into.m_ftime = reader->ReadUInt64(NSTokens::Key::functionTime, true);
-            into.m_ltime = reader->ReadUInt64(NSTokens::Key::loopTime, true);
+            into.m_ftime = reader->ReadInt64(NSTokens::Key::functionTime, true);
+            into.m_ltime = reader->ReadInt64(NSTokens::Key::loopTime, true);
 
             into.m_docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
 

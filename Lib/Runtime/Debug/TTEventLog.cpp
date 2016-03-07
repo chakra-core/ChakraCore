@@ -808,9 +808,9 @@ namespace TTD
             this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #else
-        if(pid == Js::Constants::NoProperty)
+        if(returnCode && pid == Js::Constants::NoProperty)
         {
-            this->m_slabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
+            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #endif
 

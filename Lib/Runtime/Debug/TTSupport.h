@@ -564,9 +564,8 @@ namespace TTD
         {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             AssertMsg(this->m_reserveActive != 0, "We don't have anything reserved.");
-#endif
-
             this->m_reserveActive = 0;
+#endif
         }
 
         //If allowed unlink the memory allocation specified and free the block if it is no longer used by anyone

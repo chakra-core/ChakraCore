@@ -270,9 +270,12 @@
 
 #if ENABLE_TTD
 //Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
-#define ENABLE_TTD_IDENTITY_TRACING 1
+#define ENABLE_TTD_IDENTITY_TRACING 0
 
 #define ENABLE_TTD_DEBUGGING 1
+
+//A workaround for VSCode getting angry with timing when we are in the Debug Build (adds a Sleep before sending msgs)
+#define TTD_VSCODE_WORK_AROUND 1
 
 //We need to put the system in debug mode during record as well otherwise we get weird mismatches in how script is parsed 
 //This needs to be fixed later
