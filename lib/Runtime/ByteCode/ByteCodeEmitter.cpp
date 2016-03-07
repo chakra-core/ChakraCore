@@ -2735,8 +2735,35 @@ void ByteCodeGenerator::EmitInitCapturedNewTarget(FuncInfo* funcInfo, Scope* sco
 void EmitDestructuredObject(ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
+void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode)
+{
+    Js::DebuggerScope *debuggerScope = nullptr;
+    auto processArg = [&](ParseNode *pnodeArg) {
+        if (pnodeArg->IsVarLetOrConst())
+        {
+            if (debuggerScope == nullptr)
+            {
+                debuggerScope = RecordStartScopeObject(pnode, Js::DiagParamScope);
+                debuggerScope->SetBegin(beginOffset);
+            }
+
+            debuggerScope->AddProperty(pnodeArg->sxVar.sym->GetLocation(), pnodeArg->sxVar.sym->EnsurePosition(funcInfo), Js::DebuggerScopePropertyFlags_None);
+        }
+    };
+
+    MapFormals(pnode, processArg);
+    MapFormalsFromPattern(pnode, processArg);
+
+    if (debuggerScope != nullptr)
+    {
+        RecordEndScopeObject(pnode);
+    }
+}
+
 void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
 {
+    uint beginOffset = m_writer.GetCurrentOffset();
+
     auto emitDefaultArg = [&](ParseNode *pnodeArg)
     {
         if (pnodeArg->nop == knopParamPattern)
@@ -2861,6 +2888,11 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     {
         // Rest cannot have a default argument, so we ignore it.
         MapFormalsWithoutRest(pnode, emitDefaultArg);
+    }
+
+    if (ShouldTrackDebuggerMetadata() && m_writer.GetCurrentOffset() > beginOffset)
+    {
+        PopulateFormalsScope(beginOffset, funcInfo, pnode);
     }
 }
 
