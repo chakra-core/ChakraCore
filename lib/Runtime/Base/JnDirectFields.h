@@ -296,6 +296,13 @@ ENTRY(map)
 ENTRY(Map)
 ENTRY(Math)
 
+// Wasm
+#ifdef ENABLE_WASM
+ENTRY(Wasm)
+ENTRY(instantiateModule)
+#endif
+// End Wasm
+
 // SIMD_JS
 ENTRY(SIMD)
 

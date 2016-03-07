@@ -36,6 +36,8 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtCreateArrayBufferPtr)(unsigned int byteLength, JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayBufferStoragePtr)(JsValueRef instance, BYTE **buffer, unsigned int *bufferLength);
     typedef JsErrorCode (WINAPI *JsrtCreateErrorPtr)(JsValueRef message, JsValueRef *error);
     typedef JsErrorCode (WINAPI *JsrtSetExceptionPtr)(JsValueRef exception);
     typedef JsErrorCode (WINAPI *JsrtGetAndClearExceptiopnPtr)(JsValueRef* exception);
@@ -81,6 +83,8 @@ struct JsAPIHooks
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtCreateArrayPtr pfJsrtCreateArray;
+    JsrtCreateArrayBufferPtr pfJsrtCreateArrayBuffer;
+    JsrtGetArrayBufferStoragePtr pfJsrtGetArrayBufferStorage;
     JsrtCreateErrorPtr pfJsrtCreateError;
     JsrtSetExceptionPtr pfJsrtSetException;
     JsrtGetAndClearExceptiopnPtr pfJsrtGetAndClearException;
@@ -190,6 +194,8 @@ public:
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return m_jsApiHooks.pfJsrtDoubleToNumber(doubleValue, value); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return m_jsApiHooks.pfJsrtGetExternalData(object, data); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArray(length, result); }
+    static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return m_jsApiHooks.pfJsrtCreateArrayBuffer(byteLength, result); }
+    static JsErrorCode WINAPI JsGetArrayBufferStorage(JsValueRef instance, BYTE **buffer, unsigned int *bufferLength) { return m_jsApiHooks.pfJsrtGetArrayBufferStorage(instance, buffer, bufferLength); }
     static JsErrorCode WINAPI JsCreateError(JsValueRef message, JsValueRef *error) { return m_jsApiHooks.pfJsrtCreateError(message, error); }
     static JsErrorCode WINAPI JsSetException(JsValueRef exception) { return m_jsApiHooks.pfJsrtSetException(exception); }
     static JsErrorCode WINAPI JsGetAndClearException(JsValueRef *exception) { return m_jsApiHooks.pfJsrtGetAndClearException(exception); }

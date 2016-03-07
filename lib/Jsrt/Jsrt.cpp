@@ -2503,7 +2503,6 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
     JsErrorCode errorCode = ContextAPINoScriptWrapper(
         [&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(script);
-        PARAM_NOT_NULL(sourceUrl);
 
         // FFI is optional
         if (ffi != JS_INVALID_REFERENCE)
@@ -2513,10 +2512,11 @@ STDAPI_(JsErrorCode) JsRunWasmScript(_In_z_ const wchar_t * script, _In_ JsSourc
 
         SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, NULL);
 
-        if (sourceContextInfo == NULL)
+        if (sourceUrl != NULL && sourceContextInfo == NULL)
         {
             sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceContext, sourceUrl, wcslen(sourceUrl), NULL);
         }
+        Assert(sourceContextInfo != NULL);
 
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,

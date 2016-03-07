@@ -256,6 +256,10 @@ namespace Js
         JavascriptSymbol* symbolToStringTag;
         JavascriptSymbol* symbolUnscopables;
 
+#ifdef ENABLE_WASM
+        DynamicObject* wasmObject;
+#endif
+
     public:
         ScriptContext* scriptContext;
 

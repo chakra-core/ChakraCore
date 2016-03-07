@@ -77,6 +77,8 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetProcAddress(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetProcAddress(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetProcAddress(library, "JsCreateArray");
+    m_jsApiHooks.pfJsrtCreateArrayBuffer = (JsAPIHooks::JsrtCreateArrayBufferPtr)GetProcAddress(library, "JsCreateArrayBuffer");
+    m_jsApiHooks.pfJsrtGetArrayBufferStorage = (JsAPIHooks::JsrtGetArrayBufferStoragePtr)GetProcAddress(library, "JsGetArrayBufferStorage");
     m_jsApiHooks.pfJsrtSetException = (JsAPIHooks::JsrtSetExceptionPtr)GetProcAddress(library, "JsSetException");
     m_jsApiHooks.pfJsrtGetAndClearException = (JsAPIHooks::JsrtGetAndClearExceptiopnPtr)GetProcAddress(library, "JsGetAndClearException");
     m_jsApiHooks.pfJsrtCreateError = (JsAPIHooks::JsrtCreateErrorPtr)GetProcAddress(library, "JsCreateError");
