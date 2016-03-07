@@ -11848,9 +11848,7 @@ Lowerer::SplitBailOnImplicitCall(IR::Instr *& instr)
     Assert(instr->IsPlainInstr() || instr->IsProfiledInstr());
 
     const auto bailOutKind = instr->GetBailOutKind();
-    Assert(
-        BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind) ||
-        bailOutKind == IR::BailOutExpectingObject);
+    Assert(BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind));
 
     IR::Opnd * implicitCallFlags = this->GetImplicitCallFlagsOpnd();
     const IR::AutoReuseOpnd autoReuseImplicitCallFlags(implicitCallFlags, instr->m_func);
