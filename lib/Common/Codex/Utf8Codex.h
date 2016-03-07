@@ -5,6 +5,7 @@
 #pragma once
 #include <windows.h>
 #include <wtypes.h>
+#include "../Core/CommonTypedefs.h"
 
 typedef unsigned __int32 uint32;
 
