@@ -738,13 +738,8 @@ namespace Js
 
         if (JavascriptFunction::Is(replaceValue))
         {
-            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
             JavascriptFunction* replaceFunction = JavascriptFunction::FromVar(replaceValue);
-            return RegexHelper::RegexReplaceFunction(
-                scriptContext,
-                regularExpression,
-                string,
-                replaceFunction);
+            return RegexHelper::RegexReplaceFunction(scriptContext, thisObj, string, replaceFunction);
         }
         else
         {

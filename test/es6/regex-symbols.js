@@ -395,7 +395,7 @@ function createGenericTestsForSymbol(stringPropertyName, functionName, functionL
 
 var tests = [
     {
-        name: "RegExp.prototype[@@replace] should run the built-in 'replace' when 'this' is a RegExp and 'replaceValue' is callable",
+        name: "RegExp.prototype[@@replace] should run the built-in 'replace' when 'replaceValue' is callable and none of the observable properties are overridden",
         body: function () {
             var re = /(-)=/g;
             var passedCorrectArguments = false;
@@ -438,9 +438,7 @@ var tests = [
         }
     },
     {
-        // TODO: This is normally a valid case. It hasn't been implemented yet, so we have it throw until it's supported.
-        // This matches the ES5 requirements.
-        name: "RegExp.prototype[@@replace] should throw when 'this' isn't a RegExp and 'replaceValue' is callable",
+        name: "RegExp.prototype[@@replace] should not throw when 'replaceValue' is callable, and 'this' is an ordinary Object and it has 'exec'",
         body: function () {
             var re = {
                 exec: function () {
@@ -449,10 +447,45 @@ var tests = [
             };
             var string = '';
             var replace = function () {
-                return '';
+                return ;
             }
 
-            assert.throws(RegExp.prototype[Symbol.replace].bind(re, string, replace), TypeError);
+            assert.doesNotThrow(RegExp.prototype[Symbol.replace].bind(re, string, replace));
+        }
+    },
+    {
+        name: "RegExp.prototype[@@replace] should call 'replaceValue' to get the substitution when 'replaceValue' is callable",
+        body: function () {
+            var pattern = "(-)(=)";
+            var string = "a-=b-=c";
+            var replace = "*$&$1";
+
+            function verify(assertMessagePrefix, expectedResult, expectedCallCount, flags) {
+                withObservableRegExp(function () {
+                    var passedCorrectArguments = false;
+                    var callCount = 0;
+                    var re = new RegExp(pattern, flags);
+                    var replace = function (matched, capture1, capture2, position, stringArg) {
+                        callCount += 1;
+                        passedCorrectArguments =
+                            matched === "-=" &&
+                            capture1 === "-" &&
+                            capture2 === "=" &&
+                            (position === 1 || position === 4) &&
+                            stringArg === string;
+                        return "*";
+                    }
+
+                    var result = re[Symbol.replace](string, replace);
+
+                    assert.areEqual(expectedCallCount, callCount, assertMessagePrefix + ": callCount");
+                    assert.isTrue(passedCorrectArguments, assertMessagePrefix + ": replace function arguments");
+                    assert.areEqual(expectedResult, result, assertMessagePrefix + ": result");
+                })
+            }
+
+            verify("non-global", "a*b-=c", 1, "");
+            verify("global", "a*b*c", 2, "g");
         }
     },
     {

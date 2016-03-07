@@ -813,6 +813,88 @@ namespace Js
 
     Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult)
     {
+        auto appendReplacement = [&](
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& resultBuilder,
+            ArenaAllocator* tempAlloc,
+            JavascriptString* matchStr,
+            int numberOfCaptures,
+            Var* captures,
+            CharCount position)
+        {
+            CharCount* substitutionOffsets = nullptr;
+            int substitutions = GetReplaceSubstitutions(
+                replace->GetString(),
+                replace->GetLength(),
+                tempAlloc,
+                &substitutionOffsets);
+            auto getGroup = [&](int captureIndex, Var nonMatchValue) {
+                return captureIndex <= numberOfCaptures ? captures[captureIndex] : nonMatchValue;
+            };
+            UnifiedRegex::GroupInfo match(position, matchStr->GetLength());
+            int numGroups = numberOfCaptures + 1; // Take group 0 into account.
+            ReplaceFormatString(
+                scriptContext,
+                numGroups,
+                getGroup,
+                input,
+                matchStr->GetString(),
+                match,
+                replace,
+                substitutions,
+                substitutionOffsets,
+                resultBuilder);
+        };
+        return RegexEs6ReplaceImpl(scriptContext, thisObj, input, appendReplacement, noResult);
+    }
+
+    Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replaceFn)
+    {
+        auto appendReplacement = [&](
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& resultBuilder,
+            ArenaAllocator* tempAlloc,
+            JavascriptString* matchStr,
+            int numberOfCaptures,
+            Var* captures,
+            CharCount position)
+        {
+            // replaceFn Arguments:
+            //
+            // 0: this
+            // 1: matched
+            // 2: capture1
+            // ...
+            // N + 1: capture N
+            // N + 2: position
+            // N + 3: input
+
+            // Number of captures can be at most 99, so we won't overflow.
+            ushort argCount = (ushort) numberOfCaptures + 4;
+
+            PROBE_STACK(scriptContext, argCount * sizeof(Var));
+            Var* args = (Var*) _alloca(argCount * sizeof(Var));
+
+            args[0] = scriptContext->GetLibrary()->GetUndefined();
+#pragma prefast(suppress:6386, "The write is within the bounds")
+            args[1] = matchStr;
+            for (int i = 1; i <= numberOfCaptures; ++i)
+            {
+                args[i + 1] = captures[i];
+            }
+            args[numberOfCaptures + 2] = JavascriptNumber::ToVar(position, scriptContext);
+            args[numberOfCaptures + 3] = input;
+
+            JavascriptString* replace = JavascriptConversion::ToString(
+                replaceFn->CallFunction(Arguments(CallInfo(argCount), args)),
+                scriptContext);
+
+            resultBuilder.Append(replace);
+        };
+        return RegexEs6ReplaceImpl(scriptContext, thisObj, input, appendReplacement, /* noResult */ false);
+    }
+
+    template<typename ReplacementFn>
+    Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, ReplacementFn appendReplacement, bool noResult)
+    {
         bool global = JavascriptRegExp::GetGlobalProperty(thisObj, scriptContext);
         bool unicode = false; // Dummy value. It isn't used below unless "global" is "true".
         if (global)
@@ -906,29 +988,7 @@ namespace Js
                     CharCount substringLength = position - nextSourcePosition;
                     accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
 
-                    CharCount* substitutionOffsets = nullptr;
-                    int substitutions = GetReplaceSubstitutions(
-                        replace->GetString(),
-                        replace->GetLength(),
-                        tempAlloc,
-                        &substitutionOffsets);
-                    auto getGroup = [&](int captureIndex, Var nonMatchValue) {
-                        return captureIndex <= numberOfCaptures ? captures[captureIndex] : nonMatchValue;
-                    };
-                    UnifiedRegex::GroupInfo match(position, matchStr->GetLength());
-                    int numberOfCapturesToReplace = (int) min(numberOfCaptures, maxNumberOfCaptures);
-                    int numGroups = numberOfCapturesToReplace + 1; // Take group 0 into account.
-                    ReplaceFormatString(
-                        scriptContext,
-                        numGroups,
-                        getGroup,
-                        input,
-                        matchStr->GetString(),
-                        match,
-                        replace,
-                        substitutions,
-                        substitutionOffsets,
-                        accumulatedResultBuilder);
+                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, captures, position);
 
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }
@@ -1076,8 +1136,26 @@ namespace Js
         return newString;
     }
 
+    Var RegexHelper::RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn)
+    {
+        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
+
+        if (scriptConfig->IsES6RegExSymbolsEnabled() && IsRegexSymbolReplaceObservable(thisObj, scriptContext))
+        {
+            return RegexEs6ReplaceImpl(scriptContext, thisObj, input, replacefn);
+        }
+        else
+        {
+            PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
+                ? L"RegExp.prototype[Symbol.replace]"
+                : L"String.prototype.replace";
+            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
+            return RegexEs5ReplaceImpl(scriptContext, regularExpression, input, replacefn);
+        }
+    }
+
     // String.prototype.replace, replace value is a function (ES5 15.5.4.11)
-    Var RegexHelper::RegexReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
         const wchar_t* inputStr = input->GetString();
@@ -2101,9 +2179,9 @@ namespace Js
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    Var RegexHelper::RegexReplaceFunction(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::RegexReplaceFunction(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn)
     {
-        Var result = RegexHelper::RegexReplaceImpl(entryFunctionContext, regularExpression, input, replacefn);
+        Var result = RegexHelper::RegexReplaceImpl(entryFunctionContext, thisObj, input, replacefn);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
