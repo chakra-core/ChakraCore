@@ -16,6 +16,7 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
     m_indirectfuncs = Anew(m_alloc, WasmIndirectFuncArray, m_alloc, 0);
+    m_funsigs = nullptr;
 }
 
 bool
@@ -107,23 +108,35 @@ ModuleInfo::GetFunctionCount() const
     return m_funcCount;
 }
 
-uint32
-ModuleInfo::AddFunSig(WasmFunctionInfo* funsig)
+void ModuleInfo::AllocateFunctions(uint32 count)
 {
-    uint32 id = m_funsigs->Count();
-    funsig->SetNumber(id);
-    m_funsigs->Add(funsig);
-    return id;
+    m_funcCount = count;
+    if (count > 0)
+    {
+        m_funsigs = AnewArray(m_alloc, WasmFunctionInfo*, count);
+    }
+}
+
+bool
+ModuleInfo::SetFunSig(WasmFunctionInfo* funsig, uint32 index)
+{
+    if (index < m_funcCount)
+    {
+        m_funsigs[index] = funsig;
+        funsig->SetNumber(index);
+        return true;
+    }
+    return false;
 }
 
 WasmFunctionInfo*
 ModuleInfo::GetFunSig(uint index) const
 {
-    if (index >= m_funsigs->Count())
+    if (index >= m_funcCount)
     {
         return nullptr;
     }
-    return m_funsigs->GetBuffer()[index];
+    return m_funsigs[index];
 }
 
 } // namespace Wasm

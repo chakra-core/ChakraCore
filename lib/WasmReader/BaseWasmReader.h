@@ -8,19 +8,43 @@
 namespace Wasm
 {
 
-class BaseWasmReader
-{
-public:
-    virtual WasmOp ReadFromModule() = 0;
-    virtual WasmOp ReadExpr() = 0;
-    virtual WasmOp ReadFromBlock() = 0;
-    virtual WasmOp ReadFromCall() = 0;
-    virtual bool IsBinaryReader() = 0;
-    WasmNode    m_currentNode;
-    ModuleInfo * m_moduleInfo;
+    enum SectionFlag
+    {
+        fSectNone,
+        fSectIgnore,
+    };
 
-protected:
-    WasmFunctionInfo *  m_funcInfo;
-};
+#define WASM_SECTION(name, id, flag) bSect ## name,
+    enum SectionCode
+    {
+        bSectInvalid = -1,
+    #include "WasmSections.h"
+        bSectLimit
+    };
+
+    enum ProcessSectionResult
+    {
+        psrContinue,
+        psrEnd,
+        psrInvalid
+    };
+
+    class BaseWasmReader
+    {
+    public:
+        virtual void InitializeReader() = 0;
+        virtual bool ReadNextSection(SectionCode nextSection) = 0;
+        virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) = 0;
+
+        virtual WasmOp ReadExpr() = 0;
+        virtual WasmOp ReadFromBlock() = 0;
+        virtual WasmOp ReadFromCall() = 0;
+        virtual bool IsBinaryReader() = 0;
+        WasmNode    m_currentNode;
+        ModuleInfo * m_moduleInfo;
+
+    protected:
+        WasmFunctionInfo *  m_funcInfo;
+    };
 
 } // namespace Wasm

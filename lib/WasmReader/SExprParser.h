@@ -31,7 +31,11 @@ namespace Wasm
     public:
         SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length);
 
-        virtual WasmOp ReadFromModule() override;
+        virtual void InitializeReader() override;
+        virtual bool ReadNextSection(SectionCode nextSection) override;
+        virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) override;
+        // todo:: Remove and use ReadNextSection and ProcessSection instead
+        virtual WasmOp ReadFromModule();
         virtual WasmOp ReadFromBlock() override;
         virtual WasmOp ReadFromCall() override;
         virtual WasmOp ReadExpr() override;
@@ -88,7 +92,6 @@ namespace Wasm
         JsUtil::Stack<SExpr::BlockType> * m_blockNesting;
 
         bool m_inExpr;
-        bool m_initialized;
     };
 
 } // namespace Wasm
