@@ -9179,7 +9179,7 @@ CommonNumber:
 
         if (superCtor == nullptr || !IsConstructor(superCtor))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor, L"super");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NotAConstructor);
         }
 
         return superCtor;
