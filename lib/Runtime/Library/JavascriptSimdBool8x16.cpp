@@ -44,10 +44,10 @@ namespace Js
         return JavascriptSIMDBool8x16::New(&value, requestContext);
     }
 
-    const wchar_t* JavascriptSIMDBool8x16::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
+    const char16* JavascriptSIMDBool8x16::GetFullBuiltinName(char16** aBuffer, const char16* name)
     {
         Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Bool8x16.%s", name);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Bool8x16.%s"), name);
         return *aBuffer;
     }
 

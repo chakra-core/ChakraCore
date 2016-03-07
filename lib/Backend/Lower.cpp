@@ -28,7 +28,7 @@ Lowerer::Lower()
 
     this->m_func->StopMaintainByteCodeOffset();
 
-    NoRecoverMemoryJitArenaAllocator localAlloc(L"BE-Lower", this->m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator localAlloc(_u("BE-Lower"), this->m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     this->m_alloc = &localAlloc;
     BVSparse<JitArenaAllocator> localInitializedTempSym(&localAlloc);
     this->initializedTempSym = &localInitializedTempSym;
@@ -146,7 +146,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
     noMathFastPath = !defaultDoFastPath;
 
 #if DBG_DUMP
-    wchar_t * globOptInstrString = nullptr;
+    char16 * globOptInstrString = nullptr;
 #endif
 
     FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(instr, instrPrev, instrEnd, instrStart)
@@ -4527,10 +4527,10 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
             {
                 Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"FixedNewObj: function %s (%s): lowering non-fixed new script object for %s, because %s.\n",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("FixedNewObj: function %s (%s): lowering non-fixed new script object for %s, because %s.\n"),
                     callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                    newObjInstr->IsProfiledInstr() ? L"constructor cache hasn't been cloned" : L"instruction is not profiled");
+                    newObjInstr->IsProfiledInstr() ? _u("constructor cache hasn't been cloned") : _u("instruction is not profiled"));
                 Output::Flush();
             }
 
@@ -4552,15 +4552,15 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
             const Js::JavascriptFunction* ctor = ctorCache->constructor;
             Js::FunctionBody* ctorBody = ctor->GetFunctionInfo()->HasBody() ? ctor->GetFunctionInfo()->GetFunctionBody() : nullptr;
-            const wchar_t* ctorName = ctorBody != nullptr ? ctorBody->GetDisplayName() : L"<unknown>";
+            const char16* ctorName = ctorBody != nullptr ? ctorBody->GetDisplayName() : _u("<unknown>");
 
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(L"FixedNewObj: function %s (%s): lowering skipped new script object for %s with %s ctor <unknown> (%s %s).\n",
+            Output::Print(_u("FixedNewObj: function %s (%s): lowering skipped new script object for %s with %s ctor <unknown> (%s %s).\n"),
                 callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
-                ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)");
+                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
+                ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             Output::Flush();
         }
 
@@ -4582,24 +4582,24 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         Js::FunctionBody* callerFunctionBody = newObjInstr->m_func->GetJnFunction();
         const Js::JavascriptFunction* constructor = ctorCache->constructor;
         Js::FunctionBody* constructorBody = constructor->GetFunctionInfo()->HasBody() ? constructor->GetFunctionInfo()->GetFunctionBody() : nullptr;
-        const wchar_t* constructorName = constructorBody != nullptr ? constructorBody->GetDisplayName() : L"<unknown>";
+        const char16* constructorName = constructorBody != nullptr ? constructorBody->GetDisplayName() : _u("<unknown>");
 
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
         if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func->GetJnFunction()))
         {
-            Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): type = %p, slots = %d, inlined slots = %d.\n",
+            Output::Print(_u("FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): type = %p, slots = %d, inlined slots = %d.\n"),
                 callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
-                constructorName, constructorBody ? constructorBody->GetDebugNumberSet(debugStringBuffer) : L"(null)",
+                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
+                constructorName, constructorBody ? constructorBody->GetDebugNumberSet(debugStringBuffer) : _u("(null)"),
                 ctorCache->type, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
         else
         {
-            Output::Print(L"FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): slots = %d, inlined slots = %d.\n",
+            Output::Print(_u("FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): slots = %d, inlined slots = %d.\n"),
                 callerFunctionBody->GetDisplayName(), callerFunctionBody->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? L"inlined" : L"called",
+                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
                 constructorName, debugStringBuffer, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
         Output::Flush();
@@ -5529,14 +5529,14 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n",
+        _u("Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(
             propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
         this->m_func->GetJnFunction()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex,
         propertySymOpnd->GetCacheLayoutString(),
-        propertySymOpnd->IsTypeChecked() ? L"true" : L"false");
+        propertySymOpnd->IsTypeChecked() ? _u("true") : _u("false"));
 
     if (propertySymOpnd->HasFinalType() && !propertySymOpnd->IsLoadedFromProto())
     {
@@ -5737,10 +5737,10 @@ Lowerer::GenerateCheckFixedFld(IR::Instr * instrChkFld)
     OUTPUT_TRACE_FUNC(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Fixed field check: %s, property: %s, cache ID: %u, cloned cache: true, layout: %s, redundant check: %s count of props: %u \n",
+        _u("Fixed field check: %s, property: %s, cache ID: %u, cloned cache: true, layout: %s, redundant check: %s count of props: %u \n"),
         Js::OpCodeUtil::GetOpCodeName(instrChkFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
-        inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), propertySymOpnd->IsTypeChecked() ? L"true" : L"false",
+        inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), propertySymOpnd->IsTypeChecked() ? _u("true") : _u("false"),
         propertySymOpnd->GetGuardedPropOps() ? propertySymOpnd->GetGuardedPropOps()->Count() : 0);
 
     if (emitPrimaryTypeCheck || emitFixedFieldTypeCheck)
@@ -5837,11 +5837,11 @@ Lowerer::GenerateCheckObjType(IR::Instr * instrChkObjType)
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Object type check: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n",
+        _u("Object type check: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrChkObjType->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
         this->m_func->GetJnFunction()->GetDisplayName(),
-        inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), L"false");
+        inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(), _u("false"));
 
     IR::LabelInstr* labelBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
@@ -6600,12 +6600,12 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n",
+        _u("Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: true, layout: %s, redundant check: %s\n"),
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySymOpnd->m_sym->AsPropertySym()->m_propertyId)->GetBuffer(),
         this->m_func->GetJnFunction()->GetDisplayName(),
         propertySymOpnd->m_inlineCacheIndex, propertySymOpnd->GetCacheLayoutString(),
-        propertySymOpnd->IsTypeChecked() ? L"true" : L"false");
+        propertySymOpnd->IsTypeChecked() ? _u("true") : _u("false"));
 
     if (propertySymOpnd->HasFinalType() && !propertySymOpnd->IsLoadedFromProto())
     {
@@ -6776,20 +6776,20 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
 
     if (PHASE_VERBOSE_TRACE(Js::ObjTypeSpecPhase, this->m_func))
     {
-        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, L"Emitted %s type check for type 0x%p",
-            emitDirectCheck ? L"direct" : propertySymOpnd->IsPoly() ? L"equivalent" : L"indirect", type);
+        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, _u("Emitted %s type check for type 0x%p"),
+            emitDirectCheck ? _u("direct") : propertySymOpnd->IsPoly() ? _u("equivalent") : _u("indirect"), type);
 #if DBG
         if (propertySymOpnd->GetGuardedPropOps() != nullptr)
         {
-            Output::Print(L" guarding operations:\n    ");
+            Output::Print(_u(" guarding operations:\n    "));
             propertySymOpnd->GetGuardedPropOps()->Dump();
         }
         else
         {
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 #else
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
 #endif
         Output::Flush();
     }
@@ -6863,11 +6863,11 @@ Lowerer::PinTypeRef(Js::Type* type, void* typeRef, IR::Instr* instr, Js::Propert
 
     if (PHASE_TRACE(Js::TracePinnedTypesPhase, this->m_func))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n",
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("PinnedTypes: function %s(%s) instr %s property %s(#%u) pinned %s reference 0x%p to type 0x%p.\n"),
             this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId,
-            typeRef == type ? L"strong" : L"weak", typeRef, type);
+            typeRef == type ? _u("strong") : _u("weak"), typeRef, type);
         Output::Flush();
     }
 }
@@ -6909,8 +6909,8 @@ Lowerer::GenerateCachedTypeWithoutPropertyCheck(IR::Instr *instrInsert, IR::Prop
         expectedTypeOpnd = IR::MemRefOpnd::New((void*)(typePropertyGuard->GetAddressOfValue()), TyMachPtr, this->m_func, IR::AddrOpndKindDynamicGuardValueRef);
         emitDirectCheck = false;
 
-        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, L"Emitted %s type check for type 0x%p.\n",
-            emitDirectCheck ? L"direct" : L"indirect", typeWithoutProperty);
+        OUTPUT_VERBOSE_TRACE_FUNC(Js::ObjTypeSpecPhase, this->m_func, _u("Emitted %s type check for type 0x%p.\n"),
+            emitDirectCheck ? _u("direct") : _u("indirect"), typeWithoutProperty);
     }
     else
     {
@@ -6962,10 +6962,10 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(Js::Type* type, IR::Propert
 
                 if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    wchar_t workItemName[256];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 workItemName[256];
                     this->m_func->m_workItem->GetDisplayName(workItemName, _countof(workItemName));
-                    Output::Print(L"ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property %s (%u).\n",
+                    Output::Print(_u("ObjTypeSpec: function %s(%s) registered guard 0x%p with value 0x%p for property %s (%u).\n"),
                         workItemName, this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                         guard, guard->GetValue(), this->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                     Output::Flush();
@@ -6996,8 +6996,8 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
         {
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("ObjTypeSpec: function %s(%s) registered equivalent type spec guard 0x%p with value 0x%p for property %s (%u).\n"),
                     this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     guard, guard->GetValue(), GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
@@ -7075,10 +7075,10 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(Js::Type* type, IR:
                 // this problem by tracking property information on the value type in glob opt.
                 if (PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->m_func))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Js::FunctionBody* topFunctionBody = this->m_func->GetJnFunction();
                     Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
-                    Output::Print(L"EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) \n",
+                    Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) \n"),
                         topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), propertyId, scriptContext->GetPropertyNameLocked(propertyId)->GetBuffer());
                     Output::Flush();
                 }
@@ -7132,8 +7132,8 @@ Lowerer::LinkCtorCacheToGuardedProperties(Js::JitTimeConstructorCache* ctorCache
         {
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->m_func) || PHASE_TRACE(Js::TracePropertyGuardsPhase, this->m_func))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("ObjTypeSpec: function %s(%s) registered ctor cache 0x%p with value 0x%p for property %s (%u).\n"),
                     this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     ctorCache->runtimeCache, ctorCache->type, GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                 Output::Flush();
@@ -7189,8 +7189,8 @@ Lowerer::LinkGuardToGuardedProperties(Js::EntryPointInfo* entryPointInfo, const 
                 {
                     if (!this->m_func->m_workItem->GetEntryPoint()->HasSharedPropertyGuard(propertyId))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                        Output::Print(L"ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n",
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        Output::Print(_u("ObjTypeStore: function %s(%s): no shared property guard for property % (%u).\n"),
                             this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                             GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer(), propertyId);
                         Output::Flush();
@@ -7877,7 +7877,7 @@ Lowerer::LowerAddLeftDeadForString(IR::Instr *instr)
     // lastBlockInfo.buffer[blockCharLength] = c;
     IR::RegOpnd *baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     InsertMove(baseOpnd, IR::IndirOpnd::New(opndLeft->AsRegOpnd(), (int32)Js::CompoundString::GetOffsetOfLastBlockInfo() + (int32)Js::CompoundString::GetOffsetOfLastBlockInfoBuffer(), TyMachPtr, m_func), insertBeforeInstr);
-    IR::IndirOpnd *indirBufferToStore = IR::IndirOpnd::New(baseOpnd, charLengthOpnd, (byte)Math::Log2(sizeof(wchar_t)), TyUint16, m_func);
+    IR::IndirOpnd *indirBufferToStore = IR::IndirOpnd::New(baseOpnd, charLengthOpnd, (byte)Math::Log2(sizeof(char16)), TyUint16, m_func);
     InsertMove(indirBufferToStore, charResultOpnd, insertBeforeInstr);
 
 
@@ -13000,7 +13000,7 @@ const BYTE Lowerer::IndirScales[static_cast<ValueType::TSize>(ObjectType::Count)
     /* ObjectType::Int64Array               */ 3, // log2(sizeof(int64))
     /* ObjectType::Uint64Array              */ 3, // log2(sizeof(uint64))
     /* ObjectType::BoolArray                */ 0, // log2(sizeof(bool))
-    /* ObjectType::CharArray                */ 1  // log2(sizeof(wchar_t))
+    /* ObjectType::CharArray                */ 1  // log2(sizeof(char16))
 };
 
 VTableValue Lowerer::GetArrayVtableAddress(const ValueType valueType, bool getVirtual)
@@ -14894,7 +14894,7 @@ Lowerer::GenerateFastStringLdElem(IR::Instr * ldElem, IR::LabelInstr * labelHelp
     else
     {
         // Just use the offset to indirect into the string buffer
-        charIndirOpnd = IR::IndirOpnd::New(bufferOpnd, indirOpnd->GetOffset() * sizeof(wchar_t), TyUint16, this->m_func);
+        charIndirOpnd = IR::IndirOpnd::New(bufferOpnd, indirOpnd->GetOffset() * sizeof(char16), TyUint16, this->m_func);
         index32CmpOpnd = IR::IntConstOpnd::New((uint32)indirOpnd->GetOffset(), TyUint32, this->m_func);
     }
 
@@ -15054,8 +15054,8 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
             {
                 if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->m_func) && PHASE_TRACE(Js::LowererPhase, this->m_func))
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    Output::Print(_u("Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n"),
                         this->m_func->GetJnFunction()->GetDisplayName(),
                         this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                         Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode));
@@ -15234,14 +15234,14 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
             {
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s."),
                     this->m_func->GetJnFunction()->GetDisplayName(),
                     this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(ldElem->m_opcode),
                     baseValueTypeStr,
-                    (!dst->IsVar() ? L"specialized" : L"not specialized"));
-                Output::Print(L"\n");
+                    (!dst->IsVar() ? _u("specialized") : _u("not specialized")));
+                Output::Print(_u("\n"));
                 Output::Flush();
             }
         }
@@ -15517,8 +15517,8 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
         {
             if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->m_func) && PHASE_TRACE(Js::LowererPhase, this->m_func))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n",
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("Typed Array Lowering: function: %s (%s): instr %s, not specialized by glob opt due to negative or not likely int index.\n"),
                     this->m_func->GetJnFunction()->GetDisplayName(),
                     this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode));
@@ -15553,14 +15553,14 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
         {
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s.",
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            Output::Print(_u("Typed Array Lowering: function: %s (%s), instr: %s, base value type: %S, %s."),
                 this->m_func->GetJnFunction()->GetDisplayName(),
                 this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(stElem->m_opcode),
                 baseValueTypeStr,
-                (!src->IsVar() ? L"specialized" : L"not specialized"));
-            Output::Print(L"\n");
+                (!src->IsVar() ? _u("specialized") : _u("not specialized")));
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 
@@ -16300,7 +16300,7 @@ Lowerer::GenerateFastInlineStringCodePointAt(IR::Instr* lastInstr, Func* func, I
     {
         uint32 length = Js::TaggedInt::ToUInt32(srcIndex->AsAddrOpnd()->m_address) + 1U;
         InsertCompareBranch(strLength, IR::IntConstOpnd::New(length, TyUint32, func), Js::OpCode::BrLe_A, true, labelCharCodeAt, lastInstr);
-        tempIndirOpnd = IR::IndirOpnd::New(strPtr, (length) * sizeof(wchar_t), TyUint16, func);
+        tempIndirOpnd = IR::IndirOpnd::New(strPtr, (length) * sizeof(char16), TyUint16, func);
     }
     else
     {
@@ -18417,7 +18417,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n",
+        _u("Field load: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n"),
         Js::OpCodeUtil::GetOpCodeName(instrLdFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
         this->m_func->GetJnFunction()->GetDisplayName(),
@@ -18673,7 +18673,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
     PHASE_PRINT_TESTTRACE(
         Js::ObjTypeSpecPhase,
         this->m_func,
-        L"Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n",
+        _u("Field store: %s, property: %s, func: %s, cache ID: %d, cloned cache: false\n"),
         Js::OpCodeUtil::GetOpCodeName(instrStFld->m_opcode),
         this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(),
         this->m_func->GetJnFunction()->GetDisplayName(),
@@ -18716,10 +18716,10 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
             else
             {
                 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 #endif
                 PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
-                    L"AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n",
+                    _u("AddFldFastPath: function: %s(%s) property: %s(#%d) no fast path, because the phase is off.\n"),
                     this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId);
             }
@@ -18757,13 +18757,13 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
     if (doAdd)
     {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
         PHASE_PRINT_TRACE(Js::AddFldFastPathPhase, this->m_func,
-            L"AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n",
+            _u("AddFldFastPath: function: %s(%s) property: %s(#%d) %s fast path for %s.\n"),
             this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             this->m_func->GetScriptContext()->GetPropertyNameLocked(propertySym->m_propertyId)->GetBuffer(), propertySym->m_propertyId,
-            usePolymorphicInlineCache ? L"poly" : L"mono", doStore ? L"store and add" : L"add only");
+            usePolymorphicInlineCache ? _u("poly") : _u("mono"), doStore ? _u("store and add") : _u("add only"));
     }
 
     IR::RegOpnd * opndInlineCache = IR::RegOpnd::New(TyMachPtr, this->m_func);
@@ -19613,7 +19613,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *p
 
                 // We can't optimize non-javascript type strings.
                 Js::JavascriptString *typeNameJsString = Js::JavascriptString::FromVar(instrSrc2->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address);
-                const wchar_t        *typeName         = typeNameJsString->GetString();
+                const char16        *typeName         = typeNameJsString->GetString();
 
                 Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
                 if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::UndefinedTypeNameString))

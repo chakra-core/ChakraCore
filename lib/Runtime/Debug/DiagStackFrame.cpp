@@ -197,7 +197,7 @@ namespace Js
         {
             AssertMsg(FALSE, "Failed to get entry point for native address. Most likely the frame is old/gone.");
         }
-        OUTPUT_TRACE(Js::DebuggerPhase, L"DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n", codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n"), codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
     }
 
     JavascriptFunction* DiagNativeStackFrame::GetJavascriptFunction()

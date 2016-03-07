@@ -48,10 +48,10 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
         AssertMsg(args.Info.Count > 0, "must have this pointer");
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Iterator.next");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Iterator.next"));
         if (!JavascriptEnumeratorIterator::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedArrayIterator, L"Iterator.next");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedArrayIterator, _u("Iterator.next"));
         }
         JavascriptEnumeratorIterator* iterator = JavascriptEnumeratorIterator::FromVar(args[0]);
         return iterator->InternalGetNext();

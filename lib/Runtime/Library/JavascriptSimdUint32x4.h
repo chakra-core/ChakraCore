@@ -29,16 +29,16 @@ namespace Js
 
         static JavascriptSIMDUint32x4* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDUint32x4* New(SIMDValue *val, ScriptContext* requestContext);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static bool Is(Var instance);
         static JavascriptSIMDUint32x4* FromVar(Var aValue);
         static JavascriptSIMDUint32x4* FromFloat32x4(JavascriptSIMDFloat32x4   *instance, ScriptContext* requestContext);
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDUint32x4, value); }
         static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
-            swprintf_s(stringBuffer, countBuffer, L"SIMD.Uint32x4(%u, %u, %u, %u)", value.u32[SIMD_X], value.u32[SIMD_Y], value.u32[SIMD_Z], value.u32[SIMD_W]);
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Uint32x4(%u, %u, %u, %u)"), value.u32[SIMD_X], value.u32[SIMD_Y], value.u32[SIMD_Z], value.u32[SIMD_W]);
         }
 
         __inline SIMDValue GetValue() { return value; }

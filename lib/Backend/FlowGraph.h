@@ -169,7 +169,7 @@ public:
 
 #if DBG_DUMP
     void         Dump();
-    void         Dump(bool verbose, const wchar_t *form);
+    void         Dump(bool verbose, const char16 *form);
 #endif
 
     JitArenaAllocator *       alloc;

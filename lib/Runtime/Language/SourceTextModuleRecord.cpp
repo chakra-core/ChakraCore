@@ -91,7 +91,7 @@ namespace Js
         {
             Assert(sourceLength == 0);
             JavascriptError *pError = scriptContext->GetLibrary()->CreateError();
-            JavascriptError::SetErrorMessageProperties(pError, E_FAIL, L"empty module", scriptContext);
+            JavascriptError::SetErrorMessageProperties(pError, E_FAIL, _u("empty module"), scriptContext);
         }
         try
         {
@@ -102,7 +102,7 @@ namespace Js
             //this->srcInfo.moduleID = moduleId;
             LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                 (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, L"module", loadScriptFlag, &sourceIndex);
+            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
             if (parseTree == nullptr)
             {
                 hr = E_FAIL;
@@ -212,7 +212,7 @@ namespace Js
     {
         if (tempAllocatorObject == nullptr)
         {
-            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(L"Module");
+            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(_u("Module"));
         }
         return tempAllocatorObject->GetAllocator();
     }
@@ -256,7 +256,7 @@ namespace Js
                 localNames = (ExportedNames*)AllocatorNew(ArenaAllocator, allocator, ExportedNames, allocator);
             }
             const PropertyRecord* defaultRecord;
-            scriptContext->GetOrAddPropertyRecord(L"default", &defaultRecord);
+            scriptContext->GetOrAddPropertyRecord(_u("default"), &defaultRecord);
             PropertyId defaultPropertyId = defaultRecord->GetPropertyId();
             this->starExportRecordList->Map([=](ModuleExportEntry exportEntry) {
                 Assert(exportEntry.moduleRequest != nullptr);
@@ -492,7 +492,7 @@ namespace Js
             if (FAILED(hr))
             {
                 JavascriptError *error = scriptContext->GetLibrary()->CreateError();
-                JavascriptError::SetErrorMessageProperties(error, hr, L"fetch import module failed", scriptContext);
+                JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
                 this->errorObject = error;
                 NotifyParentsAsNeeded();
             }
@@ -552,7 +552,7 @@ namespace Js
         uint sourceIndex = scriptContext->SaveSourceNoCopy(this->pSourceInfo, static_cast<charcount_t>(this->pSourceInfo->GetCchLength()), /*isCesu8*/ true);
         CompileScriptException se;
          //TODO: fix up byte code generation. moduleID in the SRCINFO is the moduleId of current module.
-        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, L"module");
+        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
         if (rootFunction == nullptr)
         {
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);

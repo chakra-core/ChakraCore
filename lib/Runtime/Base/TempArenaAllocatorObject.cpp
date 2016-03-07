@@ -11,7 +11,7 @@ namespace Js
     {
         Recycler * recycler = threadContext->GetRecycler();
         TempArenaAllocatorWrapper<isGuestArena> * wrapper = RecyclerNewFinalizedLeaf(recycler, Js::TempArenaAllocatorWrapper<isGuestArena>,
-            L"temp", threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
+            _u("temp"), threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
         if (isGuestArena)
         {
             wrapper->externalGuestArenaRef = recycler->RegisterExternalGuestArena(wrapper->GetAllocator());

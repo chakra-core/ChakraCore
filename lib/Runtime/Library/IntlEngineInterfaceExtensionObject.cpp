@@ -255,7 +255,7 @@ namespace Js
 #if DBG
     void IntlEngineInterfaceExtensionObject::DumpByteCode()
     {
-        Output::Print(L"Dumping Intl Byte Code:");
+        Output::Print(_u("Dumping Intl Byte Code:"));
         this->EnsureIntlByteCode(scriptContext);
         Js::ByteCodeDumper::DumpRecursively(intlByteCode);
     }
@@ -396,19 +396,19 @@ namespace Js
 
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Intl");
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Intl"));
                     break;
                 case IntlInitializationType::StringPrototype:
                     // No other windows globalization adapter needed. Common adapter should suffice
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"String");
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("String"));
                     break;
                 case IntlInitializationType::DatePrototype:
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureDateTimeFormatObjectsInitialized(library));
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Date");
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Date"));
                     break;
                 case IntlInitializationType::NumberPrototype:
                     IfCOMFailIgnoreSilentlyAndReturn(globAdapter->EnsureNumberFormatObjectsInitialized(library));
-                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Number");
+                    initType = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Number"));
                     break;
             }
 
@@ -581,7 +581,7 @@ namespace Js
 
         AutoCOMPtr<DateTimeFormatting::IDateTimeFormatter> formatter;
         HRESULT hr;
-        if (FAILED(hr = wga->CreateDateTimeFormatter(scriptContext, L"longdate", &passedLocale, 1, nullptr, nullptr, &formatter)))
+        if (FAILED(hr = wga->CreateDateTimeFormatter(scriptContext, _u("longdate"), &passedLocale, 1, nullptr, nullptr, &formatter)))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
@@ -642,7 +642,7 @@ namespace Js
         AutoCOMPtr<Windows::Foundation::Collections::IVectorView<HSTRING>> subtags;
         uint32 length;
 
-        if (FAILED(hr = wgl->WindowsCreateString(L"u", 1, &singletonString)) || FAILED(hr = extensionSubtags->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
+        if (FAILED(hr = wgl->WindowsCreateString(_u("u"), 1, &singletonString)) || FAILED(hr = extensionSubtags->GetExtensionSubtags(*singletonString, &subtags)) || FAILED(subtags->get_Size(&length)))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
@@ -910,19 +910,19 @@ namespace Js
 
     DWORD getFlagsForSensitivity(LPCWSTR sensitivity)
     {
-        if (wcscmp(sensitivity, L"base") == 0)
+        if (wcscmp(sensitivity, _u("base")) == 0)
         {
             return LINGUISTIC_IGNOREDIACRITIC | LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
         }
-        else if (wcscmp(sensitivity, L"accent") == 0)
+        else if (wcscmp(sensitivity, _u("accent")) == 0)
         {
             return LINGUISTIC_IGNORECASE | NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH;
         }
-        else if (wcscmp(sensitivity, L"case") == 0)
+        else if (wcscmp(sensitivity, _u("case")) == 0)
         {
             return  NORM_IGNOREKANATYPE | NORM_IGNOREWIDTH | LINGUISTIC_IGNOREDIACRITIC;
         }
-        else if (wcscmp(sensitivity, L"variant") == 0)
+        else if (wcscmp(sensitivity, _u("variant")) == 0)
         {
             return NORM_LINGUISTIC_CASING;
         }
@@ -950,7 +950,7 @@ namespace Js
         JavascriptString* str2 = JavascriptString::FromVar(args.Values[2]);
 
         WCHAR defaultLocale[LOCALE_NAME_MAX_LENGTH];
-        const wchar_t *givenLocale = nullptr;
+        const char16 *givenLocale = nullptr;
         defaultLocale[0] = '\0';
 
         if (!JavascriptOperators::IsUndefinedObject(args.Values[3], scriptContext))
@@ -1005,10 +1005,10 @@ namespace Js
         }
 
         int compareResult = 0;
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, L"localeCompare")
+        BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
-            wchar_t * aLeft = nullptr;
-            wchar_t * aRight = nullptr;
+            char16 * aLeft = nullptr;
+            char16 * aRight = nullptr;
             charcount_t size1 = 0;
             charcount_t size2 = 0;
             _NORM_FORM canonicalEquivalentForm = NormalizationC;
@@ -1024,12 +1024,12 @@ namespace Js
 
             if (aLeft == nullptr)
             {
-                aLeft = const_cast<wchar_t*>(str1->GetSz());
+                aLeft = const_cast<char16*>(str1->GetSz());
                 size1 = str1->GetLength();
             }
             if (aRight == nullptr)
             {
-                aRight = const_cast<wchar_t*>(str2->GetSz());
+                aRight = const_cast<char16*>(str2->GetSz());
                 size2 = str2->GetLength();
             }
 

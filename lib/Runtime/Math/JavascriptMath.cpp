@@ -1090,7 +1090,7 @@ StringCommon:
             {
                 InitializeRandomSeeds(&seed0, &seed1, scriptContext);
 #if DBG_DUMP
-                OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] INIT %I64x %I64x\n", scriptContext, seed0, seed1);
+                OUTPUT_TRACE(Js::PRNGPhase, _u("[PRNG:%x] INIT %I64x %I64x\n"), scriptContext, seed0, seed1);
 #endif
                 scriptContext->GetLibrary()->SetIsPRNGSeeded(true);
             }
@@ -1101,7 +1101,7 @@ StringCommon:
             }
 
 #if DBG_DUMP
-            OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] SEED %I64x %I64x\n", scriptContext, seed0, seed1);
+            OUTPUT_TRACE(Js::PRNGPhase, _u("[PRNG:%x] SEED %I64x %I64x\n"), scriptContext, seed0, seed1);
 #endif
 
             Xorshift128plus(&seed0, &seed1);
@@ -1112,7 +1112,7 @@ StringCommon:
 
             double res = ConvertRandomSeedsToDouble(seed0, seed1);
 #if DBG_DUMP
-            OUTPUT_TRACE(Js::PRNGPhase, L"[PRNG:%x] RAND %I64x\n", scriptContext, *((uint64 *)&res));
+            OUTPUT_TRACE(Js::PRNGPhase, _u("[PRNG:%x] RAND %I64x\n"), scriptContext, *((uint64 *)&res));
 #endif
             return res;
         }

@@ -137,7 +137,7 @@ struct ByteBuffer
     union
     {
         void * pv;
-        const wchar_t * s16;
+        const char16 * s16;
         const char * s8;
     };
 public:
@@ -257,7 +257,7 @@ static const byte * ReadVariableInt(const byte * buffer, size_t remainingBytes, 
             Assert(twoByteValue > ONE_BYTE_MAX);
 
             *value = twoByteValue;
-            PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, L"TestTrace: VariableIntEncoding (decode)- 2 bytes, value %u\n", *value);
+            PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, _u("TestTrace: VariableIntEncoding (decode)- 2 bytes, value %u\n"), *value);
             return buffer + sizeof(uint16) +SENTINEL_BYTE_COUNT;
         }
         else
@@ -267,14 +267,14 @@ static const byte * ReadVariableInt(const byte * buffer, size_t remainingBytes, 
             *value = *((serialization_alignment T*) locationOfValue);
             Assert(*value > TWO_BYTE_MAX || *value <= 0);
 
-            PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, L"TestTrace: VariableIntEncoding (decode) - 4 bytes, value %u\n", *value);
+            PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, _u("TestTrace: VariableIntEncoding (decode) - 4 bytes, value %u\n"), *value);
             return buffer + sizeof(T) +SENTINEL_BYTE_COUNT;
         }
     }
     else
     {
         *value = (T) firstByte;
-        PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, L"TestTrace: VariableIntEncoding (decode) - 1 byte, value %u\n", *value);
+        PHASE_PRINT_TESTTRACE1(Js::VariableIntEncodingPhase, _u("TestTrace: VariableIntEncoding (decode) - 1 byte, value %u\n"), *value);
         return buffer + sizeof(byte);
     }
 }
@@ -375,32 +375,32 @@ class ByteCodeBufferBuilder
 public:
 
     ByteCodeBufferBuilder(uint32 sourceSize, uint32 sourceCharLength, LPCUTF8 utf8Source, DWORD dwFunctionTableLength, BYTE * functionTable, Utf8SourceInfo* sourceInfo, ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD dwFlags, int builtInPropertyCount)
-        : magic(L"Magic", magicConstant),
-          totalSize(L"Total Size", 0),
-          fileVersionKind(L"FileVersionKind", 0),
-          V1(L"V1", 0),
-          V2(L"V2", 0),
-          V3(L"V3", 0),
-          V4(L"V4", 0),
-          architecture(L"Expected Architecture", magicArchitecture),
-          expectedFunctionBodySize(L"Expected Function Body Size", sizeof(unaligned FunctionBody)),
-          expectedBuildInPropertyCount(L"Expected Built-in Properties", builtInPropertyCount),
-          expectedOpCodeCount(L"Expected Number of OpCodes",  (int)OpCode::Count),
-          originalSourceSize(L"Source Size", sourceSize),
-          originalCharLength(L"Source Char Length", sourceCharLength),
-          string16sOffset(L"Offset of String16s", &string16Count),
-          sourceSpansOffset(L"Offset of Source Spans", &sourceSpans),
-          lineInfoCacheOffset(L"Offset of Source Spans", &lineInfoCacheCount),
-          functionCount(L"Function Count", 0),
-          functionsOffset(L"Offset of Functions", &functionCount),
-          string16Count(L"String16 Count", 0),
-          string16IndexTable(L"String16 Indexes"),
-          string16Table(L"String16 Table"),
-          alignedString16Table(L"Alignment for String16 Table", &string16Table, sizeof(wchar_t)),
-          sourceSpans(L"Source Spans"),
-          lineInfoCacheCount(L"Line Info Cache", sourceInfo->GetLineOffsetCache()->GetLineCount()),
-          lineInfoCache(L"Line Info Cache", lineInfoCacheCount.value * sizeof(JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem), (byte *)sourceInfo->GetLineOffsetCache()->GetItems()),
-          functionsTable(L"Functions"),
+        : magic(_u("Magic"), magicConstant),
+          totalSize(_u("Total Size"), 0),
+          fileVersionKind(_u("FileVersionKind"), 0),
+          V1(_u("V1"), 0),
+          V2(_u("V2"), 0),
+          V3(_u("V3"), 0),
+          V4(_u("V4"), 0),
+          architecture(_u("Expected Architecture"), magicArchitecture),
+          expectedFunctionBodySize(_u("Expected Function Body Size"), sizeof(unaligned FunctionBody)),
+          expectedBuildInPropertyCount(_u("Expected Built-in Properties"), builtInPropertyCount),
+          expectedOpCodeCount(_u("Expected Number of OpCodes"),  (int)OpCode::Count),
+          originalSourceSize(_u("Source Size"), sourceSize),
+          originalCharLength(_u("Source Char Length"), sourceCharLength),
+          string16sOffset(_u("Offset of String16s"), &string16Count),
+          sourceSpansOffset(_u("Offset of Source Spans"), &sourceSpans),
+          lineInfoCacheOffset(_u("Offset of Source Spans"), &lineInfoCacheCount),
+          functionCount(_u("Function Count"), 0),
+          functionsOffset(_u("Offset of Functions"), &functionCount),
+          string16Count(_u("String16 Count"), 0),
+          string16IndexTable(_u("String16 Indexes")),
+          string16Table(_u("String16 Table")),
+          alignedString16Table(_u("Alignment for String16 Table"), &string16Table, sizeof(char16)),
+          sourceSpans(_u("Source Spans")),
+          lineInfoCacheCount(_u("Line Info Cache"), sourceInfo->GetLineOffsetCache()->GetLineCount()),
+          lineInfoCache(_u("Line Info Cache"), lineInfoCacheCount.value * sizeof(JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem), (byte *)sourceInfo->GetLineOffsetCache()->GetItems()),
+          functionsTable(_u("Functions")),
           nextString16Id(builtInPropertyCount), // Reserve the built-in property ids
           topFunctionId(0),
           utf8Source(utf8Source),
@@ -460,7 +460,7 @@ public:
 
     HRESULT Create(bool allocateBuffer, byte ** buffer, DWORD * bufferBytes)
     {
-        BufferBuilderList all(L"Final");
+        BufferBuilderList all(_u("Final"));
 
         // Reverse the lists
         string16IndexTable.list = string16IndexTable.list->ReverseCurrentList();
@@ -557,25 +557,25 @@ public:
         if (!string16ToId->TryGetValue(bb, &indexEntry))
         {
             auto sizeInBytes = bb->byteCount;
-            auto stringEntry = Anew(alloc, BufferBuilderRaw, L"String16", sizeInBytes, (const byte *)bb->pv); // Writing the terminator even though it is computable so that this memory can be used as-is when deserialized
+            auto stringEntry = Anew(alloc, BufferBuilderRaw, _u("String16"), sizeInBytes, (const byte *)bb->pv); // Writing the terminator even though it is computable so that this memory can be used as-is when deserialized
             string16Table.list = string16Table.list->Prepend(stringEntry, alloc);
             if (string16IndexTable.list == nullptr)
             {
                 // First item in the list is the first string.
-                auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, L"First String16 Index", stringEntry);
+                auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, _u("First String16 Index"), stringEntry);
                 string16IndexTable.list = string16IndexTable.list->Prepend(stringIndexEntry, alloc);
-                PrependByte(string16IndexTable, L"isPropertyRecord", (BYTE)isPropertyRecord);
+                PrependByte(string16IndexTable, _u("isPropertyRecord"), (BYTE)isPropertyRecord);
             }
 
             // Get a pointer to the previous entry of isPropertyRecord
             indexEntry.isPropertyRecord = static_cast<BufferBuilderByte*>(string16IndexTable.list->First());
 
             // Subsequent strings indexes point one past the end. This way, the size is always computable by subtracting indexes.
-            auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, L"String16 Index", stringEntry, sizeInBytes);
+            auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, _u("String16 Index"), stringEntry, sizeInBytes);
             string16IndexTable.list = string16IndexTable.list->Prepend(stringIndexEntry, alloc);
 
             // By default, mark the next string to be not a property record.
-            PrependByte(string16IndexTable, L"isPropertyRecord", (BYTE)false);
+            PrependByte(string16IndexTable, _u("isPropertyRecord"), (BYTE)false);
 
             indexEntry.id = nextString16Id;
             string16ToId->Add(bb, indexEntry);
@@ -712,7 +712,7 @@ public:
     int GetIdOfPropertyRecord(const PropertyRecord * propertyRecord)
     {
         AssertMsg(!propertyRecord->IsSymbol(), "bytecode serializer does not currently handle non-built-in symbol PropertyRecords");
-        size_t byteCount = ((size_t)propertyRecord->GetLength() + 1) * sizeof(wchar_t);
+        size_t byteCount = ((size_t)propertyRecord->GetLength() + 1) * sizeof(char16);
         if (byteCount > UINT_MAX)
         {
             // We should never see property record that big
@@ -758,7 +758,7 @@ public:
 
         Assert(!OmitFunction(function->GetSerializationIndex()));
 
-        auto finalSize = Anew(alloc, BufferBuilderInt32, L"Final Byte Code Size", 0); // Initially set to zero
+        auto finalSize = Anew(alloc, BufferBuilderInt32, _u("Final Byte Code Size"), 0); // Initially set to zero
         builder.list = builder.list->Prepend(finalSize, alloc);
 
         ByteCodeReader reader;
@@ -943,7 +943,7 @@ public:
 
         Assert(!OmitFunction(function->GetSerializationIndex()));
 
-        auto finalSize = Anew(alloc, BufferBuilderInt32, L"Final Byte Code Size", 0); // Initially set to zero
+        auto finalSize = Anew(alloc, BufferBuilderInt32, _u("Final Byte Code Size"), 0); // Initially set to zero
         builder.list = builder.list->Prepend(finalSize, alloc);
 
         ByteCodeReader reader;
@@ -1272,7 +1272,7 @@ public:
         ByteCodeReader& reader, FunctionBody * functionBody)
     {
         uint count = auxRecordList.Count();
-        PrependInt32(builder, L"Auxiliary Structure Count", count);
+        PrependInt32(builder, _u("Auxiliary Structure Count"), count);
         if (count == 0)
         {
             return;
@@ -1281,7 +1281,7 @@ public:
         auto writeAuxVarArray = [&](uint offset, bool isVarCount, int count, const Var * elements)  {
             typedef serialization_alignment SerializedVarArray T;
             T header(offset, isVarCount, count);
-            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, L"Var Array", header);
+            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, _u("Var Array"), header);
             builder.list = builder.list->Prepend(block, alloc);
 
             for (int i=0;i<count; i++)
@@ -1290,8 +1290,8 @@ public:
                 PrependVarConstant(builder, var);
             }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"Magic end of aux var array", magicEndOfAuxVarArray);
-            PrependInt32(builder, L"Magic end of aux", magicEndOfAux);
+            PrependInt32(builder, _u("Magic end of aux var array"), magicEndOfAuxVarArray);
+            PrependInt32(builder, _u("Magic end of aux"), magicEndOfAux);
 #endif
         };
         auto writeAuxVarArrayIntCount = [&](uint offset) {
@@ -1313,17 +1313,17 @@ public:
 
             typedef serialization_alignment SerializedIntArray T;
             T header(offset, count);
-            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, L"Int Array", header);
+            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, _u("Int Array"), header);
             builder.list = builder.list->Prepend(block, alloc);
 
             for (int i=0;i<count; i++)
             {
                 auto value = elements[i];
-                PrependConstantInt32(builder, L"Integer Constant Value", value);
+                PrependConstantInt32(builder, _u("Integer Constant Value"), value);
             }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"Magic end of aux int array", magicEndOfAuxIntArray);
-            PrependInt32(builder, L"Magic end of aux", magicEndOfAux);
+            PrependInt32(builder, _u("Magic end of aux int array"), magicEndOfAuxIntArray);
+            PrependInt32(builder, _u("Magic end of aux"), magicEndOfAux);
 #endif
             return block;
         };
@@ -1335,17 +1335,17 @@ public:
 
             typedef serialization_alignment SerializedFloatArray T;
             T header(offset, count);
-            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, L"Float Array", header);
+            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, _u("Float Array"), header);
             builder.list = builder.list->Prepend(block, alloc);
 
             for (int i=0;i<count; i++)
             {
                 auto value = elements[i];
-                PrependDouble(builder, L"Number Constant Value", value);
+                PrependDouble(builder, _u("Number Constant Value"), value);
             }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"Magic end of aux float array", magicEndOfAuxFltArray);
-            PrependInt32(builder, L"Magic end of aux", magicEndOfAux);
+            PrependInt32(builder, _u("Magic end of aux float array"), magicEndOfAuxFltArray);
+            PrependInt32(builder, _u("Magic end of aux"), magicEndOfAux);
 #endif
             return block;
         };
@@ -1355,23 +1355,23 @@ public:
 
             typedef serialization_alignment SerializedPropertyIdArray T;
             T header(offset, propIds->count, extraSlots, propIds->hadDuplicates, propIds->has__proto__);
-            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, L"Property Id Array", header);
+            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, _u("Property Id Array"), header);
             builder.list = builder.list->Prepend(block, alloc);
 
             for (uint32 i=0; i<propIds->count; i++)
             {
                 auto original = propIds->elements[i];
                 auto encoded = encodePossiblyBuiltInPropertyId(original);
-                PrependConstantInt32(builder, L"Encoded Property Id", encoded);
+                PrependConstantInt32(builder, _u("Encoded Property Id"), encoded);
             }
             auto slots = propIds->elements + propIds->count;
             for(uint32 i=0; i<extraSlots; i++)
             {
-                PrependConstantInt32(builder, L"Extra Slot", slots[i]);
+                PrependConstantInt32(builder, _u("Extra Slot"), slots[i]);
             }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"Magic end of aux section", magicEndOfAuxPropIdArray);
-            PrependInt32(builder, L"Magic end of aux", magicEndOfAux);
+            PrependInt32(builder, _u("Magic end of aux section"), magicEndOfAuxPropIdArray);
+            PrependInt32(builder, _u("Magic end of aux"), magicEndOfAux);
 #endif
             return block;
         };
@@ -1381,25 +1381,25 @@ public:
 
             typedef serialization_alignment SerializedFuncInfoArray T;
             T header(offset, funcInfos->count);
-            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, L"Funcinfo Array", header);
+            auto block = Anew(alloc, ConstantSizedBufferBuilderOf<T>, _u("Funcinfo Array"), header);
             builder.list = builder.list->Prepend(block, alloc);
 
             for (uint32 i=0; i<funcInfos->count; i++)
             {
                 auto funcInfo = funcInfos->elements[i];
-                PrependConstantInt32(builder, L"FuncInfo nestedIndex", funcInfo.nestedIndex);
-                PrependConstantInt32(builder, L"FuncInfo scopeSlot", funcInfo.scopeSlot);
+                PrependConstantInt32(builder, _u("FuncInfo nestedIndex"), funcInfo.nestedIndex);
+                PrependConstantInt32(builder, _u("FuncInfo scopeSlot"), funcInfo.scopeSlot);
             }
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"Magic end of aux section", magicEndOfAuxFuncInfoArray);
-            PrependInt32(builder, L"Magic end of aux", magicEndOfAux);
+            PrependInt32(builder, _u("Magic end of aux section"), magicEndOfAuxFuncInfoArray);
+            PrependInt32(builder, _u("Magic end of aux"), magicEndOfAux);
 #endif
             return block;
         };
 
-        PrependInt32(builder, L"Auxiliary Size",
+        PrependInt32(builder, _u("Auxiliary Size"),
             functionBody->GetAuxiliaryData()? functionBody->GetAuxiliaryData()->GetLength() : 0);
-        PrependInt32(builder, L"Auxiliary Context Size",
+        PrependInt32(builder, _u("Auxiliary Context Size"),
             functionBody->GetAuxiliaryContextData()? functionBody->GetAuxiliaryContextData()->GetLength() : 0);
         auxRecordList.Map([&](AuxRecord const& auxRecord)
         {
@@ -1447,14 +1447,14 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start String Constant", magicStartStringConstant);
+        size += PrependInt32(builder, _u("Start String Constant"), magicStartStringConstant);
 #endif
 
-        auto bb = Anew(alloc, ByteBuffer, (str->GetLength() + 1) * sizeof(wchar_t), (void*)str->GetSz());
-        size += PrependByteBuffer(builder, L"String Constant 16 Value", bb);
+        auto bb = Anew(alloc, ByteBuffer, (str->GetLength() + 1) * sizeof(char16), (void*)str->GetSz());
+        size += PrependByteBuffer(builder, _u("String Constant 16 Value"), bb);
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End String Constant", magicEndStringConstant);
+        size += PrependInt32(builder, _u("End String Constant"), magicEndStringConstant);
 #endif
 
         return size;
@@ -1464,7 +1464,7 @@ public:
     {
         ES5Array* callsite = ES5Array::FromVar(var);
         Var element = nullptr;
-        auto size = PrependInt32(builder, L"String Template Callsite Constant String Count", (int)callsite->GetLength());
+        auto size = PrependInt32(builder, _u("String Template Callsite Constant String Count"), (int)callsite->GetLength());
 
         for (uint32 i = 0; i < callsite->GetLength(); i++)
         {
@@ -1488,40 +1488,40 @@ public:
     {
         if (var == (Js::Var)&Js::NullFrameDisplay)
         {
-            return PrependByte(builder, L"Null Frame Display", ctNullDisplay);
+            return PrependByte(builder, _u("Null Frame Display"), ctNullDisplay);
         }
         else if (var == (Js::Var)&Js::StrictNullFrameDisplay)
         {
-            return PrependByte(builder, L"Strict Null Frame Display", ctStrictNullDisplay);
+            return PrependByte(builder, _u("Strict Null Frame Display"), ctStrictNullDisplay);
         }
 
         auto typeId = JavascriptOperators::GetTypeId(var);
         switch (typeId)
         {
         case TypeIds_Undefined:
-            return PrependByte(builder, L"Undefined Constant", ctUndefined);
+            return PrependByte(builder, _u("Undefined Constant"), ctUndefined);
 
         case TypeIds_Null:
-            return PrependByte(builder, L"Null Constant", ctNull);
+            return PrependByte(builder, _u("Null Constant"), ctNull);
 
         case TypeIds_Boolean:
-            return PrependByte(builder, L"Boolean Constant", JavascriptBoolean::FromVar(var)->GetValue()? ctTrue : ctFalse);
+            return PrependByte(builder, _u("Boolean Constant"), JavascriptBoolean::FromVar(var)->GetValue()? ctTrue : ctFalse);
 
         case TypeIds_Number:
         {
-            auto size = PrependByte(builder, L"Number Constant", ctNumber);
-            return size + PrependDouble(builder,  L"Number Constant Value", JavascriptNumber::GetValue(var));
+            auto size = PrependByte(builder, _u("Number Constant"), ctNumber);
+            return size + PrependDouble(builder,  _u("Number Constant Value"), JavascriptNumber::GetValue(var));
         }
 
         case TypeIds_Integer:
         {
-            auto size = PrependByte(builder, L"Integer Constant", ctInt);
-            return size + PrependConstantInt32(builder,  L"Integer Constant Value", TaggedInt::ToInt32(var));
+            auto size = PrependByte(builder, _u("Integer Constant"), ctInt);
+            return size + PrependConstantInt32(builder,  _u("Integer Constant Value"), TaggedInt::ToInt32(var));
         }
 
         case TypeIds_String:
         {
-            auto size = PrependByte(builder, L"String Constant 16", ctString16);
+            auto size = PrependByte(builder, _u("String Constant 16"), ctString16);
             return size + PrependStringConstant(builder, var);
         }
 
@@ -1530,7 +1530,7 @@ public:
             // ES5Array objects in the constant table are always string template callsite objects.
             // If we later put other ES5Array objects in the constant table, we'll need another way
             // to decide the constant type.
-            auto size = PrependByte(builder, L"String Template Callsite Constant", ctStringTemplateCallsite);
+            auto size = PrependByte(builder, _u("String Template Callsite Constant"), ctStringTemplateCallsite);
             return size + PrependStringTemplateCallsiteConstant(builder, var);
         }
 
@@ -1546,7 +1546,7 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start Constant Table", magicStartOfConstantTable);
+        size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
         uint32 intConstCount = function->GetAsmJsFunctionInfo()->GetIntConstCount();
@@ -1557,21 +1557,21 @@ public:
         int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
         for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < intConstCount; ++reg)
         {
-            PrependConstantInt32(builder, L"Integer Constant Value", intConstTable[reg]);
+            PrependConstantInt32(builder, _u("Integer Constant Value"), intConstTable[reg]);
         }
 
         float * floatConstTable = reinterpret_cast<float *>(intConstTable + intConstCount);
 
         for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < floatConstCount; ++reg)
         {
-            PrependFloat(builder, L"Float Constant Value", floatConstTable[reg]);
+            PrependFloat(builder, _u("Float Constant Value"), floatConstTable[reg]);
         }
 
         double * doubleConstTable = reinterpret_cast<double *>(floatConstTable + floatConstCount);
 
         for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < doubleConstCount; ++reg)
         {
-            PrependDouble(builder, L"Double Constant Value", doubleConstTable[reg]);
+            PrependDouble(builder, _u("Double Constant Value"), doubleConstTable[reg]);
         }
 
         uint32 simdConstCount = function->GetAsmJsFunctionInfo()->GetSimdConstCount();
@@ -1579,11 +1579,11 @@ public:
 
         for (Js::RegSlot reg = Js::FunctionBody::FirstRegSlot; reg < simdConstCount; ++reg)
         {
-            PrependSIMDValue(builder, L"SIMD Constant Value", simdConstTable[reg]);
+            PrependSIMDValue(builder, _u("SIMD Constant Value"), simdConstTable[reg]);
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End Constant Table", magicEndOfConstantTable);
+        size += PrependInt32(builder, _u("End Constant Table"), magicEndOfConstantTable);
 #endif
 
         return size;
@@ -1595,7 +1595,7 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start Constant Table", magicStartOfConstantTable);
+        size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
         for (auto reg = FunctionBody::FirstRegSlot + 1; reg < function->GetConstantCount(); reg++) // Ignore first slot, it is always global object or module root object
@@ -1606,7 +1606,7 @@ public:
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End Constant Table", magicEndOfConstantTable);
+        size += PrependInt32(builder, _u("End Constant Table"), magicEndOfConstantTable);
 #endif
 
         return size;
@@ -1621,17 +1621,17 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start PropertyIdsForScopeSlotsArray", magicStartOfPropertyIdsForScopeSlotArray);
+        size += PrependInt32(builder, _u("Start PropertyIdsForScopeSlotsArray"), magicStartOfPropertyIdsForScopeSlotArray);
 #endif
 
         for (uint i = 0; i < function->scopeSlotArraySize; i++)
         {
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(function->GetPropertyIdsForScopeSlotArray()[i]);
-            size += PrependInt32(builder, L"PropertyIdsForScopeSlots", propertyId);
+            size += PrependInt32(builder, _u("PropertyIdsForScopeSlots"), propertyId);
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End PropertyIdsForScopeSlotsArray", magicEndOfPropertyIdsForScopeSlotArray);
+        size += PrependInt32(builder, _u("End PropertyIdsForScopeSlotsArray"), magicEndOfPropertyIdsForScopeSlotArray);
 #endif
 
         return size;
@@ -1667,7 +1667,7 @@ public:
         uint32 size = 0u;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start SlotArrayDebuggerScopeProperties", magicStartOfDebuggerScopeProperties);
+        size += PrependInt32(builder, _u("Start SlotArrayDebuggerScopeProperties"), magicStartOfDebuggerScopeProperties);
 #endif // BYTE_CODE_MAGIC_CONSTANTS
 
         AssertMsg(debuggerScope->HasProperties(), "Properties should exist.");
@@ -1676,14 +1676,14 @@ public:
         for (uint i = 0u; i < propertiesCount; ++i)
         {
             DebuggerScopeProperty scopeProperty = debuggerScope->scopeProperties->Item(i);
-            size += PrependInt32(builder, L"SlotIndexesForDebuggerScopeSlots", scopeProperty.location);
+            size += PrependInt32(builder, _u("SlotIndexesForDebuggerScopeSlots"), scopeProperty.location);
 
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(scopeProperty.propId);
-            size += PrependInt32(builder, L"PropertyIdsForDebuggerScopeSlots", propertyId);
+            size += PrependInt32(builder, _u("PropertyIdsForDebuggerScopeSlots"), propertyId);
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End SlotArrayDebuggerScopeProperties", magicEndOfDebuggerScopeProperties);
+        size += PrependInt32(builder, _u("End SlotArrayDebuggerScopeProperties"), magicEndOfDebuggerScopeProperties);
 #endif // BYTE_CODE_MAGIC_CONSTANTS
 
         return size;
@@ -1703,7 +1703,7 @@ public:
         uint32 size = 0u;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"Start SlotArrayDebuggerScopes", magicStartOfDebuggerScopes);
+        size += PrependInt32(builder, _u("Start SlotArrayDebuggerScopes"), magicStartOfDebuggerScopes);
 #endif // BYTE_CODE_MAGIC_CONSTANTS
 
         uint slotArrayCount = 0;
@@ -1713,11 +1713,11 @@ public:
             if (debuggerScope->IsSlotScope())
             {
                 // Only add slot scope debugger scopes (store the index of the scope).
-                size += PrependInt32(builder, L"SlotArrayDebuggerScope", i);
+                size += PrependInt32(builder, _u("SlotArrayDebuggerScope"), i);
 
                 // Store the count of properties for the scope.
                 int propertiesCount = debuggerScope->HasProperties() ? debuggerScope->scopeProperties->Count() : 0u;
-                size += PrependInt32(builder, L"Debugger Scope Slot Array Property Count", propertiesCount);
+                size += PrependInt32(builder, _u("Debugger Scope Slot Array Property Count"), propertiesCount);
                 size += AddSlotArrayDebuggerScopeProperties(builder, debuggerScope, propertiesCount);
                 slotArrayCount++;
             }
@@ -1725,7 +1725,7 @@ public:
         Assert(debuggerScopeSlotArraySize == slotArrayCount);
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End SlotArrayDebuggerScopes", magicEndOfDebuggerScopes);
+        size += PrependInt32(builder, _u("End SlotArrayDebuggerScopes"), magicEndOfDebuggerScopes);
 #endif // BYTE_CODE_MAGIC_CONSTANTS
 
         return size;
@@ -1741,17 +1741,17 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, L"Start CacheId-to-PropertyId map", magicStartOfCacheIdToPropIdMap);
+        PrependInt32(builder, _u("Start CacheId-to-PropertyId map"), magicStartOfCacheIdToPropIdMap);
 #endif
 
         for (uint i = 0; i < count; i++)
         {
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(function->GetPropertyIdFromCacheId(i));
-            size += PrependInt32(builder, L"CacheIdToPropertyId", propertyId);
+            size += PrependInt32(builder, _u("CacheIdToPropertyId"), propertyId);
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End CacheId-to-PropertyId map", magicEndOfCacheIdToPropIdMap);
+        size += PrependInt32(builder, _u("End CacheId-to-PropertyId map"), magicEndOfCacheIdToPropIdMap);
 #endif
 
         return size;
@@ -1767,17 +1767,17 @@ public:
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, L"Start Referenced-PropertyId map", magicStartOfReferencedPropIdMap);
+        PrependInt32(builder, _u("Start Referenced-PropertyId map"), magicStartOfReferencedPropIdMap);
 #endif
 
         for (uint i = 0; i < count; i++)
         {
             PropertyId propertyId = encodeNonBuiltinPropertyId(function->GetReferencedPropertyIdWithMapIndex(i));
-            size += PrependInt32(builder, L"ReferencedPropertyId", propertyId);
+            size += PrependInt32(builder, _u("ReferencedPropertyId"), propertyId);
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End Referenced-PropertyId map", magicEndOfReferencedPropIdMap);
+        size += PrependInt32(builder, _u("End Referenced-PropertyId map"), magicEndOfReferencedPropIdMap);
 #endif
 
         return size;
@@ -1788,7 +1788,7 @@ public:
         int size = 0;
         for (int i = 0; i<length; ++i)
         {
-            size += PrependByte(builder, L"Byte Array Element", buffer[i]);
+            size += PrependByte(builder, _u("Byte Array Element"), buffer[i]);
         }
         return size;
     }
@@ -1798,7 +1798,7 @@ public:
         int size = 0;
         for(int i=0;i<length;++i)
         {
-            size += PrependConstantInt32(builder, L"UInt32 Array Element", buffer[i]);
+            size += PrependConstantInt32(builder, _u("UInt32 Array Element"), buffer[i]);
         }
         return size;
     }
@@ -1817,8 +1817,8 @@ public:
     uint32 PrependSmallSpanSequence(BufferBuilderList & builder, LPCWSTR clue, SmallSpanSequence * spanSequence)
     {
         auto size = PrependInt32(builder, clue, spanSequence->baseValue);
-        size += PrependGrowingUint32Array(builder, L"Statement Buffer", spanSequence->pStatementBuffer);
-        size += PrependGrowingUint32Array(builder, L"Actual Offset List", spanSequence->pActualOffsetList);
+        size += PrependGrowingUint32Array(builder, _u("Statement Buffer"), spanSequence->pStatementBuffer);
+        size += PrependGrowingUint32Array(builder, _u("Actual Offset List"), spanSequence->pActualOffsetList);
         return size;
     }
 
@@ -1838,35 +1838,35 @@ public:
         AsmJsFunctionInfo* funcInfo = function->GetAsmJsFunctionInfo();
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, L"Start Asm.js Function Info", magicStartOfAsmJsFuncInfo);
+        PrependInt32(builder, _u("Start Asm.js Function Info"), magicStartOfAsmJsFuncInfo);
 #endif
-        size += PrependInt32(builder, L"ReturnType", funcInfo->GetReturnType().which());
-        size += PrependInt32(builder, L"IntConstCount", funcInfo->GetIntConstCount());
-        size += PrependInt32(builder, L"DoubleConstCount", funcInfo->GetDoubleConstCount());
-        size += PrependInt32(builder, L"FloatConstCount", funcInfo->GetFloatConstCount());
-        size += PrependInt16(builder, L"ArgCount", funcInfo->GetArgCount());
-        size += PrependInt16(builder, L"ArgSize", funcInfo->GetArgByteSize());
-        size += PrependInt32(builder, L"IntVarCount", funcInfo->GetIntVarCount());
-        size += PrependInt32(builder, L"DoubleVarCount", funcInfo->GetDoubleVarCount());
-        size += PrependInt32(builder, L"FloatVarCount", funcInfo->GetFloatVarCount());
-        size += PrependInt32(builder, L"IntTmpCount", funcInfo->GetIntTmpCount());
-        size += PrependInt32(builder, L"DoubleTmpCount", funcInfo->GetDoubleTmpCount());
-        size += PrependInt32(builder, L"FloatTmpCount", funcInfo->GetFloatTmpCount());
-        size += PrependInt16(builder, L"ArgSizeArrayLength", funcInfo->GetArgSizeArrayLength());
+        size += PrependInt32(builder, _u("ReturnType"), funcInfo->GetReturnType().which());
+        size += PrependInt32(builder, _u("IntConstCount"), funcInfo->GetIntConstCount());
+        size += PrependInt32(builder, _u("DoubleConstCount"), funcInfo->GetDoubleConstCount());
+        size += PrependInt32(builder, _u("FloatConstCount"), funcInfo->GetFloatConstCount());
+        size += PrependInt16(builder, _u("ArgCount"), funcInfo->GetArgCount());
+        size += PrependInt16(builder, _u("ArgSize"), funcInfo->GetArgByteSize());
+        size += PrependInt32(builder, _u("IntVarCount"), funcInfo->GetIntVarCount());
+        size += PrependInt32(builder, _u("DoubleVarCount"), funcInfo->GetDoubleVarCount());
+        size += PrependInt32(builder, _u("FloatVarCount"), funcInfo->GetFloatVarCount());
+        size += PrependInt32(builder, _u("IntTmpCount"), funcInfo->GetIntTmpCount());
+        size += PrependInt32(builder, _u("DoubleTmpCount"), funcInfo->GetDoubleTmpCount());
+        size += PrependInt32(builder, _u("FloatTmpCount"), funcInfo->GetFloatTmpCount());
+        size += PrependInt16(builder, _u("ArgSizeArrayLength"), funcInfo->GetArgSizeArrayLength());
         size += PrependUInt32Array(builder, funcInfo->GetArgSizeArrayLength(), funcInfo->GetArgsSizesArray());
         size += PrependByteArray(builder, funcInfo->GetArgCount(), (byte*)funcInfo->GetArgTypeArray());
-        size += PrependInt32(builder, L"IntByteOffset", funcInfo->GetIntByteOffset());
-        size += PrependInt32(builder, L"DoubleByteOffset", funcInfo->GetDoubleByteOffset());
-        size += PrependInt32(builder, L"FloatByteOffset", funcInfo->GetFloatByteOffset());
-        size += PrependByte(builder, L"IsHeapBufferConst", funcInfo->IsHeapBufferConst());
-        size += PrependByte(builder, L"UsesHeapBuffer", funcInfo->UsesHeapBuffer());
-        size += PrependInt32(builder, L"SIMDConstCount", funcInfo->GetSimdConstCount());
-        size += PrependInt32(builder, L"SIMDVarCount", funcInfo->GetSimdVarCount());
-        size += PrependInt32(builder, L"SIMDTmpCount", funcInfo->GetSimdTmpCount());
-        size += PrependInt32(builder, L"SIMDByteOffset", funcInfo->GetSimdByteOffset());
+        size += PrependInt32(builder, _u("IntByteOffset"), funcInfo->GetIntByteOffset());
+        size += PrependInt32(builder, _u("DoubleByteOffset"), funcInfo->GetDoubleByteOffset());
+        size += PrependInt32(builder, _u("FloatByteOffset"), funcInfo->GetFloatByteOffset());
+        size += PrependByte(builder, _u("IsHeapBufferConst"), funcInfo->IsHeapBufferConst());
+        size += PrependByte(builder, _u("UsesHeapBuffer"), funcInfo->UsesHeapBuffer());
+        size += PrependInt32(builder, _u("SIMDConstCount"), funcInfo->GetSimdConstCount());
+        size += PrependInt32(builder, _u("SIMDVarCount"), funcInfo->GetSimdVarCount());
+        size += PrependInt32(builder, _u("SIMDTmpCount"), funcInfo->GetSimdTmpCount());
+        size += PrependInt32(builder, _u("SIMDByteOffset"), funcInfo->GetSimdByteOffset());
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End Asm.js Function Info", magicEndOfAsmJsFuncInfo);
+        size += PrependInt32(builder, _u("End Asm.js Function Info"), magicEndOfAsmJsFuncInfo);
 #endif
 
         return size;
@@ -1878,91 +1878,91 @@ public:
         AsmJsModuleInfo * moduleInfo = function->GetAsmJsModuleInfo();
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, L"Start Asm.js Module Info", magicStartOfAsmJsModuleInfo);
+        PrependInt32(builder, _u("Start Asm.js Module Info"), magicStartOfAsmJsModuleInfo);
 #endif
 
-        size += PrependInt32(builder, L"ArgInCount", moduleInfo->GetArgInCount());
-        size += PrependInt32(builder, L"ExportsCount", moduleInfo->GetExportsCount());
-        size += PrependInt32(builder, L"SlotsCount", moduleInfo->GetSlotsCount());
-        size += PrependInt32(builder, L"SIMDRegCount", moduleInfo->GetSimdRegCount());
+        size += PrependInt32(builder, _u("ArgInCount"), moduleInfo->GetArgInCount());
+        size += PrependInt32(builder, _u("ExportsCount"), moduleInfo->GetExportsCount());
+        size += PrependInt32(builder, _u("SlotsCount"), moduleInfo->GetSlotsCount());
+        size += PrependInt32(builder, _u("SIMDRegCount"), moduleInfo->GetSimdRegCount());
 
         if (moduleInfo->GetExportsCount() > 0)
         {
             PropertyIdArray * propArray = moduleInfo->GetExportsIdArray();
-            size += PrependByte(builder, L"ExportsIdArrayDups", propArray->hadDuplicates);
-            size += PrependByte(builder, L"ExportsIdArray__proto__", propArray->has__proto__);
-            size += PrependInt32(builder, L"ExportsIdArrayLength", propArray->count);
+            size += PrependByte(builder, _u("ExportsIdArrayDups"), propArray->hadDuplicates);
+            size += PrependByte(builder, _u("ExportsIdArray__proto__"), propArray->has__proto__);
+            size += PrependInt32(builder, _u("ExportsIdArrayLength"), propArray->count);
             for (uint i = 0; i < propArray->count; i++)
             {
                 PropertyId propertyId = encodePossiblyBuiltInPropertyId(propArray->elements[i]);
-                size += PrependInt32(builder, L"ExportsIdArrayElem", propertyId);
+                size += PrependInt32(builder, _u("ExportsIdArrayElem"), propertyId);
             }
             size += PrependUInt32Array(builder, moduleInfo->GetExportsCount(), moduleInfo->GetExportsFunctionLocation());
         }
 
-        size += PrependInt32(builder, L"ExportFunctionIndex", moduleInfo->GetExportFunctionIndex());
+        size += PrependInt32(builder, _u("ExportFunctionIndex"), moduleInfo->GetExportFunctionIndex());
 
-        size += PrependInt32(builder, L"VarCount", moduleInfo->GetVarCount());
+        size += PrependInt32(builder, _u("VarCount"), moduleInfo->GetVarCount());
         for (int i = 0; i < moduleInfo->GetVarCount(); i++)
         {
-            size += PrependStruct(builder, L"ModuleVar", &moduleInfo->GetVar(i));
+            size += PrependStruct(builder, _u("ModuleVar"), &moduleInfo->GetVar(i));
         }
 
-        size += PrependInt32(builder, L"VarImportCount", moduleInfo->GetVarImportCount());
+        size += PrependInt32(builder, _u("VarImportCount"), moduleInfo->GetVarImportCount());
         for (int i = 0; i < moduleInfo->GetVarImportCount(); i++)
         {
             auto import = moduleInfo->GetVarImport(i);
-            size += PrependInt32(builder, L"ImportLocation", import.location);
-            size += PrependByte(builder, L"ImportType", import.type);
+            size += PrependInt32(builder, _u("ImportLocation"), import.location);
+            size += PrependByte(builder, _u("ImportType"), import.type);
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(import.field);
-            size += PrependInt32(builder, L"ImportId", propertyId);
+            size += PrependInt32(builder, _u("ImportId"), propertyId);
         }
 
-        size += PrependInt32(builder, L"FunctionImportCount", moduleInfo->GetFunctionImportCount());
+        size += PrependInt32(builder, _u("FunctionImportCount"), moduleInfo->GetFunctionImportCount());
         for (int i = 0; i < moduleInfo->GetFunctionImportCount(); i++)
         {
             auto import = moduleInfo->GetFunctionImport(i);
-            size += PrependInt32(builder, L"ImportLocation", import.location);
+            size += PrependInt32(builder, _u("ImportLocation"), import.location);
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(import.field);
-            size += PrependInt32(builder, L"ImportId", propertyId);
+            size += PrependInt32(builder, _u("ImportId"), propertyId);
         }
 
-        size += PrependInt32(builder, L"FunctionCount", moduleInfo->GetFunctionCount());
+        size += PrependInt32(builder, _u("FunctionCount"), moduleInfo->GetFunctionCount());
         for (int i = 0; i < moduleInfo->GetFunctionCount(); i++)
         {
             auto func = moduleInfo->GetFunction(i);
-            size += PrependInt32(builder, L"FuncLocation", func.location);
+            size += PrependInt32(builder, _u("FuncLocation"), func.location);
         }
 
-        size += PrependInt32(builder, L"FunctionTableCount", moduleInfo->GetFunctionTableCount());
+        size += PrependInt32(builder, _u("FunctionTableCount"), moduleInfo->GetFunctionTableCount());
         for (int i = 0; i < moduleInfo->GetFunctionTableCount(); i++)
         {
             auto table = moduleInfo->GetFunctionTable(i);
-            size += PrependInt32(builder, L"FuncTableSize", table.size);
+            size += PrependInt32(builder, _u("FuncTableSize"), table.size);
             PrependUInt32Array(builder, table.size, table.moduleFunctionIndex);
         }
 
-        size += PrependStruct<AsmJsModuleMemory>(builder, L"ModuleMemory", &moduleInfo->GetModuleMemory());
+        size += PrependStruct<AsmJsModuleMemory>(builder, _u("ModuleMemory"), &moduleInfo->GetModuleMemory());
 
-        size += PrependInt32(builder, L"AsmJsSlotMapCount", moduleInfo->GetAsmJsSlotMap()->Count());
+        size += PrependInt32(builder, _u("AsmJsSlotMapCount"), moduleInfo->GetAsmJsSlotMap()->Count());
         auto slotIter = moduleInfo->GetAsmJsSlotMap()->GetIterator();
         while (slotIter.IsValid())
         {
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(slotIter.CurrentKey());
-            size += PrependInt32(builder, L"AsmJsSlotPropId", propertyId);
-            size += PrependStruct(builder, L"AsmJsSlotValue", slotIter.CurrentValue());
+            size += PrependInt32(builder, _u("AsmJsSlotPropId"), propertyId);
+            size += PrependStruct(builder, _u("AsmJsSlotValue"), slotIter.CurrentValue());
             slotIter.MoveNext();
         }
-        size += PrependStruct(builder, L"MathBuiltinBV", &moduleInfo->GetAsmMathBuiltinUsed());
-        size += PrependStruct(builder, L"ArrayBuiltinBV", &moduleInfo->GetAsmArrayBuiltinUsed());
-        size += PrependStruct(builder, L"SIMDBuiltinBV", &moduleInfo->GetAsmSimdBuiltinUsed());
+        size += PrependStruct(builder, _u("MathBuiltinBV"), &moduleInfo->GetAsmMathBuiltinUsed());
+        size += PrependStruct(builder, _u("ArrayBuiltinBV"), &moduleInfo->GetAsmArrayBuiltinUsed());
+        size += PrependStruct(builder, _u("SIMDBuiltinBV"), &moduleInfo->GetAsmSimdBuiltinUsed());
 
-        size += PrependInt32(builder, L"MaxHeapAccess", moduleInfo->GetMaxHeapAccess());
-        size += PrependByte(builder, L"UsesChangeHeap", moduleInfo->GetUsesChangeHeap());
+        size += PrependInt32(builder, _u("MaxHeapAccess"), moduleInfo->GetMaxHeapAccess());
+        size += PrependByte(builder, _u("UsesChangeHeap"), moduleInfo->GetUsesChangeHeap());
 
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        size += PrependInt32(builder, L"End Asm.js Module Info", magicEndOfAsmJsModuleInfo);
+        size += PrependInt32(builder, _u("End Asm.js Module Info"), magicEndOfAsmJsModuleInfo);
 #endif
         return size;
     }
@@ -1973,7 +1973,7 @@ public:
         SerializedFieldList definedFields = { 0 };
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, L"Start Function Table", magicStartOfFunctionBody);
+        PrependInt32(builder, _u("Start Function Table"), magicStartOfFunctionBody);
 #endif
 
         Assert(function->GetSerializationIndex() == -1 && (*serializationIndex) != -1);
@@ -1987,18 +1987,18 @@ public:
             Assert(0); // Likely a bug
             return ByteCodeSerializer::CantGenerate;
         }
-        PrependString16(builder, L"Display Name", function->m_displayName, (function->m_displayNameLength +1)* sizeof(wchar_t));
+        PrependString16(builder, _u("Display Name"), function->m_displayName, (function->m_displayNameLength +1)* sizeof(char16));
 
         if (function->m_lineNumber != 0)
         {
             definedFields.has_m_lineNumber = true;
-            PrependInt32(builder, L"Line Number", function->m_lineNumber);
+            PrependInt32(builder, _u("Line Number"), function->m_lineNumber);
         }
 
         if (function->m_columnNumber != 0)
         {
             definedFields.has_m_columnNumber = true;
-            PrependInt32(builder, L"Column Number", function->m_columnNumber);
+            PrependInt32(builder, _u("Column Number"), function->m_columnNumber);
         }
 
         // FunctionBody Details
@@ -2027,10 +2027,10 @@ public:
 #endif
             ;
 
-        PrependInt32(builder, L"BitFlags", bitFlags);
-        PrependInt32(builder, L"Relative Function ID", function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
-        PrependInt32(builder, L"Serialization ID", function->GetSerializationIndex());
-        PrependInt32(builder, L"Attributes", function->GetAttributes());
+        PrependInt32(builder, _u("BitFlags"), bitFlags);
+        PrependInt32(builder, _u("Relative Function ID"), function->functionId - topFunctionId); // Serialized function ids are relative to the top function ID
+        PrependInt32(builder, _u("Serialization ID"), function->GetSerializationIndex());
+        PrependInt32(builder, _u("Attributes"), function->GetAttributes());
         AssertMsg((function->GetAttributes() &
                 ~(FunctionInfo::Attributes::ErrorOnNew
                   | FunctionInfo::Attributes::SuperReference
@@ -2042,11 +2042,11 @@ public:
                   | FunctionInfo::Attributes::ClassMethod)) == 0,
                 "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember attributes should be set on a serialized function");
 
-        PrependInt32(builder, L"Offset Into Source", sourceDiff);
+        PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)
         {
             definedFields.has_m_nestedCount = true;
-            PrependInt32(builder, L"Nested count", function->GetNestedCount());
+            PrependInt32(builder, _u("Nested count"), function->GetNestedCount());
         }
 
         // This field should always be non-zero
@@ -2064,7 +2064,7 @@ public:
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
         if (function->##name != 0) { \
             definedFields.has_##name = true; \
-            Prepend##serializableType(builder, L#name, function->##name); \
+            Prepend##serializableType(builder, _u(#name), function->##name); \
         }
 
 #include "SerializableFunctionFields.h"
@@ -2075,12 +2075,12 @@ public:
 #define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
             if (function->##name != 0) { \
                 definedFields.has_##name = true; \
-                Prepend##serializableType(builder, L#name, function->##name); \
+                Prepend##serializableType(builder, _u(#name), function->##name); \
             }
 #define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType) \
             if (function->Get##name##() != 0) { \
                 definedFields.has_##name = true; \
-                Prepend##serializableType(builder, L#name, function->Get##name##()); \
+                Prepend##serializableType(builder, _u(#name), function->Get##name##()); \
             }
 
 
@@ -2092,41 +2092,41 @@ public:
             auto loopHeaderArray = function->GetLoopHeaderArray();
             if (loopHeaderArray)
             {
-                PrependByte(builder, L"Loop Header Array Exists", 1);
+                PrependByte(builder, _u("Loop Header Array Exists"), 1);
                 uint loopCount = function->GetLoopCount();
                 for (uint i = 0; i < loopCount; ++i)
                 {
-                    PrependInt32(builder, L"Loop Header Start", loopHeaderArray[i].startOffset);
-                    PrependInt32(builder, L"Loop Header End", loopHeaderArray[i].endOffset);
+                    PrependInt32(builder, _u("Loop Header Start"), loopHeaderArray[i].startOffset);
+                    PrependInt32(builder, _u("Loop Header End"), loopHeaderArray[i].endOffset);
                 }
             }
             else
             {
-                PrependByte(builder, L"Loop Header Array Exists", 0);
+                PrependByte(builder, _u("Loop Header Array Exists"), 0);
             }
 
 #ifndef TEMP_DISABLE_ASMJS
             if (function->GetAsmJsFunctionInfo())
             {
-                PrependByte(builder, L"Asm.js Info Exists", 1);
+                PrependByte(builder, _u("Asm.js Info Exists"), 1);
                 AddAsmJsFunctionInfo(builder, function);
             }
             else if (function->GetIsAsmjsMode())
             {
-                PrependByte(builder, L"Asm.js Info Exists", 2);
+                PrependByte(builder, _u("Asm.js Info Exists"), 2);
                 AddAsmJsModuleInfo(builder, function);
             }
             else
 #endif
             {
-                PrependByte(builder, L"Asm.js Info Exists", 0);
+                PrependByte(builder, _u("Asm.js Info Exists"), 0);
             }
 
 #ifndef TEMP_DISABLE_ASMJS
             if (function->GetIsAsmJsFunction())
             {
                 AddAsmJsConstantTable(builder, function);
-                auto hr = RewriteAsmJsByteCodesInto(builder, L"Rewritten Byte Code", function, function->byteCodeBlock);
+                auto hr = RewriteAsmJsByteCodesInto(builder, _u("Rewritten Byte Code"), function, function->byteCodeBlock);
                 if (FAILED(hr))
                 {
                     return hr;
@@ -2136,7 +2136,7 @@ public:
 #endif
             {
                 AddConstantTable(builder, function);
-                auto hr = RewriteByteCodesInto(builder, L"Rewritten Byte Code", function, function->byteCodeBlock);
+                auto hr = RewriteByteCodesInto(builder, _u("Rewritten Byte Code"), function, function->byteCodeBlock);
                 if (FAILED(hr))
                 {
                     return hr;
@@ -2150,7 +2150,7 @@ public:
             AddPropertyIdsForScopeSlotArray(builder, function);
 
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
-            PrependInt32(builder, L"Debugger Scope Slot Array Size", debuggerScopeSlotArraySize);
+            PrependInt32(builder, _u("Debugger Scope Slot Array Size"), debuggerScopeSlotArraySize);
             AddSlotArrayDebuggerScopes(builder, function, debuggerScopeSlotArraySize);
 
             // Literal regexes
@@ -2159,44 +2159,44 @@ public:
                 const auto literalRegex = function->GetLiteralRegex(i);
                 if (!literalRegex)
                 {
-                    PrependInt32(builder, L"Literal regex source length", -1);
+                    PrependInt32(builder, _u("Literal regex source length"), -1);
                     continue;
                 }
 
                 const auto source = literalRegex->GetSource();
-                PrependInt32(builder, L"Literal regex source length", source.GetLength());
-                PrependString16(builder, L"Literal regex source", source.GetBuffer(), (source.GetLength() + 1)* sizeof(wchar_t));
-                PrependByte(builder, L"Literal regex flags", literalRegex->GetFlags());
+                PrependInt32(builder, _u("Literal regex source length"), source.GetLength());
+                PrependString16(builder, _u("Literal regex source"), source.GetBuffer(), (source.GetLength() + 1)* sizeof(char16));
+                PrependByte(builder, _u("Literal regex flags"), literalRegex->GetFlags());
             }
 
             // Write the SourceInfo stuff
-            PrependSmallSpanSequence(builder, L"Span Sequence", function->m_sourceInfo.pSpanSequence);
+            PrependSmallSpanSequence(builder, _u("Span Sequence"), function->m_sourceInfo.pSpanSequence);
         }
 
         // Lastly, write each of the lexically enclosed functions
         if (function->GetNestedCount())
         {
-            auto nestedBodyList = Anew(alloc, BufferBuilderList, L"Nest Function Bodies");
+            auto nestedBodyList = Anew(alloc, BufferBuilderList, _u("Nest Function Bodies"));
 
             for(uint32 i = 0; i<function->GetNestedCount(); ++i)
             {
                 auto nestedFunctionBody = function->GetNestedFunc(i)->GetFunctionBody();
                 if (nestedFunctionBody==nullptr)
                 {
-                    PrependInt32(builder, L"Empty Nested Function", 0);
+                    PrependInt32(builder, _u("Empty Nested Function"), 0);
                 }
                 else
                 {
-                    auto nestedFunctionBuilder = Anew(alloc, BufferBuilderList, L"Nested Function");
+                    auto nestedFunctionBuilder = Anew(alloc, BufferBuilderList, _u("Nested Function"));
                     nestedBodyList->list = nestedBodyList->list->Prepend(nestedFunctionBuilder, alloc);
-                    auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, L"Offset To Nested Function", nestedFunctionBuilder);
+                    auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To Nested Function"), nestedFunctionBuilder);
                     builder.list = builder.list->Prepend(offsetToNested, alloc);
                     AddFunctionBody(*nestedFunctionBuilder, nestedFunctionBody, srcInfo, serializationIndex);
                 }
             }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"End Function Body", magicEndOfFunctionBody);
+            PrependInt32(builder, _u("End Function Body"), magicEndOfFunctionBody);
 #endif
 
             builder.list = builder.list->Prepend(nestedBodyList, alloc);
@@ -2204,7 +2204,7 @@ public:
         else
         {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
-            PrependInt32(builder, L"End Function Body", magicEndOfFunctionBody);
+            PrependInt32(builder, _u("End Function Body"), magicEndOfFunctionBody);
 #endif
         }
 
@@ -2214,7 +2214,7 @@ public:
 
         // Reverse to put prepended items in correct order
         builder.list = builder.list->ReverseCurrentList();
-        PrependStruct<SerializedFieldList>(builder, L"Serialized Field List", &definedFields);
+        PrependStruct<SerializedFieldList>(builder, _u("Serialized Field List"), &definedFields);
 
         return S_OK;
     }
@@ -2713,7 +2713,7 @@ public:
 
         // string16Table is aligned to 2-bytes
         uint32 string16TableOffset = (uint32)(string16Table - raw);
-        string16TableOffset = ::Math::Align(string16TableOffset, (uint32)sizeof(wchar_t));
+        string16TableOffset = ::Math::Align(string16TableOffset, (uint32)sizeof(char16));
         string16Table = raw + string16TableOffset;
 
         return S_OK;
@@ -4022,7 +4022,7 @@ void ByteCodeCache::PopulateLookupPropertyId(ScriptContext * scriptContext, int 
         auto propertyNameLength = reader->GetString16LengthById(idInCache);
 
         const Js::PropertyRecord * propertyRecord = scriptContext->GetThreadContext()->GetOrAddPropertyRecordBind(
-            JsUtil::CharacterBuffer<wchar_t>(propertyName, propertyNameLength));
+            JsUtil::CharacterBuffer<char16>(propertyName, propertyNameLength));
 
         propertyIds[realOffset] = propertyRecord->GetPropertyId();
     }

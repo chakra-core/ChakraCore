@@ -29,7 +29,7 @@ namespace Js
         static JavascriptSIMDBool16x8* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDBool16x8* FromVar(Var aValue);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDBool16x8, value); }
         static Var CallToLocaleString(RecyclableObject&, ScriptContext&, SIMDValue, const Var, uint, CallInfo) 
         { 
@@ -37,11 +37,11 @@ namespace Js
             return nullptr;
         };
  
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
-            swprintf_s(stringBuffer, countBuffer, L"SIMD.Bool16x8(%s, %s, %s, %s, %s, %s, %s, %s)", \
-                value.i16[0] ? L"true" : L"false", value.i16[1] ? L"true" : L"false", value.i16[2] ? L"true" : L"false", value.i16[3] ? L"true" : L"false", \
-                value.i16[4] ? L"true" : L"false", value.i16[5] ? L"true" : L"false", value.i16[6] ? L"true" : L"false", value.i16[7] ? L"true" : L"false"
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Bool16x8(%s, %s, %s, %s, %s, %s, %s, %s)"), \
+                value.i16[0] ? _u("true") : _u("false"), value.i16[1] ? _u("true") : _u("false"), value.i16[2] ? _u("true") : _u("false"), value.i16[3] ? _u("true") : _u("false"), \
+                value.i16[4] ? _u("true") : _u("false"), value.i16[5] ? _u("true") : _u("false"), value.i16[6] ? _u("true") : _u("false"), value.i16[7] ? _u("true") : _u("false")
                 );
         }
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;

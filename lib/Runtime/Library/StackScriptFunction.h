@@ -14,7 +14,7 @@ namespace Js
     {
     public:
 
-        static JavascriptFunction * EnsureBoxed(BOX_PARAM(JavascriptFunction * function, void * returnAddress, wchar_t const * reason));
+        static JavascriptFunction * EnsureBoxed(BOX_PARAM(JavascriptFunction * function, void * returnAddress, char16 const * reason));
         static void Box(FunctionBody * functionBody, ScriptFunction ** functionRef);
         static ScriptFunction * OP_NewStackScFunc(FrameDisplay *environment, FunctionProxy** proxyRef, ScriptFunction * stackFunction);
         static uint32 GetOffsetOfBoxedScriptFunction() { return offsetof(StackScriptFunction, boxedScriptFunction); }

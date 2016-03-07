@@ -209,7 +209,7 @@ public:
     void AssignPropertyIds(Js::ParseableFunctionInfo* functionInfo);
     void MapCacheIdsToPropertyIds(FuncInfo *funcInfo);
     void MapReferencedPropertyIds(FuncInfo *funcInfo);
-    FuncInfo *StartBindFunction(const wchar_t *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode);
+    FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode);
     void EndBindFunction(bool funcExprWithName);
     void StartBindCatch(ParseNode *pnode);
 
@@ -237,13 +237,13 @@ public:
     void PushBlock(ParseNode *pnode);
     void PopBlock();
 
-    void PushFuncInfo(wchar_t const * location, FuncInfo* funcInfo);
-    void PopFuncInfo(wchar_t const * location);
+    void PushFuncInfo(char16 const * location, FuncInfo* funcInfo);
+    void PopFuncInfo(char16 const * location);
 
     Js::RegSlot PrependLocalScopes(Js::RegSlot evalEnv, Js::RegSlot tempLoc, FuncInfo *funcInfo);
     Symbol *FindSymbol(Symbol **symRef, IdentPtr pid, bool forReference = false);
-    Symbol *AddSymbolToScope(Scope *scope, const wchar_t *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
-    Symbol *AddSymbolToFunctionScope(const wchar_t *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
+    Symbol *AddSymbolToScope(Scope *scope, const char16 *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
+    Symbol *AddSymbolToFunctionScope(const char16 *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
     void FuncEscapes(Scope *scope);
     void EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInfo, BOOL fReturnValue);
     void EmitInvertedLoop(ParseNode* outerLoop,ParseNode* invertedLoop,FuncInfo* funcInfo);

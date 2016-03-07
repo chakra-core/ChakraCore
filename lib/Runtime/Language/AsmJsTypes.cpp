@@ -33,72 +33,72 @@ namespace Js
     template<> void PrintTmpRegisterAllocation<double>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+D%d\n", loc);
+            Output::Print(_u("+D%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<double>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-D%d\n", loc);
+            Output::Print(_u("-D%d\n"), loc);
     }
     template<> void PrintTmpRegisterAllocation<float>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+F%d\n", loc);
+            Output::Print(_u("+F%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<float>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-F%d\n", loc);
+            Output::Print(_u("-F%d\n"), loc);
     }
     template<> void PrintTmpRegisterAllocation<int>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+I%d\n", loc);
+            Output::Print(_u("+I%d\n"), loc);
     }
     template<> void PrintTmpRegisterDeAllocation<int>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-I%d\n", loc);
+            Output::Print(_u("-I%d\n"), loc);
     }
 
     template<> void PrintTmpRegisterAllocation<AsmJsSIMDValue>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"+SIMD%d\n", loc);
+            Output::Print(_u("+SIMD%d\n"), loc);
     }
 
     template<> void PrintTmpRegisterDeAllocation<AsmJsSIMDValue>(RegSlot loc)
     {
         if (PHASE_ON1(AsmjsTmpRegisterAllocationPhase))
-            Output::Print(L"-SIMD%d\n", loc);
+            Output::Print(_u("-SIMD%d\n"), loc);
     }
     template<typename T> void PrintTmpRegisterAllocation(RegSlot loc) {}
     template<typename T> void PrintTmpRegisterDeAllocation(RegSlot loc) {}
 #endif
 
-    const wchar_t * AsmJsType::toChars() const
+    const char16 * AsmJsType::toChars() const
     {
         switch (which_)
         {
-        case Double:      return L"double";
-        case MaybeDouble: return L"double?";
-        case DoubleLit:   return L"doublelit";
-        case Float:       return L"float";
-        case Floatish:    return L"floatish";
-        case FloatishDoubleLit: return L"FloatishDoubleLit";
-        case MaybeFloat:  return L"float?";
-        case Fixnum:      return L"fixnum";
-        case Int:         return L"int";
-        case Signed:      return L"signed";
-        case Unsigned:    return L"unsigned";
-        case Intish:      return L"intish";
-        case Void:        return L"void";
-        case Int32x4:     return L"SIMD.Int32x4";
-        case Float32x4:   return L"SIMD.Float32x4";
-        case Float64x2:   return L"SIMD.Float64x2";
+        case Double:      return _u("double");
+        case MaybeDouble: return _u("double?");
+        case DoubleLit:   return _u("doublelit");
+        case Float:       return _u("float");
+        case Floatish:    return _u("floatish");
+        case FloatishDoubleLit: return _u("FloatishDoubleLit");
+        case MaybeFloat:  return _u("float?");
+        case Fixnum:      return _u("fixnum");
+        case Int:         return _u("int");
+        case Signed:      return _u("signed");
+        case Unsigned:    return _u("unsigned");
+        case Intish:      return _u("intish");
+        case Void:        return _u("void");
+        case Int32x4:     return _u("SIMD.Int32x4");
+        case Float32x4:   return _u("SIMD.Float32x4");
+        case Float64x2:   return _u("SIMD.Float64x2");
         }
         Assert(false);
-        return L"none";
+        return _u("none");
     }
 
     bool AsmJsType::isSIMDType() const
@@ -779,7 +779,7 @@ namespace Js
         AsmJsVarBase* var = FindVar(name);
         if (var)
         {
-            Output::Print(L"Variable redefinition: %s\n", name->Psz());
+            Output::Print(_u("Variable redefinition: %s\n"), name->Psz());
             return nullptr;
         }
 
@@ -937,18 +937,18 @@ namespace Js
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
         {
-            Output::Print(L"ASMFunctionInfo Stack Data\n");
-            Output::Print(L"==========================\n");
-            Output::Print(L"RequiredVarConstants:%d\n", AsmJsFunctionMemory::RequiredVarConstants);
-            Output::Print(L"IntOffset:%d  IntConstCount:%d  IntVarCount:%d  IntTmpCount:%d\n", mIntByteOffset, mIntConstCount, mIntVarCount, mIntTmpCount);
-            Output::Print(L"FloatOffset:%d  FloatConstCount:%d  FloatVarCount:%d FloatTmpCount:%d\n", mFloatByteOffset, mFloatConstCount, mFloatVarCount, mFloatTmpCount);
-            Output::Print(L"DoubleOffset:%d  DoubleConstCount:%d  DoubleVarCount:%d  DoubleTmpCount:%d\n", mDoubleByteOffset, mDoubleConstCount, mDoubleVarCount, mDoubleTmpCount);
+            Output::Print(_u("ASMFunctionInfo Stack Data\n"));
+            Output::Print(_u("==========================\n"));
+            Output::Print(_u("RequiredVarConstants:%d\n"), AsmJsFunctionMemory::RequiredVarConstants);
+            Output::Print(_u("IntOffset:%d  IntConstCount:%d  IntVarCount:%d  IntTmpCount:%d\n"), mIntByteOffset, mIntConstCount, mIntVarCount, mIntTmpCount);
+            Output::Print(_u("FloatOffset:%d  FloatConstCount:%d  FloatVarCount:%d FloatTmpCount:%d\n"), mFloatByteOffset, mFloatConstCount, mFloatVarCount, mFloatTmpCount);
+            Output::Print(_u("DoubleOffset:%d  DoubleConstCount:%d  DoubleVarCount:%d  DoubleTmpCount:%d\n"), mDoubleByteOffset, mDoubleConstCount, mDoubleVarCount, mDoubleTmpCount);
 
             if (isSimdjsEnabled)
             {
-                Output::Print(L"SimdOffset:%d  SimdConstCount:%d  SimdVarCount:%d  SimdTmpCount:%d\n", mSimdByteOffset, mSimdConstCount, mSimdVarCount, mSimdTmpCount);
+                Output::Print(_u("SimdOffset:%d  SimdConstCount:%d  SimdVarCount:%d  SimdTmpCount:%d\n"), mSimdByteOffset, mSimdConstCount, mSimdVarCount, mSimdTmpCount);
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 
 

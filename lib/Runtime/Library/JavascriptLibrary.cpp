@@ -1131,50 +1131,50 @@ namespace Js
 
         emptyString = CreateEmptyString(); // Must be created before other calls to CreateString
         nullString = CreateEmptyString(); // Must be distinct from emptyString (for the DOM)
-        quotesString = CreateStringFromCppLiteral(L"\"\"");
-        whackString = CreateStringFromCppLiteral(L"/");
-        undefinedDisplayString = CreateStringFromCppLiteral(L"undefined");
-        nanDisplayString = CreateStringFromCppLiteral(L"NaN");
-        nullDisplayString = CreateStringFromCppLiteral(L"null");
-        unknownDisplayString = CreateStringFromCppLiteral(L"unknown");
-        commaDisplayString = CreateStringFromCppLiteral(L",");
-        commaSpaceDisplayString = CreateStringFromCppLiteral(L", ");
-        trueDisplayString = CreateStringFromCppLiteral(L"true");
-        falseDisplayString = CreateStringFromCppLiteral(L"false");
-        lengthDisplayString = CreateStringFromCppLiteral(L"length");
-        objectDisplayString = CreateStringFromCppLiteral(L"[object Object]");
-        errorDisplayString = CreateStringFromCppLiteral(L"[object Error]");
-        stringTypeDisplayString = CreateStringFromCppLiteral(L"string");
-        functionPrefixString = CreateStringFromCppLiteral(L"function ");
-        generatorFunctionPrefixString = CreateStringFromCppLiteral(L"function* ");
-        asyncFunctionPrefixString = CreateStringFromCppLiteral(L"async function ");
+        quotesString = CreateStringFromCppLiteral(_u("\"\""));
+        whackString = CreateStringFromCppLiteral(_u("/"));
+        undefinedDisplayString = CreateStringFromCppLiteral(_u("undefined"));
+        nanDisplayString = CreateStringFromCppLiteral(_u("NaN"));
+        nullDisplayString = CreateStringFromCppLiteral(_u("null"));
+        unknownDisplayString = CreateStringFromCppLiteral(_u("unknown"));
+        commaDisplayString = CreateStringFromCppLiteral(_u(","));
+        commaSpaceDisplayString = CreateStringFromCppLiteral(_u(", "));
+        trueDisplayString = CreateStringFromCppLiteral(_u("true"));
+        falseDisplayString = CreateStringFromCppLiteral(_u("false"));
+        lengthDisplayString = CreateStringFromCppLiteral(_u("length"));
+        objectDisplayString = CreateStringFromCppLiteral(_u("[object Object]"));
+        errorDisplayString = CreateStringFromCppLiteral(_u("[object Error]"));
+        stringTypeDisplayString = CreateStringFromCppLiteral(_u("string"));
+        functionPrefixString = CreateStringFromCppLiteral(_u("function "));
+        generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
+        asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
         functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
-        xDomainFunctionDisplayString = CreateStringFromCppLiteral(L"\012function anonymous() {\012    [x-domain code]\012}\012");
-        invalidDateString = CreateStringFromCppLiteral(L"Invalid Date");
-        objectTypeDisplayString = CreateStringFromCppLiteral(L"object");
-        functionTypeDisplayString = CreateStringFromCppLiteral(L"function");
-        booleanTypeDisplayString = CreateStringFromCppLiteral(L"boolean");
-        numberTypeDisplayString = CreateStringFromCppLiteral(L"number");
+        xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("\012function anonymous() {\012    [x-domain code]\012}\012"));
+        invalidDateString = CreateStringFromCppLiteral(_u("Invalid Date"));
+        objectTypeDisplayString = CreateStringFromCppLiteral(_u("object"));
+        functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
+        booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
+        numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
         promiseResolveFunction = nullptr;
 
         if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
         {
-            simdFloat32x4DisplayString = CreateStringFromCppLiteral(L"float32x4");
-            simdFloat64x2DisplayString = CreateStringFromCppLiteral(L"float64x2");
-            simdInt32x4DisplayString = CreateStringFromCppLiteral(L"int32x4");
-            simdInt16x8DisplayString = CreateStringFromCppLiteral(L"int16x8");
-            simdInt8x16DisplayString = CreateStringFromCppLiteral(L"int8x16");
+            simdFloat32x4DisplayString = CreateStringFromCppLiteral(_u("float32x4"));
+            simdFloat64x2DisplayString = CreateStringFromCppLiteral(_u("float64x2"));
+            simdInt32x4DisplayString = CreateStringFromCppLiteral(_u("int32x4"));
+            simdInt16x8DisplayString = CreateStringFromCppLiteral(_u("int16x8"));
+            simdInt8x16DisplayString = CreateStringFromCppLiteral(_u("int8x16"));
 
-            simdBool32x4DisplayString = CreateStringFromCppLiteral(L"bool32x4");
-            simdBool16x8DisplayString = CreateStringFromCppLiteral(L"bool16x8");
-            simdBool8x16DisplayString = CreateStringFromCppLiteral(L"bool8x16");
+            simdBool32x4DisplayString = CreateStringFromCppLiteral(_u("bool32x4"));
+            simdBool16x8DisplayString = CreateStringFromCppLiteral(_u("bool16x8"));
+            simdBool8x16DisplayString = CreateStringFromCppLiteral(_u("bool8x16"));
 
-            simdUint32x4DisplayString = CreateStringFromCppLiteral(L"uint32x4");
-            simdUint16x8DisplayString = CreateStringFromCppLiteral(L"uint16x8");
-            simdUint8x16DisplayString = CreateStringFromCppLiteral(L"uint8x16");
+            simdUint32x4DisplayString = CreateStringFromCppLiteral(_u("uint32x4"));
+            simdUint16x8DisplayString = CreateStringFromCppLiteral(_u("uint16x8"));
+            simdUint8x16DisplayString = CreateStringFromCppLiteral(_u("uint8x16"));
         }
 
-        symbolTypeDisplayString = CreateStringFromCppLiteral(L"symbol");
+        symbolTypeDisplayString = CreateStringFromCppLiteral(_u("symbol"));
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
         symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
@@ -1197,7 +1197,7 @@ namespace Js
             symbolSplit = nullptr;
         }
 
-        debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(L"[Uninitialized block variable]");
+        debuggerDeadZoneBlockVariableString = CreateStringFromCppLiteral(_u("[Uninitialized block variable]"));
         defaultAccessorFunction = CreateNonProfiledFunction(&JavascriptOperators::EntryInfo::DefaultAccessor);
 
         if (scriptContext->GetConfig()->IsErrorStackTraceEnabled())
@@ -1269,9 +1269,9 @@ namespace Js
 #ifdef IR_VIEWER
         if (Js::Configuration::Global.flags.IsEnabled(Js::IRViewerFlag))
         {
-            AddFunctionToLibraryObjectWithPropertyName(globalObject, L"parseIR", &GlobalObject::EntryInfo::ParseIR, 1);
-            AddFunctionToLibraryObjectWithPropertyName(globalObject, L"functionList", &GlobalObject::EntryInfo::FunctionList, 1);
-            AddFunctionToLibraryObjectWithPropertyName(globalObject, L"rejitFunction", &GlobalObject::EntryInfo::RejitFunction, 2);
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("parseIR"), &GlobalObject::EntryInfo::ParseIR, 1);
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("functionList"), &GlobalObject::EntryInfo::FunctionList, 1);
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("rejitFunction"), &GlobalObject::EntryInfo::RejitFunction, 2);
         }
 #endif /* IR_VIEWER */
 
@@ -1778,7 +1778,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(arrayBufferPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"ArrayBuffer"), PropertyConfigurable);
+            library->AddMember(arrayBufferPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("ArrayBuffer")), PropertyConfigurable);
         }
 
         arrayBufferPrototype->SetHasNoEnumerableProperties(true);
@@ -1829,7 +1829,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(dataViewPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"DataView"), PropertyConfigurable);
+            library->AddMember(dataViewPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("DataView")), PropertyConfigurable);
         }
 
         dataViewPrototype->SetHasNoEnumerableProperties(true);
@@ -1847,7 +1847,7 @@ namespace Js
         library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(L"TypedArray"), PropertyConfigurable);
+            library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("TypedArray")), PropertyConfigurable);
         }
         library->AddMember(typedArrayConstructor, PropertyIds::prototype, library->typedArrayPrototype, PropertyNone);
 
@@ -1937,7 +1937,7 @@ namespace Js
             library->AddMember(typedArrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyNone); \
             if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
             { \
-                library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(L#typedArray), PropertyConfigurable); \
+                library->AddMember(typedArrayConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#typedArray)), PropertyConfigurable); \
             } \
         } \
         else \
@@ -2037,7 +2037,7 @@ namespace Js
         bool hasNoEnumerableProperties = true;
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable;
 
-        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(L"Error"), prototypeNameMessageAttributes);
+        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u("Error")), prototypeNameMessageAttributes);
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes);
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0);
 
@@ -2055,7 +2055,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled()) \
         { \
             PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
-            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(L#error), prototypeNameMessageAttributes); \
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#error)), prototypeNameMessageAttributes); \
         } \
         constructor->SetHasNoEnumerableProperties(true); \
     } \
@@ -2075,7 +2075,7 @@ namespace Js
         library->AddMember(prototype, PropertyIds::constructor, library->Get##error##Constructor()); \
         bool hasNoEnumerableProperties = true; \
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable; \
-        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(L#error), prototypeNameMessageAttributes); \
+        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#error)), prototypeNameMessageAttributes); \
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes); \
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0); \
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties); \
@@ -2184,7 +2184,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(symbolPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Symbol"), PropertyConfigurable);
+            library->AddMember(symbolPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Symbol")), PropertyConfigurable);
         }
         scriptContext->SetBuiltInLibraryFunction(JavascriptSymbol::EntryInfo::ValueOf.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(symbolPrototype, PropertyIds::valueOf, &JavascriptSymbol::EntryInfo::ValueOf, 0));
@@ -2249,7 +2249,7 @@ namespace Js
         library->AddMember(promisePrototype, PropertyIds::constructor, library->promiseConstructor);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(promisePrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Promise"), PropertyConfigurable);
+            library->AddMember(promisePrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Promise")), PropertyConfigurable);
         }
         scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Catch.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(promisePrototype, PropertyIds::catch_, &JavascriptPromise::EntryInfo::Catch, 1));
@@ -2268,7 +2268,7 @@ namespace Js
         library->AddMember(generatorFunctionConstructor, PropertyIds::prototype, library->generatorFunctionPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(generatorFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(L"GeneratorFunction"), PropertyConfigurable);
+            library->AddMember(generatorFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
         }
         generatorFunctionConstructor->SetHasNoEnumerableProperties(true);
     }
@@ -2283,7 +2283,7 @@ namespace Js
         library->AddMember(generatorFunctionPrototype, PropertyIds::prototype, library->generatorPrototype, PropertyConfigurable);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(generatorFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"GeneratorFunction"), PropertyConfigurable);
+            library->AddMember(generatorFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("GeneratorFunction")), PropertyConfigurable);
         }
         generatorFunctionPrototype->SetHasNoEnumerableProperties(true);
     }
@@ -2299,7 +2299,7 @@ namespace Js
         library->AddMember(generatorPrototype, PropertyIds::constructor, library->generatorFunctionPrototype, PropertyConfigurable);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(generatorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Generator"), PropertyConfigurable);
+            library->AddMember(generatorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Generator")), PropertyConfigurable);
         }
         library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::next, &JavascriptGenerator::EntryInfo::Next, 1);
         library->AddFunctionToLibraryObject(generatorPrototype, PropertyIds::return_, &JavascriptGenerator::EntryInfo::Return, 1);
@@ -2317,7 +2317,7 @@ namespace Js
         library->AddMember(asyncFunctionConstructor, PropertyIds::prototype, library->asyncFunctionPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
-            library->AddMember(asyncFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(L"AsyncFunction"), PropertyConfigurable);
+            library->AddMember(asyncFunctionConstructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
         }
         asyncFunctionConstructor->SetHasNoEnumerableProperties(true);
     }
@@ -2331,7 +2331,7 @@ namespace Js
         library->AddMember(asyncFunctionPrototype, PropertyIds::constructor, library->asyncFunctionConstructor, PropertyConfigurable);
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(asyncFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"AsyncFunction"), PropertyConfigurable);
+            library->AddMember(asyncFunctionPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("AsyncFunction")), PropertyConfigurable);
         }
         asyncFunctionPrototype->SetHasNoEnumerableProperties(true);
     }
@@ -2556,7 +2556,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeComplexThings()
     {
-        emptyRegexPattern = RegexHelper::CompileDynamic(scriptContext, L"", 0, L"", 0, false);
+        emptyRegexPattern = RegexHelper::CompileDynamic(scriptContext, _u(""), 0, _u(""), 0, false);
 
         Recycler *const recycler = GetRecycler();
 
@@ -2647,7 +2647,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(mathObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Math"), PropertyConfigurable);
+            library->AddMember(mathObject, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Math")), PropertyConfigurable);
         }
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
@@ -3612,8 +3612,8 @@ namespace Js
     };
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t const * const JavascriptLibrary::LibraryFunctionName[] = {
-#define LIBRARY_FUNCTION(obj, name, argc, flags, entry) L#obj L"." L#name,
+    char16 const * const JavascriptLibrary::LibraryFunctionName[] = {
+#define LIBRARY_FUNCTION(obj, name, argc, flags, entry) _u(#obj) _u(".") _u(#name),
 #include "LibraryFunction.h"
 #undef LIBRARY_FUNCTION
         0
@@ -3818,7 +3818,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Bool8x16_Bool8x16],
-            library->CreateStringFromCppLiteral(L"SIMD.Bool8x16"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Bool8x16")));
     }
 
     void JavascriptLibrary::InitializeSIMDBool16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3826,7 +3826,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Bool16x8_Bool16x8],
-            library->CreateStringFromCppLiteral(L"SIMD.Bool16x8"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Bool16x8")));
     }
 
     void JavascriptLibrary::InitializeSIMDBool32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3834,7 +3834,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDBool32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Bool32x4_Bool32x4],
-            library->CreateStringFromCppLiteral(L"SIMD.Bool32x4"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Bool32x4")));
     }
 
     void JavascriptLibrary::InitializeSIMDInt8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3842,7 +3842,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Int8x16_Int8x16],
-            library->CreateStringFromCppLiteral(L"SIMD.Int8x16"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Int8x16")));
     }
 
     void JavascriptLibrary::InitializeSIMDInt16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3850,7 +3850,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Int16x8_Int16x8],
-            library->CreateStringFromCppLiteral(L"SIMD.Int16x8"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Int16x8")));
     }
 
     void JavascriptLibrary::InitializeSIMDInt32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3858,7 +3858,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDInt32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Int32x4_Int32x4],
-            library->CreateStringFromCppLiteral(L"SIMD.Int32x4"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Int32x4")));
     }
 
     void JavascriptLibrary::InitializeSIMDUint8x16Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3866,7 +3866,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint8x16>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Uint8x16_Uint8x16],
-            library->CreateStringFromCppLiteral(L"SIMD.Uint8x16"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Uint8x16")));
     }
 
     void JavascriptLibrary::InitializeSIMDUint16x8Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3874,7 +3874,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint16x8>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Uint16x8_Uint16x8],
-            library->CreateStringFromCppLiteral(L"SIMD.Uint16x8"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Uint16x8")));
     }
 
     void JavascriptLibrary::InitializeSIMDUint32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3882,7 +3882,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary();
         SIMDPrototypeInitHelper<JavascriptSIMDUint32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Uint32x4_Uint32x4],
-            library->CreateStringFromCppLiteral(L"SIMD.Uint32x4"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Uint32x4")));
     }
 
     void JavascriptLibrary::InitializeSIMDFloat32x4Prototype(DynamicObject* simdPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3890,7 +3890,7 @@ namespace Js
         typeHandler->Convert(simdPrototype, mode, 6);
         JavascriptLibrary* library = simdPrototype->GetLibrary(); 
         SIMDPrototypeInitHelper<JavascriptSIMDFloat32x4>(simdPrototype, library, library->GetBuiltinFunctions()[BuiltinFunction::SIMD_Float32x4_Float32x4], 
-            library->CreateStringFromCppLiteral(L"SIMD.Float32x4"));
+            library->CreateStringFromCppLiteral(_u("SIMD.Float32x4")));
     }
 
     void JavascriptLibrary::InitializeObjectConstructor(DynamicObject* objectConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -4255,7 +4255,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(mapPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Map"), PropertyConfigurable);
+            library->AddMember(mapPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Map")), PropertyConfigurable);
         }
 
         mapPrototype->SetHasNoEnumerableProperties(true);
@@ -4309,7 +4309,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(setPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Set"), PropertyConfigurable);
+            library->AddMember(setPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Set")), PropertyConfigurable);
         }
 
         setPrototype->SetHasNoEnumerableProperties(true);
@@ -4348,7 +4348,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(weakMapPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"WeakMap"), PropertyConfigurable);
+            library->AddMember(weakMapPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WeakMap")), PropertyConfigurable);
         }
 
         weakMapPrototype->SetHasNoEnumerableProperties(true);
@@ -4386,7 +4386,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(weakSetPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"WeakSet"), PropertyConfigurable);
+            library->AddMember(weakSetPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WeakSet")), PropertyConfigurable);
         }
 
         weakSetPrototype->SetHasNoEnumerableProperties(true);
@@ -4417,7 +4417,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(arrayIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Array Iterator"), PropertyConfigurable);
+            library->AddMember(arrayIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Array Iterator")), PropertyConfigurable);
         }
     }
 
@@ -4434,7 +4434,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(mapIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Map Iterator"), PropertyConfigurable);
+            library->AddMember(mapIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Map Iterator")), PropertyConfigurable);
         }
     }
 
@@ -4450,7 +4450,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(setIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Set Iterator"), PropertyConfigurable);
+            library->AddMember(setIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Set Iterator")), PropertyConfigurable);
         }
     }
 
@@ -4466,7 +4466,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(stringIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"String Iterator"), PropertyConfigurable);
+            library->AddMember(stringIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("String Iterator")), PropertyConfigurable);
         }
     }
 
@@ -4482,7 +4482,7 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(javascriptEnumeratorIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(L"Enumerator Iterator"), PropertyConfigurable);
+            library->AddMember(javascriptEnumeratorIteratorPrototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("Enumerator Iterator")), PropertyConfigurable);
         }
     }
 
@@ -4671,7 +4671,7 @@ namespace Js
 
     RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
     {
-        Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"get ", scriptContext), scriptContext->GetPropertyString(nameId));
+        Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* getterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withGetPrefix);
         getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyNone, nullptr);
         return getterFunction;
@@ -4679,7 +4679,7 @@ namespace Js
 
     RuntimeFunction* JavascriptLibrary::CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
     {
-        Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(L"set ", scriptContext), scriptContext->GetPropertyString(nameId));
+        Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("set "), scriptContext), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* setterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withSetPrefix);
         setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone, nullptr);
         return setterFunction;
@@ -4706,7 +4706,7 @@ namespace Js
 
         if (JSONObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
         {
-            library->AddMember(JSONObject, PropertyIds::_symbolToStringTag, JSONObject->GetLibrary()->CreateStringFromCppLiteral(L"JSON"), PropertyConfigurable);
+            library->AddMember(JSONObject, PropertyIds::_symbolToStringTag, JSONObject->GetLibrary()->CreateStringFromCppLiteral(_u("JSON")), PropertyConfigurable);
         }
 
         JSONObject->SetHasNoEnumerableProperties(true);
@@ -4976,7 +4976,7 @@ namespace Js
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
         {
-            Output::Print(L"Create new external function: methodAddr= %p, propertyRecord= %p, propertyName= %s\n",
+            Output::Print(_u("Create new external function: methodAddr= %p, propertyRecord= %p, propertyName= %s\n"),
                 this, nameId,
                 TaggedInt::Is(nameId) ? scriptContext->GetThreadContext()->GetPropertyName(TaggedInt::ToInt32(nameId))->GetBuffer() : ((JavascriptString *)nameId)->GetString());
         }
@@ -5041,7 +5041,7 @@ namespace Js
     }
 
 #if DBG_DUMP
-    const wchar_t* JavascriptLibrary::GetStringTemplateCallsiteObjectKey(Var callsite)
+    const char16* JavascriptLibrary::GetStringTemplateCallsiteObjectKey(Var callsite)
     {
         // Calculate the key for the string template callsite object.
         // Key is combination of the raw string literals delimited by '${}' since string template literals cannot include that symbol.
@@ -5067,8 +5067,8 @@ namespace Js
         }
 
         uint32 keyLength = totalStringLength + (arrayLength - 1) * 3 + 1;
-        wchar_t* key = RecyclerNewArray(scriptContext->GetRecycler(), wchar_t, keyLength);
-        wchar_t* ptr = key;
+        char16* key = RecyclerNewArray(scriptContext->GetRecycler(), char16, keyLength);
+        char16* ptr = key;
         charcount_t remainingSpace = keyLength;
 
         // Get first item before loop - there always must be at least one item
@@ -5083,8 +5083,8 @@ namespace Js
         // Append a delimiter and the rest of the items
         for (uint32 i = 1; i < arrayLength; i++)
         {
-            len = 3; // strlen(L"${}");
-            js_wmemcpy_s(ptr, remainingSpace, L"${}", len);
+            len = 3; // strlen(_u("${}"));
+            js_wmemcpy_s(ptr, remainingSpace, _u("${}"), len);
             ptr += len;
             remainingSpace -= len;
 
@@ -5156,7 +5156,7 @@ namespace Js
             }
 
             // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!JsUtil::CharacterBuffer<wchar_t>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
+            if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
             {
                 return false;
             }
@@ -5179,7 +5179,7 @@ namespace Js
         }
 
         // If the strings at this index are not equal, the callsite objects are not equal.
-        if (!JsUtil::CharacterBuffer<wchar_t>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
+        if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
         {
             return false;
         }
@@ -5208,8 +5208,8 @@ namespace Js
             return false;
         }
 
-        const wchar_t* pid_x;
-        const wchar_t* pid_y;
+        const char16* pid_x;
+        const char16* pid_y;
 
         while (x->nop == knopList)
         {
@@ -5226,7 +5226,7 @@ namespace Js
             pid_y = y->sxBin.pnode1->sxPid.pid->Psz();
 
             // If the pid values of each raw string don't match each other, these are different.
-            if (!DefaultComparer<const wchar_t*>::Equals(pid_x, pid_y))
+            if (!DefaultComparer<const char16*>::Equals(pid_x, pid_y))
             {
                 return false;
             }
@@ -5247,7 +5247,7 @@ namespace Js
         pid_y = y->sxPid.pid->Psz();
 
         // This is the final string in the raw literals list. Return true if they are equal.
-        return DefaultComparer<const wchar_t*>::Equals(pid_x, pid_y);
+        return DefaultComparer<const char16*>::Equals(pid_x, pid_y);
     }
 
     hash_t StringTemplateCallsiteObjectComparer<ParseNodePtr>::GetHashCode(ParseNodePtr i)
@@ -5259,7 +5259,7 @@ namespace Js
 
         i = i->sxStrTemplate.pnodeStringRawLiterals;
 
-        const wchar_t* pid;
+        const char16* pid;
 
         while (i->nop == knopList)
         {
@@ -5267,8 +5267,8 @@ namespace Js
 
             pid = i->sxBin.pnode1->sxPid.pid->Psz();
 
-            hash ^= DefaultComparer<const wchar_t*>::GetHashCode(pid);
-            hash ^= DefaultComparer<const wchar_t*>::GetHashCode(L"${}");
+            hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
+            hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
 
             i = i->sxBin.pnode2;
         }
@@ -5277,7 +5277,7 @@ namespace Js
 
         pid = i->sxPid.pid->Psz();
 
-        hash ^= DefaultComparer<const wchar_t*>::GetHashCode(pid);
+        hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
 
         return hash;
     }
@@ -5364,15 +5364,15 @@ namespace Js
 
         rawArray->DirectGetItemAt(0, &var);
         Js::JavascriptString* str = Js::JavascriptString::FromVar(var);
-        hash ^= DefaultComparer<const wchar_t*>::GetHashCode(str->GetSz());
+        hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
 
         for (uint32 i = 1; i < rawArray->GetLength(); i++)
         {
-            hash ^= DefaultComparer<const wchar_t*>::GetHashCode(L"${}");
+            hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
 
             rawArray->DirectGetItemAt(i, &var);
             str = Js::JavascriptString::FromVar(var);
-            hash ^= DefaultComparer<const wchar_t*>::GetHashCode(str->GetSz());
+            hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
         }
 
         return hash;
@@ -5655,7 +5655,7 @@ namespace Js
         return this->CreateSymbol(description->GetString(), (int)description->GetLength());
     }
 
-    JavascriptSymbol* JavascriptLibrary::CreateSymbol(const wchar_t* description, int descriptionLength)
+    JavascriptSymbol* JavascriptLibrary::CreateSymbol(const char16* description, int descriptionLength)
     {
         ENTER_PINNED_SCOPE(const Js::PropertyRecord, propertyRecord);
 
@@ -6163,7 +6163,7 @@ namespace Js
         return RecyclerNew(this->GetRecycler(), JavascriptStringObject, value, stringTypeDynamic);
     }
 
-    JavascriptStringObject* JavascriptLibrary::CreateStringObject(const wchar_t* value, charcount_t length)
+    JavascriptStringObject* JavascriptLibrary::CreateStringObject(const char16* value, charcount_t length)
     {
         AssertMsg(stringTypeDynamic, "Where's stringTypeDynamic?");
         return RecyclerNew(this->GetRecycler(), JavascriptStringObject,
@@ -6427,7 +6427,7 @@ namespace Js
     }
 
     // Register for profiler
-#define DEFINE_OBJECT_NAME(object) const wchar_t *pwszObjectName = L#object;
+#define DEFINE_OBJECT_NAME(object) const char16 *pwszObjectName = _u(#object);
 
 #define REGISTER_OBJECT(object)\
     if (FAILED(hr = this->ProfilerRegister##object()))\
@@ -6448,7 +6448,7 @@ namespace Js
 }
 
 #define REG_LIB_FUNC(pwszObjectName, functionPropertyId, entryPoint)\
-    REG_LIB_FUNC_CORE(pwszObjectName, L#functionPropertyId, PropertyIds::##functionPropertyId, entryPoint)\
+    REG_LIB_FUNC_CORE(pwszObjectName, _u(#functionPropertyId), PropertyIds::##functionPropertyId, entryPoint)\
 
 #define REG_OBJECTS_LIB_FUNC(functionPropertyId, entryPoint)\
     REG_LIB_FUNC(pwszObjectName, functionPropertyId, entryPoint)\
@@ -6464,7 +6464,7 @@ namespace Js
 
 #define REGISTER_ERROR_OBJECT(functionPropertyId)\
     REG_GLOBAL_LIB_FUNC(functionPropertyId, JavascriptError::New##functionPropertyId##Instance)\
-    REG_LIB_FUNC(L#functionPropertyId, toString, JavascriptError::EntryToString)\
+    REG_LIB_FUNC(_u(#functionPropertyId), toString, JavascriptError::EntryToString)\
 
     HRESULT JavascriptLibrary::ProfilerRegisterBuiltIns()
     {
@@ -6882,7 +6882,7 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(fontsize, JavascriptString::EntryFontSize);
             REG_OBJECTS_LIB_FUNC(italics, JavascriptString::EntryItalics);
             REG_OBJECTS_LIB_FUNC(link, JavascriptString::EntryLink);
-            REG_OBJECTS_DYNAMIC_LIB_FUNC(L"small", 5, JavascriptString::EntrySmall);
+            REG_OBJECTS_DYNAMIC_LIB_FUNC(_u("small"), 5, JavascriptString::EntrySmall);
             REG_OBJECTS_LIB_FUNC(strike, JavascriptString::EntryStrike);
             REG_OBJECTS_LIB_FUNC(sub, JavascriptString::EntrySub);
             REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
@@ -6901,7 +6901,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(raw, JavascriptString::EntryRaw);
 
-        REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptString::EntrySymbolIterator);
+        REG_OBJECTS_LIB_FUNC2(_symbolIterator, _u("[Symbol.iterator]"), JavascriptString::EntrySymbolIterator);
 
         if (config.IsES7BuiltinsEnabled())
         {
@@ -6946,7 +6946,7 @@ namespace Js
 
         DEFINE_OBJECT_NAME(WeakMap);
 
-        REG_OBJECTS_LIB_FUNC2(delete_, L"delete", JavascriptWeakMap::EntryDelete);
+        REG_OBJECTS_LIB_FUNC2(delete_, _u("delete"), JavascriptWeakMap::EntryDelete);
         REG_OBJECTS_LIB_FUNC(get, JavascriptWeakMap::EntryGet);
         REG_OBJECTS_LIB_FUNC(has, JavascriptWeakMap::EntryHas);
         REG_OBJECTS_LIB_FUNC(set, JavascriptWeakMap::EntrySet);
@@ -6962,7 +6962,7 @@ namespace Js
         DEFINE_OBJECT_NAME(WeakSet);
 
         REG_OBJECTS_LIB_FUNC(add, JavascriptWeakSet::EntryAdd);
-        REG_OBJECTS_LIB_FUNC2(delete_, L"delete", JavascriptWeakSet::EntryDelete);
+        REG_OBJECTS_LIB_FUNC2(delete_, _u("delete"), JavascriptWeakSet::EntryDelete);
         REG_OBJECTS_LIB_FUNC(has, JavascriptWeakSet::EntryHas);
 
         return hr;
@@ -6976,7 +6976,7 @@ namespace Js
         DEFINE_OBJECT_NAME(Map);
 
         REG_OBJECTS_LIB_FUNC(clear, JavascriptMap::EntryClear);
-        REG_OBJECTS_LIB_FUNC2(delete_, L"delete", JavascriptMap::EntryDelete);
+        REG_OBJECTS_LIB_FUNC2(delete_, _u("delete"), JavascriptMap::EntryDelete);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptMap::EntryForEach);
         REG_OBJECTS_LIB_FUNC(get, JavascriptMap::EntryGet);
         REG_OBJECTS_LIB_FUNC(has, JavascriptMap::EntryHas);
@@ -6998,7 +6998,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(add, JavascriptSet::EntryAdd);
         REG_OBJECTS_LIB_FUNC(clear, JavascriptSet::EntryClear);
-        REG_OBJECTS_LIB_FUNC2(delete_, L"delete", JavascriptSet::EntryDelete);
+        REG_OBJECTS_LIB_FUNC2(delete_, _u("delete"), JavascriptSet::EntryDelete);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptSet::EntryForEach);
         REG_OBJECTS_LIB_FUNC(has, JavascriptSet::EntryHas);
 
@@ -7017,7 +7017,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptSymbol::EntryValueOf);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptSymbol::EntryToString);
-        REG_OBJECTS_LIB_FUNC2(for_, L"for", JavascriptSymbol::EntryFor);
+        REG_OBJECTS_LIB_FUNC2(for_, _u("for"), JavascriptSymbol::EntryFor);
         REG_OBJECTS_LIB_FUNC(keyFor, JavascriptSymbol::EntryKeyFor);
 
         return hr;
@@ -7030,7 +7030,7 @@ namespace Js
 
         DEFINE_OBJECT_NAME(Iterator);
 
-        REG_OBJECTS_LIB_FUNC2(_symbolIterator, L"[Symbol.iterator]", JavascriptIterator::EntrySymbolIterator);
+        REG_OBJECTS_LIB_FUNC2(_symbolIterator, _u("[Symbol.iterator]"), JavascriptIterator::EntrySymbolIterator);
 
         return hr;
     }
@@ -7137,7 +7137,7 @@ namespace Js
         DEFINE_OBJECT_NAME(Promise);
 
         REG_OBJECTS_LIB_FUNC(all, JavascriptPromise::EntryAll);
-        REG_OBJECTS_LIB_FUNC2(catch_, L"catch", JavascriptPromise::EntryCatch);
+        REG_OBJECTS_LIB_FUNC2(catch_, _u("catch"), JavascriptPromise::EntryCatch);
         REG_OBJECTS_LIB_FUNC(race, JavascriptPromise::EntryRace);
         REG_OBJECTS_LIB_FUNC(resolve, JavascriptPromise::EntryResolve);
         REG_OBJECTS_LIB_FUNC(then, JavascriptPromise::EntryThen);
@@ -7574,9 +7574,9 @@ namespace Js
         DEFINE_OBJECT_NAME(IRViewer);
 
         // TODO (t-doilij) move GlobalObject::EntryParseIR to JavascriptIRViewer::EntryParseIR
-        REG_LIB_FUNC_CORE(pwszObjectName, L"parseIR", scriptContext->GetOrAddPropertyIdTracked(L"parseIR"), GlobalObject::EntryParseIR);
-        REG_LIB_FUNC_CORE(pwszObjectName, L"functionList", scriptContext->GetOrAddPropertyIdTracked(L"functionList"), GlobalObject::EntryFunctionList);
-        REG_LIB_FUNC_CORE(pwszObjectName, L"rejitFunction", scriptContext->GetOrAddPropertyIdTracked(L"rejitFunction"), GlobalObject::EntryRejitFunction);
+        REG_LIB_FUNC_CORE(pwszObjectName, _u("parseIR"), scriptContext->GetOrAddPropertyIdTracked(_u("parseIR")), GlobalObject::EntryParseIR);
+        REG_LIB_FUNC_CORE(pwszObjectName, _u("functionList"), scriptContext->GetOrAddPropertyIdTracked(_u("functionList")), GlobalObject::EntryFunctionList);
+        REG_LIB_FUNC_CORE(pwszObjectName, _u("rejitFunction"), scriptContext->GetOrAddPropertyIdTracked(_u("rejitFunction")), GlobalObject::EntryRejitFunction);
 
         return hr;
     }

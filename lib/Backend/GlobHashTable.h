@@ -374,23 +374,23 @@ public:
         FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
         {
 
-            Output::Print(L"%4d  =>  ", bucket.value);
+            Output::Print(_u("%4d  =>  "), bucket.value);
             bucket.element->Dump();
-            Output::Print(L"\n");
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
+            Output::Print(_u("\n"));
         }
         NEXT_GLOBHASHTABLE_ENTRY;
     }
 
     void Dump(void (*valueDump)(TData))
     {
-        Output::Print(L"\n-------------------------------------------------------------------------------------------------\n");
+        Output::Print(_u("\n-------------------------------------------------------------------------------------------------\n"));
         FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
         {
             valueDump(bucket.value);
-            Output::Print(L"  =>  ", bucket.value);
+            Output::Print(_u("  =>  "), bucket.value);
             bucket.element->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         NEXT_GLOBHASHTABLE_ENTRY;
     }

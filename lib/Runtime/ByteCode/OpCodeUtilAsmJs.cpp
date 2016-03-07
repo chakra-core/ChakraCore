@@ -8,21 +8,21 @@
 namespace Js
 {
 #if DBG_DUMP || ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t const * const OpCodeUtilAsmJs::OpCodeAsmJsNames[] =
+    char16 const * const OpCodeUtilAsmJs::OpCodeAsmJsNames[] =
     {
-#define DEF_OP(x, y, ...) L"" STRINGIZEW(x) L"",
+#define DEF_OP(x, y, ...) _u("") STRINGIZEW(x) _u(""),
 #include "OpCodeListAsmJs.h"
 #undef DEF_OP
     };
 
-    wchar_t const * const OpCodeUtilAsmJs::ExtendedOpCodeAsmJsNames[] =
+    char16 const * const OpCodeUtilAsmJs::ExtendedOpCodeAsmJsNames[] =
     {
-#define DEF_OP(x, y, ...) L"" STRINGIZEW(x) L"",
+#define DEF_OP(x, y, ...) _u("") STRINGIZEW(x) _u(""),
 #include "ExtendedOpCodeListAsmJs.h"
 #undef DEF_OP
     };
 
-    wchar_t const * OpCodeUtilAsmJs::GetOpCodeName(OpCodeAsmJs op)
+    char16 const * OpCodeUtilAsmJs::GetOpCodeName(OpCodeAsmJs op)
     {
         if (op <= Js::OpCodeAsmJs::MaxByteSizedOpcodes)
         {
@@ -37,13 +37,13 @@ namespace Js
             __analysis_assume(opIndex < _countof(ExtendedOpCodeAsmJsNames));
             return ExtendedOpCodeAsmJsNames[opIndex];
         }
-        return L"<NotAvail>";
+        return _u("<NotAvail>");
     }
 
 #else
     wchar const * OpCodeUtilAsmJs::GetOpCodeName(OpCodeAsmJs op)
     {
-        return L"<NotAvail>";
+        return _u("<NotAvail>");
     }
 #endif
 

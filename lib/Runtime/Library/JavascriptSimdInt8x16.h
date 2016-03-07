@@ -31,12 +31,12 @@ namespace Js
         static JavascriptSIMDInt8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt8x16* FromVar(Var aValue);
-        static const wchar_t* GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name);
+        static const char16* GetFullBuiltinName(char16** aBuffer, const char16* name);
         static Var CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue, const Var* args, uint numArgs, CallInfo callInfo);
 
-        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) wchar_t* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
+        static void ToStringBuffer(SIMDValue& value, __out_ecount(countBuffer) char16* stringBuffer, size_t countBuffer, ScriptContext* scriptContext = nullptr)
         {
-            swprintf_s(stringBuffer, countBuffer, L"SIMD.Int8x16(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)",
+            swprintf_s(stringBuffer, countBuffer, _u("SIMD.Int8x16(%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d)"),
                 value.i8[0], value.i8[1], value.i8[2], value.i8[3], value.i8[4], value.i8[5], value.i8[6], value.i8[7],
                 value.i8[8], value.i8[9], value.i8[10], value.i8[11], value.i8[12], value.i8[13], value.i8[14], value.i8[15]);
         }

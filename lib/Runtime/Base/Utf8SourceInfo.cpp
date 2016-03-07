@@ -38,13 +38,13 @@ namespace Js
     {
         if (!sourceHolder->IsDeferrable())
         {
-            this->debugModeSource = this->sourceHolder->GetSource(L"Entering Debug Mode");
-            this->debugModeSourceLength = this->sourceHolder->GetByteLength(L"Entering Debug Mode");
+            this->debugModeSource = this->sourceHolder->GetSource(_u("Entering Debug Mode"));
+            this->debugModeSourceLength = this->sourceHolder->GetByteLength(_u("Entering Debug Mode"));
             this->debugModeSourceIsEmpty = !this->HasSource() || this->debugModeSource == nullptr;
         }
     }
 
-    LPCUTF8 Utf8SourceInfo::GetSource(const wchar_t * reason) const
+    LPCUTF8 Utf8SourceInfo::GetSource(const char16 * reason) const
     {
         AssertMsg(this->sourceHolder != nullptr, "We have no source mapper.");
         if (this->IsInDebugMode())
@@ -54,11 +54,11 @@ namespace Js
         }
         else
         {
-            return sourceHolder->GetSource(reason == nullptr ? L"Utf8SourceInfo::GetSource" : reason);
+            return sourceHolder->GetSource(reason == nullptr ? _u("Utf8SourceInfo::GetSource") : reason);
         }
     }
 
-    size_t Utf8SourceInfo::GetCbLength(const wchar_t * reason) const
+    size_t Utf8SourceInfo::GetCbLength(const char16 * reason) const
     {
         AssertMsg(this->sourceHolder != nullptr, "We have no source mapper.");
         if (this->IsInDebugMode())
@@ -68,7 +68,7 @@ namespace Js
         }
         else
         {
-            return sourceHolder->GetByteLength(reason == nullptr ? L"Utf8SourceInfo::GetSource" : reason);
+            return sourceHolder->GetByteLength(reason == nullptr ? _u("Utf8SourceInfo::GetSource") : reason);
         }
     }
 
@@ -171,8 +171,8 @@ namespace Js
 
         if (!isLibraryCode && scriptContext->IsScriptContextInDebugMode())
         {
-            toReturn->debugModeSource = sourceHolder->GetSource(L"Debug Mode Loading");
-            toReturn->debugModeSourceLength = sourceHolder->GetByteLength(L"Debug Mode Loading");
+            toReturn->debugModeSource = sourceHolder->GetSource(_u("Debug Mode Loading"));
+            toReturn->debugModeSourceLength = sourceHolder->GetByteLength(_u("Debug Mode Loading"));
             toReturn->debugModeSourceIsEmpty = toReturn->debugModeSource == nullptr || sourceHolder->IsEmpty();
         }
 
@@ -252,8 +252,8 @@ namespace Js
     {
         if (this->m_lineOffsetCache == nullptr)
         {
-            LPCUTF8 sourceStart = this->GetSource(L"Utf8SourceInfo::AllocateLineOffsetCache");
-            LPCUTF8 sourceEnd = sourceStart + this->GetCbLength(L"Utf8SourceInfo::AllocateLineOffsetCache");
+            LPCUTF8 sourceStart = this->GetSource(_u("Utf8SourceInfo::AllocateLineOffsetCache"));
+            LPCUTF8 sourceEnd = sourceStart + this->GetCbLength(_u("Utf8SourceInfo::AllocateLineOffsetCache"));
 
             LPCUTF8 sourceAfterBOM = sourceStart;
             charcount_t startChar = FunctionBody::SkipByteOrderMark(sourceAfterBOM /* byref */);
@@ -291,8 +291,8 @@ namespace Js
         int line = 0;
         if (this->m_lineOffsetCache == nullptr)
         {
-            LPCUTF8 sourceStart = this->GetSource(L"Utf8SourceInfo::AllocateLineOffsetCache");
-            LPCUTF8 sourceEnd = sourceStart + this->GetCbLength(L"Utf8SourceInfo::AllocateLineOffsetCache");
+            LPCUTF8 sourceStart = this->GetSource(_u("Utf8SourceInfo::AllocateLineOffsetCache"));
+            LPCUTF8 sourceEnd = sourceStart + this->GetCbLength(_u("Utf8SourceInfo::AllocateLineOffsetCache"));
 
             LPCUTF8 sourceAfterBOM = sourceStart;
             lineCharOffset = FunctionBody::SkipByteOrderMark(sourceAfterBOM /* byref */);

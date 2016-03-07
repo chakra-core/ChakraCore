@@ -42,7 +42,7 @@ namespace Js
     Var JavascriptSIMDUint32x4::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
         const Var* args, uint numArgs, CallInfo callInfo)
     {
-        wchar_t *typeString = L"SIMD.Uint32x4(";
+        char16 *typeString = _u("SIMD.Uint32x4(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<int32, 4>(args, numArgs, typeString,
             simdValue.i32, &callInfo, &requestContext);
     }
@@ -52,10 +52,10 @@ namespace Js
         return JavascriptSIMDUint32x4::New(&value, requestContext);
     }
 
-    const wchar_t* JavascriptSIMDUint32x4::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
+    const char16* JavascriptSIMDUint32x4::GetFullBuiltinName(char16** aBuffer, const char16* name)
     {
         Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Uint32x4.%s", name);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Uint32x4.%s"), name);
         return *aBuffer;
     }
 

@@ -157,7 +157,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
-    SwbVerboseTrace(this->GetRecyclerFlagsTable(), L"Allocated SWB memory: 0x%p\n", memBlock);
+    SwbVerboseTrace(this->GetRecyclerFlagsTable(), _u("Allocated SWB memory: 0x%p\n"), memBlock);
 
 #pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
     if (attributes & (NewTrackBit))
@@ -306,11 +306,11 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
 
     if (nothrow)
     {
-        FAULTINJECT_MEMORY_NOTHROW(L"Recycler", size);
+        FAULTINJECT_MEMORY_NOTHROW(_u("Recycler"), size);
     }
     else
     {
-        FAULTINJECT_MEMORY_THROW(L"Recycler", size);
+        FAULTINJECT_MEMORY_THROW(_u("Recycler"), size);
     }
 
     if (HeapInfo::IsSmallObject(size))

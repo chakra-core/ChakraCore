@@ -36,7 +36,7 @@ namespace Js
         return ch >= '0' && ch <= '9';
     }
 
-    BOOL NumberUtilities::FHexDigit(wchar_t ch, int *pw)
+    BOOL NumberUtilities::FHexDigit(char16 ch, int *pw)
     {
         if ((ch -= '0') <= 9)
         {
@@ -149,13 +149,13 @@ namespace Js
             {
                 digit = integer / 10000;
                 integer %= 10000;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 4 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -168,13 +168,13 @@ namespace Js
             {
                 digit = integer / 1000;
                 integer %= 1000;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 3 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -187,13 +187,13 @@ namespace Js
             {
                 digit = integer / 100;
                 integer %= 100;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 2 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -206,13 +206,13 @@ namespace Js
             {
                 digit = integer / 10;
                 integer %= 10;
-                *outBuffer = digit + L'0';
+                *outBuffer = digit + _u('0');
                 outBuffer++;
                 cchWritten++;
             }
             else if( widthForPaddingZerosInsteadSpaces > 1 )
             {
-                *outBuffer = L'0';
+                *outBuffer = _u('0');
                 outBuffer++;
                 cchWritten++;
             }
@@ -221,7 +221,7 @@ namespace Js
         Assert(cchWritten < outBufferSize);
         if (cchWritten < outBufferSize)
         {
-            *outBuffer = integer + L'0';
+            *outBuffer = integer + _u('0');
             outBuffer++;
             cchWritten++;
         }
@@ -236,7 +236,7 @@ namespace Js
         return cchWritten;
     }
 
-    BOOL NumberUtilities::TryConvertToUInt32(const wchar_t* str, int length, uint32* intVal)
+    BOOL NumberUtilities::TryConvertToUInt32(const char16* str, int length, uint32* intVal)
     {
         if (length <= 0 || length > 10)
         {
@@ -244,9 +244,9 @@ namespace Js
         }
         if (length == 1)
         {
-            if (str[0] >= L'0' && str[0] <= L'9')
+            if (str[0] >= _u('0') && str[0] <= _u('9'))
             {
-                *intVal = (uint32)(str[0] - L'0');
+                *intVal = (uint32)(str[0] - _u('0'));
                 return true;
             }
             else
@@ -254,26 +254,26 @@ namespace Js
                 return false;
             }
         }
-        if (str[0] < L'1' || str[0] > L'9')
+        if (str[0] < _u('1') || str[0] > _u('9'))
         {
             return false;
         }
-        uint32 val = (uint32)(str[0] - L'0');
+        uint32 val = (uint32)(str[0] - _u('0'));
         int calcLen = min(length, 9);
         for (int i = 1; i < calcLen; i++)
         {
-            if ((str[i] < L'0')|| (str[i] > L'9'))
+            if ((str[i] < _u('0'))|| (str[i] > _u('9')))
             {
                 return false;
             }
-            val = (val * 10) + (uint32)(str[i] - L'0');
+            val = (val * 10) + (uint32)(str[i] - _u('0'));
         }
         if (length == 10)
         {
             // check for overflow 4294967295
-            if (str[9] < L'0' || str[9] > L'9' ||
+            if (str[9] < _u('0') || str[9] > _u('9') ||
                 UInt32Math::Mul(val, 10, &val) ||
-                UInt32Math::Add(val, (uint32)(str[9] - L'0'), &val))
+                UInt32Math::Add(val, (uint32)(str[9] - _u('0')), &val))
             {
                 return false;
             }
@@ -633,12 +633,12 @@ namespace Js
         return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyInt);
     }
 
-    template double NumberUtilities::StrToDbl<wchar_t>(const wchar_t * psz, const wchar_t **ppchLim, Js::ScriptContext *const scriptContext);
+    template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);
     template double NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, Js::ScriptContext *const scriptContext);
-    template double NumberUtilities::DblFromHex<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromBinary<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromOctal<wchar_t>(const wchar_t *psz, const wchar_t **ppchLim);
+    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
 }

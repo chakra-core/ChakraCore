@@ -50,7 +50,7 @@ static BOOL AttachProcess(HANDLE hmod)
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
-    wchar_t *engine = szChakraCoreLock;
+    char16 *engine = szChakraCoreLock;
     if (::FindAtom(szJScript9Lock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded jscript9.dll");

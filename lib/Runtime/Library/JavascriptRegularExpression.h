@@ -119,7 +119,7 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptRegExp* FromVar(Var aValue);
 
-        static JavascriptRegExp* CreateRegEx(const wchar_t* pSource, CharCount sourceLen,
+        static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext);
@@ -160,7 +160,7 @@ namespace Js
         static Var EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
-        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);
+        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, char16 flag, ScriptContext* scriptContext);
         static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);

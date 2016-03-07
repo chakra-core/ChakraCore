@@ -47,20 +47,20 @@ struct AorW< UTF8Char >
     // Expressing the args as "arrays of size N" ensures that the both args
     // are the same length. If not, we get a compile time error.
     template< size_t N >
-    static const UTF8Char* Choose( const char (&a)[N], const wchar_t (&w)[N] )
+    static const UTF8Char* Choose( const char (&a)[N], const char16 (&w)[N] )
     {
         // The reinterpret_cast is necessary to go from signed to unsigned char
         return reinterpret_cast< const UTF8Char* >(a);
     }
 
     template< size_t N >
-    static const bool Test(const char (&a)[N], const wchar_t (&w)[N], LPCUTF8 value)
+    static const bool Test(const char (&a)[N], const char16 (&w)[N], LPCUTF8 value)
     {
         return 0 == memcmp(a, value, (N - 1) * sizeof(utf8char_t));
     }
 
     template< size_t N >
-    static const bool Test(const char (&a)[N], const wchar_t (&w)[N], LPCUTF8 start, LPCUTF8 end)
+    static const bool Test(const char (&a)[N], const char16 (&w)[N], LPCUTF8 start, LPCUTF8 end)
     {
         return (end - start == N - 1) && (0 == memcmp(a, start, (N - 1) * sizeof(utf8char_t)));
     }
@@ -71,21 +71,21 @@ template<>
 struct AorW< OLECHAR >
 {
     template< size_t N >
-    static const wchar_t* Choose( const char (&a)[N], const wchar_t (&w)[N] )
+    static const char16* Choose( const char (&a)[N], const char16 (&w)[N] )
     {
         return w;
     }
 
     template < size_t N >
-    static bool Test(const char (&a)[N], const wchar_t (&w)[N], const wchar_t *value)
+    static bool Test(const char (&a)[N], const char16 (&w)[N], const char16 *value)
     {
-        return 0 == memcmp(w, value, (N - 1) * sizeof(wchar_t));
+        return 0 == memcmp(w, value, (N - 1) * sizeof(char16));
     }
 
     template < size_t N >
-    static bool Test(const char (&a)[N], const wchar_t (&w)[N], const wchar_t *start, const wchar_t *end)
+    static bool Test(const char (&a)[N], const char16 (&w)[N], const char16 *start, const char16 *end)
     {
-        return (end - start == N - 1) && (0 == memcmp(w, start, (N - 1) * sizeof(wchar_t)));
+        return (end - start == N - 1) && (0 == memcmp(w, start, (N - 1) * sizeof(char16)));
     }
 };
 
@@ -212,7 +212,7 @@ template <typename EncodingPolicy>
 void Scanner<EncodingPolicy>::PrepareForBackgroundParse(Js::ScriptContext *scriptContext)
 {
     scriptContext->GetThreadContext()->GetStandardChars((EncodedChar*)0);
-    scriptContext->GetThreadContext()->GetStandardChars((wchar_t*)0);
+    scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
 }
 
 //-----------------------------------------------------------------------------
@@ -606,7 +606,7 @@ ulong Scanner<EncodingPolicy>::UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPt
         }
         else
         {
-            wchar_t lower, upper;
+            char16 lower, upper;
             Js::NumberUtilities::CodePointAsSurrogatePair(codePoint, &lower, &upper);
             m_tempChBuf.AppendCh(lower);
             m_tempChBuf.AppendCh(upper);
@@ -640,7 +640,7 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
     else
     {
         Assert(sizeof(EncodedChar) == 2);
-        return m_phtbl->PidHashNameLen(reinterpret_cast< const wchar_t * >(p), (long)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast< const char16 * >(p), (long)(last - p));
     }
 }
 
@@ -865,7 +865,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExp()
     tokens tk = tkNone;
 
     {
-        ArenaAllocator alloc(L"RescanRegExp", m_parser->GetAllocator()->GetPageAllocator(), m_parser->GetAllocator()->outOfMemoryFunc);
+        ArenaAllocator alloc(_u("RescanRegExp"), m_parser->GetAllocator()->GetPageAllocator(), m_parser->GetAllocator()->outOfMemoryFunc);
         tk = ScanRegExpConstant(&alloc);
     }
 
@@ -898,7 +898,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExpNoAST()
     tokens tk = tkNone;
 
     {
-        ArenaAllocator alloc(L"RescanRegExp", m_parser->GetAllocator()->GetPageAllocator(), m_parser->GetAllocator()->outOfMemoryFunc);
+        ArenaAllocator alloc(_u("RescanRegExp"), m_parser->GetAllocator()->GetPageAllocator(), m_parser->GetAllocator()->outOfMemoryFunc);
         {
             tk = ScanRegExpConstantNoAST(&alloc);
         }
@@ -934,7 +934,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExpTokenizer()
 
     ThreadContext *threadContext = ThreadContext::GetContextForCurrentThread();
     threadContext->EnsureRecycler();
-    Js::TempArenaAllocatorObject *alloc = threadContext->GetTemporaryAllocator(L"RescanRegExp");
+    Js::TempArenaAllocatorObject *alloc = threadContext->GetTemporaryAllocator(_u("RescanRegExp"));
     __try
     {
         tk = ScanRegExpConstantNoAST(alloc->GetAllocator());
@@ -966,7 +966,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 #endif
     ArenaAllocator* ctAllocator = alloc;
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = m_scriptContext->GetThreadContext()->GetStandardChars((EncodedChar*)0);
-    UnifiedRegex::StandardChars<wchar_t>* standardChars = m_scriptContext->GetThreadContext()->GetStandardChars((wchar_t*)0);
+    UnifiedRegex::StandardChars<char16>* standardChars = m_scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
 #if ENABLE_REGEX_CONFIG_OPTIONS
     UnifiedRegex::DebugWriter *w = 0;
     if (REGEX_CONFIG_FLAG(RegexDebug))
@@ -1033,7 +1033,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
 
     ThreadContext *threadContext = m_fSyntaxColor ? ThreadContext::GetContextForCurrentThread() : m_scriptContext->GetThreadContext();
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = threadContext->GetStandardChars((EncodedChar*)0);
-    UnifiedRegex::StandardChars<wchar_t>* standardChars = threadContext->GetStandardChars((wchar_t*)0);
+    UnifiedRegex::StandardChars<char16>* standardChars = threadContext->GetStandardChars((char16*)0);
     charcount_t totalLen = 0, bodyChars = 0, totalChars = 0, bodyLen = 0;
     UnifiedRegex::Parser<EncodingPolicy, true> parser
             ( m_scriptContext
@@ -1358,7 +1358,7 @@ LMainDefault:
                 }
                 else
                 {
-                    ch = (wchar_t)codePoint;
+                    ch = (char16)codePoint;
                 }
 
                 // In raw mode we want the last hex character or the closing curly. c should hold one or the other.
@@ -1429,9 +1429,9 @@ LTwoHex:
                 }
 
                 wT = (c = ReadFirst(p, last)) - '0';
-                if ((wchar_t)wT > 7)
+                if ((char16)wT > 7)
                 {
-                    if (ch != 0 || ((wchar_t)wT <= 9))
+                    if (ch != 0 || ((char16)wT <= 9))
                     {
                         m_OctOrLeadingZeroOnLastTKNumber = true;
                     }
@@ -1461,7 +1461,7 @@ LTwoHex:
 
 LOneOctal:
                 wT = (c = ReadFirst(p, last)) - '0';
-                if ((wchar_t)wT > 7)
+                if ((char16)wT > 7)
                 {
                     p--;
                     break;
@@ -1557,7 +1557,7 @@ LBreak:
     {
         createPid = false;
 
-        if ((m_tempChBuf.m_ichCur == 10) && (0 == memcmp(L"use strict", m_tempChBuf.m_prgch, m_tempChBuf.m_ichCur * sizeof(OLECHAR))))
+        if ((m_tempChBuf.m_ichCur == 10) && (0 == memcmp(_u("use strict"), m_tempChBuf.m_prgch, m_tempChBuf.m_ichCur * sizeof(OLECHAR))))
         {
             createPid = true;
         }

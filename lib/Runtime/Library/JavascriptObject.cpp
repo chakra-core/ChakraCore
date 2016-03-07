@@ -88,7 +88,7 @@ namespace Js
         RecyclableObject* dynamicObject = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.hasOwnProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.hasOwnProperty"));
         }
 
         // no property specified
@@ -122,7 +122,7 @@ namespace Js
         RecyclableObject* dynamicObject = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.propertyIsEnumerable");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.propertyIsEnumerable"));
         }
 
         if (args.Info.Count >= 2)
@@ -249,7 +249,7 @@ namespace Js
         RecyclableObject* dynamicObject = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &dynamicObject))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.isPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.isPrototypeOf"));
         }
         RecyclableObject* value = RecyclableObject::FromVar(args[1]);
 
@@ -285,13 +285,13 @@ namespace Js
 
         if (FALSE == JavascriptConversion::ToObject(thisValue, scriptContext, &dynamicObject))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.toLocaleString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.toLocaleString"));
         }
 
         Var toStringVar = nullptr;
         if (!JavascriptOperators::GetProperty(thisValue, dynamicObject, Js::PropertyIds::toString, &toStringVar, scriptContext) || !JavascriptConversion::IsCallable(toStringVar))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Object.prototype.toLocaleString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.toLocaleString"));
         }
 
         RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
@@ -333,13 +333,13 @@ namespace Js
                 catch (JavascriptExceptionObject*)
                 {
                     // tag = "???"
-                    return library->CreateStringFromCppLiteral(L"[object ???]"); // If tag is an abrupt completion, let tag be NormalCompletion("???").
+                    return library->CreateStringFromCppLiteral(_u("[object ???]")); // If tag is an abrupt completion, let tag be NormalCompletion("???").
                 }
 
                 if (!JavascriptString::Is(tagVar))
                 {
                     // tag = "???"
-                    return library->CreateStringFromCppLiteral(L"[object ???]"); // If Type(tag) is not String, let tag be "???".
+                    return library->CreateStringFromCppLiteral(_u("[object ???]")); // If Type(tag) is not String, let tag be "???".
                 }
 
                 tag = JavascriptString::FromVar(tagVar);
@@ -352,9 +352,9 @@ namespace Js
         switch (type)
         {
             case TypeIds_Arguments:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Arguments") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Arguments")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Arguments]");
+                    return library->CreateStringFromCppLiteral(_u("[object Arguments]"));
                 }
                 break;
             case TypeIds_Array:
@@ -364,36 +364,36 @@ namespace Js
             case TypeIds_CopyOnAccessNativeIntArray:
 #endif
             case TypeIds_NativeFloatArray:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Array") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Array]");
+                    return library->CreateStringFromCppLiteral(_u("[object Array]"));
                 }
                 break;
             case TypeIds_Boolean:
             case TypeIds_BooleanObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Boolean") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Boolean")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Boolean]");
+                    return library->CreateStringFromCppLiteral(_u("[object Boolean]"));
                 }
                 break;
             case TypeIds_Date:
             case TypeIds_WinRTDate:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Date") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Date")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Date]");
+                    return library->CreateStringFromCppLiteral(_u("[object Date]"));
                 }
                 break;
             case TypeIds_Error:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Error") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Error")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Error]");
+                    return library->CreateStringFromCppLiteral(_u("[object Error]"));
                 }
                 break;
 
             case TypeIds_Function:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Function") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Function")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Function]");
+                    return library->CreateStringFromCppLiteral(_u("[object Function]"));
                 }
                 break;
             case TypeIds_Number:
@@ -401,46 +401,46 @@ namespace Js
             case TypeIds_UInt64Number:
             case TypeIds_Integer:
             case TypeIds_NumberObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Number") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Number")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Number]");
+                    return library->CreateStringFromCppLiteral(_u("[object Number]"));
                 }
                 break;
             case TypeIds_SIMDObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"SIMD") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("SIMD")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object SIMD]");
+                    return library->CreateStringFromCppLiteral(_u("[object SIMD]"));
                 }
                 break;
 
             case TypeIds_RegEx:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"RegExp") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("RegExp")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object RegExp]");
+                    return library->CreateStringFromCppLiteral(_u("[object RegExp]"));
                 }
                 break;
 
             case TypeIds_String:
             case TypeIds_StringObject:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"String") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("String")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object String]");
+                    return library->CreateStringFromCppLiteral(_u("[object String]"));
                 }
                 break;
 
             case TypeIds_ModuleNamespace:
-                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Module") == 0)
+                if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Module")) == 0)
                 {
-                    return library->CreateStringFromCppLiteral(L"[object Module]");
+                    return library->CreateStringFromCppLiteral(_u("[object Module]"));
                 }
                 break;
 
             case TypeIds_Proxy:
                 if (JavascriptOperators::IsArray(JavascriptProxy::FromVar(thisArg)->GetTarget()))
                 {
-                    if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), L"Array") == 0)
+                    if (!isES6ToStringTagEnabled || tag == nullptr || wcscmp(tag->UnsafeGetBuffer(), _u("Array")) == 0)
                     {
-                        return library->CreateStringFromCppLiteral(L"[object Array]");
+                        return library->CreateStringFromCppLiteral(_u("[object Array]"));
                     }
                 }
                 //otherwise, fall though
@@ -462,12 +462,12 @@ namespace Js
         CompoundString::Builder<32> stringBuilder(scriptContext);
 
         if (addTilde)
-            stringBuilder.AppendChars(L"[object ~");
+            stringBuilder.AppendChars(_u("[object ~"));
         else
-            stringBuilder.AppendChars(L"[object ");
+            stringBuilder.AppendChars(_u("[object "));
 
         stringBuilder.AppendChars(tag);
-        stringBuilder.AppendChars(L']');
+        stringBuilder.AppendChars(_u(']'));
 
         return stringBuilder.ToString();
     }
@@ -478,38 +478,38 @@ namespace Js
         switch (type)
         {
             case TypeIds_ArrayBuffer:
-                return library->CreateStringFromCppLiteral(L"[object ArrayBuffer]");
+                return library->CreateStringFromCppLiteral(_u("[object ArrayBuffer]"));
             case TypeIds_Int8Array:
-                return library->CreateStringFromCppLiteral(L"[object Int8Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Int8Array]"));
             case TypeIds_Uint8Array:
-                return library->CreateStringFromCppLiteral(L"[object Uint8Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Uint8Array]"));
             case TypeIds_Uint8ClampedArray:
-                return library->CreateStringFromCppLiteral(L"[object Uint8ClampedArray]");
+                return library->CreateStringFromCppLiteral(_u("[object Uint8ClampedArray]"));
             case TypeIds_Int16Array:
-                return library->CreateStringFromCppLiteral(L"[object Int16Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Int16Array]"));
             case TypeIds_Uint16Array:
-                return library->CreateStringFromCppLiteral(L"[object Uint16Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Uint16Array]"));
             case TypeIds_Int32Array:
-                return library->CreateStringFromCppLiteral(L"[object Int32Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Int32Array]"));
             case TypeIds_Uint32Array:
-                return library->CreateStringFromCppLiteral(L"[object Uint32Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Uint32Array]"));
             case TypeIds_Float32Array:
-                return library->CreateStringFromCppLiteral(L"[object Float32Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Float32Array]"));
             case TypeIds_Float64Array:
-                return library->CreateStringFromCppLiteral(L"[object Float64Array]");
+                return library->CreateStringFromCppLiteral(_u("[object Float64Array]"));
             case TypeIds_Symbol:
             case TypeIds_SymbolObject:
-                return library->CreateStringFromCppLiteral(L"[object Symbol]");
+                return library->CreateStringFromCppLiteral(_u("[object Symbol]"));
             case TypeIds_Map:
-                return library->CreateStringFromCppLiteral(L"[object Map]");
+                return library->CreateStringFromCppLiteral(_u("[object Map]"));
             case TypeIds_Set:
-                return library->CreateStringFromCppLiteral(L"[object Set]");
+                return library->CreateStringFromCppLiteral(_u("[object Set]"));
             case TypeIds_WeakMap:
-                return library->CreateStringFromCppLiteral(L"[object WeakMap]");
+                return library->CreateStringFromCppLiteral(_u("[object WeakMap]"));
             case TypeIds_WeakSet:
-                return library->CreateStringFromCppLiteral(L"[object WeakSet]");
+                return library->CreateStringFromCppLiteral(_u("[object WeakSet]"));
             case TypeIds_Generator:
-                return library->CreateStringFromCppLiteral(L"[object Generator]");
+                return library->CreateStringFromCppLiteral(_u("[object Generator]"));
             default:
                 AssertMsg(false, "We should never be here");
                 return library->GetUndefined();
@@ -523,9 +523,9 @@ namespace Js
         switch (type)
         {
         case TypeIds_Undefined:
-            return library->CreateStringFromCppLiteral(L"[object Undefined]");
+            return library->CreateStringFromCppLiteral(_u("[object Undefined]"));
         case TypeIds_Null:
-            return library->CreateStringFromCppLiteral(L"[object Null]");
+            return library->CreateStringFromCppLiteral(_u("[object Null]"));
         case TypeIds_Enumerator:
         case TypeIds_Proxy:
         case TypeIds_Object:
@@ -537,11 +537,11 @@ namespace Js
 
             if (thisArg == scriptContext->GetLibrary()->GetMathObject())
             {
-                return library->CreateStringFromCppLiteral(L"[object Math]");
+                return library->CreateStringFromCppLiteral(_u("[object Math]"));
             }
             else if (thisArg == library->GetJSONObject())
             {
-                return library->CreateStringFromCppLiteral(L"[object JSON]");
+                return library->CreateStringFromCppLiteral(_u("[object JSON]"));
             }
 
         default:
@@ -555,9 +555,9 @@ namespace Js
             // otherwise, fall through.
             RecyclableObject* recyclableObject = Js::RecyclableObject::FromVar(thisArg);
 
-            JavascriptString* name = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"[object ");
+            JavascriptString* name = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[object "));
             name = JavascriptString::Concat(name, recyclableObject->GetClassName(scriptContext));
-            name = JavascriptString::Concat(name, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"]"));
+            name = JavascriptString::Concat(name, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("]")));
             return name;
         }
 
@@ -701,7 +701,7 @@ namespace Js
 
         if ((argType == TypeIds_Null) || (argType == TypeIds_Undefined))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.valueOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.valueOf"));
         }
         else
         {
@@ -798,7 +798,7 @@ namespace Js
         // 2. ReturnIfAbrupt(obj).
         if (args.Info.Count < 2 || !JavascriptConversion::ToObject(args[1], scriptContext, &object))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.getPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.getPrototypeOf"));
         }
 
         // 3. Return obj.[[GetPrototypeOf]]().
@@ -832,7 +832,7 @@ namespace Js
 
         if (errCode != NOERROR)
         {
-            JavascriptError::ThrowTypeError(scriptContext, errCode, L"Object.setPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, errCode, _u("Object.setPrototypeOf"));
         }
 
         // 4. If Type(O) is not Object, return O.
@@ -1313,7 +1313,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.defineProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.defineProperty"));
         }
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1364,7 +1364,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.defineProperties");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.defineProperties"));
         }
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1385,7 +1385,7 @@ namespace Js
         RecyclableObject* properties = nullptr;
         if (FALSE == JavascriptConversion::ToObject(propertiesVar, scriptContext, &properties))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NullOrUndefined, L"Object.defineProperties");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NullOrUndefined, _u("Object.defineProperties"));
         }
 
         return DefinePropertiesHelper(object, properties, scriptContext);
@@ -1419,7 +1419,7 @@ namespace Js
 
         if (!JavascriptConversion::IsCallable(getterFunc))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Object.prototype.__defineGetter__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineGetter__"));
         }
 
         PropertyDescriptor propertyDescriptor;
@@ -1457,7 +1457,7 @@ namespace Js
 
         if (!JavascriptConversion::IsCallable(setterFunc))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Object.prototype.__defineSetter__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.__defineSetter__"));
         }
 
         PropertyDescriptor propertyDescriptor;
@@ -1483,7 +1483,7 @@ namespace Js
         RecyclableObject* obj = nullptr;
         if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.__lookupGetter__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__lookupGetter__"));
         }
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
@@ -1516,7 +1516,7 @@ namespace Js
         RecyclableObject* obj = nullptr;
         if (!JavascriptConversion::ToObject(args[0], scriptContext, &obj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"Object.prototype.__lookupSetter__");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.__lookupSetter__"));
         }
 
         Var propertyKey = args.Info.Count > 1 ? args[1] : obj->GetLibrary()->GetUndefined();
@@ -1567,7 +1567,7 @@ namespace Js
         RecyclableObject* to = nullptr;
         if (args.Info.Count == 1 || !JavascriptConversion::ToObject(args[1], scriptContext, &to))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.assign");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.assign"));
         }
 
         if (args.Info.Count < 3)
@@ -1593,7 +1593,7 @@ namespace Js
             RecyclableObject* from = nullptr;
             if (!JavascriptConversion::ToObject(args[i], scriptContext, &from))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Object.assign");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.assign"));
             }
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1649,12 +1649,12 @@ namespace Js
 
             if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, L"Object.assign");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
             }
 
             if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, scriptContext, PropertyOperationFlags::PropertyOperation_ThrowIfNonWritable))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, L"Object.assign");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
             }
         }
     }
@@ -1700,11 +1700,11 @@ namespace Js
                 {
                     if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, L"Object.assign");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
                     }
                     if (!JavascriptOperators::SetProperty(to, to, propertyId, propValue, scriptContext))
                     {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, L"Object.assign");
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
                     }
                 }
             }
@@ -1727,13 +1727,13 @@ namespace Js
 
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, L"Object.create");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
         }
 
         TypeId typeId = JavascriptOperators::GetTypeId(args[1]);
         if (typeId != TypeIds_Null && !JavascriptOperators::IsObjectType(typeId))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, L"Object.create");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
         }
 
         //Create a new DynamicType with first argument as prototype and non shared type
@@ -1755,7 +1755,7 @@ namespace Js
             RecyclableObject* properties = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[2], scriptContext, &properties))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NullOrUndefined, L"Object.create");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NullOrUndefined, _u("Object.create"));
             }
             return DefinePropertiesHelper(object, properties, scriptContext);
         }
@@ -1982,20 +1982,20 @@ namespace Js
     static const size_t ConstructNameGetSetLength = 5;    // 5 = 1 ( for .) + 3 (get or set) + 1 for null)
 
     /*static*/
-    wchar_t * JavascriptObject::ConstructName(const PropertyRecord * propertyRecord, const wchar_t * getOrSetStr, ScriptContext* scriptContext)
+    char16 * JavascriptObject::ConstructName(const PropertyRecord * propertyRecord, const char16 * getOrSetStr, ScriptContext* scriptContext)
     {
         Assert(propertyRecord);
         Assert(scriptContext);
-        wchar_t * finalName = nullptr;
+        char16 * finalName = nullptr;
         size_t propertyLength = (size_t)propertyRecord->GetLength();
         if (propertyLength > 0)
         {
             size_t totalChars;
             if (SizeTAdd(propertyLength, ConstructNameGetSetLength, &totalChars) == S_OK)
             {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, totalChars);
+                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
                 Assert(finalName != nullptr);
-                const wchar_t* propertyName = propertyRecord->GetBuffer();
+                const char16* propertyName = propertyRecord->GetBuffer();
                 Assert(propertyName != nullptr);
                 wcscpy_s(finalName, totalChars, propertyName);
 
@@ -2009,11 +2009,11 @@ namespace Js
     }
 
     /*static*/
-    wchar_t * JavascriptObject::ConstructAccessorNameES6(const PropertyRecord * propertyRecord, const wchar_t * getOrSetStr, ScriptContext* scriptContext)
+    char16 * JavascriptObject::ConstructAccessorNameES6(const PropertyRecord * propertyRecord, const char16 * getOrSetStr, ScriptContext* scriptContext)
     {
         Assert(propertyRecord);
         Assert(scriptContext);
-        wchar_t * finalName = nullptr;
+        char16 * finalName = nullptr;
         size_t propertyLength = static_cast<size_t>(propertyRecord->GetLength() + 1); //+ 1 (for null terminator)
         if (propertyLength > 0)
         {
@@ -2021,14 +2021,14 @@ namespace Js
             const size_t getSetLength = 4;    // 4 = 3 (get or set) +1 (for space)
             if (SizeTAdd(propertyLength, getSetLength, &totalChars) == S_OK)
             {
-                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, totalChars);
+                finalName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, totalChars);
                 Assert(finalName != nullptr);
 
                 Assert(getOrSetStr != nullptr);
                 Assert(wcslen(getOrSetStr) == 4);
                 wcscpy_s(finalName, totalChars, getOrSetStr);
 
-                const wchar_t* propertyName = propertyRecord->GetBuffer();
+                const char16* propertyName = propertyRecord->GetBuffer();
                 Assert(propertyName != nullptr);
                 js_wmemcpy_s(finalName + getSetLength, propertyLength, propertyName, propertyLength);
 
@@ -2046,17 +2046,17 @@ namespace Js
         {
             if (descriptor.GetterSpecified()
                 && Js::ScriptFunction::Is(descriptor.GetGetter())
-                && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), L"get") == 0)
+                && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
             {
                 // modify to name.get
-                wchar_t* finalName;
+                char16* finalName;
                 if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
                 {
-                    finalName = ConstructAccessorNameES6(propertyRecord, L"get ", scriptContext);
+                    finalName = ConstructAccessorNameES6(propertyRecord, _u("get "), scriptContext);
                 }
                 else
                 {
-                    finalName = ConstructName(propertyRecord, L".get", scriptContext);
+                    finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
                 }
                 if (finalName != nullptr)
                 {
@@ -2068,17 +2068,17 @@ namespace Js
 
             if (descriptor.SetterSpecified()
                 && Js::ScriptFunction::Is(descriptor.GetSetter())
-                && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), L"set") == 0)
+                && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
             {
                 // modify to name.set
-                wchar_t* finalName;
+                char16* finalName;
                 if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
                 {
-                    finalName = ConstructAccessorNameES6(propertyRecord, L"set ", scriptContext);
+                    finalName = ConstructAccessorNameES6(propertyRecord, _u("set "), scriptContext);
                 }
                 else
                 {
-                    finalName = ConstructName(propertyRecord, L".set", scriptContext);
+                    finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
                 }
 
                 if (finalName != nullptr)

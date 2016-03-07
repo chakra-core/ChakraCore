@@ -322,8 +322,8 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
             Output::Flush(); \
         } \
     }
-wchar_t * const trueString = L"true";
-wchar_t * const falseString = L"false";
+char16 * const trueString = _u("true");
+char16 * const falseString = _u("false");
 #else
 #define REJIT_TESTTRACE(...)
 #define REJIT_KIND_TESTTRACE(...)
@@ -339,9 +339,9 @@ wchar_t * const falseString = L"false";
             Output::Print(__VA_ARGS__); \
             if (bailOutKind != IR::BailOutInvalid) \
             { \
-                Output::Print(L" Kind: %S", ::GetBailOutKindName(bailOutKind)); \
+                Output::Print(_u(" Kind: %S"), ::GetBailOutKindName(bailOutKind)); \
             } \
-            Output::Print(L"\n"); \
+            Output::Print(_u("\n")); \
         } \
     }
 
@@ -380,7 +380,7 @@ wchar_t * const falseString = L"false";
 #if DBG
 void BailOutRecord::DumpArgOffsets(uint count, int* offsets, int argOutSlotStart)
 {
-    wchar_t const * name = L"OutParam";
+    char16 const * name = _u("OutParam");
     Js::RegSlot regSlotOffset = 0;
 
     for (uint i = 0; i < count; i++)
@@ -398,15 +398,15 @@ void BailOutRecord::DumpArgOffsets(uint count, int* offsets, int argOutSlotStart
 
         Assert(!isFloat64 || !isInt32);
 
-        Output::Print(L"%s #%3d: ", name, i + regSlotOffset);
+        Output::Print(_u("%s #%3d: "), name, i + regSlotOffset);
         this->DumpValue(offset, isFloat64);
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
 }
 
 void BailOutRecord::DumpLocalOffsets(uint count, int argOutSlotStart)
 {
-    wchar_t const * name = L"Register";
+    char16 const * name = _u("Register");
     globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
         Assert(row != nullptr);
 
@@ -421,9 +421,9 @@ void BailOutRecord::DumpLocalOffsets(uint count, int argOutSlotStart)
 
         Assert(!isFloat64 || !isInt32);
 
-        Output::Print(L"%s #%3d: ", name, row->regSlot);
+        Output::Print(_u("%s #%3d: "), name, row->regSlot);
         this->DumpValue(row->offset, isFloat64);
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     });
 }
 
@@ -431,7 +431,7 @@ void BailOutRecord::DumpValue(int offset, bool isFloat64)
 {
     if (offset < 0)
     {
-        Output::Print(L"Stack offset %6d",  offset);
+        Output::Print(_u("Stack offset %6d"),  offset);
     }
     else if (offset > 0)
     {
@@ -440,31 +440,31 @@ void BailOutRecord::DumpValue(int offset, bool isFloat64)
             if (isFloat64)
             {
 #ifdef _M_ARM
-                Output::Print(L"Register %-4S  %4d", RegNames[(offset - RegD0) / 2  + RegD0], offset);
+                Output::Print(_u("Register %-4S  %4d"), RegNames[(offset - RegD0) / 2  + RegD0], offset);
 #else
-                Output::Print(L"Register %-4S  %4d", RegNames[offset], offset);
+                Output::Print(_u("Register %-4S  %4d"), RegNames[offset], offset);
 #endif
             }
             else
             {
-                Output::Print(L"Register %-4S  %4d", RegNames[offset], offset);
+                Output::Print(_u("Register %-4S  %4d"), RegNames[offset], offset);
             }
         }
         else if (BailOutRecord::IsArgumentsObject((uint)offset))
         {
-            Output::Print(L"Arguments object");
+            Output::Print(_u("Arguments object"));
         }
         else
         {
             // Constants offset starts from max bail out register save slot count
             uint constantIndex = offset - (GetBailOutRegisterSaveSlotCount() + GetBailOutReserveSlotCount()) - 1;
-            Output::Print(L"Constant index %4d value:0x%p (Var)", constantIndex, this->constants[constantIndex]);
+            Output::Print(_u("Constant index %4d value:0x%p (Var)"), constantIndex, this->constants[constantIndex]);
             Assert(!isFloat64);
         }
     }
     else
     {
-        Output::Print(L"Not live");
+        Output::Print(_u("Not live"));
     }
 }
 
@@ -472,14 +472,14 @@ void BailOutRecord::Dump()
 {
     if (this->localOffsetsCount)
     {
-        Output::Print(L"**** Locals ***\n");
+        Output::Print(_u("**** Locals ***\n"));
         DumpLocalOffsets(this->localOffsetsCount, 0);
     }
 
     uint outParamSlot = 0;
     if(this->argOutOffsetInfo)
     {
-        Output::Print(L"**** Out params ***\n");
+        Output::Print(_u("**** Out params ***\n"));
         for (uint i = 0; i < this->argOutOffsetInfo->startCallCount; i++)
         {
             uint startCallOutParamCount = this->argOutOffsetInfo->startCallOutParamCounts[i];
@@ -577,11 +577,11 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     {
         Js::FunctionBody* functionBody = newInstance->function->GetFunctionBody();
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        BAILOUT_VERBOSE_TRACE(functionBody, bailOutKind, L"BailOut:   Register #%3d: Not live\n", 0);
+        BAILOUT_VERBOSE_TRACE(functionBody, bailOutKind, _u("BailOut:   Register #%3d: Not live\n"), 0);
 
         for (uint i = 1; i < functionBody->GetConstantCount(); i++)
         {
-            BAILOUT_VERBOSE_TRACE(functionBody, bailOutKind, L"BailOut:   Register #%3d: Constant table\n", i);
+            BAILOUT_VERBOSE_TRACE(functionBody, bailOutKind, _u("BailOut:   Register #%3d: Constant table\n"), i);
         }
 #endif
 
@@ -632,7 +632,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         Assert(bailOutReturnValue->returnValueRegSlot < newInstance->GetJavascriptFunction()->GetFunctionBody()->GetLocalsCount());
         newInstance->m_localSlots[bailOutReturnValue->returnValueRegSlot] = bailOutReturnValue->returnValue;
 
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"BailOut:   Register #%3d: Return, value: 0x%p\n",
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("BailOut:   Register #%3d: Return, value: 0x%p\n"),
             bailOutReturnValue->returnValueRegSlot, bailOutReturnValue->returnValue);
     }
 
@@ -722,14 +722,14 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
     SIMDValue simdValue = { 0, 0, 0, 0 };
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t const * name = L"OutParam";
+    char16 const * name = _u("OutParam");
     if (isLocal)
     {
-        name = L"Register";
+        name = _u("Register");
     }
 #endif
 
-    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"BailOut:   %s #%3d: ", name, regSlot);
+    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("BailOut:   %s #%3d: "), name, regSlot);
 
     if (offset < 0)
     {
@@ -776,7 +776,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
 
         }
 
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Stack offset %6d", offset);
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Stack offset %6d"), offset);
     }
     else if (offset > 0)
     {
@@ -791,9 +791,9 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
                 Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] == TyFloat64);
                 dblValue = *((double*)&(registerSaveSpace[offset - 1]));
 #ifdef _M_ARM
-                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Register %-4S  %4d", RegNames[(offset - RegD0) / 2 + RegD0], offset);
+                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Register %-4S  %4d"), RegNames[(offset - RegD0) / 2 + RegD0], offset);
 #else
-                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Register %-4S  %4d", RegNames[LinearScanMD::GetRegisterFromSaveIndex(offset)], offset);
+                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Register %-4S  %4d"), RegNames[LinearScanMD::GetRegisterFromSaveIndex(offset)], offset);
 #endif
             }
             else
@@ -813,7 +813,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
                     value = registerSaveSpace[offset - 1];
                 }
 
-                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Register %-4S  %4d", RegNames[LinearScanMD::GetRegisterFromSaveIndex(offset)], offset);
+                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Register %-4S  %4d"), RegNames[LinearScanMD::GetRegisterFromSaveIndex(offset)], offset);
             }
         }
         else if (BailOutRecord::IsArgumentsObject((uint)offset))
@@ -827,7 +827,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
                 value = EnsureArguments(newInstance, layout, scriptContext, pArgumentsObject);
             }
             Assert(value);
-            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Arguments object");
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Arguments object"));
             boxStackInstance = false;
         }
         else
@@ -842,27 +842,27 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             {
                 value = this->constants[constantIndex];
             }
-            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Constant index %4d", constantIndex);
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Constant index %4d"), constantIndex);
             boxStackInstance = false;
         }
     }
     else
     {
         // Consider Assert(false) here
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"Not live\n");
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("Not live\n"));
         return;
     }
 
     if (isFloat64)
     {
         value = Js::JavascriptNumber::New(dblValue, scriptContext);
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L", value: %f (ToVar: 0x%p)", dblValue, value);
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: %f (ToVar: 0x%p)"), dblValue, value);
     }
     else if (isInt32)
     {
         Assert(!value);
         value = Js::JavascriptNumber::ToVar(int32Value, scriptContext);
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L", value: %10d (ToVar: 0x%p)", int32Value, value);
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: %10d (ToVar: 0x%p)"), int32Value, value);
     }
     // SIMD_JS
     else if (isSimd128F4)
@@ -877,7 +877,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
     }
     else
     {
-        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L", value: 0x%p", value);
+        BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p"), value);
         if (boxStackInstance)
         {
             Js::Var oldValue = value;
@@ -885,14 +885,14 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
 
             if (oldValue != value)
             {
-                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L" (Boxed: 0x%p)", value);
+                BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(" (Boxed: 0x%p)"), value);
             }
         }
     }
 
     values[regSlot] = value;
 
-    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"\n");
+    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("\n"));
 }
 
 void
@@ -1153,13 +1153,13 @@ BailOutRecord::BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout,
     // The current interpreter frame for the loop body
     Js::InterpreterStackFrame * interpreterFrame = functionScriptContext->GetThreadContext()->GetLeafInterpreterFrame();
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    BAILOUT_KIND_TRACE(executeFunction, bailOutKind, L"BailOut: function: %s (%s) Loop: %d offset: #%04x Opcode: %s",
+    BAILOUT_KIND_TRACE(executeFunction, bailOutKind, _u("BailOut: function: %s (%s) Loop: %d offset: #%04x Opcode: %s"),
         executeFunction->GetDisplayName(), executeFunction->GetDebugNumberSet(debugStringBuffer), interpreterFrame->GetCurrentLoopNum(),
         bailOutOffset, Js::OpCodeUtil::GetOpCodeName(bailOutRecord->bailOutOpcode));
 
-    BAILOUT_TESTTRACE(executeFunction, bailOutKind, L"BailOut: function: %s (%s) Loop: %d Opcode: %s\n", executeFunction->GetDisplayName(),
+    BAILOUT_TESTTRACE(executeFunction, bailOutKind, _u("BailOut: function: %s (%s) Loop: %d Opcode: %s\n"), executeFunction->GetDisplayName(),
         executeFunction->GetDebugNumberSet(debugStringBuffer), interpreterFrame->GetCurrentLoopNum(), Js::OpCodeUtil::GetOpCodeName(bailOutRecord->bailOutOpcode));
 
     // Restore bailout values
@@ -1258,8 +1258,8 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                     if (bailOutOffset != (uint)byteCodeOffsetAfterEx || !(bailOutKind & IR::BailOutIgnoreException))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                        BAILOUT_KIND_TRACE(executeFunction, bailOutKind, L"BailOut: changing due to ignore exception: function: %s (%s) offset: #%04x -> #%04x Opcode: %s Treating as: %S", executeFunction->GetDisplayName(),
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        BAILOUT_KIND_TRACE(executeFunction, bailOutKind, _u("BailOut: changing due to ignore exception: function: %s (%s) offset: #%04x -> #%04x Opcode: %s Treating as: %S"), executeFunction->GetDisplayName(),
                             executeFunction->GetDebugNumberSet(debugStringBuffer), bailOutOffset, byteCodeOffsetAfterEx, Js::OpCodeUtil::GetOpCodeName(bailOutRecord->bailOutOpcode), ::GetBailOutKindName(IR::BailOutIgnoreException));
                     }
 #endif
@@ -1286,11 +1286,11 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         }
     }
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    BAILOUT_KIND_TRACE(executeFunction, bailOutKind, L"BailOut: function: %s (%s) offset: #%04x Opcode: %s", executeFunction->GetDisplayName(),
+    BAILOUT_KIND_TRACE(executeFunction, bailOutKind, _u("BailOut: function: %s (%s) offset: #%04x Opcode: %s"), executeFunction->GetDisplayName(),
         executeFunction->GetDebugNumberSet(debugStringBuffer), bailOutOffset, Js::OpCodeUtil::GetOpCodeName(bailOutRecord->bailOutOpcode));
-    BAILOUT_TESTTRACE(executeFunction, bailOutKind, L"BailOut: function: %s (%s) Opcode: %s\n", executeFunction->GetDisplayName(),
+    BAILOUT_TESTTRACE(executeFunction, bailOutKind, _u("BailOut: function: %s (%s) Opcode: %s\n"), executeFunction->GetDisplayName(),
         executeFunction->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(bailOutRecord->bailOutOpcode));
 
     if (isInlinee && args.Info.Count != 0)
@@ -1299,14 +1299,14 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         for(uint i = 0; i < args.Info.Count; ++i)
         {
             const Js::Var arg = args.Values[i];
-            BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, L"BailOut:   Argument #%3u: value: 0x%p", i, arg);
+            BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, _u("BailOut:   Argument #%3u: value: 0x%p"), i, arg);
             const Js::Var boxedArg = Js::JavascriptOperators::BoxStackInstance(arg, functionScriptContext, true);
             if(boxedArg != arg)
             {
                 args.Values[i] = boxedArg;
-                BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, L" (Boxed: 0x%p)", boxedArg);
+                BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, _u(" (Boxed: 0x%p)"), boxedArg);
             }
-            BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, L"\n");
+            BAILOUT_VERBOSE_TRACE(executeFunction, bailOutKind, _u("\n"));
         }
     }
 
@@ -1555,7 +1555,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         dynamicProfileInfo->RecordImplicitCallFlags(threadContext->GetImplicitCallFlags());
     }
 
-    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"BailOut:   Return Value: 0x%p", aReturn);
+    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("BailOut:   Return Value: 0x%p"), aReturn);
     if (bailOutRecord->globalBailOutRecordTable->isInlinedConstructor)
     {
         AssertMsg(!executeFunction->IsGenerator(), "Generator functions are not expected to be inlined. If this changes then need to use the real user args here from the generator object");
@@ -1567,11 +1567,11 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (oldValue != aReturn)
         {
-            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L" (Boxed: 0x%p)", aReturn);
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(" (Boxed: 0x%p)"), aReturn);
         }
 #endif
     }
-    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, L"\n");
+    BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("\n"));
     return aReturn;
 }
 
@@ -1639,7 +1639,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 {
                     // If we consistently see RejitMaxBailOutCount bailouts for these kinds, then likely we have stale profile data and it is beneficial to rejit.
                     // Note you need to include only bailout kinds which don't disable the entire optimizations.
-                    REJIT_KIND_TESTTRACE(bailOutKind, L"Force rejit as RejitMaxBailoOutCount reached for a bailout record: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d RejitMaxBailoutCount: %d\r\n",
+                    REJIT_KIND_TESTTRACE(bailOutKind, _u("Force rejit as RejitMaxBailoOutCount reached for a bailout record: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d RejitMaxBailoutCount: %d\r\n"),
                         function->GetFunctionBody()->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailOutRecordNotConst->bailOutCount, callsCount, CONFIG_FLAG(RejitMaxBailOutCount));
 
                     bailOutRecordNotConst->bailOutCount = 0;
@@ -1955,9 +1955,9 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                     if (PHASE_TRACE(Js::ObjTypeSpecPhase, executeFunction))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                         Output::Print(
-                            L"Objtypespec (%s): States on bailout: Saved cache: %d, Live cache: %d\n",
+                            _u("Objtypespec (%s): States on bailout: Saved cache: %d, Live cache: %d\n"),
                             executeFunction->GetDebugNumberSet(debugStringBuffer), executeFunction->GetSavedPolymorphicCacheState(), state);
                         Output::Flush();
                     }
@@ -2028,7 +2028,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         rejitReason = RejitReason::Forced;
     }
 
-    REJIT_KIND_TESTTRACE(bailOutKind, L"Bailout from function: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d, reJitReason: %S, reThunk: %s\r\n",
+    REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from function: function: %s, bailOutKindName: (%S), bailOutCount: %d, callCount: %d, reJitReason: %S, reThunk: %s\r\n"),
         function->GetFunctionBody()->GetDisplayName(), ::GetBailOutKindName(bailOutKind), bailOutRecord->bailOutCount, callsCount,
         RejitReasonNames[rejitReason], reThunk ? trueString : falseString);
 
@@ -2076,20 +2076,20 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(PHASE_TRACE(Js::ReJITPhase, executeFunction))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
-                L"Rejit: function: %s (%s), bailOutCount: %hu",
+                _u("Rejit: function: %s (%s), bailOutCount: %hu"),
                 executeFunction->GetDisplayName(),
                 executeFunction->GetDebugNumberSet(debugStringBuffer),
                 bailOutRecord->bailOutCount);
 
-            Output::Print(L" callCount: %u", callsCount);
-            Output::Print(L" reason: %S", RejitReasonNames[rejitReason]);
+            Output::Print(_u(" callCount: %u"), callsCount);
+            Output::Print(_u(" reason: %S"), RejitReasonNames[rejitReason]);
             if(bailOutKind != IR::BailOutInvalid)
             {
-                Output::Print(L" (%S)", ::GetBailOutKindName(bailOutKind));
+                Output::Print(_u(" (%S)"), ::GetBailOutKindName(bailOutKind));
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -2276,7 +2276,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                     profileInfo->DisableObjTypeSpecInJitLoopBody();
                     if(PHASE_TRACE1(Js::DisabledObjTypeSpecPhase))
                     {
-                        Output::Print(L"Disabled obj type spec in jit loop body for loop %d in %s (%d)\n",
+                        Output::Print(_u("Disabled obj type spec in jit loop body for loop %d in %s (%d)\n"),
                             executeFunction->GetLoopNumber(loopHeader), executeFunction->GetDisplayName(), executeFunction->GetFunctionNumber());
                         Output::Flush();
                     }
@@ -2335,7 +2335,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
         }
     }
 
-    REJIT_KIND_TESTTRACE(bailOutKind, L"Bailout from loop: function: %s, loopNumber: %d, bailOutKindName: (%S), reJitReason: %S\r\n",
+    REJIT_KIND_TESTTRACE(bailOutKind, _u("Bailout from loop: function: %s, loopNumber: %d, bailOutKindName: (%S), reJitReason: %S\r\n"),
         function->GetFunctionBody()->GetDisplayName(), executeFunction->GetLoopNumber(loopHeader),
         ::GetBailOutKindName(bailOutKind), RejitReasonNames[rejitReason]);
 
@@ -2362,9 +2362,9 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if(PHASE_TRACE(Js::ReJITPhase, executeFunction))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
-                L"Rejit(loop): function: %s (%s) loop: %u bailOutCount: %hu reason: %S",
+                _u("Rejit(loop): function: %s (%s) loop: %u bailOutCount: %hu reason: %S"),
                 executeFunction->GetDisplayName(),
                 executeFunction->GetDebugNumberSet(debugStringBuffer),
                 executeFunction->GetLoopNumber(loopHeader),
@@ -2372,9 +2372,9 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 RejitReasonNames[rejitReason]);
             if(bailOutKind != IR::BailOutInvalid)
             {
-                Output::Print(L" (%S)", ::GetBailOutKindName(bailOutKind));
+                Output::Print(_u(" (%S)"), ::GetBailOutKindName(bailOutKind));
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -2523,7 +2523,7 @@ void LazyBailOutRecord::SetBailOutKind()
 void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody)
 {
     OUTPUT_PRINT(functionBody);
-    Output::Print(L"Bytecode Offset: #%04x opcode: %s", this->bailoutRecord->GetBailOutOffset(), Js::OpCodeUtil::GetOpCodeName(this->bailoutRecord->GetBailOutOpCode()));
+    Output::Print(_u("Bytecode Offset: #%04x opcode: %s"), this->bailoutRecord->GetBailOutOffset(), Js::OpCodeUtil::GetOpCodeName(this->bailoutRecord->GetBailOutOpCode()));
 }
 #endif
 

@@ -181,12 +181,12 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
     Assert(this->inlineDepth != 0);
     Assert(inlineeStartOffset != 0);
 
-    BAILOUT_VERBOSE_TRACE(functionBody, L"Restore function object: ");
+    BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore function object: "));
     Js::Var varFunction =  this->Restore(this->functionOffset, /*isFloat64*/ false, /*isInt32*/ false, layout, functionBody);
     Assert(Js::ScriptFunction::Is(varFunction));
 
     Js::ScriptFunction* function = Js::ScriptFunction::FromVar(varFunction);
-    BAILOUT_VERBOSE_TRACE(functionBody, L"Inlinee: %s [%d.%d] \n", function->GetFunctionBody()->GetDisplayName(), function->GetFunctionBody()->GetSourceContextId(), function->GetFunctionBody()->GetLocalFunctionId());
+    BAILOUT_VERBOSE_TRACE(functionBody, _u("Inlinee: %s [%d.%d] \n"), function->GetFunctionBody()->GetDisplayName(), function->GetFunctionBody()->GetSourceContextId(), function->GetFunctionBody()->GetLocalFunctionId());
 
     inlinedFrame->function = function;
     inlinedFrame->callInfo.InlineeStartOffset = inlineeStartOffset;
@@ -194,7 +194,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
     inlinedFrame->MapArgs([=](uint i, Js::Var* varRef) {
         bool isFloat64 = floatArgs.Test(i) != 0;
         bool isInt32 = losslessInt32Args.Test(i) != 0;
-        BAILOUT_VERBOSE_TRACE(functionBody, L"Restore argument %d: ", i);
+        BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore argument %d: "), i);
 
         Js::Var var = this->Restore(this->argOffsets[i], isFloat64, isInt32, layout, functionBody);
 #if DBG
@@ -270,12 +270,12 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
     }
     else
     {
-        BAILOUT_VERBOSE_TRACE(functionBody, L"Stack offset %10d", offset);
+        BAILOUT_VERBOSE_TRACE(functionBody, _u("Stack offset %10d"), offset);
         if (isFloat64)
         {
             dblValue = layout->GetDoubleAtOffset(offset);
             value = Js::JavascriptNumber::New(dblValue, functionBody->GetScriptContext());
-            BAILOUT_VERBOSE_TRACE(functionBody, L", value: %f (ToVar: 0x%p)", dblValue, value);
+            BAILOUT_VERBOSE_TRACE(functionBody, _u(", value: %f (ToVar: 0x%p)"), dblValue, value);
         }
         else if (isInt32)
         {
@@ -291,11 +291,11 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
     {
         int32 int32Value = ::Math::PointerCastToIntegralTruncate<int32>(value);
         value = Js::JavascriptNumber::ToVar(int32Value, functionBody->GetScriptContext());
-        BAILOUT_VERBOSE_TRACE(functionBody, L", value: %10d (ToVar: 0x%p)", int32Value, value);
+        BAILOUT_VERBOSE_TRACE(functionBody, _u(", value: %10d (ToVar: 0x%p)"), int32Value, value);
     }
     else
     {
-        BAILOUT_VERBOSE_TRACE(functionBody, L", value: 0x%p", value);
+        BAILOUT_VERBOSE_TRACE(functionBody, _u(", value: 0x%p"), value);
         if (boxStackInstance)
         {
             Js::Var oldValue = value;
@@ -304,12 +304,12 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (oldValue != value)
             {
-                BAILOUT_VERBOSE_TRACE(functionBody, L" (Boxed: 0x%p)", value);
+                BAILOUT_VERBOSE_TRACE(functionBody, _u(" (Boxed: 0x%p)"), value);
             }
 #endif
         }
     }
-    BAILOUT_VERBOSE_TRACE(functionBody, L"\n");
+    BAILOUT_VERBOSE_TRACE(functionBody, _u("\n"));
     return value;
 }
 
@@ -331,23 +331,23 @@ InlineeFrameRecord* InlineeFrameRecord::Reverse()
 
 void InlineeFrameRecord::Dump() const
 {
-    Output::Print(L"%s [#%u.%u] args:", this->functionBody->GetExternalDisplayName(), this->functionBody->GetSourceContextId(), this->functionBody->GetLocalFunctionId());
+    Output::Print(_u("%s [#%u.%u] args:"), this->functionBody->GetExternalDisplayName(), this->functionBody->GetSourceContextId(), this->functionBody->GetLocalFunctionId());
     for (uint i = 0; i < argCount; i++)
     {
         DumpOffset(argOffsets[i]);
         if (floatArgs.Test(i))
         {
-            Output::Print(L"f ");
+            Output::Print(_u("f "));
         }
         else if (losslessInt32Args.Test(i))
         {
-            Output::Print(L"i ");
+            Output::Print(_u("i "));
         }
-        Output::Print(L", ");
+        Output::Print(_u(", "));
     }
     this->frameInfo->Dump();
 
-    Output::Print(L"func: ");
+    Output::Print(_u("func: "));
     DumpOffset(functionOffset);
 
     if (this->parent)
@@ -360,40 +360,40 @@ void InlineeFrameRecord::DumpOffset(int offset) const
 {
     if (offset >= 0)
     {
-        Output::Print(L"%p ", constants[offset]);
+        Output::Print(_u("%p "), constants[offset]);
     }
     else
     {
-        Output::Print(L"<%d> ", offset);
+        Output::Print(_u("<%d> "), offset);
     }
 }
 
 void InlineeFrameInfo::Dump() const
 {
-    Output::Print(L"func: ");
+    Output::Print(_u("func: "));
     if (this->function.type == InlineeFrameInfoValueType_Const)
     {
-        Output::Print(L"%p(Var) ", this->function.constValue);
+        Output::Print(_u("%p(Var) "), this->function.constValue);
     }
     else if (this->function.type == InlineeFrameInfoValueType_Sym)
     {
         this->function.sym->Dump();
-        Output::Print(L" ");
+        Output::Print(_u(" "));
     }
 
-    Output::Print(L"args: ");
+    Output::Print(_u("args: "));
     arguments->Map([=](uint i, InlineFrameInfoValue& value)
     {
         if (value.type == InlineeFrameInfoValueType_Const)
         {
-            Output::Print(L"%p(Var) ", value.constValue);
+            Output::Print(_u("%p(Var) "), value.constValue);
         }
         else if (value.type == InlineeFrameInfoValueType_Sym)
         {
             value.sym->Dump();
-            Output::Print(L" ");
+            Output::Print(_u(" "));
         }
-        Output::Print(L", ");
+        Output::Print(_u(", "));
     });
 }
 #endif

@@ -2253,7 +2253,7 @@ namespace Js
         this->scriptContext->byteCodeHistogram[(int)op]++;
         if (PHASE_TRACE(Js::InterpreterPhase, this->m_functionBody))
         {
-            Output::Print(L"%d.%d:Executing %s at offset 0x%X\n", this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName((Js::OpCode)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtil::GetOpCodeName((Js::OpCode)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
         }
 #endif
         return op;
@@ -2279,7 +2279,7 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
         {
-            Output::Print(L"%d.%d:Executing %s at offset 0x%X\n", this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName((Js::OpCodeAsmJs)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
+            Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName((Js::OpCodeAsmJs)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
         }
 #endif
         return op;
@@ -2311,14 +2311,14 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (Configuration::Global.flags.ForceAsmJsLinkFail)
         {
-            AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Forcing link failure");
+            AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Forcing link failure"));
             return this->ProcessLinkFailedAsmJsModule();
         }
 #endif
         if( m_inSlotsCount != info->GetArgInCount() + 1 )
         {
             // Error reparse without asm.js
-            AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Invalid module argument count");
+            AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Invalid module argument count"));
             return this->ProcessLinkFailedAsmJsModule();
         }
 
@@ -2359,7 +2359,7 @@ namespace Js
         }
         else if(this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
         {
-            AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Params have side effects");
+            AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Params have side effects"));
              return this->ProcessLinkFailedAsmJsModule();
         }
         // Initialize Variables
@@ -2399,7 +2399,7 @@ namespace Js
             // check if there is implicit call and if there is implicit call then clear the disableimplicitcall flag
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
             {
-                AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Accessing var import %s has side effects", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Accessing var import %s has side effects"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 return this->ProcessLinkFailedAsmJsModule();
             }
             if (CONFIG_FLAG(AsmJsEdge))
@@ -2407,7 +2407,7 @@ namespace Js
                 // emscripten had a bug which caused this check to fail in some circumstances, so this check fails for some demos
                 if (!TaggedNumber::Is(value) && (!RecyclableObject::Is(value) || DynamicType::Is(RecyclableObject::FromVar(value)->GetTypeId())))
                 {
-                    AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Var import %s must be primitive", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                    AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Var import %s must be primitive"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                     goto linkFailure;
                 }
             }
@@ -2453,7 +2453,7 @@ namespace Js
                 if (!valid)
                 {
                     // link failure of SIMD values imports.
-                    AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Foreign var import %s is not SIMD type", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                    AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Foreign var import %s is not SIMD type"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                     goto linkFailure;
                 }
                 localSimdSlots[import.location] = val;
@@ -2463,7 +2463,7 @@ namespace Js
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
             {
                 // Runtime error
-                AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Accessing var import %s has side effects", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Accessing var import %s has side effects"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 return this->ProcessLinkFailedAsmJsModule();
             }
         }
@@ -2476,12 +2476,12 @@ namespace Js
             // check if there is implicit call and if there is implicit call then clear the disableimplicitcall flag
             if (this->CheckAndResetImplicitCall(prevDisableImplicitFlags, saveImplicitcallFlags))
             {
-                AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Accessing foreign function import %s has side effects", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Accessing foreign function import %s has side effects"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 return this->ProcessLinkFailedAsmJsModule();
             }
             if( !JavascriptFunction::Is( importFunc ) )
             {
-                AsmJSCompiler::OutputError(this->scriptContext, L"Asm.js Runtime Error : Foreign function import %s is not a function", this->scriptContext->GetPropertyName(import.field)->GetBuffer());
+                AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Foreign function import %s is not a function"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 goto linkFailure;
             }
             localFunctionImports[import.location] = importFunc;
@@ -2554,7 +2554,7 @@ namespace Js
         {
             if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
             {
-                Output::Print(L"%s Scheduling For Full JIT at callcount:%d\n", asmJsModuleFunctionBody->GetDisplayName(), 0);
+                Output::Print(_u("%s Scheduling For Full JIT at callcount:%d\n"), asmJsModuleFunctionBody->GetDisplayName(), 0);
                 Output::Flush();
             }
             for (int i = 0; i < info->GetFunctionCount(); i++)
@@ -2601,7 +2601,7 @@ namespace Js
 
     Var InterpreterStackFrame::ProcessLinkFailedAsmJsModule()
     {
-        AsmJSCompiler::OutputError(this->scriptContext, L"asm.js linking failed.");
+        AsmJSCompiler::OutputError(this->scriptContext, _u("asm.js linking failed."));
 
         Js::FunctionBody* asmJsModuleFunctionBody = GetFunctionBody();
         AsmJsModuleInfo* info = asmJsModuleFunctionBody->GetAsmJsModuleInfo();
@@ -2683,32 +2683,32 @@ namespace Js
 #if DBG_DUMP
     int AsmJsCallDepth = 0;
 #endif
-    void InterpreterStackFrame::PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const wchar_t* state)
+    void InterpreterStackFrame::PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state)
     {
-        Output::Print(L"\n");
-        Output::Print(L"Interpreter Constant Stack Data(%s)\n", state);
-        Output::Print(L"***************************************\n");
-        Output::Print(L"Int Data\n");
-        Output::Print(L"--------\n");
+        Output::Print(_u("\n"));
+        Output::Print(_u("Interpreter Constant Stack Data(%s)\n"), state);
+        Output::Print(_u("***************************************\n"));
+        Output::Print(_u("Int Data\n"));
+        Output::Print(_u("--------\n"));
         for (int count = 0; count < intConstCount; count++)
         {
-            Output::Print(L"Index:%d Value:%d \n", count, intSrc[count]);
+            Output::Print(_u("Index:%d Value:%d \n"), count, intSrc[count]);
         }
-        Output::Print(L"\n");
-        Output::Print(L"Float Data\n");
-        Output::Print(L"----------\n");
+        Output::Print(_u("\n"));
+        Output::Print(_u("Float Data\n"));
+        Output::Print(_u("----------\n"));
         for (int count = 0; count < floatConstCount; count++)
         {
-            Output::Print(L"Index:%d Value:%f \n", count, fltSrc[count]);
+            Output::Print(_u("Index:%d Value:%f \n"), count, fltSrc[count]);
         }
-        Output::Print(L"\n");
-        Output::Print(L"Double Data\n");
-        Output::Print(L"-----------\n");
+        Output::Print(_u("\n"));
+        Output::Print(_u("Double Data\n"));
+        Output::Print(_u("-----------\n"));
         for (int count = 0; count < doubleConstCount; count++)
         {
-            Output::Print(L"Index:%d Value:%g \n", count, dblSrc[count]);
+            Output::Print(_u("Index:%d Value:%g \n"), count, dblSrc[count]);
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
 
 #ifndef TEMP_DISABLE_ASMJS 
@@ -2759,7 +2759,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
                 if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
                 {
-                    Output::Print(L"Scheduling For Full JIT from Interpreter at callcount:%d\n", callCount);
+                    Output::Print(_u("Scheduling For Full JIT from Interpreter at callcount:%d\n"), callCount);
                 }
                 GenerateFunction(functionBody->GetScriptContext()->GetNativeCodeGenerator(), functionBody, func);
 #endif
@@ -2821,7 +2821,7 @@ namespace Js
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
         {
-            PrintStack(intSrc, floatSrc, doubleSrc, intConstCount, floatConstCount, doubleConstCount, L"Before Shuffling");
+            PrintStack(intSrc, floatSrc, doubleSrc, intConstCount, floatConstCount, doubleConstCount, _u("Before Shuffling"));
         }
 
         // Copying has to happen in that order in order not to overwrite constants
@@ -2836,7 +2836,7 @@ namespace Js
 
         if (PHASE_TRACE1(AsmjsInterpreterStackPhase))
         {
-            PrintStack(m_localIntSlots, m_localFloatSlots, m_localDoubleSlots, intConstCount, floatConstCount, doubleConstCount, L"After Shuffling");
+            PrintStack(m_localIntSlots, m_localFloatSlots, m_localDoubleSlots, intConstCount, floatConstCount, doubleConstCount, _u("After Shuffling"));
         }
 
         int* intArg;
@@ -2958,9 +2958,9 @@ namespace Js
         {
             if( AsmJsCallDepth )
             {
-                Output::Print( L"%*c", AsmJsCallDepth,' ');
+                Output::Print( _u("%*c"), AsmJsCallDepth,' ');
             }
-            Output::Print( L"Executing function %s", functionBody->GetDisplayName());
+            Output::Print( _u("Executing function %s"), functionBody->GetDisplayName());
             ++AsmJsCallDepth;
         }
 #endif
@@ -2968,7 +2968,7 @@ namespace Js
 #if DBG_DUMP
         if (tracingFunc)
         {
-            Output::Print(L"){\n");
+            Output::Print(_u("){\n"));
         }
 #endif
         if( info->GetReturnType() == AsmJsRetType::Void )
@@ -3085,27 +3085,27 @@ namespace Js
                     --AsmJsCallDepth;
                     if( AsmJsCallDepth )
                     {
-                        Output::Print( L"%*c}", AsmJsCallDepth, ' ' );
+                        Output::Print( _u("%*c}"), AsmJsCallDepth, ' ' );
                     }
                     else
                     {
-                        Output::Print( L"}" );
+                        Output::Print( _u("}") );
                     }
                     switch( asmInfo->GetReturnType().which() )
                     {
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-                        Output::Print( L" = %d", JavascriptMath::ToInt32( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %d"), JavascriptMath::ToInt32( returnVar, scriptContext ) );
                         break;
                     case AsmJsRetType::Float:
                     case AsmJsRetType::Double:
-                        Output::Print( L" = %.4f", JavascriptConversion::ToNumber( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %.4f"), JavascriptConversion::ToNumber( returnVar, scriptContext ) );
                         break;
                     default:
                         break;
                     }
-                    Output::Print( L";\n" );
+                    Output::Print( _u(";\n") );
                 }
 #endif
                 return returnVar;
@@ -3157,8 +3157,8 @@ namespace Js
 
             if(PHASE_TRACE(InterpreterAutoProfilePhase, functionBody))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"InterpreterAutoProfile - Func %s - Started profiling\n", functionBody->GetDebugNumberSet(debugStringBuffer));
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("InterpreterAutoProfile - Func %s - Started profiling\n"), functionBody->GetDebugNumberSet(debugStringBuffer));
                 Output::Flush();
             }
         #endif
@@ -3179,8 +3179,8 @@ namespace Js
         #if DBG_DUMP
             if(PHASE_TRACE(InterpreterAutoProfilePhase, functionBody))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(L"InterpreterAutoProfile - Func %s - Stopped profiling\n", functionBody->GetDebugNumberSet(debugStringBuffer));
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(_u("InterpreterAutoProfile - Func %s - Stopped profiling\n"), functionBody->GetDebugNumberSet(debugStringBuffer));
                 Output::Flush();
             }
         #endif
@@ -5664,7 +5664,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (PHASE_TRACE1(Js::JITLoopBodyPhase) && CONFIG_FLAG(Verbose))
             {
                 fn->DumpFunctionId(true);
-                Output::Print(L": %-20s LoopBody Execute  Loop: %2d\n", fn->GetDisplayName(), loopNumber);
+                Output::Print(_u(": %-20s LoopBody Execute  Loop: %2d\n"), fn->GetDisplayName(), loopNumber);
                 Output::Flush();
             }
             loopHeader->nativeCount++;
@@ -5856,10 +5856,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             if(PHASE_TRACE(Js::JITLoopBodyPhase, fn))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
                 Output::Print(
-                    L"Speculate Jit set for this function with loopbody: function: %s (%s)\n",
+                    _u("Speculate Jit set for this function with loopbody: function: %s (%s)\n"),
                     fn->GetDisplayName(),
                     fn->GetDebugNumberSet(debugStringBuffer));
                 Output::Flush();
@@ -7392,7 +7392,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (index < 0 || index + dataWidth > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"Simd typed array access");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
@@ -7413,7 +7413,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (index < 0 || index + dataWidth > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"Simd typed array access");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value;
@@ -7434,7 +7434,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (index < 0 || index + dataWidth > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"Simd typed array access");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
@@ -7453,7 +7453,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         if (index < 0 || index + dataWidth > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"Simd typed array access");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
         AsmJsSIMDValue *data = (AsmJsSIMDValue*)(buffer + index);
         AsmJsSIMDValue value = GetRegRawSimd(srcReg);
@@ -7472,7 +7472,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // value is out of bound
         if (throws)
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"SIMD.Int32x4.FromFloat32x4");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SIMD.Int32x4.FromFloat32x4"));
         }
         SetRegRawSimd(playout->I4_0, result);
     }

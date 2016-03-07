@@ -75,10 +75,10 @@ namespace Js
         return false;
     }
 
-    const wchar_t* JavascriptSIMDInt32x4::GetFullBuiltinName(wchar_t** aBuffer, const wchar_t* name)
+    const char16* JavascriptSIMDInt32x4::GetFullBuiltinName(char16** aBuffer, const char16* name)
     {
         Assert(aBuffer && *aBuffer);
-        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, L"SIMD.Int32x4.%s", name);
+        swprintf_s(*aBuffer, SIMD_STRING_BUFFER_MAX, _u("SIMD.Int32x4.%s"), name);
         return *aBuffer;
     }
 
@@ -90,7 +90,7 @@ namespace Js
     Var JavascriptSIMDInt32x4::CallToLocaleString(RecyclableObject& obj, ScriptContext& requestContext, SIMDValue simdValue,
         const Var* args, uint numArgs, CallInfo callInfo)
     {
-        wchar_t *typeString = L"SIMD.Int32x4(";
+        char16 *typeString = _u("SIMD.Int32x4(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<int, 4>(args, numArgs, typeString,
             simdValue.i32, &callInfo, &requestContext);
     }

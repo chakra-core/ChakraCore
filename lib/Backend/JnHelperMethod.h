@@ -44,7 +44,7 @@ void const* GetMethodOriginalAddress(JnHelperMethod helperMethod);
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 
-wchar_t const* GetMethodName(JnHelperMethod helperMethod);
+char16 const* GetMethodName(JnHelperMethod helperMethod);
 
 #endif
 
