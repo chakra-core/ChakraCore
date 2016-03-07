@@ -256,7 +256,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs, bool force, IR::Opnd* opn
         // dst = JavascriptOperators::LoadHeapArguments(s1, s2, s3, s4, s5, s6, s7)
 
         // s8 = IsStackArgsOpt
-        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs() ? TRUE : FALSE, TyUint8, func));
+        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New((!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs()) ? TRUE : FALSE, TyUint8, func));
 
         // s7 = formals are let decls
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(instrArgs->m_opcode == Js::OpCode::LdLetHeapArguments ? TRUE : FALSE, TyUint8, func));
@@ -377,7 +377,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
     IR::Instr *instrPrev = instrArgs->m_prev;
 
     // s8 = isStackArgOptimization
-    IR::Opnd * isStackArgOpt = IR::IntConstOpnd::New((IntConstType)(func->GetHasStackArgs() && this->m_func->GetHasStackArgs() ? TRUE : FALSE), TyUint8, func);
+    IR::Opnd * isStackArgOpt = IR::IntConstOpnd::New((IntConstType)((func->GetHasStackArgs() && this->m_func->GetHasStackArgs()) ? TRUE : FALSE), TyUint8, func);
     this->LoadHelperArgument(instrArgs, isStackArgOpt);
 
     // s7 = formals are let decls

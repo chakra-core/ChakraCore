@@ -3683,7 +3683,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
     Scope * const bodyScope = funcInfo->GetBodyScope();
     Scope * const paramScope = funcInfo->GetParamScope();
-
+    
     if (pnodeFnc->nop != knopProg)
     {
         if (!bodyScope->GetIsObject() && NeedObjectAsFunctionScope(funcInfo, pnodeFnc))

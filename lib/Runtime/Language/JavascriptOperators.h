@@ -404,7 +404,7 @@ namespace Js
 
         static void TraceUseConstructorCache(const ConstructorCache* ctorCache, const JavascriptFunction* ctor, bool isHit);
         static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const wchar_t* reason);
-        static Var ConvertToUnmappedArguments(HeapArgumentsObject *argumentsObject, uint32 paramCount, Var *paramAddr, DynamicObject* frameObject, Js::PropertyIdArray *propIds, uint32 formalsCount, ScriptContext* scriptContext, bool isStackArgs);
+        static Var ConvertToUnmappedArguments(HeapArgumentsObject *argumentsObject, uint32 paramCount, Var *paramAddr, DynamicObject* frameObject, Js::PropertyIdArray *propIds, uint32 formalsCount, ScriptContext* scriptContext);
 
         static Js::GlobalObject * OP_LdRoot(ScriptContext* scriptContext);
         static Js::ModuleRoot * GetModuleRoot(int moduleID, ScriptContext* scriptContext);

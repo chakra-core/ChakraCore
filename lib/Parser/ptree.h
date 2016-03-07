@@ -579,6 +579,7 @@ struct ParseNode
     bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
     bool isInList;
     bool isCallApplyTargetLoad;
+    bool isArgElemOrArgLenLoad; // Use by byte code generator. Set to true if arguments[i] or arguments.length, false otherwise
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
@@ -688,6 +689,10 @@ struct ParseNode
 
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
+
+    bool IsArgElemOrArgLenLoad() { return isArgElemOrArgLenLoad; }
+    void SetIsArgElemOrArgLenLoad() { isArgElemOrArgLenLoad = true; }
+
     bool IsVarLetOrConst() const
     {
         return this->nop == knopVarDecl || this->nop == knopLetDecl || this->nop == knopConstDecl;
