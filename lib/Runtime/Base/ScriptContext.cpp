@@ -1852,8 +1852,13 @@ namespace Js
 
             if (wasmModule->info->GetMemory()->minSize != 0)
             {
+                const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
+                if (maxSize > UINT_MAX)
+                {
+                    Js::Throw::OutOfMemory();
+                }
                 // TODO: create new type array buffer that is non detachable
-                *heap = JavascriptArrayBuffer::Create((uint32)wasmModule->info->GetMemory()->maxSize, GetLibrary()->arrayBufferType);
+                *heap = JavascriptArrayBuffer::Create((uint32)maxSize, GetLibrary()->arrayBufferType);
                 if (wasmModule->info->GetMemory()->exported)
                 {
                     PropertyRecord const * propertyRecord = nullptr;
