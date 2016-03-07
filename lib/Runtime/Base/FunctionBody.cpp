@@ -1143,7 +1143,7 @@ namespace Js
         if (nestedCount > 0)
         {
             nestedArray = RecyclerNewPlusZ(m_scriptContext->GetRecycler(),
-                (nestedCount-1)*sizeof(FunctionProxy*), NestedArray, nestedCount);
+                nestedCount*sizeof(FunctionProxy*), NestedArray, nestedCount);
         }
         else
         {
