@@ -5,7 +5,7 @@
 
 //          (name                 , ID                   , SectionFlag, Precedent         )
 WASM_SECTION(Signatures           , "signatures"         , fSectNone  , Invalid           )
-WASM_SECTION(ImportTable          , "import_table"       , fSectIgnore, Invalid           )
+WASM_SECTION(ImportTable          , "import_table"       , fSectNone  , Invalid           )
 WASM_SECTION(FunctionSignatures   , "function_signatures", fSectNone  , Signatures        )
 WASM_SECTION(IndirectFunctionTable, "function_table"     , fSectNone  , FunctionSignatures)
 WASM_SECTION(Memory               , "memory"             , fSectNone  , Invalid           )

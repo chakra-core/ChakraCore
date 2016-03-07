@@ -1886,48 +1886,15 @@ namespace Js
             // TODO, refactor this function into smaller functions
             for (uint i = 0; i < wasmModule->functions->Count(); ++i)
             {
-                if (functionArray[i]->wasmInfo->Imported())
-                {
-                    PropertyRecord const * propertyRecord = nullptr;
-                    LPCUTF8 name = functionArray[i]->wasmInfo->GetName();
-
-                    utf8::DecodeOptions decodeOptions = utf8::doAllowInvalidWCHARs;
-
-                    UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
-                    LPCWSTR contents = HeapNewArray(WCHAR, (utf16Len + 1));
-                    if (contents == nullptr)
-                    {
-                        Js::Throw::OutOfMemory();
-                    }
-                    utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
-
-                    GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
-                    HeapDeleteArray(utf16Len + 1, contents);
-                    if (!ffi)
-                    {
-                        // TODO: michhol give error message
-                        Js::Throw::InternalError();
-                    }
-                    Var prop = JavascriptOperators::OP_GetProperty(ffi, propertyRecord->GetPropertyId(), this);
-                    if (!JavascriptFunction::Is(prop))
-                    {
-                        Assert(UNREACHED);
-                        // TODO: michhol figure out correct error path
-                    }
-                    localModuleFunctions[i] = prop;
-                }
-                else
-                {
-                    AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
-                    funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                    funcObj->SetModuleMemory(moduleMemoryPtr);
-                    FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                    entypointInfo->SetIsAsmJSFunction(true);
-                    entypointInfo->address = AsmJsDefaultEntryThunk;
-                    entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
-                    funcObj->SetEnvironment(frameDisplay);
-                    localModuleFunctions[i] = funcObj;
-                }
+                AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
+                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+                funcObj->SetModuleMemory(moduleMemoryPtr);
+                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entypointInfo->SetIsAsmJSFunction(true);
+                entypointInfo->address = AsmJsDefaultEntryThunk;
+                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                funcObj->SetEnvironment(frameDisplay);
+                localModuleFunctions[i] = funcObj;
             }
 
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
@@ -1950,6 +1917,35 @@ namespace Js
                     }
                     JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
                 }
+            }
+
+            UINT32 localFuncCount = wasmModule->functions->Count();
+            for (uint32 i = 0; i < wasmModule->info->GetImportCount(); ++i)
+            {
+                PropertyRecord const * modPropertyRecord = nullptr;
+                PropertyRecord const * propertyRecord = nullptr;
+
+                wchar_t* modName = wasmModule->info->GetFunctionImport(i)->modName;
+                uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
+                GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
+
+                wchar_t* name = wasmModule->info->GetFunctionImport(i)->fnName;
+                uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
+                GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+
+                if (!ffi)
+                {
+                    // TODO: michhol give error message
+                    Js::Throw::InternalError();
+                }
+                Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
+                if (!JavascriptFunction::Is(modProp))
+                {
+                    Assert(UNREACHED);
+                    // TODO: michhol figure out correct error path
+                }
+                Var prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
+                localModuleFunctions[i+localFuncCount] = prop;
             }
 
             Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);
