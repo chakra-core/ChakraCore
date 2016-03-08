@@ -7,6 +7,6 @@
 setlocal
 
 set JENKINS_BUILD=True
-call test\jenkins.buildall.cmd
+call test\jenkins.buildall.cmd %*
 
 endlocal
