@@ -3675,7 +3675,7 @@ Parser::MemberNameToTypeMap* Parser::CreateMemberNameMap(ArenaAllocator* pAlloca
 template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint, ulong *pNameLength, ulong *pShortNameOffset)
 {
     m_pscan->Scan();
-    ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
+    ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
     if (buildAST)
     {
         *ppnodeName = CreateNodeT<knopComputedName>(pnodeNameExpr->ichMin, pnodeNameExpr->ichLim);
@@ -3687,7 +3687,7 @@ template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName,
         *ppFullNameHint = FormatPropertyString(*ppNameHint, pnodeNameExpr, pNameLength, pShortNameOffset);
     }
 
-    ChkCurTokNoScan(tkRBrack, ERRsyntax);
+    ChkCurTokNoScan(tkRBrack, ERRnoRbrack);
 }
 
 /***************************************************************************
