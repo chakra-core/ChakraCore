@@ -1163,6 +1163,11 @@ namespace TTD
 
     bool EventLog::ProcessBPInfoPreBreak()
     {
+        if(!this->ShouldPerformDebugAction())
+        {
+            return true;
+        }
+
         if(!this->HasActiveBP())
         {
             return true;
