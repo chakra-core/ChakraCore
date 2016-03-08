@@ -255,7 +255,7 @@
   <test>
     <default>
       <files>bug_resetisdead.js</files>
-      <compile-flags>-mic:1 -off:simplejit -on:prelowererpeeps -bgjit-</compile-flags>
+      <compile-flags>-on:prelowererpeeps</compile-flags>
     </default>
   </test>
 </regress-exe>
