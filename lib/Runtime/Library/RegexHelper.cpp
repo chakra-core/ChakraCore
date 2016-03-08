@@ -955,7 +955,7 @@ namespace Js
                     (CharCount) 0);
 
                 // Capture groups can be referenced using at most two digits.
-                uint64 maxNumberOfCaptures = 99;
+                const uint64 maxNumberOfCaptures = 99;
                 size_t numberOfCapturesToKeep = (size_t) min(numberOfCaptures, maxNumberOfCaptures);
                 if (captures == nullptr)
                 {
