@@ -403,6 +403,13 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
             }
         }
     }
+#if defined(_M_X64) || defined(_M_IX86)
+    else if (instr->m_opcode == Js::OpCode::SHUFPS || instr->m_opcode == Js::OpCode::SHUFPD)
+    {
+        // dst is the first src, make sure it gets the same live reg
+        this->ProcessRegUse(dst->AsRegOpnd(), instr);
+    }
+#endif
     else if (dst->IsRegOpnd())
     {
         this->ProcessRegDef(dst->AsRegOpnd(), instr);

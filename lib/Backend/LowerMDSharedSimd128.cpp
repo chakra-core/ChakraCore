@@ -397,13 +397,13 @@ IR::Instr* LowererMD::Simd128LoadConst(IR::Instr* instr)
     return instr->m_prev;
 }
 
-IR::Instr* LowererMD::Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpCode &CMPopCode, IR::Opnd& dstOpnd)
+IR::Instr* LowererMD::Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpCode &cmpOpcode, IR::Opnd& dstOpnd)
 {
     Assert(instr->m_opcode == Js::OpCode::Simd128_IntsToB4 || instr->m_opcode == Js::OpCode::Simd128_IntsToB8 || instr->m_opcode == Js::OpCode::Simd128_IntsToB16 ||
            instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_B8 || instr->m_opcode == Js::OpCode::Simd128_ReplaceLane_B16);
     IR::Instr *pInstr;
-    //dst = SIMDCMPOpCode dst, X86_ALL_ZEROS
-    pInstr = IR::Instr::New(CMPopCode, &dstOpnd, &dstOpnd, IR::MemRefOpnd::New((void*)&X86_ALL_ZEROS, TySimd128I4, m_func), m_func);
+    //dst = cmpOpcode dst, X86_ALL_ZEROS
+    pInstr = IR::Instr::New(cmpOpcode, &dstOpnd, &dstOpnd, IR::MemRefOpnd::New((void*)&X86_ALL_ZEROS, TySimd128I4, m_func), m_func);
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
     // dst = PANDN dst, X86_ALL_NEG_ONES 
@@ -741,16 +741,10 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         {
             if (laneType == TyInt8)
             {
-                // move value to byte-addressable reg
-                IR::RegOpnd * ebxOpnd = IR::RegOpnd::New(TyInt32, m_func);
-#ifdef _M_IX86
-                ebxOpnd->SetReg(RegEBX);
-#else
-                ebxOpnd->SetReg(RegRBX);
-#endif
-                newInstr = IR::Instr::New(Js::OpCode::MOV, ebxOpnd, dst, m_func);
+                IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
+                newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func);
                 instr->InsertBefore(newInstr);
-                newInstr = IR::Instr::New(Js::OpCode::MOVSX, dst, ebxOpnd->UseWithNewType(laneType, m_func), m_func);
+                newInstr = IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func);
             }
             else
             {
@@ -770,7 +764,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
     {
         IR::Instr* pInstr    = nullptr;
-        IR::RegOpnd* ebxOpnd = IR::RegOpnd::New(TyInt32, m_func);
+        IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
 
         // cmp      dst, -1
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
@@ -779,19 +773,16 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
-        // Need an EBX register for byte addressing.
-        // movd     ebx, dst
-        // type cast ebx to Int8.
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, ebxOpnd, dst, m_func));
-        IR::Opnd *dst_i8 = ebxOpnd->UseWithNewType(TyInt8, this->m_func);
+        // mov     tmp(TyInt8), dst
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func));
 
-        // sete     dst_i8, al
-        pInstr = IR::Instr::New(Js::OpCode::SETE, dst_i8, dst_i8, m_func);
+        // sete     tmp(TyInt8)
+        pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
 
-        // mov      dst, dst_i8
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, dst_i8, m_func));
+        // movsx      dst, tmp(TyInt8)
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func));
     }
 
     IR::Instr* prevInstr = instr->m_prev;
@@ -1343,7 +1334,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     {
         IR::RegOpnd * shamtReg = IR::RegOpnd::New(TyInt8, m_func);
         shamtReg->SetReg(LowererMDArch::GetRegShiftCount());
-        IR::RegOpnd * ebxOpnd = IR::RegOpnd::New(TyInt32, m_func);
+        IR::RegOpnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
 
         // MOVAPS   dst, src1
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVAPS, dst, src1, m_func));
@@ -1355,17 +1346,12 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
         instr->InsertBefore(IR::Instr::New(Js::OpCode::SHR, reg2, reg2, shamtReg, m_func));
 
         
-        // MOV      ebx, reg2
-        // MOVSX    reg2, bl (lower 8 bit)
-        // make sure reg2 can be in a byte reg
-#ifdef _M_IX86
-        reg2->SetReg(RegEBX);
-#else
-        reg2->SetReg(RegRBX);
-#endif
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, ebxOpnd, reg2, m_func));
+        // MOV      tmp(TyInt8), reg2
+        // MOVSX    reg2, tmp(TyInt8)
 
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, reg2, ebxOpnd->UseWithNewType(TyInt8, m_func), m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, reg2, m_func));
+
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, reg2, tmp, m_func));
         IR::RegOpnd *mask = IR::RegOpnd::New(TySimd128I4, m_func);
         // PSRLW dst, mask
         instr->InsertBefore(IR::Instr::New(Js::OpCode::PSRLW, dst, dst, tmp0, m_func));
@@ -2463,50 +2449,36 @@ IR::Instr* LowererMD::Simd128LowerAllTrue(IR::Instr* instr)
     IR::Instr *pInstr;
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
+    
     Assert(dst->IsRegOpnd() && dst->IsInt32());
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
-    // mov      dst, 0
-    // pmovmskb reg, src1 
-    // cmp      reg, 0FFFFh
-    // sete     dst, (al)
+    
+    IR::Opnd * tmp = IR::RegOpnd::New(TyInt8, m_func);
 
-    IR::RegOpnd *reg     = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::RegOpnd *ebxOpnd = IR::RegOpnd::New(TyInt32, m_func);
-
-    // mov      dst, 0
-    pInstr = IR::Instr::New(Js::OpCode::MOV, dst, IR::IntConstOpnd::New(0, TyInt32, m_func), m_func);
-    instr->InsertBefore(pInstr);
-    Legalize(pInstr);
-
-    // pmovmskb reg, src1 
-    pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, reg, src1, m_func);
+    // pmovmskb dst, src1 
+    pInstr = IR::Instr::New(Js::OpCode::PMOVMSKB, dst, src1, m_func);
     instr->InsertBefore(pInstr);
 
-    // cmp      reg, 0FFFFh
+    // cmp      dst, 0FFFFh
     pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
-    pInstr->SetSrc1(reg);
-    pInstr->SetSrc2(IR::IntConstOpnd::New(0xFFFF, TyInt32, m_func, true));
+    pInstr->SetSrc1(dst);
+    pInstr->SetSrc2(IR::IntConstOpnd::New(0x0FFFF, TyInt32, m_func, true));
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
-    // mov      ebx, dst  
-    //Need an EBX register to be byte addressable.
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, ebxOpnd, dst, m_func));
-    IR::Opnd *dst_i8 = ebxOpnd->UseWithNewType(TyInt8, this->m_func);
+    // mov     tmp(TyInt8), dst
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tmp, dst, m_func));
 
-    // sete     dst, al
-    pInstr = IR::Instr::New(Js::OpCode::SETE, dst_i8, dst_i8, m_func);
+    // sete    tmp(TyInt8)
+    pInstr = IR::Instr::New(Js::OpCode::SETE, tmp, tmp, m_func);
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
-    // mov      dst_i8, dst
-    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, dst_i8, m_func));
-
+    // movsx dst, dst(TyInt8)
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func));
 
     pInstr = instr->m_prev;
     instr->Remove();
-    
-
     return pInstr;
 }
 
@@ -3085,7 +3057,6 @@ LowererMD::Simd128LoadHeadSegment(IR::IndirOpnd *indirOpnd, ValueType arrType, I
     }
     else
     {
-        // REVIEW: Is this needed ? Shouldn't globOpt make sure headSegSym is set and alive ?
         //  MOV headSegment, [base + offset(head)]
         int32 headOffset = m_lowerer->GetArrayOffsetOfHeadSegment(arrType);
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(arrayRegOpnd, headOffset, TyMachPtr, this->m_func);
@@ -3476,8 +3447,6 @@ void LowererMD::InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::O
     }
     else if (dst->IsEqual(src2))
     {
-        // REVIEW: Could this be a problem with RegAlloc ? If the regAlloc decides to assign two regs for dst in
-        // the two definitions, we will have incorrect code.
 
         // MOVAPS tmp, dst
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVAPS, tmp, dst, m_func));
@@ -3488,9 +3457,6 @@ void LowererMD::InsertShufps(uint8 lanes[], IR::Opnd *dst, IR::Opnd *src1, IR::O
     }
     else
     {
-        // REVIEW: Could this be a problem with RegAlloc ? If the regAlloc decides to assign two regs for dst in
-        // the two definitions, we will have incorrect code.
-
         // MOVAPS dst, src1
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVAPS, dst, src1, m_func));
         // SHUF dst, src2, imm8

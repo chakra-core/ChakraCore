@@ -964,13 +964,6 @@ namespace Js
     }
 
     template <class T>
-    void AsmJsByteCodeDumper::DumpFloat32x4_1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloat32x4Reg(data->F4_0);
-        DumpFloat64x2Reg(data->D2_1);
-    }
-
-    template <class T>
     void AsmJsByteCodeDumper::DumpFloat32x4_1Int32x4_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpFloat32x4Reg(data->F4_0);
@@ -1010,15 +1003,6 @@ namespace Js
     {
         DumpFloat32x4Reg(data->F4_0);
         DumpUint8x16Reg(data->U16_1);
-    }
-
-    template <class T>
-    void AsmJsByteCodeDumper::DumpFloat32x4_1Int32x4_1Float32x4_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpFloat32x4Reg(data->F4_0);
-        DumpInt32x4Reg(data->I4_1);
-        DumpFloat32x4Reg(data->F4_2);
-        DumpFloat32x4Reg(data->F4_3);
     }
 
     template <class T>
@@ -1192,12 +1176,8 @@ namespace Js
         DumpFloat32x4Reg(data->U16_1);
     }
 
-    template <class T>
-    void AsmJsByteCodeDumper::DumpInt32x4_1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpInt32x4Reg(data->I4_0);
-        DumpFloat64x2Reg(data->D2_1);
-    }
+
+
 
     // Bool32x4
     template <class T>
@@ -1570,7 +1550,21 @@ namespace Js
     }
     
 // Disabled for now
+#if 0
     // Float64x2
+    template <class T>
+    void AsmJsByteCodeDumper::DumpInt32x4_1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpInt32x4Reg(data->I4_0);
+        DumpFloat64x2Reg(data->D2_1);
+    }
+    template <class T>
+    void AsmJsByteCodeDumper::DumpFloat32x4_1Float64x2_1(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        DumpFloat32x4Reg(data->F4_0);
+        DumpFloat64x2Reg(data->D2_1);
+    }
+
     template <class T>
     void AsmJsByteCodeDumper::DumpFloat64x2_2(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -1666,7 +1660,7 @@ namespace Js
         DumpReg(data->R0);
         DumpFloat64x2Reg(data->D2_1);
     }
-
+#endif
     // Int16x8
     template <class T>
     void AsmJsByteCodeDumper::DumpInt16x8_1Int8(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)

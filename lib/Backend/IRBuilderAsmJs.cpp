@@ -4710,6 +4710,7 @@ void IRBuilderAsmJs::BuildReg1Int8x16_1(Js::OpCodeAsmJs newOpcode, uint32 offset
 
 /* Float64x2 */
 // Disabled for now
+#if 0
 template <typename SizePolicy>
 void
 IRBuilderAsmJs::BuildFloat64x2_2(Js::OpCodeAsmJs newOpcode, uint32 offset)
@@ -4782,8 +4783,6 @@ IRBuilderAsmJs::BuildFloat64x2_3(Js::OpCodeAsmJs newOpcode, uint32 offset)
     AddInstr(instr, offset);
 }
 
-
-#if 0
 template <typename SizePolicy>
 void
 IRBuilderAsmJs::BuildFloat64x2_4(Js::OpCodeAsmJs newOpcode, uint32 offset)
@@ -4873,7 +4872,6 @@ void IRBuilderAsmJs::BuildFloat64x2_1Double1(Js::OpCodeAsmJs newOpcode, uint32 o
     AddInstr(instr, offset);
 }
 
-#endif // 0
 
 template <typename SizePolicy>
 void
@@ -4902,7 +4900,7 @@ IRBuilderAsmJs::BuildFloat64x2_2Double1(Js::OpCodeAsmJs newOpcode, uint32 offset
     IR::Instr * instr = IR::Instr::New(opcode, dstOpnd, src1Opnd, src2Opnd, m_func);
     AddInstr(instr, offset);
 }
-#if 0
+
 template <typename SizePolicy>
 void
 IRBuilderAsmJs::BuildFloat64x2_2Int2(Js::OpCodeAsmJs newOpcode, uint32 offset)
@@ -5087,6 +5085,7 @@ void IRBuilderAsmJs::BuildReg1Float64x2_1(Js::OpCodeAsmJs newOpcode, uint32 offs
     }
 }
 #endif // 0
+
 /* Int16x8 */
 template <typename SizePolicy>
 void IRBuilderAsmJs::BuildInt16x8_1Int8(Js::OpCodeAsmJs newOpcode, uint32 offset)
