@@ -174,7 +174,7 @@ namespace JsUtil
                 bool wasLineEncountered = false;
                 switch (decodedCharacter)
                 {
-                case L'\r':
+                case _u('\r'):
                     // Check if the next character is a '\n'.  If so, consume that character as well
                     // (consider as one line).
                     if (*currentSourcePosition == '\n')

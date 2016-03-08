@@ -63,7 +63,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     //
     fread((void*)contentsRaw, sizeof(char), lengthBytes, file);
     fclose(file);
-    *(WCHAR*)((byte*)contentsRaw + lengthBytes) = L'\0'; // Null terminate it. Could be LPCWSTR.
+    *(WCHAR*)((byte*)contentsRaw + lengthBytes) = _u('\0'); // Null terminate it. Could be LPCWSTR.
 
     //
     // Read encoding, handling any conversion to Unicode.

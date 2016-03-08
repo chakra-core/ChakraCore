@@ -2055,7 +2055,7 @@ namespace Js
         char16 *next = wrappedName;
         js_wmemcpy_s(++next, sz, name, sz);
         wrappedName[sz + 1] = _u(']');
-        wrappedName[sz + 2] = L'\0';
+        wrappedName[sz + 2] = _u('\0');
         return wrappedName;
 
     }
@@ -2090,7 +2090,7 @@ namespace Js
         Assert(name[nameLength - 1] == ']');
         char16 * finalshorterName = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), char16, *shortNameLength);
         js_wmemcpy_s(finalshorterName, *shortNameLength, shortName, *shortNameLength - 1); // we don't want the last character in shorterName
-        finalshorterName[*shortNameLength - 1] = L'\0';
+        finalshorterName[*shortNameLength - 1] = _u('\0');
         *shortNameLength = *shortNameLength - 1;
         return finalshorterName;
     }
@@ -2134,7 +2134,7 @@ namespace Js
 
             *destName = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, numCharacters);
             js_wmemcpy_s((char16 *)*destName, numCharacters, srcName, numCharacters);
-            ((char16 *)(*destName))[numCharacters - 1] = L'\0';
+            ((char16 *)(*destName))[numCharacters - 1] = _u('\0');
 
             return true;
         }
@@ -7907,7 +7907,7 @@ namespace Js
         LPCWSTR pchFile = wcsrchr(pchUrl, _u('/'));
         if (pchFile == nullptr)
         {
-            pchFile = wcsrchr(pchUrl, L'\\');
+            pchFile = wcsrchr(pchUrl, _u('\\'));
         }
 
         LPCWSTR pchToCopy = pchUrl;

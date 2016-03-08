@@ -146,12 +146,12 @@ namespace UnifiedRegex
                     w->Print(_u("\\%lc"), c);
                     break;
                 case _u('\n'):
-                case L'\r':
-                case L'\x2028':
-                case L'\x2029':
+                case _u('\r'):
+                case _u('\x2028'):
+                case _u('\x2029'):
                     w->PrintEscapedChar(c);
                     break;
-                case L'\\':
+                case _u('\\'):
                     Assert(i + 1 < str.GetLength()); // cannot end in a '\'
                     w->Print(_u("\\%lc"), str.GetBuffer()[++i]);
                     break;

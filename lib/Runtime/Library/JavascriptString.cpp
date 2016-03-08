@@ -2612,7 +2612,7 @@ case_2:
 
     const char16 * JavascriptString::GetSz()
     {
-        Assert(m_pszValue[m_charLength] == L'\0');
+        Assert(m_pszValue[m_charLength] == _u('\0'));
         return m_pszValue;
     }
 
@@ -3521,7 +3521,7 @@ case_2:
         // Allocate recycler memory to store the string plus a terminating NUL
         char16* buffer = RecyclerNewArrayLeaf(recycler, char16, bufLen);
         js_wmemcpy_s(buffer, bufLen, content, length);
-        buffer[length] = L'\0';
+        buffer[length] = _u('\0');
 
         return buffer;
     }
@@ -3542,7 +3542,7 @@ case_2:
         // Allocate arena memory to store the string plus a terminating NUL
         char16* buffer = AnewArray(arena, char16, length + 1);
         js_wmemcpy_s(buffer, length + 1, content, length);
-        buffer[length] = L'\0';
+        buffer[length] = _u('\0');
 
         return buffer;
     }

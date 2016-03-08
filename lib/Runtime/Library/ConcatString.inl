@@ -26,7 +26,7 @@ namespace Js
         char16* target = RecyclerNewArrayLeaf(recycler, char16, allocSize);
 
         Copy<ConcatStringType>(target, GetLength());
-        target[GetLength()] = L'\0';
+        target[GetLength()] = _u('\0');
 
         SetBuffer(target);
         VirtualTableInfo<LiteralString>::SetVirtualTable(this);

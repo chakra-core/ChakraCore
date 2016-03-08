@@ -7685,7 +7685,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR ri
     }
     //ignore case falls through
     js_wmemcpy_s(finalName + leftLen, rightLen, rightStr, rightLen);
-    finalName[totalLength-1] = (OLECHAR)L'\0';
+    finalName[totalLength-1] = (OLECHAR)_u('\0');
 
     if (pNameLength != nullptr)
     {
@@ -13119,7 +13119,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       break;
   case knopExportDefault:
       Indent(indentAmt);
-      Output::Print(L"export default\n");
+      Output::Print(_u("export default\n"));
       PrintPnodeListWIndent(pnode->sxExportDefault.pnodeExpr, indentAmt + INDENT_SIZE);
       break;
   default:

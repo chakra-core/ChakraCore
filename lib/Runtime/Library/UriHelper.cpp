@@ -231,7 +231,7 @@ namespace Js
         }
         AssertMsg(outURI + outputLen == outCurrent, " URI out buffer out of sync");
         __analysis_assume(outputLen + 1 == allocSize);
-        outURI[outputLen] = L'\0';
+        outURI[outputLen] = _u('\0');
 
         return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
     }
@@ -528,7 +528,7 @@ namespace Js
 
         AssertMsg(outURI + outputLen == outCurrent, " URI out buffer out of sync");
         __analysis_assume(outputLen + 1 == allocSize);
-        outURI[outputLen] = L'\0';
+        outURI[outputLen] = _u('\0');
 
         return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
     }

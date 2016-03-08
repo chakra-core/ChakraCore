@@ -5123,7 +5123,7 @@ namespace Js
         }
 
         // Ensure string is terminated
-        key[keyLength - 1] = L'\0';
+        key[keyLength - 1] = _u('\0');
 
         return key;
     }

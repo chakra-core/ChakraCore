@@ -76,8 +76,8 @@ enum MethodType : uint16
     Assert(entryPoint->GetNativeAddress() != NULL);                                                 \
     Assert(entryPoint->GetCodeSize() > 0);                                                          \
     Assert(entryPoint->IsNativeCode());                                                             \
-    char16 functionNameArray[NameBufferLength];                                                    \
-    const char16 *functionName;                                                                    \
+    char16 functionNameArray[NameBufferLength];                                                     \
+    const char16 *functionName;                                                                     \
     bool deleteFunctionName = false;                                                                \
     const ExecutionMode jitMode = entryPoint->GetJitMode();                                         \
     if(jitMode == ExecutionMode::SimpleJit)                                                         \
@@ -91,7 +91,7 @@ enum MethodType : uint16
         else                                                                                        \
         {                                                                                           \
             Assert(requiredCharCapacity > NameBufferLength);                                        \
-            char16 *const allocatedFunctionName = new char16[requiredCharCapacity];               \
+            char16 *const allocatedFunctionName = new char16[requiredCharCapacity];                 \
             if(allocatedFunctionName)                                                               \
             {                                                                                       \
                 const size_t newRequiredCharCapacity =                                              \
@@ -102,7 +102,7 @@ enum MethodType : uint16
             }                                                                                       \
             else                                                                                    \
             {                                                                                       \
-                functionNameArray[0] = L'\0';                                                       \
+                functionNameArray[0] = _u('\0');                                                    \
                 functionName = functionNameArray;                                                   \
             }                                                                                       \
         }                                                                                           \
@@ -111,7 +111,7 @@ enum MethodType : uint16
     {                                                                                               \
         functionName = GetFunctionName(Body);                                                       \
     }                                                                                               \
-    JS_ETW(Function(                                                                                 \
+    JS_ETW(Function(                                                                                \
         Body->GetScriptContext(),                                                                   \
         (void *)entryPoint->GetNativeAddress(),                                                     \
         entryPoint->GetCodeSize(),                                                                  \
@@ -178,7 +178,7 @@ enum MethodType : uint16
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
-            loopBodyNameArray[0] = L'\0';                                                                  \
+            loopBodyNameArray[0] = _u('\0');                                                               \
             loopBodyName = loopBodyNameArray;                                                              \
         }                                                                                                  \
     }                                                                                                      \
@@ -224,7 +224,7 @@ enum MethodType : uint16
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
-            loopBodyNameArray[0] = L'\0';                                                                  \
+            loopBodyNameArray[0] = _u('\0');                                                               \
             loopBodyName = loopBodyNameArray;                                                              \
         }                                                                                                  \
     }                                                                                                      \

@@ -79,7 +79,7 @@ namespace Js
             // If we realize we need to change the inside of the string, start over in "modification needed" mode.
             if (op == EscapingOperation_Escape)
             {
-                outputString->Append(L'\"');
+                outputString->Append(_u('\"'));
                 if (start != 0)
                 {
                     outputString->AppendLarge(szValue, start);
@@ -117,7 +117,7 @@ namespace Js
                         {
                             outputString->AppendLarge(lastFlushSz, (charcount_t)(current - lastFlushSz));
                             lastFlushSz = current + 1;
-                            outputString->Append(L'\\');
+                            outputString->Append(_u('\\'));
                             outputString->Append(specialChar);
                             if (specialChar == _u('u'))
                             {
@@ -157,7 +157,7 @@ namespace Js
                 {
                     outputString->AppendLarge(lastFlushSz, (charcount_t)(endSz - lastFlushSz));
                 }
-                outputString->Append(L'\"');
+                outputString->Append(_u('\"'));
                 result = nullptr;
             }
             else if (op == EscapingOperation_Count)
@@ -233,9 +233,9 @@ namespace Js
                 else
                 {
                     WCHAR* buffer = AnewArray(allocator, WCHAR, originalLength + 3); /* quotes and terminating null */
-                    buffer[0] = L'\"';
-                    buffer[originalLength + 1] = L'\"';
-                    buffer[originalLength + 2] = L'\0';
+                    buffer[0] = _u('\"');
+                    buffer[originalLength + 1] = _u('\"');
+                    buffer[originalLength + 2] = _u('\0');
                     js_wmemcpy_s(buffer + 1, originalLength, originalString, originalLength);
                     return buffer;
                 }

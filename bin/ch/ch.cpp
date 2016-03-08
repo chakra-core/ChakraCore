@@ -397,7 +397,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     {
         if (isUtf8)
         {
-            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != L'\0')
+            if (HostConfigFlags::flags.GenerateLibraryByteCodeHeader != nullptr && *HostConfigFlags::flags.GenerateLibraryByteCodeHeader != _u('\0'))
             {
                 WCHAR libraryName[_MAX_PATH];
                 WCHAR ext[_MAX_EXT];
