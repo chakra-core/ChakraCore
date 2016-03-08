@@ -190,7 +190,7 @@ const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
 InterpreterThunkEmitter::InterpreterThunkEmitter(ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, void * interpreterThunk) :
-    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, L"Interpreter thunk buffer"),
+    emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer")),
     allocation(nullptr),
     allocator(allocator),
     thunkCount(0),

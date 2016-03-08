@@ -16,19 +16,19 @@ namespace Js
         // Dynamic compilation
         //
 
-        static bool GetFlags(ScriptContext* scriptContext, __in_ecount(strLen) const wchar_t* str, CharCount strLen, UnifiedRegex::RegexFlags &flags);
+        static bool GetFlags(ScriptContext* scriptContext, __in_ecount(strLen) const char16* str, CharCount strLen, UnifiedRegex::RegexFlags &flags);
     public:
-        static UnifiedRegex::RegexPattern* CompileDynamic(ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, const wchar_t* pszOpts, CharCount cszOpts, bool isLiteralSource);
-        static UnifiedRegex::RegexPattern* CompileDynamic(ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, UnifiedRegex::RegexFlags flags, bool isLiteralSource);
+        static UnifiedRegex::RegexPattern* CompileDynamic(ScriptContext *scriptContext, const char16* psz, CharCount csz, const char16* pszOpts, CharCount cszOpts, bool isLiteralSource);
+        static UnifiedRegex::RegexPattern* CompileDynamic(ScriptContext *scriptContext, const char16* psz, CharCount csz, UnifiedRegex::RegexFlags flags, bool isLiteralSource);
     private:
-        static UnifiedRegex::RegexPattern* PrimCompileDynamic(ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, const wchar_t* pszOpts, CharCount cszOpts, bool isLiteralSource);
+        static UnifiedRegex::RegexPattern* PrimCompileDynamic(ScriptContext *scriptContext, const char16* psz, CharCount csz, const char16* pszOpts, CharCount cszOpts, bool isLiteralSource);
 
         //
         // Primitives
         //
 
     public:
-        static UnifiedRegex::GroupInfo SimpleMatch(ScriptContext * scriptContext, UnifiedRegex::RegexPattern * pattern, const wchar_t * inputStr,  CharCount inputLength, CharCount offset);
+        static UnifiedRegex::GroupInfo SimpleMatch(ScriptContext * scriptContext, UnifiedRegex::RegexPattern * pattern, const char16 * inputStr,  CharCount inputLength, CharCount offset);
         static Var NonMatchValue(ScriptContext* scriptContext, bool isGlobalCtor);
         static Var GetString(ScriptContext* scriptContext, JavascriptString* input, Var nonMatchValue, UnifiedRegex::GroupInfo group);
         static Var GetGroup(ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, JavascriptString* input, Var nonMatchValue, int groupId);
@@ -79,10 +79,10 @@ namespace Js
         static Var RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexExec(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
         static BOOL RegexTest(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        template<bool mustMatchEntireInput> static BOOL RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const wchar_t *const input, const CharCount inputLength);
+        template<bool mustMatchEntireInput> static BOOL RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength);
 
     private:
-        static void PrimBeginMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, const wchar_t* input, CharCount inputLength, bool alwaysNeedAlloc);
+        static void PrimBeginMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, const char16* input, CharCount inputLength, bool alwaysNeedAlloc);
         static UnifiedRegex::GroupInfo PrimMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, CharCount inputLength, CharCount offset);
         static void PrimEndMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern);
 
@@ -94,7 +94,7 @@ namespace Js
             , JavascriptString* replace
             , int substitutions
             , __in_ecount(substitutions) CharCount* substitutionOffsets
-            , CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& concatenated );
+            , CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& concatenated );
 
     public:
         static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
@@ -129,7 +129,7 @@ namespace Js
         static Var RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static JavascriptString* AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext);
         static Var RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
-        static int GetReplaceSubstitutions(const wchar_t * const replaceStr, CharCount const replaceLength, ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut);
+        static int GetReplaceSubstitutions(const char16 * const replaceStr, CharCount const replaceLength, ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut);
         static charcount_t AdvanceStringIndex(JavascriptString* string, charcount_t index, bool isUnicode);
     };
 }

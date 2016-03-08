@@ -76,8 +76,8 @@ enum MethodType : uint16
     Assert(entryPoint->GetNativeAddress() != NULL);                                                 \
     Assert(entryPoint->GetCodeSize() > 0);                                                          \
     Assert(entryPoint->IsNativeCode());                                                             \
-    wchar_t functionNameArray[NameBufferLength];                                                    \
-    const wchar_t *functionName;                                                                    \
+    char16 functionNameArray[NameBufferLength];                                                    \
+    const char16 *functionName;                                                                    \
     bool deleteFunctionName = false;                                                                \
     const ExecutionMode jitMode = entryPoint->GetJitMode();                                         \
     if(jitMode == ExecutionMode::SimpleJit)                                                         \
@@ -91,7 +91,7 @@ enum MethodType : uint16
         else                                                                                        \
         {                                                                                           \
             Assert(requiredCharCapacity > NameBufferLength);                                        \
-            wchar_t *const allocatedFunctionName = new wchar_t[requiredCharCapacity];               \
+            char16 *const allocatedFunctionName = new char16[requiredCharCapacity];               \
             if(allocatedFunctionName)                                                               \
             {                                                                                       \
                 const size_t newRequiredCharCapacity =                                              \
@@ -281,13 +281,13 @@ public:
 
     static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
     static void LogScriptContextLoadEvent(Js::ScriptContext* scriptContext);
-    static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const wchar_t* url);
+    static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const char16* url);
 
 
-    static const wchar_t* GetFunctionName(Js::FunctionBody* body);
-    static size_t GetLoopBodyName(_In_ Js::FunctionBody* body, _In_ Js::LoopHeader* loopHeader, _Out_writes_opt_z_(size) wchar_t* nameBuffer, _In_ size_t size );
+    static const char16* GetFunctionName(Js::FunctionBody* body);
+    static size_t GetLoopBodyName(_In_ Js::FunctionBody* body, _In_ Js::LoopHeader* loopHeader, _Out_writes_opt_z_(size) char16* nameBuffer, _In_ size_t size );
     _Success_(return == 0)
-    static size_t GetSimpleJitFunctionName(Js::FunctionBody *const body, _Out_writes_opt_z_(nameCharCapacity) wchar_t *const name, const size_t nameCharCapacity);
+    static size_t GetSimpleJitFunctionName(Js::FunctionBody *const body, _Out_writes_opt_z_(nameCharCapacity) char16 *const name, const size_t nameCharCapacity);
     static DWORD_PTR GetSourceId(Js::FunctionBody* body);
     static uint GetFunctionId(Js::FunctionProxy* body);
 

@@ -23,7 +23,7 @@ class ArenaHost
     ArenaAllocator m_allocator;
 
 public:
-    ArenaHost(__in_z wchar_t* arenaName) :
+    ArenaHost(__in_z char16* arenaName) :
         m_allocationPolicyManager(/* needConcurrencySupport = */ true),
         m_pageAllocator(&m_allocationPolicyManager, Js::Configuration::Global.flags),
         m_allocator(arenaName, &m_pageAllocator, Js::Throw::OutOfMemory)
@@ -34,13 +34,13 @@ public:
 
 ArenaAllocator* GetOutputAllocator1()
 {
-    static ArenaHost s_arenaHost(L"For Output::Trace (1)");
+    static ArenaHost s_arenaHost(_u("For Output::Trace (1)"));
     return s_arenaHost.GetAllocator();
 }
 
 ArenaAllocator* GetOutputAllocator2()
 {
-    static ArenaHost s_arenaHost(L"For Output::Trace (2)");
+    static ArenaHost s_arenaHost(_u("For Output::Trace (2)"));
     return s_arenaHost.GetAllocator();
 }
 #endif
@@ -68,7 +68,7 @@ void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
         ParseRegistryKey(hk, parser);
 
         // HKLM can prevent user config from being read.
-        if (NOERROR == RegGetValueW(hk, nullptr, L"AllowUserConfig", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize) && dwValue == 0)
+        if (NOERROR == RegGetValueW(hk, nullptr, _u("AllowUserConfig"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize) && dwValue == 0)
         {
             includeUserHive = false;
         }
@@ -89,12 +89,12 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     DWORD dwValue;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t regBuffer[MaxRegSize];
+    char16 regBuffer[MaxRegSize];
     dwSize = sizeof(regBuffer);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"JScript9", RRF_RT_REG_SZ, nullptr, (LPBYTE)regBuffer, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("JScript9"), RRF_RT_REG_SZ, nullptr, (LPBYTE)regBuffer, &dwSize))
     {
         LPWSTR regValue = regBuffer, nextValue = nullptr;
-        regValue = wcstok_s(regBuffer, L" ", &nextValue);
+        regValue = wcstok_s(regBuffer, _u(" "), &nextValue);
         while (regValue != nullptr)
         {
             int err = 0;
@@ -102,7 +102,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
             {
                 break;
             }
-            regValue = wcstok_s(nullptr, L" ", &nextValue);
+            regValue = wcstok_s(nullptr, _u(" "), &nextValue);
         }
     }
 #endif
@@ -114,7 +114,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     //   0x04 - Track Page allocations
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == ::RegGetValueW(hk, nullptr, L"MemSpect", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == ::RegGetValueW(hk, nullptr, _u("MemSpect"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if (dwValue & 0x01)
         {
@@ -144,7 +144,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     // released, the number of possible values is limited to reduce surface area.
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"JScriptJIT", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("JScriptJIT"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
         switch (dwValue)
@@ -242,7 +242,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     // This FCK does not apply to WWAs. WWAs should use the RC compat mode to disable these changes.
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"EnumerationCompat", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnumerationCompat"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if(dwValue == 1)
         {
@@ -257,7 +257,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     //     1 - Fail fast if disconnected delegate
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"FailFastIfDisconnectedDelegate", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("FailFastIfDisconnectedDelegate"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if(dwValue == 1)
         {
@@ -272,7 +272,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     //     1 - Disable ES6 flag
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"DisableES6", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("DisableES6"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         Js::ConfigFlagsTable &configFlags = Js::Configuration::Global.flags;
         if (dwValue == 1)
@@ -288,7 +288,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
     //     1 - Enable Asmjs phase
     dwValue = 0;
     dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, L"EnableAsmjs", RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
+    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnableAsmjs"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
     {
         if (dwValue == 1)
         {
@@ -304,37 +304,37 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     Assert(!_hasReadConfig);
     _hasReadConfig = true;
 
-    wchar_t configBuffer[MaxTokenSize];
+    char16 configBuffer[MaxTokenSize];
     int err = 0;
-    wchar_t modulename[_MAX_PATH];
-    wchar_t filename[_MAX_PATH];
+    char16 modulename[_MAX_PATH];
+    char16 filename[_MAX_PATH];
 
     GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH);
-    wchar_t drive[_MAX_DRIVE];
-    wchar_t dir[_MAX_DIR];
+    char16 drive[_MAX_DRIVE];
+    char16 dir[_MAX_DIR];
 
     _wsplitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-    _wmakepath_s(filename, drive, dir, _configFileName, L".config");
+    _wmakepath_s(filename, drive, dir, _configFileName, _u(".config"));
 
     FILE* configFile;
-    if (_wfopen_s(&configFile, filename, L"r, ccs=UNICODE") != 0 || configFile == nullptr)
+    if (_wfopen_s(&configFile, filename, _u("r, ccs=UNICODE")) != 0 || configFile == nullptr)
     {
         WCHAR configFileFullName[MAX_PATH];
 
-        StringCchPrintf(configFileFullName, MAX_PATH, L"%s.config", _configFileName);
+        StringCchPrintf(configFileFullName, MAX_PATH, _u("%s.config"), _configFileName);
 
         // try the one in the current working directory (Desktop)
         if (_wfullpath(filename, configFileFullName, _MAX_PATH) == nullptr)
         {
             return;
         }
-        if (_wfopen_s(&configFile, filename, L"r, ccs=UNICODE") != 0 || configFile == nullptr)
+        if (_wfopen_s(&configFile, filename, _u("r, ccs=UNICODE")) != 0 || configFile == nullptr)
         {
             return;
         }
     }
 
-    while (fwscanf_s(configFile, L"%s", configBuffer, MaxTokenSize) != FINISHED)
+    while (fwscanf_s(configFile, _u("%s"), configBuffer, MaxTokenSize) != FINISHED)
     {
         if ((err = parser.Parse(configBuffer)) != 0)
         {
@@ -354,7 +354,7 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     bool hasOutput = false;
-    wchar_t modulename[_MAX_PATH];
+    char16 modulename[_MAX_PATH];
 
     GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH);
 
@@ -367,18 +367,18 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
         AllocConsole();
 
         fd = _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), O_TEXT);
-        fp = _wfdopen(fd, L"w");
+        fp = _wfdopen(fd, _u("w"));
 
         *stdout = *fp;
         setvbuf(stdout, nullptr, _IONBF, 0);
 
         fd = _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), O_TEXT);
-        fp = _wfdopen(fd, L"w");
+        fp = _wfdopen(fd, _u("w"));
 
         *stderr = *fp;
         setvbuf(stderr, nullptr, _IONBF, 0);
 
-        wchar_t buffer[_MAX_PATH + 70];
+        char16 buffer[_MAX_PATH + 70];
 
         if (ConfigParserAPI::FillConsoleTitle(buffer, _MAX_PATH + 20, modulename))
         {
@@ -422,7 +422,7 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
     {
         ConfigParserAPI::DisplayInitialOutput(modulename);
 
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
 
         Js::Configuration::Global.flags.VerboseDump();
         Output::Flush();
@@ -464,7 +464,7 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
     // If present, replace the {PID} token with the process ID
     const WCHAR* pidStr = nullptr;
     WCHAR buffer[_MAX_PATH];
-    if ((pidStr = wcsstr(outputFile, L"{PID}")) != nullptr)
+    if ((pidStr = wcsstr(outputFile, _u("{PID}"))) != nullptr)
     {
         size_t pidStartPosition = pidStr - outputFile;
 
@@ -489,20 +489,20 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
         outputFile = buffer;
     }
 
-    wchar_t fileName[_MAX_PATH];
-    wchar_t moduleName[_MAX_PATH];
+    char16 fileName[_MAX_PATH];
+    char16 moduleName[_MAX_PATH];
     GetModuleFileName(0, moduleName, _MAX_PATH);
     _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-    if (_wcsicmp(fileName, L"WWAHost") == 0 || _wcsicmp(fileName, L"ByteCodeGenerator") == 0 ||
-        _wcsicmp(fileName, L"spartan") == 0 || _wcsicmp(fileName, L"spartan_edge") == 0 ||
-        _wcsicmp(fileName, L"MicrosoftEdge") == 0 || _wcsicmp(fileName, L"MicrosoftEdgeCP") == 0)
+    if (_wcsicmp(fileName, _u("WWAHost")) == 0 || _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
+        _wcsicmp(fileName, _u("spartan")) == 0 || _wcsicmp(fileName, _u("spartan_edge")) == 0 ||
+        _wcsicmp(fileName, _u("MicrosoftEdge")) == 0 || _wcsicmp(fileName, _u("MicrosoftEdgeCP")) == 0)
     {
 
         // we need to output to %temp% directory in wwa. we don't have permission otherwise.
-        if (GetEnvironmentVariable(L"temp", fileName, _MAX_PATH) != 0)
+        if (GetEnvironmentVariable(_u("temp"), fileName, _MAX_PATH) != 0)
         {
-            wcscat_s(fileName, _MAX_PATH, L"\\");
-            const wchar_t * fileNameOnly = wcsrchr(outputFile, L'\\');
+            wcscat_s(fileName, _MAX_PATH, _u("\\"));
+            const char16 * fileNameOnly = wcsrchr(outputFile, L'\\');
             // if outputFile is full path we just need filename, discard the path
             wcscat_s(fileName, _MAX_PATH, fileNameOnly == nullptr ? outputFile : fileNameOnly);
         }

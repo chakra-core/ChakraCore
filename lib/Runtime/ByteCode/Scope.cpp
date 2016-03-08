@@ -27,7 +27,7 @@ void Scope::SetHasLocalInClosure(bool has)
     {
         if (hasCrossScopeFuncAssignment)
         {
-            func->SetHasMaybeEscapedNestedFunc(DebugOnly(L"InstantiateScopeWithCrossScopeAssignment"));
+            func->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("InstantiateScopeWithCrossScopeAssignment")));
         }
         SetMustInstantiate(true);
     }
@@ -38,7 +38,7 @@ int Scope::AddScopeSlot()
     int slot = scopeSlotCount++;
     if (scopeSlotCount == Js::ScopeSlots::MaxEncodedSlotCount)
     {
-        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(L"TooManySlots"));
+        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("TooManySlots")));
     }
     return slot;
 }
@@ -87,7 +87,7 @@ void Scope::SetIsObject()
         {
             if (sym->GetHasFuncAssignment())
             {
-                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(L"DelayedObjectScopeAssignment"));
+                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("DelayedObjectScopeAssignment")));
                 return true;
             }
             return false;

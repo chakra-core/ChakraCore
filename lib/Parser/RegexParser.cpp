@@ -274,7 +274,7 @@ namespace UnifiedRegex
             TrackIfSurrogatePair(codePoint, (next - 1), consumptionNumber + 1);
         }
 
-        wchar_t other;
+        char16 other;
         // Generally if this code point is a single character, then we take it and return.
         // If the character is made up of two characters then we emit the first and backtrack to the start of th escape sequence;
         // Following that we check if we have already seen the first character, and if so emit the second and consume the entire escape sequence.
@@ -359,7 +359,7 @@ namespace UnifiedRegex
         }
     }
     template <typename P, const bool IsLiteral>
-    Node* Parser<P, IsLiteral>::CreateSurrogatePairAtom(wchar_t lower, wchar_t upper)
+    Node* Parser<P, IsLiteral>::CreateSurrogatePairAtom(char16 lower, char16 upper)
     {
         MatchLiteralNode * literalNode = Anew(this->ctAllocator, MatchLiteralNode, 0, 0);
         MatchCharNode lowerNode(lower);
@@ -402,7 +402,7 @@ namespace UnifiedRegex
         Assert(majorCodePoint >= 0x10000u);
         Assert(scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled() && unicodeFlagPresent);
 
-        wchar_t lowerMinorCodeUnit, upperMinorCodeUnit, lowerMajorCodeUnit, upperMajorCodeUnit;
+        char16 lowerMinorCodeUnit, upperMinorCodeUnit, lowerMajorCodeUnit, upperMajorCodeUnit;
         Js::NumberUtilities::CodePointAsSurrogatePair(minorCodePoint, &lowerMinorCodeUnit, &upperMinorCodeUnit);
         Js::NumberUtilities::CodePointAsSurrogatePair(majorCodePoint, &lowerMajorCodeUnit, &upperMajorCodeUnit);
 
@@ -494,7 +494,7 @@ namespace UnifiedRegex
                     || (suffixNode == nullptr && majorBoundary + 0x3FFu == majorCodePoint)); // Two consecutive ranges and the major is full
 
                 Node* lowerOfFullRange;
-                wchar_t lowerMinorBoundary, lowerMajorBoundary, ignore;
+                char16 lowerMinorBoundary, lowerMajorBoundary, ignore;
                 Js::NumberUtilities::CodePointAsSurrogatePair(minorBoundary, &lowerMinorBoundary, &ignore);
 
                 bool singleFullRange = majorBoundary == minorBoundary;
@@ -540,7 +540,7 @@ namespace UnifiedRegex
     template <typename P, const bool IsLiteral>
     AltNode* Parser<P, IsLiteral>::AppendSurrogatePairToDisjunction(codepoint_t codePoint, AltNode *lastAltNode)
     {
-        wchar_t lower, upper;
+        char16 lower, upper;
         Js::NumberUtilities::CodePointAsSurrogatePair(codePoint, &lower, &upper);
 
         AltNode* tailNode = Anew(ctAllocator, AltNode, CreateSurrogatePairAtom(lower, upper), nullptr);
@@ -596,7 +596,7 @@ namespace UnifiedRegex
     }
 
     template <typename P, const bool IsLiteral>
-    inline wchar_t Parser<P, IsLiteral>::NextChar()
+    inline char16 Parser<P, IsLiteral>::NextChar()
     {
         Assert(!IsEOF());
         // Could be an embedded 0
@@ -1753,7 +1753,7 @@ namespace UnifiedRegex
         if (this->currentSurrogatePairNode != nullptr && this->currentSurrogatePairNode->location == this->next)
         {
             AssertMsg(!this->currentSurrogatePairNode->IsInsideRange(), "Should not be calling this pass if we are currently inside a range.");
-            wchar_t lower, upper;
+            char16 lower, upper;
 
             uint tableIndex = 0, actualHigh = 0;
             codepoint_t equivClass[CaseInsensitive::EquivClassSize];
@@ -1979,7 +1979,7 @@ namespace UnifiedRegex
                 //If we get here, and pendingRangeEnd is set. Then one of the above has caused it to be set, or the previous iteration of the loop.
                 if (pendingRangeEnd != INVALID_CODEPOINT)
                 {
-                    wchar_t leftSingleChar, rightSingleChar, ignore;
+                    char16 leftSingleChar, rightSingleChar, ignore;
 
                     if (pendingRangeStart >= 0x10000)
                     {
@@ -1987,7 +1987,7 @@ namespace UnifiedRegex
                     }
                     else
                     {
-                        leftSingleChar = (wchar_t)pendingRangeStart;
+                        leftSingleChar = (char16)pendingRangeStart;
                     }
 
                     if (pendingRangeEnd >= 0x10000)
@@ -1996,7 +1996,7 @@ namespace UnifiedRegex
                     }
                     else
                     {
-                        rightSingleChar = (wchar_t)pendingRangeEnd;
+                        rightSingleChar = (char16)pendingRangeEnd;
                     }
 
                     // Here it is a bit tricky, we don't know if we have a unicode option specified.
@@ -2192,12 +2192,12 @@ namespace UnifiedRegex
 
             if (singleton < 0x10000)
             {
-                toReturn = Anew(ctAllocator, MatchCharNode, (wchar_t)singleton);
+                toReturn = Anew(ctAllocator, MatchCharNode, (char16)singleton);
             }
             else
             {
                 Assert(unicodeFlagPresent);
-                wchar_t lowerSurrogate, upperSurrogate;
+                char16 lowerSurrogate, upperSurrogate;
                 Js::NumberUtilities::CodePointAsSurrogatePair(singleton, &lowerSurrogate, &upperSurrogate);
                 toReturn = CreateSurrogatePairAtom(lowerSurrogate, upperSurrogate);
             }
@@ -2907,7 +2907,7 @@ namespace UnifiedRegex
         if (REGEX_CONFIG_FLAG(RegexTracing))
         {
             DebugWriter* tw = this->scriptContext->GetRegexDebugWriter();
-            tw->Print(L"// REGEX COMPILE ");
+            tw->Print(_u("// REGEX COMPILE "));
             pattern->Print(tw);
             tw->EOL();
         }
@@ -2948,7 +2948,7 @@ namespace UnifiedRegex
     {
         Assert(program->source == 0);
 
-        program->source = L"";
+        program->source = _u("");
         program->sourceLen = 0;
 
         program->numGroups = 1;

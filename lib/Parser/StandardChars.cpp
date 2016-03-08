@@ -150,7 +150,7 @@ echo("    };");
     const TrivialCaseMapper TrivialCaseMapper::Instance;
 
     // ----------------------------------------------------------------------
-    // StandardChars<wchar_t>
+    // StandardChars<char16>
     // ----------------------------------------------------------------------
 
 /*
@@ -183,16 +183,16 @@ END {
 }----------------------------------------------------------------------
 */
 
-    const int StandardChars<wchar_t>::numDigitPairs = 1;
-    const wchar_t* const StandardChars<wchar_t>::digitStr = L"09";
-    const int StandardChars<wchar_t>::numWhitespacePairs = 11;
-    const wchar_t* const StandardChars<wchar_t>::whitespaceStr = L"\x0009\x000d\x0020\x0020\x00a0\x00a0\x1680\x1680\x180e\x180e\x2000\x200a\x2028\x2029\x202f\x202f\x205f\x205f\x3000\x3000\xfeff\xfeff";
-    const int StandardChars<wchar_t>::numWordPairs = 4;
-    const wchar_t* const StandardChars<wchar_t>::wordStr = L"09AZ__az";
-    const int StandardChars<wchar_t>::numNewlinePairs = 3;
-    const wchar_t* const StandardChars<wchar_t>::newlineStr = L"\x000a\x000a\x000d\x000d\x2028\x2029";
+    const int StandardChars<char16>::numDigitPairs = 1;
+    const char16* const StandardChars<char16>::digitStr = _u("09");
+    const int StandardChars<char16>::numWhitespacePairs = 11;
+    const char16* const StandardChars<char16>::whitespaceStr = _u("\x0009\x000d\x0020\x0020\x00a0\x00a0\x1680\x1680\x180e\x180e\x2000\x200a\x2028\x2029\x202f\x202f\x205f\x205f\x3000\x3000\xfeff\xfeff");
+    const int StandardChars<char16>::numWordPairs = 4;
+    const char16* const StandardChars<char16>::wordStr = _u("09AZ__az");
+    const int StandardChars<char16>::numNewlinePairs = 3;
+    const char16* const StandardChars<char16>::newlineStr = _u("\x000a\x000a\x000d\x000d\x2028\x2029");
 
-    StandardChars<wchar_t>::StandardChars(ArenaAllocator* allocator)
+    StandardChars<char16>::StandardChars(ArenaAllocator* allocator)
         : allocator(allocator)
         , unicodeDataCaseMapper(allocator, CaseInsensitive::MappingSource::UnicodeData, &TrivialCaseMapper::Instance)
         , caseFoldingCaseMapper(allocator, CaseInsensitive::MappingSource::CaseFolding, &unicodeDataCaseMapper)
@@ -205,47 +205,47 @@ END {
     {
     }
 
-    void StandardChars<wchar_t>::SetDigits(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetDigits(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetRanges(setAllocator, numDigitPairs, digitStr);
     }
 
-    void StandardChars<wchar_t>::SetNonDigits(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetNonDigits(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetNotRanges(setAllocator, numDigitPairs, digitStr);
     }
 
-    void StandardChars<wchar_t>::SetWhitespace(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetWhitespace(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetRanges(setAllocator, numWhitespacePairs, whitespaceStr);
     }
 
-    void StandardChars<wchar_t>::SetNonWhitespace(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetNonWhitespace(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetNotRanges(setAllocator, numWhitespacePairs, whitespaceStr);
     }
 
-    void StandardChars<wchar_t>::SetWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetRanges(setAllocator, numWordPairs, wordStr);
     }
 
-    void StandardChars<wchar_t>::SetNonWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetNonWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetNotRanges(setAllocator, numWordPairs, wordStr);
     }
 
-    void StandardChars<wchar_t>::SetNewline(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetNewline(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetRanges(setAllocator, numNewlinePairs, newlineStr);
     }
 
-    void StandardChars<wchar_t>::SetNonNewline(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    void StandardChars<char16>::SetNonNewline(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetNotRanges(setAllocator, numNewlinePairs, newlineStr);
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetFullSet()
+    CharSet<char16>* StandardChars<char16>::GetFullSet()
     {
         if (fullSet == 0)
         {
@@ -255,7 +255,7 @@ END {
         return fullSet;
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetEmptySet()
+    CharSet<char16>* StandardChars<char16>::GetEmptySet()
     {
         if (emptySet == 0)
         {
@@ -265,7 +265,7 @@ END {
         return emptySet;
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetWordSet()
+    CharSet<char16>* StandardChars<char16>::GetWordSet()
     {
         if (wordSet == 0)
         {
@@ -275,7 +275,7 @@ END {
         return wordSet;
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetNonWordSet()
+    CharSet<char16>* StandardChars<char16>::GetNonWordSet()
     {
         if (nonWordSet == 0)
         {
@@ -285,7 +285,7 @@ END {
         return nonWordSet;
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetNewlineSet()
+    CharSet<char16>* StandardChars<char16>::GetNewlineSet()
     {
         if (newlineSet == 0)
         {
@@ -295,7 +295,7 @@ END {
         return newlineSet;
     }
 
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetWhitespaceSet()
+    CharSet<char16>* StandardChars<char16>::GetWhitespaceSet()
     {
         if (whitespaceSet == 0)
         {
@@ -304,12 +304,12 @@ END {
         }
         return whitespaceSet;
     }
-    CharSet<wchar_t>* StandardChars<wchar_t>::GetSurrogateUpperRange()
+    CharSet<char16>* StandardChars<char16>::GetSurrogateUpperRange()
     {
         if (surrogateUpperRange == 0)
         {
             surrogateUpperRange = Anew(allocator, UnicodeCharSet);
-            surrogateUpperRange->SetRange(allocator, (wchar_t)0xDC00u, (wchar_t)0xDFFFu);
+            surrogateUpperRange->SetRange(allocator, (char16)0xDC00u, (char16)0xDFFFu);
         }
         return surrogateUpperRange;
     }

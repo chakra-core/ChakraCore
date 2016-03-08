@@ -9,9 +9,9 @@
 #define TESTTRACE_PHASE_INSTR(phase, instr, ...) \
     if(PHASE_TESTTRACE(phase, this->func)) \
     { \
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
         Output::Print( \
-            L"Testtrace: %s function %s (%s): ", \
+            _u("Testtrace: %s function %s (%s): "), \
             Js::PhaseNames[phase], \
             instr->m_func->GetJnFunction()->GetDisplayName(), \
             instr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer)); \
@@ -30,16 +30,16 @@
 #define GOPT_TRACE_OPND(opnd, ...) \
     if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
     { \
-        Output::Print(L"TRACE: "); \
+        Output::Print(_u("TRACE: ")); \
         opnd->Dump(); \
-        Output::Print(L" : "); \
+        Output::Print(_u(" : ")); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
     }
 #define GOPT_TRACE(...) \
     if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
     { \
-        Output::Print(L"TRACE: "); \
+        Output::Print(_u("TRACE: ")); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
     }
@@ -54,7 +54,7 @@
 #define GOPT_TRACE_INSTR(instr, ...) \
     if (PHASE_TRACE(Js::GlobOptPhase, this->func) && !this->IsLoopPrePass()) \
     { \
-        Output::Print(L"TRACE: "); \
+        Output::Print(_u("TRACE: ")); \
         Output::Print(__VA_ARGS__); \
         instr->Dump(); \
         Output::Flush(); \
@@ -67,27 +67,27 @@
 #define TRACE_PHASE_INSTR(phase, instr, ...) \
     if(PHASE_TRACE(phase, this->func)) \
     { \
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE]; \
         Output::Print( \
-            L"Function %s (%s, line %u)", \
+            _u("Function %s (%s, line %u)"), \
             this->func->GetJnFunction()->GetDisplayName(), \
             this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), \
             this->func->GetJnFunction()->GetLineNumber()); \
         if(this->func->IsLoopBody()) \
         { \
-            Output::Print(L", loop %u", static_cast<JsLoopBodyCodeGen *>(this->func->m_workItem)->GetLoopNumber()); \
+            Output::Print(_u(", loop %u"), static_cast<JsLoopBodyCodeGen *>(this->func->m_workItem)->GetLoopNumber()); \
         } \
         if(instr->m_func != this->func) \
         { \
             Output::Print( \
-                L", Inlinee %s (%s, line %u)", \
+                _u(", Inlinee %s (%s, line %u)"), \
                 instr->m_func->GetJnFunction()->GetDisplayName(), \
                 instr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), \
                 instr->m_func->GetJnFunction()->GetLineNumber()); \
         } \
-        Output::Print(L" - %s\n    ", Js::PhaseNames[phase]); \
+        Output::Print(_u(" - %s\n    "), Js::PhaseNames[phase]); \
         instr->Dump(); \
-        Output::Print(L"    "); \
+        Output::Print(_u("    ")); \
         Output::Print(__VA_ARGS__); \
         Output::Flush(); \
     }
@@ -122,17 +122,17 @@
 #define DO_MEMOP_TRACE_PHASE(phase) (PHASE_TRACE(Js::MemOpPhase, this->func->GetJnFunction()) || PHASE_TRACE(Js::phase ## Phase, this->func->GetJnFunction()))
 
 #define OUTPUT_MEMOP_TRACE(loop, instr, ...) {\
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];\
-    Output::Print(15, L"Function: %s%s, Loop: %u: ", this->func->GetJnFunction()->GetDisplayName(), this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];\
+    Output::Print(15, _u("Function: %s%s, Loop: %u: "), this->func->GetJnFunction()->GetDisplayName(), this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), loop->GetLoopNumber());\
     Output::Print(__VA_ARGS__);\
     IR::Instr* __instr__ = instr;\
     if(__instr__) __instr__->DumpByteCodeOffset();\
-    Output::Print(L"\n");\
+    Output::Print(_u("\n"));\
     Output::Flush(); \
 }
 #define TRACE_MEMOP(loop, instr, ...) \
     if (DO_MEMOP_TRACE()) {\
-        Output::Print(L"TRACE MemOp:");\
+        Output::Print(_u("TRACE MemOp:"));\
         OUTPUT_MEMOP_TRACE(loop, instr, __VA_ARGS__)\
     }
 #define TRACE_MEMOP_VERBOSE(loop, instr, ...) if(CONFIG_FLAG(Verbose)) {TRACE_MEMOP(loop, instr, __VA_ARGS__)}
@@ -140,7 +140,7 @@
 #define TRACE_MEMOP_PHASE(phase, loop, instr, ...) \
     if (DO_MEMOP_TRACE_PHASE(phase))\
     {\
-        Output::Print(L"TRACE " L#phase L":");\
+        Output::Print(_u("TRACE ") _u(#phase) _u(":"));\
         OUTPUT_MEMOP_TRACE(loop, instr, __VA_ARGS__)\
     }
 #define TRACE_MEMOP_PHASE_VERBOSE(phase, loop, instr, ...) if(CONFIG_FLAG(Verbose)) {TRACE_MEMOP_PHASE(phase, loop, instr, __VA_ARGS__)}
@@ -289,10 +289,10 @@ GlobOpt::Optimize()
         // in GlobOpt::EnsurePropertyTypeValue and ranges of instructions where int overflow may be ignored.
         // (see BackwardPass::TrackIntUsage)
         PageAllocator * pageAllocator = this->func->m_alloc->GetPageAllocator();
-        NoRecoverMemoryJitArenaAllocator localAlloc(L"BE-GlobOpt", pageAllocator, Js::Throw::OutOfMemory);
+        NoRecoverMemoryJitArenaAllocator localAlloc(_u("BE-GlobOpt"), pageAllocator, Js::Throw::OutOfMemory);
         this->alloc = &localAlloc;
 
-        NoRecoverMemoryJitArenaAllocator localTempAlloc(L"BE-GlobOpt temp", pageAllocator, Js::Throw::OutOfMemory);
+        NoRecoverMemoryJitArenaAllocator localTempAlloc(_u("BE-GlobOpt temp"), pageAllocator, Js::Throw::OutOfMemory);
         this->tempAlloc = &localTempAlloc;
 
         // The forward passes use info (upwardExposedUses) from the backward pass. This info
@@ -448,9 +448,9 @@ GlobOpt::ForwardPass()
     this->byteCodeUsesBeforeOpt = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) && this->DoFunctionFieldCopyProp())
     {
-        Output::Print(L"TRACE: CanDoFieldCopyProp Func: ");
+        Output::Print(_u("TRACE: CanDoFieldCopyProp Func: "));
         this->func->GetJnFunction()->DumpFullFunctionName();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
 #endif
 
@@ -530,7 +530,7 @@ GlobOpt::OptBlock(BasicBlock *block)
 
     if (this->func->m_fg->RemoveUnreachableBlock(block, this))
     {
-        GOPT_TRACE(L"Removing unreachable block #%d\n", block->GetBlockNum());
+        GOPT_TRACE(_u("Removing unreachable block #%d\n"), block->GetBlockNum());
         return;
     }
 
@@ -761,11 +761,11 @@ GlobOpt::OptLoops(Loop *loop)
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) &&
         !DoFunctionFieldCopyProp() && DoFieldCopyProp(loop))
     {
-        Output::Print(L"TRACE: CanDoFieldCopyProp Loop: ");
+        Output::Print(_u("TRACE: CanDoFieldCopyProp Loop: "));
         this->func->GetJnFunction()->DumpFullFunctionName();
         uint loopNumber = loop->GetLoopNumber();
         Assert(loopNumber != Js::LoopHeader::NoLoop);
-        Output::Print(L" Loop: %d\n", loopNumber);
+        Output::Print(_u(" Loop: %d\n"), loopNumber);
     }
 #endif
 
@@ -1330,7 +1330,7 @@ GlobOpt::MergePredBlocksValueMaps(BasicBlock *block)
                 BasicBlock *airlockBlock = nullptr;
                 if (!orgPred)
                 {
-                    GOPT_TRACE(L"Inserting airlock block to convert syms to var between block %d and %d\n",
+                    GOPT_TRACE(_u("Inserting airlock block to convert syms to var between block %d and %d\n"),
                         pred->GetBlockNum(), block->GetBlockNum());
                     airlockBlock = this->func->m_fg->InsertAirlockBlock(edge);
                 }
@@ -2898,9 +2898,9 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldPREPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
     {
-        Output::Print(L"** TRACE: Field PRE: field pre-loaded in landing pad of loop head #%-3d: ", loop->GetHeadBlock()->GetBlockNum());
+        Output::Print(_u("** TRACE: Field PRE: field pre-loaded in landing pad of loop head #%-3d: "), loop->GetHeadBlock()->GetBlockNum());
         ldInstr->Dump();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
 #endif
 
@@ -3373,10 +3373,10 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
 #if DBG_DUMP
     if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->func) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func))
     {
-        Output::Print(L"ObjTypeSpec: Merging type value info:\n");
-        Output::Print(L"    from (shared %d): ", fromValueInfo->GetIsShared());
+        Output::Print(_u("ObjTypeSpec: Merging type value info:\n"));
+        Output::Print(_u("    from (shared %d): "), fromValueInfo->GetIsShared());
         fromValueInfo->Dump();
-        Output::Print(L"\n    to (shared %d): ", toValueInfo->GetIsShared());
+        Output::Print(_u("\n    to (shared %d): "), toValueInfo->GetIsShared());
         toValueInfo->Dump();
     }
 #endif
@@ -3386,9 +3386,9 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
 #if DBG_DUMP
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->func) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func))
         {
-            Output::Print(L"\n    result (shared %d): ", toValueInfo->GetIsShared());
+            Output::Print(_u("\n    result (shared %d): "), toValueInfo->GetIsShared());
             toValueInfo->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 #endif
         return toValueInfo;
@@ -3406,9 +3406,9 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
 #if DBG_DUMP
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->func) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func))
         {
-            Output::Print(L"\n    result (shared %d): ", mergedValueInfo->GetIsShared());
+            Output::Print(_u("\n    result (shared %d): "), mergedValueInfo->GetIsShared());
             mergedValueInfo->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 #endif
         return mergedValueInfo;
@@ -3420,9 +3420,9 @@ JsTypeValueInfo* GlobOpt::MergeJsTypeValueInfo(JsTypeValueInfo * toValueInfo, Js
 #if DBG_DUMP
         if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->func) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func))
         {
-            Output::Print(L"\n    result (shared %d): ", toValueInfo->GetIsShared());
+            Output::Print(_u("\n    result (shared %d): "), toValueInfo->GetIsShared());
             toValueInfo->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 #endif
         return toValueInfo;
@@ -3772,9 +3772,9 @@ GlobOpt::TrackArgumentsSym(IR::RegOpnd* opnd)
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (PHASE_TESTTRACE(Js::StackArgOptPhase, this->func))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Created a new alias s%d for arguments object in function %s(%s) topFunc %s(%s)\n",
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("Created a new alias s%d for arguments object in function %s(%s) topFunc %s(%s)\n"),
             opnd->m_sym->m_id,
             blockData.curFunc->GetJnFunction()->GetDisplayName(),
             blockData.curFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
@@ -4129,7 +4129,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         indexValueType.ToString(indexValueTypeStr);
         wchar baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
         baseValueType.ToString(baseValueTypeStr);
-        TRACE_MEMOP_VERBOSE(loop, instr, L"Index[%s] or Array[%s] value type is invalid", indexValueTypeStr, baseValueTypeStr);
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Index[%s] or Array[%s] value type is invalid"), indexValueTypeStr, baseValueTypeStr);
 #endif
         return false;
     }
@@ -4140,7 +4140,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         JsArrayKills arrayKills = CheckJsArrayKills(instr);
         if (arrayKills.KillsValueType(baseValueType))
         {
-            TRACE_MEMOP_VERBOSE(loop, instr, L"The array (s%d) can lose its value type", GetVarSymID(baseOpnd->GetStackSym()));
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("The array (s%d) can lose its value type"), GetVarSymID(baseOpnd->GetStackSym()));
             return false;
         }
     }
@@ -4148,7 +4148,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     // Process the Index Operand
     if (!this->OptIsInvariant(baseOpnd, this->currentBlock, loop, this->FindValue(baseOpnd->m_sym), false, true))
     {
-        TRACE_MEMOP_VERBOSE(loop, instr, L"Base (s%d) is not invariant", GetVarSymID(baseOpnd->GetStackSym()));
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Base (s%d) is not invariant"), GetVarSymID(baseOpnd->GetStackSym()));
         return false;
     }
 
@@ -4159,7 +4159,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
     if (!iv)
     {
         // If the index is not an induction variable return
-        TRACE_MEMOP_VERBOSE(loop, instr, L"Index (s%d) is not an induction variable", indexSymID);
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("Index (s%d) is not an induction variable"), indexSymID);
         return false;
     }
 
@@ -4176,7 +4176,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         inductionVariableChangeInfo.unroll > 1 // Must be 0 (not seen yet) or 1 (already seen)
     )
     {
-        TRACE_MEMOP_VERBOSE(loop, instr, L"The index does not change by 1: %d><%d, unroll=%d", bounds.LowerBound(), bounds.UpperBound(), inductionVariableChangeInfo.unroll);
+        TRACE_MEMOP_VERBOSE(loop, instr, _u("The index does not change by 1: %d><%d, unroll=%d"), bounds.LowerBound(), bounds.UpperBound(), inductionVariableChangeInfo.unroll);
         return false;
     }
 
@@ -4188,7 +4188,7 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         // All MemOp operations within the same loop must use the same index
         if (previousCandidate->index != indexSymID)
         {
-            TRACE_MEMOP_VERBOSE(loop, instr, L"The index is not the same as other MemOp in the loop");
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("The index is not the same as other MemOp in the loop"));
             return false;
         }
     }
@@ -4275,7 +4275,7 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     }
     else if(!srcSym)
     {
-        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, L"Source is not an invariant");
+        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, _u("Source is not an invariant"));
         return false;
     }
 
@@ -4315,7 +4315,7 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
     {
         // This must be the last use of the register.
         // It will invalidate `var m = a[i]; b[i] = m;` but this is not a very interesting case.
-        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"Source (s%d) is still alive after StElemI", baseSymID);
+        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Source (s%d) is still alive after StElemI"), baseSymID);
         return false;
     }
 
@@ -4345,7 +4345,7 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
         GetVarSymID(memcopyInfo->transferSym) != srcSymID
     )
     {
-        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"No matching LdElem found (s%d)", baseSymID);
+        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("No matching LdElem found (s%d)"), baseSymID);
         return false;
     }
 
@@ -4356,7 +4356,7 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
     if (isIndexPreIncr != memcopyInfo->bIndexAlreadyChanged)
     {
         // The index changed between the load and the store
-        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"Index value changed between ldElem and stElem");
+        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Index value changed between ldElem and stElem"));
         return false;
     }
 
@@ -4512,7 +4512,7 @@ MemOpCheckInductionVariable:
         {
             // Refuse any operations interacting with Fields
             loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, L"Field interaction detected");
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("Field interaction detected"));
             return false;
         }
 
@@ -4520,14 +4520,14 @@ MemOpCheckInductionVariable:
         {
             // Refuse any operations interacting with slots
             loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, L"Slot interaction detected");
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("Slot interaction detected"));
             return false;
         }
 
         if (this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val))
         {
             loop->memOpInfo->doMemOp = false;
-            TRACE_MEMOP_VERBOSE(loop, instr, L"Implicit call bailout detected");
+            TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
             return false;
         }
 
@@ -4543,7 +4543,7 @@ MemOpCheckInductionVariable:
                     if (instr->FindRegUse(memcopyCandidate->transferSym))
                     {
                         loop->memOpInfo->doMemOp = false;
-                        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"Found illegal use of LdElemI value(s%d)", GetVarSymID(memcopyCandidate->transferSym));
+                        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
                         return false;
                     }
                 }
@@ -5267,10 +5267,10 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
 #if DBG_DUMP
     if (PHASE_TRACE(Js::FieldPREPhase, this->func))
     {
-        Output::Print(L"** TRACE:  Field PRE initial value for loop head #%d. Val:%d symStore:",
+        Output::Print(_u("** TRACE:  Field PRE initial value for loop head #%d. Val:%d symStore:"),
             loop->GetHeadBlock()->GetBlockNum(), initialValue->GetValueNumber());
         symStore->Dump();
-        Output::Print(L"\n    Instr: ");
+        Output::Print(_u("\n    Instr: "));
         instr->Dump();
     }
 #endif
@@ -6052,7 +6052,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 const auto indir = src->AsIndirOpnd();
                 if(opnd == indir->GetIndexOpnd())
                 {
-                    GOPT_TRACE_OPND(opnd, L"Constant prop indir index into offset (value: %d)\n", intConstantValue);
+                    GOPT_TRACE_OPND(opnd, _u("Constant prop indir index into offset (value: %d)\n"), intConstantValue);
                     this->CaptureByteCodeSymUses(instr);
                     indir->SetOffset(intConstantValue);
                     indir->SetIndexOpnd(nullptr);
@@ -6073,7 +6073,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         {
             IR::AddrOpnd *addrOpnd = IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked((int)intConstantValue), IR::AddrOpndKindConstantVar, instr->m_func);
 
-            GOPT_TRACE_OPND(opnd, L"Constant prop %d (value:%d)\n", addrOpnd->m_address, intConstantValue);
+            GOPT_TRACE_OPND(opnd, _u("Constant prop %d (value:%d)\n"), addrOpnd->m_address, intConstantValue);
             constOpnd = addrOpnd;
         }
         else
@@ -6095,7 +6095,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
             }
             IR::IntConstOpnd *intOpnd = IR::IntConstOpnd::New(constVal, opndType, instr->m_func);
 
-            GOPT_TRACE_OPND(opnd, L"Constant prop %d (value:%d)\n", intOpnd->GetImmediateValue(), intConstantValue);
+            GOPT_TRACE_OPND(opnd, _u("Constant prop %d (value:%d)\n"), intOpnd->GetImmediateValue(), intConstantValue);
             constOpnd = intOpnd;
         }
 
@@ -6226,7 +6226,7 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
     IR::RegOpnd *regOpnd;
     StackSym *newSym = copySym;
 
-    GOPT_TRACE_OPND(opnd, L"Copy prop s%d\n", newSym->m_id);
+    GOPT_TRACE_OPND(opnd, _u("Copy prop s%d\n"), newSym->m_id);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     //Need to update DumpFieldCopyPropTestTrace for every new opcode that is added for fieldcopyprop
     if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldCopyPropPhase))
@@ -6568,7 +6568,7 @@ GlobOpt::NewIntRangeValue(
 
     if (opnd)
     {
-        GOPT_TRACE_OPND(opnd, L"Range %d (0x%X) to %d (0x%X)\n", min, min, max, max);
+        GOPT_TRACE_OPND(opnd, _u("Range %d (0x%X) to %d (0x%X)\n"), min, min, max, max);
     }
     this->InsertNewValue(val, opnd);
     return val;
@@ -7584,19 +7584,19 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     {
         if(DoTypedArrayTypeSpec() && !IsLoopPrePass())
         {
-            GOPT_TRACE_INSTR(instr, L"Didn't specialize array access.\n");
+            GOPT_TRACE_INSTR(instr, _u("Didn't specialize array access.\n"));
             if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
-                Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because %s.\n",
+                Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because %s.\n"),
                     this->func->GetJnFunction()->GetDisplayName(),
                     this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
-                    instr->DoStackArgsOpt(this->func) ? L"instruction uses the arguments object" :
-                    baseValueType.IsLikelyOptimizedTypedArray() ? L"index is negative or likely not int" : L"of array type");
+                    instr->DoStackArgsOpt(this->func) ? _u("instruction uses the arguments object") :
+                    baseValueType.IsLikelyOptimizedTypedArray() ? _u("index is negative or likely not int") : _u("of array type"));
                 Output::Flush();
             }
         }
@@ -7700,27 +7700,27 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     Assert(toType != TyVar);
 
-    GOPT_TRACE_INSTR(instr, L"Type specialized array access.\n");
+    GOPT_TRACE_INSTR(instr, _u("Type specialized array access.\n"));
     if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
         baseValueType.ToString(baseValueTypeStr);
         char dstValTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
         dstVal->GetValueInfo()->Type().ToString(dstValTypeStr);
-        Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s producing %S",
+        Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s producing %S"),
             this->func->GetJnFunction()->GetDisplayName(),
             this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
             baseValueTypeStr,
-            toType == TyInt32 ? L"int32" : L"float64",
+            toType == TyInt32 ? _u("int32") : _u("float64"),
             dstValTypeStr);
 #if DBG_DUMP
-        Output::Print(L" (");
+        Output::Print(_u(" ("));
         dstVal->Dump();
-        Output::Print(L").\n");
+        Output::Print(_u(").\n"));
 #else
-        Output::Print(L".\n");
+        Output::Print(_u(".\n"));
 #endif
         Output::Flush();
     }
@@ -9130,12 +9130,12 @@ GlobOpt::OptConstFoldUnary(
     if (isInt)
     {
         constOpnd = IR::IntConstOpnd::New(value, TyInt32, instr->m_func);
-        GOPT_TRACE(L"Constant folding to %d\n", value);
+        GOPT_TRACE(_u("Constant folding to %d\n"), value);
     }
     else
     {
         constOpnd = IR::FloatConstOpnd::New(fValue, TyFloat64, instr->m_func);
-        GOPT_TRACE(L"Constant folding to %f\n", fValue);
+        GOPT_TRACE(_u("Constant folding to %f\n"), fValue);
     }
     instr->ReplaceSrc1(constOpnd);
 
@@ -10234,37 +10234,37 @@ GlobOpt::TypeSpecializeIntUnary(
 
     if(bailOutKind == IR::BailOutInvalid)
     {
-        GOPT_TRACE(L"Type specialized to INT\n");
+        GOPT_TRACE(_u("Type specialized to INT\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
         {
-            Output::Print(L"Type specialized to INT: ");
-            Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+            Output::Print(_u("Type specialized to INT: "));
+            Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
         }
 #endif
     }
     else
     {
-        GOPT_TRACE(L"Type specialized to INT with bailout on:\n");
+        GOPT_TRACE(_u("Type specialized to INT with bailout on:\n"));
         if(bailOutKind & IR::BailOutOnOverflow)
         {
-            GOPT_TRACE(L"    Overflow\n");
+            GOPT_TRACE(_u("    Overflow\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
             {
-                Output::Print(L"Type specialized to INT with bailout (%S): ", "Overflow");
-                Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::Print(_u("Type specialized to INT with bailout (%S): "), "Overflow");
+                Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
             }
 #endif
         }
         if(bailOutKind & IR::BailOutOnNegativeZero)
         {
-            GOPT_TRACE(L"    Zero\n");
+            GOPT_TRACE(_u("    Zero\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
             {
-                Output::Print(L"Type specialized to INT with bailout (%S): ", "Zero");
-                Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::Print(_u("Type specialized to INT with bailout (%S): "), "Zero");
+                Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
             }
 #endif
         }
@@ -11784,37 +11784,37 @@ LOutsideSwitch:
 
     if(bailOutKind == IR::BailOutInvalid)
     {
-        GOPT_TRACE(L"Type specialized to INT\n");
+        GOPT_TRACE(_u("Type specialized to INT\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
         {
-            Output::Print(L"Type specialized to INT: ");
-            Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+            Output::Print(_u("Type specialized to INT: "));
+            Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
         }
 #endif
     }
     else
     {
-        GOPT_TRACE(L"Type specialized to INT with bailout on:\n");
+        GOPT_TRACE(_u("Type specialized to INT with bailout on:\n"));
         if(bailOutKind & (IR::BailOutOnOverflow | IR::BailOutOnMulOverflow) )
         {
-            GOPT_TRACE(L"    Overflow\n");
+            GOPT_TRACE(_u("    Overflow\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
             {
-                Output::Print(L"Type specialized to INT with bailout (%S): ", "Overflow");
-                Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::Print(_u("Type specialized to INT with bailout (%S): "), "Overflow");
+                Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
             }
 #endif
         }
         if(bailOutKind & IR::BailOutOnNegativeZero)
         {
-            GOPT_TRACE(L"    Zero\n");
+            GOPT_TRACE(_u("    Zero\n"));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::AggressiveIntTypeSpecPhase))
             {
-                Output::Print(L"Type specialized to INT with bailout (%S): ", "Zero");
-                Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::Print(_u("Type specialized to INT with bailout (%S): "), "Zero");
+                Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
             }
 #endif
         }
@@ -12284,13 +12284,13 @@ GlobOpt::TypeSpecializeFloatUnary(IR::Instr **pInstr, Value *src1Val, Value **pD
         }
     }
 
-    GOPT_TRACE_INSTR(instr, L"Type specialized to FLOAT: ");
+    GOPT_TRACE_INSTR(instr, _u("Type specialized to FLOAT: "));
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FloatTypeSpecPhase))
     {
-        Output::Print(L"Type specialized to FLOAT: ");
-        Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+        Output::Print(_u("Type specialized to FLOAT: "));
+        Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
     }
 #endif
 
@@ -12568,13 +12568,13 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
         }
     }
 
-    GOPT_TRACE_INSTR(instr, L"Type specialized to FLOAT: ");
+    GOPT_TRACE_INSTR(instr, _u("Type specialized to FLOAT: "));
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FloatTypeSpecPhase))
     {
-        Output::Print(L"Type specialized to FLOAT: ");
-        Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+        Output::Print(_u("Type specialized to FLOAT: "));
+        Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
     }
 #endif
 
@@ -12593,20 +12593,20 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
         (!this->DoNativeArrayTypeSpec() && baseValueType.IsLikelyNativeArray()) ||
         !(baseValueType.IsLikelyOptimizedTypedArray() || baseValueType.IsLikelyNativeArray()))
     {
-        GOPT_TRACE_INSTR(instr, L"Didn't type specialize array access, because typed array type specialization is disabled, or base is not an optimized typed array.\n");
+        GOPT_TRACE_INSTR(instr, _u("Didn't type specialize array access, because typed array type specialization is disabled, or base is not an optimized typed array.\n"));
         if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
-            Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because %s.\n",
+            Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because %s.\n"),
                 this->func->GetJnFunction()->GetDisplayName(),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
                 instr->DoStackArgsOpt(this->func) ?
-                    L"instruction uses the arguments object" :
-                    L"typed array type specialization is disabled, or base is not an optimized typed array");
+                    _u("instruction uses the arguments object") :
+                    _u("typed array type specialization is disabled, or base is not an optimized typed array"));
             Output::Flush();
         }
         return false;
@@ -12648,13 +12648,13 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
         }
         else if (!this->IsInt32TypeSpecialized(sym, this->currentBlock) && !this->IsFloat64TypeSpecialized(sym, this->currentBlock))
         {
-            GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because src is not type specialized.\n");
+            GOPT_TRACE_INSTR(instr, _u("Didn't specialize array access, because src is not type specialized.\n"));
             if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 baseValueType.ToString(baseValueTypeStr);
-                Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because src is not specialized.\n",
+                Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because src is not specialized.\n"),
                               this->func->GetJnFunction()->GetDisplayName(),
                               this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                               Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
@@ -12686,13 +12686,13 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
 
     if (!ShouldExpectConventionalArrayIndexValue(dst))
     {
-        GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because index is negative or likely not int.\n");
+        GOPT_TRACE_INSTR(instr, _u("Didn't specialize array access, because index is negative or likely not int.\n"));
         if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
-            Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because index is negative or likely not int.\n",
+            Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not specialize because index is negative or likely not int.\n"),
                 this->func->GetJnFunction()->GetDisplayName(),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
@@ -12785,18 +12785,18 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
 
     if (toType != TyVar)
     {
-        GOPT_TRACE_INSTR(instr, L"Type specialized array access.\n");
+        GOPT_TRACE_INSTR(instr, _u("Type specialized array access.\n"));
         if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
-            Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s.\n",
+            Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, type specialized to %s.\n"),
                 this->func->GetJnFunction()->GetDisplayName(),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
-                toType == TyInt32 ? L"int32" : L"float64");
+                toType == TyInt32 ? _u("int32") : _u("float64"));
             Output::Flush();
         }
 
@@ -12862,13 +12862,13 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     }
     else
     {
-        GOPT_TRACE_INSTR(instr, L"Didn't specialize array access, because the source was not already specialized.\n");
+        GOPT_TRACE_INSTR(instr, _u("Didn't specialize array access, because the source was not already specialized.\n"));
         if (PHASE_TRACE(Js::TypedArrayTypeSpecPhase, this->func->GetJnFunction()))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             char baseValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             baseValueType.ToString(baseValueTypeStr);
-            Output::Print(L"Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because of array type.\n",
+            Output::Print(_u("Typed Array Optimization:  function: %s (%s): instr: %s, base value type: %S, did not type specialize, because of array type.\n"),
                 this->func->GetJnFunction()->GetDisplayName(),
                 this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
@@ -13147,7 +13147,7 @@ GlobOpt::ToVar(IR::Instr *instr, IR::RegOpnd *regOpnd, BasicBlock *block, Value 
 
     block->globOptData.liveVarSyms->Set(varSym->m_id);
 
-    GOPT_TRACE_OPND(regOpnd, L"Converting to var\n");
+    GOPT_TRACE_OPND(regOpnd, _u("Converting to var\n"));
 
     if (block->loop)
     {
@@ -13357,22 +13357,22 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                             Assert(DoAggressiveIntTypeSpec());
                             if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
                             {
-                                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                                 Output::Print(
-                                    L"BailOut (compile-time): function: %s (%s) varSym: ",
+                                    _u("BailOut (compile-time): function: %s (%s) varSym: "),
                                     this->func->GetJnFunction()->GetDisplayName(),
                                     this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                                     varSym->m_id);
     #if DBG_DUMP
                                 varSym->Dump();
     #else
-                                Output::Print(L"s%u", varSym->m_id);
+                                Output::Print(_u("s%u"), varSym->m_id);
     #endif
                                 if(varSym->HasByteCodeRegSlot())
                                 {
-                                    Output::Print(L" byteCodeReg: R%u", varSym->GetByteCodeRegSlot());
+                                    Output::Print(_u(" byteCodeReg: R%u"), varSym->GetByteCodeRegSlot());
                                 }
-                                Output::Print(L" (lossless conversion from float64 to int32)\n");
+                                Output::Print(_u(" (lossless conversion from float64 to int32)\n"));
                                 Output::Flush();
                             }
 
@@ -13382,7 +13382,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                                 // because it won't help and the same thing will happen again. Just abort jitting this function.
                                 if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
                                 {
-                                    Output::Print(L"    Aborting JIT because AggressiveIntTypeSpec is already off\n");
+                                    Output::Print(_u("    Aborting JIT because AggressiveIntTypeSpec is already off\n"));
                                     Output::Flush();
                                 }
                                 throw Js::OperationAbortedException();
@@ -13406,7 +13406,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     }
                 }
             }
-            GOPT_TRACE_OPND(regSrc, L"Converting to int32\n");
+            GOPT_TRACE_OPND(regSrc, _u("Converting to int32\n"));
         }
         else if (toType == TyFloat64)
         {
@@ -13513,7 +13513,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     opcode = Js::OpCode::Conv_Prim;
                 }
             }
-            GOPT_TRACE_OPND(regSrc, L"Converting to float64\n");
+            GOPT_TRACE_OPND(regSrc, _u("Converting to float64\n"));
         }
         else
         {
@@ -13600,7 +13600,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                 }
                 return instr;
             }
-            GOPT_TRACE_OPND(regSrc, L"Converting to Simd128\n");
+            GOPT_TRACE_OPND(regSrc, _u("Converting to Simd128\n"));
         }
         bool needLoad = false;
 
@@ -14501,7 +14501,7 @@ GlobOpt::OptConstFoldBinary(
         dstSym->SetIsIntConst(value);
     }
 
-    GOPT_TRACE_INSTR(instr, L"Constant folding to %d: \n", value);
+    GOPT_TRACE_INSTR(instr, _u("Constant folding to %d: \n"), value);
 
     *pDstVal = GetIntConstantValue(value, instr, dst);
 
@@ -14522,7 +14522,7 @@ GlobOpt::OptConstFoldBinary(
 void
 GlobOpt::OptConstFoldBr(bool test, IR::Instr *instr, Value * src1Val, Value * src2Val)
 {
-    GOPT_TRACE_INSTR(instr, L"Constant folding to branch: ");
+    GOPT_TRACE_INSTR(instr, _u("Constant folding to branch: "));
     BasicBlock *deadBlock;
 
     if (src1Val)
@@ -15933,7 +15933,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
         if(doArrayChecks)
         {
-            TRACE_TESTTRACE_PHASE_INSTR(Js::ArrayCheckHoistPhase, instr, L"Separating array checks with bailout\n");
+            TRACE_TESTTRACE_PHASE_INSTR(Js::ArrayCheckHoistPhase, instr, _u("Separating array checks with bailout\n"));
 
             IR::Instr *bailOnNotArray = IR::Instr::New(Js::OpCode::BailOnNotArray, instr->m_func);
             bailOnNotArray->SetSrc1(baseOpnd);
@@ -15947,10 +15947,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 TRACE_PHASE_INSTR(
                     Js::ArrayCheckHoistPhase,
                     instr,
-                    L"Hoisting array checks with bailout out of loop %u to landing pad block %u\n",
+                    _u("Hoisting array checks with bailout out of loop %u to landing pad block %u\n"),
                     hoistChecksOutOfLoop->GetLoopNumber(),
                     hoistChecksOutOfLoop->landingPad->GetBlockNum());
-                TESTTRACE_PHASE_INSTR(Js::ArrayCheckHoistPhase, instr, L"Hoisting array checks with bailout out of loop\n");
+                TESTTRACE_PHASE_INSTR(Js::ArrayCheckHoistPhase, instr, _u("Hoisting array checks with bailout out of loop\n"));
 
                 Assert(hoistChecksOutOfLoop->bailOutInfo);
                 EnsureBailTarget(hoistChecksOutOfLoop);
@@ -15975,7 +15975,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             Assert(baseValueType.IsArray());
             Assert(newLengthSym);
 
-            TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::ArrayLengthHoistPhase, instr, L"Separating array length load\n");
+            TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::ArrayLengthHoistPhase, instr, _u("Separating array length load\n"));
 
             // Create an initial value for the length
             blockData.liveVarSyms->Set(newLengthSym->m_id);
@@ -16012,10 +16012,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 TRACE_PHASE_INSTR(
                     Js::Phase::ArrayLengthHoistPhase,
                     instr,
-                    L"Hoisting array length load out of loop %u to landing pad block %u\n",
+                    _u("Hoisting array length load out of loop %u to landing pad block %u\n"),
                     hoistLengthLoadOutOfLoop->GetLoopNumber(),
                     hoistLengthLoadOutOfLoop->landingPad->GetBlockNum());
-                TESTTRACE_PHASE_INSTR(Js::Phase::ArrayLengthHoistPhase, instr, L"Hoisting array length load out of loop\n");
+                TESTTRACE_PHASE_INSTR(Js::Phase::ArrayLengthHoistPhase, instr, _u("Hoisting array length load out of loop\n"));
 
                 Assert(hoistLengthLoadOutOfLoop->bailOutInfo);
                 EnsureBailTarget(hoistLengthLoadOutOfLoop);
@@ -16064,7 +16064,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
         const auto InsertHeadSegmentLoad = [&]()
         {
-            TRACE_TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, L"Separating array segment load\n");
+            TRACE_TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, _u("Separating array segment load\n"));
 
             Assert(newHeadSegmentSym);
             IR::RegOpnd *const headSegmentOpnd =
@@ -16107,10 +16107,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 TRACE_PHASE_INSTR(
                     Js::ArraySegmentHoistPhase,
                     instr,
-                    L"Hoisting array segment load out of loop %u to landing pad block %u\n",
+                    _u("Hoisting array segment load out of loop %u to landing pad block %u\n"),
                     hoistHeadSegmentLoadOutOfLoop->GetLoopNumber(),
                     hoistHeadSegmentLoadOutOfLoop->landingPad->GetBlockNum());
-                TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, L"Hoisting array segment load out of loop\n");
+                TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, _u("Hoisting array segment load out of loop\n"));
 
                 if(loadObjectArray)
                 {
@@ -16143,7 +16143,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
             Assert(newHeadSegmentLengthSym);
             Assert(!headSegmentLengthValue);
 
-            TRACE_TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, L"Separating array segment length load\n");
+            TRACE_TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, _u("Separating array segment length load\n"));
 
             // Create an initial value for the head segment length
             blockData.liveVarSyms->Set(newHeadSegmentLengthSym->m_id);
@@ -16188,10 +16188,10 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                 TRACE_PHASE_INSTR(
                     Js::ArraySegmentHoistPhase,
                     instr,
-                    L"Hoisting array segment length load out of loop %u to landing pad block %u\n",
+                    _u("Hoisting array segment length load out of loop %u to landing pad block %u\n"),
                     hoistHeadSegmentLengthLoadOutOfLoop->GetLoopNumber(),
                     hoistHeadSegmentLengthLoadOutOfLoop->landingPad->GetBlockNum());
-                TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, L"Hoisting array segment length load out of loop\n");
+                TESTTRACE_PHASE_INSTR(Js::ArraySegmentHoistPhase, instr, _u("Hoisting array segment length load out of loop\n"));
 
                 InsertInstrInLandingPad(loadHeadSegmentLength, hoistHeadSegmentLengthLoadOutOfLoop);
 
@@ -16246,7 +16246,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     TRACE_PHASE_INSTR_VERBOSE(
                         Js::Phase::BoundCheckHoistPhase,
                         instr,
-                        L"Determining array bound check hoistability for index s%u\n",
+                        _u("Determining array bound check hoistability for index s%u\n"),
                         indexVarSym->m_id);
                 }
                 else
@@ -16254,7 +16254,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     TRACE_PHASE_INSTR_VERBOSE(
                         Js::Phase::BoundCheckHoistPhase,
                         instr,
-                        L"Determining array bound check hoistability for index %d\n",
+                        _u("Determining array bound check hoistability for index %d\n"),
                         indexConstantBounds.LowerBound());
                 }
 
@@ -16297,12 +16297,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                         TRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckHoistPhase,
                             instr,
-                            L"Hoisting array lower bound check into existing bound check instruction in block %u\n",
+                            _u("Hoisting array lower bound check into existing bound check instruction in block %u\n"),
                             hoistBlock->GetBlockNum());
                         TESTTRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckHoistPhase,
                             instr,
-                            L"Hoisting array lower bound check into existing bound check instruction\n");
+                            _u("Hoisting array lower bound check into existing bound check instruction\n"));
                     }
                     else
                     {
@@ -16397,7 +16397,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                             TRACE_PHASE_INSTR(
                                 Js::Phase::BoundCheckHoistPhase,
                                 instr,
-                                L"Hoisting array lower bound check out of loop %u to landing pad block %u, as (0 <= s%u + %d)\n",
+                                _u("Hoisting array lower bound check out of loop %u to landing pad block %u, as (0 <= s%u + %d)\n"),
                                 hoistInfo.Loop()->GetLoopNumber(),
                                 landingPad->GetBlockNum(),
                                 hoistInfo.IndexSym()->m_id,
@@ -16405,7 +16405,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                             TESTTRACE_PHASE_INSTR(
                                 Js::Phase::BoundCheckHoistPhase,
                                 instr,
-                                L"Hoisting array lower bound check out of loop\n");
+                                _u("Hoisting array lower bound check out of loop\n"));
 
                             // Record the bound check instruction as available
                             const IntBoundCheck boundCheckInfo(
@@ -16500,12 +16500,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                     TRACE_PHASE_INSTR(
                         Js::Phase::BoundCheckEliminationPhase,
                         instr,
-                        L"Separating array lower bound check, as (0 <= s%u)\n",
+                        _u("Separating array lower bound check, as (0 <= s%u)\n"),
                         indexVarSym->m_id);
                     TESTTRACE_PHASE_INSTR(
                         Js::Phase::BoundCheckEliminationPhase,
                         instr,
-                        L"Separating array lower bound check\n");
+                        _u("Separating array lower bound check\n"));
 
                     if(DoBoundCheckHoist())
                     {
@@ -16547,12 +16547,12 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                         TRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckHoistPhase,
                             instr,
-                            L"Hoisting array upper bound check into existing bound check instruction in block %u\n",
+                            _u("Hoisting array upper bound check into existing bound check instruction in block %u\n"),
                             hoistBlock->GetBlockNum());
                         TESTTRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckHoistPhase,
                             instr,
-                            L"Hoisting array upper bound check into existing bound check instruction\n");
+                            _u("Hoisting array upper bound check into existing bound check instruction\n"));
                     }
                     else
                     {
@@ -16654,7 +16654,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 TRACE_PHASE_INSTR(
                                     Js::Phase::BoundCheckHoistPhase,
                                     instr,
-                                    L"Hoisting array upper bound check out of loop %u to landing pad block %u, as (s%u <= s%u + %d)\n",
+                                    _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (s%u <= s%u + %d)\n"),
                                     hoistInfo.Loop()->GetLoopNumber(),
                                     landingPad->GetBlockNum(),
                                     hoistInfo.IndexSym()->m_id,
@@ -16666,7 +16666,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                                 TRACE_PHASE_INSTR(
                                     Js::Phase::BoundCheckHoistPhase,
                                     instr,
-                                    L"Hoisting array upper bound check out of loop %u to landing pad block %u, as (%d <= s%u + %d)\n",
+                                    _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (%d <= s%u + %d)\n"),
                                     hoistInfo.Loop()->GetLoopNumber(),
                                     landingPad->GetBlockNum(),
                                     hoistInfo.IndexConstantBounds().LowerBound(),
@@ -16676,7 +16676,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                             TESTTRACE_PHASE_INSTR(
                                 Js::Phase::BoundCheckHoistPhase,
                                 instr,
-                                L"Hoisting array upper bound check out of loop\n");
+                                _u("Hoisting array upper bound check out of loop\n"));
 
                             // Record the bound check instruction as available
                             const IntBoundCheck boundCheckInfo(
@@ -16820,7 +16820,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                         TRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckEliminationPhase,
                             instr,
-                            L"Separating array upper bound check, as (s%u < s%u)\n",
+                            _u("Separating array upper bound check, as (s%u < s%u)\n"),
                             indexVarSym->m_id,
                             headSegmentLengthSym->m_id);
                     }
@@ -16829,14 +16829,14 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
                         TRACE_PHASE_INSTR(
                             Js::Phase::BoundCheckEliminationPhase,
                             instr,
-                            L"Separating array upper bound check, as (%d < s%u)\n",
+                            _u("Separating array upper bound check, as (%d < s%u)\n"),
                             baseOwnerIndir->GetOffset(),
                             headSegmentLengthSym->m_id);
                     }
                     TESTTRACE_PHASE_INSTR(
                         Js::Phase::BoundCheckEliminationPhase,
                         instr,
-                        L"Separating array upper bound check\n");
+                        _u("Separating array upper bound check\n"));
 
                     if(DoBoundCheckHoist())
                     {
@@ -17041,7 +17041,7 @@ GlobOpt::OptArraySrc(IR::Instr * *const instrRef)
 
     const auto OnEliminated = [&](const Js::Phase phase, const char *const eliminatedLoad)
     {
-        TRACE_TESTTRACE_PHASE_INSTR(phase, instr, L"Eliminating array %S\n", eliminatedLoad);
+        TRACE_TESTTRACE_PHASE_INSTR(phase, instr, _u("Eliminating array %S\n"), eliminatedLoad);
     };
 
     OnEliminated(Js::Phase::ArrayCheckHoistPhase, "checks");
@@ -17620,15 +17620,15 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
 #if DBG_DUMP
                 if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()) && !IsLoopPrePass())
                 {
-                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(
-                        L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u, Disabled ignoring overflows\n",
+                        _u("TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u, Disabled ignoring overflows\n"),
                         func->GetJnFunction()->GetDisplayName(),
                         func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                         Js::PhaseNames[Js::ForwardPhase],
                         currentBlock->GetBlockNum());
-                    Output::Print(L"    Input sym could not be turned into an int:   %u\n", couldNotConvertSymId);
-                    Output::Print(L"    First instr: ");
+                    Output::Print(_u("    Input sym could not be turned into an int:   %u\n"), couldNotConvertSymId);
+                    Output::Print(_u("    First instr: "));
                     instr->m_next->Dump();
                     Output::Flush();
                 }
@@ -17688,18 +17688,18 @@ GlobOpt::PrepareForIgnoringIntOverflow(IR::Instr *const instr)
 #if DBG_DUMP
     if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
-            L"TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n",
+            _u("TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n"),
             func->GetJnFunction()->GetDisplayName(),
             func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
             Js::PhaseNames[Js::ForwardPhase],
             currentBlock->GetBlockNum());
-        Output::Print(L"    Input syms to be int-specialized (lossless): ");
+        Output::Print(_u("    Input syms to be int-specialized (lossless): "));
         intOverflowDoesNotMatterRange->SymsRequiredToBeInt()->Dump();
-        Output::Print(L"    Input syms to be converted to int (lossy):   ");
+        Output::Print(_u("    Input syms to be converted to int (lossy):   "));
         intOverflowDoesNotMatterRange->SymsRequiredToBeLossyInt()->Dump();
-        Output::Print(L"    First instr: ");
+        Output::Print(_u("    First instr: "));
         instr->m_next->Dump();
         Output::Flush();
     }
@@ -17747,17 +17747,17 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
 
     if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         Output::Print(
-            L"BailOut (compile-time): function: %s (%s) instr: ",
+            _u("BailOut (compile-time): function: %s (%s) instr: "),
             func->GetJnFunction()->GetDisplayName(),
             func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
 #if DBG_DUMP
         instr->Dump();
 #else
-        Output::Print(L"%s ", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+        Output::Print(_u("%s "), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
 #endif
-        Output::Print(L"(overflow does not matter but could not int-spec or needed bailout)\n");
+        Output::Print(_u("(overflow does not matter but could not int-spec or needed bailout)\n"));
         Output::Flush();
     }
 
@@ -17767,7 +17767,7 @@ GlobOpt::VerifyIntSpecForIgnoringIntOverflow(IR::Instr *const instr)
         // same thing will happen again and cause an infinite loop. Just abort jitting this function.
         if(PHASE_TRACE(Js::BailOutPhase, this->func->GetJnFunction()))
         {
-            Output::Print(L"    Aborting JIT because TrackIntOverflow is already off\n");
+            Output::Print(_u("    Aborting JIT because TrackIntOverflow is already off\n"));
             Output::Flush();
         }
         throw Js::OperationAbortedException();
@@ -18824,15 +18824,15 @@ GlobOpt::TryHoistInvariant(
 #if DBG
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::InvariantsPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
-            Output::Print(L" **** INVARIANT  ***   ");
+            Output::Print(_u(" **** INVARIANT  ***   "));
             instr->Dump();
         }
 #endif
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::InvariantsPhase))
         {
-            Output::Print(L" **** INVARIANT  ***   ");
-            Output::Print(L"%s \n", Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+            Output::Print(_u(" **** INVARIANT  ***   "));
+            Output::Print(_u("%s \n"), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
         }
 #endif
         Loop *loop = block->loop;
@@ -18854,7 +18854,7 @@ GlobOpt::TryHoistInvariant(
         else
         {
             PropertySym *propertySymUse = NULL;
-            NoRecoverMemoryJitArenaAllocator tempAllocator(L"BE-GlobOpt-Temp", this->alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+            NoRecoverMemoryJitArenaAllocator tempAllocator(_u("BE-GlobOpt-Temp"), this->alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
             BVSparse<JitArenaAllocator> * tempByteCodeUse = JitAnew(&tempAllocator, BVSparse<JitArenaAllocator>, &tempAllocator);
             GlobOpt::TrackByteCodeSymUsed(instr, tempByteCodeUse, &propertySymUse);
             Assert(tempByteCodeUse->Count() == 0 && propertySymUse == NULL);
@@ -19159,9 +19159,9 @@ GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr 
     if((((loop ? loop->GetImplicitCallFlags() : func->m_fg->implicitCallFlags) & ~Js::ImplicitCall_External) == 0) &&
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
-        Output::Print(L"DoArrayCheckHoist disabled for JS arrays because of external: ");
+        Output::Print(_u("DoArrayCheckHoist disabled for JS arrays because of external: "));
         func->GetJnFunction()->DumpFullFunctionName();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 #endif
@@ -19229,9 +19229,9 @@ GlobOpt::DoTypedArraySegmentLengthHoist(Loop *const loop) const
     if((((loop ? loop->GetImplicitCallFlags() : func->m_fg->implicitCallFlags) & ~Js::ImplicitCall_External) == 0) &&
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
-        Output::Print(L"DoArraySegmentLengthHoist disabled for typed arrays because of external: ");
+        Output::Print(_u("DoArraySegmentLengthHoist disabled for typed arrays because of external: "));
         func->GetJnFunction()->DumpFullFunctionName();
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 #endif
@@ -19340,8 +19340,8 @@ GlobOpt::CannotAllocateArgumentsObjectOnStack()
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (PHASE_TESTTRACE(Js::StackArgOptPhase, this->func))
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(L"Stack args disabled for function %s(%s)\n", func->GetJnFunction()->GetDisplayName(), func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        Output::Print(_u("Stack args disabled for function %s(%s)\n"), func->GetJnFunction()->GetDisplayName(), func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
         Output::Flush();
     }
 #endif
@@ -19952,7 +19952,7 @@ void ValueInfo::Dump()
     {
         char typeStr[VALUE_TYPE_MAX_STRING_SIZE];
         Type().ToString(typeStr);
-        Output::Print(L"%S", typeStr);
+        Output::Print(_u("%S"), typeStr);
     }
 
     IntConstantBounds intConstantBounds;
@@ -19960,33 +19960,33 @@ void ValueInfo::Dump()
     {
         if(intConstantBounds.IsConstant())
         {
-            Output::Print(L" constant:%d", intConstantBounds.LowerBound());
+            Output::Print(_u(" constant:%d"), intConstantBounds.LowerBound());
             return;
         }
-        Output::Print(L" range:%d - %d", intConstantBounds.LowerBound(), intConstantBounds.UpperBound());
+        Output::Print(_u(" range:%d - %d"), intConstantBounds.LowerBound(), intConstantBounds.UpperBound());
     }
     else if(IsFloatConstant())
     {
-        Output::Print(L" constant:%g", AsFloatConstant()->FloatValue());
+        Output::Print(_u(" constant:%g"), AsFloatConstant()->FloatValue());
     }
     else if(IsJsType())
     {
         const Js::Type* type = AsJsType()->GetJsType();
-        type != nullptr ? Output::Print(L"type: 0x%p, ", type) : Output::Print(L"type: null, ");
-        Output::Print(L"type Set: ");
+        type != nullptr ? Output::Print(_u("type: 0x%p, "), type) : Output::Print(_u("type: null, "));
+        Output::Print(_u("type Set: "));
         Js::EquivalentTypeSet* typeSet = AsJsType()->GetJsTypeSet();
         if (typeSet != nullptr)
         {
             uint16 typeCount = typeSet->GetCount();
             for (uint16 ti = 0; ti < typeCount - 1; ti++)
             {
-                Output::Print(L"0x%p, ", typeSet->GetType(ti));
+                Output::Print(_u("0x%p, "), typeSet->GetType(ti));
             }
-            Output::Print(L"0x%p", typeSet->GetType(typeCount - 1));
+            Output::Print(_u("0x%p"), typeSet->GetType(typeCount - 1));
         }
         else
         {
-            Output::Print(L"null");
+            Output::Print(_u("null"));
         }
     }
     else if(IsArrayValueInfo())
@@ -19994,24 +19994,24 @@ void ValueInfo::Dump()
         const ArrayValueInfo *const arrayValueInfo = AsArrayValueInfo();
         if(arrayValueInfo->HeadSegmentSym())
         {
-            Output::Print(L" seg: ");
+            Output::Print(_u(" seg: "));
             arrayValueInfo->HeadSegmentSym()->Dump();
         }
         if(arrayValueInfo->HeadSegmentLengthSym())
         {
-            Output::Print(L" segLen: ");
+            Output::Print(_u(" segLen: "));
             arrayValueInfo->HeadSegmentLengthSym()->Dump();
         }
         if(arrayValueInfo->LengthSym())
         {
-            Output::Print(L" len: ");
+            Output::Print(_u(" len: "));
             arrayValueInfo->LengthSym()->Dump();
         }
     }
 
     if (this->GetSymStore())
     {
-        Output::Print(L"\t\tsym:");
+        Output::Print(_u("\t\tsym:"));
         this->GetSymStore()->Dump();
     }
 }
@@ -20034,7 +20034,7 @@ GlobOpt::DumpSymToValueMap(GlobHashTable* symToValueMap)
 void
 GlobOpt::DumpSymToValueMap(BasicBlock *block)
 {
-    Output::Print(L"\n*** SymToValueMap ***\n");
+    Output::Print(_u("\n*** SymToValueMap ***\n"));
     DumpSymToValueMap(block->globOptData.symToValueMap);
 }
 
@@ -20059,14 +20059,14 @@ GlobOpt::DumpSymVal(int index)
 
     AssertMsg(sym, "Sym not found!!!");
 
-    Output::Print(L"Sym: ");
+    Output::Print(_u("Sym: "));
     sym->Dump();
 
-    Output::Print(L"\t\tValueNumber: ");
+    Output::Print(_u("\t\tValueNumber: "));
     Value ** pValue = this->blockData.symToValueMap->Get(sym->m_id);
     (*pValue)->Dump();
 
-    Output::Print(L"\n");
+    Output::Print(_u("\n"));
 }
 
 void
@@ -20092,7 +20092,7 @@ GlobOpt::Trace(BasicBlock * block, bool before)
     {
         if (block->isLoopHeader && before)
         {
-            Output::Print(L"====  Loop Prepass block header #%-3d,  Visiting Loop block head #%-3d\n",
+            Output::Print(_u("====  Loop Prepass block header #%-3d,  Visiting Loop block head #%-3d\n"),
                 this->prePassLoop->GetHeadBlock()->GetBlockNum(), block->GetBlockNum());
         }
     }
@@ -20104,25 +20104,25 @@ GlobOpt::Trace(BasicBlock * block, bool before)
 
     if (before)
     {
-        Output::Print(L"========================================================================\n");
-        Output::Print(L"Begin OptBlock: Block #%-3d", block->GetBlockNum());
+        Output::Print(_u("========================================================================\n"));
+        Output::Print(_u("Begin OptBlock: Block #%-3d"), block->GetBlockNum());
         if (block->loop)
         {
-            Output::Print(L"     Loop block header:%-3d  currentLoop block head:%-3d   %s",
+            Output::Print(_u("     Loop block header:%-3d  currentLoop block head:%-3d   %s"),
                 block->loop->GetHeadBlock()->GetBlockNum(),
                 this->prePassLoop ? this->prePassLoop->GetHeadBlock()->GetBlockNum() : 0,
-                this->IsLoopPrePass() ? L"PrePass" : L"");
+                this->IsLoopPrePass() ? _u("PrePass") : _u(""));
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
     else
     {
-        Output::Print(L"-----------------------------------------------------------------------\n");
-        Output::Print(L"After OptBlock: Block #%-3d\n", block->GetBlockNum());
+        Output::Print(_u("-----------------------------------------------------------------------\n"));
+        Output::Print(_u("After OptBlock: Block #%-3d\n"), block->GetBlockNum());
     }
     if ((typeSpecTrace || floatTypeSpecTrace) && !block->globOptData.liveVarSyms->IsEmpty())
     {
-        Output::Print(L"    Live var syms: ");
+        Output::Print(_u("    Live var syms: "));
         block->globOptData.liveVarSyms->Dump();
     }
     if (typeSpecTrace && !block->globOptData.liveInt32Syms->IsEmpty())
@@ -20131,40 +20131,40 @@ GlobOpt::Trace(BasicBlock * block, bool before)
         this->tempBv->Minus(block->globOptData.liveInt32Syms, block->globOptData.liveLossyInt32Syms);
         if(!this->tempBv->IsEmpty())
         {
-            Output::Print(L"    Int32 type specialized (lossless) syms: ");
+            Output::Print(_u("    Int32 type specialized (lossless) syms: "));
             this->tempBv->Dump();
         }
         this->tempBv->ClearAll();
         if(!block->globOptData.liveLossyInt32Syms->IsEmpty())
         {
-            Output::Print(L"    Int32 converted (lossy) syms: ");
+            Output::Print(_u("    Int32 converted (lossy) syms: "));
             block->globOptData.liveLossyInt32Syms->Dump();
         }
     }
     if (floatTypeSpecTrace && !block->globOptData.liveFloat64Syms->IsEmpty())
     {
-        Output::Print(L"    Float64 type specialized syms: ");
+        Output::Print(_u("    Float64 type specialized syms: "));
         block->globOptData.liveFloat64Syms->Dump();
     }
     if ((fieldCopyPropTrace || objTypeSpecTrace) && this->DoFieldCopyProp(block->loop) && !block->globOptData.liveFields->IsEmpty())
     {
-        Output::Print(L"    Live field syms: ");
+        Output::Print(_u("    Live field syms: "));
         block->globOptData.liveFields->Dump();
     }
     if ((fieldHoistTrace || objTypeSpecTrace) && this->DoFieldHoisting(block->loop) && HasHoistableFields(block))
     {
-        Output::Print(L"    Hoistable field sym: ");
+        Output::Print(_u("    Hoistable field sym: "));
         block->globOptData.hoistableFields->Dump();
     }
     if (objTypeSpecTrace || valueTableTrace)
     {
-        Output::Print(L"    Value table:\n");
+        Output::Print(_u("    Value table:\n"));
         DumpSymToValueMap(block->globOptData.symToValueMap);
     }
 
     if (before)
     {
-        Output::Print(L"-----------------------------------------------------------------------\n"); \
+        Output::Print(_u("-----------------------------------------------------------------------\n")); \
     }
 
     Output::Flush();
@@ -20173,15 +20173,15 @@ GlobOpt::Trace(BasicBlock * block, bool before)
 void
 GlobOpt::TraceSettings()
 {
-    Output::Print(L"GlobOpt Settings:\r\n");
-    Output::Print(L"    FloatTypeSpec: %s\r\n", this->DoFloatTypeSpec() ? L"enabled" : L"disabled");
-    Output::Print(L"    AggressiveIntTypeSpec: %s\r\n", this->DoAggressiveIntTypeSpec() ? L"enabled" : L"disabled");
-    Output::Print(L"    LossyIntTypeSpec: %s\r\n", this->DoLossyIntTypeSpec() ? L"enabled" : L"disabled");
-    Output::Print(L"    ArrayCheckHoist: %s\r\n", this->func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody()) ? L"disabled" : L"enabled");
-    Output::Print(L"    ImplicitCallFlags: %s\r\n", Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
+    Output::Print(_u("GlobOpt Settings:\r\n"));
+    Output::Print(_u("    FloatTypeSpec: %s\r\n"), this->DoFloatTypeSpec() ? _u("enabled") : _u("disabled"));
+    Output::Print(_u("    AggressiveIntTypeSpec: %s\r\n"), this->DoAggressiveIntTypeSpec() ? _u("enabled") : _u("disabled"));
+    Output::Print(_u("    LossyIntTypeSpec: %s\r\n"), this->DoLossyIntTypeSpec() ? _u("enabled") : _u("disabled"));
+    Output::Print(_u("    ArrayCheckHoist: %s\r\n"), this->func->GetProfileInfo()->IsArrayCheckHoistDisabled(func->IsLoopBody()) ? _u("disabled") : _u("enabled"));
+    Output::Print(_u("    ImplicitCallFlags: %s\r\n"), Js::DynamicProfileInfo::GetImplicitCallFlagsString(this->func->m_fg->implicitCallFlags));
     for (Loop * loop = this->func->m_fg->loopList; loop != NULL; loop = loop->next)
     {
-        Output::Print(L"        loop: %d, ImplicitCallFlags: %s\r\n", loop->GetLoopNumber(),
+        Output::Print(_u("        loop: %d, ImplicitCallFlags: %s\r\n"), loop->GetLoopNumber(),
             Js::DynamicProfileInfo::GetImplicitCallFlagsString(loop->GetImplicitCallFlags()));
     }
 
@@ -20873,23 +20873,23 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
         baseOpnd->GetValueType().ToString(valueTypeStr);
         const int loopCountBufSize = 16;
-        wchar_t loopCountBuf[loopCountBufSize];
+        char16 loopCountBuf[loopCountBufSize];
         if (loopCount->LoopCountMinusOneSym())
         {
-            _snwprintf_s(loopCountBuf, loopCountBufSize, L"s%u", loopCount->LoopCountMinusOneSym()->m_id);
+            _snwprintf_s(loopCountBuf, loopCountBufSize, _u("s%u"), loopCount->LoopCountMinusOneSym()->m_id);
         }
         else
         {
-            _snwprintf_s(loopCountBuf, loopCountBufSize, L"%u", loopCount->LoopCountMinusOneConstantValue() + 1);
+            _snwprintf_s(loopCountBuf, loopCountBufSize, _u("%u"), loopCount->LoopCountMinusOneConstantValue() + 1);
         }
         if (isMemset)
         {
             const Loop::MemSetCandidate* candidate = emitData->candidate->AsMemSet();
             const int constBufSize = 32;
-            wchar_t constBuf[constBufSize];
+            char16 constBuf[constBufSize];
             if (candidate->srcSym)
             {
-                _snwprintf_s(constBuf, constBufSize, L"s%u", candidate->srcSym->m_id);
+                _snwprintf_s(constBuf, constBufSize, _u("s%u"), candidate->srcSym->m_id);
             }
             else
             {
@@ -20899,23 +20899,23 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
                 case TyInt16:
                 case TyInt32:
                 case TyInt64:
-                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? L"lld%" : L"%d", candidate->constant.u.intConst.value);
+                    _snwprintf_s(constBuf, constBufSize, sizeof(IntConstType) == 8 ? _u("lld%") : _u("%d"), candidate->constant.u.intConst.value);
                     break;
                 case TyFloat32:
                 case TyFloat64:
-                    _snwprintf_s(constBuf, constBufSize, L"%.4f", candidate->constant.u.floatConst.value);
+                    _snwprintf_s(constBuf, constBufSize, _u("%.4f"), candidate->constant.u.floatConst.value);
                     break;
                 case TyVar:
-                    _snwprintf_s(constBuf, constBufSize, sizeof(Js::Var) == 8 ? L"0x%.16llX" : L"0x%.8X", candidate->constant.u.varConst.value);
+                    _snwprintf_s(constBuf, constBufSize, sizeof(Js::Var) == 8 ? _u("0x%.16llX") : _u("0x%.8X"), candidate->constant.u.varConst.value);
                     break;
                 default:
                     AssertMsg(false, "Unsupported constant type");
-                    _snwprintf_s(constBuf, constBufSize, L"Unknown");
+                    _snwprintf_s(constBuf, constBufSize, _u("Unknown"));
                     break;
                 }
             }
             TRACE_MEMOP_PHASE(MemSet, loop, emitData->stElemInstr,
-                              L"ValueType: %S, Base: s%u, Index: s%u, Constant: %s, LoopCount: %s, IsIndexChangedBeforeUse: %d",
+                              _u("ValueType: %S, Base: s%u, Index: s%u, Constant: %s, LoopCount: %s, IsIndexChangedBeforeUse: %d"),
                               valueTypeStr,
                               candidate->base,
                               candidate->index,
@@ -20927,7 +20927,7 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
         {
             const Loop::MemCopyCandidate* candidate = emitData->candidate->AsMemCopy();
             TRACE_MEMOP_PHASE(MemCopy, loop, emitData->stElemInstr,
-                              L"ValueType: %S, StBase: s%u, Index: s%u, LdBase: s%u, LoopCount: %s, IsIndexChangedBeforeUse: %d",
+                              _u("ValueType: %S, StBase: s%u, Index: s%u, LdBase: s%u, LoopCount: %s, IsIndexChangedBeforeUse: %d"),
                               valueTypeStr,
                               candidate->base,
                               candidate->index,
@@ -20963,12 +20963,12 @@ GlobOpt::InspectInstrForMemSetCandidate(Loop* loop, IR::Instr* instr, MemSetEmit
             emitData->bailOutKind = instr->GetBailOutKind();
             return true;
         }
-        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, L"Orphan StElemI_A detected");
+        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, _u("Orphan StElemI_A detected"));
         errorInInstr = true;
     }
     else if (instr->m_opcode == Js::OpCode::LdElemI_A)
     {
-        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, L"Orphan LdElemI_A detected");
+        TRACE_MEMOP_PHASE_VERBOSE(MemSet, loop, instr, _u("Orphan LdElemI_A detected"));
         errorInInstr = true;
     }
     return false;
@@ -20993,7 +20993,7 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
             // Still need to find the LdElem
             return false;
         }
-        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"Orphan StElemI_A detected");
+        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Orphan StElemI_A detected"));
         errorInInstr = true;
     }
     else if (instr->m_opcode == Js::OpCode::LdElemI_A)
@@ -21012,11 +21012,11 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
             if (stValueType != ldValueType)
             {
 #if DBG_DUMP
-                wchar_t stValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
+                char16 stValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 stValueType.ToString(stValueTypeStr);
-                wchar_t ldValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
+                char16 ldValueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
                 ldValueType.ToString(ldValueTypeStr);
-                TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"for mismatch in Load(%s) and Store(%s) value type", ldValueTypeStr, stValueTypeStr);
+                TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("for mismatch in Load(%s) and Store(%s) value type"), ldValueTypeStr, stValueTypeStr);
 #endif
                 errorInInstr = true;
                 return false;
@@ -21024,7 +21024,7 @@ GlobOpt::InspectInstrForMemCopyCandidate(Loop* loop, IR::Instr* instr, MemCopyEm
             // We found both instruction for this candidate
             return true;
         }
-        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, L"Orphan LdElemI_A detected");
+        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Orphan LdElemI_A detected"));
         errorInInstr = true;
     }
     return false;
@@ -21066,13 +21066,13 @@ GlobOpt::ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) MemOpEmitD
             // Get the inductionVariable changeInfo
             if (!loop->memOpInfo->inductionVariableChangeInfoMap->TryGetValue(candidate->index, &inductionVariableChangeInfo))
             {
-                TRACE_MEMOP_VERBOSE(loop, nullptr, L"MemOp skipped (s%d): no induction variable", candidate->base);
+                TRACE_MEMOP_VERBOSE(loop, nullptr, _u("MemOp skipped (s%d): no induction variable"), candidate->base);
                 return false;
             }
 
             if (inductionVariableChangeInfo.unroll != candidate->count)
             {
-                TRACE_MEMOP_VERBOSE(loop, nullptr, L"MemOp skipped (s%d): not matching unroll count", candidate->base);
+                TRACE_MEMOP_VERBOSE(loop, nullptr, _u("MemOp skipped (s%d): not matching unroll count"), candidate->base);
                 return false;
             }
 
@@ -21092,7 +21092,7 @@ GlobOpt::ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) MemOpEmitD
                     || memcopyCandidate->ldBase == Js::Constants::InvalidSymID
                     || (memcopyCandidate->ldCount != memcopyCandidate->count))
                 {
-                    TRACE_MEMOP_PHASE(MemCopy, loop, nullptr, L"(s%d): not matching ldElem and stElem", candidate->base);
+                    TRACE_MEMOP_PHASE(MemCopy, loop, nullptr, _u("(s%d): not matching ldElem and stElem"), candidate->base);
                     return false;
                 }
                 emitData = JitAnew(this->alloc, MemCopyEmitData);
@@ -21128,7 +21128,7 @@ GlobOpt::ValidateMemOpCandidates(Loop * loop, _Out_writes_(iEmitData) MemOpEmitD
 
     if (iter.IsValid())
     {
-        TRACE_MEMOP(loop, nullptr, L"Candidates not found in loop while validating");
+        TRACE_MEMOP(loop, nullptr, _u("Candidates not found in loop while validating"));
         return false;
     }
     return true;
@@ -21149,7 +21149,7 @@ GlobOpt::ProcessMemOp()
             // If loopCount is not available we can not continue with memop
             if (!loopCount || !(loopCount->LoopCountMinusOneSym() || loopCount->LoopCountMinusOneConstantValue()))
             {
-                TRACE_MEMOP(loop, nullptr, L"MemOp skipped for no loop count");
+                TRACE_MEMOP(loop, nullptr, _u("MemOp skipped for no loop count"));
                 loop->memOpInfo->doMemOp = false;
                 loop->memOpInfo->candidates->Clear();
                 continue;

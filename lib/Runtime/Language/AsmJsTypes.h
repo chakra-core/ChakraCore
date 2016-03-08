@@ -125,7 +125,7 @@ namespace Js
         bool isVarAsmJsType() const;
         bool isSubType( AsmJsType type ) const;
         bool isSuperType( AsmJsType type ) const;
-        const wchar_t *toChars() const;
+        const char16 *toChars() const;
         bool isSIMDType() const;
         bool isSIMDInt32x4() const;
         bool isSIMDFloat32x4() const;

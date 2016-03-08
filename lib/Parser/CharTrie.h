@@ -13,7 +13,7 @@ namespace UnifiedRegex
     // FORWARD
     struct CharTrieEntry;
 
-    class CharTrie : private Chars<wchar_t>
+    class CharTrie : private Chars<char16>
     {
         friend class RuntimeCharTrie;
 
@@ -42,7 +42,7 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct CharTrieEntry : private Chars<wchar_t>
+    struct CharTrieEntry : private Chars<char16>
     {
         Char c;
         CharTrie node;
@@ -56,7 +56,7 @@ namespace UnifiedRegex
     // FORWARD
     struct RuntimeCharTrieEntry;
 
-    class RuntimeCharTrie : private Chars<wchar_t>
+    class RuntimeCharTrie : private Chars<char16>
     {
         int count;
         // Array of count entries, in increasing character order
@@ -80,7 +80,7 @@ namespace UnifiedRegex
 #endif
     };
 
-    struct RuntimeCharTrieEntry : private Chars<wchar_t>
+    struct RuntimeCharTrieEntry : private Chars<char16>
     {
         Char c;
         RuntimeCharTrie node;

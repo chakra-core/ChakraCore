@@ -10,7 +10,7 @@ class RecyclerObjectGraphDumper
 public:
     struct Param
     {
-        bool (*dumpReferenceFunc)(wchar_t const *, void *objectAddress, void *referenceAddress);
+        bool (*dumpReferenceFunc)(char16 const *, void *objectAddress, void *referenceAddress);
         bool dumpRootOnly;
         bool skipStack;
 #ifdef RECYCLER_STATS
@@ -22,16 +22,16 @@ public:
     ~RecyclerObjectGraphDumper();
 
     void BeginDumpObject(void * objectAddres);
-    void BeginDumpObject(wchar_t const * name);
-    void BeginDumpObject(wchar_t const * name, void* objectAddress);
+    void BeginDumpObject(char16 const * name);
+    void BeginDumpObject(char16 const * name, void* objectAddress);
     void EndDumpObject();
     void DumpObjectReference(void * objectAddress, bool remark);
 
     Recycler * recycler;
     Param * param;
 
-    wchar_t const * dumpObjectName;
-    wchar_t tempObjectName[256];
+    char16 const * dumpObjectName;
+    char16 tempObjectName[256];
     void * dumpObject;
 
 #ifdef PROFILE_RECYCLER_ALLOC
@@ -49,7 +49,7 @@ public:
 #define DUMP_OBJECT_REFERENCE(recycler, address) if (recycler->objectGraphDumper != nullptr) { recycler->objectGraphDumper->DumpObjectReference(address, false); }
 #define DUMP_OBJECT_REFERENCE_REMARK(recycler, address) if (recycler->objectGraphDumper != nullptr && recycler->IsValidObject(address)) { recycler->objectGraphDumper->DumpObjectReference(address, true); }
 #define END_DUMP_OBJECT(recycler)  if (recycler->objectGraphDumper != nullptr)  { recycler->objectGraphDumper->EndDumpObject(); } }
-#define DUMP_IMPLICIT_ROOT(recycler, address) BEGIN_DUMP_OBJECT(recycler, L"Implicit Root"); DUMP_OBJECT_REFERENCE(recycler, address); END_DUMP_OBJECT(recycler);
+#define DUMP_IMPLICIT_ROOT(recycler, address) BEGIN_DUMP_OBJECT(recycler, _u("Implicit Root")); DUMP_OBJECT_REFERENCE(recycler, address); END_DUMP_OBJECT(recycler);
 #else
 #define BEGIN_DUMP_OBJECT(recycler, address)
 #define BEGIN_DUMP_OBJECT_ADDRESS(name, address)

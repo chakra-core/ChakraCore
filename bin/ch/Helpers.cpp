@@ -18,13 +18,13 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
     // etc.
     //
-    if (_wfopen_s(&file, filename, L"rb") != 0)
+    if (_wfopen_s(&file, filename, _u("rb")) != 0)
     {
         if (printFileOpenError)
         {
             DWORD lastError = GetLastError();
-            wchar_t wszBuff[512];
-            fwprintf(stderr, L"Error in opening file '%s' ", filename);
+            char16 wszBuff[512];
+            fwprintf(stderr, _u("Error in opening file '%s' "), filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -34,9 +34,9 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
                 _countof(wszBuff),
                 nullptr))
             {
-                fwprintf(stderr, L": %s", wszBuff);
+                fwprintf(stderr, _u(": %s"), wszBuff);
             }
-            fwprintf(stderr, L"\n");
+            fwprintf(stderr, _u("\n"));
             IfFailGo(E_FAIL);
         }
         else
@@ -54,7 +54,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     contentsRaw = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes + sizeof(WCHAR));
     if (nullptr == contentsRaw)
     {
-        fwprintf(stderr, L"out of memory");
+        fwprintf(stderr, _u("out of memory"));
         IfFailGo(E_OUTOFMEMORY);
     }
 
@@ -80,7 +80,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     else if (0xFFFE == *contentsRaw || 0x0000 == *contentsRaw && 0xFEFF == *(contentsRaw + 1))
     {
         // unicode unsupported
-        fwprintf(stderr, L"unsupported file encoding");
+        fwprintf(stderr, _u("unsupported file encoding"));
         IfFailGo(E_UNEXPECTED);
     }
     else if (0xFEFF == *contentsRaw)
@@ -103,11 +103,11 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
         contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, (cUtf16Chars + 1) * sizeof(WCHAR));
         if (nullptr == contents)
         {
-            fwprintf(stderr, L"out of memory");
+            fwprintf(stderr, _u("out of memory"));
             IfFailGo(E_OUTOFMEMORY);
         }
 
-        utf8::DecodeIntoAndNullTerminate((wchar_t*) contents, pRawBytes, cUtf16Chars, decodeOptions);
+        utf8::DecodeIntoAndNullTerminate((char16*) contents, pRawBytes, cUtf16Chars, decodeOptions);
     }
 
 Error:

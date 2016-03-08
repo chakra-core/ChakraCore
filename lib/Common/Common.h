@@ -35,7 +35,7 @@ namespace Js
     typedef unsigned long ModuleID;
 }
 
-#define IsTrueOrFalse(value)     ((value) ? L"True" : L"False")
+#define IsTrueOrFalse(value)     ((value) ? _u("True") : _u("False"))
 
 // Header files
 #include "Core/BinaryFeatureControl.h"

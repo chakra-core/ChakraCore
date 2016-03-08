@@ -211,7 +211,7 @@ namespace Js
         // Consider: Implement actual string hash lookup
         Assert(requestContext);
         PropertyRecord const* propertyRecord;
-        wchar_t const * propertyName = propertyNameString->GetString();
+        char16 const * propertyName = propertyNameString->GetString();
         charcount_t const propertyNameLength = propertyNameString->GetLength();
 
         if (instance->HasObjectArray())
@@ -548,7 +548,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         DynamicType* oldType = instance->GetDynamicType();
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = oldTypeHandler->GetSingletonInstance();
-        oldTypeHandler->TraceFixedFieldsBeforeTypeHandlerChange(L"converting", L"PathTypeHandler", L"DictionaryTypeHandler", instance, oldTypeHandler, oldType, oldSingletonInstance);
+        oldTypeHandler->TraceFixedFieldsBeforeTypeHandlerChange(_u("converting"), _u("PathTypeHandler"), _u("DictionaryTypeHandler"), instance, oldTypeHandler, oldType, oldSingletonInstance);
 #endif
 
         bool const canBeSingletonInstance = DynamicTypeHandler::CanBeSingletonInstance(instance);
@@ -749,7 +749,7 @@ namespace Js
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         RecyclerWeakReference<DynamicObject>* oldSingletonInstance = oldTypeHandler->GetSingletonInstance();
-        oldTypeHandler->TraceFixedFieldsBeforeTypeHandlerChange(L"converting", L"PathTypeHandler", L"SimpleDictionaryTypeHandler", instance, oldTypeHandler, oldType, oldSingletonInstance);
+        oldTypeHandler->TraceFixedFieldsBeforeTypeHandlerChange(_u("converting"), _u("PathTypeHandler"), _u("SimpleDictionaryTypeHandler"), instance, oldTypeHandler, oldType, oldSingletonInstance);
 #endif
 
         bool const canBeSingletonInstance = DynamicTypeHandler::CanBeSingletonInstance(instance);
@@ -1008,7 +1008,7 @@ namespace Js
             DynamicType* oldType = predecessorType;
             RecyclerWeakReference<DynamicObject>* oldSingletonInstance = GetSingletonInstance();
             bool branching = typePath->GetPathLength() > GetPathLength();
-            TraceFixedFieldsBeforeTypeHandlerChange(branching ? L"branching" : L"advancing", L"PathTypeHandler", L"PathTypeHandler", instance, this, oldType, oldSingletonInstance);
+            TraceFixedFieldsBeforeTypeHandlerChange(branching ? _u("branching") : _u("advancing"), _u("PathTypeHandler"), _u("PathTypeHandler"), instance, this, oldType, oldSingletonInstance);
 #endif
 
             TypePath * newTypePath = typePath;
@@ -1646,7 +1646,7 @@ namespace Js
     bool PathTypeHandlerBase::TryUseFixedProperty(PropertyRecord const * propertyRecord, Var * pProperty, FixedPropertyKind propertyType, ScriptContext * requestContext)
     {
         bool result = TryGetFixedProperty<false, true>(propertyRecord, pProperty, propertyType, requestContext);
-        TraceUseFixedProperty(propertyRecord, pProperty, result, L"PathTypeHandler", requestContext);
+        TraceUseFixedProperty(propertyRecord, pProperty, result, _u("PathTypeHandler"), requestContext);
         return result;
     }
 
@@ -1655,10 +1655,10 @@ namespace Js
         if (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase) ||
             PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))
         {
-            Output::Print(L"FixedFields: attempt to use fixed accessor %s from PathTypeHandler returned false.\n", propertyRecord->GetBuffer());
+            Output::Print(_u("FixedFields: attempt to use fixed accessor %s from PathTypeHandler returned false.\n"), propertyRecord->GetBuffer());
             if (this->HasSingletonInstance() && this->GetSingletonInstance()->Get()->GetScriptContext() != requestContext)
             {
-                Output::Print(L"FixedFields: Cross Site Script Context is used for property %s. \n", propertyRecord->GetBuffer());
+                Output::Print(_u("FixedFields: Cross Site Script Context is used for property %s. \n"), propertyRecord->GetBuffer());
             }
             Output::Flush();
         }
@@ -1779,7 +1779,7 @@ namespace Js
         {
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
             {
-                Output::Print(L" %s %d%d%d,", typePath->GetPropertyId(i)->GetBuffer(),
+                Output::Print(_u(" %s %d%d%d,"), typePath->GetPropertyId(i)->GetBuffer(),
                     i < this->typePath->GetMaxInitializedLength() ? 1 : 0,
                     this->typePath->GetIsFixedFieldAt(i, GetPathLength()) ? 1 : 0,
                     this->typePath->GetIsUsedFixedFieldAt(i, GetPathLength()) ? 1 : 0);
@@ -1789,32 +1789,32 @@ namespace Js
         {
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
             {
-                Output::Print(L" %s %d%d%d,", typePath->GetPropertyId(i)->GetBuffer(), 1, 0, 0);
+                Output::Print(_u(" %s %d%d%d,"), typePath->GetPropertyId(i)->GetBuffer(), 1, 0, 0);
             }
         }
     }
 
     void PathTypeHandlerBase::TraceFixedFieldsBeforeTypeHandlerChange(
-        const wchar_t* conversionName, const wchar_t* oldTypeHandlerName, const wchar_t* newTypeHandlerName,
+        const char16* conversionName, const char16* oldTypeHandlerName, const char16* newTypeHandlerName,
         DynamicObject* instance, DynamicTypeHandler* oldTypeHandler,
         DynamicType* oldType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore)
     {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: %s 0x%p from %s to %s:\n", conversionName, instance, oldTypeHandlerName, newTypeHandlerName);
-            Output::Print(L"   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("FixedFields: %s 0x%p from %s to %s:\n"), conversionName, instance, oldTypeHandlerName, newTypeHandlerName);
+            Output::Print(_u("   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n"),
                 oldType, oldTypeHandler, oldSingletonInstanceBefore, oldSingletonInstanceBefore != nullptr ? oldSingletonInstanceBefore->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: %s instance from %s to %s:\n", conversionName, oldTypeHandlerName, newTypeHandlerName);
-            Output::Print(L"   old singleton before %s null \n", oldSingletonInstanceBefore == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields before:");
+            Output::Print(_u("FixedFields: %s instance from %s to %s:\n"), conversionName, oldTypeHandlerName, newTypeHandlerName);
+            Output::Print(_u("   old singleton before %s null \n"), oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields before:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -1826,25 +1826,25 @@ namespace Js
         {
             RecyclerWeakReference<DynamicObject>* oldSingletonInstanceAfter = oldTypeHandler->GetSingletonInstance();
             RecyclerWeakReference<DynamicObject>* newSingletonInstanceAfter = newTypeHandler->GetSingletonInstance();
-            Output::Print(L"   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n"),
                 newType, newTypeHandler, oldSingletonInstanceAfter, oldSingletonInstanceAfter != nullptr ? oldSingletonInstanceAfter->Get() : nullptr,
                 newSingletonInstanceAfter, newSingletonInstanceAfter != nullptr ? newSingletonInstanceAfter->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"   type %s, typeHandler %s, old singleton after %s null (%s), new singleton after %s null\n",
-                oldTypeHandler != newTypeHandler ? L"changed" : L"unchanged",
-                oldType != newType ? L"changed" : L"unchanged",
-                oldTypeHandler->GetSingletonInstance() == nullptr ? L"==" : L"!=",
-                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? L"changed" : L"unchanged",
-                newTypeHandler->GetSingletonInstance() == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields after:");
+            Output::Print(_u("   type %s, typeHandler %s, old singleton after %s null (%s), new singleton after %s null\n"),
+                oldTypeHandler != newTypeHandler ? _u("changed") : _u("unchanged"),
+                oldType != newType ? _u("changed") : _u("unchanged"),
+                oldTypeHandler->GetSingletonInstance() == nullptr ? _u("==") : _u("!="),
+                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? _u("changed") : _u("unchanged"),
+                newTypeHandler->GetSingletonInstance() == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields after:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
     }
@@ -1854,20 +1854,20 @@ namespace Js
     {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: PathTypeHandler::SetIsPrototype(0x%p):\n", instance);
-            Output::Print(L"   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("FixedFields: PathTypeHandler::SetIsPrototype(0x%p):\n"), instance);
+            Output::Print(_u("   before: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p)\n"),
                 oldType, oldTypeHandler, oldSingletonInstanceBefore, oldSingletonInstanceBefore != nullptr ? oldSingletonInstanceBefore->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"FixedFields: PathTypeHandler::SetIsPrototype():\n");
-            Output::Print(L"   old singleton before %s null \n", oldSingletonInstanceBefore == nullptr ? L"==" : L"!=");
-            Output::Print(L"   fixed fields before:");
+            Output::Print(_u("FixedFields: PathTypeHandler::SetIsPrototype():\n"));
+            Output::Print(_u("   old singleton before %s null \n"), oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="));
+            Output::Print(_u("   fixed fields before:"));
             oldTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 
@@ -1879,24 +1879,24 @@ namespace Js
         {
             RecyclerWeakReference<DynamicObject>* oldSingletonInstanceAfter = oldTypeHandler->GetSingletonInstance();
             RecyclerWeakReference<DynamicObject>* newSingletonInstanceAfter = newTypeHandler->GetSingletonInstance();
-            Output::Print(L"   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n",
+            Output::Print(_u("   after: type = 0x%p, type handler = 0x%p, old singleton = 0x%p(0x%p), new singleton = 0x%p(0x%p)\n"),
                 instance->GetType(), newTypeHandler,
                 oldSingletonInstanceAfter, oldSingletonInstanceAfter != nullptr ? oldSingletonInstanceAfter->Get() : nullptr,
                 newSingletonInstanceAfter, newSingletonInstanceAfter != nullptr ? newSingletonInstanceAfter->Get() : nullptr);
-            Output::Print(L"   fixed fields:");
+            Output::Print(_u("   fixed fields:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
         if (PHASE_VERBOSE_TESTTRACE1(FixMethodPropsPhase))
         {
-            Output::Print(L"   type %s, old singleton after %s null (%s)\n",
-                oldType != newType ? L"changed" : L"unchanged",
-                oldSingletonInstanceBefore == nullptr ? L"==" : L"!=",
-                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? L"changed" : L"unchanged");
-            Output::Print(L"   fixed fields after:");
+            Output::Print(_u("   type %s, old singleton after %s null (%s)\n"),
+                oldType != newType ? _u("changed") : _u("unchanged"),
+                oldSingletonInstanceBefore == nullptr ? _u("==") : _u("!="),
+                oldSingletonInstanceBefore != oldTypeHandler->GetSingletonInstance() ? _u("changed") : _u("unchanged"));
+            Output::Print(_u("   fixed fields after:"));
             newTypeHandler->DumpFixedFields();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
     }

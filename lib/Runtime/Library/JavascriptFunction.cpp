@@ -136,10 +136,10 @@ namespace Js
     }
 #endif
 
-    static wchar_t const funcName[] = L"function anonymous";
-    static wchar_t const genFuncName[] = L"function* anonymous";
-    static wchar_t const asyncFuncName[] = L"async function anonymous";
-    static wchar_t const bracket[] = L" {\012";
+    static char16 const funcName[] = _u("function anonymous");
+    static char16 const genFuncName[] = _u("function* anonymous");
+    static char16 const asyncFuncName[] = _u("async function anonymous");
+    static char16 const bracket[] = _u(" {\012");
 
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
@@ -157,7 +157,7 @@ namespace Js
         JavascriptString* separator = library->GetCommaDisplayString();
 
         // Gather all the formals into a string like (fml1, fml2, fml3)
-        JavascriptString *formals = library->CreateStringFromCppLiteral(L"(");
+        JavascriptString *formals = library->CreateStringFromCppLiteral(_u("("));
         for (uint i = 1; i < args.Info.Count - 1; ++i)
         {
             if (i != 1)
@@ -166,7 +166,7 @@ namespace Js
             }
             formals = JavascriptString::Concat(formals, JavascriptConversion::ToString(args.Values[i], scriptContext));
         }
-        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(L")"));
+        formals = JavascriptString::Concat(formals, library->CreateStringFromCppLiteral(_u(")")));
 
         // Function body, last argument to Function(...)
         JavascriptString *fnBody = NULL;
@@ -190,7 +190,7 @@ namespace Js
             bs = JavascriptString::Concat(bs, fnBody);
         }
 
-        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(L"\012}"));
+        bs = JavascriptString::Concat(bs, library->CreateStringFromCppLiteral(_u("\012}")));
 
         // Bug 1105479. Get the module id from the caller
         ModuleID moduleID = kmodGlobal;
@@ -199,7 +199,7 @@ namespace Js
 
         JavascriptFunction *pfuncScript;
         ParseableFunctionInfo *pfuncBodyCache = NULL;
-        wchar_t const * sourceString = bs->GetSz();
+        char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
         if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
@@ -366,7 +366,7 @@ namespace Js
         ///
         if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"Function.prototype.apply");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.apply"));
         }
 
         Var thisVar = NULL;
@@ -419,7 +419,7 @@ namespace Js
 
             if (!isNullOrUndefined && !JavascriptOperators::IsObject(argArray)) // ES5: throw if Type(argArray) is not Object
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Function.prototype.apply");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Function.prototype.apply"));
             }
 
             int64 len;
@@ -529,7 +529,7 @@ namespace Js
         ///
         if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"Function.prototype.bind");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.bind"));
         }
 
         BoundFunction* boundFunc = BoundFunction::New(scriptContext, args);
@@ -561,7 +561,7 @@ namespace Js
         ///
         if (args.Info.Count == 0 || !JavascriptConversion::IsCallable(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"Function.prototype.call");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
         RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
@@ -1359,7 +1359,7 @@ dbl_align:
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (args.Info.Count == 0 || !JavascriptFunction::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"Function.prototype.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.toString"));
         }
         JavascriptFunction *pFunc = JavascriptFunction::FromVar(args[0]);
 
@@ -2401,7 +2401,7 @@ LABEL1:
             }
         }
 
-        return StackScriptFunction::EnsureBoxed(BOX_PARAM(funcCaller, nullptr, L"caller"));
+        return StackScriptFunction::EnsureBoxed(BOX_PARAM(funcCaller, nullptr, _u("caller")));
     }
 
     BOOL JavascriptFunction::GetCallerProperty(Var originalInstance, Var* value, ScriptContext* requestContext)
@@ -2733,14 +2733,14 @@ LABEL1:
         {
             // This is under DBG_DUMP so we can allow a check
             ParseableFunctionInfo* body = this->GetFunctionProxy() != nullptr ? this->GetFunctionProxy()->EnsureDeserialized() : nullptr;
-            const wchar_t* ctorName = body != nullptr ? body->GetDisplayName() : L"<unknown>";
+            const char16* ctorName = body != nullptr ? body->GetDisplayName() : _u("<unknown>");
 
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(L"CtorCache: before invalidating cache (0x%p) for ctor %s (%s): ", this->constructorCache, ctorName,
-                body ? body->GetDebugNumberSet(debugStringBuffer) : L"(null)");
+            Output::Print(_u("CtorCache: before invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+                body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -2752,13 +2752,13 @@ LABEL1:
         {
             // This is under DBG_DUMP so we can allow a check
             ParseableFunctionInfo* body = this->GetFunctionProxy() != nullptr ? this->GetFunctionProxy()->EnsureDeserialized() : nullptr;
-            const wchar_t* ctorName = body != nullptr ? body->GetDisplayName() : L"<unknown>";
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            const char16* ctorName = body != nullptr ? body->GetDisplayName() : _u("<unknown>");
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(L"CtorCache: after invalidating cache (0x%p) for ctor %s (%s): ", this->constructorCache, ctorName,
-                body ? body->GetDebugNumberSet(debugStringBuffer) : L"(null)");
+            Output::Print(_u("CtorCache: after invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+                body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
 #endif
@@ -2787,7 +2787,7 @@ LABEL1:
                 {
                     charcount_t count = min(DIAG_MAX_FUNCTION_STRING, func->LengthInChars());
                     utf8::DecodeOptions options = sourceInfo->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-                    utf8::DecodeInto(stringBuilder->AllocBufferSpace(count), func->GetSource(L"JavascriptFunction::GetDiagValueString"), count, options);
+                    utf8::DecodeInto(stringBuilder->AllocBufferSpace(count), func->GetSource(_u("JavascriptFunction::GetDiagValueString")), count, options);
                     stringBuilder->IncreaseCount(count);
                     return TRUE;
                 }
@@ -2818,7 +2818,7 @@ LABEL1:
 
     BOOL JavascriptFunction::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object, (Function)");
+        stringBuilder->AppendCppLiteral(_u("Object, (Function)"));
         return TRUE;
     }
 
@@ -2827,12 +2827,12 @@ LABEL1:
         Assert(this->GetFunctionProxy() != nullptr); // The caller should guarantee a proxy exists
         ParseableFunctionInfo * func = this->GetFunctionProxy()->EnsureDeserialized();
         charcount_t length = 0;
-        const wchar_t* name = func->GetShortDisplayName(&length);
+        const char16* name = func->GetShortDisplayName(&length);
 
         return DisplayNameHelper(name, length);
     }
 
-    JavascriptString* JavascriptFunction::DisplayNameHelper(const wchar_t* name, charcount_t length) const
+    JavascriptString* JavascriptFunction::DisplayNameHelper(const char16* name, charcount_t length) const
     {
         ScriptContext* scriptContext = this->GetScriptContext();
         Assert(this->GetFunctionProxy() != nullptr); // The caller should guarantee a proxy exists
@@ -2843,13 +2843,13 @@ LABEL1:
         }
         else if (func->GetIsAccessor())
         {
-            const wchar_t* accessorName = func->GetDisplayName();
-            if (accessorName[0] == L'g')
+            const char16* accessorName = func->GetDisplayName();
+            if (accessorName[0] == _u('g'))
             {
-                return LiteralString::Concat(LiteralString::NewCopySz(L"get ", scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
+                return LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
             }
-            AssertMsg(accessorName[0] == L's', "should be a set");
-            return LiteralString::Concat(LiteralString::NewCopySz(L"set ", scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
+            AssertMsg(accessorName[0] == _u('s'), "should be a set");
+            return LiteralString::Concat(LiteralString::NewCopySz(_u("set "), scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
         }
         return LiteralString::NewCopyBuffer(name, length, scriptContext);
     }
@@ -2934,7 +2934,7 @@ LABEL1:
 
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Function[Symbol.hasInstance]");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Function[Symbol.hasInstance]"));
         }
 
         RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);

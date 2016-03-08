@@ -27,7 +27,7 @@ namespace Js
 
         Var ToString(ScriptContext* scriptContext) const;
         template <typename T, size_t N>
-        Var ToLocaleString(const Var* args, uint numArgs, wchar_t const *typeString, const T (&laneValues)[N], CallInfo* callInfo, ScriptContext* scriptContext) const;
+        Var ToLocaleString(const Var* args, uint numArgs, char16 const *typeString, const T (&laneValues)[N], CallInfo* callInfo, ScriptContext* scriptContext) const;
 
         Var Unwrap() const;
         Var GetValue() const;

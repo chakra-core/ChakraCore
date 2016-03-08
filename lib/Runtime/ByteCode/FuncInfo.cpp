@@ -5,7 +5,7 @@
 #include "RuntimeByteCodePch.h"
 
 FuncInfo::FuncInfo(
-    const wchar_t *name,
+    const char16 *name,
     ArenaAllocator *alloc,
     Scope *paramScope,
     Scope *bodyScope,
@@ -225,7 +225,7 @@ uint FuncInfo::FindOrAddRootObjectInlineCacheId(Js::PropertyId propertyId, bool 
 #if DBG_DUMP
 void FuncInfo::Dump()
 {
-    Output::Print(L"FuncInfo: CallsEval:%s ChildCallsEval:%s HasArguments:%s HasHeapArguments:%s\n",
+    Output::Print(_u("FuncInfo: CallsEval:%s ChildCallsEval:%s HasArguments:%s HasHeapArguments:%s\n"),
         IsTrueOrFalse(this->GetCallsEval()),
         IsTrueOrFalse(this->GetChildCallsEval()),
         IsTrueOrFalse(this->GetHasArguments()),
@@ -477,15 +477,15 @@ CapturedSymMap *FuncInfo::EnsureCapturedSymMap()
     return this->capturedSymMap;
 }
 
-void FuncInfo::SetHasMaybeEscapedNestedFunc(DebugOnly(wchar_t const * reason))
+void FuncInfo::SetHasMaybeEscapedNestedFunc(DebugOnly(char16 const * reason))
 {
     if (PHASE_TESTTRACE(Js::StackFuncPhase, this->byteCodeFunction) && !hasEscapedUseNestedFunc)
     {
-        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        wchar_t const * r = L"";
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        char16 const * r = _u("");
 
         DebugOnly(r = reason);
-        Output::Print(L"HasMaybeEscapedNestedFunc (%s): %s (function %s)\n",
+        Output::Print(_u("HasMaybeEscapedNestedFunc (%s): %s (function %s)\n"),
             r,
             this->byteCodeFunction->GetDisplayName(),
             this->byteCodeFunction->GetDebugNumberSet(debugStringBuffer));

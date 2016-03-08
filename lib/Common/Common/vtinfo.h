@@ -65,7 +65,7 @@ enum VirtualTableInfoCtorEnum
         if (typeid(T) != objType) \
         { \
             AssertMsg(typeid(T) == objType, "Class derived from Js::RecyclableObject missing DEFINE_VTABLE_CTOR"); \
-            Output::Print(L"%S missing DEFINE_VTABLE_CTOR\n", objType.name()); \
+            Output::Print(_u("%S missing DEFINE_VTABLE_CTOR\n"), objType.name()); \
         } \
     }
 

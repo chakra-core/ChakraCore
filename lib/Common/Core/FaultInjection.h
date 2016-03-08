@@ -48,11 +48,11 @@ namespace Js
                 EnableType((FaultType)type);
             }
             bool IsEnabled(FaultType type);
-            bool IsEnabled(const wchar_t* name);
+            bool IsEnabled(const char16* name);
         };
 
-        static wchar_t *FaultTypeNames[];
-        void ParseFaultTypes(const wchar_t* szFaultTypes);
+        static char16 *FaultTypeNames[];
+        void ParseFaultTypes(const char16* szFaultTypes);
 
     public:
         enum FaultMode
@@ -83,7 +83,7 @@ namespace Js
         bool IsCurrentStackMatch();
         bool EnsureStackMatchInfraInitialized();
         uint baselineFrameCount;
-        wchar_t *baselineStack[MAX_FRAME_COUNT];
+        char16 *baselineStack[MAX_FRAME_COUNT];
         UINT_PTR baselineAddresses[MAX_FRAME_COUNT];
         ULONG_PTR* stackHashOfAllInjectionPoints;
         UINT stackHashOfAllInjectionPointsSize;
