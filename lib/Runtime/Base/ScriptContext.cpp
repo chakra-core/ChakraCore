@@ -1849,6 +1849,12 @@ namespace Js
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
 
             Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
+            Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
+
+            PropertyRecord const * exportsPropertyRecord = nullptr;
+
+            GetOrAddPropertyRecord(L"exports", lstrlen(L"exports"), &exportsPropertyRecord);
+            JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
 
             if (wasmModule->info->GetMemory()->minSize != 0)
             {
@@ -1937,7 +1943,8 @@ namespace Js
                         GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
                         HeapDeleteArray(utf16Len + 1, contents);
 
-                        JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), funcObj, this);
+                        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
+
                     }
                 }
             }
