@@ -1010,7 +1010,7 @@ namespace regex
         LPCWSTR Get(TAllocator *allocator)
         {
             char16 *str = AllocatorNewArray(TAllocator, allocator, char16, stringSize);
-            str[0] = L'\0';
+            str[0] = _u('\0');
 
             auto current = head;
             while (current != nullptr)

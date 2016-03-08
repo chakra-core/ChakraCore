@@ -1136,7 +1136,7 @@ namespace Js
     {
         CompileAssert(AppendCharLengthPlusOne != 0);
         Assert(s);
-        Assert(s[AppendCharLengthPlusOne - 1] == L'\0');
+        Assert(s[AppendCharLengthPlusOne - 1] == _u('\0'));
         Assert(toString);
         Assert(!toString->IsFinalized());
         Assert(toString->OwnsLastBlock());

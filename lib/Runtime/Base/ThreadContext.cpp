@@ -928,7 +928,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     // Copy string and numeric info
     char16* buffer = (char16 *)(propertyRecord + 1);
     js_memcpy_s(buffer, bytelength, propertyName.GetBuffer(), bytelength);
-    buffer[length] = L'\0';
+    buffer[length] = _u('\0');
 
     if (isNumeric)
     {

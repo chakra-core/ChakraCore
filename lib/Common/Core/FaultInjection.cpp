@@ -76,7 +76,7 @@ namespace Js
     {
         auto tmp = str + wcslen(str);
         while (!isprint(*--tmp));
-        *(tmp + 1) = L'\0';
+        *(tmp + 1) = _u('\0');
         return str;
     }
 
@@ -711,7 +711,7 @@ namespace Js
                 auto plus = wcschr(symbolStart, _u('+'));
                 if (plus)
                 {
-                    *plus = L'\0';
+                    *plus = _u('\0');
                 }
                 else
                 {
@@ -1214,7 +1214,7 @@ namespace Js
             // remove path and keep only alphabet and number to make a valid filename
             while (*pch)
             {
-                if (*pch == _u(':') || *pch == L'\\')
+                if (*pch == _u(':') || *pch == _u('\\'))
                 {
                     jsFile = pch + 1;
                 }
@@ -1274,7 +1274,7 @@ namespace Js
                 wcsncpy_s(jscript9Path, AutoSystemInfo::Data.GetJscriptDllFileName(),
                     wcslen(AutoSystemInfo::Data.GetJscriptDllFileName()) - 4);
                 char16* jscript9Name = jscript9Path + wcslen(jscript9Path);
-                while (*(jscript9Name - 1) != L'\\' && jscript9Name > jscript9Path)
+                while (*(jscript9Name - 1) != _u('\\') && jscript9Name > jscript9Path)
                 {
                     jscript9Name--;
                 }

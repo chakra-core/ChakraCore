@@ -424,13 +424,13 @@ namespace Js
                         {
                             case _u('/'):
                             case _u('\n'):
-                            case L'\r':
-                            case L'\x2028':
-                            case L'\x2029':
+                            case _u('\r'):
+                            case _u('\x2028'):
+                            case _u('\x2029'):
                                 // Unescaped '/' or line terminator needs to be escaped
                                 break;
 
-                            case L'\\':
+                            case _u('\\'):
                                 // Escape sequence; the next character is escaped and shouldn't be escaped further
                                 escape = true;
                                 Assert(i + 1 < str.GetLength()); // cannot end in a '\'
@@ -449,7 +449,7 @@ namespace Js
                         escape = false;
                     }
 
-                    builder->AppendChars(L'\\');
+                    builder->AppendChars(_u('\\'));
                     switch(c)
                     {
                         // Line terminators need to be escaped. \<lineTerminator> is a special case, where \\n doesn't work
@@ -457,13 +457,13 @@ namespace Js
                         case _u('\n'):
                             builder->AppendChars(_u('n'));
                             break;
-                        case L'\r':
+                        case _u('\r'):
                             builder->AppendChars(_u('r'));
                             break;
-                        case L'\x2028':
+                        case _u('\x2028'):
                             builder->AppendChars(_u("u2028"));
                             break;
-                        case L'\x2029':
+                        case _u('\x2029'):
                             builder->AppendChars(_u("u2029"));
                             break;
 

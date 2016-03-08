@@ -76,7 +76,7 @@ namespace Js
 #endif
 
         // NUL terminate
-        buffer[length] = L'\0';
+        buffer[length] = _u('\0');
 
         JavascriptString* result = this->m_string;
 

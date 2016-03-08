@@ -1235,7 +1235,7 @@ namespace Js
         bs->AppendCharsSz(functionName);
         bs->AppendChars(_u(" ("));
 
-        if (CONFIG_FLAG(ExtendedErrorStackForTestHost) && *fileName != L'\0')
+        if (CONFIG_FLAG(ExtendedErrorStackForTestHost) && *fileName != _u('\0'))
         {
             char16 shortfilename[_MAX_FNAME];
             char16 ext[_MAX_EXT];
