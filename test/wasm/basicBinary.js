@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 const blob = WScript.LoadBinaryFile('basic.wasm');
-print(blob.byteLength)
-var a = Wasm.instantiateModule(blob, {});
+print(blob.byteLength);
+const moduleBytesView = new Uint8Array(blob);
+var a = Wasm.instantiateModule(moduleBytesView, {});
 print(a.a(11));

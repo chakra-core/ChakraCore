@@ -19,20 +19,20 @@ namespace Js
 
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject, L"[Wasm].instantiateModule(arrayBuffer,)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[Wasm].instantiateModule(array,)");
         }
         if (args.Info.Count < 3)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, L"[Wasm].instantiateModule(,ffi)");
         }
 
-        if (!Js::ArrayBuffer::Is(args[1]))
+        if (!Js::TypedArrayBase::Is(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject, L"[Wasm].instantiateModule(arrayBuffer,)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[Wasm].instantiateModule(array,)");
         }
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(args[1]);
-        BYTE* buffer = arrayBuffer->GetBuffer();
-        uint byteLength = arrayBuffer->GetByteLength();
+        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
+        BYTE* buffer = array->GetByteBuffer();
+        uint byteLength = array->GetByteLength();
 
         if (!Js::JavascriptObject::Is(args[2]))
         {
