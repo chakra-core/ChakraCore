@@ -252,4 +252,10 @@
       <compile-flags>-forcedeferparse -forceundodefer</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_resetisdead.js</files>
+      <compile-flags>-mic:1 -off:simplejit -on:prelowererpeeps -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
