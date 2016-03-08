@@ -16,5 +16,6 @@ function test(p1, p2, p3, p4) {
 
 test(1, 20, 3, -1);
 test(5, 4, 2, -2);
+test(15, 3, -11, 4);
 
 WScript.Echo("PASSED");
