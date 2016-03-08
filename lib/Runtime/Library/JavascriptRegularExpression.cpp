@@ -680,43 +680,45 @@ namespace Js
     bool JavascriptRegExp::HasObservableConstructor(DynamicObject* regexPrototype)
     {
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexConstructorSlotIndex())
-               != library->GetRegExpConstructor();
+        return regexPrototype->GetSlot(library->GetRegexConstructorSlotIndex()) != library->GetRegExpConstructor();
     }
 
     bool JavascriptRegExp::HasObservableExec(DynamicObject* regexPrototype)
     {
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexExecSlotIndex())
-               != library->GetRegexExecFunction();
+        return regexPrototype->GetSlot(library->GetRegexExecSlotIndex()) != library->GetRegexExecFunction();
     }
 
     bool JavascriptRegExp::HasObservableFlags(DynamicObject* regexPrototype)
     {
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexFlagsGetterSlotIndex())
-               != library->GetRegexFlagsGetterFunction();
+        return regexPrototype->GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexFlagsGetterSlotIndex()) != library->GetRegexFlagsGetterFunction();
     }
 
     bool JavascriptRegExp::HasObservableGlobalFlag(DynamicObject* regexPrototype)
     {
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex())
-               != library->GetRegexGlobalGetterFunction();
+        return regexPrototype->GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex()) != library->GetRegexGlobalGetterFunction();
     }
 
     bool JavascriptRegExp::HasObservableStickyFlag(DynamicObject* regexPrototype)
     {
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex())
-               != library->GetRegexStickyGetterFunction();
+        return scriptConfig->IsES6RegExStickyEnabled()
+            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex()) != library->GetRegexStickyGetterFunction();
     }
 
     bool JavascriptRegExp::HasObservableUnicodeFlag(DynamicObject* regexPrototype)
     {
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        return regexPrototype->GetSlot(library->GetRegexUnicodeGetterSlotIndex())
-               != library->GetRegexUnicodeGetterFunction();
+        return scriptConfig->IsES6UnicodeExtensionsEnabled()
+            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexUnicodeGetterSlotIndex()) != library->GetRegexUnicodeGetterFunction();
     }
 
     Var JavascriptRegExp::EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...)
