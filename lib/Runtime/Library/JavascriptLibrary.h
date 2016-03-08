@@ -387,16 +387,17 @@ namespace Js
         JavascriptSymbol* symbolSplit;
 
         UnifiedRegex::RegexPattern * emptyRegexPattern;
-        int regexConstructorSlotIndex;
         JavascriptFunction* regexExecFunction;
-        int regexExecSlotIndex;
         JavascriptFunction* regexFlagsGetterFunction;
-        int regexFlagsGetterSlotIndex;
         JavascriptFunction* regexGlobalGetterFunction;
-        int regexGlobalGetterSlotIndex;
         JavascriptFunction* regexStickyGetterFunction;
-        int regexStickyGetterSlotIndex;
         JavascriptFunction* regexUnicodeGetterFunction;
+
+        int regexConstructorSlotIndex;
+        int regexExecSlotIndex;
+        int regexFlagsGetterSlotIndex;
+        int regexGlobalGetterSlotIndex;
+        int regexStickyGetterSlotIndex;
         int regexUnicodeGetterSlotIndex;
 
         mutable CharStringCache charStringCache;
@@ -728,16 +729,17 @@ namespace Js
         JavascriptFunction* GetDebugObjectNonUserSetterFunction() const { return debugObjectNonUserSetterFunction; }
 
         UnifiedRegex::RegexPattern * GetEmptyRegexPattern() const { return emptyRegexPattern; }
-        int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
         JavascriptFunction* GetRegexExecFunction() const { return regexExecFunction; }
-        int GetRegexExecSlotIndex() const { return regexExecSlotIndex;  }
         JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
-        int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
-        int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
-        int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
+
+        int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
+        int GetRegexExecSlotIndex() const { return regexExecSlotIndex;  }
+        int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
+        int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
+        int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
