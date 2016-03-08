@@ -390,7 +390,7 @@ template <typename TBlockType>
 char *
 HeapBucketT<TBlockType>::PageHeapAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes, PageHeapMode mode, bool nothrow)
 {
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In PageHeapAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
 
     Assert(sizeCat == this->sizeCat);
     char * memBlock = nullptr;
@@ -484,7 +484,7 @@ template <typename TBlockType>
 char *
 HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * allocator, size_t sizeCat, ObjectInfoBits attributes, bool nothrow)
 {
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("In SnailAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("In SnailAlloc [Size: 0x%x, Attributes: 0x%x]\n"), sizeCat, attributes);
 
     Assert(sizeCat == this->sizeCat);
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
@@ -503,7 +503,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
     BOOL collected = recycler->disableCollectOnAllocationHeuristics ? FALSE : recycler->CollectNow<CollectOnAllocation>();
 #endif
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("TryAlloc failed, forced collection on allocation [Collected: %d]\n"), collected);
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed, forced collection on allocation [Collected: %d]\n"), collected);
     if (!collected)
     {
         // We didn't collect, try to add a new heap block
@@ -515,7 +515,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
 
         // Can't even allocate a new block, we need force a collection and
         //allocate some free memory, add a new heap block again, or throw out of memory
-        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("TryAllocFromNewHeapBlock failed, forcing in-thread collection\n"));
+        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAllocFromNewHeapBlock failed, forcing in-thread collection\n"));
         recycler->CollectNow<CollectNowForceInThread>();
     }
 
@@ -527,7 +527,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("SlowAlloc failed\n"));
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("SlowAlloc failed\n"));
 
     // do the allocation
     memBlock = this->TryAlloc(recycler, allocator, sizeCat, attributes);
@@ -536,7 +536,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("TryAlloc failed\n"));
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed\n"));
     // add a heap block if there are no preallocated memory left.
     memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
     if (memBlock != nullptr)
@@ -544,7 +544,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
         return memBlock;
     }
 
-    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("TryAllocFromNewHeapBlock failed- triggering OOM handler"));
+    AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAllocFromNewHeapBlock failed- triggering OOM handler"));
 
     if (nothrow == false)
     {

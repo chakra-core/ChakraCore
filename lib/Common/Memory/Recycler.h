@@ -741,7 +741,7 @@ private:
 
     struct GuestArenaAllocator : public ArenaAllocator
     {
-        GuestArenaAllocator(__in wchar16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
+        GuestArenaAllocator(__in char16 const*  name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)())
             : ArenaAllocator(name, pageAllocator, outOfMemoryFunc), pendingDelete(false)
         {
         }
@@ -1202,7 +1202,7 @@ public:
     HeapInfo* CreateHeap();
     void DestroyHeap(HeapInfo* heapInfo);
 
-    ArenaAllocator * CreateGuestArena(wchar16 const * name, void (*outOfMemoryFunc)());
+    ArenaAllocator * CreateGuestArena(char16 const * name, void (*outOfMemoryFunc)());
     void DeleteGuestArena(ArenaAllocator * arenaAllocator);
 
     ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena)

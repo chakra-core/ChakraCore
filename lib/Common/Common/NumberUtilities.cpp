@@ -37,7 +37,7 @@ namespace Js
         return ch >= '0' && ch <= '9';
     }
 
-    BOOL NumberUtilities::FHexDigit(wchar16 ch, int *pw)
+    BOOL NumberUtilities::FHexDigit(char16 ch, int *pw)
     {
         if ((ch -= '0') <= 9)
         {
@@ -231,7 +231,7 @@ namespace Js
         return cchWritten;
     }
 
-    BOOL NumberUtilities::TryConvertToUInt32(const wchar16* str, int length, uint32* intVal)
+    BOOL NumberUtilities::TryConvertToUInt32(const char16* str, int length, uint32* intVal)
     {
         if (length <= 0 || length > 10)
         {
@@ -628,12 +628,12 @@ namespace Js
         return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyInt);
     }
 
-    template double NumberUtilities::StrToDbl<wchar16>(const wchar16 * psz, const wchar16 **ppchLim, Js::ScriptContext *const scriptContext);
+    template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);
     template double NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, Js::ScriptContext *const scriptContext);
-    template double NumberUtilities::DblFromHex<wchar16>(const wchar16 *psz, const wchar16 **ppchLim);
+    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromBinary<wchar16>(const wchar16 *psz, const wchar16 **ppchLim);
+    template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromOctal<wchar16>(const wchar16 *psz, const wchar16 **ppchLim);
+    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
 }

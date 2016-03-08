@@ -85,10 +85,10 @@ LeakReport::StartSection(wchar_t const * msg, va_list argptr)
     nestedSectionCount++;
 
 
-    Print(CH_WSTR("--------------------------------------------------------------------------------\n"));
+    Print(_u("--------------------------------------------------------------------------------\n"));
     vfwprintf(file, msg, argptr);
-    Print(CH_WSTR("\n"));
-    Print(CH_WSTR("--------------------------------------------------------------------------------\n"));
+    Print(_u("\n"));
+    Print(_u("--------------------------------------------------------------------------------\n"));
 }
 
 void
@@ -131,7 +131,7 @@ LeakReport::EnsureLeakReportFile()
     }
 
     wchar_t const * filename = Js::Configuration::Global.flags.LeakReport;
-    wchar_t const * openMode = CH_WSTR("w+");
+    wchar_t const * openMode = _u("w+");
     wchar_t defaultFilename[_MAX_PATH];
     if (filename == nullptr)
     {
@@ -139,19 +139,19 @@ LeakReport::EnsureLeakReportFile()
 #ifdef _MSC_VER
         swprintf_s(defaultFilename, L"jsleakreport-%u.txt", ::GetCurrentProcessId());
 #else
-        _snwprintf(defaultFilename, _countof(defaultFilename), CH_WSTR("jsleakreport-%u.txt"), ::GetCurrentProcessId());
+        _snwprintf(defaultFilename, _countof(defaultFilename), _u("jsleakreport-%u.txt"), ::GetCurrentProcessId());
 #endif
 
         filename = defaultFilename;
-        openMode = CH_WSTR("a+");   // append mode
+        openMode = _u("a+");   // append mode
     }
     if (_wfopen_s(&file, filename, openMode) != 0)
     {
         openReportFileFailed = true;
         return false;
     }
-    Print(CH_WSTR("================================================================================\n"));
-    Print(CH_WSTR("Chakra Leak Report - PID: %d\n"), ::GetCurrentProcessId());
+    Print(_u("================================================================================\n"));
+    Print(_u("Chakra Leak Report - PID: %d\n"), ::GetCurrentProcessId());
 
     // xplat-todo: Make this code cross-platform
 #if _MSC_VER
@@ -163,7 +163,7 @@ LeakReport::EnsureLeakReportFile()
     Print(time_string);
 #endif
     
-    Print(CH_WSTR("\n"));
+    Print(_u("\n"));
     return true;
 }
 
@@ -220,7 +220,7 @@ LeakReport::DumpUrl(DWORD tid)
     {
         if (curr->tid == tid)
         {
-            wchar_t timeStr[26] = CH_WSTR("00:00");
+            wchar_t timeStr[26] = _u("00:00");
             
             // xplat-todo: Need to implement _wasctime_s in the PAL
 #if _MSC_VER
@@ -229,7 +229,7 @@ LeakReport::DumpUrl(DWORD tid)
             _wasctime_s(timeStr, &local_time);
 #endif
             timeStr[wcslen(timeStr) - 1] = 0;
-            Print(CH_WSTR("%s - (%p, %p) %s\n"), timeStr, curr->scriptEngine, curr->globalObject, curr->url);
+            Print(_u("%s - (%p, %p) %s\n"), timeStr, curr->scriptEngine, curr->globalObject, curr->url);
             *pprev = curr->next;
             NoCheckHeapDeleteArray(wcslen(curr->url) + 1, curr->url);
             NoCheckHeapDelete(curr);

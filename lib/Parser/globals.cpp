@@ -10,7 +10,7 @@
     { \
         hashCS, \
         sizeof(#name) - 1, \
-        CH_WSTR(#name) \
+        _u(#name) \
     }; \
     C_ASSERT(offsetof(StaticSymLen<sizeof(#name)>, luHash) == offsetof(StaticSym, luHash)); \
     C_ASSERT(offsetof(StaticSymLen<sizeof(#name)>, cch) == offsetof(StaticSym, cch)); \

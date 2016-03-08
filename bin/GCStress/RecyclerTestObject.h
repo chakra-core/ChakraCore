@@ -32,8 +32,8 @@ public:
 
         currentWalkDepth = 0;
 
-        wprintf(CH_WSTR("-------------------------------------------\n"));
-        wprintf(CH_WSTR("Full heap walk starting\n"));
+        wprintf(_u("-------------------------------------------\n"));
+        wprintf(_u("Full heap walk starting\n"));
     }
     
     static void WalkReference(RecyclerTestObject * object)
@@ -65,14 +65,14 @@ public:
     {
         VerifyCondition(currentWalkDepth == 0);
 
-        wprintf(CH_WSTR("Full heap walk finished\n"));
-        wprintf(CH_WSTR("Object Count:   %12llu\n"), (unsigned long long) walkObjectCount);
-        wprintf(CH_WSTR("Scanned Bytes:  %12llu\n"), (unsigned long long) walkScannedByteCount);
-        wprintf(CH_WSTR("Barrier Bytes:  %12llu\n"), (unsigned long long) walkBarrierByteCount);
-        wprintf(CH_WSTR("Tracked Bytes:  %12llu\n"), (unsigned long long) walkTrackedByteCount);
-        wprintf(CH_WSTR("Leaf Bytes:     %12llu\n"), (unsigned long long) walkLeafByteCount);
-        wprintf(CH_WSTR("Total Bytes:    %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount));
-        wprintf(CH_WSTR("Max Depth:      %12llu\n"), (unsigned long long) maxWalkDepth);
+        wprintf(_u("Full heap walk finished\n"));
+        wprintf(_u("Object Count:   %12llu\n"), (unsigned long long) walkObjectCount);
+        wprintf(_u("Scanned Bytes:  %12llu\n"), (unsigned long long) walkScannedByteCount);
+        wprintf(_u("Barrier Bytes:  %12llu\n"), (unsigned long long) walkBarrierByteCount);
+        wprintf(_u("Tracked Bytes:  %12llu\n"), (unsigned long long) walkTrackedByteCount);
+        wprintf(_u("Leaf Bytes:     %12llu\n"), (unsigned long long) walkLeafByteCount);
+        wprintf(_u("Total Bytes:    %12llu\n"), (unsigned long long) (walkScannedByteCount + walkBarrierByteCount + walkTrackedByteCount + walkLeafByteCount));
+        wprintf(_u("Max Depth:      %12llu\n"), (unsigned long long) maxWalkDepth);
     }
 
     // Virtual methods

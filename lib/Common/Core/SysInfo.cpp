@@ -94,7 +94,7 @@ AutoSystemInfo::Initialize()
 #endif
 
     WCHAR DisableDebugScopeCaptureFlag[MAX_PATH];
-    if (::GetEnvironmentVariable(CH_WSTR("JS_DEBUG_SCOPE"), DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
+    if (::GetEnvironmentVariable(_u("JS_DEBUG_SCOPE"), DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
     {
         disableDebugScopeCapture = true;
     }

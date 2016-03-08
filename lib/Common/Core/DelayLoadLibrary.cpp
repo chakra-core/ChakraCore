@@ -57,7 +57,7 @@ NtdllLibrary* NtdllLibrary::Instance = &NtdllLibraryObject;
 
 LPCTSTR NtdllLibrary::GetLibraryName() const
 {
-    return CH_WSTR("ntdll.dll");
+    return _u("ntdll.dll");
 }
 
 _Success_(return == 0)

@@ -134,7 +134,7 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) wchar16* name,long len);
+    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,long len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 
@@ -320,9 +320,9 @@ public:
         switch(m_parseType)
         {
             case ParseType_Upfront:
-                return CH_WSTR("Upfront");
+                return _u("Upfront");
             case ParseType_Deferred:
-                return CH_WSTR("Deferred");
+                return _u("Deferred");
         }
         Assert(false);
         return NULL;

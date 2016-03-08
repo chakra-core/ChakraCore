@@ -14,7 +14,7 @@ void DoVerify(bool value, const char * expr, const char * file, int line)
 {
     if (!value)
     {
-        wprintf(CH_WSTR("==== FAILURE: '%S' evaluated to false. %S(%d)\n"), expr, file, line);
+        wprintf(_u("==== FAILURE: '%S' evaluated to false. %S(%d)\n"), expr, file, line);
         DebugBreak();
     }
 }
@@ -276,7 +276,7 @@ void SimpleRecyclerTest()
         }
 #endif
 
-        wprintf(CH_WSTR("Recycler created, initializing heap...\n"));
+        wprintf(_u("Recycler created, initializing heap...\n"));
         
         // Initialize stack roots and add to our roots table        
         RecyclerTestObject * stackRoots[stackRootCount];
@@ -310,7 +310,7 @@ void SimpleRecyclerTest()
             InsertObject();
         }
 
-        wprintf(CH_WSTR("Initialization complete\n"));
+        wprintf(_u("Initialization complete\n"));
 
         // Do an initial walk
         WalkHeap();
@@ -334,7 +334,7 @@ void SimpleRecyclerTest()
         printf("Error: OOM\n");
     }
 
-    wprintf(CH_WSTR("==== Test completed.\n"));
+    wprintf(_u("==== Test completed.\n"));
 }
 
 //////////////////// End test implementations ////////////////////
@@ -359,8 +359,8 @@ bool GetDeviceFamilyInfo(
 void usage(const WCHAR* self)
 {
     wprintf(
-        CH_WSTR("usage: %s [-?|-v] [-js <jscript options from here on>]\n")
-        CH_WSTR("  -v\n\tverbose logging\n"),
+        _u("usage: %s [-?|-v] [-js <jscript options from here on>]\n")
+        _u("  -v\n\tverbose logging\n"),
         self);
 }
 
@@ -372,30 +372,30 @@ int __cdecl wmain(int argc, __in_ecount(argc) WCHAR* argv[])
     {
         if (argv[i][0] == '-')
         {
-            if (wcscmp(argv[i], CH_WSTR("-?")) == 0)
+            if (wcscmp(argv[i], _u("-?")) == 0)
             {
                 usage(argv[0]);
                 exit(1);
             }
-            else if (wcscmp(argv[i], CH_WSTR("-v")) == 0)
+            else if (wcscmp(argv[i], _u("-v")) == 0)
             {
                 verbose = true;
             }
-            else if (wcscmp(argv[i], CH_WSTR("-js")) == 0 || wcscmp(argv[i], CH_WSTR("-JS")) == 0)
+            else if (wcscmp(argv[i], _u("-js")) == 0 || wcscmp(argv[i], _u("-JS")) == 0)
             {
                 jscriptOptions = i;
                 break;
             }
             else 
             {
-                wprintf(CH_WSTR("unknown argument '%s'\n"), argv[i]);
+                wprintf(_u("unknown argument '%s'\n"), argv[i]);
                 usage(argv[0]);
                 exit(1);
             }
         }
         else
         {
-            wprintf(CH_WSTR("unknown argument '%s'\n"), argv[i]);
+            wprintf(_u("unknown argument '%s'\n"), argv[i]);
             usage(argv[0]);
             exit(1);
         }
@@ -420,7 +420,7 @@ int main(int argc, char** argv)
     // Ignoring mem-alloc failures here as this is
     // simply a test tool. We can add more error checking
     // here later if desired.
-    wchar16** args = new wchar16*[argc];
+    char16** args = new char16*[argc];
     for (int i = 0; i < argc; i++)
     {
         args[i] = UTIL_MBToWC_Alloc(argv[i], -1);

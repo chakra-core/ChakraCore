@@ -32,41 +32,41 @@ namespace Js
 
     const wchar_t g_rgpszDay[7][4] =
     {
-        CH_WSTR("Sun"),
-        CH_WSTR("Mon"),
-        CH_WSTR("Tue"),
-        CH_WSTR("Wed"),
-        CH_WSTR("Thu"),
-        CH_WSTR("Fri"),
-        CH_WSTR("Sat")
+        _u("Sun"),
+        _u("Mon"),
+        _u("Tue"),
+        _u("Wed"),
+        _u("Thu"),
+        _u("Fri"),
+        _u("Sat")
     };
 
     const wchar_t g_rgpszMonth[12][4] =
     {
-        CH_WSTR("Jan"),
-        CH_WSTR("Feb"),
-        CH_WSTR("Mar"),
-        CH_WSTR("Apr"),
-        CH_WSTR("May"),
-        CH_WSTR("Jun"),
-        CH_WSTR("Jul"),
-        CH_WSTR("Aug"),
-        CH_WSTR("Sep"),
-        CH_WSTR("Oct"),
-        CH_WSTR("Nov"),
-        CH_WSTR("Dec")
+        _u("Jan"),
+        _u("Feb"),
+        _u("Mar"),
+        _u("Apr"),
+        _u("May"),
+        _u("Jun"),
+        _u("Jul"),
+        _u("Aug"),
+        _u("Sep"),
+        _u("Oct"),
+        _u("Nov"),
+        _u("Dec")
     };
 
     const wchar_t g_rgpszZone[8][4] =
     {
-        CH_WSTR("EST"),
-        CH_WSTR("EDT"),
-        CH_WSTR("CST"),
-        CH_WSTR("CDT"),
-        CH_WSTR("MST"),
-        CH_WSTR("MDT"),
-        CH_WSTR("PST"),
-        CH_WSTR("PDT")
+        _u("EST"),
+        _u("EDT"),
+        _u("CST"),
+        _u("CDT"),
+        _u("MST"),
+        _u("MDT"),
+        _u("PST"),
+        _u("PDT")
     };
 
     //

@@ -20,10 +20,10 @@
 #undef Yield /* winbase.h defines this but we want to use it for Js::OpCode::Yield; it is Win16 legacy, no harm undef'ing it */
 #pragma warning(pop)
 
-typedef wchar_t wchar16;
+typedef wchar_t char16;
 
 // xplat-todo: get a better name for this macro
-#define CH_WSTR(s) L##s
+#define _u(s) L##s
 #define INIT_PRIORITY(x)
 
 #define get_cpuid __cpuid
@@ -37,8 +37,8 @@ typedef wchar_t wchar16;
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
 
-typedef char16_t wchar16;
-#define CH_WSTR(s) u##s
+typedef char16_t char16;
+#define _u(s) u##s
 #define INIT_PRIORITY(x) __attribute__((init_priority(x)))
 
 // xplat-todo: verify below is correct

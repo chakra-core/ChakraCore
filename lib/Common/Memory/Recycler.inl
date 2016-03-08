@@ -157,7 +157,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
     }
 
 #ifdef RECYCLER_WRITE_BARRIER
-    SwbVerboseTrace(this->GetRecyclerFlagsTable(), CH_WSTR("Allocated SWB memory: 0x%p\n"), memBlock);
+    SwbVerboseTrace(this->GetRecyclerFlagsTable(), _u("Allocated SWB memory: 0x%p\n"), memBlock);
 
 #pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
     if (attributes & (NewTrackBit))

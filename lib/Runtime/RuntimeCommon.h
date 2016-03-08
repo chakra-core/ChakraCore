@@ -187,7 +187,7 @@ namespace Js
     typedef ConcatStringN<6> ConcatStringN6;
     typedef ConcatStringN<7> ConcatStringN7;
 
-    template <wchar16 L, wchar16 R> class ConcatStringWrapping;
+    template <char16 L, char16 R> class ConcatStringWrapping;
     typedef ConcatStringWrapping<L'[', L']'> ConcatStringWrappingSB;
     typedef ConcatStringWrapping<L'{', L'}'> ConcatStringWrappingB;
     typedef ConcatStringWrapping<L'"', L'"'> ConcatStringWrappingQ;

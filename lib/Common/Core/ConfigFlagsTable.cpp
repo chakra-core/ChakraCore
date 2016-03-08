@@ -65,7 +65,7 @@ namespace Js
         this->pszValue = NULL;
     }
 
-    String::String(__in_opt const wchar16* psz)
+    String::String(__in_opt const char16* psz)
     {
         this->pszValue = NULL;
         Set(psz);
@@ -89,7 +89,7 @@ namespace Js
     ///----------------------------------------------------------------------------
 
     void
-    String::Set(__in_opt const wchar16* pszValue)
+    String::Set(__in_opt const char16* pszValue)
     {
         if(NULL != this->pszValue)
         {
@@ -99,7 +99,7 @@ namespace Js
         if(NULL != pszValue)
         {
             size_t size    = 1 + wcslen(pszValue);
-            this->pszValue  = NoCheckHeapNewArray(wchar16, size);
+            this->pszValue  = NoCheckHeapNewArray(char16, size);
             wcscpy_s(this->pszValue, size, pszValue);
         }
         else
@@ -202,9 +202,9 @@ namespace Js
     // List of names of all the flags
     //
 
-    const wchar16* const FlagNames[FlagCount + 1] =
+    const char16* const FlagNames[FlagCount + 1] =
     {
-    #define FLAG(type, name, ...) CH_WSTR(#name),
+    #define FLAG(type, name, ...) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -215,9 +215,9 @@ namespace Js
     // List of names of all the Phases
     //
 
-    const wchar16* const PhaseNames[PhaseCount + 1] =
+    const char16* const PhaseNames[PhaseCount + 1] =
     {
-    #define PHASE(name) CH_WSTR(#name),
+    #define PHASE(name) _u(#name),
     #include "ConfigFlagsList.h"
         NULL
     #undef PHASE
@@ -227,9 +227,9 @@ namespace Js
     //
     // Description of flags
     //
-    const wchar16* const FlagDescriptions[FlagCount + 1] =
+    const char16* const FlagDescriptions[FlagCount + 1] =
     {
-    #define FLAG(type, name, description, ...) CH_WSTR(description),
+    #define FLAG(type, name, description, ...) _u(description),
     #include "ConfigFlagsList.h"
         NULL
     #undef FLAG
@@ -535,7 +535,7 @@ namespace Js
                 const int scannedCount =
                     swscanf_s(
                         static_cast<LPCWSTR>(ExecutionModeLimits),
-                        CH_WSTR("%u.%u.%u.%u.%u"),
+                        _u("%u.%u.%u.%u.%u"),
                         &autoProfilingInterpreter0Limit,
                         &profilingInterpreter0Limit,
                         &autoProfilingInterpreter1Limit,
@@ -899,28 +899,28 @@ namespace Js
 #define FLAG(type, name, ...) \
         if (IsEnabled(name##Flag)) \
         { \
-            Output::Print(CH_WSTR("-%s"), CH_WSTR(#name)); \
+            Output::Print(_u("-%s"), _u(#name)); \
             switch (Flag##type) \
             { \
             case FlagBoolean: \
                 if (!*GetAsBoolean(name##Flag)) \
                 { \
-                    Output::Print(CH_WSTR("-")); \
+                    Output::Print(_u("-")); \
                 } \
                 break; \
             case FlagString: \
                 if (GetAsString(name##Flag) != nullptr) \
                 { \
-                    Output::Print(CH_WSTR(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
+                    Output::Print(_u(":%s"), (LPCWSTR)*GetAsString(name##Flag)); \
                 } \
                 break; \
             case FlagNumber: \
-                Output::Print(CH_WSTR(":%d"), *GetAsNumber(name##Flag)); \
+                Output::Print(_u(":%d"), *GetAsNumber(name##Flag)); \
                 break; \
             default: \
                 break; \
             }; \
-            Output::Print(CH_WSTR("\n")); \
+            Output::Print(_u("\n")); \
         }
         
 #include "ConfigFlagsList.h"
@@ -1008,7 +1008,7 @@ namespace Js
         Boolean* settingAsBoolean = this->GetAsBoolean(flag);
         Assert(settingAsBoolean != nullptr);
 
-        Output::VerboseNote(CH_WSTR("FLAG %s = %d\n"), FlagNames[(int) flag], value);
+        Output::VerboseNote(_u("FLAG %s = %d\n"), FlagNames[(int) flag], value);
         *settingAsBoolean = value;
 
         // check if parent flag
@@ -1024,7 +1024,7 @@ namespace Js
                 // if the parent flag is FALSE, the children flag values are FALSE (always - as disabled)
                 Boolean childValue = value == TRUE ? childDefaultValue : FALSE;
 
-                Output::VerboseNote(CH_WSTR("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(_u("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) flag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
 
                 // get next child flag
@@ -1135,7 +1135,7 @@ namespace Js
             {
                 Boolean childValue = value;
 
-                Output::VerboseNote(CH_WSTR("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
+                Output::VerboseNote(_u("FLAG %s = %d - setting child flag %s = %d\n"), FlagNames[(int) parentFlag], value, FlagNames[(int) childFlag], childValue);
                 this->SetAsBoolean(childFlag, childValue);
             }
 

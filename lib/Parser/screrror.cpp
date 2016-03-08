@@ -299,7 +299,7 @@ HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, Pars
         BstrGetResourceString(HRESULT_CODE(ei.scode))))
     {
         OLECHAR szT[50];
-        _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, CH_WSTR("error %d"), ei.scode);
+        _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, _u("error %d"), ei.scode);
         if (nullptr == (ei.bstrDescription = SysAllocString(szT)))
             ei.scode = E_OUTOFMEMORY;
     }

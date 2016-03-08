@@ -88,7 +88,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(CH_WSTR("SystemException: OutOfMemory\n"));
+            Output::Print(_u("SystemException: OutOfMemory\n"));
             Output::Flush();
         }
 #endif
@@ -110,7 +110,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(CH_WSTR("SystemException: StackOverflow\n"));
+            Output::Print(_u("SystemException: StackOverflow\n"));
             Output::Flush();
         }
 #endif
@@ -256,7 +256,7 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const wchar_t * caption = CH_WSTR("CHAKRA ASSERT");
+    static const wchar_t * caption = _u("CHAKRA ASSERT");
 #endif
 
     bool Throw::ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message)

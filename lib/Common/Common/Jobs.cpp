@@ -1011,7 +1011,7 @@ namespace JsUtil
     {
         JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
 
-        ArenaAllocator threadArena(CH_WSTR("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
+        ArenaAllocator threadArena(_u("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
         threadData->threadArena = &threadArena;
 
         {

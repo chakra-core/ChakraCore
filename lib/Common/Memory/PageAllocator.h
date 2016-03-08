@@ -37,13 +37,13 @@ typedef void* FunctionTableHandle;
     { \
         if (!verbose || this->pageAllocatorFlagTable.Verbose) \
         {   \
-            Output::Print(CH_WSTR("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
+            Output::Print(_u("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
             if (debugName != nullptr) \
             { \
-                Output::Print(CH_WSTR("[%s] "), this->debugName);       \
+                Output::Print(_u("[%s] "), this->debugName);       \
             } \
             Output::Print(format, __VA_ARGS__);         \
-            Output::Print(CH_WSTR("\n"));                               \
+            Output::Print(_u("\n"));                               \
             if (stats && this->pageAllocatorFlagTable.Stats.IsEnabled(Js::PageAllocatorPhase)) \
             { \
                 this->DumpStats();         \
