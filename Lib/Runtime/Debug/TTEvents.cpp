@@ -175,6 +175,16 @@ namespace TTD
         return this->m_etime;
     }
 
+    int64 TTDebuggerSourceLocation::GetFunctionTime() const
+    {
+        return this->m_ftime;
+    }
+
+    int64 TTDebuggerSourceLocation::GetLoopTime() const
+    {
+        return this->m_ltime;
+    }
+
     Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
     {
         Js::FunctionBody* resBody = ctx->FindFunctionBodyByFileName_TTD(this->m_sourceFile);

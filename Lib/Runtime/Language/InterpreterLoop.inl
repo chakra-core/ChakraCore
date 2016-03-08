@@ -79,8 +79,17 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
             if (!InterpreterStackFrame::IsBrLong(op, ip) && !this->m_functionBody->GetUtf8SourceInfo()->GetIsLibraryCode())
             {
                 uint prevOffset = m_reader.GetCurrentOffset();
+
+#if ENABLE_TTD
+                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                {
+                    InterpreterHaltState haltState(STOP_STEPCOMPLETE, m_functionBody);
+                    this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchStepHandler(&haltState, &op);
+                }
+#else
                 InterpreterHaltState haltState(STOP_STEPCOMPLETE, m_functionBody);
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchStepHandler(&haltState, &op);
+#endif
 
 #if ENABLE_TTD
                 if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
@@ -107,8 +116,17 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
             if (!InterpreterStackFrame::IsBrLong(op, ip) && !this->m_functionBody->GetUtf8SourceInfo()->GetIsLibraryCode())
             {
                 uint prevOffset = m_reader.GetCurrentOffset();
+
+#if ENABLE_TTD
+                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                {
+                    InterpreterHaltState haltState(STOP_ASYNCBREAK, m_functionBody);
+                    this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchAsyncBreak(&haltState);
+                }
+#else
                 InterpreterHaltState haltState(STOP_ASYNCBREAK, m_functionBody);
                 this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchAsyncBreak(&haltState);
+#endif
 
 #if ENABLE_TTD
                 if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
@@ -391,8 +409,17 @@ SWAP_BP_FOR_OPCODE:
                 if (this->m_functionBody->ProbeAtOffset(m_reader.GetCurrentOffset(), &op))
                 {
                     uint prevOffset = m_reader.GetCurrentOffset();
+
+#if ENABLE_TTD
+                    if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                    {
+                        InterpreterHaltState haltState(STOP_BREAKPOINT, m_functionBody);
+                        this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchProbeHandlers(&haltState);
+                    }
+#else
                     InterpreterHaltState haltState(STOP_BREAKPOINT, m_functionBody);
                     this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchProbeHandlers(&haltState);
+#endif
 
 #if ENABLE_TTD
                     if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
@@ -417,8 +444,17 @@ SWAP_BP_FOR_OPCODE:
                     if (!this->scriptContext->GetThreadContext()->GetDebugManager()->stepController.ContinueFromInlineBreakpoint())
                     {
                         uint prevOffset = m_reader.GetCurrentOffset();
+
+#if ENABLE_TTD
+                        if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                        {
+                            InterpreterHaltState haltState(STOP_INLINEBREAKPOINT, m_functionBody);
+                            this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchInlineBreakpoint(&haltState);
+                        }
+#else
                         InterpreterHaltState haltState(STOP_INLINEBREAKPOINT, m_functionBody);
                         this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchInlineBreakpoint(&haltState);
+#endif
 
 #if ENABLE_TTD
                         if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)

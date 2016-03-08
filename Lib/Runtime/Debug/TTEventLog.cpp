@@ -481,7 +481,7 @@ namespace TTD
         m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
-        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1),
+        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1), m_activeFTime(0), m_activeLTime(0),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
@@ -1152,11 +1152,29 @@ namespace TTD
     void EventLog::ClearActiveBP()
     {
         this->m_activeBPId = -1;
+        this->m_activeFTime = 0;
+        this->m_activeLTime = 0;
     }
 
-    void EventLog::SetActiveBP(UINT bpId)
+    void EventLog::SetActiveBP(UINT bpId, int64 activeFTime, int64 activeLTime)
     {
         this->m_activeBPId = bpId;
+        this->m_activeFTime = activeFTime;
+        this->m_activeLTime = activeLTime;
+    }
+
+    bool EventLog::ProcessBPInfoPreBreak()
+    {
+        if(!this->HasActiveBP())
+        {
+            return true;
+        }
+
+        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
+        bool ftimeOk = (this->m_activeFTime == -1) | (this->m_activeFTime == cfinfo.FunctionTime);
+        bool ltimeOk = (this->m_activeLTime == -1) | (this->m_activeLTime == cfinfo.CurrentStatementLoopTime);
+
+        return ftimeOk & ltimeOk;
     }
 
     void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)

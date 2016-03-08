@@ -231,6 +231,8 @@ namespace TTD
 
         TTDebuggerSourceLocation m_pendingTTDBP;
         int64 m_activeBPId;
+        uint64 m_activeFTime;
+        uint64 m_activeLTime;
 #endif
 
         ////
@@ -382,7 +384,10 @@ namespace TTD
         bool HasActiveBP() const;
         UINT GetActiveBPId() const;
         void ClearActiveBP();
-        void SetActiveBP(UINT bpId);
+        void SetActiveBP(UINT bpId, int64 activeFTime, int64 activeLTime);
+
+        //Process the breakpoint info as we enter a break statement and return true if we actually want to break
+        bool ProcessBPInfoPreBreak();
 
         //Process the breakpoint info as we resume from a break statement
         void ProcessBPInfoPostBreak(Js::FunctionBody* fb);

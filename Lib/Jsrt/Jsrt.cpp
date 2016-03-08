@@ -3836,7 +3836,7 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
         return JsErrorCategoryUsage;
     }
 
-    //If the log has a BP requested then we should the actual bp here
+    //If the log has a BP requested then we should set the actual bp here
     if(scriptContext->GetThreadContext()->TTDLog->HasPendingTTDBP())
     {
         TTD::TTDebuggerSourceLocation bpLocation; 
@@ -3844,12 +3844,13 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
 
         Js::FunctionBody* body = bpLocation.ResolveAssociatedSourceInfo(scriptContext);
         Js::Utf8SourceInfo* utf8SourceInfo = body->GetUtf8SourceInfo();
-        Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
 
         charcount_t charPosition;
         charcount_t byteOffset;
         utf8SourceInfo->GetCharPositionForLineInfo((charcount_t)bpLocation.GetLine(), &charPosition, &byteOffset);
         long ibos = charPosition + bpLocation.GetColumn() + 1;
+
+        Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
 
         Js::StatementLocation statement;
         BOOL stmtok = debugDocument->GetStatementLocation(ibos, &statement);
@@ -3868,7 +3869,10 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
             END_JS_RUNTIME_CALL(scriptContext);
         }
 
-        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId());
+        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), bpLocation.GetFunctionTime(), bpLocation.GetLoopTime());
+
+        //Finally clear the pending BP info so we don't get confused later
+        scriptContext->GetThreadContext()->TTDLog->ClearPendingTTDBPInfo();
     }
 
     JsErrorCode res = JsNoError;

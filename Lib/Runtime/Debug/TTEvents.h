@@ -72,6 +72,8 @@ namespace TTD
         void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
+        int64 GetFunctionTime() const;
+        int64 GetLoopTime() const;
 
         Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
         uint32 GetLine() const;
