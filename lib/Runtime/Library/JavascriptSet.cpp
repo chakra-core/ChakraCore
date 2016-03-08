@@ -43,7 +43,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Set");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set"));
 
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
@@ -58,7 +58,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set"), _u("Set"));
         }
         Assert(setObject != nullptr);
 
@@ -80,7 +80,7 @@ namespace Js
 
         if (setObject->set != nullptr)
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, L"Set", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Set"), _u("Set"));
         }
 
 
@@ -110,7 +110,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.add", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.add"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -137,7 +137,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.clear", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.clear"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -156,7 +156,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.delete", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.delete"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -174,11 +174,11 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Set.prototype.forEach");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Set.prototype.forEach"));
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.forEach", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.forEach"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -186,7 +186,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Set.prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Set.prototype.forEach"));
         }
         RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
 
@@ -213,7 +213,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.has", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.has"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -235,7 +235,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.size", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.size"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -254,7 +254,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.entries", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.entries"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -271,7 +271,7 @@ namespace Js
 
         if (!JavascriptSet::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Set.prototype.values", L"Set");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Set.prototype.values"), _u("Set"));
         }
 
         JavascriptSet* set = JavascriptSet::FromVar(args[0]);
@@ -328,7 +328,7 @@ namespace Js
 
     BOOL JavascriptSet::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Set");
+        stringBuilder->AppendCppLiteral(_u("Set"));
         return TRUE;
     }
 }

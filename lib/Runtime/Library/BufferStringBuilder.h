@@ -23,16 +23,16 @@ namespace Js
         }
 
         void SetContent(
-            const wchar_t* prefix, charcount_t cchPrefix,
-            const wchar_t* content, charcount_t cchContent,
-            const wchar_t* suffix, charcount_t cchSuffix)
+            const char16* prefix, charcount_t cchPrefix,
+            const char16* content, charcount_t cchContent,
+            const char16* suffix, charcount_t cchSuffix)
         {
             DbgAssertNotFrozen();
             this->m_string->SetContent(prefix, cchPrefix, content, cchContent, suffix, cchSuffix);
         }
 
         // Caution: Do not retain the writable buffer after ToString has been called
-        wchar_t* DangerousGetWritableBuffer()
+        char16* DangerousGetWritableBuffer()
         {
             DbgAssertNotFrozen();
             return this->m_string->GetWritableBuffer();
@@ -42,33 +42,33 @@ namespace Js
         {
         public:
             static WritableString* New(charcount_t length, ScriptContext* scriptContext);
-            wchar_t* GetWritableBuffer() const
+            char16* GetWritableBuffer() const
             {
-                return const_cast< wchar_t* >( this->UnsafeGetBuffer() );
+                return const_cast< char16* >( this->UnsafeGetBuffer() );
             }
 
-            void SetContent(const wchar_t* content, charcount_t offset, charcount_t length);
-            void SetContent(const wchar_t* prefix, charcount_t cchPrefix,
-                            const wchar_t* content, charcount_t cchContent,
-                            const wchar_t* suffix, charcount_t cchSuffix);
+            void SetContent(const char16* content, charcount_t offset, charcount_t length);
+            void SetContent(const char16* prefix, charcount_t cchPrefix,
+                            const char16* content, charcount_t cchContent,
+                            const char16* suffix, charcount_t cchSuffix);
 
         protected:
             DEFINE_VTABLE_CTOR(BufferStringBuilder::WritableString, JavascriptString);
             DECLARE_CONCRETE_STRING_CLASS;
 
         private:
-            WritableString(StaticType * type, charcount_t length, const wchar_t* szValue)
+            WritableString(StaticType * type, charcount_t length, const char16* szValue)
                 : JavascriptString(type, length, szValue)
             {
             }
 
-            static wchar_t* SafeCopyAndAdvancePtr(__out_ecount(cchDst) wchar_t* dst, charcount_t& cchDst, __in_ecount(cch) const wchar_t* ptr, charcount_t cch);
+            static char16* SafeCopyAndAdvancePtr(__out_ecount(cchDst) char16* dst, charcount_t& cchDst, __in_ecount(cch) const char16* ptr, charcount_t cch);
         };
 
     private:
         WritableString* m_string;
 #if DBG
-        static const wchar_t k_dbgFill = L'\xCDCD';
+        static const char16 k_dbgFill = L'\xCDCD';
 #endif
     };
 

@@ -202,6 +202,7 @@ enum FncFlags
     kFunctionHasNewTargetReference              = 1 << 27, // function has a reference to new.target
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
+    kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
 };
 
 struct RestorePoint;
@@ -300,6 +301,7 @@ public:
     void SetStrictMode(bool set = true) { SetFlags(kFunctionStrictMode, set); }
     void SetSubsumed(bool set = true) { SetFlags(kFunctionSubsumed, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
+    void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -332,6 +334,7 @@ public:
     bool IsSubsumed() const { return HasFlags(kFunctionSubsumed); }
     bool NameIsHidden() const { return HasFlags(kFunctionNameIsHidden); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
+    bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
 
     size_t LengthInBytes()
     {
@@ -369,6 +372,16 @@ struct PnClass
     ParseNodePtr pnodeMembers;
     ParseNodePtr pnodeStaticMembers;
     ParseNodePtr pnodeExtends;
+
+    bool isDefaultModuleExport;
+
+    void SetIsDefaultModuleExport(bool set) { isDefaultModuleExport = set; }
+    bool IsDefaultModuleExport() const { return isDefaultModuleExport; }
+};
+
+struct PnExportDefault
+{
+    ParseNodePtr pnodeExpr;
 };
 
 struct PnStrTemplate
@@ -590,6 +603,7 @@ struct ParseNode
         PnCatch         sxCatch;        // { catch(e : expr) {body} }
         PnClass         sxClass;        // class declaration
         PnFinally       sxFinally;      // finally
+        PnExportDefault sxExportDefault;// export default expr;
         PnFlt           sxFlt;          // double constant
         PnFnc           sxFnc;          // function declaration
         PnFor           sxFor;          // for loop
@@ -685,6 +699,7 @@ struct ParseNode
 
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }
+
     bool IsVarLetOrConst() const
     {
         return this->nop == knopVarDecl || this->nop == knopLetDecl || this->nop == knopConstDecl;
@@ -724,6 +739,7 @@ const int kcbPnCall         = kcbPnNone + sizeof(PnCall);
 const int kcbPnCase         = kcbPnNone + sizeof(PnCase);
 const int kcbPnCatch        = kcbPnNone + sizeof(PnCatch);
 const int kcbPnClass        = kcbPnNone + sizeof(PnClass);
+const int kcbPnExportDefault= kcbPnNone + sizeof(PnExportDefault);
 const int kcbPnFinally      = kcbPnNone + sizeof(PnFinally);
 const int kcbPnFlt          = kcbPnNone + sizeof(PnFlt);
 const int kcbPnFnc          = kcbPnNone + sizeof(PnFnc);

@@ -168,7 +168,7 @@ namespace Js
 
                 if (!(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, L"ownKeys");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }
 
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord);

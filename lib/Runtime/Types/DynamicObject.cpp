@@ -522,7 +522,7 @@ namespace Js
 
         if (PHASE_TRACE1(Js::ObjectHeaderInliningPhase))
         {
-            Output::Print(L"ObjectHeaderInlining: De-optimizing the object.\n");
+            Output::Print(_u("ObjectHeaderInlining: De-optimizing the object.\n"));
             Output::Flush();
         }
 

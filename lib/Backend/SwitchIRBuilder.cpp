@@ -204,9 +204,9 @@ SwitchIRBuilder::SetProfiledInstruction(IR::Instr * instr, Js::ProfileId profile
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-            PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d: Expression Type : %S\n",
+            PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d: Expression Type : %S\n"),
                 m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 m_profiledSwitchInstr->AsProfiledInstr()->u.profileId, valueTypeStr);
         }
@@ -725,9 +725,9 @@ SwitchIRBuilder::BuildBailOnNotInteger()
     m_switchOptBuildBail = false; // falsify this to avoid generating extra BailOuts when optimization is done again on the same switch statement
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d:Optimized for Integers\n",
+    PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d:Optimized for Integers\n"),
         m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
@@ -752,9 +752,9 @@ SwitchIRBuilder::BuildBailOnNotString()
     m_switchOptBuildBail = false; // falsify this to avoid generating extra BailOuts when optimization is done again on the same switch statement
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-    PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, L"Func %s, Switch %d:Optimized for Strings\n",
+    PHASE_PRINT_TESTTRACE1(Js::SwitchOptPhase, _u("Func %s, Switch %d:Optimized for Strings\n"),
         m_profiledSwitchInstr->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
         m_profiledSwitchInstr->AsProfiledInstr()->u.profileId);
 }
@@ -815,8 +815,8 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
     uint caseCount = m_caseNodes->Count();
 
     bool generateDictionary = true;
-    wchar_t minChar = USHORT_MAX;
-    wchar_t maxChar = 0;
+    char16 minChar = USHORT_MAX;
+    char16 maxChar = 0;
 
     // Either the jump table is within the limit (<= 128) or it is dense (<= 2 * case Count)
     uint const maxJumpTableSize = max<uint>(CONFIG_FLAG(MaxSingleCharStrJumpTableSize), CONFIG_FLAG(MaxSingleCharStrJumpTableRatio) * caseCount);
@@ -827,7 +827,7 @@ SwitchIRBuilder::BuildMultiBrCaseInstrForStrings(uint32 targetOffset)
         {
             Js::JavascriptString * str = m_caseNodes->Item(i)->GetSrc2StringConst();
             Assert(str->GetLength() == 1);
-            wchar_t currChar = str->GetString()[0];
+            char16 currChar = str->GetString()[0];
             minChar = min(minChar, currChar);
             maxChar = max(maxChar, currChar);
             if ((uint)(maxChar - minChar) > maxJumpTableSize)

@@ -35,12 +35,12 @@ StackBackTrace::Print()
     for(ULONG i = 0; i < this->framesCount; i++)
     {
         PVOID address = this->stackBackTrace[i];
-        retValue += Output::Print(L" ");
+        retValue += Output::Print(_u(" "));
         retValue += DbgHelpSymbolManager::PrintSymbol(address);
-        retValue += Output::Print(L"\n");
+        retValue += Output::Print(_u("\n"));
     }
 
-    retValue += Output::Print(L"\n");
+    retValue += Output::Print(_u("\n"));
     return retValue;
 }
 #endif

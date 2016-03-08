@@ -81,7 +81,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakMap", L"WeakMap");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap"), _u("WeakMap"));
         }
         Assert(weakMapObject != nullptr);
 
@@ -145,7 +145,7 @@ namespace Js
 
         if (!JavascriptWeakMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakMap.prototype.delete", L"WeakMap");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.delete"), _u("WeakMap"));
         }
 
         JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
@@ -172,7 +172,7 @@ namespace Js
 
         if (!JavascriptWeakMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakMap.prototype.get", L"WeakMap");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.get"), _u("WeakMap"));
         }
 
         JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
@@ -202,7 +202,7 @@ namespace Js
 
         if (!JavascriptWeakMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakMap.prototype.has", L"WeakMap");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.has"), _u("WeakMap"));
         }
 
         JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
@@ -229,7 +229,7 @@ namespace Js
 
         if (!JavascriptWeakMap::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"WeakMap.prototype.set", L"WeakMap");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.set"), _u("WeakMap"));
         }
 
         JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
@@ -241,7 +241,7 @@ namespace Js
         {
             // HostDispatch can not expand so can't have internal property added to it.
             // TODO: Support HostDispatch as WeakMap key
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, L"WeakMap.prototype.set");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakMap.prototype.set"));
         }
 
         DynamicObject* keyObj = DynamicObject::FromVar(key);
@@ -325,7 +325,7 @@ namespace Js
 
     BOOL JavascriptWeakMap::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"WeakMap");
+        stringBuilder->AppendCppLiteral(_u("WeakMap"));
         return TRUE;
     }
 }

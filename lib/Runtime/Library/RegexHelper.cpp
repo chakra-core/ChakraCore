@@ -20,7 +20,7 @@ namespace Js
 
     // See also:
     //    UnifiedRegex::Parser::Options(...)
-    bool RegexHelper::GetFlags(Js::ScriptContext* scriptContext, __in_ecount(strLen) const wchar_t* str, CharCount strLen, UnifiedRegex::RegexFlags &flags)
+    bool RegexHelper::GetFlags(Js::ScriptContext* scriptContext, __in_ecount(strLen) const char16* str, CharCount strLen, UnifiedRegex::RegexFlags &flags)
     {
         for (CharCount i = 0; i < strLen; i++)
         {
@@ -67,7 +67,7 @@ namespace Js
         return true;
     }
 
-    UnifiedRegex::RegexPattern* RegexHelper::CompileDynamic(ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, const wchar_t* pszOpts, CharCount cszOpts, bool isLiteralSource)
+    UnifiedRegex::RegexPattern* RegexHelper::CompileDynamic(ScriptContext *scriptContext, const char16* psz, CharCount csz, const char16* pszOpts, CharCount cszOpts, bool isLiteralSource)
     {
         Assert(psz != 0 && psz[csz] == 0);
         Assert(pszOpts != 0 || cszOpts == 0);
@@ -108,7 +108,7 @@ namespace Js
     }
 
     UnifiedRegex::RegexPattern* RegexHelper::CompileDynamic(
-        ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, UnifiedRegex::RegexFlags flags, bool isLiteralSource)
+        ScriptContext *scriptContext, const char16* psz, CharCount csz, UnifiedRegex::RegexFlags flags, bool isLiteralSource)
     {
         //
         // Regex compilations are mostly string parsing based. To avoid duplicating validation rules,
@@ -116,30 +116,30 @@ namespace Js
         // based implementation.
         //
         const CharCount OPT_BUF_SIZE = 6;
-        wchar_t opts[OPT_BUF_SIZE];
+        char16 opts[OPT_BUF_SIZE];
 
         CharCount i = 0;
         if (flags & UnifiedRegex::IgnoreCaseRegexFlag)
         {
-            opts[i++] = L'i';
+            opts[i++] = _u('i');
         }
         if (flags & UnifiedRegex::GlobalRegexFlag)
         {
-            opts[i++] = L'g';
+            opts[i++] = _u('g');
         }
         if (flags & UnifiedRegex::MultilineRegexFlag)
         {
-            opts[i++] = L'm';
+            opts[i++] = _u('m');
         }
         if (flags & UnifiedRegex::UnicodeRegexFlag)
         {
             Assert(scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled());
-            opts[i++] = L'u';
+            opts[i++] = _u('u');
         }
         if (flags & UnifiedRegex::StickyRegexFlag)
         {
             Assert(scriptContext->GetConfig()->IsES6RegExStickyEnabled());
-            opts[i++] = L'y';
+            opts[i++] = _u('y');
         }
         Assert(i < OPT_BUF_SIZE);
         opts[i] = NULL;
@@ -147,7 +147,7 @@ namespace Js
         return CompileDynamic(scriptContext, psz, csz, opts, i, isLiteralSource);
     }
 
-    UnifiedRegex::RegexPattern* RegexHelper::PrimCompileDynamic(ScriptContext *scriptContext, const wchar_t* psz, CharCount csz, const wchar_t* pszOpts, CharCount cszOpts, bool isLiteralSource)
+    UnifiedRegex::RegexPattern* RegexHelper::PrimCompileDynamic(ScriptContext *scriptContext, const char16* psz, CharCount csz, const char16* pszOpts, CharCount cszOpts, bool isLiteralSource)
     {
         PROBE_STACK(scriptContext, Js::Constants::MinStackRegex);
 
@@ -190,8 +190,8 @@ namespace Js
         if (REGEX_CONFIG_FLAG(RegexProfile))
             scriptContext->GetRegexStatsDatabase()->BeginProfile();
 #endif
-        BEGIN_TEMP_ALLOCATOR(ctAllocator, scriptContext, L"UnifiedRegexParseAndCompile");
-        UnifiedRegex::StandardChars<wchar_t>* standardChars = scriptContext->GetThreadContext()->GetStandardChars((wchar_t*)0);
+        BEGIN_TEMP_ALLOCATOR(ctAllocator, scriptContext, _u("UnifiedRegexParseAndCompile"));
+        UnifiedRegex::StandardChars<char16>* standardChars = scriptContext->GetThreadContext()->GetStandardChars((char16*)0);
         UnifiedRegex::Node* root = 0;
         UnifiedRegex::Parser<NullTerminatedUnicodeEncodingPolicy, false> parser
             ( scriptContext
@@ -232,7 +232,7 @@ namespace Js
         if (REGEX_CONFIG_FLAG(RegexTracing))
         {
             UnifiedRegex::DebugWriter* tw = scriptContext->GetRegexDebugWriter();
-            tw->Print(L"// REGEX COMPILE ");
+            tw->Print(_u("// REGEX COMPILE "));
             pattern->Print(tw);
             tw->EOL();
         }
@@ -279,9 +279,9 @@ namespace Js
         ScriptContext* scriptContext,
         UnifiedRegex::RegexStats::Use use,
         JavascriptRegExp* regExp,
-        const wchar_t *const input,
+        const char16 *const input,
         const CharCount inputLength,
-        const wchar_t *const replace = 0,
+        const char16 *const replace = 0,
         const CharCount replaceLength = 0)
     {
         Assert(regExp);
@@ -297,23 +297,23 @@ namespace Js
         if (REGEX_CONFIG_FLAG(RegexTracing))
         {
             UnifiedRegex::DebugWriter* w = scriptContext->GetRegexDebugWriter();
-            w->Print(L"%s(", UnifiedRegex::RegexStats::UseNames[use]);
+            w->Print(_u("%s("), UnifiedRegex::RegexStats::UseNames[use]);
             regExp->GetPattern()->Print(w);
-            w->Print(L", ");
+            w->Print(_u(", "));
             if (!CONFIG_FLAG(Verbose) && inputLength > 1024)
-                w->Print(L"\"<string too large>\"");
+                w->Print(_u("\"<string too large>\""));
             else
                 w->PrintQuotedString(input, inputLength);
             if (replace != 0)
             {
                 Assert(use == UnifiedRegex::RegexStats::Replace);
-                w->Print(L", ");
+                w->Print(_u(", "));
                 if (!CONFIG_FLAG(Verbose) && replaceLength > 1024)
-                    w->Print(L"\"<string too large>\"");
+                    w->Print(_u("\"<string too large>\""));
                 else
                     w->PrintQuotedString(replace, replaceLength);
             }
-            w->PrintEOL(L");");
+            w->PrintEOL(_u(");"));
             w->Flush();
         }
     }
@@ -342,7 +342,7 @@ namespace Js
 
     struct RegexMatchState
     {
-        const wchar_t* input;
+        const char16* input;
         TempArenaAllocatorObject* tempAllocatorObj;
         UnifiedRegex::Matcher* matcher;
     };
@@ -364,8 +364,8 @@ namespace Js
         else
         {
             PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
-                ? L"RegExp.prototype[Symbol.match]"
-                : L"String.prototype.match";
+                ? _u("RegExp.prototype[Symbol.match]")
+                : _u("String.prototype.match");
             JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
             return RegexEs5MatchImpl<updateHistory>(scriptContext, regularExpression, input, noResult, stackAllocationPointer);
         }
@@ -383,7 +383,7 @@ namespace Js
 
     Var RegexHelper::RegexEs6MatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
-        PCWSTR const varName = L"RegExp.prototype[Symbol.match]";
+        PCWSTR const varName = _u("RegExp.prototype[Symbol.match]");
 
         if (!JavascriptRegExp::GetGlobalProperty(thisObj, scriptContext))
         {
@@ -430,7 +430,7 @@ namespace Js
     Var RegexHelper::RegexEs5MatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -446,7 +446,7 @@ namespace Js
         if (trigramAlphabet!=NULL && inputLength>=MinTrigramInputLength && trigramInfo!=NULL)
         {
             if (trigramAlphabet->input==NULL)
-                trigramAlphabet->MegaMatch((wchar_t*)inputStr,inputLength);
+                trigramAlphabet->MegaMatch((char16*)inputStr,inputLength);
 
             if (trigramInfo->isTrigramPattern)
             {
@@ -604,7 +604,7 @@ namespace Js
         UnifiedRegex::GroupInfo match; // initially undefined
         if (offset <= inputLength)
         {
-            const wchar_t* inputStr = input->GetString();
+            const char16* inputStr = input->GetString();
             match = SimpleMatch(scriptContext, pattern, inputStr, inputLength, offset);
         }
 
@@ -633,7 +633,7 @@ namespace Js
     BOOL RegexHelper::RegexTest(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
         UnifiedRegex::GroupInfo match; // initially undefined
 
@@ -663,16 +663,16 @@ namespace Js
         , int numGroups
         , GroupFn getGroup
         , JavascriptString* input
-        , const wchar_t* matchedString
+        , const char16* matchedString
         , UnifiedRegex::GroupInfo match
         , JavascriptString* replace
         , int substitutions
         , __in_ecount(substitutions) CharCount* substitutionOffsets
-        , CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& concatenated )
+        , CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& concatenated )
     {
         Var nonMatchValue = NonMatchValue(scriptContext, false);
         const CharCount inputLength = input->GetLength();
-        const wchar_t* replaceStr = replace->GetString();
+        const char16* replaceStr = replace->GetString();
         const CharCount replaceLength = replace->GetLength();
 
         CharCount offset = 0;
@@ -680,18 +680,18 @@ namespace Js
         {
             CharCount substitutionOffset = substitutionOffsets[i];
             concatenated.Append(replace, offset, substitutionOffset - offset);
-            wchar_t currentChar = replaceStr[substitutionOffset + 1];
-            if (currentChar >= L'0' && currentChar <= L'9')
+            char16 currentChar = replaceStr[substitutionOffset + 1];
+            if (currentChar >= _u('0') && currentChar <= _u('9'))
             {
-                int captureIndex = (int)(currentChar - L'0');
+                int captureIndex = (int)(currentChar - _u('0'));
                 offset = substitutionOffset + 2;
 
                 if (offset < replaceLength)
                 {
                     currentChar = replaceStr[substitutionOffset + 2];
-                    if (currentChar >= L'0' && currentChar <= L'9')
+                    if (currentChar >= _u('0') && currentChar <= _u('9'))
                     {
-                        int tempCaptureIndex = (10 * captureIndex) + (int)(currentChar - L'0');
+                        int tempCaptureIndex = (10 * captureIndex) + (int)(currentChar - _u('0'));
                         if (tempCaptureIndex < numGroups)
                         {
                             captureIndex = tempCaptureIndex;
@@ -715,19 +715,19 @@ namespace Js
             {
                 switch (currentChar)
                 {
-                case L'$': // literal '$' character
-                    concatenated.Append(L'$');
+                case _u('$'): // literal '$' character
+                    concatenated.Append(_u('$'));
                     offset = substitutionOffset + 2;
                     break;
-                case L'&': // matched string
+                case _u('&'): // matched string
                     concatenated.Append(matchedString, match.length);
                     offset = substitutionOffset + 2;
                     break;
-                case L'`': // left context
+                case _u('`'): // left context
                     concatenated.Append(input, 0, match.offset);
                     offset = substitutionOffset + 2;
                     break;
-                case L'\'': // right context
+                case _u('\''): // right context
                     if (match.EndOffset() < inputLength)
                     {
                         concatenated.Append(input, match.EndOffset(), inputLength - match.EndOffset());
@@ -735,7 +735,7 @@ namespace Js
                     offset = substitutionOffset + 2;
                     break;
                 default:
-                    concatenated.Append(L'$');
+                    concatenated.Append(_u('$'));
                     offset = substitutionOffset + 1;
                     break;
                 }
@@ -744,14 +744,14 @@ namespace Js
         concatenated.Append(replace, offset, replaceLength - offset);
     }
 
-    int RegexHelper::GetReplaceSubstitutions(const wchar_t * const replaceStr, CharCount const replaceLength,
+    int RegexHelper::GetReplaceSubstitutions(const char16 * const replaceStr, CharCount const replaceLength,
         ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut)
     {
         int substitutions = 0;
 
         for (CharCount i = 0; i < replaceLength; i++)
         {
-            if (replaceStr[i] == L'$')
+            if (replaceStr[i] == _u('$'))
             {
                 if (++i < replaceLength)
                 {
@@ -766,7 +766,7 @@ namespace Js
             substitutions = 0;
             for (CharCount i = 0; i < replaceLength; i++)
             {
-                if (replaceStr[i] == L'$')
+                if (replaceStr[i] == _u('$'))
                 {
                     if (i < (replaceLength - 1))
                     {
@@ -794,8 +794,8 @@ namespace Js
         else
         {
             PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
-                ? L"RegExp.prototype[Symbol.replace]"
-                : L"String.prototype.replace";
+                ? _u("RegExp.prototype[Symbol.replace]")
+                : _u("String.prototype.replace");
             JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
             return RegexEs5ReplaceImpl(scriptContext, regularExpression, input, replace, noResult);
         }
@@ -814,7 +814,7 @@ namespace Js
     Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult)
     {
         auto appendReplacement = [&](
-            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& resultBuilder,
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& resultBuilder,
             ArenaAllocator* tempAlloc,
             JavascriptString* matchStr,
             int numberOfCaptures,
@@ -850,7 +850,7 @@ namespace Js
     Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replaceFn)
     {
         auto appendReplacement = [&](
-            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)>& resultBuilder,
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& resultBuilder,
             ArenaAllocator* tempAlloc,
             JavascriptString* matchStr,
             int numberOfCaptures,
@@ -905,14 +905,14 @@ namespace Js
 
         JavascriptString* accumulatedResult = nullptr;
 
-        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"RegexHelper")
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
             JsUtil::List<RecyclableObject*, ArenaAllocator>* results =
                 JsUtil::List<RecyclableObject*, ArenaAllocator>::New(tempAlloc);
 
             while (true)
             {
-                PCWSTR varName = L"RegExp.prototype[Symbol.replace]";
+                PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
                 Var result = JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
                 if (JavascriptOperators::IsNull(result))
                 {
@@ -932,7 +932,7 @@ namespace Js
                 AdvanceLastIndex(thisObj, input, matchStr, unicode, scriptContext);
             }
 
-            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)> accumulatedResultBuilder(scriptContext);
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> accumulatedResultBuilder(scriptContext);
             CharCount inputLength = input->GetLength();
             CharCount nextSourcePosition = 0;
 
@@ -1012,9 +1012,9 @@ namespace Js
     Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, bool noResult)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-        const wchar_t* replaceStr = replace->GetString();
+        const char16* replaceStr = replace->GetString();
         CharCount replaceLength = replace->GetLength();
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
 
         JavascriptString* newString = nullptr;
@@ -1045,7 +1045,7 @@ namespace Js
                  state.tempAllocatorObj->GetAllocator(), &substitutionOffsets);
 
             // Use to see if we already have partial result populated in concatenated
-            CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)> concatenated(scriptContext);
+            CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> concatenated(scriptContext);
 
             // If lastIndex > 0, append input[0..offset] characters to the result
             if (offset > 0)
@@ -1073,7 +1073,7 @@ namespace Js
                     auto getGroup = [&](int captureIndex, Var nonMatchValue) {
                         return GetGroup(scriptContext, pattern, input, nonMatchValue, captureIndex);
                     };
-                    const wchar_t* matchedString = inputStr + lastActualMatch.offset;
+                    const char16* matchedString = inputStr + lastActualMatch.offset;
                     ReplaceFormatString(scriptContext, pattern->NumGroups(), getGroup, input, matchedString, lastActualMatch, replace, substitutions, substitutionOffsets, concatenated);
                 }
                 else
@@ -1147,8 +1147,8 @@ namespace Js
         else
         {
             PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
-                ? L"RegExp.prototype[Symbol.replace]"
-                : L"String.prototype.replace";
+                ? _u("RegExp.prototype[Symbol.replace]")
+                : _u("String.prototype.replace");
             JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
             return RegexEs5ReplaceImpl(scriptContext, regularExpression, input, replacefn);
         }
@@ -1158,7 +1158,7 @@ namespace Js
     Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
         JavascriptString* newString = nullptr;
         const int numGroups = pattern->NumGroups();
@@ -1166,7 +1166,7 @@ namespace Js
         UnifiedRegex::GroupInfo lastMatch; // initially undefined
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Replace, regularExpression, input, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"<replace function>"));
+        RegexHelperTrace(scriptContext, UnifiedRegex::RegexStats::Replace, regularExpression, input, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("<replace function>")));
 #endif
 
         RegexMatchState state;
@@ -1189,7 +1189,7 @@ namespace Js
             offset = regularExpression->GetLastIndex();
         }
 
-        CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)> concatenated(scriptContext);
+        CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> concatenated(scriptContext);
         UnifiedRegex::GroupInfo lastActualMatch;
         UnifiedRegex::GroupInfo lastSuccessfulMatch;
 
@@ -1277,7 +1277,7 @@ namespace Js
             return input;
         }
 
-        const wchar_t *const replaceStr = replace->GetString();
+        const char16 *const replaceStr = replace->GetString();
 
         // Unfortunately, due to the possibility of there being $ escapes, we can't just wmemcpy the replace string. Check if we
         // have a small replace string that we can quickly scan for '$', to see if we can just wmemcpy.
@@ -1285,16 +1285,16 @@ namespace Js
         if(!definitelyNoEscapes && replace->GetLength() <= 8)
         {
             CharCount i = 0;
-            for(; i < replace->GetLength() && replaceStr[i] != L'$'; ++i);
+            for(; i < replace->GetLength() && replaceStr[i] != _u('$'); ++i);
             definitelyNoEscapes = i >= replace->GetLength();
         }
 
         if(definitelyNoEscapes)
         {
-            const wchar_t* inputStr = input->GetString();
-            const wchar_t* prefixStr = inputStr;
+            const char16* inputStr = input->GetString();
+            const char16* prefixStr = inputStr;
             CharCount prefixLength = (CharCount)matchedIndex;
-            const wchar_t* postfixStr = inputStr + prefixLength + match->GetLength();
+            const char16* postfixStr = inputStr + prefixLength + match->GetLength();
             CharCount postfixLength = input->GetLength() - prefixLength - match->GetLength();
             CharCount newLength = prefixLength + postfixLength + replace->GetLength();
             BufferStringBuilder bufferString(newLength, match->GetScriptContext());
@@ -1304,7 +1304,7 @@ namespace Js
             return bufferString.ToString();
         }
 
-        CompoundString::Builder<64 * sizeof(void *) / sizeof(wchar_t)> concatenated(input->GetScriptContext());
+        CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> concatenated(input->GetScriptContext());
 
         // Copy portion of input string that precedes the matched substring
         concatenated.Append(input, 0, matchedIndex);
@@ -1313,31 +1313,31 @@ namespace Js
         CharCount i = 0, j = 0;
         for(; j < replace->GetLength(); ++j)
         {
-            if(replaceStr[j] == L'$' && j + 1 < replace->GetLength())
+            if(replaceStr[j] == _u('$') && j + 1 < replace->GetLength())
             {
                 switch(replaceStr[j + 1])
                 {
-                    case L'$': // literal '$'
+                    case _u('$'): // literal '$'
                         ++j;
                         concatenated.Append(replace, i, j - i);
                         i = j + 1;
                         break;
 
-                    case L'&': // matched substring
+                    case _u('&'): // matched substring
                         concatenated.Append(replace, i, j - i);
                         concatenated.Append(match);
                         ++j;
                         i = j + 1;
                         break;
 
-                    case L'`': // portion of input string that precedes the matched substring
+                    case _u('`'): // portion of input string that precedes the matched substring
                         concatenated.Append(replace, i, j - i);
                         concatenated.Append(input, 0, matchedIndex);
                         ++j;
                         i = j + 1;
                         break;
 
-                    case L'\'': // portion of input string that follows the matched substring
+                    case _u('\''): // portion of input string that follows the matched substring
                         concatenated.Append(replace, i, j - i);
                         concatenated.Append(
                             input,
@@ -1372,10 +1372,10 @@ namespace Js
         {
             Var pThis = scriptContext->GetLibrary()->GetUndefined();
             JavascriptString* replace = JavascriptConversion::ToString(replacefn->GetEntryPoint()(replacefn, 4, pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input), scriptContext);
-            const wchar_t* inputStr = input->GetString();
-            const wchar_t* prefixStr = inputStr;
+            const char16* inputStr = input->GetString();
+            const char16* prefixStr = inputStr;
             CharCount prefixLength = indexMatched;
-            const wchar_t* postfixStr = inputStr + prefixLength + match->GetLength();
+            const char16* postfixStr = inputStr + prefixLength + match->GetLength();
             CharCount postfixLength = input->GetLength() - prefixLength - match->GetLength();
             CharCount newLength = prefixLength + postfixLength + replace->GetLength();
             BufferStringBuilder bufferString(newLength, match->GetScriptContext());
@@ -1461,8 +1461,8 @@ namespace Js
         else
         {
             PCWSTR varName = scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                ? L"RegExp.prototype[Symbol.split]"
-                : L"String.prototype.split";
+                ? _u("RegExp.prototype[Symbol.split]")
+                : _u("String.prototype.split");
             JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
             return RegexEs5SplitImpl(scriptContext, regularExpression, input, limit, noResult, stackAllocationPointer);
         }
@@ -1481,7 +1481,7 @@ namespace Js
 
     Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
-        PCWSTR const varName = L"RegExp.prototype[Symbol.split]";
+        PCWSTR const varName = _u("RegExp.prototype[Symbol.split]");
 
         Var speciesConstructor = JavascriptOperators::SpeciesConstructor(
             thisObj,
@@ -1491,7 +1491,7 @@ namespace Js
         JavascriptString* flags = JavascriptConversion::ToString(
             JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
             scriptContext);
-        bool unicode = wcsstr(flags->GetString(), L"u") != nullptr;
+        bool unicode = wcsstr(flags->GetString(), _u("u")) != nullptr;
         flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
 
         Js::Var args[] = { speciesConstructor, thisObj, flags };
@@ -1580,14 +1580,14 @@ namespace Js
 
     JavascriptString* RegexHelper::AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext)
     {
-        const wchar_t* flagsString = flags->GetString();
-        if (wcsstr(flagsString, L"y") == nullptr)
+        const char16* flagsString = flags->GetString();
+        if (wcsstr(flagsString, _u("y")) == nullptr)
         {
-            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"RegexHelper")
+            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
             {
                 StringBuilder<ArenaAllocator> bs(tempAlloc, flags->GetLength() + 1);
                 bs.Append(flagsString, flags->GetLength());
-                bs.Append(L'y');
+                bs.Append(_u('y'));
                 flags = Js::JavascriptString::NewCopyBuffer(bs.Detach(), bs.Count(), scriptContext);
             }
             END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
@@ -1619,7 +1619,7 @@ namespace Js
 
         UnifiedRegex::RegexPattern *splitPattern = GetSplitPattern(scriptContext, regularExpression);
 
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength(); // s in spec
         const int numGroups = splitPattern->NumGroups();
         Var nonMatchValue = NonMatchValue(scriptContext, false);
@@ -1700,7 +1700,7 @@ namespace Js
     }
 
     UnifiedRegex::GroupInfo
-    RegexHelper::SimpleMatch(ScriptContext * scriptContext, UnifiedRegex::RegexPattern * pattern, const wchar_t * input,  CharCount inputLength, CharCount offset)
+    RegexHelper::SimpleMatch(ScriptContext * scriptContext, UnifiedRegex::RegexPattern * pattern, const char16 * input,  CharCount inputLength, CharCount offset)
     {
         RegexMatchState state;
         PrimBeginMatch(state, scriptContext, pattern, input, inputLength, false);
@@ -1713,7 +1713,7 @@ namespace Js
     Var RegexHelper::RegexSearchImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
-        const wchar_t* inputStr = input->GetString();
+        const char16* inputStr = input->GetString();
         CharCount inputLength = input->GetLength();
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
@@ -1736,7 +1736,7 @@ namespace Js
         {
             CharCount count = min(input->GetLength(), limit);
             ary = scriptContext->GetLibrary()->CreateArray(count);
-            const wchar_t * charString = input->GetString();
+            const char16 * charString = input->GetString();
             for (CharCount i = 0; i < count; i++)
             {
                 ary->DirectSetItemAt(i, scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(charString[i]));
@@ -1776,13 +1776,13 @@ namespace Js
     // ----------------------------------------------------------------------
     // Primitives
     // ----------------------------------------------------------------------
-    void RegexHelper::PrimBeginMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, const wchar_t* input, CharCount inputLength, bool alwaysNeedAlloc)
+    void RegexHelper::PrimBeginMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, const char16* input, CharCount inputLength, bool alwaysNeedAlloc)
     {
         state.input = input;
         if (pattern->rep.unified.matcher == 0)
             pattern->rep.unified.matcher = UnifiedRegex::Matcher::New(scriptContext, pattern);
         if (alwaysNeedAlloc)
-            state.tempAllocatorObj = scriptContext->GetTemporaryAllocator(L"RegexUnifiedExecTemp");
+            state.tempAllocatorObj = scriptContext->GetTemporaryAllocator(_u("RegexUnifiedExecTemp"));
         else
             state.tempAllocatorObj = 0;
     }
@@ -1848,12 +1848,12 @@ namespace Js
             return scriptContext->GetLibrary()->GetEmptyString();
         case 1:
         {
-            const wchar_t* inputStr = input->GetString();
+            const char16* inputStr = input->GetString();
             return scriptContext->GetLibrary()->GetCharStringCache().GetStringForChar(inputStr[group.offset]);
         }
         case 2:
         {
-            const wchar_t* inputStr = input->GetString();
+            const char16* inputStr = input->GetString();
             PropertyString* propString = scriptContext->GetPropertyString2(inputStr[group.offset], inputStr[group.offset + 1]);
             if (propString != 0)
                 return propString;
@@ -2023,7 +2023,7 @@ namespace Js
     }
 
     template<bool mustMatchEntireInput>
-    BOOL RegexHelper::RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const wchar_t *const input, const CharCount inputLength)
+    BOOL RegexHelper::RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength)
     {
         // This version of the function should only be used when testing the regex against a non-javascript string. That is,
         // this call was not initiated by script code. Hence, the RegExp constructor is not updated with the last match. If
@@ -2059,8 +2059,8 @@ namespace Js
     }
 
     // explicit instantiation
-    template BOOL RegexHelper::RegexTest_NonScript<true>(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const wchar_t *const input, const CharCount inputLength);
-    template BOOL RegexHelper::RegexTest_NonScript<false>(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const wchar_t *const input, const CharCount inputLength);
+    template BOOL RegexHelper::RegexTest_NonScript<true>(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength);
+    template BOOL RegexHelper::RegexTest_NonScript<false>(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength);
 
     // Asserts if the value needs to be marshaled to target context.
     // Returns the resulting value.

@@ -266,7 +266,7 @@ class MemoryLeakCheck
 public:
     MemoryLeakCheck() : head(NULL), tail(NULL), leakedBytes(0), leakedCount(0), enableOutput(true) {}
     ~MemoryLeakCheck();
-    static void AddLeakDump(wchar_t const * dump, size_t bytes, size_t count);
+    static void AddLeakDump(char16 const * dump, size_t bytes, size_t count);
     static void SetEnableOutput(bool flag) { leakCheck.enableOutput = flag; }
     static bool IsEnableOutput() { return leakCheck.enableOutput; }
 private:
@@ -274,7 +274,7 @@ private:
 
     struct LeakRecord
     {
-        wchar_t const * dump;
+        char16 const * dump;
         LeakRecord * next;
     };
 

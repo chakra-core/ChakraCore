@@ -68,6 +68,7 @@ if (!(exp)) \
 #define Assert(exp)             AssertMsg(exp, #exp)
 #define _JSRT_
 #include "ChakraCommon.h"
+#include "Core/CommonTypedefs.h"
 #include "TestHooksRt.h"
 
 typedef void * Var;

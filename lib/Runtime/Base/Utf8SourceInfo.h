@@ -17,8 +17,8 @@ namespace Js
     public:
         bool HasSource() const { return !this->sourceHolder->IsEmpty(); }
 
-        LPCUTF8 GetSource(const wchar_t * reason = nullptr) const;
-        size_t GetCbLength(const wchar_t * reason = nullptr) const;
+        LPCUTF8 GetSource(const char16 * reason = nullptr) const;
+        size_t GetCbLength(const char16 * reason = nullptr) const;
 
         ULONG GetParseFlags()
         {
@@ -63,8 +63,8 @@ namespace Js
 
             if (inDebugMode)
             {
-                this->debugModeSource = this->sourceHolder->GetSource(L"Entering Debug Mode");
-                this->debugModeSourceLength = this->sourceHolder->GetByteLength(L"Entering Debug Mode");
+                this->debugModeSource = this->sourceHolder->GetSource(_u("Entering Debug Mode"));
+                this->debugModeSourceLength = this->sourceHolder->GetByteLength(_u("Entering Debug Mode"));
                 this->debugModeSourceIsEmpty = !this->HasSource() || this->debugModeSource == nullptr;
                 this->EnsureLineOffsetCache();
             }
@@ -79,18 +79,18 @@ namespace Js
 
         void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
         {
-            size_t cbMin = GetCbLength(L"Utf8SourceInfo::RetrieveSourceText") == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(L"Utf8SourceInfo::RetrieveSourceText"), GetCbLength(L"Utf8SourceInfo::RetrieveSourceText"), cchMin, utf8::doAllowThreeByteSurrogates);
-            utf8::DecodeInto(cpText, GetSource(L"Utf8SourceInfo::RetrieveSourceText") + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
+            size_t cbMin = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")) == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(_u("Utf8SourceInfo::RetrieveSourceText")), GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")), cchMin, utf8::doAllowThreeByteSurrogates);
+            utf8::DecodeInto(cpText, GetSource(_u("Utf8SourceInfo::RetrieveSourceText")) + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
         }
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
         {
-            return cchIndex < m_cchLength ? (GetCbLength(L"CharacterIndexToByteIndex") == m_cchLength ?  cchIndex : utf8::CharacterIndexToByteIndex(this->GetSource(L"CharacterIndexToByteIndex"), GetCbLength(L"CharacterIndexToByteIndex"), cchIndex, utf8::doAllowThreeByteSurrogates)) : m_cchLength;
+            return cchIndex < m_cchLength ? (GetCbLength(_u("CharacterIndexToByteIndex")) == m_cchLength ?  cchIndex : utf8::CharacterIndexToByteIndex(this->GetSource(_u("CharacterIndexToByteIndex")), GetCbLength(_u("CharacterIndexToByteIndex")), cchIndex, utf8::doAllowThreeByteSurrogates)) : m_cchLength;
         }
 
         charcount_t ByteIndexToCharacterIndex(size_t cbIndex) const
         {
-            return cbIndex < GetCbLength(L"CharacterIndexToByteIndex") ? static_cast< charcount_t>(GetCbLength(L"CharacterIndexToByteIndex") == m_cchLength ? cbIndex : utf8::ByteIndexIntoCharacterIndex(this->GetSource(L"CharacterIndexToByteIndex"), cbIndex, utf8::doAllowThreeByteSurrogates)) : static_cast< charcount_t >(GetCbLength(L"CharacterIndexToByteIndex"));
+            return cbIndex < GetCbLength(_u("CharacterIndexToByteIndex")) ? static_cast< charcount_t>(GetCbLength(_u("CharacterIndexToByteIndex")) == m_cchLength ? cbIndex : utf8::ByteIndexIntoCharacterIndex(this->GetSource(_u("CharacterIndexToByteIndex")), cbIndex, utf8::doAllowThreeByteSurrogates)) : static_cast< charcount_t >(GetCbLength(_u("CharacterIndexToByteIndex")));
         }
 
         charcount_t GetCchLength() const

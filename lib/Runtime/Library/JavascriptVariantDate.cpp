@@ -20,7 +20,7 @@ namespace Js
 
     Var JavascriptVariantDate::GetTypeOfString(ScriptContext* requestContext)
     {
-        return requestContext->GetLibrary()->CreateStringFromCppLiteral(L"date");
+        return requestContext->GetLibrary()->CreateStringFromCppLiteral(_u("date"));
     }
 
     JavascriptString* JavascriptVariantDate::GetValueString(ScriptContext* scriptContext)
@@ -51,7 +51,7 @@ namespace Js
 
     BOOL JavascriptVariantDate::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Date"); // For whatever reason in IE8 jscript, typeof returns "date"
+        stringBuilder->AppendCppLiteral(_u("Date")); // For whatever reason in IE8 jscript, typeof returns "date"
                                                   // while the debugger displays "Date" for the type
         return TRUE;
     }

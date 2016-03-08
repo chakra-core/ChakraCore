@@ -450,7 +450,7 @@ namespace Js
             {
                 if(functionBody->GetUtf8SourceInfo()->IsDynamic())
                 {
-                    *sourceFileName = L"Dynamic Code";
+                    *sourceFileName = _u("Dynamic Code");
                 }
                 else
                 {

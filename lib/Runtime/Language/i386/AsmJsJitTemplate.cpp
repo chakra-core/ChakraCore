@@ -16,7 +16,7 @@ static const BYTE RegEncode[] =
 };
 
 #if DBG_DUMP || ENABLE_DEBUG_CONFIG_OPTIONS
-extern wchar_t const * const RegNamesW[];
+extern char16 const * const RegNamesW[];
 #endif
 
 #include "AsmJsInstructionTemplate.h"
@@ -413,15 +413,15 @@ namespace Js
 #if DBG_DUMP
     template<> void ReturnContent::Print<int>()const
     {
-        Output::Print( L" = %d", intVal );
+        Output::Print( _u(" = %d"), intVal );
     }
     template<> void ReturnContent::Print<double>()const
     {
-        Output::Print( L" = %.4f", doubleVal );
+        Output::Print( _u(" = %.4f"), doubleVal );
     }
     template<> void ReturnContent::Print<float>()const
     {
-        Output::Print( L" = %.4f", doubleVal );
+        Output::Print( _u(" = %.4f"), doubleVal );
     }
     int AsmJsCallDepth = 0;
 #endif
@@ -462,7 +462,7 @@ namespace Js
             if (PHASE_TRACE1(Js::JITLoopBodyPhase) && CONFIG_FLAG(Verbose))
             {
                 fn->DumpFunctionId(true);
-                Output::Print(L": %-20s LoopBody Execute  Loop: %2d\n", fn->GetDisplayName(), loopNumber);
+                Output::Print(_u(": %-20s LoopBody Execute  Loop: %2d\n"), fn->GetDisplayName(), loopNumber);
                 Output::Flush();
             }
             loopHeader->nativeCount++;
@@ -531,7 +531,7 @@ namespace Js
             {
                 if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
                 {
-                    Output::Print(L"Scheduling %s For Full JIT at callcount:%d\n", body->GetDisplayName(), entryPointInfo->callsCount);
+                    Output::Print(_u("Scheduling %s For Full JIT at callcount:%d\n"), body->GetDisplayName(), entryPointInfo->callsCount);
                 }
                 GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
             }
@@ -585,9 +585,9 @@ namespace Js
         {
             if( AsmJsCallDepth )
             {
-                Output::Print( L"%*c", AsmJsCallDepth,' ');
+                Output::Print( _u("%*c"), AsmJsCallDepth,' ');
             }
-            Output::Print( L"Executing function %s(", body->GetDisplayName());
+            Output::Print( _u("Executing function %s("), body->GetDisplayName());
             ++AsmJsCallDepth;
         }
 #endif
@@ -644,7 +644,7 @@ namespace Js
 #if DBG_DUMP
                     if( tracingFunc )
                     {
-                        Output::Print( L" %d%c", *intArg, i+1 < argCount ? ',':' ');
+                        Output::Print( _u(" %d%c"), *intArg, i+1 < argCount ? ',':' ');
                     }
 #endif
                     ++intArg;
@@ -662,7 +662,7 @@ namespace Js
 #if DBG_DUMP
                     if (tracingFunc)
                     {
-                        Output::Print(L" %.4f%c", *floatArg, i + 1 < argCount ? ',' : ' ');
+                        Output::Print(_u(" %.4f%c"), *floatArg, i + 1 < argCount ? ',' : ' ');
                     }
 #endif
                     ++floatArg;
@@ -680,7 +680,7 @@ namespace Js
 #if DBG_DUMP
                     if( tracingFunc )
                     {
-                        Output::Print( L" %.4f%c", *doubleArg, i+1 < argCount ? ',':' ');
+                        Output::Print( _u(" %.4f%c"), *doubleArg, i+1 < argCount ? ',':' ');
                     }
 #endif
                     ++doubleArg;
@@ -702,19 +702,19 @@ namespace Js
                         switch (asmInfo->GetArgType(i).which())
                         {
                         case AsmJsType::Int32x4:
-                            Output::Print(L" I4(%d, %d, %d, %d)", \
+                            Output::Print(_u(" I4(%d, %d, %d, %d)"), \
                                 simdArg->i32[SIMD_X], simdArg->i32[SIMD_Y], simdArg->i32[SIMD_Z], simdArg->i32[SIMD_W]);
                             break;
                         case AsmJsType::Float32x4:
-                            Output::Print(L" F4(%.4f, %.4f, %.4f, %.4f)", \
+                            Output::Print(_u(" F4(%.4f, %.4f, %.4f, %.4f)"), \
                                 simdArg->f32[SIMD_X], simdArg->f32[SIMD_Y], simdArg->f32[SIMD_Z], simdArg->f32[SIMD_W]);
                             break;
                         case AsmJsType::Float64x2:
-                            Output::Print(L" D2(%.4f, %.4f)%c", \
+                            Output::Print(_u(" D2(%.4f, %.4f)%c"), \
                                 simdArg->f64[SIMD_X], simdArg->f64[SIMD_Y]);
                             break;
                         }
-                        Output::Print(L"%c", i + 1 < argCount ? ',' : ' ');
+                        Output::Print(_u("%c"), i + 1 < argCount ? ',' : ' ');
                     }
 #endif
                     ++simdArg;
@@ -725,7 +725,7 @@ namespace Js
 #if DBG_DUMP
         if( tracingFunc )
         {
-            Output::Print( L"){\n");
+            Output::Print( _u("){\n"));
         }
 #endif
     }
@@ -740,17 +740,17 @@ namespace Js
             --AsmJsCallDepth;
             if (AsmJsCallDepth)
             {
-                Output::Print(L"%*c}", AsmJsCallDepth, ' ');
+                Output::Print(_u("%*c}"), AsmJsCallDepth, ' ');
             }
             else
             {
-                Output::Print(L"}");
+                Output::Print(_u("}"));
             }
             if (asmInfo->GetReturnType() != AsmJsRetType::Void)
             {
                 //returnContent.Print<T>();
             }
-            Output::Print(L";\n");
+            Output::Print(_u(";\n"));
         }
     }
 #endif

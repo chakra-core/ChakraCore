@@ -91,34 +91,34 @@ namespace Js
     {
         Assert(size >= sizeof(Block));
 
-        return (size - sizeof(Block)) / sizeof(wchar_t);
+        return (size - sizeof(Block)) / sizeof(char16);
     }
 
     uint CompoundString::Block::SizeFromCharCapacity(const CharCount charCapacity)
     {
         Assert(IsValidCharCount(charCapacity));
-        return UInt32Math::Add(sizeof(Block), charCapacity * sizeof(wchar_t));
+        return UInt32Math::Add(sizeof(Block), charCapacity * sizeof(char16));
     }
 
     #endif
 
     inline CharCount CompoundString::Block::PointerAlign(const CharCount charLength)
     {
-        const CharCount alignedCharLength = ::Math::Align(charLength, static_cast<CharCount>(sizeof(void *) / sizeof(wchar_t)));
+        const CharCount alignedCharLength = ::Math::Align(charLength, static_cast<CharCount>(sizeof(void *) / sizeof(char16)));
         Assert(alignedCharLength >= charLength);
         return alignedCharLength;
     }
 
-    inline const wchar_t *CompoundString::Block::Chars(const void *const buffer)
+    inline const char16 *CompoundString::Block::Chars(const void *const buffer)
     {
-        return static_cast<const wchar_t *>(buffer);
+        return static_cast<const char16 *>(buffer);
     }
 
     #ifndef IsJsDiag
 
-    wchar_t *CompoundString::Block::Chars(void *const buffer)
+    char16 *CompoundString::Block::Chars(void *const buffer)
     {
-        return static_cast<wchar_t *>(buffer);
+        return static_cast<char16 *>(buffer);
     }
 
     #endif
@@ -137,26 +137,26 @@ namespace Js
 
     CharCount CompoundString::Block::PointerCapacityFromCharCapacity(const CharCount charCapacity)
     {
-        return charCapacity / (sizeof(void *) / sizeof(wchar_t));
+        return charCapacity / (sizeof(void *) / sizeof(char16));
     }
 
     CharCount CompoundString::Block::CharCapacityFromPointerCapacity(const CharCount pointerCapacity)
     {
-        return pointerCapacity * (sizeof(void *) / sizeof(wchar_t));
+        return pointerCapacity * (sizeof(void *) / sizeof(char16));
     }
 
     #endif
 
     inline CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
-        return PointerAlign(charLength) / (sizeof(void *) / sizeof(wchar_t));
+        return PointerAlign(charLength) / (sizeof(void *) / sizeof(char16));
     }
 
     #ifndef IsJsDiag
 
     CharCount CompoundString::Block::CharLengthFromPointerLength(const CharCount pointerLength)
     {
-        return pointerLength * (sizeof(void *) / sizeof(wchar_t));
+        return pointerLength * (sizeof(void *) / sizeof(char16));
     }
 
     uint CompoundString::Block::SizeFromUsedCharLength(const CharCount usedCharLength)
@@ -180,7 +180,7 @@ namespace Js
         // 'additionalSizeForPointerAppend' should be provided when appending a pointer also involves creating a string object
         // or some other additional space (such as LiteralString, in which case this parameter should be sizeof(LiteralString)),
         // as that additional size also needs to be taken into account.
-        return appendCharLength <= (sizeof(void *) * 2 + additionalSizeForPointerAppend) / sizeof(wchar_t);
+        return appendCharLength <= (sizeof(void *) * 2 + additionalSizeForPointerAppend) / sizeof(char16);
     }
 
     const void *CompoundString::Block::Buffer() const
@@ -198,12 +198,12 @@ namespace Js
         return previous;
     }
 
-    const wchar_t *CompoundString::Block::Chars() const
+    const char16 *CompoundString::Block::Chars() const
     {
         return Chars(Buffer());
     }
 
-    wchar_t *CompoundString::Block::Chars()
+    char16 *CompoundString::Block::Chars()
     {
         return Chars(Buffer());
     }
@@ -283,7 +283,7 @@ namespace Js
         CopyFrom(block);
     }
 
-    wchar_t *CompoundString::BlockInfo::Chars() const
+    char16 *CompoundString::BlockInfo::Chars() const
     {
         return Block::Chars(buffer);
     }
@@ -332,7 +332,7 @@ namespace Js
         const CharCount alignedCharCapacity =
             ::Math::AlignOverflowCheck(
                 charCapacity == 0 ? static_cast<CharCount>(1) : charCapacity,
-                static_cast<CharCount>(HeapConstants::ObjectGranularity / sizeof(wchar_t)));
+                static_cast<CharCount>(HeapConstants::ObjectGranularity / sizeof(char16)));
         Assert(alignedCharCapacity != 0);
         return alignedCharCapacity;
     }
@@ -352,7 +352,7 @@ namespace Js
         Assert(charCapacity != 0);
         Assert(AlignCharCapacityForAllocation(charCapacity) == charCapacity);
 
-        return charCapacity < Block::ChainSizeThreshold / sizeof(wchar_t);
+        return charCapacity < Block::ChainSizeThreshold / sizeof(char16);
     }
 
     void CompoundString::BlockInfo::AllocateBuffer(const CharCount charCapacity, Recycler *const recycler)
@@ -363,7 +363,7 @@ namespace Js
         Assert(ShouldAllocateBuffer(charCapacity));
         Assert(recycler);
 
-        buffer = RecyclerNewArray(recycler, wchar_t, charCapacity);
+        buffer = RecyclerNewArray(recycler, char16, charCapacity);
         this->charCapacity = charCapacity;
     }
 
@@ -383,7 +383,7 @@ namespace Js
         {
             AllocateBuffer(charCapacity, recycler);
             charLength = usedCharLength;
-            js_wmemcpy_s((wchar_t*)(this->buffer), charCapacity, (wchar_t*)(buffer), usedCharLength);
+            js_wmemcpy_s((char16*)(this->buffer), charCapacity, (char16*)(buffer), usedCharLength);
             return nullptr;
         }
 
@@ -399,10 +399,10 @@ namespace Js
         const CharCount newCharCapacity = GrowCharCapacity(AlignCharCapacityForAllocation(CharLength()));
         if(ShouldAllocateBuffer(newCharCapacity))
         {
-            void *const newBuffer = RecyclerNewArray(recycler, wchar_t, newCharCapacity);
+            void *const newBuffer = RecyclerNewArray(recycler, char16, newCharCapacity);
             charCapacity = newCharCapacity;
             const CharCount charLength = CharLength();
-            js_wmemcpy_s((wchar_t*)newBuffer, charCapacity, (wchar_t*)buffer, charLength);
+            js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)buffer, charLength);
             buffer = newBuffer;
             return nullptr;
         }
@@ -639,7 +639,7 @@ namespace Js
 
         if(PHASE_TRACE_StringConcat)
         {
-            Output::Print(L"CompoundString::SwitchToPointerMode()\n");
+            Output::Print(_u("CompoundString::SwitchToPointerMode()\n"));
             Output::Flush();
         }
     }
@@ -649,7 +649,7 @@ namespace Js
         return ownsLastBlock;
     }
 
-    const wchar_t *CompoundString::GetAppendStringBuffer(JavascriptString *const s) const
+    const char16 *CompoundString::GetAppendStringBuffer(JavascriptString *const s) const
     {
         Assert(s);
 
@@ -658,7 +658,7 @@ namespace Js
         return s == this ? FromVar(s)->Clone(false)->GetSz() : s->GetString();
     }
 
-    wchar_t *CompoundString::LastBlockChars() const
+    char16 *CompoundString::LastBlockChars() const
     {
         return lastBlockInfo.Chars();
     }
@@ -795,7 +795,7 @@ namespace Js
 
     #ifndef IsJsDiag
 
-    void CompoundString::AppendSlow(const wchar_t c)
+    void CompoundString::AppendSlow(const char16 c)
     {
         Grow();
         const bool appended =
@@ -813,7 +813,7 @@ namespace Js
     }
 
     void CompoundString::AppendSlow(
-        __in_xcount(appendCharLength) const wchar_t *const s,
+        __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength)
     {
         Assert(!IsFinalized());
@@ -877,12 +877,12 @@ namespace Js
         TakeOwnershipOfLastBlock();
     }
 
-    void CompoundString::Append(const wchar_t c)
+    void CompoundString::Append(const char16 c)
     {
         AppendGeneric(c, this, false);
     }
 
-    void CompoundString::AppendChars(const wchar_t c)
+    void CompoundString::AppendChars(const char16 c)
     {
         AppendGeneric(c, this, true);
     }
@@ -914,20 +914,20 @@ namespace Js
     }
 
     void CompoundString::Append(
-        __in_xcount(appendCharLength) const wchar_t *const s,
+        __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength)
     {
         AppendGeneric(s, appendCharLength, this, false);
     }
 
     void CompoundString::AppendChars(
-        __in_xcount(appendCharLength) const wchar_t *const s,
+        __in_xcount(appendCharLength) const char16 *const s,
         const CharCount appendCharLength)
     {
         AppendGeneric(s, appendCharLength, this, true);
     }
 
-    void CompoundString::AppendCharsSz(__in_z const wchar_t *const s)
+    void CompoundString::AppendCharsSz(__in_z const char16 *const s)
     {
         size_t len = wcslen(s);
         // We limit the length of the string to MaxCharCount,
@@ -993,7 +993,7 @@ namespace Js
         lastBlock = nullptr;
     }
 
-    const wchar_t *CompoundString::GetSz()
+    const char16 *CompoundString::GetSz()
     {
         Assert(!IsFinalized());
 
@@ -1003,7 +1003,7 @@ namespace Js
             case 0:
             {
                 Unreference();
-                const wchar_t *const buffer = L"";
+                const char16 *const buffer = _u("");
                 SetBuffer(buffer);
                 VirtualTableInfo<LiteralString>::SetVirtualTable(this);
                 return buffer;
@@ -1014,7 +1014,7 @@ namespace Js
                 Assert(HasOnlyDirectChars());
                 Assert(LastBlockCharLength() == 1);
 
-                const wchar_t *const buffer = GetLibrary()->GetCharStringCache().GetStringForChar(LastBlockChars()[0])->UnsafeGetBuffer();
+                const char16 *const buffer = GetLibrary()->GetCharStringCache().GetStringForChar(LastBlockChars()[0])->UnsafeGetBuffer();
                 Unreference();
                 SetBuffer(buffer);
                 VirtualTableInfo<LiteralString>::SetVirtualTable(this);
@@ -1028,14 +1028,14 @@ namespace Js
             // last block, has only direct chars, and the buffer was allocated directly (buffer pointer is not an internal
             // pointer), there is no need to copy the buffer.
             SetLength(totalCharLength); // terminating null should not count towards the string length
-            const wchar_t *const buffer = LastBlockChars();
+            const char16 *const buffer = LastBlockChars();
             Unreference();
             SetBuffer(buffer);
             VirtualTableInfo<LiteralString>::SetVirtualTable(this);
             return buffer;
         }
 
-        wchar_t *const buffer = RecyclerNewArrayLeaf(GetScriptContext()->GetRecycler(), wchar_t, SafeSzSize(totalCharLength));
+        char16 *const buffer = RecyclerNewArrayLeaf(GetScriptContext()->GetRecycler(), char16, SafeSzSize(totalCharLength));
         buffer[totalCharLength] = L'\0'; // GetSz() requires null termination
         Copy<CompoundString>(buffer, totalCharLength);
         Assert(buffer[totalCharLength] == L'\0');
@@ -1046,7 +1046,7 @@ namespace Js
     }
 
     void CompoundString::CopyVirtual(
-        _Out_writes_(m_charLength) wchar_t *const buffer,
+        _Out_writes_(m_charLength) char16 *const buffer,
         StringCopyInfoStack &nestedStringTreeCopyInfos,
         const byte recursionDepth)
     {
@@ -1176,7 +1176,7 @@ namespace Js
             }
 
             // Copy direct chars
-            const wchar_t *blockChars = block == lastBlock ? LastBlockChars() : block->Chars();
+            const char16 *blockChars = block == lastBlock ? LastBlockChars() : block->Chars();
             while(true)
             {
                 if(blockCharLength != 0)

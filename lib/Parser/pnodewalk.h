@@ -519,6 +519,9 @@ private:
         case knopClassDecl:
             return WalkClass(pnode, context);
 
+        case knopExportDefault:
+            return Walk(pnode->sxExportDefault.pnodeExpr, context);
+
         default:
         {
             uint fnop = ParseNode::Grfnop(pnode->nop);

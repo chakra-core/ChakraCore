@@ -854,4 +854,9 @@
       <compile-flags>-maxinterpretcount:2 -force:jitloopbody -force:rejit -off:bailonnoprofile</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck4.js</files>
+    </default>
+  </test>
 </regress-exe>

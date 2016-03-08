@@ -339,9 +339,9 @@ void const * GetMethodOriginalAddress(JnHelperMethod helperMethod)
 
 
 
-wchar_t const * const JnHelperMethodNames[] =
+char16 const * const JnHelperMethodNames[] =
 {
-#define HELPERCALL(Name, Address, Attributes) L"" STRINGIZEW(Name) L"",
+#define HELPERCALL(Name, Address, Attributes) _u("") STRINGIZEW(Name) _u(""),
 #include "JnHelperMethodList.h"
 #undef HELPERCALL
 
@@ -356,7 +356,7 @@ wchar_t const * const JnHelperMethodNames[] =
 ///
 ///----------------------------------------------------------------------------
 
-wchar_t const*
+char16 const*
 GetMethodName(JnHelperMethod helperMethod)
 {
     return JnHelperMethodNames[static_cast<WORD>(helperMethod)];
@@ -368,129 +368,129 @@ GetMethodName(JnHelperMethod helperMethod)
 } //namespace IR
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-const wchar_t *GetVtableName(VTableValue value)
+const char16 *GetVtableName(VTableValue value)
 {
     switch (value)
     {
 #if !defined(_M_X64)
     case VtableJavascriptNumber:
-        return L"vtable JavascriptNumber";
+        return _u("vtable JavascriptNumber");
         break;
 #endif
     case VtableDynamicObject:
-        return L"vtable DynamicObject";
+        return _u("vtable DynamicObject");
         break;
     case VtableInvalid:
-        return L"vtable Invalid";
+        return _u("vtable Invalid");
         break;
     case VtablePropertyString:
-        return L"vtable PropertyString";
+        return _u("vtable PropertyString");
         break;
     case VtableJavascriptBoolean:
-        return L"vtable JavascriptBoolean";
+        return _u("vtable JavascriptBoolean");
         break;
     case VtableSmallDynamicObjectSnapshotEnumeratorWPCache:
-        return L"vtable SmallDynamicObjectSnapshotEnumeratorWPCache";
+        return _u("vtable SmallDynamicObjectSnapshotEnumeratorWPCache");
         break;
     case VtableJavascriptArray:
-        return L"vtable JavascriptArray";
+        return _u("vtable JavascriptArray");
         break;
     case VtableInt8Array:
-        return L"vtable Int8Array";
+        return _u("vtable Int8Array");
         break;
     case VtableUint8Array:
-        return L"vtable Uint8Array";
+        return _u("vtable Uint8Array");
         break;
     case VtableUint8ClampedArray:
-        return L"vtable Uint8ClampedArray";
+        return _u("vtable Uint8ClampedArray");
         break;
     case VtableInt16Array:
-        return L"vtable Int16Array";
+        return _u("vtable Int16Array");
         break;
     case VtableUint16Array:
-        return L"vtable Uint16Array";
+        return _u("vtable Uint16Array");
         break;
     case VtableInt32Array:
-        return L"vtable Int32Array";
+        return _u("vtable Int32Array");
         break;
     case VtableUint32Array:
-        return L"vtable Uint32Array";
+        return _u("vtable Uint32Array");
         break;
     case VtableFloat32Array:
-        return L"vtable Float32Array";
+        return _u("vtable Float32Array");
         break;
     case VtableFloat64Array:
-        return L"vtable Float64Array";
+        return _u("vtable Float64Array");
         break;
     case VtableJavascriptPixelArray:
-        return L"vtable JavascriptPixelArray";
+        return _u("vtable JavascriptPixelArray");
         break;
     case VtableInt64Array:
-        return L"vtable Int64Array";
+        return _u("vtable Int64Array");
         break;
     case VtableUint64Array:
-        return L"vtable Uint64Array";
+        return _u("vtable Uint64Array");
         break;
     case VtableInt8VirtualArray:
-        return L"vtable Int8VirtualArray";
+        return _u("vtable Int8VirtualArray");
         break;
     case VtableUint8VirtualArray:
-        return L"vtable Uint8VirtualArray";
+        return _u("vtable Uint8VirtualArray");
         break;
     case VtableUint8ClampedVirtualArray:
-        return L"vtable Uint8ClampedVirtualArray";
+        return _u("vtable Uint8ClampedVirtualArray");
         break;
     case VtableInt16VirtualArray:
-        return L"vtable Int16VirtualArray";
+        return _u("vtable Int16VirtualArray");
         break;
     case VtableUint16VirtualArray:
-        return L"vtable Uint16VirtualArray";
+        return _u("vtable Uint16VirtualArray");
         break;
     case VtableInt32VirtualArray:
-        return L"vtable Int32VirtualArray";
+        return _u("vtable Int32VirtualArray");
         break;
     case VtableUint32VirtualArray:
-        return L"vtable Uint32VirtualArray";
+        return _u("vtable Uint32VirtualArray");
         break;
     case VtableFloat32VirtualArray:
-        return L"vtable Float32VirtualArray";
+        return _u("vtable Float32VirtualArray");
         break;
     case VtableFloat64VirtualArray:
-        return L"vtable Float64VirtualArray";
+        return _u("vtable Float64VirtualArray");
         break;
     case VtableBoolArray:
-        return L"vtable BoolArray";
+        return _u("vtable BoolArray");
         break;
     case VtableCharArray:
-        return L"vtable CharArray";
+        return _u("vtable CharArray");
         break;
     case VtableNativeIntArray:
-        return L"vtable NativeIntArray";
+        return _u("vtable NativeIntArray");
         break;
     case VtableNativeFloatArray:
-        return L"vtable NativeFloatArray";
+        return _u("vtable NativeFloatArray");
         break;
     case VtableJavascriptNativeIntArray:
-        return L"vtable JavascriptNativeIntArray";
+        return _u("vtable JavascriptNativeIntArray");
         break;
     case VtableJavascriptRegExp:
-        return L"vtable JavascriptRegExp";
+        return _u("vtable JavascriptRegExp");
         break;
     case VtableStackScriptFunction:
-        return L"vtable StackScriptFunction";
+        return _u("vtable StackScriptFunction");
         break;
     case VtableConcatStringMulti:
-        return L"vtable ConcatStringMulti";
+        return _u("vtable ConcatStringMulti");
         break;
     case VtableCompoundString:
-        return L"vtable CompoundString";
+        return _u("vtable CompoundString");
         break;
     default:
         Assert(false);
         break;
     }
 
-    return L"vtable unknown";
+    return _u("vtable unknown");
 }
 #endif
 

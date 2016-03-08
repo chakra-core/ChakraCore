@@ -137,7 +137,7 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) wchar_t* name,long len);
+    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,long len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 
@@ -323,9 +323,9 @@ public:
         switch(m_parseType)
         {
             case ParseType_Upfront:
-                return L"Upfront";
+                return _u("Upfront");
             case ParseType_Deferred:
-                return L"Deferred";
+                return _u("Deferred");
         }
         Assert(false);
         return NULL;
@@ -528,11 +528,16 @@ protected:
     ModuleExportEntryList* EnsureModuleIndirectExportEntryList();
     ModuleExportEntryList* EnsureModuleStarExportEntryList();
 
+    void AddModuleSpecifier(IdentPtr moduleRequest);
     void AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode);
+    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry);
     void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
+    void CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName);
 
-    ParseNodePtr CreateModuleImportDeclNode(IdentPtr pid);
+    Js::PropertyId EnsurePropertyId(IdentPtr pid);
+    ParseNodePtr CreateModuleImportDeclNode(IdentPtr localName);
+    void MarkIdentifierReferenceIsModuleExport(IdentPtr localName);
 
 public:
     WellKnownPropertyPids* names(){ return &wellKnownPropertyPids; }
@@ -814,6 +819,7 @@ private:
     template<bool buildAST> void ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma = false);
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
     template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause);
     template<bool buildAST> IdentPtr ParseImportOrExportFromClause(bool throwIfNotFound);

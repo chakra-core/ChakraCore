@@ -599,7 +599,7 @@ static const AssemblyStep Steps_T2_ALU_dnm [] =
     STEP_OPCODE, STEP_DONE
 };
 
-// Thumbs :  TEQ rn, rn LSL#1 (aka, TIOFLW)
+// Thumbs :  TEQ rn, rn LS_u(#1) (aka, TIOFLW)
 static const AssemblyStep Steps_T2_ALU_nn [] =
 {
    STEP_REG, 0, STEP_REG, 16, STEP_OPCODE, STEP_DONE

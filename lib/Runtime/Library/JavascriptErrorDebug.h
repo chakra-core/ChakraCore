@@ -88,6 +88,6 @@ namespace Js
         static HRESULT GetExcepAndErrorInfo(ScriptContext* scriptContext, HRESULT hrReturned, EXCEPINFO *pexcepinfo, RestrictedErrorStrings * proerrstr, IErrorInfo ** pperrinfo);
         RestrictedErrorStrings restrictedStrings; // WinRT specific error strings
         IErrorInfo * pErrorInfo; // reference to the original IErrorInfo object
-        static __declspec(thread)  wchar_t msgBuff[512];
+        static __declspec(thread)  char16 msgBuff[512];
     };
 }

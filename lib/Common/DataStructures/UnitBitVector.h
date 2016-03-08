@@ -461,7 +461,7 @@ public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     void DumpWord()
     {
-        Output::Print(L"%p", this->word);
+        Output::Print(_u("%p"), this->word);
     }
 
     bool Dump(BVIndex base = 0, bool hasBits = false) const
@@ -470,9 +470,9 @@ public:
         {
             if (hasBits)
             {
-                Output::Print(L", ");
+                Output::Print(_u(", "));
             }
-            Output::Print(L"%u", index + base);
+            Output::Print(_u("%u"), index + base);
             hasBits = true;
         }
         NEXT_BITSET_IN_UNITBV;

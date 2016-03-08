@@ -34,7 +34,7 @@ namespace Js
     {
         if (name == m.GetParser()->names()->arguments || name == m.GetParser()->names()->eval)
         {
-            return m.FailName(usepn, L"'%s' is not an allowed identifier", name);
+            return m.FailName(usepn, _u("'%s' is not an allowed identifier"), name);
         }
         return true;
     }
@@ -48,7 +48,7 @@ namespace Js
         }
         if (name == m.GetModuleFunctionName())
         {
-            return m.FailName(usepn, L"duplicate name '%s' not allowed", name);
+            return m.FailName(usepn, _u("duplicate name '%s' not allowed"), name);
         }
         //Check for all the duplicates here.
         return true;
@@ -61,31 +61,31 @@ namespace Js
         PnFnc fnc = fn->sxFnc;
         if (fnc.HasNonSimpleParameterList())
         {
-            return m.Fail(fn, L"default & rest args not allowed");
+            return m.Fail(fn, _u("default & rest args not allowed"));
         }
         if (fnc.IsStaticMember())
         {
-            return m.Fail(fn, L"static functions are not allowed");
+            return m.Fail(fn, _u("static functions are not allowed"));
         }
 
         if (fnc.IsGenerator())
         {
-            return m.Fail(fn, L"generator functions are not allowed");
+            return m.Fail(fn, _u("generator functions are not allowed"));
         }
 
         if (fnc.IsLambda())
         {
-            return m.Fail(fn, L"lambda functions are not allowed");
+            return m.Fail(fn, _u("lambda functions are not allowed"));
         }
 
         if (!isGlobal && fnc.nestedCount != 0)
         {
-            return m.Fail(fn, L"closure functions are not allowed");
+            return m.Fail(fn, _u("closure functions are not allowed"));
         }
 
         if (fnc.HasDefaultArguments())
         {
-            return m.Fail(fn, L"default arguments not allowed");
+            return m.Fail(fn, _u("default arguments not allowed"));
         }
 
         return true;
@@ -144,7 +144,7 @@ namespace Js
 
             if (!target || target->nop != knopName)
             {
-                return m.Fail(coercionNode, L"Call must be of the form id(...)");
+                return m.Fail(coercionNode, _u("Call must be of the form id(...)"));
             }
 
             simdSym = m.LookupSimdTypeCheck(target->name());
@@ -176,7 +176,7 @@ namespace Js
                 }
                 else
                 {
-                    return m.Fail(coercionNode, L"Invalid SIMD coercion");
+                    return m.Fail(coercionNode, _u("Invalid SIMD coercion"));
                 }
 
             }
@@ -188,7 +188,7 @@ namespace Js
 
             if (!(mathSym && mathSym->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
             {
-                return m.Fail( coercionNode, L"call must be to fround coercion" );
+                return m.Fail( coercionNode, _u("call must be to fround coercion") );
             }
             if( coercedExpr )
             {
@@ -211,7 +211,7 @@ namespace Js
             }
             else if (coercionNode->sxFlt.maybeInt)
             {
-                return m.Fail(coercionNode, L"Integer literal in return must be in range [-2^31, 2^31)");
+                return m.Fail(coercionNode, _u("Integer literal in return must be in range [-2^31, 2^31)"));
             }
             else
             {
@@ -230,14 +230,14 @@ namespace Js
 
             if (!constSymSource)
             {
-                return m.Fail(coercionNode, L"Identifier not globally declared");
+                return m.Fail(coercionNode, _u("Identifier not globally declared"));
             }
 
             AsmJsVar * constSrc = constSymSource->Cast<AsmJsVar>();
 
             if (constSymSource->GetSymbolType() != AsmJsSymbol::Variable || constSrc->isMutable())
             {
-                return m.Fail(coercionNode, L"Unannotated variables must be constant");
+                return m.Fail(coercionNode, _u("Unannotated variables must be constant"));
             }
 
             if (constSrc->GetType().isSigned())
@@ -262,7 +262,7 @@ namespace Js
         default:;
         }
 
-        return m.Fail( coercionNode, L"must be of the form +x, fround(x) or x|0" );
+        return m.Fail( coercionNode, _u("must be of the form +x, fround(x) or x|0") );
     }
 
     bool
@@ -270,7 +270,7 @@ namespace Js
     {
         if (!ParserWrapper::IsDefinition(arg))
         {
-            return m.Fail(arg, L"duplicate argument name not allowed");
+            return m.Fail(arg, _u("duplicate argument name not allowed"));
         }
 
         if (!CheckIdentifier(m, arg, arg->name()))
@@ -285,7 +285,7 @@ namespace Js
 
         if (!m.DefineIdentifier(*name, moduleArg))
         {
-            return m.Fail(arg, L"duplicate argument name not allowed");
+            return m.Fail(arg, _u("duplicate argument name not allowed"));
         }
 
         if (!CheckModuleLevelName(m, arg, *name))
@@ -307,7 +307,7 @@ namespace Js
 
         if (numFormals > 3)
         {
-            return m.Fail(fn, L"asm.js modules takes at most 3 argument");
+            return m.Fail(fn, _u("asm.js modules takes at most 3 argument"));
         }
 
         PropertyName arg1Name = nullptr;
@@ -339,7 +339,7 @@ namespace Js
     {
         if( !ParserWrapper::IsDotMember(coercedExpr) )
         {
-            return m.FailName( coercedExpr, L"invalid import expression for global '%s'", varName );
+            return m.FailName( coercedExpr, _u("invalid import expression for global '%s'"), varName );
         }
         ParseNode *base = ParserWrapper::DotBase(coercedExpr);
         PropertyName field = ParserWrapper::DotMember(coercedExpr);
@@ -347,12 +347,12 @@ namespace Js
         PropertyName importName = m.GetForeignArgName();
         if (!importName || !field)
         {
-            return m.Fail(coercedExpr, L"cannot import without an asm.js foreign parameter");
+            return m.Fail(coercedExpr, _u("cannot import without an asm.js foreign parameter"));
         }
         m.GetByteCodeGenerator()->AssignPropertyId(field);
         if ((base->name() != importName))
         {
-            return m.FailName(coercedExpr, L"base of import expression must be '%s'", importName);
+            return m.FailName(coercedExpr, _u("base of import expression must be '%s'"), importName);
         }
         return m.AddGlobalVarImport(varName, field, coercion);
     }
@@ -384,17 +384,17 @@ namespace Js
             PropertyName globalName = m.GetStdLibArgName();
             if (!globalName)
             {
-                return m.Fail(base, L"cannot create array view without an asm.js global parameter");
+                return m.Fail(base, _u("cannot create array view without an asm.js global parameter"));
             }
 
             if (!ParserWrapper::IsNameDeclaration(base) || base->name() != globalName)
             {
-                return m.FailName(base, L"expecting '%s.*Array", globalName);
+                return m.FailName(base, _u("expecting '%s.*Array"), globalName);
             }
             PropertyName fieldName = ParserWrapper::DotMember(ctorExpr);
             if (!fieldName)
             {
-                return m.FailName(ctorExpr, L"Failed to define array view to var %s", varName);
+                return m.FailName(ctorExpr, _u("Failed to define array view to var %s"), varName);
             }
             PropertyId field = fieldName->GetPropertyId();
 
@@ -433,7 +433,7 @@ namespace Js
                 m.AddArrayBuiltinUse(AsmJSTypedArrayBuiltin_Float64Array);
                 break;
             default:
-                return m.Fail(ctorExpr, L"could not match typed array name");
+                return m.Fail(ctorExpr, _u("could not match typed array name"));
                 break;
             }
         }
@@ -443,40 +443,40 @@ namespace Js
 
             if (!buffFunc || buffFunc->GetSymbolType() != AsmJsSymbol::TypedArrayBuiltinFunction)
             {
-                return m.Fail(ctorExpr, L"invalid 'new' import");
+                return m.Fail(ctorExpr, _u("invalid 'new' import"));
             }
             type = buffFunc->Cast<AsmJsTypedArrayFunction>()->GetViewType();
             if (type == ArrayBufferView::TYPE_INVALID)
             {
-                return m.Fail(ctorExpr, L"could not match typed array name");
+                return m.Fail(ctorExpr, _u("could not match typed array name"));
             }
         }
         else
         {
-            return m.Fail(newExpr, L"invalid 'new' import");
+            return m.Fail(newExpr, _u("invalid 'new' import"));
         }
 
         ParseNode *bufArg = newExpr->sxCall.pnodeArgs;
         if( !bufArg || !ParserWrapper::IsNameDeclaration( bufArg ) )
         {
-            return m.Fail( ctorExpr, L"array view constructor takes exactly one argument" );
+            return m.Fail( ctorExpr, _u("array view constructor takes exactly one argument") );
         }
 
         PropertyName bufferName = m.GetBufferArgName();
         if( !bufferName )
         {
-            return m.Fail( bufArg, L"cannot create array view without an asm.js heap parameter" );
+            return m.Fail( bufArg, _u("cannot create array view without an asm.js heap parameter") );
         }
 
         if( bufferName != bufArg->name() )
         {
-            return m.FailName( bufArg, L"argument to array view constructor must be '%s'", bufferName );
+            return m.FailName( bufArg, _u("argument to array view constructor must be '%s'"), bufferName );
         }
 
 
         if( !m.AddArrayView( varName, type ) )
         {
-            return m.FailName( ctorExpr, L"Failed to define array view to var %s", varName );
+            return m.FailName( ctorExpr, _u("Failed to define array view to var %s"), varName );
         }
         return true;
     }
@@ -488,7 +488,7 @@ namespace Js
         PropertyName field = ParserWrapper::DotMember(initNode);
         if( !field )
         {
-            return m.Fail( initNode, L"Global import must be in the form c.x where c is stdlib or foreign and x is a string literal" );
+            return m.Fail( initNode, _u("Global import must be in the form c.x where c is stdlib or foreign and x is a string literal") );
         }
         m.GetByteCodeGenerator()->AssignPropertyId(field);
         PropertyName lib = nullptr;
@@ -501,14 +501,14 @@ namespace Js
             {
                 if (!lib || (lib->GetPropertyId() != PropertyIds::Math && lib->GetPropertyId() != PropertyIds::SIMD))
                 {
-                    return m.FailName(initNode, L"'%s' should be Math or SIMD, as in global.Math.xxxx", field);
+                    return m.FailName(initNode, _u("'%s' should be Math or SIMD, as in global.Math.xxxx"), field);
                 }
             }
             else
             {
                 if (!lib || lib->GetPropertyId() != PropertyIds::Math)
                 {
-                    return m.FailName(initNode, L"'%s' should be Math, as in global.Math.xxxx", field);
+                    return m.FailName(initNode, _u("'%s' should be Math, as in global.Math.xxxx"), field);
                 }
             }
         }
@@ -525,17 +525,17 @@ namespace Js
 
                     if (!m.LookupStdLibSIMDName(field->GetPropertyId(), field, &simdFunc))
                     {
-                        return m.FailName(initNode, L"'%s' is not standard SIMD builtin", varName);
+                        return m.FailName(initNode, _u("'%s' is not standard SIMD builtin"), varName);
                     }
 
                     if (simdFunc->GetName() != nullptr)
                     {
-                        OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, L"Warning: SIMD Builtin already defined for var %s", simdFunc->GetName()->Psz());
+                        OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: SIMD Builtin already defined for var %s"), simdFunc->GetName()->Psz());
                     }
                     simdFunc->SetName(varName);
                     if (!m.DefineIdentifier(varName, simdFunc))
                     {
-                        return m.FailName(initNode, L"Failed to define SIMD builtin function to var %s", varName);
+                        return m.FailName(initNode, _u("Failed to define SIMD builtin function to var %s"), varName);
                     }
                     m.AddSimdBuiltinUse(simdFunc->GetSimdBuiltInFunction());
                     return true;
@@ -552,12 +552,12 @@ namespace Js
                     auto func = mathBuiltin.u.func;
                     if (func->GetName() != nullptr)
                     {
-                        OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, L"Warning: Math Builtin already defined for var %s", func->GetName()->Psz());
+                        OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: Math Builtin already defined for var %s"), func->GetName()->Psz());
                     }
                     func->SetName(varName);
                     if (!m.DefineIdentifier(varName, func))
                     {
-                        return m.FailName(initNode, L"Failed to define math builtin function to var %s", varName);
+                        return m.FailName(initNode, _u("Failed to define math builtin function to var %s"), varName);
                     }
                     m.AddMathBuiltinUse(func->GetMathBuiltInFunction());
                 }
@@ -565,7 +565,7 @@ namespace Js
                 case MathBuiltin::Constant:
                     if (!m.AddNumericConst(varName, mathBuiltin.u.cst))
                     {
-                        return m.FailName(initNode, L"Failed to define math constant to var %s", varName);
+                        return m.FailName(initNode, _u("Failed to define math constant to var %s"), varName);
                     }
                     m.AddMathBuiltinUse(mathBuiltin.mathLibFunctionName);
                     break;
@@ -580,18 +580,18 @@ namespace Js
             {
                 if (arrayBuiltin.mFunc->GetName() != nullptr)
                 {
-                    OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, L"Warning: Typed array builtin already defined for var %s", arrayBuiltin.mFunc->GetName()->Psz());
+                    OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: Typed array builtin already defined for var %s"), arrayBuiltin.mFunc->GetName()->Psz());
                 }
                 arrayBuiltin.mFunc->SetName(varName);
                 if (!m.DefineIdentifier(varName, arrayBuiltin.mFunc))
                 {
-                    return m.FailName(initNode, L"Failed to define typed array builtin function to var %s", varName);
+                    return m.FailName(initNode, _u("Failed to define typed array builtin function to var %s"), varName);
                 }
                 m.AddArrayBuiltinUse(arrayBuiltin.mFunc->GetArrayBuiltInFunction());
                 return true;
             }
 
-            return m.FailName(initNode, L"'%s' is not a standard Math builtin", field);
+            return m.FailName(initNode, _u("'%s' is not a standard Math builtin"), field);
         }
         else if( ParserWrapper::IsNameDeclaration(base) && base->name() == m.GetForeignArgName() )
         {
@@ -607,26 +607,26 @@ namespace Js
             simdFunc = m.LookupSimdConstructor(base->name());
             if (simdFunc == nullptr || !m.LookupStdLibSIMDName(simdFunc->GetSimdBuiltInFunction(), field, &operation))
             {
-                return m.FailName(initNode, L"Invalid dot expression import. %s is not a standard SIMD operation", varName);
+                return m.FailName(initNode, _u("Invalid dot expression import. %s is not a standard SIMD operation"), varName);
             }
 
             if (operation->GetName() != nullptr)
             {
-                OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, L"Warning: SIMD Builtin already defined for var %s", operation->GetName()->Psz());
+                OutputMessage(m.GetScriptContext(), DEIT_ASMJS_FAILED, _u("Warning: SIMD Builtin already defined for var %s"), operation->GetName()->Psz());
             }
 
             // bind operation to var
             operation->SetName(varName);
             if (!m.DefineIdentifier(varName, operation))
             {
-                return m.FailName(initNode, L"Failed to define SIMD builtin function to var %s", varName);
+                return m.FailName(initNode, _u("Failed to define SIMD builtin function to var %s"), varName);
             }
 
             m.AddSimdBuiltinUse(operation->GetSimdBuiltInFunction());
             return true;
         }
 
-        return m.Fail(initNode, L"expecting c.y where c is either the global or foreign parameter");
+        return m.Fail(initNode, _u("expecting c.y where c is either the global or foreign parameter"));
     }
 
     bool
@@ -640,7 +640,7 @@ namespace Js
         m.GetByteCodeGenerator()->AssignPropertyId(name);
         if (m.LookupIdentifier(name))
         {
-            return m.FailName(var, L"import variable %s names must be unique", name);
+            return m.FailName(var, _u("import variable %s names must be unique"), name);
         }
 
         if (!CheckModuleLevelName(m, var, name))
@@ -650,7 +650,7 @@ namespace Js
 
         if (!var->sxVar.pnodeInit)
         {
-            return m.Fail(var, L"module import needs initializer");
+            return m.Fail(var, _u("module import needs initializer"));
         }
 
         ParseNode *initNode = var->sxVar.pnodeInit;
@@ -664,7 +664,7 @@ namespace Js
             }
             else
             {
-                return m.FailName(var, L"Failed to declare numeric var %s", name);
+                return m.FailName(var, _u("Failed to declare numeric var %s"), name);
             }
         }
 
@@ -701,7 +701,7 @@ namespace Js
         }
 
 
-        return m.Fail( initNode, L"Failed to recognize global variable" );
+        return m.Fail( initNode, _u("Failed to recognize global variable") );
     }
 
     bool
@@ -797,7 +797,7 @@ varDeclEnd:
 
         if( PHASE_TRACE1( Js::ByteCodePhase ) )
         {
-            Output::Print( L"  Checking Asm function: %s\n", fncNode->sxFnc.funcInfo->name);
+            Output::Print( _u("  Checking Asm function: %s\n"), fncNode->sxFnc.funcInfo->name);
         }
 
         if( !CheckFunctionHead( m, fncNode, false ) )
@@ -808,7 +808,7 @@ varDeclEnd:
         AsmJsFunc* func = m.CreateNewFunctionEntry(fncNode);
         if (!func)
         {
-            return m.Fail(fncNode, L"      Error creating function entry");
+            return m.Fail(fncNode, _u("      Error creating function entry"));
         }
         return true;
     }
@@ -861,11 +861,11 @@ varDeclEnd:
             const uint tableSize = varStmt->sxVar.pnodeInit->sxArrLit.count;
             if (!::Math::IsPow2(tableSize))
             {
-                return m.FailName(varStmt, L"Function table [%s] size must be a power of 2", varStmt->name());
+                return m.FailName(varStmt, _u("Function table [%s] size must be a power of 2"), varStmt->name());
             }
             if (!m.AddFunctionTable(varStmt->name(), tableSize))
             {
-                return m.FailName(varStmt, L"Unable to create new function table %s", varStmt->name());
+                return m.FailName(varStmt, _u("Unable to create new function table %s"), varStmt->name());
             }
 
             AsmJsFunctionTable* ftable = (AsmJsFunctionTable*)m.LookupIdentifier(varStmt->name());
@@ -877,7 +877,7 @@ varDeclEnd:
             }
             if (!ParserWrapper::IsNameDeclaration(pnode))
             {
-                return m.FailName(pnode, L"Invalid element in function table %s", varStmt->name());
+                return m.FailName(pnode, _u("Invalid element in function table %s"), varStmt->name());
             }
             ++funcPtrTableCount;
             list = ParserWrapper::GetBinaryRight(list);
@@ -899,7 +899,7 @@ varDeclEnd:
 
         if( node->nop != knopReturn || endNode->nop != knopEndCode )
         {
-            return m.Fail( node, L"Only expression after table functions must be a return" );
+            return m.Fail( node, _u("Only expression after table functions must be a return") );
         }
 
         ParseNode* objNode = node->sxReturn.pnodeExpr;
@@ -911,22 +911,22 @@ varDeclEnd:
                 AsmJsSymbol* sym = m.LookupIdentifier( name );
                 if( !sym )
                 {
-                    return m.FailName( node, L"Symbol %s not recognized inside module", name );
+                    return m.FailName( node, _u("Symbol %s not recognized inside module"), name );
                 }
 
                 if( sym->GetSymbolType() != AsmJsSymbol::ModuleFunction )
                 {
-                    return m.FailName( node, L"Symbol %s can only be a function of the module", name );
+                    return m.FailName( node, _u("Symbol %s can only be a function of the module"), name );
                 }
 
                 AsmJsFunc* func = sym->Cast<AsmJsFunc>();
                 if( !m.SetExportFunc( func ) )
                 {
-                    return m.FailName( node, L"Error adding return Symbol %s", name );
+                    return m.FailName( node, _u("Error adding return Symbol %s"), name );
                 }
                 return true;
             }
-            return m.Fail( node, L"Module return must be an object or 1 function" );
+            return m.Fail( node, _u("Module return must be an object or 1 function") );
         }
 
         ParseNode* objectElement = ParserWrapper::GetUnaryNode(objNode);
@@ -945,7 +945,7 @@ varDeclEnd:
             }
             else
             {
-                return m.Fail( node, L"Return object must only contain members" );
+                return m.Fail( node, _u("Return object must only contain members") );
             }
 
             if( member )
@@ -954,24 +954,24 @@ varDeclEnd:
                 ParseNode* value = ParserWrapper::GetBinaryRight( member );
                 if( !ParserWrapper::IsNameDeclaration( field ) || !ParserWrapper::IsNameDeclaration( value ) )
                 {
-                    return m.Fail( node, L"Return object member must be fields" );
+                    return m.Fail( node, _u("Return object member must be fields") );
                 }
 
                 AsmJsSymbol* sym = m.LookupIdentifier( value->name() );
                 if( !sym )
                 {
-                    return m.FailName( node, L"Symbol %s not recognized inside module", value->name() );
+                    return m.FailName( node, _u("Symbol %s not recognized inside module"), value->name() );
                 }
 
                 if( sym->GetSymbolType() != AsmJsSymbol::ModuleFunction )
                 {
-                    return m.FailName( node, L"Symbol %s can only be a function of the module", value->name() );
+                    return m.FailName( node, _u("Symbol %s can only be a function of the module"), value->name() );
                 }
 
                 AsmJsFunc* func = sym->Cast<AsmJsFunc>();
                 if( !m.AddExport( field->name(), func->GetFunctionIndex() ) )
                 {
-                    return m.FailName( node, L"Error adding return Symbol %s", value->name() );
+                    return m.FailName( node, _u("Error adding return Symbol %s"), value->name() );
                 }
             }
         }
@@ -997,7 +997,7 @@ varDeclEnd:
             ParseNode* nodeInit = varStmt->sxVar.pnodeInit;
             if( !nodeInit || nodeInit->nop != knopArray )
             {
-                return m.Fail( varStmt, L"Invalid variable after function declaration" );
+                return m.Fail( varStmt, _u("Invalid variable after function declaration") );
             }
 
             PropertyName tableName = varStmt->name();
@@ -1012,20 +1012,20 @@ varDeclEnd:
                 //Check name
                 if( sym->GetSymbolType() != AsmJsSymbol::FuncPtrTable )
                 {
-                    return m.FailName( varStmt, L"Variable %s is already defined", tableName );
+                    return m.FailName( varStmt, _u("Variable %s is already defined"), tableName );
                 }
 
                 AsmJsFunctionTable* table = sym->Cast<AsmJsFunctionTable>();
                 if( table->IsDefined() )
                 {
-                    return m.FailName( varStmt, L"Multiple declaration of function table %s", tableName );
+                    return m.FailName( varStmt, _u("Multiple declaration of function table %s"), tableName );
                 }
 
                 // Check content of the array
                 uint count = nodeInit->sxArrLit.count;
                 if( table->GetSize() != count )
                 {
-                    return m.FailName( varStmt, L"Invalid size of function table %s", tableName );
+                    return m.FailName( varStmt, _u("Invalid size of function table %s"), tableName );
                 }
 
                 // Set the content of the array in the table
@@ -1051,24 +1051,24 @@ varDeclEnd:
                         AsmJsSymbol* sym = m.LookupIdentifier( funcNameNode->name() );
                         if( !sym || sym->GetSymbolType() != AsmJsSymbol::ModuleFunction )
                         {
-                            return m.FailName( varStmt, L"Element in function table %s is not a function", tableName );
+                            return m.FailName( varStmt, _u("Element in function table %s is not a function"), tableName );
                         }
                         AsmJsFunc* func = sym->Cast<AsmJsFunc>();
                         AsmJsRetType retType;
                         if (!table->SupportsArgCall(func->GetArgCount(), func->GetArgTypeArray(), retType))
                         {
-                            return m.FailName(funcNameNode, L"Function signatures in table %s do not match", tableName);
+                            return m.FailName(funcNameNode, _u("Function signatures in table %s do not match"), tableName);
                         }
                         if (!table->CheckAndSetReturnType(func->GetReturnType()))
                         {
-                            return m.FailName(funcNameNode, L"Function return types in table %s do not match", tableName);
+                            return m.FailName(funcNameNode, _u("Function return types in table %s do not match"), tableName);
                         }
                         table->SetModuleFunctionIndex( func->GetFunctionIndex(), i );
                         ++i;
                     }
                     else
                     {
-                        return m.FailName(funcNameNode, L"Element in function table %s is not a function name", tableName);
+                        return m.FailName(funcNameNode, _u("Element in function table %s is not a function name"), tableName);
                     }
                 }
 
@@ -1080,7 +1080,7 @@ varDeclEnd:
 
         if( !m.AreAllFuncTableDefined() )
         {
-            return m.Fail(list, L"Some function table were used but not defined");
+            return m.Fail(list, _u("Some function table were used but not defined"));
         }
 
         m.SetCurrentParseNode(list);
@@ -1104,7 +1104,7 @@ varDeclEnd:
 
             if( PHASE_TRACE1( Js::ByteCodePhase ) )
             {
-                Output::Print( L"Asm.Js Module [%s] detected, trying to compile\n", moduleFunctionName->Psz() );
+                Output::Print( _u("Asm.Js Module [%s] detected, trying to compile\n"), moduleFunctionName->Psz() );
             }
         }
 
@@ -1180,7 +1180,7 @@ AsmJsCompilationError:
     {
         if (!CheckModule(cx, parser, stmtList))
         {
-            OutputError(cx->scriptContext, L"Asm.js compilation failed.");
+            OutputError(cx->scriptContext, _u("Asm.js compilation failed."));
             return false;
         }
         return true;
@@ -1202,7 +1202,7 @@ AsmJsCompilationError:
 
     void AsmJSCompiler::VOutputMessage(ScriptContext * scriptContext, const DEBUG_EVENT_INFO_TYPE messageType, const wchar * message, va_list argptr)
     {
-        wchar_t buf[2048];
+        char16 buf[2048];
         size_t size;
 
         size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, message, argptr);
@@ -1214,7 +1214,7 @@ AsmJsCompilationError:
         if (PHASE_TRACE1(AsmjsPhase) || PHASE_TESTTRACE1(AsmjsPhase))
         {
             Output::PrintBuffer(buf, size);
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
             Output::Flush();
         }
     }

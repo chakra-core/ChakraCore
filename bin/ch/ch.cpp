@@ -7,7 +7,7 @@
 
 unsigned int MessageBase::s_messageCount = 0;
 
-LPCWSTR hostName = L"ch.exe";
+LPCWSTR hostName = _u("ch.exe");
 
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
@@ -21,80 +21,80 @@ LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode)
     switch (jsErrorCode)
     {
     case JsNoError:
-        return L"JsNoError";
+        return _u("JsNoError");
         break;
 
     case JsErrorInvalidArgument:
-        return L"JsErrorInvalidArgument";
+        return _u("JsErrorInvalidArgument");
         break;
 
     case JsErrorNullArgument:
-        return L"JsErrorNullArgument";
+        return _u("JsErrorNullArgument");
         break;
 
     case JsErrorNoCurrentContext:
-        return L"JsErrorNoCurrentContext";
+        return _u("JsErrorNoCurrentContext");
         break;
 
     case JsErrorInExceptionState:
-        return L"JsErrorInExceptionState";
+        return _u("JsErrorInExceptionState");
         break;
 
     case JsErrorNotImplemented:
-        return L"JsErrorNotImplemented";
+        return _u("JsErrorNotImplemented");
         break;
 
     case JsErrorWrongThread:
-        return L"JsErrorWrongThread";
+        return _u("JsErrorWrongThread");
         break;
 
     case JsErrorRuntimeInUse:
-        return L"JsErrorRuntimeInUse";
+        return _u("JsErrorRuntimeInUse");
         break;
 
     case JsErrorBadSerializedScript:
-        return L"JsErrorBadSerializedScript";
+        return _u("JsErrorBadSerializedScript");
         break;
 
     case JsErrorInDisabledState:
-        return L"JsErrorInDisabledState";
+        return _u("JsErrorInDisabledState");
         break;
 
     case JsErrorCannotDisableExecution:
-        return L"JsErrorCannotDisableExecution";
+        return _u("JsErrorCannotDisableExecution");
         break;
 
     case JsErrorHeapEnumInProgress:
-        return L"JsErrorHeapEnumInProgress";
+        return _u("JsErrorHeapEnumInProgress");
         break;
 
     case JsErrorOutOfMemory:
-        return L"JsErrorOutOfMemory";
+        return _u("JsErrorOutOfMemory");
         break;
 
     case JsErrorScriptException:
-        return L"JsErrorScriptException";
+        return _u("JsErrorScriptException");
         break;
 
     case JsErrorScriptCompile:
-        return L"JsErrorScriptCompile";
+        return _u("JsErrorScriptCompile");
         break;
 
     case JsErrorScriptTerminated:
-        return L"JsErrorScriptTerminated";
+        return _u("JsErrorScriptTerminated");
         break;
 
     case JsErrorFatal:
-        return L"JsErrorFatal";
+        return _u("JsErrorFatal");
         break;
 
     default:
-        return L"<unknown>";
+        return _u("<unknown>");
         break;
     }
 }
 
-#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, L"ERROR: " TEXT(#expr) L" failed. JsErrorCode=0x%x (%s)\n", jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
+#define IfJsErrorFailLog(expr) do { JsErrorCode jsErrorCode = expr; if ((jsErrorCode) != JsNoError) { fwprintf(stderr, _u("ERROR: ") TEXT(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, JsErrorCodeToString(jsErrorCode)); fflush(stderr); goto Error; } } while (0)
 
 int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
@@ -108,7 +108,7 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    fwprintf(stderr, L"FATAL ERROR: %ls failed due to exception code %x\n", hostName, exceptionCode);
+    fwprintf(stderr, _u("FATAL ERROR: %ls failed due to exception code %x\n"), hostName, exceptionCode);
     fflush(stderr);
 
     return EXCEPTION_EXECUTE_HANDLER;
@@ -116,17 +116,17 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 
 void __stdcall PrintUsageFormat()
 {
-    wprintf(L"\nUsage: ch.exe [flaglist] filename\n");
+    wprintf(_u("\nUsage: ch.exe [flaglist] filename\n"));
 }
 
 void __stdcall PrintUsage()
 {
 #ifndef DEBUG
-    wprintf(L"\nUsage: ch.exe filename"
-            L"\n[flaglist] is not supported for Release mode\n");
+    wprintf(_u("\nUsage: ch.exe filename")
+            _u("\n[flaglist] is not supported for Release mode\n"));
 #else
     PrintUsageFormat();
-    wprintf(L"Try 'ch.exe -?' for help\n");
+    wprintf(_u("Try 'ch.exe -?' for help\n"));
 #endif
 }
 
@@ -269,7 +269,7 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     messageQueue->Push(msg);
 }
 
-HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_t *fullPath)
+HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, char16 *fullPath)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -309,7 +309,7 @@ Error:
     return hr;
 }
 
-HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, wchar_t *fullPath)
+HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, char16 *fullPath)
 {
     HRESULT hr = S_OK;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
@@ -379,7 +379,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         IfFailGo(E_FAIL);
     }
 
-    wchar_t fullPath[_MAX_PATH];
+    char16 fullPath[_MAX_PATH];
 
     if (_wfullpath(fullPath, fileName, _MAX_PATH) == nullptr)
     {
@@ -407,13 +407,13 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             }
             else
             {
-                fwprintf(stderr, L"FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n");
+                fwprintf(stderr, _u("FATAL ERROR: -GenerateLibraryByteCodeHeader must provide the file name, i.e., -GenerateLibraryByteCodeHeader:<bytecode file name>, exiting\n"));
                 IfFailGo(E_FAIL);
             }
         }
         else
         {
-            fwprintf(stderr, L"FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n");
+            fwprintf(stderr, _u("FATAL ERROR: GenerateLibraryByteCodeHeader flag can only be used on UTF8 file, exiting\n"));
             IfFailGo(E_FAIL);
         }
     }
@@ -425,7 +425,7 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
         else
         {
-            fwprintf(stderr, L"FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n");
+            fwprintf(stderr, _u("FATAL ERROR: Serialized flag can only be used on UTF8 file, exiting\n"));
             IfFailGo(E_FAIL);
         }
     }
@@ -526,7 +526,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         }
         else
         {
-            fwprintf(stderr, L"FATAL ERROR: failed to create worker thread error code %d, exiting\n", errno);
+            fwprintf(stderr, _u("FATAL ERROR: failed to create worker thread error code %d, exiting\n"), errno);
             AssertMsg(false, "failed to create worker thread");
         }
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);

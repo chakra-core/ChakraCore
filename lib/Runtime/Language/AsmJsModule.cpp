@@ -606,7 +606,7 @@ namespace Js
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
 
-        TRACE_BYTECODE(L"\nDeferred parse %s\n", funcBody->GetDisplayName());
+        TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
         if (parseTree && parseTree->nop == knopProg)
         {
             auto body = parseTree->sxProg.pnodeBody;
@@ -620,11 +620,11 @@ namespace Js
                 }
             }
         }
-        GetByteCodeGenerator()->PushFuncInfo(L"Start asm.js AST prepass", fncNode->sxFnc.funcInfo);
+        GetByteCodeGenerator()->PushFuncInfo(_u("Start asm.js AST prepass"), fncNode->sxFnc.funcInfo);
         fncNode->sxFnc.funcInfo->byteCodeFunction->SetBoundPropertyRecords(GetByteCodeGenerator()->EnsurePropertyRecordList());
         BindArguments(fncNode->sxFnc.pnodeParams);
         ASTPrepass(pnodeBody, func);
-        GetByteCodeGenerator()->PopFuncInfo(L"End asm.js AST prepass");
+        GetByteCodeGenerator()->PopFuncInfo(_u("End asm.js AST prepass"));
 
         fncNode->sxFnc.pnodeBody = pnodeBody;
 
@@ -632,7 +632,7 @@ namespace Js
         {
             // body should never be null if parsing succeeded
             Assert(UNREACHED);
-            return Fail(fncNode, L"Function should always have parse nodes");
+            return Fail(fncNode, _u("Function should always have parse nodes"));
         }
 
         // Check if this function requires a bigger Ast
@@ -675,7 +675,7 @@ namespace Js
 
         if (!func->EnsureArgCount(numArguments))
         {
-            return Fail(argNode, L"Cannot have variable number of arguments");
+            return Fail(argNode, _u("Cannot have variable number of arguments"));
         }
 
         ArgSlot index = 0;
@@ -683,13 +683,13 @@ namespace Js
         {
             if (pnode->nop != knopList)
             {
-                return Fail(pnode, L"Missing assignment statement for argument");
+                return Fail(pnode, _u("Missing assignment statement for argument"));
             }
 
 
             if (!ParserWrapper::IsDefinition(argNode))
             {
-                return Fail(argNode, L"duplicate argument name not allowed");
+                return Fail(argNode, _u("duplicate argument name not allowed"));
             }
 
             PropertyName argName = argNode->name();
@@ -702,13 +702,13 @@ namespace Js
             AsmJsVarBase* var = func->DefineVar(argName, true);
             if (!var)
             {
-                return Fail(argNode, L"Failed to define var");
+                return Fail(argNode, _u("Failed to define var"));
             }
 
             ParseNode* argDefinition = ParserWrapper::GetBinaryLeft(pnode);
             if (argDefinition->nop != knopAsg)
             {
-                return Fail(argDefinition, L"Expecting an assignment");
+                return Fail(argDefinition, _u("Expecting an assignment"));
             }
 
             ParseNode* lhs = ParserWrapper::GetBinaryLeft(argDefinition);
@@ -718,7 +718,7 @@ namespace Js
 
             if (!NodeDefineThisArgument(lhs, var))
             {
-                return Fail(lhs, L"Defining wrong argument");
+                return Fail(lhs, _u("Defining wrong argument"));
             }
 
             if (rhs->nop == knopPos)
@@ -731,7 +731,7 @@ namespace Js
 
                 if (!NodeDefineThisArgument(argSym, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
             }
             else if (rhs->nop == knopOr)
@@ -744,30 +744,30 @@ namespace Js
                 // validate stmt
                 if (!NodeDefineThisArgument(argSym, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
                 if (intSym->nop != knopInt || intSym->sxInt.lw != 0)
                 {
-                    return Fail(lhs, L"Or value must be 0 when defining arguments");
+                    return Fail(lhs, _u("Or value must be 0 when defining arguments"));
                 }
             }
             else if (rhs->nop == knopCall)
             {
                 if (rhs->sxCall.pnodeTarget->nop != knopName)
                 {
-                    return Fail(rhs, L"call should be for fround");
+                    return Fail(rhs, _u("call should be for fround"));
                 }
                 AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(rhs->sxCall.pnodeTarget->name());
 
                 if (!funcDecl)
-                    return Fail(rhs, L"Cannot resolve function for argument definition, or wrong function");
+                    return Fail(rhs, _u("Cannot resolve function for argument definition, or wrong function"));
 
                 if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                 {
                     AsmJsMathFunction* mathFunc = funcDecl->Cast<AsmJsMathFunction>();
                     if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
                     {
-                        return Fail(rhs, L"call should be for fround");
+                        return Fail(rhs, _u("call should be for fround"));
                     }
                     var->SetVarType(AsmJsVarType::Float);
                     var->SetLocation(func->AcquireRegister<float>());
@@ -778,7 +778,7 @@ namespace Js
                     // x = f4check(x)
                     if (!simdFunc->IsTypeCheck())
                     {
-                       return Fail(rhs, L"Invalid SIMD argument type check. E.g. expected x = f4check(x)");
+                       return Fail(rhs, _u("Invalid SIMD argument type check. E.g. expected x = f4check(x)"));
                     }
                     var->SetVarType(simdFunc->GetTypeCheckVarType());
                     // We don't set SIMD args reg location here. We defer that after all function locals are processed.
@@ -787,27 +787,27 @@ namespace Js
                 }
                 else
                 {
-                    return Fail(rhs, L"Wrong function used for argument definition");
+                    return Fail(rhs, _u("Wrong function used for argument definition"));
                 }
 
                 if (!NodeDefineThisArgument(rhs->sxCall.pnodeArgs, var))
                 {
-                    return Fail(lhs, L"Defining wrong argument");
+                    return Fail(lhs, _u("Defining wrong argument"));
                 }
             }
             else
             {
-                return Fail(rhs, L"arguments are not casted as valid Asm.js type");
+                return Fail(rhs, _u("arguments are not casted as valid Asm.js type"));
             }
 
             if (PHASE_TRACE1(ByteCodePhase))
             {
-                Output::Print(L"    Argument [%s] Valid", argName->Psz());
+                Output::Print(_u("    Argument [%s] Valid"), argName->Psz());
             }
 
             if (!func->EnsureArgType(var, index++))
             {
-                return Fail(rhs, L"Unexpected argument type");
+                return Fail(rhs, _u("Unexpected argument type"));
             }
 
             argNode = ParserWrapper::NextVar(argNode);
@@ -859,30 +859,30 @@ namespace Js
                     declSym = LookupIdentifier(pnodeInit->name(), func);
                     if (!declSym || declSym->isMutable() || (declSym->GetSymbolType() != AsmJsSymbol::Variable && declSym->GetSymbolType() != AsmJsSymbol::MathConstant))
                     {
-                        return Fail(decl, L"Var declaration with non-constant");
+                        return Fail(decl, _u("Var declaration with non-constant"));
                     }
                 }
                 else if (pnodeInit->nop == knopCall)
                 {
                     if (pnodeInit->sxCall.pnodeTarget->nop != knopName)
                     {
-                        return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                        return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                     }
                     AsmJsFunctionDeclaration* funcDecl = this->LookupFunction(pnodeInit->sxCall.pnodeTarget->name());
 
                     if (!funcDecl)
-                        return Fail(pnodeInit, L"Cannot resolve function name");
+                        return Fail(pnodeInit, _u("Cannot resolve function name"));
 
                     if (funcDecl->GetSymbolType() == AsmJsSymbol::MathBuiltinFunction)
                     {
                         mathFunc = funcDecl->Cast<AsmJsMathFunction>();
                         if (!(mathFunc && mathFunc->GetMathBuiltInFunction() == AsmJSMathBuiltin_fround))
                         {
-                            return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
                         if (!ParserWrapper::IsFroundNumericLiteral(pnodeInit->sxCall.pnodeArgs))
                         {
-                            return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                            return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                         }
                     }
                     else if (IsSimdjsEnabled() && funcDecl->GetSymbolType() == AsmJsSymbol::SIMDBuiltinFunction)
@@ -891,13 +891,13 @@ namespace Js
                         simdFunc = funcDecl->Cast<AsmJsSIMDFunction>();
                         if (!ValidateSimdConstructor(pnodeInit, simdFunc, simdValue))
                         {
-                            return Fail(varNode, L"Invalid SIMD local declaration");
+                            return Fail(varNode, _u("Invalid SIMD local declaration"));
                         }
                     }
                 }
                 else if (pnodeInit->nop != knopInt && pnodeInit->nop != knopFlt)
                 {
-                    return Fail(decl, L"Var declaration with something else than a literal value|fround call");
+                    return Fail(decl, _u("Var declaration with something else than a literal value|fround call"));
                 }
                 if (!AsmJSCompiler::CheckIdentifier(*this, decl, decl->name()))
                 {
@@ -908,7 +908,7 @@ namespace Js
                 AsmJsVar* var = (AsmJsVar*)func->DefineVar(decl->name(), false);
                 if (!var)
                 {
-                    return Fail(decl, L"Failed to define var");
+                    return Fail(decl, _u("Failed to define var"));
                 }
                 RegSlot loc = Constants::NoRegister;
                 if (pnodeInit->nop == knopInt)
@@ -936,7 +936,7 @@ namespace Js
                 {
                     if (pnodeInit->sxFlt.maybeInt)
                     {
-                        return Fail(decl, L"Var declaration with integer literal outside range [-2^31, 2^32)");
+                        return Fail(decl, _u("Var declaration with integer literal outside range [-2^31, 2^32)"));
                     }
                     var->SetVarType(AsmJsVarType::Double);
                     var->SetLocation(func->AcquireRegister<double>());
@@ -1029,7 +1029,7 @@ namespace Js
 
                 if (loc == Constants::NoRegister && pnodeInit->nop != knopName)
                 {
-                    return Fail(decl, L"Cannot find Register constant for var");
+                    return Fail(decl, _u("Cannot find Register constant for var"));
                 }
             }
 
@@ -1584,7 +1584,7 @@ namespace Js
                 {
                     if (!AddStandardLibrarySIMDNameInMap(simdFunctions[i].id, simdFunctions[i].val, map))
                     {
-                        AsmJSCompiler::OutputError(GetScriptContext(), L"Cannot initialize SIMD library");
+                        AsmJSCompiler::OutputError(GetScriptContext(), _u("Cannot initialize SIMD library"));
                         return false;
                     }
                 }
@@ -1596,7 +1596,7 @@ namespace Js
     AsmJsModuleCompiler::AsmJsModuleCompiler( ExclusiveContext *cx, AsmJSParser &parser ) :
         mCx( cx )
         , mCurrentParserNode( parser )
-        , mAllocator( L"Asmjs", cx->scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory )
+        , mAllocator( _u("Asmjs"), cx->scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory )
         , mModuleFunctionName( nullptr )
         , mStandardLibraryMathNames(&mAllocator)
         , mStandardLibraryArrayNames(&mAllocator)
@@ -1977,7 +1977,7 @@ namespace Js
             AsmJsFunctionTable* funcTable = mFunctionTableArray.Item( i );
             if( !funcTable->IsDefined() )
             {
-                AsmJSCompiler::OutputError(GetScriptContext(), L"Function table %s was used in a function but does not appear in the module", funcTable->GetName()->Psz());
+                AsmJSCompiler::OutputError(GetScriptContext(), _u("Function table %s was used in a function but does not appear in the module"), funcTable->GetName()->Psz());
                 return false;
             }
         }
@@ -2046,10 +2046,10 @@ namespace Js
         return mCompileTime.ToMicroseconds();
     }
 
-    static const wchar_t* AsmPhaseNames[AsmJsCompilation::Phases_COUNT] = {
-        L"Module",
-        L"ByteCode",
-        L"TemplateJIT",
+    static const char16* AsmPhaseNames[AsmJsCompilation::Phases_COUNT] = {
+        _u("Module"),
+        _u("ByteCode"),
+        _u("TemplateJIT"),
     };
 
     void AsmJsModuleCompiler::PrintCompileTrace() const
@@ -2057,14 +2057,14 @@ namespace Js
         // for testtrace, don't print time so that it can be used for baselines
         if (PHASE_TESTTRACE1(AsmjsPhase))
         {
-            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, L"Successfully compiled asm.js code");
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, _u("Successfully compiled asm.js code"));
         }
         else
         {
             uint64 us = GetCompileTime();
             uint64 ms = us / 1000;
             us = us % 1000;
-            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, L"Successfully compiled asm.js code (total compilation time %llu.%llums)", ms, us);
+            AsmJSCompiler::OutputMessage(GetScriptContext(), DEIT_ASMJS_SUCCEEDED, _u("Successfully compiled asm.js code (total compilation time %llu.%llums)"), ms, us);
         }
 
         if (PHASE_TRACE1(AsmjsPhase))
@@ -2074,7 +2074,7 @@ namespace Js
                 uint64 us = mPhaseCompileTime[i].ToMicroseconds();
                 uint64 ms = us / 1000;
                 us = us % 1000;
-                Output::Print(L"%20s : %llu.%llums\n", AsmPhaseNames[i], ms, us);
+                Output::Print(_u("%20s : %llu.%llums\n"), AsmPhaseNames[i], ms, us);
             }
             Output::Flush();
         }
@@ -2524,7 +2524,7 @@ namespace Js
 
         if (!simdFunc->IsConstructor(argCount))
         {
-            return Fail(pnode, L"Invalid SIMD constructor or wrong number of arguments.");
+            return Fail(pnode, _u("Invalid SIMD constructor or wrong number of arguments."));
         }
 
         switch (simdBuiltin)
@@ -2543,7 +2543,7 @@ namespace Js
         Assert(simdBuiltin == AsmJsSIMDBuiltin_Float64x2 || simdBuiltin == AsmJsSIMDBuiltin_Float32x4 || simdBuiltin == AsmJsSIMDBuiltin_Int32x4);
         if (simdFunc->GetArgCount() != argCount)
         {
-            return Fail(pnode, L"Invalid number of arguments to SIMD constructor.");
+            return Fail(pnode, _u("Invalid number of arguments to SIMD constructor."));
         }
 
         for (uint i = 0; i < argCount; i++)
@@ -2576,7 +2576,7 @@ namespace Js
             }
             else
             {
-                return Fail(pnode, L"Invalid argument type to SIMD constructor.");
+                return Fail(pnode, _u("Invalid argument type to SIMD constructor."));
             }
         }
         return true;

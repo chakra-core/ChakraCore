@@ -190,9 +190,9 @@ public:
             {
                 if (chunk->data[index])
                 {
-                    Output::Print(L"Index %4d  =>  ", index);
+                    Output::Print(_u("Index %4d  =>  "), index);
                     chunk->data[index]->Dump();
-                    Output::Print(L"\n");
+                    Output::Print(_u("\n"));
                 }
             }
         }

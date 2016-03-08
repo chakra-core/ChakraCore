@@ -156,6 +156,7 @@ PTNODE(knopObjectPattern, "{} = "          , Nop      , Uni         , fnopUni   
 PTNODE(knopObjectPatternMember, "{:} = "   , Nop      , Bin         , fnopBin                , "ObjectAssignmentPatternMember" )
 PTNODE(knopArrayPattern, "[] = "           , Nop      , ArrLit      , fnopUni                , "ArrayAssignmentPattern"        )
 PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopUni                , "DestructurePattern"            )
+PTNODE(knopExportDefault, "export default" , Nop      , ExportDefault,fnopNone               , "ExportDefault"                 )
 
 
 #undef PTNODE
