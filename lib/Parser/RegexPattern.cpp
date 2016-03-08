@@ -142,10 +142,10 @@ namespace UnifiedRegex
                 const char16 c = str.GetBuffer()[i];
                 switch(c)
                 {
-                case L'/':
+                case _u('/'):
                     w->Print(_u("\\%lc"), c);
                     break;
-                case L'\n':
+                case _u('\n'):
                 case L'\r':
                 case L'\x2028':
                 case L'\x2029':

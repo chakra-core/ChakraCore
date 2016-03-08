@@ -646,15 +646,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
-            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
-            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
+            bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
         else
@@ -5617,7 +5615,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
 
     this->m_lowerer->GenerateStringTest(regSrcStr, insertInstr, labelHelper, nullptr, false);
 
-    // r1 contains the value of the wchar_t* pointer inside JavascriptString.
+    // r1 contains the value of the char16* pointer inside JavascriptString.
     // MOV r1, [regSrcStr + offset(m_pszValue)]
     IR::RegOpnd *r1 = IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(regSrcStr->AsRegOpnd(), Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr, this->m_func);
@@ -5648,7 +5646,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         instr = IR::BranchInstr::New(Js::OpCode::JBE, labelHelper, this->m_func);
         insertInstr->InsertBefore(instr);
 
-        indirOpnd = IR::IndirOpnd::New(r1, Js::TaggedInt::ToUInt32(srcIndex->AsAddrOpnd()->m_address) * sizeof(wchar_t), TyInt16, this->m_func);
+        indirOpnd = IR::IndirOpnd::New(r1, Js::TaggedInt::ToUInt32(srcIndex->AsAddrOpnd()->m_address) * sizeof(char16), TyInt16, this->m_func);
     }
     else
     {

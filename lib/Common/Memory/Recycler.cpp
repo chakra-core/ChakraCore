@@ -1102,7 +1102,7 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
     Assert(this->mainThreadHandle == NULL ||
         ::GetCurrentThreadId() == ::GetThreadId(this->mainThreadHandle));
 #endif
-    
+
     HeapBlock* heapBlock = this->FindHeapBlock(buffer);
 
     Assert(heapBlock != nullptr);
@@ -1112,7 +1112,7 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 #ifdef STACK_BACK_TRACE
         heapBlock->CapturePageHeapFreeStack();
 #endif
-        
+
         // Don't do actual explicit free in page heap mode
         return false;
     }
@@ -1494,7 +1494,7 @@ Recycler::ScanStack()
     SAVE_THREAD_CONTEXT();
     void * stackTop = this->savedThreadContext.GetStackTop();
 
-    void * stackStart = GetStackBase(); 
+    void * stackStart = GetStackBase();
     Assert(stackStart > stackTop);
     size_t stackScanned = (size_t)((char *)stackStart - (char *)stackTop);
 
@@ -2149,8 +2149,8 @@ size_t
 Recycler::RescanMark(DWORD waitTime)
 {
     bool const onLowMemory = this->NeedOOMRescan();
-    
-    // REVIEW: Why are we asserting for DoQueueTrackedObject here? 
+
+    // REVIEW: Why are we asserting for DoQueueTrackedObject here?
     // Should we split this into different asserts depending on whether
     // concurrent or partial is enabled?
 #if ENABLE_CONCURRENT_GC
@@ -2471,7 +2471,7 @@ Recycler::RootMark(CollectionState markState)
 
     if (this->EndMark())
     {
-        // REVIEW: This heuristic doesn't apply when partial is off so there's no need 
+        // REVIEW: This heuristic doesn't apply when partial is off so there's no need
         // to modify scannedRootBytes here, correct?
 #if ENABLE_PARTIAL_GC
         // return large root scanned byte to not get into partial mode if we are low on memory
@@ -6413,7 +6413,7 @@ Recycler::PrintCollectTrace(Js::Phase phase, bool finish, bool noConcurrentWork)
 
 #ifdef RECYCLER_STATS
 void
-Recycler::PrintHeapBlockStats(wchar_t const * name, HeapBlock::HeapBlockType type)
+Recycler::PrintHeapBlockStats(char16 const * name, HeapBlock::HeapBlockType type)
 {
     size_t liveCount = collectionStats.heapBlockCount[type] - collectionStats.heapBlockFreeCount[type];
 
@@ -6432,7 +6432,7 @@ Recycler::PrintHeapBlockStats(wchar_t const * name, HeapBlock::HeapBlockType typ
 }
 
 void
-Recycler::PrintHeapBlockMemoryStats(wchar_t const * name, HeapBlock::HeapBlockType type)
+Recycler::PrintHeapBlockMemoryStats(char16 const * name, HeapBlock::HeapBlockType type)
 {
     size_t allocableFreeByteCount = collectionStats.heapBlockFreeByteCount[type];
 #if ENABLE_PARTIAL_GC
@@ -6962,7 +6962,7 @@ void Recycler::Verify(Js::Phase phase)
     }
 }
 
-void Recycler::VerifyCheck(BOOL cond, wchar_t const * msg, void * address, void * corruptedAddress)
+void Recycler::VerifyCheck(BOOL cond, char16 const * msg, void * address, void * corruptedAddress)
 {
     if (!(cond))
     {
@@ -7767,7 +7767,7 @@ Recycler::ReportLeaksOnProcessDetach()
 
 #ifdef CHECK_MEMORY_LEAK
 void
-Recycler::CheckLeaks(wchar_t const * header)
+Recycler::CheckLeaks(char16 const * header)
 {
     if (GetRecyclerFlagsTable().CheckMemoryLeak && this->isPrimaryMarkContextInitialized)
     {
@@ -7804,12 +7804,12 @@ Recycler::CheckLeaks(wchar_t const * header)
                 this->PrintPinnedObjectStackTraces();
             }
 #endif
-            
+
             Output::Print(_u("-------------------------------------------------------------------------------------\n"));
             Output::Print(_u("Recycler Leaked Object: %d bytes (%d objects)\n"),
                 param.stats.markData.markBytes, param.stats.markData.markCount);
 
-            wchar_t * buffer = Output::CaptureEnd();
+            char16 * buffer = Output::CaptureEnd();
             MemoryLeakCheck::AddLeakDump(buffer, param.stats.markData.markBytes, param.stats.markData.markCount);
 #ifdef GENERATE_DUMP
             if (GetRecyclerFlagsTable().IsEnabled(Js::DumpOnLeakFlag))
@@ -7828,7 +7828,7 @@ Recycler::CheckLeaks(wchar_t const * header)
 
 
 void
-Recycler::CheckLeaksOnProcessDetach(wchar_t const * header)
+Recycler::CheckLeaksOnProcessDetach(char16 const * header)
 {
     if (GetRecyclerFlagsTable().CheckMemoryLeak)
     {

@@ -97,13 +97,13 @@ namespace Js
 
         if (args.Info.Count == 0 || JavascriptOperators::GetTypeId(args[0]) != TypeIds_SIMDFloat64x2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, L"SIMDFloat64x2.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSimd, _u("SIMDFloat64x2.toString"));
         }
 
         JavascriptSIMDFloat64x2 *instance = JavascriptSIMDFloat64x2::FromVar(args[0]);
         Assert(instance);
 
-        wchar_t stringBuffer[SIMD_STRING_BUFFER_MAX];
+        char16 stringBuffer[SIMD_STRING_BUFFER_MAX];
         SIMDValue value = instance->GetValue();
 
         JavascriptSIMDFloat64x2::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX);

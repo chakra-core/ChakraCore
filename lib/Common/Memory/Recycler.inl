@@ -306,11 +306,11 @@ Recycler::RealAlloc(HeapInfo* heap, size_t size)
 
     if (nothrow)
     {
-        FAULTINJECT_MEMORY_NOTHROW(L"Recycler", size);
+        FAULTINJECT_MEMORY_NOTHROW(_u("Recycler"), size);
     }
     else
     {
-        FAULTINJECT_MEMORY_THROW(L"Recycler", size);
+        FAULTINJECT_MEMORY_THROW(_u("Recycler"), size);
     }
 
     if (HeapInfo::IsSmallObject(size))

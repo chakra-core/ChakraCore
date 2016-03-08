@@ -114,7 +114,7 @@ namespace Js {
     {
         if (g_timezonedll == NULL)
         {
-            HMODULE hLocal = LoadLibraryExW(L"api-ms-win-core-timezone-l1-1-0.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            HMODULE hLocal = LoadLibraryExW(_u("api-ms-win-core-timezone-l1-1-0.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
             if (hLocal != NULL)
             {
                 if (InterlockedCompareExchangePointer((PVOID*) &g_timezonedll, hLocal, NULL) != NULL)
@@ -126,7 +126,7 @@ namespace Js {
 
         if (g_timezonedll == NULL)
         {
-            HMODULE hLocal = LoadLibraryExW(L"kernel32.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            HMODULE hLocal = LoadLibraryExW(_u("kernel32.dll"), nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
             if (hLocal != NULL)
             {
                 if (InterlockedCompareExchangePointer((PVOID*) &g_timezonedll, hLocal, NULL) != NULL)

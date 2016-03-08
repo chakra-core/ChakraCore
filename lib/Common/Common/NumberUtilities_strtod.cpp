@@ -1078,7 +1078,7 @@ LEnd:
         // if so, jump over one more character. Note also that if lwAdj is zero, there may or may not be a decimal point, and
         // pchLimDig would only need to jump over a decimal point if it exists.
         if (-lwAdj <= numExcessiveDigits &&
-            (lwAdj != 0 || pchLimDig[-1] == L'.'))
+            (lwAdj != 0 || pchLimDig[-1] == _u('.')))
         {
             // Need to jump over the decimal point
             --pchLimDig;

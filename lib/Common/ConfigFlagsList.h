@@ -473,7 +473,6 @@ PHASE(All)
 
 // ES6 sub-feature gate - to enable-disable ES6 sub-feature when ES6 flag is enabled
 #define DEFAULT_CONFIG_ES6Species              (true)
-#define DEFAULT_CONFIG_ES6AsyncAwait           (false)
 #define DEFAULT_CONFIG_ES6Classes              (true)
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
 #define DEFAULT_CONFIG_ES6DefaultArgs          (true)
@@ -508,8 +507,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
 #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
-#define DEFAULT_CONFIG_ES7ExponentionOperator  (false)
+#define DEFAULT_CONFIG_ES7AsyncAwait           (true)
 #define DEFAULT_CONFIG_ES7Builtins             (false)
+#define DEFAULT_CONFIG_ES7ExponentionOperator  (true)
 #define DEFAULT_CONFIG_ES7TrailingComma        (true)
 
 #define DEFAULT_CONFIG_ES6Verbose              (false)
@@ -580,6 +580,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
+#define DEFAULT_CONFIG_PrivateHeap       (true)
 #define DEFAULT_CONFIG_DisableRentalThreading (false)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
@@ -827,7 +828,7 @@ FLAGNR(Boolean, NoDynamicProfileInMemoryCache, "Enable in-memory cache for dynam
 FLAGNR(Boolean, ProfileBasedSpeculativeJit, "Enable dynamic profile based speculative JIT", DEFAULT_CONFIG_ProfileBasedSpeculativeJit)
 FLAGNR(Number,  ProfileBasedSpeculationCap, "In the presence of dynamic profile speculative JIT is capped to this many bytecode instructions", DEFAULT_CONFIG_ProfileBasedSpeculationCap)
 #ifdef DYNAMIC_PROFILE_MUTATOR
-FLAGNR(String, DynamicProfileMutatorDll , "Path of the mutator DLL", _u("DynamicProfileMutatorImpl.dll"))
+FLAGNR(String,  DynamicProfileMutatorDll , "Path of the mutator DLL", _u("DynamicProfileMutatorImpl.dll"))
 FLAGNR(String,  DynamicProfileMutator , "Type of local, temp, return, param, loop implicit flag and implicit flag. \n\t\t\t\t\ti.e local=LikelyArray_NoMissingValues_NonInts_NonFloats;temp=Int8Array;param=LikelyNumber;return=LikelyString;loopimplicitflag=ImplicitCall_ToPrimitive;implicitflag=ImplicitCall_None\n\t\t\t\t\tor pass DynamicProfileMutator:random\n\t\t\t\t\tSee DynamicProfileInfo.h for enum values", nullptr)
 #endif
 FLAGNR(Boolean, ExecuteByteCodeBufferReturnsInvalidByteCode, "Serialized byte code execution always returns SCRIPT_E_INVALID_BYTECODE", false)
@@ -857,7 +858,7 @@ FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",
 // Per ES6 feature/flag
 
 FLAGPR           (Boolean, ES6, ES6Species             , "Enable ES6 '@@species' properties and built-in behaviors" , DEFAULT_CONFIG_ES6Species)
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES6AsyncAwait)
+FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
 FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
 FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
@@ -964,9 +965,9 @@ FLAGNR(Number,  FaultInjectionCount   , "Injects an out of memory at the specifi
 FLAGNR(String,  FaultInjectionType    , "FaultType (flag values) -  1 (Throw), 2 (NoThrow), 4 (MarkThrow), 8 (MarkNoThrow), FFFFFFFF (All)", nullptr)
 FLAGNR(String,  FaultInjectionFilter  , "A string to restrict the fault injection, the string can be like ArenaAllocator name", nullptr)
 FLAGNR(Number,  FaultInjectionAllocSize, "Do fault injection only this size", -1)
-FLAGNR(String, FaultInjectionStackFile   , "Stacks to match, default: stack.txt in current directory", _u("stack.txt"))
+FLAGNR(String,  FaultInjectionStackFile   , "Stacks to match, default: stack.txt in current directory", _u("stack.txt"))
 FLAGNR(Number,  FaultInjectionStackLineCount   , "Count of lines in the stack file used for matching", -1)
-FLAGNR(String, FaultInjectionStackHash, "Match stacks hash on Chakra frames to inject the fault, hex string", _u("0"))
+FLAGNR(String,  FaultInjectionStackHash, "Match stacks hash on Chakra frames to inject the fault, hex string", _u("0"))
 FLAGNR(Number,  FaultInjectionScriptContextToTerminateCount, "Script context# COUNT % (Number of script contexts) to terminate", 1)
 #endif
 FLAGNR(Number, InduceCodeGenFailure, "Probability of a codegen job failing.", DEFAULT_CONFIG_InduceCodeGenFailure)
@@ -1007,6 +1008,7 @@ FLAGNR(Phases,  Memspect,              "Enables memspect tracking to perform mem
 #endif
 FLAGNR(Number,  PolymorphicInlineThreshold     , "Maximum size in bytecodes of a polymorphic inline candidate", DEFAULT_CONFIG_PolymorphicInlineThreshold)
 FLAGNR(Boolean, PrimeRecycler         , "Prime the recycler first", DEFAULT_CONFIG_PrimeRecycler)
+FLAGNR(Boolean, PrivateHeap           , "Use HeapAlloc with a private heap", DEFAULT_CONFIG_PrivateHeap)
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
 FLAGNR(Boolean, LeakStackTrace ,        "Include stack trace on leaked pinned object and heap objects", false)
 FLAGNR(Boolean, ForceMemoryLeak ,       "Fake leak some memory to test leak report and check memory leak", false)
@@ -1045,7 +1047,6 @@ FLAGR (Number,  SimpleJitLimit, "Limit after which to transition to the next exe
 FLAGR (Number,  ProfilingInterpreter1Limit, "Limit after which to transition to the next execution mode", DEFAULT_CONFIG_ProfilingInterpreter1Limit)
 
 FLAGNRA(String, ExecutionModeLimits,        Eml,  "Execution mode limits in th form: AutoProfilingInterpreter0.ProfilingInterpreter0.AutoProfilingInterpreter1.SimpleJit.ProfilingInterpreter1 - Example: -ExecutionModeLimits:12.4.0.132.12", _u(""))
-
 FLAGRA(Boolean, EnforceExecutionModeLimits, Eeml, "Enforces the execution mode limits such that they are never exceeded.", false)
 
 FLAGNRA(Number, SimpleJitAfter        , Sja, "Number of calls to a function after which to simple-JIT the function", 0)
@@ -1081,8 +1082,8 @@ FLAGNR(Boolean, NoWinRTFastSig        , "Disable fast call for common WinRT func
 FLAGNR(Phases,  Off                   , "Turn off specific phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  OffProfiledByteCode   , "Turn off specific byte code for phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  On                    , "Turn on specific phases or feature.(Might not work for all phases)", )
-FLAGNR(String, OutputFile            , "Log the output to a specified file. Default: output.log in the working directory.", _u("output.log"))
-FLAGNR(String, OutputFileOpenMode    , "File open mode for OutputFile. Default: wt, specify 'at' for append", _u("wt"))
+FLAGNR(String,  OutputFile            , "Log the output to a specified file. Default: output.log in the working directory.", _u("output.log"))
+FLAGNR(String,  OutputFileOpenMode    , "File open mode for OutputFile. Default: wt, specify 'at' for append", _u("wt"))
 #ifdef ENABLE_TRACE
 FLAGNR(Boolean, InMemoryTrace         , "Enable in-memory trace (investigate crash using trace in dump file). Use !jd.dumptrace to print it.", DEFAULT_CONFIG_InMemoryTrace)
 FLAGNR(Number,  InMemoryTraceBufferSize, "The size of circular buffer for in-memory trace (the units used is: number of trace calls). ", DEFAULT_CONFIG_InMemoryTraceBufferSize)

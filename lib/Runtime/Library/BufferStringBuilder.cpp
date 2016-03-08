@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    wchar_t* BufferStringBuilder::WritableString::SafeCopyAndAdvancePtr(__out_ecount(cchDst) wchar_t* dst, charcount_t& cchDst, __in_ecount(cch) const wchar_t* ptr, charcount_t cch)
+    char16* BufferStringBuilder::WritableString::SafeCopyAndAdvancePtr(__out_ecount(cchDst) char16* dst, charcount_t& cchDst, __in_ecount(cch) const char16* ptr, charcount_t cch)
     {
         Assert( IsValidCharCount(cch) );
         Assert( dst != nullptr);
@@ -24,11 +24,11 @@ namespace Js
     }
 
     void BufferStringBuilder::WritableString::SetContent(
-            const wchar_t* prefix, charcount_t cchPrefix,
-            const wchar_t* content, charcount_t cchContent,
-            const wchar_t* suffix, charcount_t cchSuffix)
+            const char16* prefix, charcount_t cchPrefix,
+            const char16* content, charcount_t cchContent,
+            const char16* suffix, charcount_t cchSuffix)
     {
-        wchar_t* dst = GetWritableBuffer();
+        char16* dst = GetWritableBuffer();
 
         charcount_t cchRemain = GetLength();
         dst = SafeCopyAndAdvancePtr(dst, cchRemain, prefix, cchPrefix);
@@ -42,7 +42,7 @@ namespace Js
 
         // Allocate recycler memory to store the string plus a terminating NUL
         charcount_t allocSize = JavascriptString::SafeSzSize(length);
-        wchar_t* buffer = RecyclerNewArrayLeaf(recycler, wchar_t, allocSize);
+        char16* buffer = RecyclerNewArrayLeaf(recycler, char16, allocSize);
 
 #if DBG
         // Fill with a debug pattern (including the space for the NUL terminator)
@@ -57,7 +57,7 @@ namespace Js
     {
         DbgAssertNotFrozen();
 
-        wchar_t* buffer = DangerousGetWritableBuffer();
+        char16* buffer = DangerousGetWritableBuffer();
         charcount_t length = this->m_string->GetLength();
 
 #if DBG

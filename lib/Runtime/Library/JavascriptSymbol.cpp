@@ -37,7 +37,7 @@ namespace Js
 
         if (callInfo.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Symbol");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Symbol"));
         }
 
         JavascriptString* description;
@@ -74,7 +74,7 @@ namespace Js
         }
         else
         {
-            return TryInvokeRemotelyOrThrow(EntryValueOf, scriptContext, args, JSERR_This_NeedSymbol, L"Symbol.prototype.valueOf");
+            return TryInvokeRemotelyOrThrow(EntryValueOf, scriptContext, args, JSERR_This_NeedSymbol, _u("Symbol.prototype.valueOf"));
         }
     }
 
@@ -101,7 +101,7 @@ namespace Js
         }
         else
         {
-            return TryInvokeRemotelyOrThrow(EntryToString, scriptContext, args, JSERR_This_NeedSymbol, L"Symbol.prototype.toString");
+            return TryInvokeRemotelyOrThrow(EntryToString, scriptContext, args, JSERR_This_NeedSymbol, _u("Symbol.prototype.toString"));
         }
 
         return JavascriptSymbol::ToString(val, scriptContext);
@@ -161,11 +161,11 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptSymbol::Is(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSymbol, L"Symbol.keyFor");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSymbol, _u("Symbol.keyFor"));
         }
 
         JavascriptSymbol* sym = JavascriptSymbol::FromVar(args[1]);
-        const wchar_t* key = sym->GetValue()->GetBuffer();
+        const char16* key = sym->GetValue()->GetBuffer();
 
         // Search the global symbol registration map for a key equal to the description of the symbol passed into Symbol.keyFor.
         // Symbol.for creates a new symbol with description equal to the key and uses that key as a mapping to the new symbol.
@@ -203,7 +203,7 @@ namespace Js
         }
         else
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, L"Symbol[Symbol.toPrimitive]");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("Symbol[Symbol.toPrimitive]"));
         }
     }
 
@@ -262,16 +262,16 @@ namespace Js
     {
         if (this->GetValue())
         {
-            stringBuilder->AppendCppLiteral(L"Symbol(");
+            stringBuilder->AppendCppLiteral(_u("Symbol("));
             stringBuilder->Append(this->GetValue()->GetBuffer(), this->GetValue()->GetLength());
-            stringBuilder->Append(L')');
+            stringBuilder->Append(_u(')'));
         }
         return TRUE;
     }
 
     BOOL JavascriptSymbol::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Symbol");
+        stringBuilder->AppendCppLiteral(_u("Symbol"));
         return TRUE;
     }
 
@@ -287,27 +287,23 @@ namespace Js
 
     JavascriptString* JavascriptSymbol::ToString(ScriptContext * requestContext)
     {
-        // Reject implicit call
-        ThreadContext* threadContext = requestContext->GetThreadContext();
-        if (threadContext->IsDisableImplicitCall())
+        if (requestContext->GetThreadContext()->RecordImplicitException())
         {
-            threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-            return nullptr;
+            JavascriptError::ThrowTypeError(requestContext, VBSERR_OLENoPropOrMethod, _u("ToString"));
         }
-        // This keeps getting revisited but as of ES6 spec revision 20,
-        // implicit string conversion of symbol primitives is supposed to throw a TypeError.
-        JavascriptError::ThrowTypeError(requestContext, VBSERR_OLENoPropOrMethod, L"ToString");
+
+        return requestContext->GetLibrary()->GetEmptyString();
     }
 
     JavascriptString* JavascriptSymbol::ToString(const PropertyRecord* propertyRecord, ScriptContext * requestContext)
     {
-        const wchar_t* description = propertyRecord->GetBuffer();
+        const char16* description = propertyRecord->GetBuffer();
         uint len = propertyRecord->GetLength();
-        CompoundString* str = CompoundString::NewWithCharCapacity(len + _countof(L"Symbol()"), requestContext->GetLibrary());
+        CompoundString* str = CompoundString::NewWithCharCapacity(len + _countof(_u("Symbol()")), requestContext->GetLibrary());
 
-        str->AppendChars(L"Symbol(", _countof(L"Symbol(") - 1);
+        str->AppendChars(_u("Symbol("), _countof(_u("Symbol(")) - 1);
         str->AppendChars(description, len);
-        str->AppendChars(L')');
+        str->AppendChars(_u(')'));
 
         return str;
     }

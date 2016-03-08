@@ -220,6 +220,7 @@ EXDEF3_WMS(CUSTOM,                  InitClassMemberGet,         OP_InitClassMemb
 EXDEF3_WMS(CUSTOM,                  InitClassMemberSetComputedName, OP_InitClassMemberSetComputedName, ElementI)
 EXDEF2_WMS(BRB,                     BrOnClassConstructor,       OP_BrOnClassConstructor)
   DEF3_WMS(GET_ELEM_LOCALSLOTNonVar,LdLocalSlot,                OP_LdSlot, ElementSlotI1)
+EXDEF3_WMS(GET_ELEM_PARAMSLOTNonVar,LdParamSlot,                OP_LdSlot, ElementSlotI1)
   DEF3_WMS(GET_ELEM_INNERSLOTNonVar,LdInnerSlot,                OP_LdInnerSlot, ElementSlotI2)
 EXDEF3_WMS(GET_ELEM_INNERSLOTNonVar,LdInnerObjSlot,             OP_LdInnerObjSlot, ElementSlotI2)
   DEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdEnvSlot,                  OP_LdEnvSlot, ElementSlotI2)
@@ -229,6 +230,7 @@ EXDEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdEnvObjSlot,               OP_LdEnvObjSlot,
   DEF3_WMS(GET_ELEM_INNERSLOTNonVar,ProfiledLdInnerSlot,        PROFILEDOP(OP_ProfiledLdInnerSlot, OP_LdInnerSlot), ProfiledElementSlotI2)
 EXDEF3_WMS(GET_ELEM_INNERSLOTNonVar,ProfiledLdInnerObjSlot,     PROFILEDOP(OP_ProfiledLdInnerObjSlot, OP_LdInnerObjSlot), ProfiledElementSlotI2)
   DEF3_WMS(GET_ELEM_LOCALSLOTNonVar,ProfiledLdLocalSlot,        PROFILEDOP(OP_ProfiledLdSlot, OP_LdSlot), ProfiledElementSlotI1)
+EXDEF3_WMS(GET_ELEM_PARAMSLOTNonVar,ProfiledLdParamSlot,        PROFILEDOP(OP_ProfiledLdSlot, OP_LdSlot), ProfiledElementSlotI1)
   DEF3_WMS(GET_ELEM_ENVSLOTNonVar,  ProfiledLdEnvSlot,          PROFILEDOP(OP_ProfiledLdEnvSlot, OP_LdEnvSlot), ProfiledElementSlotI2)
 EXDEF3_WMS(GET_ELEM_ENVSLOTNonVar,  ProfiledLdEnvObjSlot,       PROFILEDOP(OP_ProfiledLdEnvObjSlot, OP_LdEnvObjSlot), ProfiledElementSlotI2)
 EXDEF3_WMS(GET_ELEM_SLOTNonVar,     LdObjSlot,                  OP_LdObjSlot, ElementSlot)
@@ -376,6 +378,7 @@ EXDEF2_WMS(A1toXX,                  ObjectFreeze,               JavascriptOperat
 EXDEF3_WMS(CUSTOM,                  ClearAttributes,            OP_ClearAttributes, ElementU)
   DEF3_WMS(CUSTOM,                  ApplyArgs,                  OP_ApplyArgs, Reg5)
 EXDEF3_WMS(CUSTOM,                  EmitTmpRegCount,            OP_EmitTmpRegCount, Unsigned1)
+EXDEF2    (EMPTY,                   BeginBodyScope,             OP_BeginBodyScope)
 
 #endif
 

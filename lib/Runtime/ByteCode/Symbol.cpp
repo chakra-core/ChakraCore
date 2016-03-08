@@ -5,7 +5,7 @@
 #include "RuntimeByteCodePch.h"
 
 #if DBG_DUMP
-static const wchar_t * const SymbolTypeNames[] = { L"Function", L"Variable", L"MemberName", L"Formal", L"Unknown" };
+static const char16 * const SymbolTypeNames[] = { _u("Function"), _u("Variable"), _u("MemberName"), _u("Formal"), _u("Unknown") };
 #endif
 
 bool Symbol::GetIsArguments() const
@@ -179,13 +179,13 @@ void Symbol::SetHasMaybeEscapedUseInternal(ByteCodeGenerator * byteCodeGenerator
     hasMaybeEscapedUse = true;
     if (PHASE_TESTTRACE(Js::StackFuncPhase, byteCodeGenerator->TopFuncInfo()->byteCodeFunction))
     {
-        Output::Print(L"HasMaybeEscapedUse: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("HasMaybeEscapedUse: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
     if (this->GetHasFuncAssignment())
     {
         this->GetScope()->GetFunc()->SetHasMaybeEscapedNestedFunc(
-            DebugOnly(this->symbolType == STFunction ? L"MaybeEscapedUseFuncDecl" : L"MaybeEscapedUse"));
+            DebugOnly(this->symbolType == STFunction ? _u("MaybeEscapedUseFuncDecl") : _u("MaybeEscapedUse")));
     }
 }
 
@@ -205,16 +205,16 @@ void Symbol::SetHasFuncAssignmentInternal(ByteCodeGenerator * byteCodeGenerator)
     FuncInfo * top = byteCodeGenerator->TopFuncInfo();
     if (PHASE_TESTTRACE(Js::StackFuncPhase, top->byteCodeFunction))
     {
-        Output::Print(L"HasFuncAssignment: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("HasFuncAssignment: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
 
     if (this->GetHasMaybeEscapedUse() || this->GetScope()->GetIsObject())
     {
         byteCodeGenerator->TopFuncInfo()->SetHasMaybeEscapedNestedFunc(DebugOnly(
-            this->GetIsFormal() ? L"FormalAssignment" :
-            this->GetScope()->GetIsObject() ? L"ObjectScopeAssignment" :
-            L"MaybeEscapedUse"));
+            this->GetIsFormal() ? _u("FormalAssignment") :
+            this->GetScope()->GetIsObject() ? _u("ObjectScopeAssignment") :
+            _u("MaybeEscapedUse")));
     }
 }
 
@@ -225,7 +225,7 @@ void Symbol::RestoreHasFuncAssignment()
     hasFuncAssignment = true;
     if (PHASE_TESTTRACE1(Js::StackFuncPhase))
     {
-        Output::Print(L"RestoreHasFuncAssignment: %s\n", this->GetName().GetBuffer());
+        Output::Print(_u("RestoreHasFuncAssignment: %s\n"), this->GetName().GetBuffer());
         Output::Flush();
     }
 }
@@ -276,7 +276,7 @@ Symbol * Symbol::GetFuncScopeVarSym() const
 }
 
 #if DBG_DUMP
-const wchar_t * Symbol::GetSymbolTypeName()
+const char16 * Symbol::GetSymbolTypeName()
 {
     return SymbolTypeNames[symbolType];
 }

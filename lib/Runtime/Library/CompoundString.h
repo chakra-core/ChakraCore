@@ -481,7 +481,7 @@ namespace Js
 
         if(PHASE_TRACE_StringConcat)
         {
-            Output::Print(L"CompoundString::SwitchToPointerMode() - directCharLength = %u\n", directCharLength);
+            Output::Print(_u("CompoundString::SwitchToPointerMode() - directCharLength = %u\n"), directCharLength);
             Output::Flush();
         }
     }
@@ -979,7 +979,7 @@ namespace Js
 
         if(PHASE_TRACE_StringConcat)
         {
-            Output::Print(L"CompoundString::AppendGeneric('%c', appendChars = %s)\n", c, appendChars ? L"true" : L"false");
+            Output::Print(_u("CompoundString::AppendGeneric('%c', appendChars = %s)\n"), c, appendChars ? _u("true") : _u("false"));
             Output::Flush();
         }
 
@@ -1011,11 +1011,11 @@ namespace Js
         if(PHASE_TRACE_StringConcat)
         {
             Output::Print(
-                L"CompoundString::AppendGeneric(JavascriptString *s = \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n",
-                s->IsFinalized() ? s->GetString() : L"",
-                !s->IsFinalized() || appendCharLength > 8 ? L"..." : L"",
+                _u("CompoundString::AppendGeneric(JavascriptString *s = \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n"),
+                s->IsFinalized() ? s->GetString() : _u(""),
+                !s->IsFinalized() || appendCharLength > 8 ? _u("...") : _u(""),
                 appendCharLength,
-                appendChars ? L"true" : L"false");
+                appendChars ? _u("true") : _u("false"));
             Output::Flush();
         }
 
@@ -1073,13 +1073,13 @@ namespace Js
         if(PHASE_TRACE_StringConcat)
         {
             Output::Print(
-                L"CompoundString::AppendGeneric(JavascriptString *s = \"%.*s%s\", startIndex = %u, appendCharLength = %u, appendChars = %s)\n",
+                _u("CompoundString::AppendGeneric(JavascriptString *s = \"%.*s%s\", startIndex = %u, appendCharLength = %u, appendChars = %s)\n"),
                 min(static_cast<CharCount>(8), appendCharLength),
-                s->IsFinalized() ? &s->GetString()[startIndex] : L"",
-                !s->IsFinalized() || appendCharLength > 8 ? L"..." : L"",
+                s->IsFinalized() ? &s->GetString()[startIndex] : _u(""),
+                !s->IsFinalized() || appendCharLength > 8 ? _u("...") : _u(""),
                 startIndex,
                 appendCharLength,
-                appendChars ? L"true" : L"false");
+                appendChars ? _u("true") : _u("false"));
             Output::Flush();
         }
 
@@ -1160,11 +1160,11 @@ namespace Js
         if(PHASE_TRACE_StringConcat)
         {
             Output::Print(
-                L"CompoundString::AppendGeneric(C++ literal \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n",
+                _u("CompoundString::AppendGeneric(C++ literal \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n"),
                 s,
-                appendCharLength > 8 ? L"..." : L"",
+                appendCharLength > 8 ? _u("...") : _u(""),
                 appendCharLength,
-                appendChars ? L"true" : L"false");
+                appendChars ? _u("true") : _u("false"));
             Output::Flush();
         }
 
@@ -1210,11 +1210,11 @@ namespace Js
         if(PHASE_TRACE_StringConcat)
         {
             Output::Print(
-                L"CompoundString::AppendGeneric(char16 *s = \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n",
+                _u("CompoundString::AppendGeneric(char16 *s = \"%.8s%s\", appendCharLength = %u, appendChars = %s)\n"),
                 s,
-                appendCharLength > 8 ? L"..." : L"",
+                appendCharLength > 8 ? _u("...") : _u(""),
                 appendCharLength,
-                appendChars ? L"true" : L"false");
+                appendChars ? _u("true") : _u("false"));
             Output::Flush();
         }
 
@@ -1272,10 +1272,10 @@ namespace Js
         if(PHASE_TRACE_StringConcat)
         {
             Output::Print(
-                L"CompoundString::AppendGeneric(TValue &, appendChars = %s) - converted = \"%.8s%s\", appendCharLength = %u\n",
-                appendChars ? L"true" : L"false",
+                _u("CompoundString::AppendGeneric(TValue &, appendChars = %s) - converted = \"%.8s%s\", appendCharLength = %u\n"),
+                appendChars ? _u("true") : _u("false"),
                 convertBuffer,
-                appendCharLength > 8 ? L"..." : L"",
+                appendCharLength > 8 ? _u("...") : _u(""),
                 appendCharLength);
             Output::Flush();
         }

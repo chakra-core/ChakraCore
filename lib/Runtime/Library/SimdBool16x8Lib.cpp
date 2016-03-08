@@ -48,7 +48,7 @@ namespace Js
         {
             return args[1];
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"bool16x8");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("bool16x8"));
     }
 
     Var SIMDBool16x8Lib::EntrySplat(RecyclableObject* function, CallInfo callInfo, ...)
@@ -86,7 +86,7 @@ namespace Js
             bool result = SIMD128ExtractLane<JavascriptSIMDBool16x8, 8, bool>(args[1], laneVar, scriptContext);
             return JavascriptBoolean::ToVar(result, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"ExtractLane");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, _u("ExtractLane"));
     }
 
     Var SIMDBool16x8Lib::EntryReplaceLane(RecyclableObject* function, CallInfo callInfo, ...)
@@ -112,7 +112,7 @@ namespace Js
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"ReplaceLane");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("ReplaceLane"));
     }
 
     // UnaryOps
@@ -136,7 +136,7 @@ namespace Js
             return JavascriptBoolean::ToVar(result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"AllTrue");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("AllTrue"));
     }
 
     Var SIMDBool16x8Lib::EntryAnyTrue(RecyclableObject* function, CallInfo callInfo, ...)
@@ -159,7 +159,7 @@ namespace Js
             return JavascriptBoolean::ToVar(result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"AnyTrue");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("AnyTrue"));
     }
 
     // TODO: Dependent on Int16x8
@@ -184,7 +184,7 @@ namespace Js
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"not");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("not"));
     }
 
     Var SIMDBool16x8Lib::EntryAnd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -216,7 +216,7 @@ namespace Js
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"and");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("and"));
     }
 
     Var SIMDBool16x8Lib::EntryOr(RecyclableObject* function, CallInfo callInfo, ...)
@@ -248,7 +248,7 @@ namespace Js
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"or");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("or"));
     }
 
     Var SIMDBool16x8Lib::EntryXor(RecyclableObject* function, CallInfo callInfo, ...)
@@ -279,6 +279,6 @@ namespace Js
             return JavascriptSIMDBool16x8::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"xor");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("xor"));
     }
 }

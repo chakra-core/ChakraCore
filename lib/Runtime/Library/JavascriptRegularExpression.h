@@ -54,16 +54,24 @@ namespace Js
         inline void SetPattern(UnifiedRegex::RegexPattern* pattern);
         inline void SetSplitPattern(UnifiedRegex::RegexPattern* splitPattern);
 
+        static CharCount GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+        static void SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext);
 
+        static CharCount GetIndexOrMax(int64 index);
+
+        static bool HasObservableConstructor(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool HasObservableFlags(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableUnicodeFlag(RecyclableObject* instance, ScriptContext* scriptContext);
         static bool HasObservableFlag(RecyclableObject* instance, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext);
         static bool HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext);
-        static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor);
-        static BOOL GetNonProxyDescriptor(RecyclableObject* instance, PropertyId propertyId, ScriptContext *scriptContext, PropertyDescriptor* descriptor, RecyclableObject** descriptorInstance);
+        static bool HasObservableGetter(RecyclableObject* instance, PropertyId propertyId, Var getter, ScriptContext* scriptContext);
+        static bool HasObservableValue(RecyclableObject* instance, PropertyId propertyId, Var value, ScriptContext* scriptContext);
+        template<typename ObservableFn>
+        static bool HasObservableProperty(RecyclableObject* instance, PropertyId propertyId, ObservableFn isObservable, ScriptContext* scriptContext);
 
         static Var CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext);
         void RecompilePatternForExecIfNeeded(ScriptContext* scriptContext);
@@ -111,7 +119,7 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptRegExp* FromVar(Var aValue);
 
-        static JavascriptRegExp* CreateRegEx(const wchar_t* pSource, CharCount sourceLen,
+        static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext);
@@ -129,6 +137,7 @@ namespace Js
             static FunctionInfo ToString;
             static FunctionInfo SymbolMatch;
             static FunctionInfo SymbolSearch;
+            static FunctionInfo SymbolSplit;
             static FunctionInfo GetterSymbolSpecies;
             static FunctionInfo GetterGlobal;
             static FunctionInfo GetterFlags;
@@ -148,9 +157,10 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterFlags(RecyclableObject* function, CallInfo callInfo, ...);
-        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, wchar_t flag, ScriptContext* scriptContext);
+        static void AppendFlagForFlagsProperty(StringBuilder<ArenaAllocator>* builder, RecyclableObject* thisObj, PropertyId propertyId, char16 flag, ScriptContext* scriptContext);
         static Var EntryGetterGlobal(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterIgnoreCase(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterMultiline(RecyclableObject* function, CallInfo callInfo, ...);

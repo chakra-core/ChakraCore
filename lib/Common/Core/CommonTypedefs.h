@@ -2,6 +2,16 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+#pragma once
+
+#ifdef _WIN32
+typedef WCHAR char16;
+#define _u(s) L##s
+#else
+typedef char16_t char16;
+#define _u(s) u##s
+#endif
+
 typedef char16 wchar;
 typedef unsigned int uint;
 typedef unsigned short ushort;

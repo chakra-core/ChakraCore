@@ -28,7 +28,7 @@ namespace JSON
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Js::ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"JSON.parse");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("JSON.parse"));
         Assert(!(callInfo.Flags & Js::CallFlags_New));
 
         if(args.Info.Count < 2)
@@ -80,7 +80,7 @@ namespace JSON
                 Js::DynamicObject* root = scriptContext->GetLibrary()->CreateObject();
                 JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(root));
                 Js::PropertyRecord const * propertyRecord;
-                scriptContext->GetOrAddPropertyRecord(L"", 0, &propertyRecord);
+                scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
                 Js::PropertyId propertyId = propertyRecord->GetPropertyId();
                 Js::JavascriptOperators::InitProperty(root, propertyId, result);
                 result = parser.Walk(scriptContext->GetLibrary()->GetEmptyString(), propertyId, root);
@@ -160,7 +160,7 @@ namespace JSON
         ARGUMENTS(args, callInfo);
         Js::JavascriptLibrary* library = function->GetType()->GetLibrary();
         Js::ScriptContext* scriptContext = library->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"JSON.stringify");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("JSON.stringify"));
 
         Assert(!(callInfo.Flags & Js::CallFlags_New));
 
@@ -258,7 +258,7 @@ namespace JSON
                     }
                     else
                     {
-                         ACQUIRE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext, L"JSON");
+                         ACQUIRE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext, _u("JSON"));
                          nameTable = AnewArray(nameTableAlloc, StringifySession::StringTable, count);
                     }
                     if (isArray && !!reArray->IsCrossSiteObject())
@@ -281,7 +281,7 @@ namespace JSON
                     }
 
                     //Eliminate duplicates in replacer array.
-                    BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JSON")
+                    BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("JSON"))
                     {
                         BVSparse<ArenaAllocator>* propIdMap = AllocateMap(tempAlloc); //Anew(tempAlloc, BVSparse<ArenaAllocator>, tempAlloc);
 
@@ -316,14 +316,14 @@ namespace JSON
             }
         }
 
-        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, L"JSON")
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("JSON"))
         {
             stringifySession.CompleteInit(space, tempAlloc);
 
             Js::DynamicObject* wrapper = scriptContext->GetLibrary()->CreateObject();
             JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(wrapper));
             Js::PropertyRecord const * propertyRecord;
-            scriptContext->GetOrAddPropertyRecord(L"", 0, &propertyRecord);
+            scriptContext->GetOrAddPropertyRecord(_u(""), 0, &propertyRecord);
             Js::PropertyId propertyId = propertyRecord->GetPropertyId();
             Js::JavascriptOperators::InitProperty(wrapper, propertyId, value);
             result = stringifySession.Str(scriptContext->GetLibrary()->GetEmptyString(), propertyId, wrapper);
@@ -339,8 +339,8 @@ namespace JSON
     void StringifySession::CompleteInit(Js::Var space, ArenaAllocator* tempAlloc)
     {
         //set the stack, gap
-        wchar_t buffer[JSONspaceSize];
-        wmemset(buffer, L' ', JSONspaceSize);
+        char16 buffer[JSONspaceSize];
+        wmemset(buffer, _u(' '), JSONspaceSize);
         charcount_t len = 0;
         switch (Js::JavascriptOperators::GetTypeId(space))
         {
@@ -696,7 +696,7 @@ namespace JSON
                                 nameTable = (Js::Var*)_alloca(sizeof(Js::Var) * precisePropertyCount);
                             } else
                             {
-                                ACQUIRE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext, L"JSON");
+                                ACQUIRE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext, _u("JSON"));
                                 nameTable = AnewArray(nameTableAlloc, Js::Var, precisePropertyCount);
                             }
                             enumerator->Reset();
@@ -736,7 +736,7 @@ namespace JSON
 
         if(isEmpty)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"{}");
+            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{}"));
         }
         else
         {
@@ -748,18 +748,18 @@ namespace JSON
                 }
                 // Note: it's better to use strings with length = 1 as the are cached/new instances are not created every time.
                 Js::ConcatStringN<7>* retVal = Js::ConcatStringN<7>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"{"));
-                retVal->SetItem(1, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"\n"));
+                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("{")));
+                retVal->SetItem(1, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
                 retVal->SetItem(2, indentString);
                 retVal->SetItem(3, result);
-                retVal->SetItem(4, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"\n"));
+                retVal->SetItem(4, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
                 retVal->SetItem(5, GetIndentString(stepBackIndent));
-                retVal->SetItem(6, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"}"));
+                retVal->SetItem(6, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("}")));
                 result = retVal;
             }
             else
             {
-                result = Js::ConcatStringWrapping<L'{', L'}'>::New(result);
+                result = Js::ConcatStringWrapping<_u('{'), _u('}')>::New(result);
             }
         }
 
@@ -802,7 +802,7 @@ namespace JSON
         Js::JavascriptString* result;
         if (length == 0)
         {
-            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"[]");
+            result = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[]"));
         }
         else
         {
@@ -841,17 +841,17 @@ namespace JSON
                     indentString = GetIndentString(this->indent);
                 }
                 Js::ConcatStringN<6>* retVal = Js::ConcatStringN<6>::New(this->scriptContext);
-                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"[\n"));
+                retVal->SetItem(0, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("[\n")));
                 retVal->SetItem(1, indentString);
                 retVal->SetItem(2, result);
-                retVal->SetItem(3, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"\n"));
+                retVal->SetItem(3, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\n")));
                 retVal->SetItem(4, GetIndentString(stepBackIndent));
-                retVal->SetItem(5, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"]"));
+                retVal->SetItem(5, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("]")));
                 result = retVal;
             }
             else
             {
-                result = Js::ConcatStringWrapping<L'[', L']'>::New(result);
+                result = Js::ConcatStringWrapping<_u('['), _u(']')>::New(result);
             }
         }
 
@@ -865,11 +865,11 @@ namespace JSON
         {
             if(this->gap)
             {
-                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L": ");
+                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": "));
             }
             else
             {
-                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L":");
+                propertySeparator = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(":"));
             }
         }
         return propertySeparator;
@@ -879,7 +879,7 @@ namespace JSON
     {
         // Note: this potentially can be improved by using a special ConcatString which has gap and count fields.
         //       Although this does not seem to be a critical path (using gap should not be often).
-        Js::JavascriptString* res = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"");
+        Js::JavascriptString* res = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(""));
         if(this->gap)
         {
             for (uint i = 0 ; i < count; i++)
@@ -894,7 +894,7 @@ namespace JSON
     {
         if(this->gap)
         {
-            return Js::JavascriptString::Concat(scriptContext->GetLibrary()->CreateStringFromCppLiteral(L",\n"), indentString);
+            return Js::JavascriptString::Concat(scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(",\n")), indentString);
         }
         else
         {

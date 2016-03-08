@@ -202,7 +202,7 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_startLine = lineNumber;
     m_pchStartLine = m_currentCharacter;
     m_ptoken->tk = tkNone;
-    m_fHtmlComments = (grfscr & fscrHtmlComments) != 0;
+    m_fIsModuleCode = (grfscr & fscrIsModuleCode) != 0;
     m_fHadEol = FALSE;
     m_fSyntaxColor = (grfscr & fscrSyntaxColor) != 0;
     m_DeferredParseFlags = ScanFlagNone;
@@ -1614,6 +1614,8 @@ tokens Scanner<EncodingPolicy>::SkipComment(EncodedCharPtr *pp, /* out */ bool* 
                 return tkNone;
             }
             break;
+
+        // ES 2015 11.3 Line Terminators
         case kchLS:         // 0x2028, classifies as new line
         case kchPS:         // 0x2029, classifies as new line
 LEcmaLineBreak:
@@ -1756,6 +1758,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     m_fHadEol = FALSE;
     CharTypes chType;
     charcount_t commentStartLine;
+    bool seenDelimitedCommentEnd = false;
 
     if (m_scanState && *p != 0)
     {
@@ -1934,16 +1937,19 @@ LEof:
             }
         case '(': Assert(chType == _C_LPR); token = tkLParen; break;
         case ')': Assert(chType == _C_RPR); token = tkRParen; break;
-        case ',': Assert(chType == _C_CMA); token = tkComma; break;
+        case ',': Assert(chType == _C_CMA); token = tkComma;  break;
         case ';': Assert(chType == _C_SMC); token = tkSColon; break;
         case '[': Assert(chType == _C_LBR); token = tkLBrack; break;
         case ']': Assert(chType == _C_RBR); token = tkRBrack; break;
-        case '~': Assert(chType == _C_TIL); token = tkTilde; break;
-        case '?': Assert(chType == _C_QUE); token = tkQMark; break;
-        case '{': Assert(chType == _C_LC); token = tkLCurly; break;
+        case '~': Assert(chType == _C_TIL); token = tkTilde;  break;
+        case '?': Assert(chType == _C_QUE); token = tkQMark;  break;
+        case '{': Assert(chType == _C_LC);  token = tkLCurly; break;
 
+        // ES 2015 11.3 Line Terminators
         case '\r':
         case '\n':
+        // kchLS:
+        // kchPS:
 LNewLine:
             m_currentCharacter = p;
             ScanNewLine(ch);
@@ -2087,36 +2093,11 @@ LIdentifier:
             case '-':
                 p++;
                 token = tkDec;
-                if (m_fHtmlComments)
+                if (!m_fIsModuleCode)
                 {
-                    int i = 0;
-                    while ('-' == PeekFirst(p + i, last)) //Have already seen --, skip any further - characters
-                        i++;
-                    if ('>' == PeekFirst(p + i++, last)) //This means we've got a --------------------------->.
+                    if ('>' == PeekFirst(p, last) && (m_fHadEol || seenDelimitedCommentEnd)) // --> HTMLCloseComment
                     {
-                        //If that precedes an EOF or }NWL (disregarding whitespace), then it is a comment.
-                        OLECHAR nextChar;
-                        nextChar = NextNonWhiteChar(&p[i], last);
-                        if (nextChar == 0)
-                        {
-                            //Treat the -----------------------------> EOF as if it were EOF
-                            token = tkEOF;
-                            ++p;
-                        }
-                        else if (nextChar == '}')
-                        {
-                            CharTypes nextNextCharType = this->charClassifier->GetCharType(NextNonWhiteCharPlusOne(&p[i], last));
-                            if (nextNextCharType == _C_NWL
-                                // Corner case: If we have reached the end of the source, either we are at the end of the file or the end of
-                                // a deferred function. We treat this case as NWL.
-                                // TODO(tcare): Update to ES6 spec. Tracked in Bug 1164686
-                                || (last == m_pchLast && nextNextCharType == _C_NUL))
-                            {
-                                //Treat the -----------------------------> }NWL as if it were }NWL
-                                p += i;
-                                continue;
-                            }
-                        }
+                        goto LSkipLineComment;
                     }
                 }
                 break;
@@ -2155,7 +2136,7 @@ LIdentifier:
             case '/':
                 if (p >= last)
                 {
-                    AssertMsg(m_fHtmlComments, "Do we have other line comment cases scanning pass last?");
+                    AssertMsg(!m_fIsModuleCode, "Do we have other line comment cases scanning pass last?");
 
                     // Effective source length may have excluded HTMLCommentSuffix "//... -->". If we are scanning
                     // those, we have passed "last" already. Move back and return EOF.
@@ -2251,6 +2232,7 @@ LMultiLineComment:
                     // of deciding whether to defer AST and byte code generation.
                     m_parser->ReduceDeferredScriptLength((ULONG)(pchT - m_pchMinTok));
                     p = pchT;
+                    seenDelimitedCommentEnd = true;
                     goto LLoop;
                 }
                 p = pchT;
@@ -2286,7 +2268,8 @@ LMultiLineComment:
                 }
                 break;
             case '!':
-                if (m_fHtmlComments && PeekFirst(p + 1, last) == '-' && PeekFirst(p + 2, last) == '-')
+                // ES 2015 B.1.3 -  HTML comments are only allowed when parsing non-module code.
+                if (!m_fIsModuleCode && PeekFirst(p + 1, last) == '-' && PeekFirst(p + 2, last) == '-')
                 {
                     // This is a "<!--" comment - treat as //
                     if (p >= last)

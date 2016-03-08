@@ -3,17 +3,19 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
+
 #ifdef _WIN32
 #include <windows.h>
 #include <wtypes.h>
-typedef wchar_t char16;
 #else
-typedef char16_t char16;
-
 // TODO: Abstract out into it's own file
 #include "pal.h"
 #include "inc/rt/palrt.h"
+#endif
 
+#include "../Core/CommonTypedefs.h"
+
+#ifndef _WIN32
 // Templates are defined here in order to avoid a dependency on C++
 // <type_traits> header file,
 // or on compiler-specific contructs.

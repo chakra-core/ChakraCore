@@ -100,7 +100,7 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         virtual void DumpFixedFields() const override;
         static void TraceFixedFieldsBeforeTypeHandlerChange(
-            const wchar_t* conversionName, const wchar_t* oldTypeHandlerName, const wchar_t* newTypeHandlerName,
+            const char16* conversionName, const char16* oldTypeHandlerName, const char16* newTypeHandlerName,
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicType* oldType, RecyclerWeakReference<DynamicObject>* oldSingletonInstanceBefore);
         static void TraceFixedFieldsAfterTypeHandlerChange(
             DynamicObject* instance, DynamicTypeHandler* oldTypeHandler, DynamicTypeHandler* newTypeHandler,

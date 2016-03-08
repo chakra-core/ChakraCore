@@ -10,7 +10,7 @@ bool MarkContext::AddMarkedObject(void * objectAddress, size_t objectSize)
     Assert(objectSize > 0);
     Assert(objectSize % sizeof(void *) == 0);
 
-    FAULTINJECT_MEMORY_MARK_NOTHROW(L"AddMarkedObject", objectSize);
+    FAULTINJECT_MEMORY_MARK_NOTHROW(_u("AddMarkedObject"), objectSize);
 
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))

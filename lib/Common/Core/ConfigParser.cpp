@@ -404,7 +404,7 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
         hasOutput = true;
     }
 #endif
-    
+
     if (Js::Configuration::Global.flags.IsEnabled(Js::OutputFileFlag)
         && Js::Configuration::Global.flags.OutputFile != nullptr)
     {

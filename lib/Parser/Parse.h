@@ -23,8 +23,8 @@ enum
     koplCmp,    // < <= > >=
     koplShf,    // << >> >>>
     koplAdd,    // + -
-    koplExpo,   // **
     koplMul,    // * / %
+    koplExpo,   // **
     koplUni,    // unary operators
     koplLim
 };
@@ -490,6 +490,26 @@ private:
             PushDynamicBlock();
         }
     }
+
+    struct ParserState
+    {
+        ParseNodePtr *m_ppnodeScopeSave;
+        ParseNodePtr *m_ppnodeExprScopeSave;
+        charcount_t m_funcInArraySave;
+        long *m_pCurrentAstSizeSave;
+        uint m_funcInArrayDepthSave;
+        uint m_nestedCountSave;
+#if DEBUG
+        // For very basic validation purpose - to check that we are not going restore to some other block.
+        BlockInfoStack *m_currentBlockInfo;
+#endif
+    };
+
+    // This function is going to capture some of the important current state of the parser to an object. Once we learn
+    // that we need to reparse the grammar again we could use RestoreStateFrom to restore that state to the parser.
+    void CaptureState(ParserState *state);
+    void RestoreStateFrom(ParserState *state);
+    // Future recommendation : Consider consolidating Parser::CaptureState and Scanner::Capture together if we do CaptureState more often.
 
 public:
     IdentPtrList* GetRequestedModulesList();

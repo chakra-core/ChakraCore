@@ -689,7 +689,13 @@
   <test>
     <default>
       <files>default-splitscope.js</files>
-      <compile-flags>-ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope.js</files>
+      <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1141,7 +1147,12 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-
+<test>
+    <default>
+        <files>HTMLComments.js</files>
+        <baseline>HTMLComments.baseline</baseline>
+    </default>
+</test>
 <test>
     <default>
         <files>module-syntax.js</files>

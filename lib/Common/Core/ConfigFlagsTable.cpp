@@ -283,7 +283,7 @@ namespace Js
         if ((int)parentName##Flag < FlagCount) this->flagIsParent[(int) parentName##Flag] = true;
 #include "ConfigFlagsList.h"
 #undef FLAG
-        
+
         // set all parent flags to their default (setting all child flags to their right values)
         this->SetAllParentFlagsAsDefaultValue();
     }
@@ -464,7 +464,7 @@ namespace Js
             Off.Enable(DeferParsePhase);
         }
     #endif
-        
+
     #if ENABLE_DEBUG_CONFIG_OPTIONS && !DISABLE_JIT
         bool dontEnforceLimitsForSimpleJitAfterOrFullJitAfter = false;
         if((IsEnabled(MinInterpretCountFlag) || IsEnabled(MaxInterpretCountFlag)) &&
@@ -856,7 +856,7 @@ namespace Js
     #define FLAG(type, name, ...) \
             case name##Flag : \
                 return Flag##type; \
-                
+
     #include "ConfigFlagsList.h"
 
             default:
@@ -884,7 +884,7 @@ namespace Js
             \
             case name##Flag : \
                 return reinterpret_cast<void*>(const_cast<type*>(&##name)); \
-            
+
         #include "ConfigFlagsList.h"
 
             default:
@@ -922,7 +922,7 @@ namespace Js
             }; \
             Output::Print(_u("\n")); \
         }
-        
+
 #include "ConfigFlagsList.h"
 #undef FLAG
     }
@@ -1060,7 +1060,7 @@ namespace Js
 #undef FLAGDOCALLBACKPhases
 #undef FLAGCALLBACKTRUE
 #undef FLAGCALLBACKFALSE
-#undef FLAG        
+#undef FLAG
 #endif
     }
 

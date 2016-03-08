@@ -138,7 +138,7 @@ namespace Js
     // Concat string that wraps another string.
     // Use it when you need to wrap something with e.g. { and }.
     // Usage pattern:
-    //   result = ConcatStringWrapping<L'{', L'}'>::New(result);
+    //   result = ConcatStringWrapping<_u('{'), _u('}')>::New(result);
     template <char16 L, char16 R>
     class ConcatStringWrapping sealed : public ConcatStringBase
     {
@@ -179,9 +179,9 @@ namespace Js
 
     // Make sure the padding doesn't add tot he size of ConcatStringWrapping
 #if defined(_M_X64_OR_ARM64)
-    CompileAssert(sizeof(ConcatStringWrapping<L'"', L'"'>) == 64);
+    CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 64);
 #else
-    CompileAssert(sizeof(ConcatStringWrapping<L'"', L'"'>) == 32);
+    CompileAssert(sizeof(ConcatStringWrapping<_u('"'), _u('"')>) == 32);
 #endif
 
     // Concat string with N child nodes. Use it when you don't know the number of children at compile time.

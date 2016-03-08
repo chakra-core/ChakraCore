@@ -1078,16 +1078,16 @@ void DumpBucket(uint bucketIndex, typename SmallHeapBlockType<TBucketType, TBloc
 
     bucket.AggregateBucketStats(stats);
 
-    Output::Print(L"%d,%d,", bucketIndex, (bucketIndex + 1) << HeapConstants::ObjectAllocationShift);
-    Output::Print(L"%d,%d,%d,%d,%d,%d,%d\n", stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount, stats.objectCount, stats.finalizeCount, stats.objectByteCount, stats.totalByteCount);
+    Output::Print(_u("%d,%d,"), bucketIndex, (bucketIndex + 1) << HeapConstants::ObjectAllocationShift);
+    Output::Print(_u("%d,%d,%d,%d,%d,%d,%d\n"), stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount, stats.objectCount, stats.finalizeCount, stats.objectByteCount, stats.totalByteCount);
 }
 
 #ifdef DUMP_FRAGMENTATION_STATS
 void
 HeapInfo::DumpFragmentationStats()
 {
-    Output::Print(L"[FRAG %d] Post-Collection State\n", ::GetTickCount());
-    Output::Print(L"Bucket,SizeCat,Block Count,Finalizable Block Count,Empty Block Count, Object Count, Finalizable Object Count, Object size, Block Size\n");
+    Output::Print(_u("[FRAG %d] Post-Collection State\n"), ::GetTickCount());
+    Output::Print(_u("Bucket,SizeCat,Block Count,Finalizable Block Count,Empty Block Count, Object Count, Finalizable Object Count, Object size, Block Size\n"));
 
     for (uint i = 0; i < HeapConstants::BucketCount; i++)
     {
@@ -1739,7 +1739,7 @@ HeapInfo::VerifyFinalize()
 #else
     if (currentFinalizableObjectCount != this->recycler->collectionStats.finalizeCount)
     {
-        Output::Print(L"ERROR: Recycler dropped some finalizable objects");
+        Output::Print(_u("ERROR: Recycler dropped some finalizable objects"));
         DebugBreak();
     }
 #endif

@@ -30,10 +30,10 @@ public:
     static Js::DynamicObject * CreateOpnd(Js::ScriptContext *scriptContext, IR::Opnd *opnd, Func *func);
 
     /* utility functions */
-    static Js::PropertyId CreateProperty(Js::ScriptContext *scriptContext, const wchar_t *propertyName);
-    static void SetProperty(Js::DynamicObject *obj, const wchar_t *propertyName, Js::Var value);
+    static Js::PropertyId CreateProperty(Js::ScriptContext *scriptContext, const char16 *propertyName);
+    static void SetProperty(Js::DynamicObject *obj, const char16 *propertyName, Js::Var value);
     static void SetProperty(Js::DynamicObject *obj, Js::PropertyId id, Js::Var value);
-    static void GetStatementSourceString(__out_ecount(len) wchar_t *buffer, LPCUTF8 sourceBegin, LPCUTF8 sourceEnd, const size_t len);
+    static void GetStatementSourceString(__out_ecount(len) char16 *buffer, LPCUTF8 sourceBegin, LPCUTF8 sourceEnd, const size_t len);
 
     /* create instructions */
     static void CreateLabelInstruction(Js::ScriptContext *scriptContext, IR::LabelInstr *inst,

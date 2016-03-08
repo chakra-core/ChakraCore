@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 
-LPCWSTR chakraDllName = L"chakracore.dll";
+LPCWSTR chakraDllName = _u("chakracore.dll");
 
 bool ChakraRTInterface::m_testHooksSetup = false;
 bool ChakraRTInterface::m_testHooksInitialized = false;
@@ -19,11 +19,11 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
 {
     m_argInfo = argInfo;
 
-    wchar_t filename[_MAX_PATH];
-    wchar_t drive[_MAX_DRIVE];
-    wchar_t dir[_MAX_DIR];
+    char16 filename[_MAX_PATH];
+    char16 drive[_MAX_DRIVE];
+    char16 dir[_MAX_DIR];
 
-    wchar_t modulename[_MAX_PATH];
+    char16 modulename[_MAX_PATH];
     GetModuleFileName(NULL, modulename, _MAX_PATH);
     _wsplitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
     _wmakepath_s(filename, drive, dir, chakraDllName, nullptr);
@@ -33,7 +33,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     if (library == nullptr)
     {
         int ret = GetLastError();
-        fwprintf(stderr, L"FATAL ERROR: Unable to load %ls GetLastError=0x%x\n", chakraDllName, ret);
+        fwprintf(stderr, _u("FATAL ERROR: Unable to load %ls GetLastError=0x%x\n"), chakraDllName, ret);
         return nullptr;
     }
 
@@ -131,7 +131,7 @@ HRESULT ChakraRTInterface::ParseConfigFlags()
         hr = GetFileNameFlag(m_argInfo.filename);
         if (hr != S_OK)
         {
-            wprintf(L"Error: no script file specified.");
+            wprintf(_u("Error: no script file specified."));
             m_argInfo.hostPrintUsage();
             m_usageStringPrinted = true;
         }

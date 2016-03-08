@@ -209,21 +209,21 @@ namespace Js
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        const wchar_t *LayoutString() const
+        const char16 *LayoutString() const
         {
             if (IsEmpty())
             {
-                return L"Empty";
+                return _u("Empty");
             }
             if (IsLocal())
             {
-                return L"Local";
+                return _u("Local");
             }
             if (IsAccessor())
             {
-                return L"Accessor";
+                return _u("Accessor");
             }
-            return L"Proto";
+            return _u("Proto");
         }
 #endif
 

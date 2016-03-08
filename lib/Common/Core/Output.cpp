@@ -202,7 +202,7 @@ Output::VTrace(const char16* shortPrefixFormat, const char16* prefix, const char
         }
     }
 #endif
-    
+
     return retValue;
 }
 

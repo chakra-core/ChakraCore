@@ -11,8 +11,8 @@
 #include "CommonPal.h"
 
 // === Core Header Files ===
-#include "Core/Api.h"
 #include "Core/CommonTypedefs.h"
+#include "Core/Api.h"
 #include "Core/CriticalSection.h"
 #include "Core/Assertions.h"
 

@@ -42,6 +42,8 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdType.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat32x4.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SimdFloat32x4Lib.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSimdFloat64x2.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptErrorDebug.h" />
+    <ClInclude Include="JavascriptSimdObject.h" />
+    <ClInclude Include="JavascriptSimdType.h" />
     <ClInclude Include="JavascriptSimdFloat32x4.h" />
     <ClInclude Include="JavascriptSimdFloat64x2.h" />
     <ClInclude Include="JavascriptSimdInt32x4.h" />

@@ -336,7 +336,7 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
     {
         this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
         this->pageHeapFreeStack = nullptr;
-    }    
+    }
 #endif
 #endif
 }
@@ -1984,7 +1984,8 @@ void SmallHeapBlockT<TBlockAttributes>::VerifyBumpAllocated(_In_ char * bumpAllo
                 }
                 else
                 {
-                    Recycler::VerifyCheck(false, _u("Non-Finalizable block should not have finalizable objects"), this->GetAddress(), &this->ObjectInfo(i));
+                    Recycler::VerifyCheck(false, _u("Non-Finalizable block should not have finalizable objects"),
+                        this->GetAddress(), &this->ObjectInfo(i));
                 }
             }
         }

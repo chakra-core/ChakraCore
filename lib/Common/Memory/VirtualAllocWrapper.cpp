@@ -200,7 +200,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
     if (AutoSystemInfo::Data.IsCFGEnabled())
     {
         startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
-        PreReservedHeapTrace(L"Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n", preReservedStartAddress);
+        PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), preReservedStartAddress);
         preReservedStartAddress = startAddress;
 
 #if !_M_X64_OR_ARM64

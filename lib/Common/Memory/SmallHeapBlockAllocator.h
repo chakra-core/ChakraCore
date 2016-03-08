@@ -187,7 +187,7 @@ SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_
     AUTO_NO_EXCEPTION_REGION;
     if (canFaultInject)
     {
-        FAULTINJECT_MEMORY_NOTHROW(L"InlinedAllocImpl", sizeCat);
+        FAULTINJECT_MEMORY_NOTHROW(_u("InlinedAllocImpl"), sizeCat);
     }
 
     char * memBlock = (char *)freeObjectList;
