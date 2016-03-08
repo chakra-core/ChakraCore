@@ -24,7 +24,6 @@ private:
     Js::RegSlot location;           // register in which the symbol resides
     Js::PropertyId scopeSlot;
     Js::PropertyId moduleIndex;
-    Js::PropertyId moduleExportSlot;
     Symbol *next;
 
     SymbolType symbolType;
@@ -77,8 +76,7 @@ public:
         isNonSimpleParameter(false),
         assignmentState(NotAssigned),
         isModuleExportStorage(false),
-        moduleIndex(Js::Constants::NoProperty),
-        moduleExportSlot(Js::Constants::NoProperty)
+        moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
 
@@ -166,16 +164,6 @@ public:
     Js::PropertyId GetModuleIndex()
     {
         return moduleIndex;
-    }
-
-    void SetModuleExportSlot(Js::PropertyId slot)
-    {
-        moduleExportSlot = slot;
-    }
-
-    Js::PropertyId GetModuleExportSlot()
-    {
-        return moduleExportSlot;
     }
 
     void SetIsGlobalCatch(bool is)

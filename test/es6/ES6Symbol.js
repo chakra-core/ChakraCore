@@ -171,6 +171,7 @@ var tests = [
             verifySymbol("toStringTag");
             verifySymbol("unscopables");
             verifySymbol("species");
+            verifySymbol("replace");
             verifySymbol("search");
             verifySymbol("match");
             verifySymbol("split");

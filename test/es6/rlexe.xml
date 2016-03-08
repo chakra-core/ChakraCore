@@ -1153,32 +1153,4 @@
         <baseline>HTMLComments.baseline</baseline>
     </default>
 </test>
-<test>
-    <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
 </regress-exe>

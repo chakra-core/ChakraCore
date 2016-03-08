@@ -80,7 +80,7 @@ AutoSystemInfo::Initialize()
 
     isWindows8OrGreater = IsWindows8OrGreater();
 
-    binaryName[0] = L'\0';
+    binaryName[0] = _u('\0');
 
 #if SYSINFO_IMAGE_BASE_AVAILABLE
     dllLoadAddress = (UINT_PTR)&__ImageBase;

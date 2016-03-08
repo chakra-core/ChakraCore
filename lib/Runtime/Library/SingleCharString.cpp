@@ -11,7 +11,7 @@ namespace Js
     SingleCharString::SingleCharString(char16 ch, StaticType * type) : JavascriptString(type, 1, m_buff)
     {
         m_buff[0] = ch;
-        m_buff[1] = L'\0';
+        m_buff[1] = _u('\0');
 
 #ifdef PROFILE_STRINGS
         StringProfiler::RecordNewString( this->GetScriptContext(), this->m_buff, 1 );

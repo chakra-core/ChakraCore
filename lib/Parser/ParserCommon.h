@@ -36,6 +36,7 @@ typedef ParseNode *ParseNodePtr;
 
 struct Ident;
 typedef Ident *IdentPtr;
+class Symbol;
 
 struct ModuleImportEntry
 {

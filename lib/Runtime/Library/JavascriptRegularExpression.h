@@ -57,21 +57,19 @@ namespace Js
         static CharCount GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, CharCount lastIndex, ScriptContext* scriptContext);
         static void SetLastIndexProperty(Var instance, Var lastIndex, ScriptContext* scriptContext);
+        static bool GetGlobalProperty(RecyclableObject* instance, ScriptContext* scriptContext);
+        static bool GetUnicodeProperty(RecyclableObject* instance, ScriptContext* scriptContext);
 
+        static CharCount AddIndex(CharCount base, CharCount offset);
         static CharCount GetIndexOrMax(int64 index);
 
-        static bool HasObservableConstructor(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableFlags(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableUnicodeFlag(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableFlag(RecyclableObject* instance, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext);
-        static bool HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext);
-        static bool HasObservableGetter(RecyclableObject* instance, PropertyId propertyId, Var getter, ScriptContext* scriptContext);
-        static bool HasObservableValue(RecyclableObject* instance, PropertyId propertyId, Var value, ScriptContext* scriptContext);
-        template<typename ObservableFn>
-        static bool HasObservableProperty(RecyclableObject* instance, PropertyId propertyId, ObservableFn isObservable, ScriptContext* scriptContext);
+        static bool HasOriginalRegExType(RecyclableObject* instance);
+        static bool HasObservableConstructor(DynamicObject* regexPrototype);
+        static bool HasObservableExec(DynamicObject* regexPrototype);
+        static bool HasObservableFlags(DynamicObject* regexPrototype);
+        static bool HasObservableGlobalFlag(DynamicObject* regexPrototype);
+        static bool HasObservableStickyFlag(DynamicObject* regexPrototype);
+        static bool HasObservableUnicodeFlag(DynamicObject* regexPrototype);
 
         static Var CallExec(RecyclableObject* thisObj, JavascriptString* string, PCWSTR varName, ScriptContext* scriptContext);
         void RecompilePatternForExecIfNeeded(ScriptContext* scriptContext);
@@ -136,6 +134,7 @@ namespace Js
             static FunctionInfo Test;
             static FunctionInfo ToString;
             static FunctionInfo SymbolMatch;
+            static FunctionInfo SymbolReplace;
             static FunctionInfo SymbolSearch;
             static FunctionInfo SymbolSplit;
             static FunctionInfo GetterSymbolSpecies;
@@ -156,6 +155,7 @@ namespace Js
         static Var EntryTest(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);

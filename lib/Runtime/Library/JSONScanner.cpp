@@ -378,7 +378,7 @@ namespace JSON
             if (bulkLength > 0)
             {
                 shouldSkipLastCharacter = true;
-                this->GetCurrentRangeCharacterPairList()->Add(RangeCharacterPair((uint)(bulkStart - inputText), bulkLength, L'\0'));
+                this->GetCurrentRangeCharacterPairList()->Add(RangeCharacterPair((uint)(bulkStart - inputText), bulkLength, _u('\0')));
                 uint oldIndex = currentIndex;
                 currentIndex += bulkLength;
                 if (currentIndex < oldIndex)

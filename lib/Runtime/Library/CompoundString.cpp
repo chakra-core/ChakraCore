@@ -1022,7 +1022,7 @@ namespace Js
             }
         }
 
-        if(OwnsLastBlock() && HasOnlyDirectChars() && !lastBlock && TryAppendGeneric(L'\0', this)) // GetSz() requires null termination
+        if(OwnsLastBlock() && HasOnlyDirectChars() && !lastBlock && TryAppendGeneric(_u('\0'), this)) // GetSz() requires null termination
         {
             // There is no last block. Only the buffer was allocated, and is held in 'lastBlockInfo'. Since this string owns the
             // last block, has only direct chars, and the buffer was allocated directly (buffer pointer is not an internal
@@ -1036,9 +1036,9 @@ namespace Js
         }
 
         char16 *const buffer = RecyclerNewArrayLeaf(GetScriptContext()->GetRecycler(), char16, SafeSzSize(totalCharLength));
-        buffer[totalCharLength] = L'\0'; // GetSz() requires null termination
+        buffer[totalCharLength] = _u('\0'); // GetSz() requires null termination
         Copy<CompoundString>(buffer, totalCharLength);
-        Assert(buffer[totalCharLength] == L'\0');
+        Assert(buffer[totalCharLength] == _u('\0'));
         Unreference();
         SetBuffer(buffer);
         VirtualTableInfo<LiteralString>::SetVirtualTable(this);

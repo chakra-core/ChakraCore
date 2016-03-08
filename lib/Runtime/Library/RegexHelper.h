@@ -86,10 +86,13 @@ namespace Js
         static UnifiedRegex::GroupInfo PrimMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern, CharCount inputLength, CharCount offset);
         static void PrimEndMatch(RegexMatchState& state, ScriptContext* scriptContext, UnifiedRegex::RegexPattern* pattern);
 
+        template<typename GroupFn>
         static void ReplaceFormatString
             ( ScriptContext* scriptContext
-            , UnifiedRegex::RegexPattern* pattern
+            , int numGroups
+            , GroupFn getGroup
             , JavascriptString* input
+            , const char16* matchedString
             , UnifiedRegex::GroupInfo match
             , JavascriptString* replace
             , int substitutions
@@ -99,8 +102,8 @@ namespace Js
     public:
         static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
-        static Var RegexReplace(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, JavascriptString* options, bool noResult);
-        static Var RegexReplaceFunction(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn, JavascriptString* options);
+        static Var RegexReplace(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
+        static Var RegexReplaceFunction(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptFunction* replacefn);
         static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
@@ -120,8 +123,16 @@ namespace Js
         template <bool updateHistory>
         static Var RegexEs5MatchImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexExecImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
-        static Var RegexReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, JavascriptString* options, bool noResult);
-        static Var RegexReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn, JavascriptString* options);
+        static Var RegexEs5Replace(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, bool noResult);
+        static Var RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
+        static bool IsRegexSymbolReplaceObservable(RecyclableObject* instance, ScriptContext* scriptContext);
+        static Var RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
+        static Var RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replaceFn);
+        template<typename ReplacementFn>
+        static Var RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, ReplacementFn appendReplacement, bool noResult);
+        static Var RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace, bool noResult);
+        static Var RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn);
+        static Var RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn);
         static Var RegexSearchImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         __inline static UnifiedRegex::RegexPattern *RegexHelper::GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression);
         static bool IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext);
@@ -130,6 +141,9 @@ namespace Js
         static JavascriptString* AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext);
         static Var RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static int GetReplaceSubstitutions(const char16 * const replaceStr, CharCount const replaceLength, ArenaAllocator * const tempAllocator, CharCount** const substitutionOffsetsOut);
+        static RecyclableObject* ExecResultToRecyclableObject(Var result);
+        static JavascriptString* GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext);
+        static void AdvanceLastIndex(RecyclableObject* instance, JavascriptString* input, JavascriptString* matchStr, bool unicode, ScriptContext* scriptContext);
         static charcount_t AdvanceStringIndex(JavascriptString* string, charcount_t index, bool isUnicode);
     };
 }

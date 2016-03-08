@@ -287,6 +287,7 @@ namespace Js
         DynamicType * numberTypeDynamic;
         DynamicType * objectTypes[PreInitializedObjectTypeCount];
         DynamicType * objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        DynamicType * regexPrototypeType;
         DynamicType * regexType;
         DynamicType * regexResultType;
         StaticType  * stringTypeStatic;
@@ -392,6 +393,7 @@ namespace Js
 
 
         JavascriptSymbol* symbolMatch;
+        JavascriptSymbol* symbolReplace;
         JavascriptSymbol* symbolSearch;
         JavascriptSymbol* symbolSplit;
 
@@ -401,6 +403,13 @@ namespace Js
         JavascriptFunction* regexGlobalGetterFunction;
         JavascriptFunction* regexStickyGetterFunction;
         JavascriptFunction* regexUnicodeGetterFunction;
+
+        int regexConstructorSlotIndex;
+        int regexExecSlotIndex;
+        int regexFlagsGetterSlotIndex;
+        int regexGlobalGetterSlotIndex;
+        int regexStickyGetterSlotIndex;
+        int regexUnicodeGetterSlotIndex;
 
         mutable CharStringCache charStringCache;
 
@@ -536,6 +545,7 @@ namespace Js
         JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
         JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
         JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
+        JavascriptSymbol* GetSymbolReplace() { return symbolReplace; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSplit() { return symbolSplit; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
@@ -695,6 +705,7 @@ namespace Js
         DynamicType * GetCopyOnAccessNativeIntArrayType() const { return copyOnAccessNativeIntArrayType; }
 #endif
         DynamicType * GetNativeFloatArrayType() const { return nativeFloatArrayType; }
+        DynamicType * GetRegexPrototypeType() const { return regexPrototypeType; }
         DynamicType * GetRegexType() const { return regexType; }
         DynamicType * GetRegexResultType() const { return regexResultType; }
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
@@ -745,6 +756,13 @@ namespace Js
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
+
+        int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
+        int GetRegexExecSlotIndex() const { return regexExecSlotIndex;  }
+        int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
+        int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
+        int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
+        int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
         void SetDebugObjectNonUserAccessor(FunctionInfo *funcGetter, FunctionInfo *funcSetter);
 
