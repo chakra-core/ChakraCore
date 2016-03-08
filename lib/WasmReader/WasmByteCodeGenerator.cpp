@@ -1065,7 +1065,7 @@ template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitBr()
 {
-    uint8 depth = m_reader->m_currentNode.br.depth;
+    UINT depth = m_reader->m_currentNode.br.depth;
     Assert(depth < m_labels->Count());
 
     EmitInfo conditionInfo;
@@ -1086,7 +1086,7 @@ WasmBytecodeGenerator::EmitBr()
 
     SListCounted<Js::ByteCodeLabel>::Iterator itr(m_labels);
     itr.Next();
-    for (int i = 0; i < depth; i++) {
+    for (UINT i = 0; i < depth; i++) {
         itr.Next();
     }
     Js::ByteCodeLabel target = itr.Data();

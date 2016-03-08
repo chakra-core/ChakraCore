@@ -107,6 +107,25 @@ ModuleInfo::GetFunctionCount() const
     return m_funcCount;
 }
 
+uint32
+ModuleInfo::AddFunSig(WasmFunctionInfo* funsig)
+{
+    uint32 id = m_funsigs->Count();
+    funsig->SetNumber(id);
+    m_funsigs->Add(funsig);
+    return id;
+}
+
+WasmFunctionInfo*
+ModuleInfo::GetFunSig(uint index) const
+{
+    if (index >= m_funsigs->Count())
+    {
+        return nullptr;
+    }
+    return m_funsigs->GetBuffer()[index];
+}
+
 } // namespace Wasm
 
 #endif // ENABLE_WASM
