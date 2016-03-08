@@ -1058,7 +1058,7 @@ private:
         const HostScriptContextCallbackFunctor& GetCallbackFunctor_TTD() const;
 
         //Keep track of roots, loaded script, and the current debugger state
-        TTD::ReferencePinSet* m_ttdRootSet;
+        TTD::ObjectPinSet* m_ttdRootSet;
 
         //The lists containing the top-level code that is loaded in this context
         JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelScriptLoad;
@@ -1066,7 +1066,7 @@ private:
         JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelEval;
 
         //need to add back pin set for functionBody to make sure they don't get collected on us
-        TTD::ReferencePinSet* m_ttdPinnedRootFunctionSet;
+        TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
         JsUtil::BaseDictionary<FunctionBody*, FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
 
         //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)

@@ -101,9 +101,6 @@ class HostScriptContextCallbackFunctor;
 
 namespace TTD
 {
-    //typedef for a pin set (ensure that objects are kept live).
-    typedef JsUtil::BaseHashSet<FinalizableObject*, Recycler> ReferencePinSet;
-
     class RuntimeThreadInfo;
     class RuntimeContextInfo;
 
@@ -413,6 +410,16 @@ namespace Js
         // it will still cause a bailout. Should happen very rarely.
         ImplicitCall_AsyncHostOperation = 0x80
     };
+}
+
+namespace TTD
+{
+    //typedef for a pin set (ensure that objects are kept live).
+    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, Recycler> PropertyRecordPinSet;
+    typedef JsUtil::BaseHashSet<Js::FunctionBody*, Recycler> FunctionBodyPinSet;
+    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, Recycler> ObjectPinSet;
+    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, Recycler> EnvironmentPinSet;
+    typedef JsUtil::BaseHashSet<Js::Var, Recycler> SlotArrayPinSet;
 }
 
 #include "DataStructures\EvalMapString.h"

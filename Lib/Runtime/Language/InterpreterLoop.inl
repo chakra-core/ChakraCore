@@ -81,7 +81,8 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 uint prevOffset = m_reader.GetCurrentOffset();
 
 #if ENABLE_TTD
-                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                bool bpTaken = this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak();
+                if(bpTaken)
                 {
                     InterpreterHaltState haltState(STOP_STEPCOMPLETE, m_functionBody);
                     this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchStepHandler(&haltState, &op);
@@ -92,7 +93,7 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
 #endif
 
 #if ENABLE_TTD
-                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                if(bpTaken)
                 {
                     this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                 }
@@ -118,7 +119,8 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
                 uint prevOffset = m_reader.GetCurrentOffset();
 
 #if ENABLE_TTD
-                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                bool bpTaken = this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak();
+                if(bpTaken)
                 {
                     InterpreterHaltState haltState(STOP_ASYNCBREAK, m_functionBody);
                     this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchAsyncBreak(&haltState);
@@ -129,7 +131,7 @@ Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
 #endif
 
 #if ENABLE_TTD
-                if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                if(bpTaken)
                 {
                     this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                 }
@@ -411,7 +413,8 @@ SWAP_BP_FOR_OPCODE:
                     uint prevOffset = m_reader.GetCurrentOffset();
 
 #if ENABLE_TTD
-                    if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                    bool bpTaken = this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak();
+                    if(bpTaken)
                     {
                         InterpreterHaltState haltState(STOP_BREAKPOINT, m_functionBody);
                         this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchProbeHandlers(&haltState);
@@ -422,7 +425,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
 
 #if ENABLE_TTD
-                    if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                    if(bpTaken)
                     {
                         this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                     }
@@ -446,7 +449,8 @@ SWAP_BP_FOR_OPCODE:
                         uint prevOffset = m_reader.GetCurrentOffset();
 
 #if ENABLE_TTD
-                        if(this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak())
+                        bool bpTaken = this->scriptContext->GetThreadContext()->TTDLog != nullptr && this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPreBreak();
+                        if(bpTaken)
                         {
                             InterpreterHaltState haltState(STOP_INLINEBREAKPOINT, m_functionBody);
                             this->scriptContext->GetDebugContext()->GetProbeContainer()->DispatchInlineBreakpoint(&haltState);
@@ -457,7 +461,7 @@ SWAP_BP_FOR_OPCODE:
 #endif
 
 #if ENABLE_TTD
-                        if(this->scriptContext->GetThreadContext()->TTDLog != nullptr)
+                        if(bpTaken)
                         {
                             this->scriptContext->GetThreadContext()->TTDLog->ProcessBPInfoPostBreak(this->m_functionBody);
                         }

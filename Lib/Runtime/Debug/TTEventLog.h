@@ -216,7 +216,7 @@ namespace TTD
         InflateMap* m_lastInflateMap;
 
         //Pin set of all property records created during this logging session
-        ReferencePinSet* m_propertyRecordPinSet;
+        PropertyRecordPinSet* m_propertyRecordPinSet;
         UnorderedArrayList<NSSnapType::SnapPropertyRecord, TTD_ARRAY_LIST_SIZE_DEFAULT> m_propertyRecordList;
 
 #if ENABLE_TTD_DEBUGGING
@@ -229,10 +229,12 @@ namespace TTD
         bool m_isExceptionFrame;
         SingleCallCounter m_lastFrame;
 
+        //A pending TTDBP we want to set and move to
         TTDebuggerSourceLocation m_pendingTTDBP;
+
+        //The bp we are actively moving to in TT mode
         int64 m_activeBPId;
-        uint64 m_activeFTime;
-        uint64 m_activeLTime;
+        TTDebuggerSourceLocation m_activeTTDBP;
 #endif
 
         ////
@@ -384,7 +386,7 @@ namespace TTD
         bool HasActiveBP() const;
         UINT GetActiveBPId() const;
         void ClearActiveBP();
-        void SetActiveBP(UINT bpId, int64 activeFTime, int64 activeLTime);
+        void SetActiveBP(UINT bpId, const TTDebuggerSourceLocation& bpLocation);
 
         //Process the breakpoint info as we enter a break statement and return true if we actually want to break
         bool ProcessBPInfoPreBreak();

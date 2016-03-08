@@ -3869,7 +3869,7 @@ STDAPI_(JsErrorCode) JsTTDReplayExecution(INT64* rootEventTime)
             END_JS_RUNTIME_CALL(scriptContext);
         }
 
-        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), bpLocation.GetFunctionTime(), bpLocation.GetLoopTime());
+        scriptContext->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), bpLocation);
 
         //Finally clear the pending BP info so we don't get confused later
         scriptContext->GetThreadContext()->TTDLog->ClearPendingTTDBPInfo();

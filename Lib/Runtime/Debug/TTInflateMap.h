@@ -27,9 +27,13 @@ namespace TTD
         //A dictionary for the Promise related bits (not typesafe and a bit ugly but I prefer it to creating multiple additional collections)
         JsUtil::BaseDictionary<TTD_PTR_ID, void*, HeapAllocator> m_promiseDataMap;
 
-        //A set we use to pin all the inflated objects live during/after inflate process (to avoid accidental collection)
-        ReferencePinSet* m_inflatePinSet;
-        ReferencePinSet* m_oldInflatePinSet;
+        //A set we use to pin all the inflated objects live during/after the inflate process (to avoid accidental collection)
+        ObjectPinSet* m_inflatePinSet;
+        EnvironmentPinSet* m_environmentPinSet;
+        SlotArrayPinSet* m_slotArrayPinSet;
+
+        //A set we use to keep some old objects alive during inflate in case we want to re-use them
+        ObjectPinSet* m_oldInflatePinSet;
 
         //Temp data structures for holding info during the inflate process
         TTDIdentifierDictionary<TTD_PTR_ID, Js::RecyclableObject*> m_oldObjectMap;

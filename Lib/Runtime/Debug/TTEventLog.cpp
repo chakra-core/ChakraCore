@@ -481,7 +481,7 @@ namespace TTD
         m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
-        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1), m_activeFTime(0), m_activeLTime(0),
+        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1), m_activeTTDBP(),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
@@ -497,7 +497,7 @@ namespace TTD
 
         this->m_modeStack.Add(TTDMode::Pending);
 
-        this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), ReferencePinSet, threadContext->GetRecycler());
+        this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), PropertyRecordPinSet, threadContext->GetRecycler());
         this->m_threadContext->GetRecycler()->RootAddRef(this->m_propertyRecordPinSet);
     }
 
@@ -1152,15 +1152,13 @@ namespace TTD
     void EventLog::ClearActiveBP()
     {
         this->m_activeBPId = -1;
-        this->m_activeFTime = 0;
-        this->m_activeLTime = 0;
+        this->m_activeTTDBP.Clear();
     }
 
-    void EventLog::SetActiveBP(UINT bpId, int64 activeFTime, int64 activeLTime)
+    void EventLog::SetActiveBP(UINT bpId, const TTDebuggerSourceLocation& bpLocation)
     {
         this->m_activeBPId = bpId;
-        this->m_activeFTime = activeFTime;
-        this->m_activeLTime = activeLTime;
+        this->m_activeTTDBP.SetLocation(bpLocation);
     }
 
     bool EventLog::ProcessBPInfoPreBreak()
@@ -1171,10 +1169,16 @@ namespace TTD
         }
 
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-        bool ftimeOk = (this->m_activeFTime == -1) | (this->m_activeFTime == cfinfo.FunctionTime);
-        bool ltimeOk = (this->m_activeLTime == -1) | (this->m_activeLTime == cfinfo.CurrentStatementLoopTime);
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        return ftimeOk & ltimeOk;
+        bool locationOk = ((uint32)srcLine == this->m_activeTTDBP.GetLine()) & ((uint32)srcColumn == this->m_activeTTDBP.GetColumn());
+        bool ftimeOk = (this->m_activeTTDBP.GetFunctionTime() == -1) | ((uint64)this->m_activeTTDBP.GetFunctionTime() == cfinfo.FunctionTime);
+        bool ltimeOk = (this->m_activeTTDBP.GetLoopTime() == -1) | ((uint64)this->m_activeTTDBP.GetLoopTime() == cfinfo.CurrentStatementLoopTime);
+
+        return locationOk & ftimeOk & ltimeOk;
     }
 
     void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)

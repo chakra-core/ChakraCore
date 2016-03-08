@@ -1217,7 +1217,7 @@ namespace Js
 #if ENABLE_TTD
         if(this->m_ttdRootSet == nullptr)
         {
-            this->m_ttdRootSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
+            this->m_ttdRootSet = RecyclerNew(this->recycler, TTD::ObjectPinSet, this->recycler);
             this->recycler->RootAddRef(this->m_ttdRootSet);
         }
 #endif
@@ -2524,7 +2524,7 @@ namespace Js
         {
             if(this->m_ttdPinnedRootFunctionSet == nullptr)
             {
-                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
+                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::FunctionBodyPinSet, this->recycler);
                 this->recycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
             }
 
