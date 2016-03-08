@@ -4,18 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#define MAX_SIZE_PATH_LENGTH (128)
-
 namespace Js
 {
     class TinyDictionary
     {
         static const int PowerOf2_BUCKETS = 8;
         static const byte NIL = 0xff;
-        static const int NEXTPTRCOUNT = MAX_SIZE_PATH_LENGTH;
 
         byte buckets[PowerOf2_BUCKETS];
-        byte next[NEXTPTRCOUNT];
+        byte next[0];
 
 public:
         TinyDictionary()
@@ -26,9 +23,6 @@ public:
 
         void Add(PropertyId key, byte value)
         {
-            Assert(value < NEXTPTRCOUNT);
-            __analysis_assume(value < NEXTPTRCOUNT);
-
             uint32 bucketIndex = key&(PowerOf2_BUCKETS-1);
 
             byte i = buckets[bucketIndex];
@@ -44,9 +38,6 @@ public:
 
             for (byte i = buckets[bucketIndex] ; i != NIL ; i = next[i])
             {
-                Assert(i < NEXTPTRCOUNT);
-                __analysis_assume(i < NEXTPTRCOUNT);
-
                 if (data[i]->GetPropertyId()== key)
                 {
                     *index = i;
@@ -61,45 +52,71 @@ public:
     class TypePath
     {
         friend class PathTypeHandlerBase;
-        friend class DynamicObject;
-        friend class SimplePathTypeHandler;
-        friend class PathTypeHandler;
-
     public:
-        static const uint MaxPathTypeHandlerLength = MAX_SIZE_PATH_LENGTH;
-        static const uint InitialTypePathSize = 16;
+        // This is the space between the end of the TypePath and the allocation granularity that can be used for assignments too.
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+#if defined(_M_X64_OR_ARM64)
+#define TYPE_PATH_ALLOC_GRANULARITY_GAP 0
+#else
+#define TYPE_PATH_ALLOC_GRANULARITY_GAP 2
+#endif
+#else
+#if defined(_M_X64_OR_ARM64)
+#define TYPE_PATH_ALLOC_GRANULARITY_GAP 1
+#else
+#define TYPE_PATH_ALLOC_GRANULARITY_GAP 3
+#endif
+#endif
+        // Although we can allocate 2 more, this will put struct Data into another bucket.  Just waste some slot in that case for 32-bit
+        static const uint MaxPathTypeHandlerLength = 128;
+        static const uint InitialTypePathSize = 16 + TYPE_PATH_ALLOC_GRANULARITY_GAP;
 
     private:
-        TinyDictionary map;
-        uint16 pathLength;      // Entries in use
-        uint16 pathSize;        // Allocated entries
+
+        struct Data
+        {
+            Data(uint8 pathSize) : pathSize(pathSize), pathLength(0)
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+                , maxInitializedLength(0)
+#endif
+            {}
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        // We sometimes set up PathTypeHandlers and associate TypePaths before we create any instances
-        // that populate the corresponding slots, e.g. for object literals or constructors with only
-        // this statements.  This field keeps track of the longest instance associated with the given
-        // TypePath.
-        int maxInitializedLength;
+            BVStatic<MaxPathTypeHandlerLength> fixedFields;
+            BVStatic<MaxPathTypeHandlerLength> usedFixedFields;
+
+            // We sometimes set up PathTypeHandlers and associate TypePaths before we create any instances
+            // that populate the corresponding slots, e.g. for object literals or constructors with only
+            // this statements.  This field keeps track of the longest instance associated with the given
+            // TypePath.
+            uint8 maxInitializedLength;
+#endif
+            uint8 pathLength;      // Entries in use
+            uint8 pathSize;        // Allocated entries
+
+            // This map has to be at the end, because TinyDictionary has a zero size array
+            TinyDictionary map;
+
+            int Add(const PropertyRecord * propertyId, const PropertyRecord ** assignments);
+        } * data;
+
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         RecyclerWeakReference<DynamicObject>* singletonInstance;
-        BVStatic<MAX_SIZE_PATH_LENGTH> fixedFields;
-        BVStatic<MAX_SIZE_PATH_LENGTH> usedFixedFields;
 #endif
 
         // PropertyRecord assignments are allocated off the end of the structure
         const PropertyRecord * assignments[0];
 
-#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        TypePath()
-            : pathLength(0), maxInitializedLength(0), singletonInstance(nullptr)
-        {
-        }
-#else
-        TypePath()
-            : pathLength(0)
-        {
-        }
-#endif
 
+        TypePath() : 
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+            singletonInstance(nullptr), 
+#endif
+            data(nullptr)
+        {
+        }
+
+        Data * GetData() { return data; }
     public:
         static TypePath* New(Recycler* recycler, uint size = InitialTypePathSize);
 
@@ -109,13 +126,13 @@ public:
 
         const PropertyRecord* GetPropertyIdUnchecked(int index)
         {
-            Assert(((uint)index) < ((uint)pathLength));
+            Assert(((uint)index) < ((uint)this->GetPathLength()));
             return assignments[index];
         }
 
         const PropertyRecord* GetPropertyId(int index)
         {
-            if (((uint)index) < ((uint)pathLength))
+            if (((uint)index) < ((uint)this->GetPathLength()))
                 return GetPropertyIdUnchecked(index);
             else
                 return nullptr;
@@ -129,14 +146,14 @@ public:
         int Add(const PropertyRecord * propertyRecord)
         {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            Assert(this->pathLength == this->maxInitializedLength);
-            this->maxInitializedLength++;
+            Assert(this->GetPathLength() == this->GetMaxInitializedLength());
+            this->GetData()->maxInitializedLength++;
 #endif
             return AddInternal(propertyRecord);
         }
 
-        uint16 GetPathLength() { return this->pathLength; }
-        uint16 GetPathSize() const { return this->pathSize; }
+        uint8 GetPathLength() { return this->GetData()->pathLength; }
+        uint8 GetPathSize() { return this->GetData()->pathSize; }
 
         PropertyIndex Lookup(PropertyId propId,int typePathLength);
         PropertyIndex LookupInline(PropertyId propId,int typePathLength);
@@ -145,11 +162,13 @@ public:
         int AddInternal(const PropertyRecord* propId);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        int GetMaxInitializedLength() { return this->maxInitializedLength; }
+        uint8 GetMaxInitializedLength() { return this->GetData()->maxInitializedLength; }
         void SetMaxInitializedLength(int newMaxInitializedLength)
         {
-            Assert(this->maxInitializedLength <= newMaxInitializedLength);
-            this->maxInitializedLength = newMaxInitializedLength;
+            Assert(newMaxInitializedLength >= 0);
+            Assert(newMaxInitializedLength <= MaxPathTypeHandlerLength);
+            Assert(this->GetMaxInitializedLength() <= newMaxInitializedLength);
+            this->GetData()->maxInitializedLength = (uint8)newMaxInitializedLength;
         }
 
         Var GetSingletonFixedFieldAt(PropertyIndex index, int typePathLength, ScriptContext * requestContext);
@@ -167,7 +186,7 @@ public:
         void SetSingletonInstance(RecyclerWeakReference<DynamicObject>* instance, int typePathLength)
         {
             Assert(this->singletonInstance == nullptr && instance != nullptr);
-            Assert(typePathLength >= this->maxInitializedLength);
+            Assert(typePathLength >= this->GetMaxInitializedLength());
             this->singletonInstance = instance;
         }
 
@@ -194,44 +213,44 @@ public:
 
         bool GetIsFixedFieldAt(PropertyIndex index, int typePathLength)
         {
-            Assert(index < this->pathLength);
+            Assert(index < this->GetPathLength());
             Assert(index < typePathLength);
-            Assert(typePathLength <= this->pathLength);
+            Assert(typePathLength <= this->GetPathLength());
 
-            return this->fixedFields.Test(index) != 0;
+            return this->GetData()->fixedFields.Test(index) != 0;
         }
 
         bool GetIsUsedFixedFieldAt(PropertyIndex index, int typePathLength)
         {
-            Assert(index < this->pathLength);
+            Assert(index < this->GetPathLength());
             Assert(index < typePathLength);
-            Assert(typePathLength <= this->pathLength);
+            Assert(typePathLength <= this->GetPathLength());
 
-            return this->usedFixedFields.Test(index) != 0;
+            return this->GetData()->usedFixedFields.Test(index) != 0;
         }
 
         void SetIsUsedFixedFieldAt(PropertyIndex index, int typePathLength)
         {
-            Assert(index < this->maxInitializedLength);
+            Assert(index < this->GetMaxInitializedLength());
             Assert(CanHaveFixedFields(typePathLength));
-            this->usedFixedFields.Set(index);
+            this->GetData()->usedFixedFields.Set(index);
         }
 
         void ClearIsFixedFieldAt(PropertyIndex index, int typePathLength)
         {
-            Assert(index < this->maxInitializedLength);
+            Assert(index < this->GetMaxInitializedLength());
             Assert(index < typePathLength);
-            Assert(typePathLength <= this->pathLength);
+            Assert(typePathLength <= this->GetPathLength());
 
-            this->fixedFields.Clear(index);
-            this->usedFixedFields.Clear(index);
+            this->GetData()->fixedFields.Clear(index);
+            this->GetData()->usedFixedFields.Clear(index);
         }
 
         bool CanHaveFixedFields(int typePathLength)
         {
             // We only support fixed fields on singleton instances.
             // If the instance in question is a singleton, it must be the tip of the type path.
-            return this->singletonInstance != nullptr && typePathLength >= this->maxInitializedLength;
+            return this->singletonInstance != nullptr && typePathLength >= this->GetData()->maxInitializedLength;
         }
 
         void AddBlankFieldAt(PropertyIndex index, int typePathLength);
@@ -271,3 +290,4 @@ public:
     };
 }
 
+CompileAssert((sizeof(Js::TypePath) % HeapConstants::ObjectGranularity) / sizeof(void *) == TYPE_PATH_ALLOC_GRANULARITY_GAP);
