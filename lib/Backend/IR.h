@@ -137,7 +137,7 @@ protected:
         hasBailOutInfo(hasBailOutInfo),
         hasAuxBailOut(false),
         forcePreOpBailOutIfNeeded(false),
-        usesStackArgumentsObject(false),
+        usesStackArguments(false),
         isInlineeEntryInstr(false),
         ignoreNegativeZero(false),
         dstIsAlwaysConvertedToInt32(false),
@@ -465,7 +465,7 @@ public:
     bool            dstIsTempNumber : 1;
     bool            dstIsTempNumberTransferred : 1;
     bool            dstIsTempObject : 1;
-    bool            usesStackArgumentsObject: 1;
+    bool            usesStackArguments: 1;
     // An inlinee entry instruction initializes the InlineeCallInfo on the frame.
     bool            isInlineeEntryInstr: 1;
     bool            ignoreNegativeZero: 1;

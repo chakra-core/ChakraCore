@@ -2179,7 +2179,7 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
 
     IR::Instr * instrPrev = instrArgs->m_prev;
 
-    if (!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs())
+    if (!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs() && (instrArgs->m_func->GetJnFunction()->GetInParamsCount() == 1))
     {
         // The initial args slot value is zero.
         instrArgs->m_opcode = Js::OpCode::MOV;
@@ -2188,6 +2188,9 @@ LowererMD::LoadHeapArguments(IR::Instr * instrArgs, bool force /* = false */, IR
     }
     else
     {
+        // s8 = Stack Args Optimization
+        this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(!force && func->GetHasStackArgs() && this->m_func->GetHasStackArgs() ? TRUE : FALSE, TyUint8, func));
+
         // s7 = formals are let decls
         this->LoadHelperArgument(instrArgs, IR::IntConstOpnd::New(instrArgs->m_opcode == Js::OpCode::LdLetHeapArguments ? TRUE : FALSE, TyUint8, func));
 
@@ -2266,6 +2269,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     ASSERT_INLINEE_FUNC(instrArgs);
     Func *func = instrArgs->m_func;
 
+    // s8 = isStackArgOptimization
     // s7 = formals are let decls
     // s6 = memory context
     // s5 = local frame instance
@@ -2276,6 +2280,10 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     // dst = JavascriptOperators::LoadHeapArgsCached(s1, s2, s3, s4, s5, s6, s7)
 
     IR::Instr * instrPrev = instrArgs->m_prev;
+
+    // s8 = isStackArgOptimization
+    IR::Opnd * isStackArgOpt = IR::IntConstOpnd::New((IntConstType)(func->GetHasStackArgs() && this->m_func->GetHasStackArgs() ? TRUE : FALSE), TyUint8, func);
+    this->LoadHelperArgument(instrArgs, isStackArgOpt);
 
     // s7 = formals are let decls
     IR::Opnd * formalsAreLetDecls = IR::IntConstOpnd::New((IntConstType)(instrArgs->m_opcode == Js::OpCode::LdLetHeapArgsCached), TyUint8, func);
@@ -2338,7 +2346,7 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
         LowererMD::CreateAssign(indirOpnd, instrArgs->GetDst(), instrArgs->m_next);
 
     }
-
+    
     this->ChangeToHelperCall(instrArgs, IR::HelperOp_LoadHeapArgsCached);
     return instrPrev;
 }
