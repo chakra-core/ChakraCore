@@ -1511,7 +1511,9 @@ GlobOpt::InitBlockData()
     data->symToValueMap = GlobHashTable::New(alloc, 64);
     data->exprToValueMap = ExprHashTable::New(alloc, 64);
     data->liveFields = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    data->liveArrayValues = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+
+    data->liveArrayValues = JitAnew(alloc, BVSparse64, alloc);
+    
     data->isTempSrc = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     data->liveVarSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     data->liveInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
@@ -1658,7 +1660,7 @@ void GlobOpt::CloneBlockData(BasicBlock *const toBlock, GlobOptBlockData *const 
     toData->liveFields = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     toData->liveFields->Copy(fromData->liveFields);
 
-    toData->liveArrayValues = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    toData->liveArrayValues = JitAnew(alloc, BVSparse64, alloc);
     toData->liveArrayValues->Copy(fromData->liveArrayValues);
 
     if (fromData->maybeWrittenTypeSyms)

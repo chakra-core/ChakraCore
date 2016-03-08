@@ -6,7 +6,7 @@
 
 #define ASSERT_THREAD() AssertMsg(this->pageAllocator->ValidThreadAccess(), "Arena allocation should only be used by a single thread")
 
-template __forceinline BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
+template __forceinline BVSparseNode<> * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode<> *** prevNextFieldOut, bool create);
 
 ArenaData::ArenaData(PageAllocator * pageAllocator) :
     pageAllocator(pageAllocator),

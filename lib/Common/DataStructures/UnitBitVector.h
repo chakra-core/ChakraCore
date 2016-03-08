@@ -14,7 +14,6 @@
         _unit.Clear(index); \
         \
 
-
 #define NEXT_BITSET_IN_UNITBV           }}
 
 // Typedef
@@ -87,7 +86,8 @@ public:
 // Implementation
 private:
 
-    static void AssertRange(BVIndex index)
+    template <typename TBVIndex = BVIndex>
+    static void AssertRange(TBVIndex index)
     {
         AssertMsg(index < BitsPerWord, "index out of bound");
     }
@@ -128,9 +128,9 @@ private:
         bits = ((bits >> 4) & _F1_32) + (bits & _F1_32);
         bits += bits >> 8;
         bits += bits >> 16;
-        return BVIndex(bits & 0xff);
+        return (BVIndex)(bits & 0xff);
     }
-
+    
     static BVIndex CountBit(UnitWord64 bits)
     {
 #if DBG
@@ -227,22 +227,27 @@ public:
     //Initialization is through template specialization
     static const LONG ShiftValue;
 
-    static BVIndex Position(BVIndex index)
+    template <typename TBVIndex = BVIndex>
+    static TBVIndex Position(TBVIndex index)
     {
         return index >> ShiftValue;
     }
 
-    static BVIndex Offset(BVIndex index)
+    // offset only needs to be uint32
+    template <typename TBVIndex = BVIndex>
+    static BVIndex Offset(TBVIndex index)
     {
         return index & BitMask;
     }
 
-    static BVIndex Floor(BVIndex index)
+    template <typename TBVIndex = BVIndex>
+    static TBVIndex Floor(TBVIndex index)
     {
         return index & (~BitMask);
     }
 
-    static T GetTopBitsClear(BVIndex len)
+    template <typename TBVIndex = BVIndex>
+    static T GetTopBitsClear(TBVIndex len)
     {
         return ((T)1 << Offset(len)) - 1;
     }
@@ -258,14 +263,11 @@ public:
         this->word |= (T)1 << index;
     }
 
-
     void Clear(BVIndex index)
     {
         AssertRange(index);
         this->word &= ~((T)1 << index);
     }
-
-
 
     void Complement(BVIndex index)
     {
@@ -282,16 +284,19 @@ public:
     {
         return (this->word & unit.word) != 0;
     }
+    
     BOOLEAN TestRange(const BVIndex index, uint length) const
     {
         T mask = ((T)AllOnesMask) >> (BitsPerWord - length) << index;
         return (this->word & mask) == mask;
     }
+    
     void SetRange(const BVIndex index, uint length)
     {
         T mask = ((T)AllOnesMask) >> (BitsPerWord - length) << index;
         this->word |= mask;
     }
+    
     void ClearRange(const BVIndex index, uint length)
     {
         T mask = ((T)AllOnesMask) >> (BitsPerWord - length) << index;
@@ -310,6 +315,7 @@ public:
             return BVInvalidIndex;
         }
     }
+
     BVIndex GetNextBit(BVIndex index) const
     {
         AssertRange(index);
