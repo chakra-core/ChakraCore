@@ -63,24 +63,6 @@ namespace Wasm
             wbLimit
         };
 
-
-        enum SectionCode
-        {
-            bSectInvalid        = -1,
-            bSectMemory         = 0x00,
-            bSectSignatures     = 0x01,
-            bSectFunSigs        = 0x02,
-            bSectGlobals        = 0x03,
-            bSectDataSegments   = 0x04,
-            bSectIndirectFunctionTable = 0x05,
-            bSectEnd            = 0x06, // marks end of module
-            bSectStartFunction  = 0x07,
-            bSectImportTable    = 0x08,
-            bSectExportTable    = 0x09,
-            bSectFunBodies      = 0x0A,
-            bSectLimit
-        };
-
         enum FuncDeclFlag
         {
             bFuncDeclName = 0x01,
@@ -89,14 +71,23 @@ namespace Wasm
             bFuncDeclExport = 0x08
         };
 
+        struct SectionHeader
+        {
+            SectionCode code;
+            byte* start;
+            byte* end;
+        };
+
         class WasmBinaryReader : public BaseWasmReader
         {
         public:
-            WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length, bool trace = false);
+            WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length);
             static void Init(Js::ScriptContext *scriptContext);
 
+            virtual void InitializeReader() override;
             virtual bool IsBinaryReader() override;
-            virtual WasmOp ReadFromModule() override;
+            virtual bool ReadNextSection(SectionCode nextSection) override;
+            virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) override;
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
@@ -104,10 +95,9 @@ namespace Wasm
         private:
             struct ReaderState
             {
-                SectionCode secId;
+                SectionHeader secHeader;
                 UINT32 count;         // current entry
                 UINT32 size;          // number of entries
-                UINT32 byteLen;       // byte length of section excluding the LEB128 length field
             };
 
             void ResetModuleData();
@@ -126,25 +116,24 @@ namespace Wasm
             // readers
             void ReadMemorySection();
             void Signature();
-            void FunctionHeader();
+            void ReadFunctionsSignatures();
             void FunctionBodyHeader();
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
             UINT LEB128(UINT &length, bool sgn = false);
             INT SLEB128(UINT &length);
             template <typename T> T ReadConst();
-            SectionCode SectionHeader();
+            SectionHeader ReadSectionHeader();
 
             void CheckBytesLeft(UINT bytesNeeded);
             bool EndOfFunc();
             bool EndOfModule();
-            void ThrowDecodingError(const wchar_t* msg);
+            void ThrowDecodingError(const wchar_t* msg, ...);
             void Trace(const wchar_t* msg);
 
             ArenaAllocator      m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
-            bool m_trace;
             BVFixed * m_visitedSections;
             ReaderState m_moduleState; // module-level
             ReaderState m_funcState;   // func AST level
@@ -152,9 +141,10 @@ namespace Wasm
         private:
 
             static bool isInit;
-            static bool seenModuleHeader;
             static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
             static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
+            static char* sectionIds[bSectLimit];
+            static SectionFlag sectionFlags[bSectLimit];
             // maps from binary format to sexpr codes
             // types
             static const Wasm::WasmTypes::WasmType binaryToWasmTypes[];

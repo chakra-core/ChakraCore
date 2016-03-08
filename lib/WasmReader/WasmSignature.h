@@ -11,7 +11,7 @@ class WasmSignature
 {
 public:
     WasmSignature(ArenaAllocator * alloc);
-    
+
     void AddParam(WasmTypes::WasmType type);
     void SetResultType(WasmTypes::WasmType type);
     void SetSignatureId(uint32 id);

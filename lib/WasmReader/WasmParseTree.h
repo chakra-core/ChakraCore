@@ -12,9 +12,9 @@ namespace Wasm
     {
         enum WasmType
         {
-#define WASM_MEMTYPE(token, name) token,
-#include "WasmKeywords.h"
             Void,
+#define WASM_LOCALTYPE(token, name) token,
+#include "WasmKeywords.h"
             Limit
         };
     }

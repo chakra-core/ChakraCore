@@ -30,6 +30,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
 }
+typedef ProcessSectionResult(*SectionProcessFunc)(WasmBytecodeGenerator*, SectionCode);
 
 WasmModule *
 WasmBytecodeGenerator::GenerateModule()
@@ -44,33 +45,55 @@ WasmBytecodeGenerator::GenerateModule()
     m_module->heapOffset = 0;
     m_module->funcOffset = m_module->heapOffset + 1;
 
-    // first read does some initialization info. record this before continuing
-    WasmOp op = m_reader->ReadFromModule();
+    m_reader->InitializeReader();
 
-    m_module->indirFuncTableOffset = m_module->funcOffset + m_module->info->GetFunctionCount();
+    const auto readerProcess = [](WasmBytecodeGenerator* gen, SectionCode code) {return gen->m_reader->ProcessSection(code); };
+    // By default lest the reader process the section
+#define WASM_SECTION(name, id, flag) readerProcess,
+    SectionProcessFunc sectionProcess[bSectLimit + 1] = {
+#include "WasmSections.h"
+        nullptr
+    };
 
-    while (op != wnLIMIT)
-    {
-        switch (op)
+    sectionProcess[bSectIndirectFunctionTable] = [](WasmBytecodeGenerator* gen, SectionCode code) {
+        Assert(code == bSectIndirectFunctionTable);
+        if (gen->m_reader->ProcessSection(code) != psrEnd)
         {
-        case wnFUNC:
-            m_module->functions->Add(GenerateFunction());
-            break;
-        case wnIMPORT:
-            m_module->functions->Add(InitializeImport());
-            break;
-        case wnEXPORT:
-            AddExport();
-            break;
-        case wnMEMORY:
-        case wnTABLE:
-        case wnTYPE:
-            break;
-        default:
-            Assert(UNREACHED);
+            return psrInvalid;
         }
-        op = m_reader->ReadFromModule();
+        gen->m_module->indirFuncTableOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount();
+        return psrEnd;
+    };
+
+    sectionProcess[bSectImportTable] = [](WasmBytecodeGenerator* gen, SectionCode code) {
+        Assert(code == bSectImportTable);
+        // todo::
+        return psrInvalid;
+    };
+
+    sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen, SectionCode code) {
+        Assert(code == bSectFunctionBodies);
+        bool isEntry = true;
+        ProcessSectionResult lastRes;
+        while ((lastRes = gen->m_reader->ProcessSection(code, isEntry)) == psrContinue)
+        {
+            isEntry = false;
+            gen->m_module->functions->Add(gen->GenerateFunction());
+        }
+        return lastRes;
+    };
+
+    for (int sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
+    {
+        if (m_reader->ReadNextSection((SectionCode)sectionCode))
+        {
+            if (!sectionProcess[sectionCode](this, (SectionCode)sectionCode))
+            {
+                throw WasmCompilationException(L"Error while reading section %d", sectionCode);
+            }
+        }
     }
+
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     m_module->memSize = m_module->indirFuncTableOffset + m_module->info->GetSignatureCount();
 
@@ -220,7 +243,7 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetDoubleConstCount(ReservedRegisterCount);
 
     info->SetReturnType(GetAsmJsReturnType(m_funcInfo->GetResultType()));
-    
+
     // REVIEW: overflow checks?
     info->SetIntByteOffset(ReservedRegisterCount * sizeof(Js::Var));
     info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots->GetRegisterCount() * sizeof(int32));
@@ -356,7 +379,7 @@ WasmBytecodeGenerator::EmitSetLocal()
     }
 
     WasmLocal local = m_locals[m_reader->m_currentNode.var.num];
-    
+
     Js::OpCodeAsmJs op = GetLoadOp(local.type);
     WasmRegisterSpace * regSpace = GetRegisterSpace(local.type);
 

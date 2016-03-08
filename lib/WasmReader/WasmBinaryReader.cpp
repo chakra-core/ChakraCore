@@ -9,7 +9,7 @@
 #ifdef ENABLE_WASM
 
 #define TRACE_WASM_DECODER(...) \
-    if (m_trace) \
+    if (PHASE_TRACE1(Js::WasmReaderPhase)) \
     {\
         Output::Print(__VA_ARGS__); \
         Output::Print(L"\n"); \
@@ -22,11 +22,20 @@ namespace Binary
 {
 
 bool WasmBinaryReader::isInit = false;
-bool WasmBinaryReader::seenModuleHeader = false;
 WasmTypes::Signature WasmBinaryReader::opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
 WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
 const Wasm::WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { Wasm::WasmTypes::WasmType::Void, Wasm::WasmTypes::WasmType::I32, Wasm::WasmTypes::WasmType::I64, Wasm::WasmTypes::WasmType::F32, Wasm::WasmTypes::WasmType::F64 };
 Wasm::WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1];
+
+#define WASM_SECTION(name, id, flag) id,
+char* WasmBinaryReader::sectionIds[bSectLimit] = {
+#include "WasmSections.h"
+};
+
+#define WASM_SECTION(name, id, flag) flag,
+SectionFlag WasmBinaryReader::sectionFlags[bSectLimit] = {
+#include "WasmSections.h"
+};
 
 namespace WasmTypes
 {
@@ -49,15 +58,52 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 }
 } // namespace WasmTypes
 
-WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length, bool trace) :
+WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length) :
     m_alloc(L"WasmBinaryDecoder", alloc, Js::Throw::OutOfMemory)
 {
     m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
     m_start = m_pc = source;
     m_end = source + length;
-    m_trace = trace;
     ResetModuleData();
+}
+
+void WasmBinaryReader::InitializeReader()
+{
+    ModuleHeader();
+#if DBG
+    if (PHASE_TRACE1(Js::WasmReaderPhase))
+    {
+        byte* startModule = m_pc;
+
+        bool doRead = true;
+        SectionCode prevSect = bSectInvalid;
+        while (doRead)
+        {
+            SectionHeader secHeader = ReadSectionHeader();
+            if (secHeader.code <= prevSect)
+            {
+                TRACE_WASM_DECODER(L"Unknown section order");
+            }
+            prevSect = secHeader.code;
+            // skip the section
+            m_pc = secHeader.end;
+            doRead = !EndOfModule() && secHeader.code != bSectEnd;
+        }
+        m_pc = startModule;
+    }
+#endif
+}
+
+void
+WasmBinaryReader::ThrowDecodingError(const wchar_t* msg, ...)
+{
+    va_list argptr;
+    va_start(argptr, msg);
+    Output::Print(L"Binary decoding failed: ");
+    Output::VPrint(msg, argptr);
+    Output::Flush();
+    Js::Throw::InternalError();
 }
 
 bool
@@ -66,151 +112,173 @@ WasmBinaryReader::IsBinaryReader()
     return true;
 }
 
-WasmOp
-WasmBinaryReader::ReadFromModule()
+bool
+WasmBinaryReader::ReadNextSection(SectionCode nextSection)
 {
-    TRACE_WASM_DECODER(L"Decoding Module");
-
-    SectionCode sectionId;
-    UINT length = 0;
-
-    ModuleHeader();
-
-    while (!EndOfModule())
+    if (EndOfModule() || sectionFlags[nextSection] == fSectIgnore)
     {
-        if (m_moduleState.secId > bSectSignatures && m_moduleState.count < m_moduleState.size)
+        return false;
+    }
+
+    SectionHeader secHeader = ReadSectionHeader();
+    if (secHeader.code == bSectInvalid || sectionFlags[secHeader.code] == fSectIgnore)
+    {
+        TRACE_WASM_DECODER(L"Ignore this section");
+        m_pc = secHeader.end;
+        return ReadNextSection(nextSection);
+    }
+    if (secHeader.code < nextSection)
+    {
+        ThrowDecodingError(L"Invalid Section %s", secHeader.code);
+    }
+
+    if (secHeader.code != nextSection)
+    {
+        TRACE_WASM_DECODER(L"The current section is not the one we are looking for");
+        // We know about this section, but it's not the one we're looking for
+        m_pc = secHeader.start;
+        return false;
+    }
+    m_moduleState.secHeader = secHeader;
+    m_moduleState.count = 0;
+    m_moduleState.size = 0;
+    m_visitedSections->Set(secHeader.code);
+    return true;
+}
+
+ProcessSectionResult
+WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
+{
+    UINT length = 0;
+    switch (sectionId)
+    {
+    case bSectMemory:
+    {
+        ReadMemorySection();
+        m_moduleState.count += m_moduleState.size;
+        break; // This section is not used by bytecode generator for now, stay in decoder
+    }
+    case bSectSignatures:
+    {
+        const uint32 count = LEB128(length);
+        // signatures table
+        for (UINT32 i = 0; i < count; i++)
         {
-            // still reading from a valid section
-            sectionId = m_moduleState.secId;
+            TRACE_WASM_DECODER(L"Signature #%u", i);
+            Signature();
         }
-        else
-        {
-            // TODO: Should check that previous section, if any, was of the correct
-            // length by comparing against m_moduleState.byteLen.
+        break; // This section is not used by bytecode generator, stay in decoder
+    }
+    case bSectDataSegments:
+        // TODO: Populate Data entry info
+        ReadConst<UINT32>();  // dest addr in module memory
+        ReadConst<UINT32>();  // source offset (?)
+        ReadConst<UINT32>();  // size
+        ReadConst<UINT8>();  // init
+        m_moduleState.count++;
+        break; // This section is not used by bytecode generator, stay in decoder
 
-            // next section
-            sectionId = m_moduleState.secId = SectionHeader();
-            if (sectionId == bSectMemory || sectionId == bSectEnd)
-            {
-                m_moduleState.size = 1;
-            }
-            else
-            {
-                m_moduleState.size = LEB128(length);
-                if (sectionId == bSectFunSigs)
-                {
-                    m_moduleInfo->SetFunctionCount(m_moduleState.size);
-                }
-            }
-            // mark as visited
-            m_visitedSections->Set(sectionId);
+    case bSectFunctionSignatures:
+        if (!m_visitedSections->Test(bSectSignatures))
+        {
+            ThrowDecodingError(L"Signatures section missing before function table");
         }
+        ReadFunctionsSignatures();
+        break;
 
-        // TODO: Skip unknown sections.
-        Assert(sectionId >= bSectMemory && sectionId < bSectLimit);
-
-        switch (sectionId)
+    case bSectFunctionBodies:
+        if (isEntry)
         {
-        case bSectMemory:
-        {
-            ReadMemorySection();
-            m_moduleState.count += m_moduleState.size;
-            break; // This section is not used by bytecode generator for now, stay in decoder
-        }
-        case bSectSignatures:
-            // signatures table
-            for (UINT32 i = 0; i < m_moduleState.size; i++)
-            {
-                TRACE_WASM_DECODER(L"Signature #%u", i);
-                Signature();
-            }
-            Assert(m_moduleState.count == 0);
-            m_moduleState.count += m_moduleState.size;
-            break; // This section is not used by bytecode generator, stay in decoder
-
-        case bSectGlobals:
-            ThrowDecodingError(L"Nonstandard global section not supported!");
-
-        case bSectDataSegments:
-            // TODO: Populate Data entry info
-            ReadConst<UINT32>();  // dest addr in module memory
-            ReadConst<UINT32>();  // source offset (?)
-            ReadConst<UINT32>();  // size
-            ReadConst<UINT8>();  // init
-            m_moduleState.count++;
-            break; // This section is not used by bytecode generator, stay in decoder
-
-        case bSectFunSigs:
-            if (!m_visitedSections->Test(bSectSignatures))
-            {
-                ThrowDecodingError(L"Signatures section missing before function table");
-            }
-            FunctionHeader();
-            m_moduleState.count++;
-            break;
-
-        case bSectFunBodies:
-            if (!m_visitedSections->Test(bSectFunSigs))
+            if (!m_visitedSections->Test(bSectFunctionSignatures))
             {
                 ThrowDecodingError(L"Function signatures section missing before function bodies");
             }
-            if (m_moduleInfo->GetFunctionCount() != m_moduleState.size)
+            uint32 entries = LEB128(length);
+            if (entries != m_moduleInfo->GetFunctionCount())
             {
                 ThrowDecodingError(L"Function signatures and function bodies count mismatch");
             }
-            FunctionBodyHeader();
-            m_moduleState.count++;
-            return wnFUNC;
-
-        case bSectIndirectFunctionTable:
-            if (!m_visitedSections->Test(bSectFunSigs))
-            {
-                ThrowDecodingError(L"Function signatures section missing before indirect function table");
-            }
-
-            for (UINT32 i = 0; i < m_moduleState.size; i++)
-            {
-                m_moduleInfo->AddIndirectFunctionIndex(ReadConst<UINT16>());
-            }
-            m_moduleState.count += m_moduleState.size;
-            break;
-
-        case bSectEnd:
-            // One module per file. We will have to skip over func names and data segments.
-            m_pc = m_end; // skip to end, we are done.
-            return wnLIMIT;
+            m_moduleState.size = entries;
+            m_moduleState.count = 0;
         }
+        FunctionBodyHeader();
+        m_moduleState.count++;
+        break;
+    case bSectIndirectFunctionTable:
+        if (!m_visitedSections->Test(bSectFunctionSignatures))
+        {
+            ThrowDecodingError(L"Function signatures section missing before indirect function table");
+        }
+
+        for (UINT32 i = 0; i < m_moduleState.size; i++)
+        {
+            m_moduleInfo->AddIndirectFunctionIndex(ReadConst<UINT16>());
+        }
+        m_moduleState.count += m_moduleState.size;
+        break;
+
+    case bSectEnd:
+        // One module per file. We will have to skip over func names and data segments.
+        m_pc = m_end; // skip to end, we are done.
+    default:
+        Assert(false);
+        return psrInvalid;
     }
-     return wnLIMIT;
+
+    if (m_moduleState.count < m_moduleState.size)
+    {
+        if (EndOfModule() || m_pc >= m_moduleState.secHeader.end)
+        {
+            return psrInvalid;
+        }
+        return psrContinue;
+    }
+    if (m_pc != m_moduleState.secHeader.end)
+    {
+        return psrInvalid;
+    }
+    return psrEnd;
 }
 
-SectionCode
-WasmBinaryReader::SectionHeader()
+SectionHeader
+WasmBinaryReader::ReadSectionHeader()
 {
-    UINT len;
+    UINT len = 0;
     UINT32 sectionSize;
     UINT32 idSize;
 
+    SectionHeader header;
+    header.start = m_pc;
     sectionSize = LEB128(len);
+    header.end = m_pc + sectionSize;
+    CheckBytesLeft(sectionSize);
+
     idSize = LEB128(len);
+    if (sectionSize < idSize + len)
+    {
+        ThrowDecodingError(L"Invalid section size");
+    }
     const char *sectionName = (char*)(m_pc);
     m_pc += idSize;
-    m_moduleState.count = 0;
-    m_moduleState.byteLen = sectionSize;
 
-    auto cmp = [&sectionName, &idSize](const char* n) { return !memcmp(n, sectionName, idSize); };
-    if (cmp("memory")) return bSectMemory;
-    if (cmp("signatures")) return bSectSignatures;
-    if (cmp("import_table")) return bSectImportTable;
-    if (cmp("function_signatures")) return bSectFunSigs;
-    if (cmp("function_bodies")) return bSectFunBodies;
-    if (cmp("export_table")) return bSectExportTable;
-    if (cmp("start_function")) return bSectStartFunction;
-    if (cmp("data_segments")) return bSectDataSegments;
-    if (cmp("function_table")) return bSectIndirectFunctionTable;
-    if (cmp("end")) return bSectEnd;
+    for (int i = 0; i < bSectLimit ; i++)
+    {
+        if (!memcmp(sectionIds[i], sectionName, idSize))
+        {
+            header.code = (SectionCode)i;
+            break;
+        }
+    }
 
-    return bSectInvalid;
+#if DBG
+    Assert(idSize < 64);
+    wchar_t buf[64];
+    size_t convertedChars = 0;
+    mbstowcs_s(&convertedChars, buf, idSize + 1, sectionName, _TRUNCATE);
+    buf[idSize] = 0;
+    TRACE_WASM_DECODER(L"Section Header: %s, length = %u (0x%x)", buf, sectionSize, sectionSize);
+#endif
+    return header;
 }
 
 
@@ -322,18 +390,17 @@ WasmBinaryReader::ASTNode()
 void
 WasmBinaryReader::ModuleHeader()
 {
-    if (!seenModuleHeader)
+    uint32 magicNumber = ReadConst<UINT32>();
+    uint32 version = ReadConst<UINT32>();
+    TRACE_WASM_DECODER(L"Module Header: Magic 0x%x, Version %u", magicNumber, version);
+    if (magicNumber != 0x6d736100)
     {
-        if (ReadConst<UINT32>() != 0x6d736100)
-        {
-            ThrowDecodingError(L"Malformed WASM module header!");
-        }
+        ThrowDecodingError(L"Malformed WASM module header!");
+    }
 
-        if (ReadConst<UINT32>() != 10)
-        {
-            ThrowDecodingError(L"Invalid WASM version!");
-        }
-        seenModuleHeader = true;
+    if (version != 10)
+    {
+        ThrowDecodingError(L"Invalid WASM version!");
     }
 }
 
@@ -442,7 +509,7 @@ WasmBinaryReader::ResetModuleData()
     m_visitedSections = BVFixed::New<ArenaAllocator>(bSectLimit + 1, &m_alloc);
     m_moduleState.count = 0;
     m_moduleState.size = 0;
-    m_moduleState.secId = bSectInvalid;
+    m_moduleState.secHeader.code = bSectInvalid;
 }
 
 Wasm::WasmTypes::WasmType
@@ -467,7 +534,7 @@ WasmBinaryReader::EndOfFunc()
 bool
 WasmBinaryReader::EndOfModule()
 {
-    return (m_pc == m_end);
+    return (m_pc >= m_end);
 }
 
 // readers
@@ -496,63 +563,29 @@ WasmBinaryReader::Signature()
     {
         sig->AddParam(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
     }
-    
 
     m_moduleInfo->AddSignature(sig);
 }
 
 void
-WasmBinaryReader::FunctionHeader()
+WasmBinaryReader::ReadFunctionsSignatures()
 {
-    // TODO: Split this up into FunSig and Names sections
     UINT len = 0;
-    UINT8 flags;
-    UINT32 sigId;
-    UINT32 nameOffset, nameLen;
-    const char* funcName = nullptr;
-    LPCUTF8 utf8FuncName = nullptr;
-    WasmSignature * sig;
+    uint32 nFunctions = LEB128(len);
+    m_moduleInfo->AllocateFunctions(nFunctions);
 
-    Assert(m_moduleState.secId == bSectFunSigs && m_moduleState.count < m_moduleState.size);
-    m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
-    m_moduleInfo->AddFunSig(m_funcInfo);
-
-    flags = ReadConst<UINT8>();
-    sigId = LEB128(len);
-
-    if (sigId >= m_moduleInfo->GetSignatureCount())
+    for (uint32 iFunc = 0; iFunc < nFunctions; iFunc++)
     {
-        ThrowDecodingError(L"Function signature is out of bound");
+        uint32 sigIndex = LEB128(len);
+        if (sigIndex >= m_moduleInfo->GetSignatureCount())
+        {
+            ThrowDecodingError(L"Function signature is out of bound");
+        }
+        WasmFunctionInfo* newFunction = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
+        WasmSignature* sig = m_moduleInfo->GetSignature(sigIndex);
+        newFunction->SetSignature(sig);
+        m_moduleInfo->SetFunSig(newFunction, iFunc);
     }
-    if (flags & bFuncDeclName)
-    {
-        nameOffset = Offset();
-        // read function name
-        funcName = Name(nameOffset, nameLen);
-        AssertMsg(nameLen > 0, "Invalid function name length");
-        utf8FuncName = AnewArray(&m_alloc, CUTF8, nameLen);
-        strcpy_s((char*)utf8FuncName, nameLen, funcName);
-        m_funcInfo->SetName(utf8FuncName);
-    }
-
-    if (flags & bFuncDeclImport)
-    {
-        // imported function, no more info to decode.
-        m_funcInfo->SetImported(true);
-        return;
-    }
-
-    m_funcInfo->SetExported(flags & bFuncDeclExport ? true : false);
-
-    if ((m_funcInfo->Exported() || m_funcInfo->Imported()) && m_funcInfo->GetName() == nullptr)
-    {
-        ThrowDecodingError(L"Imports and exports must be named!");
-    }
-    // params
-    sig = m_moduleInfo->GetSignature(sigId);
-    m_funcInfo->SetSignature(sig);
-
-    TRACE_WASM_DECODER(L"Function header: flags = %x, sig = %u, size = %u", flags, sigId, m_funcState.size);
 }
 
 void
@@ -561,7 +594,8 @@ WasmBinaryReader::FunctionBodyHeader()
     UINT32 i32Count = 0, i64Count = 0, f32Count = 0, f64Count = 0;
     UINT len = 0;
 
-    m_currentNode.func.info = m_moduleInfo->GetFunSig(m_moduleState.count);
+    m_funcInfo = m_moduleInfo->GetFunSig(m_moduleState.count);
+    m_currentNode.func.info = m_funcInfo;
 
     // Reset func state
     m_funcState.count = 0;
@@ -581,16 +615,16 @@ WasmBinaryReader::FunctionBodyHeader()
 
         switch (type)
         {
-        case Wasm::WasmTypes::WasmType::I32:
+        case Wasm::WasmTypes::I32:
             i32Count += count;
             break;
-        case Wasm::WasmTypes::WasmType::I64:
+        case Wasm::WasmTypes::I64:
             i64Count += count;
             break;
-        case Wasm::WasmTypes::WasmType::F32:
+        case Wasm::WasmTypes::F32:
             f32Count += count;
             break;
-        case Wasm::WasmTypes::WasmType::F64:
+        case Wasm::WasmTypes::F64:
             f64Count += count;
             break;
         default:
@@ -658,6 +692,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
     UINT result = 0;
     UINT shamt = 0;
     byte b;
+    length = 1;
 
     // LEB128 needs at least one byte
     CheckBytesLeft(1);
@@ -728,14 +763,6 @@ WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
         Output::Print(L"Out of file: Needed: %d, Left: %d", bytesNeeded, bytesLeft);
         ThrowDecodingError(L"Out of file.");
     }
-}
-
-void
-WasmBinaryReader::ThrowDecodingError(const wchar_t* msg)
-{
-    Output::Print(L"Binary decoding failed: %s", msg);
-    Output::Flush();
-    Js::Throw::InternalError();
 }
 
 void

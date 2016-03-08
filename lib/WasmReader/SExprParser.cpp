@@ -12,8 +12,7 @@ namespace Wasm
 
 SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_alloc(L"SExprParser", alloc, Js::Throw::OutOfMemory),
-    m_inExpr(false),
-    m_initialized(false)
+    m_inExpr(false)
 {
     m_scanner = Anew(&m_alloc, SExprScanner, &m_alloc);
     m_blockNesting = Anew(&m_alloc, JsUtil::Stack<SExpr::BlockType>, &m_alloc);
@@ -29,6 +28,31 @@ SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
     m_nameToLocalMap = Anew(&m_alloc, NameToIndexMap, &m_alloc);
 }
 
+void SExprParser::InitializeReader()
+{
+    SExprTokenType tok;
+    SExprParseContext origCtx;
+    origCtx.length = m_context.length;
+    origCtx.offset = m_context.offset;
+    origCtx.source = m_context.source;
+
+    uint funcCount = 0;
+    while ((tok = m_scanner->Scan()) != wtkEOF)
+    {
+        if (tok == wtkFUNC || tok == wtkIMPORT)
+        {
+            ++funcCount;
+        }
+    }
+
+    m_context.length = origCtx.length;
+    m_context.offset = origCtx.offset;
+    m_context.source = origCtx.source;
+    m_scanner->Init(&m_context, &m_token);
+
+    m_moduleInfo->SetFunctionCount(funcCount);
+}
+
 bool
 SExprParser::IsBinaryReader()
 {
@@ -39,30 +63,6 @@ WasmOp
 SExprParser::ReadFromModule()
 {
     SExprTokenType tok;
-    if (!m_initialized)
-    {
-        SExprParseContext origCtx;
-        origCtx.length = m_context.length;
-        origCtx.offset = m_context.offset;
-        origCtx.source = m_context.source;
-
-        uint funcCount = 0;
-        while ((tok = m_scanner->Scan()) != wtkEOF)
-        {
-            if (tok == wtkFUNC || tok == wtkIMPORT)
-            {
-                ++funcCount;
-            }
-        }
-
-        m_context.length = origCtx.length;
-        m_context.offset = origCtx.offset;
-        m_context.source = origCtx.source;
-        m_scanner->Init(&m_context, &m_token);
-
-        m_moduleInfo->SetFunctionCount(funcCount);
-        m_initialized = true;
-    }
 
     tok = m_scanner->Scan();
 
@@ -432,7 +432,7 @@ SExprParser::ParseMemory()
     }
 
     int minPage = (int)m_token.u.lng;
-    
+
     m_scanner->ScanToken(wtkINTLIT);
     if (m_token.u.lng < 0 || m_token.u.lng > INT_MAX)
     {
@@ -751,6 +751,16 @@ SExprParser::GetWasmType(SExprTokenType tok) const
     default:
         ThrowSyntaxError();
     }
+}
+
+bool SExprParser::ReadNextSection(SectionCode nextSection)
+{
+    return false;
+}
+
+ProcessSectionResult SExprParser::ProcessSection(SectionCode nextSection, bool isEntry /*= true*/)
+{
+    return psrInvalid;
 }
 
 void

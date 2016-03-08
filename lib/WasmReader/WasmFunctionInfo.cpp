@@ -117,55 +117,55 @@ WasmFunctionInfo::GetLocalCount() const
     return m_locals->Count();
 }
 
-uint32 
+uint32
 WasmFunctionInfo::GetParamCount() const
 {
     return m_signature->GetParamCount();
 }
 
-void 
+void
 WasmFunctionInfo::SetImported(const bool imported)
 {
     m_imported = imported;
 }
 
-void 
+void
 WasmFunctionInfo::SetExported(const bool exported)
 {
     m_exported = exported;
 }
 
-bool 
+bool
 WasmFunctionInfo::Imported() const
 {
     return m_imported;
 }
 
-bool 
+bool
 WasmFunctionInfo::Exported() const
 {
     return m_exported;
 }
 
-void 
+void
 WasmFunctionInfo::SetName(LPCUTF8 name)
 {
     m_name = name;
 }
 
-LPCUTF8 
+LPCUTF8
 WasmFunctionInfo::GetName() const
 {
     return m_name;
 }
 
-void 
+void
 WasmFunctionInfo::SetNumber(UINT32 number)
 {
     m_number = number;
 }
 
-UINT32 
+UINT32
 WasmFunctionInfo::GetNumber() const
 {
     return m_number;
