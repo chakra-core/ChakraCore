@@ -356,7 +356,7 @@
   <test>
     <default>
       <files>ES6StringAPIs.js</files>
-      <compile-flags> -ES6String -args summary -endargs</compile-flags>
+      <compile-flags>-ES6String -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

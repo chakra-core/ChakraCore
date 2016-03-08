@@ -1264,7 +1264,7 @@ case_2:
         JavascriptString * pSearch = scriptContext->GetLibrary()->GetUndefinedDisplayString();
         if (args.Info.Count > 1)
         {
-            if (!isRegExpAnAllowedArg && JavascriptRegExp::Is(args[1]))
+            if (!isRegExpAnAllowedArg && JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_FirstCannotBeRegExp, apiNameForErrorMsg);
             }

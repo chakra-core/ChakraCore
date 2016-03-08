@@ -70,6 +70,29 @@ namespace Js
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_RegEx;
     }
 
+    // IsRegExp in the spec.
+    bool JavascriptRegExp::IsRegExpLike(Var aValue, ScriptContext* scriptContext)
+    {
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
+        {
+            if (!JavascriptOperators::IsObject(aValue))
+            {
+                return false;
+            }
+
+            Var symbolMatchProperty = JavascriptOperators::GetProperty(
+                RecyclableObject::FromVar(aValue),
+                PropertyIds::_symbolMatch,
+                scriptContext);
+            if (!JavascriptOperators::IsUndefined(symbolMatchProperty))
+            {
+                return JavascriptConversion::ToBool(symbolMatchProperty, scriptContext);
+            }
+        }
+
+        return JavascriptRegExp::Is(aValue);
+    }
+
     JavascriptRegExp* JavascriptRegExp::FromVar(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
