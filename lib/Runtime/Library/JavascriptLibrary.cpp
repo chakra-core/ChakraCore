@@ -1187,12 +1187,14 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             symbolMatch = CreateSymbol(BuiltInPropertyRecords::_symbolMatch);
+            symbolReplace = CreateSymbol(BuiltInPropertyRecords::_symbolReplace);
             symbolSearch = CreateSymbol(BuiltInPropertyRecords::_symbolSearch);
             symbolSplit = CreateSymbol(BuiltInPropertyRecords::_symbolSplit);
         }
         else
         {
             symbolMatch = nullptr;
+            symbolReplace = nullptr;
             symbolSearch = nullptr;
             symbolSplit = nullptr;
         }
@@ -2123,7 +2125,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeSymbolConstructor(DynamicObject* symbolConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolConstructor, mode, 15);
+        typeHandler->Convert(symbolConstructor, mode, 16);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolConstructor->GetLibrary();
@@ -2162,6 +2164,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled())
         {
             library->AddMember(symbolConstructor, PropertyIds::match, library->GetSymbolMatch(), PropertyNone);
+            library->AddMember(symbolConstructor, PropertyIds::replace, library->GetSymbolReplace(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::search, library->GetSymbolSearch(), PropertyNone);
             library->AddMember(symbolConstructor, PropertyIds::split, library->GetSymbolSplit(), PropertyNone);
         }
@@ -4023,7 +4026,7 @@ namespace Js
 
     void JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(regexPrototype, mode, 16);
+        typeHandler->Convert(regexPrototype, mode, 24);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
         JavascriptFunction * func;
@@ -4031,10 +4034,14 @@ namespace Js
         JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
 
         library->AddMember(regexPrototype, PropertyIds::constructor, library->regexConstructor);
+        library->regexConstructorSlotIndex = 0;
+        Assert(regexPrototype->GetSlot(library->regexConstructorSlotIndex) == library->regexConstructor);
 
         func = library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::exec, &JavascriptRegExp::EntryInfo::Exec, 1);
         builtinFuncs[BuiltinFunction::RegExp_Exec] = func;
         library->regexExecFunction = func;
+        library->regexExecSlotIndex = 1;
+        Assert(regexPrototype->GetSlot(library->regexExecSlotIndex) == library->regexExecFunction);
 
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::test, &JavascriptRegExp::EntryInfo::Test, 1);
         library->AddFunctionToLibraryObject(regexPrototype, PropertyIds::toString, &JavascriptRegExp::EntryInfo::ToString, 0);
@@ -4047,23 +4054,33 @@ namespace Js
         {
             library->regexGlobalGetterFunction =
                 library->AddGetterToLibraryObject(regexPrototype, PropertyIds::global, &JavascriptRegExp::EntryInfo::GetterGlobal);
+            library->regexGlobalGetterSlotIndex = 5;
+            Assert(regexPrototype->GetSlot(library->regexGlobalGetterSlotIndex) == library->regexGlobalGetterFunction);
+
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::ignoreCase, &JavascriptRegExp::EntryInfo::GetterIgnoreCase, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::multiline, &JavascriptRegExp::EntryInfo::GetterMultiline, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::options, &JavascriptRegExp::EntryInfo::GetterOptions, nullptr);
             library->AddAccessorsToLibraryObject(regexPrototype, PropertyIds::source, &JavascriptRegExp::EntryInfo::GetterSource, nullptr);
+
             library->regexFlagsGetterFunction =
                 library->AddGetterToLibraryObject(regexPrototype, PropertyIds::flags, &JavascriptRegExp::EntryInfo::GetterFlags);
+            library->regexFlagsGetterSlotIndex = 15;
+            Assert(regexPrototype->GetSlot(library->regexFlagsGetterSlotIndex) == library->regexFlagsGetterFunction);
 
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
                 library->regexStickyGetterFunction =
                     library->AddGetterToLibraryObject(regexPrototype, PropertyIds::sticky, &JavascriptRegExp::EntryInfo::GetterSticky);
+                library->regexStickyGetterSlotIndex = 17;
+                Assert(regexPrototype->GetSlot(library->regexStickyGetterSlotIndex) == library->regexStickyGetterFunction);
             }
 
             if (scriptConfig->IsES6UnicodeExtensionsEnabled())
             {
                 library->regexUnicodeGetterFunction =
                     library->AddGetterToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
+                library->regexUnicodeGetterSlotIndex = 19;
+                Assert(regexPrototype->GetSlot(library->regexUnicodeGetterSlotIndex) == library->regexUnicodeGetterFunction);
             }
         }
 
@@ -4075,6 +4092,12 @@ namespace Js
                 PropertyIds::_RuntimeFunctionNameId_match,
                 &JavascriptRegExp::EntryInfo::SymbolMatch,
                 1);
+            library->AddFunctionToLibraryObjectWithName(
+                regexPrototype,
+                PropertyIds::_symbolReplace,
+                PropertyIds::_RuntimeFunctionNameId_replace,
+                &JavascriptRegExp::EntryInfo::SymbolReplace,
+                2);
             builtinFuncs[BuiltinFunction::RegExp_SymbolSearch] = library->AddFunctionToLibraryObjectWithName(
                 regexPrototype,
                 PropertyIds::_symbolSearch,
@@ -4092,6 +4115,8 @@ namespace Js
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, library->GetScriptContext()));
 
         regexPrototype->SetHasNoEnumerableProperties(true);
+
+        library->regexPrototypeType = regexPrototype->GetDynamicType();
     }
 
     void JavascriptLibrary::InitializeStringConstructor(DynamicObject* stringConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)

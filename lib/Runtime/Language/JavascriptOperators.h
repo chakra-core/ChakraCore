@@ -202,6 +202,7 @@ namespace Js
         static BOOL IsExposedType(TypeId typeId);
         static BOOL IsObjectType(TypeId typeId);
         static BOOL IsObjectOrNull(Var instance);
+        static BOOL IsUndefined(Var instance);
         static BOOL IsUndefinedOrNullType(TypeId);
         static BOOL IsUndefinedOrNull(Var instance);
         static BOOL IsNull(Var instance);

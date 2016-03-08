@@ -1554,16 +1554,25 @@ case_2:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
+
+        PCWSTR const varName = _u("String.prototype.replace");
+
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("String.prototype.replace"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        auto fallback = [&](JavascriptString* stringObj)
+        {
+            return DoStringReplace(args, callInfo, stringObj, scriptContext);
+        };
+        return DelegateToRegExSymbolFunction<2>(args, PropertyIds::_symbolReplace, fallback, varName, scriptContext);
+    }
+
+    Var JavascriptString::DoStringReplace(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext)
+    {
         //
         // TODO: Move argument processing into DirectCall with proper handling.
         //
-
-        JavascriptString * pThis = nullptr;
-        GetThisStringArgument(args, scriptContext, _u("String.prototype.replace"), &pThis);
 
         JavascriptRegExp * pRegEx = nullptr;
         JavascriptString * pMatch = nullptr;
@@ -1578,18 +1587,18 @@ case_2:
         {
             if (replacefn != nullptr)
             {
-                return RegexHelper::RegexReplaceFunction(scriptContext, pRegEx, pThis, replacefn, nullptr);
+                return RegexHelper::RegexReplaceFunction(scriptContext, pRegEx, input, replacefn);
             }
             else
             {
-                return RegexHelper::RegexReplace(scriptContext, pRegEx, pThis, pReplace, nullptr, RegexHelper::IsResultNotUsed(callInfo.Flags));
+                return RegexHelper::RegexReplace(scriptContext, pRegEx, input, pReplace, RegexHelper::IsResultNotUsed(callInfo.Flags));
             }
         }
 
         AssertMsg(pMatch != nullptr, "Match string shouldn't be null");
         if (replacefn != nullptr)
         {
-            return RegexHelper::StringReplace(pMatch, pThis, replacefn);
+            return RegexHelper::StringReplace(pMatch, input, replacefn);
         }
         else
         {
@@ -1597,7 +1606,7 @@ case_2:
             {
                 return scriptContext->GetLibrary()->GetEmptyString();
             }
-            return RegexHelper::StringReplace(pMatch, pThis, pReplace);
+            return RegexHelper::StringReplace(pMatch, input, pReplace);
         }
     }
 
@@ -1606,7 +1615,9 @@ case_2:
         *ppSearchRegEx = nullptr;
         *ppSearchString = nullptr;
 
-        if (JavascriptRegExp::Is(aValue))
+        // When the config is enabled, the operation is handled by a Symbol function (e.g. Symbol.replace).
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+            && JavascriptRegExp::Is(aValue))
         {
             *ppSearchRegEx = JavascriptRegExp::FromVar(aValue);
         }
@@ -1805,12 +1816,12 @@ case_2:
 
         auto fallback = [&](JavascriptString* stringObj)
         {
-            return DoStringSplit(args, callInfo, stringObj, varName, scriptContext);
+            return DoStringSplit(args, callInfo, stringObj, scriptContext);
         };
         return DelegateToRegExSymbolFunction<2>(args, PropertyIds::_symbolSplit, fallback, varName, scriptContext);
     }
 
-    Var JavascriptString::DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, PCWSTR varName, ScriptContext* scriptContext)
+    Var JavascriptString::DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext)
     {
         if (args.Info.Count == 1)
         {

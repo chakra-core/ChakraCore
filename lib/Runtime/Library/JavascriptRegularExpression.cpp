@@ -114,6 +114,27 @@ namespace Js
             static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNotExtensible | PropertyOperation_ThrowIfNonWritable));
     }
 
+    bool JavascriptRegExp::GetGlobalProperty(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(instance, PropertyIds::global, scriptContext),
+            scriptContext);
+    }
+
+    bool JavascriptRegExp::GetUnicodeProperty(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        return JavascriptConversion::ToBool(
+            JavascriptOperators::GetProperty(instance, PropertyIds::unicode, scriptContext),
+            scriptContext);
+    }
+
+    CharCount JavascriptRegExp::AddIndex(CharCount base, CharCount offset)
+    {
+        return (base + offset < base) // Overflow?
+            ? MaxCharCount
+            : base + offset;
+    }
+
     CharCount JavascriptRegExp::GetIndexOrMax(int64 index)
     {
         return (index > SIZE_MAX || IsValidCharCount((size_t) index))
@@ -642,155 +663,96 @@ namespace Js
             RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
-    bool JavascriptRegExp::HasObservableConstructor(RecyclableObject* instance, ScriptContext* scriptContext)
+    bool JavascriptRegExp::HasOriginalRegExType(RecyclableObject* instance)
     {
-        return HasObservableValue(
-            instance,
-            PropertyIds::constructor,
-            scriptContext->GetLibrary()->GetRegExpConstructor(),
-            scriptContext);
-    }
+        JavascriptLibrary* library = instance->GetLibrary();
 
-    bool JavascriptRegExp::HasObservableExec(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        return HasObservableValue(
-            instance,
-            PropertyIds::exec,
-            scriptContext->GetLibrary()->GetRegexExecFunction(),
-            scriptContext);
-    }
-
-    bool JavascriptRegExp::HasObservableFlags(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        return HasObservableGetter(
-            instance,
-            PropertyIds::flags,
-            scriptContext->GetLibrary()->GetRegexFlagsGetterFunction(),
-            scriptContext);
-    }
-
-    bool JavascriptRegExp::HasObservableGlobalFlag(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        return HasObservableFlag(
-            instance,
-            PropertyIds::global,
-            scriptContext->GetLibrary()->GetRegexGlobalGetterFunction(),
-            scriptContext);
-    }
-
-    bool JavascriptRegExp::HasObservableStickyFlag(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        if (!scriptContext->GetConfig()->IsES6RegExStickyEnabled())
+        if (instance->GetType() != library->GetRegexType())
         {
             return false;
         }
 
-        return HasObservableFlag(
-            instance,
-            PropertyIds::sticky,
-            scriptContext->GetLibrary()->GetRegexStickyGetterFunction(),
-            scriptContext);
+        DynamicObject* regexPrototype = library->GetRegExpPrototype();
+        return JavascriptOperators::GetPrototype(instance) == regexPrototype
+            && regexPrototype->GetType() == library->GetRegexPrototypeType();
     }
 
-    bool JavascriptRegExp::HasObservableUnicodeFlag(RecyclableObject* instance, ScriptContext* scriptContext)
+    bool JavascriptRegExp::HasObservableConstructor(DynamicObject* regexPrototype)
     {
-        if (!scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
-        {
-            return false;
-        }
-
-        return HasObservableFlag(
-            instance,
-            PropertyIds::unicode,
-            scriptContext->GetLibrary()->GetRegexUnicodeGetterFunction(),
-            scriptContext);
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return regexPrototype->GetSlot(library->GetRegexConstructorSlotIndex()) != library->GetRegExpConstructor();
     }
 
-    bool JavascriptRegExp::HasObservableFlag(RecyclableObject* instance, PropertyId propertyId, JavascriptFunction* builtinGetter, ScriptContext* scriptContext)
+    bool JavascriptRegExp::HasObservableExec(DynamicObject* regexPrototype)
     {
-        Assert(!scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
-               || builtinGetter != nullptr);
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return regexPrototype->GetSlot(library->GetRegexExecSlotIndex()) != library->GetRegexExecFunction();
+    }
 
-        if (scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled())
+    bool JavascriptRegExp::HasObservableFlags(DynamicObject* regexPrototype)
+    {
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return regexPrototype->GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexFlagsGetterSlotIndex()) != library->GetRegexFlagsGetterFunction();
+    }
+
+    bool JavascriptRegExp::HasObservableGlobalFlag(DynamicObject* regexPrototype)
+    {
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return regexPrototype->GetScriptContext()->GetConfig()->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexGlobalGetterSlotIndex()) != library->GetRegexGlobalGetterFunction();
+    }
+
+    bool JavascriptRegExp::HasObservableStickyFlag(DynamicObject* regexPrototype)
+    {
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return scriptConfig->IsES6RegExStickyEnabled()
+            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexStickyGetterSlotIndex()) != library->GetRegexStickyGetterFunction();
+    }
+
+    bool JavascriptRegExp::HasObservableUnicodeFlag(DynamicObject* regexPrototype)
+    {
+        const ScriptConfiguration* scriptConfig = regexPrototype->GetScriptContext()->GetConfig();
+        JavascriptLibrary* library = regexPrototype->GetLibrary();
+        return scriptConfig->IsES6UnicodeExtensionsEnabled()
+            && scriptConfig->IsES6RegExPrototypePropertiesEnabled()
+            && regexPrototype->GetSlot(library->GetRegexUnicodeGetterSlotIndex()) != library->GetRegexUnicodeGetterFunction();
+    }
+
+    Var JavascriptRegExp::EntrySymbolReplace(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolReplaceCount);
+
+        PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
+
+        RecyclableObject* thisObj = GetThisObject(args, varName, scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+
+        Var replaceValue = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+
+        if (JavascriptFunction::Is(replaceValue))
         {
-            return HasObservableGetter(instance, propertyId, builtinGetter, scriptContext);
+            JavascriptFunction* replaceFunction = JavascriptFunction::FromVar(replaceValue);
+            return RegexHelper::RegexReplaceFunction(scriptContext, thisObj, string, replaceFunction);
         }
         else
         {
-            // Flags are unwritable when they're on the RegExp instance.
-            return !JavascriptRegExp::Is(instance);
+            JavascriptString* replaceString = JavascriptConversion::ToString(replaceValue, scriptContext);
+            return RegexHelper::RegexReplace(
+                scriptContext,
+                thisObj,
+                string,
+                replaceString,
+                RegexHelper::IsResultNotUsed(callInfo.Flags));
         }
-    }
-
-    bool JavascriptRegExp::HasObservableLastIndex(RecyclableObject* instance, ScriptContext* scriptContext)
-    {
-        auto isObservable = [&](RecyclableObject* propertyInstance)
-        {
-            return !propertyInstance->IsWritable(PropertyIds::lastIndex)
-                || propertyInstance != instance;
-        };
-        return HasObservableProperty(instance, PropertyIds::lastIndex, isObservable, scriptContext);
-    }
-
-    bool JavascriptRegExp::HasObservableGetter(RecyclableObject* instance, PropertyId propertyId, Var builtinGetter, ScriptContext* scriptContext)
-    {
-        auto isObservable = [&](RecyclableObject* propertyInstance)
-        {
-            Var getter, setter;
-            if (propertyInstance->GetAccessors(propertyId, &getter, &setter, scriptContext))
-            {
-                return getter != builtinGetter;
-            }
-
-            Var value;
-            propertyInstance->GetProperty(propertyInstance, propertyId, &value, nullptr, scriptContext);
-            // Getting a value property, by itself, isn't observable. If the value is the same as the built-in one,
-            // there won't be any observable effects.
-            return value != builtinGetter;
-        };
-        return HasObservableProperty(instance, propertyId, isObservable, scriptContext);
-    }
-
-    bool JavascriptRegExp::HasObservableValue(RecyclableObject* instance, PropertyId propertyId, Var builtinValue, ScriptContext* scriptContext)
-    {
-        auto isObservable = [&](RecyclableObject* propertyInstance)
-        {
-            Var getter, setter;
-            if (propertyInstance->GetAccessors(propertyId, &getter, &setter, scriptContext))
-            {
-                // The getter could update the instance, so assume it's observable.
-                return true;
-            }
-
-            Var value;
-            propertyInstance->GetProperty(propertyInstance, propertyId, &value, nullptr, scriptContext);
-            return value != builtinValue;
-        };
-        return HasObservableProperty(instance, propertyId, isObservable, scriptContext);
-    }
-
-    template<typename ObservableFn>
-    bool JavascriptRegExp::HasObservableProperty(RecyclableObject* instance, PropertyId propertyId, ObservableFn isObservable, ScriptContext* scriptContext)
-    {
-        RecyclableObject *propertyInstance = instance;
-        while (!JavascriptOperators::IsNull(propertyInstance))
-        {
-            // We can't guarantee that the proxy won't return a different value
-            // each time we "get" a property, so assume it does.
-            if (JavascriptProxy::Is(propertyInstance))
-            {
-                return true;
-            }
-
-            if (JavascriptOperators::HasOwnProperty(propertyInstance, propertyId, scriptContext))
-            {
-                return isObservable(propertyInstance);
-            }
-
-            propertyInstance = JavascriptOperators::GetPrototype(propertyInstance);
-        }
-
-        return true;
     }
 
     Var JavascriptRegExp::EntrySymbolSearch(RecyclableObject* function, CallInfo callInfo, ...)
@@ -902,10 +864,12 @@ namespace Js
             return;
         }
 
-        bool isObservable =
-            JavascriptRegExp::HasObservableGlobalFlag(this, scriptContext)
-            || JavascriptRegExp::HasObservableStickyFlag(this, scriptContext);
-        if (!isObservable)
+        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
+        bool observable =
+            !JavascriptRegExp::HasOriginalRegExType(this)
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+        if (!observable)
         {
             return;
         }
