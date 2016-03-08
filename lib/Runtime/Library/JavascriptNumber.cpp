@@ -235,7 +235,35 @@ namespace Js
         }
         else if(TryGetInt32Value(y, &intY))
         {
-            return ::pow(x, intY);
+            // For exponent in [-8, 8], aggregate the product according to binary representation
+            // of exponent. This acceleration may lead to significant deviation for larger exponent
+            if (intY >= -8 && intY <= 8)
+            {
+                uint32 uexp;
+                if (intY >= 0)
+                {
+                    uexp = static_cast<uint32>(intY);
+                }
+                else
+                {
+                    uexp = static_cast<uint32>(-intY);
+                }
+                for (double result = 1.0; ; x *= x)
+                {
+                    if ((uexp & 1) != 0)
+                    {
+                        result *= x;
+                    }
+                    if ((uexp >>= 1) == 0)
+                    {
+                        return (intY < 0 ? (1.0 / result) : result);
+                    }
+                }
+            }
+            else
+            {
+                return ::pow(x, intY);
+            }
         }
 
         return ::pow(x, y);
