@@ -1870,7 +1870,7 @@ namespace Js
                 {
                     PropertyRecord const * propertyRecord = nullptr;
                     GetOrAddPropertyRecord(L"memory", lstrlen(L"memory"), &propertyRecord);
-                    JavascriptOperators::OP_SetProperty(exportObj, propertyRecord->GetPropertyId(), *heap, this);
+                    JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
                 }
             }
             else
