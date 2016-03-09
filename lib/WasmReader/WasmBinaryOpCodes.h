@@ -28,7 +28,6 @@
 #define WASM_SIMPLE_OPCODE(opname, opcode, token, sig) WASM_OPCODE(opname, opcode, token, sig)
 #endif
 
-
 // built-in opcode signatures
 //              id, retType, arg0, arg1, arg2
 WASM_SIGNATURE(I_II,    3,   WasmTypes::bAstI32, WasmTypes::bAstI32, WasmTypes::bAstI32)
@@ -85,9 +84,10 @@ WASM_MISC_OPCODE(GetGlobal,      0x10,        LIMIT,             Limit)
 WASM_MISC_OPCODE(SetGlobal,      0x11,        LIMIT,             Limit)
 WASM_MISC_OPCODE(Call,           0x12,        CALL,              Limit)
 WASM_MISC_OPCODE(CallIndirect,   0x13,        CALL_INDIRECT,     Limit)
+WASM_MISC_OPCODE(CallImport,     0x1f,        CALL,              Limit)
 
 // Load memory expressions.
-// TODO: Map to node ops
+// TODO: Map to node
 WASM_MEM_OPCODE(I32LoadMem8S,    0x20,        LOAD8S_I32,       I_I)
 WASM_MEM_OPCODE(I32LoadMem8U,    0x21,        LOAD8U_I32,       I_I)
 WASM_MEM_OPCODE(I32LoadMem16S,   0x22,        LOAD16S_I32,      I_I)
@@ -245,4 +245,3 @@ WASM_SIMPLE_OPCODE(I64ReinterpretF64,   0xb5, LIMIT,            L_D)
 #undef WASM_CTRL_OPCODE
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE
-
