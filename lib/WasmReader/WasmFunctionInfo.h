@@ -24,9 +24,7 @@ namespace Wasm
         uint32 GetParamCount() const;
 
         void SetImported(const bool imported);
-        void SetExported(const bool exported);
         bool Imported() const;
-        bool Exported() const;
         void SetName(LPCUTF8 name);
         LPCUTF8 GetName() const;
 
@@ -49,7 +47,7 @@ namespace Wasm
 
         WasmTypeArray * m_locals;
 
-        bool m_exported, m_imported;
+        bool m_imported;
         ArenaAllocator * m_alloc;
         WasmSignature * m_signature;
         Js::ByteCodeLabel m_ExitLabel;

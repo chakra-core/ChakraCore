@@ -55,8 +55,8 @@ WasmBytecodeGenerator::GenerateModule()
         nullptr
     };
 
-    sectionProcess[bSectIndirectFunctionTable] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectIndirectFunctionTable);
+    sectionProcess[bSectFunctionSignatures] = [](WasmBytecodeGenerator* gen, SectionCode code) {
+        Assert(code == bSectFunctionSignatures);
         if (gen->m_reader->ProcessSection(code) != psrEnd)
         {
             return psrInvalid;
@@ -95,7 +95,7 @@ WasmBytecodeGenerator::GenerateModule()
     }
 
     // reserve space for as many function tables as there are signatures, though we won't fill them all
-    m_module->memSize = m_module->indirFuncTableOffset + m_module->info->GetSignatureCount();
+    m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount();
 
     return m_module;
 }
@@ -1227,21 +1227,6 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
         Assert(UNREACHED);
         return Js::ArrayBufferView::ViewType::TYPE_INVALID;
     }
-}
-
-void
-WasmBytecodeGenerator::AddExport()
-{
-    const uint exportId = m_reader->m_currentNode.var.num;
-    WasmFunction ** funcs = m_module->functions->GetBuffer();
-
-    if (exportId >= m_module->functions->Count())
-    {
-        throw WasmCompilationException(L"Invalid index for export");
-    }
-
-    funcs[exportId]->wasmInfo->SetExported(true);
-    funcs[exportId]->wasmInfo->SetName(m_reader->m_currentNode.var.exportName);
 }
 
 WasmRegisterSpace *

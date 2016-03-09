@@ -7,9 +7,16 @@
 
 
 #ifdef ENABLE_WASM
-
 #define TRACE_WASM_DECODER(...) \
     if (PHASE_TRACE1(Js::WasmReaderPhase)) \
+    {\
+        Output::Print(__VA_ARGS__); \
+        Output::Print(L"\n"); \
+        Output::Flush(); \
+    } \
+
+#define TRACE_WASM_DECODER_PHASE(phase, ...) \
+    if (PHASE_TRACE1(Js::phase##Phase)) \
     {\
         Output::Print(__VA_ARGS__); \
         Output::Print(L"\n"); \
@@ -185,7 +192,13 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         }
         ReadFunctionsSignatures();
         break;
-
+    case bSectExportTable:
+        if (!m_visitedSections->Test(bSectFunctionSignatures))
+        {
+            ThrowDecodingError(L"Function signatures section missing before function exports");
+        }
+        ReadExportTable();
+        break;
     case bSectFunctionBodies:
         if (isEntry)
         {
@@ -202,7 +215,7 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
             m_moduleState.count = 0;
         }
         FunctionBodyHeader();
-        m_moduleState.count++;
+        ++m_moduleState.count;
         break;
     case bSectIndirectFunctionTable:
         if (!m_visitedSections->Test(bSectFunctionSignatures))
@@ -588,6 +601,26 @@ WasmBinaryReader::ReadFunctionsSignatures()
     }
 }
 
+void WasmBinaryReader::ReadExportTable()
+{
+    uint32 length;
+    uint32 entries = LEB128(length);
+    m_moduleInfo->AllocateFunctionExports(entries);
+
+    for (uint32 iExport = 0; iExport < entries; iExport++)
+    {
+        uint32 funcIndex = LEB128(length);
+        if (funcIndex >= m_moduleInfo->GetFunctionCount())
+        {
+            ThrowDecodingError(L"Invalid Export %u => func[%u]", iExport, funcIndex);
+        }
+        uint32 nameLength;
+        wchar_t* exportName = ReadInlineName(length, nameLength);
+        TRACE_WASM_DECODER(L"Export: Function(%u) => %s", funcIndex, exportName);
+        m_moduleInfo->SetFunctionExport(iExport, funcIndex, exportName, nameLength);
+    }
+}
+
 void
 WasmBinaryReader::FunctionBodyHeader()
 {
@@ -650,6 +683,27 @@ WasmBinaryReader::FunctionBodyHeader()
     }
 
     TRACE_WASM_DECODER(L"Function body header: i32 = %u, i64 = %u, f32 = %u, f64 = %u", i32Count, i64Count, f32Count, f64Count);
+}
+
+wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
+{
+    nameLength = LEB128(length);
+    CheckBytesLeft(nameLength);
+    LPCUTF8 rawName = (LPCUTF8)(m_pc);
+    
+    m_pc += nameLength;
+    length += nameLength;
+
+    utf8::DecodeOptions decodeOptions = utf8::doDefault;
+    charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(rawName, nameLength, decodeOptions);
+    wchar_t* contents = AnewArray(&m_alloc, wchar_t, utf16Len);
+    if (contents == nullptr)
+    {
+        Js::Throw::OutOfMemory();
+    }
+    utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, rawName, utf16Len, decodeOptions);
+
+    return contents;
 }
 
 const char *
@@ -728,7 +782,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
 
     if (!sgn)
     {
-        TRACE_WASM_DECODER(L"Binary decoder: LEB128 value = %u, length = %u", result, length);
+        TRACE_WASM_DECODER_PHASE(WasmLEB128, L"Binary decoder: LEB128 value = %u, length = %u", result, length);
     }
 
     return result;
