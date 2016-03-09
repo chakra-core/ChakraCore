@@ -87,7 +87,7 @@ WasmBytecodeGenerator::GenerateModule()
     {
         if (m_reader->ReadNextSection((SectionCode)sectionCode))
         {
-            if (!sectionProcess[sectionCode](this, (SectionCode)sectionCode))
+            if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
             {
                 throw WasmCompilationException(L"Error while reading section %d", sectionCode);
             }
