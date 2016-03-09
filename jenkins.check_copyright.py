@@ -31,11 +31,11 @@ if not os.path.isfile(file_name):
     exit(0)
 
 with open(file_name, 'r') as sourcefile:
-    for x in range(0,len(copyright_lines)):
+    for regex in regexes:
         # TODO add a check for empty files (dummy.js etc), as they cause the script to crash here
         line = next(sourcefile)
         line = line.rstrip()
-        matches = regexes[x].match(line)
+        matches = regex.match(line)
         if not matches:
             print(file_name, "... does not contain a correct Microsoft copyright notice.")
             # found a problem so exit and report the problem to the caller
