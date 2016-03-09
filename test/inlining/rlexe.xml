@@ -226,4 +226,11 @@
       <baseline>builtInApplyTarget.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>stackTrace.js</files>
+      <compile-flags>-extendederrorstackfortesthost</compile-flags>
+      <baseline>stackTrace.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
