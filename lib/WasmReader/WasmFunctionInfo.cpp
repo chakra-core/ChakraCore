@@ -24,9 +24,12 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
 }
 
 void
-WasmFunctionInfo::AddLocal(WasmTypes::WasmType type)
+WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint count)
 {
-    m_locals->Add(type);
+    for (uint i = 0; i < count; ++i)
+    {
+        m_locals->Add(type);
+    }
 }
 
 template<>

@@ -108,6 +108,7 @@ namespace Wasm
         EmitInfo EmitSetLocal();
         EmitInfo EmitReturnExpr(EmitInfo *lastStmtExprInfo = nullptr);
         EmitInfo EmitSelect();
+        void PrintOpName(WasmOp op);
 
         template<WasmOp wasmOp>
         EmitInfo EmitBr();
@@ -129,6 +130,8 @@ namespace Wasm
 
         void EnregisterLocals();
         void AddExport();
+
+        Js::ByteCodeLabel GetLabel(uint depth);
 
         void ReadParams(WasmNode * paramExpr);
         void ReadResult(WasmNode * paramExpr);
