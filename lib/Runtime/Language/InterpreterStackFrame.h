@@ -76,6 +76,7 @@ namespace Js
         StackScriptFunction * stackNestedFunctions;
         FrameDisplay * localFrameDisplay;
         Var localClosure;
+        Var paramClosure;
         Var *innerScopeArray;
         ScriptContext* scriptContext;
         ScriptFunction * function;
@@ -103,6 +104,7 @@ namespace Js
         UINT16 m_flags;                // based on InterpreterStackFrameFlags
 
         bool closureInitDone : 1;
+        bool isParamScopeDone : 1;
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -227,10 +229,13 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
-        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const wchar_t* state);
+        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
+
+        bool IsParamScopeDone() const { return isParamScopeDone; }
+        void SetIsParamScopeDone(bool value) { isParamScopeDone = value; }
 
         static bool IsBrLong(OpCode op, const byte * ip)
         {
@@ -550,6 +555,8 @@ namespace Js
         template <class T> inline Var OP_ProfiledLdObjSlot(Var instance, const unaligned T* playout);
         template <class T> inline Var OP_LdEnvObjSlot(Var instance, const unaligned T* playout);
         template <class T> inline Var OP_ProfiledLdEnvObjSlot(Var instance, const unaligned T* playout);
+        template <class T> inline Var OP_LdModuleSlot(Var instance, const unaligned T* playout);
+        inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
         inline void OP_StSlot(Var instance, int32 slotIndex, Var value);
         inline void OP_StSlotChkUndecl(Var instance, int32 slotIndex, Var value);
         inline void OP_StEnvSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
@@ -558,6 +565,7 @@ namespace Js
         inline void OP_StObjSlotChkUndecl(Var instance, int32 slotIndex, Var value);
         inline void OP_StEnvObjSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
         inline void OP_StEnvObjSlotChkUndecl(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
+        inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
         inline Var OP_LdHeapArguments(Var argsArray, ScriptContext* scriptContext);
@@ -652,6 +660,7 @@ namespace Js
         template <class T> void OP_InitGetElemI(const unaligned T * playout);
         template <class T> void OP_InitComputedProperty(const unaligned T * playout);
         template <class T> void OP_InitProto(const unaligned T * playout);
+        void OP_BeginBodyScope();
 
         uint CallLoopBody(JavascriptMethod address);
         uint CallAsmJsLoopBody(JavascriptMethod address);
@@ -717,6 +726,8 @@ namespace Js
         void SetLocalFrameDisplay(FrameDisplay *frameDisplay);
         Var  GetLocalClosure() const;
         void SetLocalClosure(Var closure);
+        Var  GetParamClosure() const;
+        void SetParamClosure(Var closure);
         void TrySetRetOffset();
     };
 

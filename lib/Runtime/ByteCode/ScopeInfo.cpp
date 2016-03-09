@@ -27,7 +27,7 @@ namespace Js
             this->SetIsBlockVariable(scopeSlot, sym->GetIsBlockVar());
         }
 
-        TRACE_BYTECODE(L"%12s %d\n", sym->GetName().GetBuffer(), sym->GetScopeSlot());
+        TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
     }
 
     //
@@ -69,8 +69,8 @@ namespace Js
         scopeInfo->isGlobalEval = scope->GetScopeType() == ScopeType_GlobalEvalBlock;
         scopeInfo->canMergeWithBodyScope = scope->GetCanMergeWithBodyScope();
 
-        TRACE_BYTECODE(L"\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n",
-            scope->GetFunc()->name, parent->GetDisplayName(), count, scopeInfo->isObject ? L"isObject" : L"");
+        TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
+            scope->GetFunc()->name, parent->GetDisplayName(), count, scopeInfo->isObject ? _u("isObject") : _u(""));
 
         MapSymbolData mapSymbolData = { byteCodeGenerator, scope->GetFunc() };
         scope->ForEachSymbol([&mapSymbolData, scopeInfo, scope](Symbol * sym)
@@ -140,7 +140,7 @@ namespace Js
         FunctionBody* parent = parentFunc->byteCodeFunction->GetFunctionBody();
         ParseableFunctionInfo* funcBody = func->byteCodeFunction;
 
-        TRACE_BYTECODE(L"\nSave ScopeInfo: %s parent: %s\n\n",
+        TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s\n\n"),
             funcBody->GetDisplayName(), parent->GetDisplayName());
 
         funcBody->SetScopeInfo(FromParent(parent));
@@ -259,8 +259,8 @@ namespace Js
         }
         else
         {
-            TRACE_BYTECODE(L"\nRestore ScopeInfo: %s #symbols: %d %s\n",
-                funcInfo->name, symbolCount, isObject ? L"isObject" : L"");
+            TRACE_BYTECODE(_u("\nRestore ScopeInfo: %s #symbols: %d %s\n"),
+                funcInfo->name, symbolCount, isObject ? _u("isObject") : _u(""));
 
             Assert(!this->isCached || scope == funcInfo->GetBodyScope());
             funcInfo->SetHasCachedScope(this->isCached);
@@ -327,7 +327,7 @@ namespace Js
                     parser->RestorePidRefForSym(sym);
                 }
 
-                TRACE_BYTECODE(L"%12s %d\n", sym->GetName().GetBuffer(), sym->GetScopeSlot());
+                TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
             }
         }
         this->scope = scope;

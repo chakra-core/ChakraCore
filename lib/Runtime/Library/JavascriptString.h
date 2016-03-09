@@ -54,7 +54,7 @@ namespace Js
         friend bool IsValidCharCount(size_t);
 
     private:
-        const wchar16* m_pszValue;         // Flattened, '\0' terminated contents
+        const char16* m_pszValue;         // Flattened, '\0' terminated contents
         charcount_t m_charLength;          // Length in characters, not including '\0'.
 
         static const charcount_t MaxCharLength = INT_MAX - 1;  // Max number of chars not including '\0'.
@@ -66,15 +66,15 @@ namespace Js
 
         BOOL HasItemAt(charcount_t idxChar);
         BOOL GetItemAt(charcount_t idxChar, Var* value);
-        wchar16 GetItem(charcount_t index);
+        char16 GetItem(charcount_t index);
 
         _Ret_range_(m_charLength, m_charLength) charcount_t GetLength() const;
         virtual size_t GetAllocatedByteCount() const;
         virtual bool IsSubstring() const;
         int GetLengthAsSignedInt() const;
-        const wchar16* UnsafeGetBuffer() const;
+        const char16* UnsafeGetBuffer() const;
         LPCWSTR GetSzCopy(ArenaAllocator* alloc);   // Copy to an Arena
-        const wchar16* GetString(); // Get string, may not be NULL terminated
+        const char16* GetString(); // Get string, may not be NULL terminated
 
         // NumberUtil::FIntRadStrToDbl and parts of GlobalObject::EntryParseInt were refactored into ToInteger
         Var ToInteger(int radix = 0);
@@ -82,14 +82,14 @@ namespace Js
         double ToDouble();
         bool ToDouble(double * result);
 
-        static const wchar16* GetSzHelper(JavascriptString *str) { return str->GetSz(); }
-        virtual const wchar16* GetSz();     // Get string, NULL terminated
+        static const char16* GetSzHelper(JavascriptString *str) { return str->GetSz(); }
+        virtual const char16* GetSz();     // Get string, NULL terminated
         virtual void const * GetOriginalStringReference();  // Get the original full string (Same as GetString() unless it is a SubString);
 
     public:
         template <typename StringType>
-        void Copy(__out_ecount(bufLen) wchar16 *const buffer, const charcount_t bufLen);
-        void Copy(__out_xcount(m_charLength) wchar16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth)
+        void Copy(__out_ecount(bufLen) char16 *const buffer, const charcount_t bufLen);
+        void Copy(__out_xcount(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth)
         {
             if (this->IsFinalized())
             {
@@ -102,10 +102,10 @@ namespace Js
                 CopyVirtual(buffer, nestedStringTreeCopyInfos, recursionDepth);
             }
         }
-        virtual void CopyVirtual(_Out_writes_(m_charLength) wchar16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth);
+        virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth);
 
     private:
-        void FinishCopy(__inout_xcount(m_charLength) wchar16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos);
+        void FinishCopy(__inout_xcount(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos);
 
     public:
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const { return -1; }
@@ -133,7 +133,7 @@ namespace Js
 
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
 #ifdef ENABLE_GLOBALIZATION
-        virtual wchar16* GetNormalizedString(NORM_FORM, ArenaAllocator*, charcount_t&);
+        virtual char16* GetNormalizedString(NORM_FORM, ArenaAllocator*, charcount_t&);
 #endif
 
         static bool Is(Var aValue);
@@ -150,29 +150,29 @@ namespace Js
             ToLower,
             ToUpper
         };
-        wchar16* GetSzCopy();   // get a copy of the inner string without compacting the chunks
+        char16* GetSzCopy();   // get a copy of the inner string without compacting the chunks
 
         static Var ToCaseCore(JavascriptString* pThis, ToCase toCase);
-        static int IndexOfUsingJmpTable(JmpTable jmpTable, const wchar16* inputStr, int len, const wchar16* searchStr, int searchLen, int position);
-        static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const wchar16* inputStr, int len, const wchar16* searchStr, int searchLen, int position);
-        static bool BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const wchar16* searchStr, int searchLen);
-        static bool BuildFirstCharBackwardBoyerMooreTable(JmpTable jmpTable, const wchar16* searchStr, int searchLen);
+        static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position);
+        static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position);
+        static bool BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
+        static bool BuildFirstCharBackwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
         static charcount_t ConvertToIndex(Var varIndex, ScriptContext *scriptContext);
 
         template <typename T, bool copyBuffer>
-        static JavascriptString* NewWithBufferT(const wchar16 * content, charcount_t charLength, ScriptContext * scriptContext);
+        static JavascriptString* NewWithBufferT(const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
 
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         static const char stringToIntegerMap[128];
         static const uint8 maxUintStringLengthTable[37];
     protected:
         JavascriptString(StaticType * type);
-        JavascriptString(StaticType * type, charcount_t charLength, const wchar16* szValue);
+        JavascriptString(StaticType * type, charcount_t charLength, const char16* szValue);
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptString, RecyclableObject);
         DECLARE_CONCRETE_STRING_CLASS_BASE;
 
         void SetLength(charcount_t newLength);
-        void SetBuffer(const wchar16* buffer);
+        void SetBuffer(const char16* buffer);
         bool IsValidIndexValue(charcount_t idx) const;
 
         static charcount_t SafeSzSize(charcount_t length); // Throws on overflow
@@ -182,19 +182,19 @@ namespace Js
         bool IsFinalized() const { return this->UnsafeGetBuffer() != NULL; }
 
     public:
-        static JavascriptString* NewWithSz(__in_z const wchar16 * content, ScriptContext* scriptContext);
-        static JavascriptString* NewWithBuffer(__in_ecount(charLength) const wchar16 * content, charcount_t charLength, ScriptContext * scriptContext);
-        static JavascriptString* NewCopySz(__in_z const wchar16* content, ScriptContext* scriptContext);
-        static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const wchar16* content, charcount_t charLength, ScriptContext* scriptContext);
+        static JavascriptString* NewWithSz(__in_z const char16 * content, ScriptContext* scriptContext);
+        static JavascriptString* NewWithBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
+        static JavascriptString* NewCopySz(__in_z const char16* content, ScriptContext* scriptContext);
+        static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const char16* content, charcount_t charLength, ScriptContext* scriptContext);
 
-        static JavascriptString* NewWithArenaSz(__in_z const wchar16 * content, ScriptContext* scriptContext);
-        static JavascriptString* NewWithArenaBuffer(__in_ecount(charLength) const wchar16 * content, charcount_t charLength, ScriptContext * scriptContext);
+        static JavascriptString* NewWithArenaSz(__in_z const char16 * content, ScriptContext* scriptContext);
+        static JavascriptString* NewWithArenaBuffer(__in_ecount(charLength) const char16 * content, charcount_t charLength, ScriptContext * scriptContext);
 
-        static JavascriptString* NewCopySzFromArena(__in_z const wchar16* content, ScriptContext* scriptContext, ArenaAllocator *arena);
+        static JavascriptString* NewCopySzFromArena(__in_z const char16* content, ScriptContext* scriptContext, ArenaAllocator *arena);
 
-        static __ecount(length+1) wchar16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const wchar16* content, charcount_t length);
-        static __ecount(length+1) wchar16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const wchar16* content, charcount_t length);
-        static void CopyHelper(__out_ecount(countNeeded) wchar16 *dst, __in_ecount(countNeeded) const wchar16 * str, charcount_t countNeeded);
+        static __ecount(length+1) char16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
+        static __ecount(length+1) char16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
+        static void CopyHelper(__out_ecount(countNeeded) char16 *dst, __in_ecount(countNeeded) const char16 * str, charcount_t countNeeded);
 
     public:
         JavascriptString* ConcatDestructive(JavascriptString* pstRight);
@@ -324,25 +324,25 @@ namespace Js
         static JavascriptString* RepeatCore(JavascriptString* currentString, charcount_t count, ScriptContext* scriptContext);
         static JavascriptString* PadCore(ArgumentReader& args, JavascriptString *mainString, bool isPadStart, ScriptContext* scriptContext);
         static Var SubstringCore(JavascriptString* str, int start, int span, ScriptContext* scriptContext);
-        static charcount_t GetBufferLength(const wchar16 *content);
-        static charcount_t GetBufferLength(const wchar16 *content, int charLengthOrMinusOne);
-        static bool IsASCII7BitChar(wchar16 ch) { return ch < 0x0080; }
-        static char ToASCII7BitChar(wchar16 ch) { Assert(IsASCII7BitChar(ch)); return static_cast<char>(ch); }
+        static charcount_t GetBufferLength(const char16 *content);
+        static charcount_t GetBufferLength(const char16 *content, int charLengthOrMinusOne);
+        static bool IsASCII7BitChar(char16 ch) { return ch < 0x0080; }
+        static char ToASCII7BitChar(char16 ch) { Assert(IsASCII7BitChar(ch)); return static_cast<char>(ch); }
 
     private:
-        static int IndexOf(ArgumentReader& args, ScriptContext* scriptContext, const wchar16* apiNameForErrorMsg, bool isRegExpAnAllowedArg);
-        static void GetThisStringArgument(ArgumentReader& args, ScriptContext* scriptContext, const wchar16* apiNameForErrorMsg, JavascriptString** ppThis);
-        static void GetThisAndSearchStringArguments(ArgumentReader& args, ScriptContext* scriptContext, const wchar16* apiNameForErrorMsg, JavascriptString** ppThis, JavascriptString** ppSearch, bool isRegExpAnAllowedArg);
+        static int IndexOf(ArgumentReader& args, ScriptContext* scriptContext, const char16* apiNameForErrorMsg, bool isRegExpAnAllowedArg);
+        static void GetThisStringArgument(ArgumentReader& args, ScriptContext* scriptContext, const char16* apiNameForErrorMsg, JavascriptString** ppThis);
+        static void GetThisAndSearchStringArguments(ArgumentReader& args, ScriptContext* scriptContext, const char16* apiNameForErrorMsg, JavascriptString** ppThis, JavascriptString** ppSearch, bool isRegExpAnAllowedArg);
 
         static BOOL GetThisValueVar(Var aValue, JavascriptString** pString, ScriptContext* scriptContext);
-        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, __in_ecount(cchTag) wchar16 const*pszTag, charcount_t cchTag,
-                                        __in_ecount_opt(cchProp) wchar16 const*pszProp, charcount_t cchProp);
+        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, __in_ecount(cchTag) char16 const*pszTag, charcount_t cchTag,
+                                        __in_ecount_opt(cchProp) char16 const*pszProp, charcount_t cchProp);
 
         template< size_t N >
-        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, const wchar16 (&tag)[N]);
+        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, const char16 (&tag)[N]);
 
         template< size_t N1, size_t N2 >
-        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, const wchar16 (&tag)[N1], const wchar16 (&prop)[N2]);
+        static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, const char16 (&tag)[N1], const char16 (&prop)[N2]);
 
         static void SearchValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptRegExp ** ppSearchRegEx, JavascriptString ** ppSearchString);
         static void ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString);
@@ -354,10 +354,15 @@ namespace Js
         template <bool trimLeft, bool trimRight>
         static Var TrimLeftRightHelper(JavascriptString* arg, ScriptContext* scriptContext);
 
-        template<typename FallbackFn>
+        static Var DoStringReplace(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
+        static Var DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
+        template<int argCount, typename FallbackFn>
         static Var DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext);
         static Var GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext);
-        static Var CallRegExSymbolFunction(Var fn, Var regExp, Var string, PCWSTR const varName, ScriptContext* scriptContext);
+        template<int argCount> // The count is excluding 'this'
+        static Var CallRegExSymbolFunction(Var fn, Var regExp, Arguments& args, PCWSTR const varName, ScriptContext* scriptContext);
+        template<int argCount> // The count is excluding 'this'
+        static Var CallRegExFunction(RecyclableObject* fnObj, Var regExp, Arguments& args);
     };
 
     template<>
@@ -404,6 +409,6 @@ struct DefaultComparer<Js::JavascriptString*>
 
     __inline static uint GetHashCode(Js::JavascriptString * pStr)
     {
-        return JsUtil::CharacterBuffer<wchar16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
+        return JsUtil::CharacterBuffer<char16>::StaticGetHashCode(pStr->GetString(), pStr->GetLength());
     }
 };

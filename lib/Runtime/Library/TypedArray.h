@@ -405,7 +405,7 @@ namespace Js
         }
     };
 
-    // in windows build environment, wchar16 is not an intrinsic type, and we cannot do the type
+    // in windows build environment, char16 is not an intrinsic type, and we cannot do the type
     // specialization
     class CharArray : public TypedArrayBase
     {
@@ -426,10 +426,10 @@ namespace Js
         static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
 
         CharArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
-        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(wchar16), type)
+        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(char16), type)
         {
             AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
-            AssertMsg(mappedLength*sizeof(wchar16)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
+            AssertMsg(mappedLength*sizeof(char16)+byteOffset <= GetArrayBuffer()->GetByteLength(), "invalid length");
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
@@ -446,7 +446,7 @@ namespace Js
     protected:
         CompareElementsFunction GetCompareElementsFunction()
         {
-            return &TypedArrayCompareElementsHelper<wchar16>;
+            return &TypedArrayCompareElementsHelper<char16>;
         }
     };
 

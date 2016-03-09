@@ -227,14 +227,14 @@ public:
 public:
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     static void         DumpAddress(void *address, bool printToConsole, bool skipMaskedAddress);
-    static void         DumpFunctionInfo(_Outptr_result_buffer_(*count) wchar_t ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ wchar_t const * type = nullptr);
+    static void         DumpFunctionInfo(_Outptr_result_buffer_(*count) char16 ** buffer, size_t * count, Js::FunctionInfo * info, bool printToConsole, _In_opt_z_ char16 const * type = nullptr);
     void                Dump(IRDumpFlags flags, Func *func);
     void                DumpOpndKindAddr(bool AsmDumpMode, Func *func);
     void                DumpOpndKindMemRef(bool AsmDumpMode, Func *func);
-    static void         WriteToBuffer(_Outptr_result_buffer_(*count) wchar_t **buffer, size_t *count, const wchar_t *fmt, ...);
-    void                GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count, bool AsmDumpMode,
+    static void         WriteToBuffer(_Outptr_result_buffer_(*count) char16 **buffer, size_t *count, const char16 *fmt, ...);
+    void                GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count, bool AsmDumpMode,
                             bool printToConsole, Func *func);
-    static void         GetAddrDescription(__out_ecount(count) wchar_t *const description, const size_t count,
+    static void         GetAddrDescription(__out_ecount(count) char16 *const description, const size_t count,
                             void * address, IR::AddrOpndKind addressKind, bool AsmDumpMode, bool printToConsole, Func *func, bool skipMaskedAddress = false);
     void                Dump();
 #endif
@@ -284,7 +284,7 @@ class IntConstOpnd sealed : public Opnd
 public:
     static IntConstOpnd *   New(IntConstType value, IRType type, Func *func, bool dontEncode = false);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    static IntConstOpnd *   New(IntConstType value, IRType type, const wchar_t * name, Func *func, bool dontEncode = false);
+    static IntConstOpnd *   New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode = false);
 #endif
 
 public:
@@ -317,7 +317,7 @@ public:
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     IntConstType            decodedValue;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
-    wchar_t const *         name;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
+    char16 const *         name;  // FIXME (t-doilij) set ENABLE_IR_VIEWER blocks where this is set
 #endif
 
 private:
@@ -1166,9 +1166,9 @@ public:
     bool ChangesObjectLayout() const;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const wchar_t* GetCacheLayoutString() const
+    const char16* GetCacheLayoutString() const
     {
-        return HasObjTypeSpecFldInfo() ? this->objTypeSpecFldInfo->GetCacheLayoutString() : L"empty";
+        return HasObjTypeSpecFldInfo() ? this->objTypeSpecFldInfo->GetCacheLayoutString() : _u("empty");
     }
 #endif
 
@@ -1386,7 +1386,7 @@ public:
     static IndirOpnd *      New(RegOpnd * baseOpnd, RegOpnd * indexOpnd, byte scale, IRType type, Func *func);
     static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, Func *func, bool dontEncode = false);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, const wchar_t *desc, Func *func, bool dontEncode = false);
+    static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, const char16 *desc, Func *func, bool dontEncode = false);
 #endif
 
 public:
@@ -1423,7 +1423,7 @@ public:
     void                    SetScale(byte scale);
     bool                    TryGetIntConstIndexValue(bool trySym, IntConstType *pValue, bool *pIsNotInt);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    const wchar_t *         GetDescription();
+    const char16 *         GetDescription();
     IR::AddrOpndKind        GetAddrKind() const;
     bool                    HasAddrKind() const;
     void *                  GetOriginalAddress() const;
@@ -1441,7 +1441,7 @@ private:
     Func *                  m_func;  // We need the allocator to copy the base and index...
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    const wchar_t *         m_desc;
+    const char16 *         m_desc;
 #endif
 #if DBG_DUMP
     IR::AddrOpndKind        m_addrKind;  // if m_addrKind != -1, than this used to be MemRefOpnd which has the address hoisted;

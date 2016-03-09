@@ -55,7 +55,7 @@ namespace Js
         {
             return args[1];
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("Int8x16"));
     }
 
     Var SIMDInt8x16Lib::EntrySplat(RecyclableObject* function, CallInfo callInfo, ...)
@@ -103,7 +103,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"select");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("select"));
     }
    Var SIMDInt8x16Lib::EntryFromFloat32x4Bits(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -119,7 +119,7 @@ namespace Js
             JavascriptSIMDFloat32x4 *instance = JavascriptSIMDFloat32x4::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDFloat32x4, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromFloat32x4Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromFloat32x4Bits"));
     }
 
     Var SIMDInt8x16Lib::EntryFromInt32x4Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -136,7 +136,7 @@ namespace Js
             JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDInt32x4, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromInt32x4Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromInt32x4Bits"));
     }
 
     Var SIMDInt8x16Lib::EntryFromInt16x8Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -153,7 +153,7 @@ namespace Js
             JavascriptSIMDInt16x8 *instance = JavascriptSIMDInt16x8::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDInt16x8, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromInt16x8Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromInt16x8Bits"));
     }
 
     Var SIMDInt8x16Lib::EntryFromUint32x4Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -170,7 +170,7 @@ namespace Js
             JavascriptSIMDUint32x4 *instance = JavascriptSIMDUint32x4::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDUint32x4, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromUint32x4Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromUint32x4Bits"));
     }
 
     Var SIMDInt8x16Lib::EntryFromUint16x8Bits(RecyclableObject* function, CallInfo callInfo, ...)
@@ -187,7 +187,7 @@ namespace Js
             JavascriptSIMDUint16x8 *instance = JavascriptSIMDUint16x8::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDUint16x8, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromUint16x8Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromUint16x8Bits"));
     }
 
 
@@ -205,7 +205,7 @@ namespace Js
             JavascriptSIMDUint8x16 *instance = JavascriptSIMDUint8x16::FromVar(args[1]);
             return  SIMDConvertTypeFromBits<JavascriptSIMDUint8x16, JavascriptSIMDInt8x16>(instance, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"fromUint8x16Bits");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("fromUint8x16Bits"));
     }
 
    Var SIMDInt8x16Lib::EntryNeg(RecyclableObject* function, CallInfo callInfo, ...)
@@ -231,7 +231,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"neg");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("neg"));
     }
 
     Var SIMDInt8x16Lib::EntryNot(RecyclableObject* function, CallInfo callInfo, ...)
@@ -257,7 +257,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"not");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("not"));
     }
 
     Var SIMDInt8x16Lib::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -286,7 +286,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"add");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("add"));
     }
 
     Var SIMDInt8x16Lib::EntrySub(RecyclableObject* function, CallInfo callInfo, ...)
@@ -315,7 +315,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"sub");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("sub"));
     }
 
     Var SIMDInt8x16Lib::EntryMul(RecyclableObject* function, CallInfo callInfo, ...)
@@ -344,7 +344,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"mul");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("mul"));
     }
 
     Var SIMDInt8x16Lib::EntryAnd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -373,7 +373,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"and");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("and"));
     }
 
     Var SIMDInt8x16Lib::EntryOr(RecyclableObject* function, CallInfo callInfo, ...)
@@ -402,7 +402,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"or");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("or"));
     }
 
     Var SIMDInt8x16Lib::EntryXor(RecyclableObject* function, CallInfo callInfo, ...)
@@ -431,7 +431,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"xor");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("xor"));
     }
 
     Var SIMDInt8x16Lib::EntryAddSaturate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -460,7 +460,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"add");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("add"));
     }
 
     Var SIMDInt8x16Lib::EntrySubSaturate(RecyclableObject* function, CallInfo callInfo, ...)
@@ -489,7 +489,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"sub");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("sub"));
     }
 
     Var SIMDInt8x16Lib::EntryMin(RecyclableObject* function, CallInfo callInfo, ...)
@@ -518,7 +518,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"min");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("min"));
     }
 
     Var SIMDInt8x16Lib::EntryMax(RecyclableObject* function, CallInfo callInfo, ...)
@@ -547,7 +547,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"max");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("max"));
     }
 
     Var SIMDInt8x16Lib::EntryLessThan(RecyclableObject* function, CallInfo callInfo, ...)
@@ -578,7 +578,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"lessThan");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("lessThan"));
     }
 
     Var SIMDInt8x16Lib::EntryLessThanOrEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -609,7 +609,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"lessThanOrEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("lessThanOrEqual"));
     }
 
     Var SIMDInt8x16Lib::EntryEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -640,7 +640,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"equal");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("equal"));
     }
 
     Var SIMDInt8x16Lib::EntryNotEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -671,7 +671,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"notEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("notEqual"));
     }
 
     Var SIMDInt8x16Lib::EntryGreaterThan(RecyclableObject* function, CallInfo callInfo, ...)
@@ -702,7 +702,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"greaterThan");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("greaterThan"));
     }
 
     Var SIMDInt8x16Lib::EntryGreaterThanOrEqual(RecyclableObject* function, CallInfo callInfo, ...)
@@ -733,7 +733,7 @@ namespace Js
             return JavascriptSIMDBool8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"greaterThanOrEqual");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("greaterThanOrEqual"));
     }
 
     Var SIMDInt8x16Lib::EntryShiftLeftByScalar(RecyclableObject* function, CallInfo callInfo, ...)
@@ -762,7 +762,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"shiftLeft");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("shiftLeft"));
     }
 
     Var SIMDInt8x16Lib::EntryShiftRightByScalar(RecyclableObject* function, CallInfo callInfo, ...)
@@ -791,7 +791,7 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"shiftRightByScalar");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("shiftRightByScalar"));
     }
 
     Var SIMDInt8x16Lib::EntryLoad(RecyclableObject* function, CallInfo callInfo, ...)
@@ -823,7 +823,7 @@ namespace Js
             SIMD128TypedArrayStore<JavascriptSIMDInt8x16>(args[1], args[2], args[3], 16 * INT8_SIZE, scriptContext);
             return NULL;
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"SIMD.Int8x16.store");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("SIMD.Int8x16.store"));
     }
 
     //Shuffle/Swizzle
@@ -845,7 +845,7 @@ namespace Js
             if (args.Info.Count < 18)
             {
                 // missing lane args
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, L"Lane index");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
 
             Var lanes[16];
@@ -856,7 +856,7 @@ namespace Js
 
             return SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[1], lanes, 16, scriptContext);
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"swizzle");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("swizzle"));
     }
 
     Var SIMDInt8x16Lib::EntryShuffle(RecyclableObject* function, CallInfo callInfo, ...)
@@ -877,7 +877,7 @@ namespace Js
             if (args.Info.Count < 19)
             {
                 // missing lane args
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, L"Lane index");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("Lane index"));
             }
 
             Var lanes[16];
@@ -889,7 +889,7 @@ namespace Js
             return SIMD128SlowShuffle<JavascriptSIMDInt8x16, 16>(args[1], args[2], lanes, 32, scriptContext);
 
         }
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"shuffle");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("shuffle"));
     }
 
     //Lane Access
@@ -913,7 +913,7 @@ namespace Js
             return JavascriptNumber::ToVarNoCheck(result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"ExtractLane");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("ExtractLane"));
     }
 
     Var SIMDInt8x16Lib::EntryReplaceLane(RecyclableObject* function, CallInfo callInfo, ...)
@@ -939,6 +939,6 @@ namespace Js
             return JavascriptSIMDInt8x16::New(&result, scriptContext);
         }
 
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"ReplaceLane");
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("ReplaceLane"));
     }
 }

@@ -88,7 +88,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(CH_WSTR("SystemException: OutOfMemory\n"));
+            Output::Print(_u("SystemException: OutOfMemory\n"));
             Output::Flush();
         }
 #endif
@@ -110,7 +110,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(CH_WSTR("SystemException: StackOverflow\n"));
+            Output::Print(_u("SystemException: StackOverflow\n"));
             Output::Flush();
         }
 #endif
@@ -180,8 +180,8 @@ namespace Js {
             filePath = tempFilePath;
         }
 
-        StringCchPrintf(tempFileName, _countof(tempFileName), L"%s\\CH_%u_%u.dmp", filePath, GetCurrentProcessId(), GetCurrentThreadId());
-        Output::Print(L"dump filename %s \n", tempFileName);
+        StringCchPrintf(tempFileName, _countof(tempFileName), _u("%s\\CH_%u_%u.dmp"), filePath, GetCurrentProcessId(), GetCurrentThreadId());
+        Output::Print(_u("dump filename %s \n"), tempFileName);
         Output::Flush();
 
         hTempFile = CreateFile(tempFileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
@@ -232,7 +232,7 @@ namespace Js {
             }
             if (!dumpGenerated)
             {
-                Output::Print(L"Unable to write minidump (0x%08X)\n", GetLastError());
+                Output::Print(_u("Unable to write minidump (0x%08X)\n"), GetLastError());
                 Output::Flush();
             }
         }
@@ -256,7 +256,7 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const wchar_t * caption = CH_WSTR("CHAKRA ASSERT");
+    static const char16 * caption = _u("CHAKRA ASSERT");
 #endif
 
     bool Throw::ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message)
@@ -289,16 +289,16 @@ namespace Js {
         }
 
         // The following code is applicable only when we are hosted in an
-        // GUI environment 
+        // GUI environment
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(_WIN32)
         // Then if DumpOncrashFlag is not specified it directly returns,
         // otherwise if will raise a non-continuable exception, generate the dump and terminate the process.
         // the popup message box might be useful when testing in IE
         if (Js::Configuration::Global.flags.AssertPopUp && IsMessageBoxWPresent())
         {
-            wchar_t buff[1024];
+            char16 buff[1024];
 
-            swprintf_s(buff, _countof(buff), L"%S (%u)\n%S\n%S", fileName, lineNumber, message, error);
+            swprintf_s(buff, _countof(buff), _u("%S (%u)\n%S\n%S"), fileName, lineNumber, message, error);
             buff[_countof(buff)-1] = 0;
 
             int ret = MessageBox(nullptr, buff, caption, MB_ABORTRETRYIGNORE);

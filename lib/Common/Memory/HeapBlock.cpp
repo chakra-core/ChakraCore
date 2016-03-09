@@ -336,7 +336,7 @@ SmallHeapBlockT<TBlockAttributes>::Init(ushort objectSize, ushort objectCount)
     {
         this->pageHeapFreeStack->Delete(&NoCheckHeapAllocator::Instance);
         this->pageHeapFreeStack = nullptr;
-    }    
+    }
 #endif
 #endif
 }
@@ -505,7 +505,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePages(Recycler * recycler)
 #if DBG
     if (this->IsLeafBlock())
     {
-        RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("Releasing leaf block pages at address 0x%p\n"), address);
+        RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Releasing leaf block pages at address 0x%p\n"), address);
     }
 #endif
 
@@ -584,7 +584,7 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
 #if DBG
     if (this->IsLeafBlock())
     {
-        RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("Releasing leaf block pages at address 0x%p\n"), address);
+        RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Releasing leaf block pages at address 0x%p\n"), address);
     }
 
 #ifdef RECYCLER_PAGE_HEAP
@@ -1303,7 +1303,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
         {
             if (InPageHeapMode())
             {
-                PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("Heap block 0x%p is empty\n"), this);
+                PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Heap block 0x%p is empty\n"), this);
             }
         }
 #endif
@@ -1316,7 +1316,7 @@ SmallHeapBlockT<TBlockAttributes>::Sweep(RecyclerSweep& recyclerSweep, bool queu
     {
         if (InPageHeapMode())
         {
-            PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), CH_WSTR("Heap block 0x%p is not empty, local mark count is %d, expected sweep count is %d\n"), this, localMarkCount, expectSweepCount);
+            PageHeapVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Heap block 0x%p is not empty, local mark count is %d, expected sweep count is %d\n"), this, localMarkCount, expectSweepCount);
         }
     }
 #endif
@@ -1984,7 +1984,8 @@ void SmallHeapBlockT<TBlockAttributes>::VerifyBumpAllocated(_In_ char * bumpAllo
                 }
                 else
                 {
-                    Recycler::VerifyCheck(false, CH_WSTR("Non-Finalizable block should not have finalizable objects"), this->GetAddress(), &this->ObjectInfo(i));
+                    Recycler::VerifyCheck(false, _u("Non-Finalizable block should not have finalizable objects"),
+                        this->GetAddress(), &this->ObjectInfo(i));
                 }
             }
         }
@@ -2003,7 +2004,7 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
     char * memBlock = this->GetAddress();
     uint objectBitDelta = this->GetObjectBitDelta();
     Recycler::VerifyCheck(!pendingDispose || this->IsAnyFinalizableBlock(),
-        CH_WSTR("Non-finalizable block shouldn't be disposing. May have corrupted block type."),
+        _u("Non-finalizable block shouldn't be disposing. May have corrupted block type."),
         this->GetAddress(), (void *)&this->heapBlockType);
 
     if (HasPendingDisposeObjects())
@@ -2036,7 +2037,7 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
                 Recycler::VerifyCheck(nextFree == nullptr
                     || (nextFree >= address && nextFree < this->GetEndAddress()
                     && free->Test(GetAddressBitIndex(nextFree))),
-                    CH_WSTR("SmallHeapBlock memory written to after freed"), memBlock, memBlock);
+                    _u("SmallHeapBlock memory written to after freed"), memBlock, memBlock);
                 Recycler::VerifyCheckFill(memBlock + sizeof(FreeObject), this->GetObjectSize() - sizeof(FreeObject));
             }
         }
@@ -2057,7 +2058,7 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
                     || (nextFree >= address && nextFree < this->GetEndAddress()
                     && explicitFreeBits.Test(GetAddressBitIndex(nextFree)))
                     || nextFreeHeapBlock->GetObjectSize(nextFree) == this->objectSize,
-                    CH_WSTR("SmallHeapBlock memory written to after freed"), memBlock, memBlock);
+                    _u("SmallHeapBlock memory written to after freed"), memBlock, memBlock);
                 recycler->VerifyCheckPadExplicitFreeList(memBlock, this->GetObjectSize());
             }
             else
@@ -2073,7 +2074,7 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
                 }
                 else
                 {
-                    Recycler::VerifyCheck(false, CH_WSTR("Non-Finalizable block should not have finalizable objects"),
+                    Recycler::VerifyCheck(false, _u("Non-Finalizable block should not have finalizable objects"),
                         this->GetAddress(), &this->ObjectInfo(i));
                 }
             }
@@ -2085,7 +2086,7 @@ void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose)
     if (this->IsAnyFinalizableBlock())
     {
         Recycler::VerifyCheck(this->AsFinalizableBlock<TBlockAttributes>()->finalizeCount == verifyFinalizeCount,
-            CH_WSTR("SmallHeapBlock finalize count mismatch"), this->GetAddress(), &this->AsFinalizableBlock<TBlockAttributes>()->finalizeCount);
+            _u("SmallHeapBlock finalize count mismatch"), this->GetAddress(), &this->AsFinalizableBlock<TBlockAttributes>()->finalizeCount);
     }
     else
     {

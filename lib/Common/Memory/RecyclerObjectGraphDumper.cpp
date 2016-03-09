@@ -24,18 +24,18 @@ RecyclerObjectGraphDumper::~RecyclerObjectGraphDumper()
     recycler->objectGraphDumper = nullptr;
 }
 
-void RecyclerObjectGraphDumper::BeginDumpObject(wchar_t const * name)
+void RecyclerObjectGraphDumper::BeginDumpObject(char16 const * name)
 {
     Assert(dumpObjectName == nullptr);
     Assert(dumpObject == nullptr);
     dumpObjectName = name;
 }
 
-void RecyclerObjectGraphDumper::BeginDumpObject(wchar_t const * name, void * address)
+void RecyclerObjectGraphDumper::BeginDumpObject(char16 const * name, void * address)
 {
     Assert(dumpObjectName == nullptr);
     Assert(dumpObject == nullptr);
-    swprintf_s(tempObjectName, _countof(tempObjectName), CH_WSTR("%s %p"), name, address);
+    swprintf_s(tempObjectName, _countof(tempObjectName), _u("%s %p"), name, address);
     dumpObjectName = tempObjectName;
 }
 
@@ -79,10 +79,10 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
             if (!this->param->dumpReferenceFunc(this->dumpObjectName, this->dumpObject, objectAddress))
                 return;
         }
-        Output::Print(CH_WSTR("\""));
+        Output::Print(_u("\""));
         if (this->dumpObjectName)
         {
-            Output::Print(CH_WSTR("%s"), this->dumpObjectName);
+            Output::Print(_u("%s"), this->dumpObjectName);
         }
         else
         {
@@ -90,14 +90,14 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
 #ifdef PROFILE_RECYCLER_ALLOC
             RecyclerObjectDumper::DumpObject(this->dumpObjectTypeInfo, this->dumpObjectIsArray, this->dumpObject);
 #else
-            Output::Print(CH_WSTR("Address %p"), objectAddress);
+            Output::Print(_u("Address %p"), objectAddress);
 #endif
         }
 
-        Output::Print(remark? CH_WSTR("\" => \"") : CH_WSTR("\" -> \""));
+        Output::Print(remark? _u("\" => \"") : _u("\" -> \""));
         recycler->DumpObjectDescription(objectAddress);
 
-        Output::Print(CH_WSTR("\"\n"));
+        Output::Print(_u("\"\n"));
     }
 }
 #endif

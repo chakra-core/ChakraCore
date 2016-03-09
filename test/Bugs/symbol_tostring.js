@@ -3,10 +3,18 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// Re-export statements
-export * from 'ValidExportDefaultStatement1.js';
-export {} from 'ValidExportDefaultStatement2.js';
-export { foo } from 'ValidExportStatements.js';
-export { bar, } from 'ValidExportStatements.js';
-export { foo as foo2, baz } from 'ValidExportStatements.js'
-export { foo as foo3, bar as bar2, } from 'ValidExportStatements.js'
+var k;
+function test0() {
+  try {
+    // Below will throw an error and we will try to do implicit toString call on Symbol which will also throw.
+    // Under disableImplicit call we were returning nullptr which was wrong.
+    [] = ab[Object(Symbol())] = null;
+    } catch (e) {
+  }
+  var ab = '';
+}
+test0();
+test0();
+test0();
+
+print("Pass");

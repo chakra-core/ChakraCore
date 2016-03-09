@@ -54,7 +54,7 @@ namespace Js
 
         BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override
         {
-            stringBuilder->AppendCppLiteral(L"Number, (Object)");
+            stringBuilder->AppendCppLiteral(_u("Number, (Object)"));
             return TRUE;
         }
 

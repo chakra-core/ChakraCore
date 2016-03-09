@@ -37,13 +37,13 @@ typedef void* FunctionTableHandle;
     { \
         if (!verbose || this->pageAllocatorFlagTable.Verbose) \
         {   \
-            Output::Print(CH_WSTR("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
+            Output::Print(_u("%p : %p> PageAllocator(%p): "), GetCurrentThreadContextId(), ::GetCurrentThreadId(), this); \
             if (debugName != nullptr) \
             { \
-                Output::Print(CH_WSTR("[%s] "), this->debugName);       \
+                Output::Print(_u("[%s] "), this->debugName); \
             } \
             Output::Print(format, __VA_ARGS__);         \
-            Output::Print(CH_WSTR("\n"));                               \
+            Output::Print(_u("\n")); \
             if (stats && this->pageAllocatorFlagTable.Stats.IsEnabled(Js::PageAllocatorPhase)) \
             { \
                 this->DumpStats();         \
@@ -398,7 +398,7 @@ public:
     };
 #endif
 #endif
-    
+
     PageAllocatorBase(AllocationPolicyManager * policyManager,
 #ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flags = Js::Configuration::Global.flags,
@@ -446,7 +446,7 @@ public:
 #if ENABLE_BACKGROUND_PAGE_FREEING
     void BackgroundReleasePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
 #endif
-    
+
     // Decommit
     void DecommitNow(bool all = true);
     void SuspendIdleDecommit();
@@ -461,7 +461,7 @@ public:
 #if ENABLE_BACKGROUND_PAGE_FREEING
     void FlushBackgroundPages();
 #endif
-    
+
     bool DisableAllocationOutOfMemory() const { return disableAllocationOutOfMemory; }
     void ResetDisableAllocationOutOfMemory() { disableAllocationOutOfMemory = false; }
 
@@ -497,7 +497,7 @@ public:
 #endif
 
 #if DBG_DUMP
-    wchar_t const * debugName;
+    char16 const * debugName;
 #endif
 protected:
     SegmentBase<TVirtualAlloc> * AllocSegment(size_t pageCount);
@@ -512,6 +512,8 @@ protected:
 
     template <bool notPageAligned>
     char * TryAllocFreePages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
+    char * TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
+    char * TryAllocFromZeroPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
 
     template <bool notPageAligned>
     char * TryAllocDecommittedPages(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapFlags);
@@ -537,7 +539,7 @@ protected:
     virtual void DumpStats() const;
 #endif
     virtual PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, 
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList,
         PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
 
     // Zero Pages
@@ -545,12 +547,12 @@ protected:
     void AddPageToZeroQueue(__in void * address, uint pageCount, __in PageSegmentBase<TVirtualAlloc> * pageSegment);
     bool HasZeroPageQueue() const;
 #endif
-    
+
     bool ZeroPages() const { return zeroPages; }
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     bool QueueZeroPages() const { return queueZeroPages; }
 #endif
-    
+
     FreePageEntry * PopPendingZeroPage();
 #if DBG
     void Check();
@@ -591,7 +593,7 @@ protected:
     bool hasZeroQueuedPages;
 #endif
 #endif
-    
+
     // Idle Decommit
     bool isUsed;
     size_t minFreePageCount;
@@ -639,7 +641,7 @@ private:
 #if ENABLE_BACKGROUND_PAGE_FREEING
     void QueuePages(void * address, uint pageCount, PageSegmentBase<TVirtualAlloc> * pageSegment);
 #endif
-    
+
     template <bool notPageAligned>
     char* AllocPagesInternal(uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, PageHeapMode pageHeapModeFlags = PageHeapMode::PageHeapModeOff);
 
@@ -762,7 +764,7 @@ public:
 
     // Release pages that has already been decommitted
     void ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
-    bool IsAddressFromAllocator(__in void* address);    
+    bool IsAddressFromAllocator(__in void* address);
 
     bool AllocXdata() { return allocXdata; }
 private:

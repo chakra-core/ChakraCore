@@ -38,14 +38,14 @@ namespace Js
     // the GetSetter, GetProperty, SetProperty etc methods that take JavascriptString
     // instead of PropertyId.  It is expected that integer property names will go
     // through a fast path before reaching those APIs.
-    bool PropertyRecord::IsPropertyNameNumeric(const wchar_t* str, int length)
+    bool PropertyRecord::IsPropertyNameNumeric(const char16* str, int length)
     {
         uint32 unused;
         return IsPropertyNameNumeric(str, length, &unused);
     }
 #endif
 
-    bool PropertyRecord::IsPropertyNameNumeric(const wchar_t* str, int length, uint32* intVal)
+    bool PropertyRecord::IsPropertyNameNumeric(const char16* str, int length, uint32* intVal)
     {
         return (Js::JavascriptOperators::TryConvertToUInt32(str, length, intVal) &&
             (*intVal != Js::JavascriptArray::InvalidIndex));
@@ -59,7 +59,7 @@ namespace Js
 
     // Initialize all Internal property records
 #define INTERNALPROPERTY(name) \
-    const BuiltInPropertyRecord<1> InternalPropertyRecords::name = { PropertyRecord((PropertyId)InternalPropertyIds::name, (uint)InternalPropertyIds::name, false, 0, false), L"" };
+    const BuiltInPropertyRecord<1> InternalPropertyRecords::name = { PropertyRecord((PropertyId)InternalPropertyIds::name, (uint)InternalPropertyIds::name, false, 0, false), _u("") };
 #include "InternalPropertyList.h"
 
     const PropertyRecord* InternalPropertyRecords::GetInternalPropertyName(PropertyId propertyId)
@@ -100,11 +100,11 @@ namespace Js
     }
 
     // Initialize all BuiltIn property records
-    const BuiltInPropertyRecord<1> BuiltInPropertyRecords::EMPTY = { PropertyRecord(PropertyIds::_none, 0, false, 0, false), L"" };
-#define ENTRY_INTERNAL_SYMBOL(n) const BuiltInPropertyRecord<ARRAYSIZE(L"<" L#n L">")> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, (uint)PropertyIds::n, false, (ARRAYSIZE(L"<" L#n L">") - 1) * sizeof(wchar_t), true), L"<" L#n L">" };
-#define ENTRY_SYMBOL(n, d) const BuiltInPropertyRecord<ARRAYSIZE(d)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(d) - 1) * sizeof(wchar_t), true), d };
-#define ENTRY2(n, s) const BuiltInPropertyRecord<ARRAYSIZE(s)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(s) - 1) * sizeof(wchar_t), false), s };
-#define ENTRY(n) ENTRY2(n, L#n)
+    const BuiltInPropertyRecord<1> BuiltInPropertyRecords::EMPTY = { PropertyRecord(PropertyIds::_none, 0, false, 0, false), _u("") };
+#define ENTRY_INTERNAL_SYMBOL(n) const BuiltInPropertyRecord<ARRAYSIZE(_u("<") _u(#n) _u(">"))> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, (uint)PropertyIds::n, false, (ARRAYSIZE(_u("<") _u(#n) _u(">")) - 1) * sizeof(char16), true), _u("<") _u(#n) _u(">") };
+#define ENTRY_SYMBOL(n, d) const BuiltInPropertyRecord<ARRAYSIZE(d)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(d) - 1) * sizeof(char16), true), d };
+#define ENTRY2(n, s) const BuiltInPropertyRecord<ARRAYSIZE(s)> BuiltInPropertyRecords::n = { PropertyRecord(PropertyIds::n, 0, false, (ARRAYSIZE(s) - 1) * sizeof(char16), false), s };
+#define ENTRY(n) ENTRY2(n, _u(#n))
 #include "Base/JnDirectFields.h"
 };
 

@@ -66,7 +66,7 @@ namespace Js
 
     BOOL JavascriptNumberObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Number, (Object)");
+        stringBuilder->AppendCppLiteral(_u("Number, (Object)"));
         return TRUE;
     }
 }

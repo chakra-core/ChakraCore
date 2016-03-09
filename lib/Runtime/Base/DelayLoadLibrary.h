@@ -57,7 +57,7 @@ namespace Js
 
         virtual ~DelayLoadWinRtString() { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-winrt-string-l1-1-0.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-string-l1-1-0.dll"); }
 
         virtual HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string);
         virtual HRESULT WindowsCreateStringReference(_In_reads_opt_(length + 1) const WCHAR * sourceString, UINT32 length, _Out_ HSTRING_HEADER * header, _Outptr_result_maybenull_ _Result_nullonfailure_  HSTRING * string);
@@ -85,7 +85,7 @@ namespace Js
 
         virtual ~DelayLoadWinRtTypeResolution() { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-ro-typeresolution-l1-1-0.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-ro-typeresolution-l1-1-0.dll"); }
 
         HRESULT RoParseTypeName(__in HSTRING typeName, __out DWORD *partsCount, __RPC__deref_out_ecount_full_opt(*partsCount) HSTRING **typeNameParts);
 
@@ -122,7 +122,7 @@ namespace Js
 
         virtual ~DelayLoadWinType() { }
 
-        LPCTSTR GetLibraryName() const { return L"wintypes.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("wintypes.dll"); }
 
         HRESULT WINAPI RoGetMetaDataFile(
             _In_ const HSTRING name,
@@ -147,7 +147,7 @@ namespace Js
 
         virtual ~DelayLoadWinRtRoParameterizedIID() { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-winrt-roparameterizediid-l1-1-0.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-roparameterizediid-l1-1-0.dll"); }
 
         HRESULT RoGetParameterizedTypeInstanceIID(
             __in UINT32 nameElementCount,
@@ -180,11 +180,11 @@ namespace Js
 
         LPCTSTR GetLibraryName() const
         {
-            return L"windows.globalization.dll";
+            return _u("windows.globalization.dll");
         }
         LPCTSTR GetWin7LibraryName() const
         {
-            return L"jsIntl.dll";
+            return _u("jsIntl.dll");
         }
         void Ensure(Js::DelayLoadWinRtString *winRTStringLibrary);
 
@@ -215,7 +215,7 @@ namespace Js
 
         virtual ~DelayLoadWinRtFoundation() { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-winrt-l1-1-0.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-l1-1-0.dll"); }
 
         HRESULT RoGetActivationFactory(
             __in HSTRING activatibleClassId,
@@ -243,7 +243,7 @@ namespace Js
 
         virtual ~DelayLoadWinRtError() { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-winrt-error-l1-1-1.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-error-l1-1-1.dll"); }
 
         HRESULT RoClearError();
         BOOL RoOriginateLanguageException(__in HRESULT error, __in_opt HSTRING message, __in IUnknown * languageException);
@@ -263,7 +263,7 @@ namespace Js
         DelayLoadWinCoreMemory() : DelayLoadLibrary(),
             m_pfnSetProcessValidCallTargets(nullptr) { }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-memory-l1-1-3.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-memory-l1-1-3.dll"); }
 
         BOOL SetProcessCallTargets(
             _In_ HANDLE hProcess,
@@ -295,7 +295,7 @@ namespace Js
             {
             }
 
-        LPCTSTR GetLibraryName() const { return L"api-ms-win-core-processthreads-l1-1-3.dll"; }
+        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-processthreads-l1-1-3.dll"); }
 
         BOOL GetMitigationPolicyForProcess(
             __in HANDLE hProcess,

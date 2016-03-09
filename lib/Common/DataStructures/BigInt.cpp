@@ -602,7 +602,7 @@ LNegative:
 
         void Instantiations(void)
         {
-            Reference<wchar_t>();
+            Reference<char16>();
             Reference<utf8char_t>();
         }
     }

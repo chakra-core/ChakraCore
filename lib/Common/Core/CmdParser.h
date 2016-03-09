@@ -75,12 +75,12 @@ private:
             void                       ParseNumberPairSet(Js::NumberPairSet * numberPairSet);
             void                       PrintUsage();
 
-            wchar16 CurChar()
+            char16 CurChar()
             {
                 return this->pszCurrentArg[0];
             }
 
-            wchar16 PeekChar()
+            char16 PeekChar()
             {
                 return this->pszCurrentArg[1];
             }

@@ -85,8 +85,8 @@ namespace Js
 #undef PHASE
     };
 
-    extern const wchar16* const FlagNames[FlagCount + 1];
-    extern const wchar16* const PhaseNames[PhaseCount + 1];
+    extern const char16* const FlagNames[FlagCount + 1];
+    extern const char16* const PhaseNames[PhaseCount + 1];
     extern const Flag           FlagParents[FlagCount + 1];
 
     typedef     int             Number;
@@ -102,9 +102,9 @@ namespace Js
     /// fiddling to make this class as interoperable with strings as possible :-
     ///
     ///     1.  Single argument constructor takes care of initialization
-    ///     2.  Assignment operator overloaded for wchar16*
-    ///     3.  JavascriptConversion to const wchar16 * is defined. Making this constant ensures
-    ///         that a non constant wchar16 * does not point to our buffer which can
+    ///     2.  Assignment operator overloaded for char16*
+    ///     3.  JavascriptConversion to const char16 * is defined. Making this constant ensures
+    ///         that a non constant char16 * does not point to our buffer which can
     ///         potentially corrupt it.
     ///
     ///----------------------------------------------------------------------------
@@ -118,12 +118,12 @@ namespace Js
 
     // Data
     private:
-        wchar16*           pszValue;
+        char16*           pszValue;
 
     // Construction
     public:
         inline String();
-        inline String(__in_opt const wchar16* psz);
+        inline String(__in_opt const char16* psz);
         inline ~String();
 
 
@@ -136,7 +136,7 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        String& operator=(__in_opt const wchar16* psz)
+        String& operator=(__in_opt const char16* psz)
         {
             Set(psz);
             return *this;
@@ -153,14 +153,14 @@ namespace Js
         ///
         ///----------------------------------------------------------------------------
 
-        operator const wchar16* () const
+        operator const char16* () const
         {
             return this->pszValue;
         }
 
     // Implementation
     private:
-        void Set(__in_opt const wchar16* pszValue);
+        void Set(__in_opt const char16* pszValue);
     };
 
     class NumberSet

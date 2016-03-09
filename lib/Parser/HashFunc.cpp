@@ -21,7 +21,7 @@ ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, long cch)
     ULONG luHash = 0;
 
     while (cch-- > 0)
-        luHash = 17 * luHash + *(wchar16 *)prgch++;
+        luHash = 17 * luHash + *(char16 *)prgch++;
     return luHash;
 }
 
@@ -50,8 +50,8 @@ ULONG CaseSensitiveComputeHashCch(char const * prgch, long cch)
 ULONG CaseInsensitiveComputeHash(LPCOLESTR posz)
 {
     ULONG luHash = 0;
-    wchar16 ch;
-    while (0 != (ch = *(wchar16 *)posz++))
+    char16 ch;
+    while (0 != (ch = *(char16 *)posz++))
     {
         if (ch <= 'Z' && ch >= 'A')
             ch += 'a' - 'A';

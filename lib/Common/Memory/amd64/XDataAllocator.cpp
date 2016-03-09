@@ -116,7 +116,7 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     }
     else
     {
-        OUTPUT_TRACE(Js::XDataAllocatorPhase, L"No space for XDATA.\n");
+        OUTPUT_TRACE(Js::XDataAllocatorPhase, _u("No space for XDATA.\n"));
     }
 
     if(xdata->address != nullptr)

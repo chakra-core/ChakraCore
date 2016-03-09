@@ -199,7 +199,7 @@ namespace Js
         // and we will return the thrown function, but the stack already unwound.
         // We will need to just box the function
 
-        m_throwingFunction = StackScriptFunction::EnsureBoxed(BOX_PARAM(function, returnAddress, L"throw"));
+        m_throwingFunction = StackScriptFunction::EnsureBoxed(BOX_PARAM(function, returnAddress, _u("throw")));
         m_throwingFunctionByteCodeOffset = byteCodeOffset;
     }
 #if DBG

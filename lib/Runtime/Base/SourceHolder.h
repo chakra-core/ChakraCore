@@ -18,8 +18,8 @@ namespace Js
             return (ISourceHolder *)&emptySourceHolder;
         }
 
-        virtual LPCUTF8 GetSource(const wchar_t* reasonString) = 0;
-        virtual size_t GetByteLength(const wchar_t* reasonString) = 0;
+        virtual LPCUTF8 GetSource(const char16* reasonString) = 0;
+        virtual size_t GetByteLength(const char16* reasonString) = 0;
         virtual ISourceHolder* Clone(ScriptContext* scriptContext) = 0;
         virtual bool Equals(ISourceHolder* other) = 0;
         virtual int GetHashCode() = 0;
@@ -50,17 +50,17 @@ namespace Js
         {
         }
 
-        virtual LPCUTF8 GetSource(const wchar_t* reasonString) override
+        virtual LPCUTF8 GetSource(const char16* reasonString) override
         {
             return source;
         }
 
-        virtual size_t GetByteLength(const wchar_t* reasonString) override { return byteLength; }
+        virtual size_t GetByteLength(const char16* reasonString) override { return byteLength; }
         virtual ISourceHolder* Clone(ScriptContext* scriptContext) override;
 
         virtual bool Equals(ISourceHolder* other) override
         {
-          const wchar_t* reason = L"Equal Comparison";
+          const char16* reason = _u("Equal Comparison");
             return this == other ||
                 (this->GetByteLength(reason) == other->GetByteLength(reason)
                     && (this->GetSource(reason) == other->GetSource(reason)

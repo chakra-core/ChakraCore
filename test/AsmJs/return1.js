@@ -35,5 +35,17 @@
 }
 
 var f3 = AsmModule();
-print(f3  (1,1.5))  
-print(f3  (1,1.5))   
+print(f3  (1,1.5));
+print(f3  (1,1.5));
+
+let asmHeap = new ArrayBuffer(1 << 20);
+let m = function (stdlib, foreign, heap) {
+  'use asm';
+  function f(i0) {
+    i0 = i0 | 0;
+    return !i0;
+  }
+  return f;
+}({}, {}, asmHeap);
+print(m());
+print(m());

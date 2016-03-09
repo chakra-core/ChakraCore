@@ -95,9 +95,9 @@ namespace Js
 
             if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
             {
-                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                Output::Print(L"Function object with inline cache: function number: (%s)\tfunction name: %s\n",
+                Output::Print(_u("Function object with inline cache: function number: (%s)\tfunction name: %s\n"),
                     functionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName());
                 Output::Flush();
             }
@@ -334,8 +334,8 @@ namespace Js
     {
         FunctionProxy* proxy = this->GetFunctionProxy();
         ParseableFunctionInfo * pFuncBody = proxy->EnsureDeserialized();
-        const wchar_t * inputStr = inputString->GetString();
-        const wchar_t * paramStr = wcschr(inputStr, L'(');
+        const char16 * inputStr = inputString->GetString();
+        const char16 * paramStr = wcschr(inputStr, _u('('));
 
         if (paramStr == nullptr || wcscmp(pFuncBody->GetDisplayName(), Js::Constants::EvalCode) == 0)
         {
@@ -349,7 +349,7 @@ namespace Js
 
         JavascriptString* prefixString = nullptr;
         uint prefixStringLength = 0;
-        const wchar_t* name = L"";
+        const char16* name = _u("");
         charcount_t nameLength = 0;
         Var returnStr = nullptr;
 
@@ -388,8 +388,8 @@ namespace Js
 
             if (this->GetFunctionInfo()->IsClassConstructor())
             {
-                name = L"constructor";
-                nameLength = _countof(L"constructor") -1; //subtract off \0
+                name = _u("constructor");
+                nameLength = _countof(_u("constructor")) -1; //subtract off \0
             }
             else
             {
@@ -418,8 +418,8 @@ namespace Js
             JavascriptExceptionOperators::ThrowOutOfMemory(this->GetScriptContext());
         }
 
-        wchar_t * funcBodyStr = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), wchar_t, totalLength);
-        wchar_t * funcBodyStrStart = funcBodyStr;
+        char16 * funcBodyStr = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), char16, totalLength);
+        char16 * funcBodyStrStart = funcBodyStr;
         if (prefixString != nullptr)
         {
             js_wmemcpy_s(funcBodyStr, prefixStringLength, prefixString->GetString(), prefixStringLength);
@@ -472,7 +472,7 @@ namespace Js
             BufferStringBuilder builder(pFuncBody->LengthInChars(), scriptContext);
             // TODO: What about surrogate pairs?
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(L"ScriptFunction::EnsureSourceString"), pFuncBody->LengthInChars(), options);
+            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString")), pFuncBody->LengthInChars(), options);
             if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()
@@ -692,7 +692,7 @@ namespace Js
         }
     }
 
-    bool ScriptFunction::GetSymbolName(const wchar_t** symbolName, charcount_t* length) const
+    bool ScriptFunction::GetSymbolName(const char16** symbolName, charcount_t* length) const
     {
         if (nullptr != this->computedNameVar && JavascriptSymbol::Is(this->computedNameVar))
         {
@@ -710,14 +710,14 @@ namespace Js
     {
         Assert(this->GetFunctionProxy() != nullptr); // The caller should guarantee a proxy exists
         ParseableFunctionInfo * func = this->GetFunctionProxy()->EnsureDeserialized();
-        const wchar_t* name = nullptr;
+        const char16* name = nullptr;
         charcount_t length = 0;
         JavascriptString* returnStr = nullptr;
         ENTER_PINNED_SCOPE(JavascriptString, computedName);
 
         if (computedNameVar != nullptr)
         {
-            const wchar_t* symbolName = nullptr;
+            const char16* symbolName = nullptr;
             charcount_t symbolNameLength = 0;
             if (this->GetSymbolName(&symbolName, &symbolNameLength))
             {

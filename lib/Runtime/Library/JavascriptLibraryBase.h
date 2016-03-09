@@ -92,6 +92,17 @@ namespace Js
         DynamicObject* GetDatePrototype() { return datePrototype; }
         DynamicObject* GetFunctionPrototype() { return functionPrototype; }
         DynamicObject* GetNumberPrototype() { return numberPrototype; }
+        DynamicObject* GetSIMDBool8x16Prototype()  { return simdBool8x16Prototype;  }
+        DynamicObject* GetSIMDBool16x8Prototype()  { return simdBool16x8Prototype;  }
+        DynamicObject* GetSIMDBool32x4Prototype()  { return simdBool32x4Prototype;  }
+        DynamicObject* GetSIMDInt8x16Prototype()   { return simdInt8x16Prototype;   }
+        DynamicObject* GetSIMDInt16x8Prototype()   { return simdInt16x8Prototype;   }
+        DynamicObject* GetSIMDInt32x4Prototype()   { return simdInt32x4Prototype;   }
+        DynamicObject* GetSIMDUint8x16Prototype()  { return simdUint8x16Prototype;  }
+        DynamicObject* GetSIMDUint16x8Prototype()  { return simdUint16x8Prototype;  }
+        DynamicObject* GetSIMDUint32x4Prototype()  { return simdUint32x4Prototype;  }
+        DynamicObject* GetSIMDFloat32x4Prototype() { return simdFloat32x4Prototype; }
+        DynamicObject* GetSIMDFloat64x2Prototype() { return simdFloat64x2Prototype; }
         ObjectPrototypeObject* GetObjectPrototypeObject() { return objectPrototype; }
         DynamicObject* GetObjectPrototype();
         DynamicObject* GetRegExpPrototype() { return regexPrototype; }
@@ -234,6 +245,19 @@ namespace Js
         DynamicObject* syntaxErrorPrototype;
         DynamicObject* typeErrorPrototype;
         DynamicObject* uriErrorPrototype;
+
+        //SIMD Prototypes
+        DynamicObject* simdBool8x16Prototype;
+        DynamicObject* simdBool16x8Prototype;
+        DynamicObject* simdBool32x4Prototype;
+        DynamicObject* simdInt8x16Prototype;
+        DynamicObject* simdInt16x8Prototype;
+        DynamicObject* simdInt32x4Prototype;
+        DynamicObject* simdUint8x16Prototype;
+        DynamicObject* simdUint16x8Prototype;
+        DynamicObject* simdUint32x4Prototype;
+        DynamicObject* simdFloat32x4Prototype;
+        DynamicObject* simdFloat64x2Prototype;
 
         JavascriptBoolean* booleanTrue;
         JavascriptBoolean* booleanFalse;

@@ -163,27 +163,27 @@ namespace Js
                     functionObject = (Js::JavascriptFunction *)fixedProperty;
                     if (PHASE_VERBOSE_TRACE(Js::FixedMethodsPhase, functionBody))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
                         Js::DynamicObject* protoObject = isProto ? prototypeObject : nullptr;
-                        Output::Print(L"FixedFields: function %s (%s) cloning cache with fixed method: %s (%s), function: 0x%p, body: 0x%p (cache id: %d, layout: %s, type: 0x%p, proto: 0x%p, proto type: 0x%p)\n",
+                        Output::Print(_u("FixedFields: function %s (%s) cloning cache with fixed method: %s (%s), function: 0x%p, body: 0x%p (cache id: %d, layout: %s, type: 0x%p, proto: 0x%p, proto type: 0x%p)\n"),
                             functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer),
                             fixedPropertyRecord->GetBuffer(), functionObject->GetFunctionInfo()->GetFunctionProxy() ?
-                            functionObject->GetFunctionInfo()->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer2) : L"(null)", functionObject, functionObject->GetFunctionInfo(),
-                            cacheId, isProto ? L"proto" : L"local", type, protoObject, protoObject != nullptr ? protoObject->GetType() : nullptr);
+                            functionObject->GetFunctionInfo()->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer2) : _u("(null)"), functionObject, functionObject->GetFunctionInfo(),
+                            cacheId, isProto ? _u("proto") : _u("local"), type, protoObject, protoObject != nullptr ? protoObject->GetType() : nullptr);
                         Output::Flush();
                     }
 
                     if (PHASE_VERBOSE_TESTTRACE(Js::FixedMethodsPhase, functionBody))
                     {
-                        wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                        wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                        char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                        Output::Print(L"FixedFields: function %s (%s) cloning cache with fixed method: %s (%s) (cache id: %d, layout: %s)\n",
+                        Output::Print(_u("FixedFields: function %s (%s) cloning cache with fixed method: %s (%s) (cache id: %d, layout: %s)\n"),
                             functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer), fixedPropertyRecord->GetBuffer(), functionObject->GetFunctionInfo()->GetFunctionProxy() ?
-                            functionObject->GetFunctionInfo()->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer2) : L"(null)", functionObject, functionObject->GetFunctionInfo(),
-                            cacheId, isProto ? L"proto" : L"local");
+                            functionObject->GetFunctionInfo()->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer2) : _u("(null)"), functionObject, functionObject->GetFunctionInfo(),
+                            cacheId, isProto ? _u("proto") : _u("local"));
                         Output::Flush();
                     }
 
@@ -214,12 +214,12 @@ namespace Js
                             {
                                 if (PHASE_TRACE(Js::FixedNewObjPhase, functionBody))
                                 {
-                                    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                                    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                                    Output::Print(L"FixedNewObj: function %s (%s) ctor cache for %s (%s) about to be cloned has unlocked inline slot count: guard value = 0x%p, type = 0x%p, slots = %d, inline slots = %d\n",
+                                    Output::Print(_u("FixedNewObj: function %s (%s) ctor cache for %s (%s) about to be cloned has unlocked inline slot count: guard value = 0x%p, type = 0x%p, slots = %d, inline slots = %d\n"),
                                         functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer), fixedPropertyRecord->GetBuffer(), functionObject->GetFunctionInfo()->GetFunctionBody() ?
-                                        functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : L"(null)",
+                                        functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : _u("(null)"),
                                         runtimeConstructorCache->GetRawGuardValue(), runtimeConstructorCache->GetType(),
                                         runtimeConstructorCache->GetSlotCount(), runtimeConstructorCache->GetInlineSlotCount());
                                     Output::Flush();
@@ -236,12 +236,12 @@ namespace Js
 
                         if (PHASE_TRACE(Js::FixedNewObjPhase, functionBody))
                         {
-                            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                            wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                            char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                            Output::Print(L"FixedNewObj: function %s (%s) cloning ctor cache for %s (%s): guard value = 0x%p, type = 0x%p, slots = %d, inline slots = %d\n",
+                            Output::Print(_u("FixedNewObj: function %s (%s) cloning ctor cache for %s (%s): guard value = 0x%p, type = 0x%p, slots = %d, inline slots = %d\n"),
                                 functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer), fixedPropertyRecord->GetBuffer(), functionObject->GetFunctionInfo()->GetFunctionBody() ?
-                                functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : L"(null)", functionObject, functionObject->GetFunctionInfo(),
+                                functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : _u("(null)"), functionObject, functionObject->GetFunctionInfo(),
                                 runtimeConstructorCache->GetRawGuardValue(), runtimeConstructorCache->IsNormal() ? runtimeConstructorCache->GetType() : nullptr,
                                 runtimeConstructorCache->GetSlotCount(), runtimeConstructorCache->GetInlineSlotCount());
                             Output::Flush();
@@ -253,19 +253,19 @@ namespace Js
                         {
                             if (PHASE_TRACE(Js::FixedNewObjPhase, functionBody))
                             {
-                                wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                                wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                                char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-                                Output::Print(L"FixedNewObj: function %s (%s) skipping ctor cache for %s (%s), because %s (guard value = 0x%p, script context = %p).\n",
+                                Output::Print(_u("FixedNewObj: function %s (%s) skipping ctor cache for %s (%s), because %s (guard value = 0x%p, script context = %p).\n"),
                                     functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer), fixedPropertyRecord->GetBuffer(), functionObject->GetFunctionInfo()->GetFunctionBody() ?
-                                    functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : L"(null)", functionObject, functionObject->GetFunctionInfo(),
-                                    runtimeConstructorCache->IsEmpty() ? L"cache is empty (or has been cleared)" :
-                                    runtimeConstructorCache->IsInvalidated() ? L"cache is invalidated" :
-                                    runtimeConstructorCache->SkipDefaultNewObject() ? L"default new object isn't needed" :
-                                    runtimeConstructorCache->NeedsTypeUpdate() ? L"cache needs to be updated" :
-                                    runtimeConstructorCache->NeedsUpdateAfterCtor() ? L"cache needs update after ctor" :
-                                    runtimeConstructorCache->IsPolymorphic() ? L"cache is polymorphic" :
-                                    runtimeConstructorCache->GetScriptContext() != functionBody->GetScriptContext() ? L"script context mismatch" : L"of an unexpected situation",
+                                    functionObject->GetFunctionInfo()->GetFunctionBody()->GetDebugNumberSet(debugStringBuffer2) : _u("(null)"), functionObject, functionObject->GetFunctionInfo(),
+                                    runtimeConstructorCache->IsEmpty() ? _u("cache is empty (or has been cleared)") :
+                                    runtimeConstructorCache->IsInvalidated() ? _u("cache is invalidated") :
+                                    runtimeConstructorCache->SkipDefaultNewObject() ? _u("default new object isn't needed") :
+                                    runtimeConstructorCache->NeedsTypeUpdate() ? _u("cache needs to be updated") :
+                                    runtimeConstructorCache->NeedsUpdateAfterCtor() ? _u("cache needs update after ctor") :
+                                    runtimeConstructorCache->IsPolymorphic() ? _u("cache is polymorphic") :
+                                    runtimeConstructorCache->GetScriptContext() != functionBody->GetScriptContext() ? _u("script context mismatch") : _u("of an unexpected situation"),
                                     runtimeConstructorCache->GetRawGuardValue(), runtimeConstructorCache->GetScriptContext());
                                 Output::Flush();
                             }
@@ -334,7 +334,7 @@ namespace Js
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
             {
                 const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
-                Output::Print(L"Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: 0x%p\n",
+                Output::Print(_u("Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: 0x%p\n"),
                     id, propertyRecord->GetBuffer(), propertyId, slotIndex, type);
                 Output::Flush();
             }
@@ -348,7 +348,7 @@ namespace Js
             if (PHASE_TRACE(Js::ObjTypeSpecPhase, topFunctionBody) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, topFunctionBody))
             {
                 const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
-                Output::Print(L"Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type: 0x%p\n",
+                Output::Print(_u("Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type: 0x%p\n"),
                     id, propertyRecord->GetBuffer(), propertyId, slotIndex, type);
                 Output::Flush();
             }
@@ -673,13 +673,13 @@ namespace Js
                 if (typeSet)
                 {
                     const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propertyId);
-                    Output::Print(L"Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: ",
+                    Output::Print(_u("Created ObjTypeSpecFldInfo: id %u, property %s(#%u), slot %u, type set: "),
                         id, propertyRecord->GetBuffer(), propertyId, slotIndex);
                     for (uint16 ti = 0; ti < typeCount - 1; ti++)
                     {
-                        Output::Print(L"0x%p, ", typeSet->GetType(ti));
+                        Output::Print(_u("0x%p, "), typeSet->GetType(ti));
                     }
-                    Output::Print(L"0x%p\n", typeSet->GetType(typeCount - 1));
+                    Output::Print(_u("0x%p\n"), typeSet->GetType(typeCount - 1));
                     Output::Flush();
                 }
             }
@@ -745,9 +745,9 @@ namespace Js
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const wchar_t* ObjTypeSpecFldInfo::GetCacheLayoutString() const
+    const char16* ObjTypeSpecFldInfo::GetCacheLayoutString() const
     {
-        return IsLoadedFromProto() ? L"proto" : UsesAccessor() ? L"flags" : L"local";
+        return IsLoadedFromProto() ? _u("proto") : UsesAccessor() ? _u("flags") : _u("local");
     }
 #endif
 

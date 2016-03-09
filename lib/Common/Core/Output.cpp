@@ -36,7 +36,7 @@ unsigned int Output::s_traceEntryId = 0;
 #endif
 
 THREAD_ST FILE*    Output::s_file = nullptr;
-THREAD_ST wchar16* Output::buffer = nullptr;
+THREAD_ST char16* Output::buffer = nullptr;
 THREAD_ST size_t   Output::bufferAllocSize = 0;
 THREAD_ST size_t   Output::bufferFreeSize = 0;
 THREAD_ST size_t   Output::s_Column  = 0;
@@ -47,7 +47,7 @@ THREAD_ST bool     Output::s_capture = false;
 #define MAX_OUTPUT_BUFFER_SIZE 10 * 1024 * 1024  // 10 MB maximum before we force a flush
 
 size_t __cdecl
-Output::VerboseNote(const wchar16 * format, ...)
+Output::VerboseNote(const char16 * format, ...)
 {
 #ifdef ENABLE_TRACE
     if (Js::Configuration::Global.flags.Verbose)
@@ -65,7 +65,7 @@ Output::VerboseNote(const wchar16 * format, ...)
 
 #ifdef ENABLE_TRACE
 size_t __cdecl
-Output::Trace(Js::Phase phase, const wchar16 *form, ...)
+Output::Trace(Js::Phase phase, const char16 *form, ...)
 {
     size_t retValue = 0;
 
@@ -73,14 +73,14 @@ Output::Trace(Js::Phase phase, const wchar16 *form, ...)
     {
         va_list argptr;
         va_start(argptr, form);
-        retValue += Output::VTrace(CH_WSTR("%s: "), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
+        retValue += Output::VTrace(_u("%s: "), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
     }
 
     return retValue;
 }
 
 size_t __cdecl
-Output::Trace2(Js::Phase phase, const wchar16 *form, ...)
+Output::Trace2(Js::Phase phase, const char16 *form, ...)
 {
     size_t retValue = 0;
 
@@ -95,7 +95,7 @@ Output::Trace2(Js::Phase phase, const wchar16 *form, ...)
 }
 
 size_t __cdecl
-Output::TraceWithPrefix(Js::Phase phase, const wchar16 prefix[], const wchar16 *form, ...)
+Output::TraceWithPrefix(Js::Phase phase, const char16 prefix[], const char16 *form, ...)
 {
     size_t retValue = 0;
 
@@ -104,15 +104,15 @@ Output::TraceWithPrefix(Js::Phase phase, const wchar16 prefix[], const wchar16 *
         va_list argptr;
         va_start(argptr, form);
         WCHAR prefixValue[512];
-        _snwprintf_s(prefixValue, _countof(prefixValue), _TRUNCATE, CH_WSTR("%s: %s: "), Js::PhaseNames[static_cast<int>(phase)], prefix);
-        retValue += Output::VTrace(CH_WSTR("%s"), prefixValue, form, argptr);
+        _snwprintf_s(prefixValue, _countof(prefixValue), _TRUNCATE, _u("%s: %s: "), Js::PhaseNames[static_cast<int>(phase)], prefix);
+        retValue += Output::VTrace(_u("%s"), prefixValue, form, argptr);
     }
 
     return retValue;
 }
 
 size_t __cdecl
-Output::TraceWithFlush(Js::Phase phase, const wchar16 *form, ...)
+Output::TraceWithFlush(Js::Phase phase, const char16 *form, ...)
 {
     size_t retValue = 0;
 
@@ -120,7 +120,7 @@ Output::TraceWithFlush(Js::Phase phase, const wchar16 *form, ...)
     {
         va_list argptr;
         va_start(argptr, form);
-        retValue += Output::VTrace(CH_WSTR("%s:"), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
+        retValue += Output::VTrace(_u("%s:"), Js::PhaseNames[static_cast<int>(phase)], form, argptr);
         Output::Flush();
     }
 
@@ -128,7 +128,7 @@ Output::TraceWithFlush(Js::Phase phase, const wchar16 *form, ...)
 }
 
 size_t __cdecl
-Output::TraceWithFlush(Js::Flag flag, const wchar16 *form, ...)
+Output::TraceWithFlush(Js::Flag flag, const char16 *form, ...)
 {
     size_t retValue = 0;
 
@@ -136,7 +136,7 @@ Output::TraceWithFlush(Js::Flag flag, const wchar16 *form, ...)
     {
         va_list argptr;
         va_start(argptr, form);
-        retValue += Output::VTrace(CH_WSTR("[-%s]::"), Js::FlagNames[static_cast<int>(flag)], form, argptr);
+        retValue += Output::VTrace(_u("[-%s]::"), Js::FlagNames[static_cast<int>(flag)], form, argptr);
         Output::Flush();
     }
 
@@ -144,7 +144,7 @@ Output::TraceWithFlush(Js::Flag flag, const wchar16 *form, ...)
 }
 
 size_t
-Output::VTrace(const wchar16* shortPrefixFormat, const wchar16* prefix, const wchar16 *form, va_list argptr)
+Output::VTrace(const char16* shortPrefixFormat, const char16* prefix, const char16 *form, va_list argptr)
 {
     size_t retValue = 0;
 
@@ -152,7 +152,7 @@ Output::VTrace(const wchar16* shortPrefixFormat, const wchar16* prefix, const wc
     if (CONFIG_FLAG(RichTraceFormat))
     {
         InterlockedIncrement(&s_traceEntryId);
-        retValue += Output::Print(CH_WSTR("[%d ~%d %s] "), s_traceEntryId, ::GetCurrentThreadId(), prefix);
+        retValue += Output::Print(_u("[%d ~%d %s] "), s_traceEntryId, ::GetCurrentThreadId(), prefix);
     }
     else
 #endif
@@ -167,18 +167,18 @@ Output::VTrace(const wchar16* shortPrefixFormat, const wchar16* prefix, const wc
     {
         const ULONG c_framesToSkip = 2; // Skip 2 frames -- Output::VTrace and Output::Trace.
         const ULONG c_frameCount = 10;  // TODO: make it configurable.
-        const wchar16 callStackPrefix[] = CH_WSTR("call stack:");
+        const char16 callStackPrefix[] = _u("call stack:");
         if (s_inMemoryLogger)
         {
             // Trace just addresses of functions, avoid symbol info as it takes too much memory.
             // One line for whole stack trace for easier parsing on the jd side.
             const size_t c_msgCharCount = _countof(callStackPrefix) + (1 + sizeof(void*) * 2) * c_frameCount; // 2 hexadecimal digits per byte + 1 for space.
-            wchar16 callStackMsg[c_msgCharCount];
+            char16 callStackMsg[c_msgCharCount];
             void* frames[c_frameCount];
             size_t start = 0;
             size_t temp;
 
-            temp = _snwprintf_s(callStackMsg, _countof(callStackMsg), _TRUNCATE, CH_WSTR("%s"), callStackPrefix);
+            temp = _snwprintf_s(callStackMsg, _countof(callStackMsg), _TRUNCATE, _u("%s"), callStackPrefix);
             Assert(temp != -1);
             start += temp;
 
@@ -187,28 +187,28 @@ Output::VTrace(const wchar16* shortPrefixFormat, const wchar16* prefix, const wc
             for (ULONG i = 0; i < framesObtained && i < c_frameCount; ++i)
             {
                 Assert(_countof(callStackMsg) >= start);
-                temp = _snwprintf_s(callStackMsg + start, _countof(callStackMsg) - start, _TRUNCATE, CH_WSTR(" %p"), frames[i]);
+                temp = _snwprintf_s(callStackMsg + start, _countof(callStackMsg) - start, _TRUNCATE, _u(" %p"), frames[i]);
                 Assert(temp != -1);
                 start += temp;
             }
 
-            retValue += Output::Print(CH_WSTR("%s\n"), callStackMsg);
+            retValue += Output::Print(_u("%s\n"), callStackMsg);
         }
         else
         {
             // Trace with full symbol info.
-            retValue += Output::Print(CH_WSTR("%s\n"), callStackPrefix);
+            retValue += Output::Print(_u("%s\n"), callStackPrefix);
             retValue += s_stackTraceHelper->PrintStackTrace(c_framesToSkip, c_frameCount);
         }
     }
 #endif
-    
+
     return retValue;
 }
 
 #ifdef BGJIT_STATS
 size_t __cdecl
-Output::TraceStats(Js::Phase phase, const wchar16 *form, ...)
+Output::TraceStats(Js::Phase phase, const char16 *form, ...)
 {
     if(PHASE_STATS1(phase))
     {
@@ -231,7 +231,7 @@ Output::TraceStats(Js::Phase phase, const wchar16 *form, ...)
 ///----------------------------------------------------------------------------
 
 size_t __cdecl
-Output::Print(const wchar16 *form, ...)
+Output::Print(const char16 *form, ...)
 {
     va_list argptr;
     va_start(argptr, form);
@@ -239,7 +239,7 @@ Output::Print(const wchar16 *form, ...)
 }
 
 size_t __cdecl
-Output::Print(int column, const wchar16 *form, ...)
+Output::Print(int column, const char16 *form, ...)
 {
     Output::SkipToColumn(column);
     va_list argptr;
@@ -248,9 +248,9 @@ Output::Print(int column, const wchar16 *form, ...)
 }
 
 size_t __cdecl
-Output::VPrint(const wchar16 *form, va_list argptr)
+Output::VPrint(const char16 *form, va_list argptr)
 {
-    wchar16 buf[2048];
+    char16 buf[2048];
     size_t size;
 
     size = _vsnwprintf_s(buf, _countof(buf), _TRUNCATE, form, argptr);
@@ -262,10 +262,10 @@ Output::VPrint(const wchar16 *form, va_list argptr)
 }
 
 size_t __cdecl
-Output::PrintBuffer(const wchar16 * buf, size_t size)
+Output::PrintBuffer(const char16 * buf, size_t size)
 {
     Output::s_Column += size;
-    const wchar16 * endbuf = wcschr(buf, '\n');
+    const char16 * endbuf = wcschr(buf, '\n');
     while (endbuf != nullptr)
     {
         Output::s_Column = size - (endbuf - buf) - 1;
@@ -309,7 +309,7 @@ Output::PrintBuffer(const wchar16 * buf, size_t size)
                 {
                     size_t oldBufferSize = bufferAllocSize - bufferFreeSize;
                     size_t newBufferAllocSize = (bufferAllocSize + size + 1) * 4 / 3;
-                    wchar16 * newBuffer = (wchar16 *)realloc(buffer, (newBufferAllocSize * sizeof(wchar16)));
+                    char16 * newBuffer = (char16 *)realloc(buffer, (newBufferAllocSize * sizeof(char16)));
                     if (newBuffer == nullptr)
                     {
                         // See if I can just flush it and print directly
@@ -336,19 +336,19 @@ Output::PrintBuffer(const wchar16 * buf, size_t size)
             if (addToBuffer)
             {
                 Assert(Output::bufferFreeSize >= size + 1);
-                memcpy_s(Output::buffer + Output::bufferAllocSize - Output::bufferFreeSize, Output::bufferFreeSize * sizeof(wchar16),
-                    buf, (size + 1) * sizeof(wchar16));
+                memcpy_s(Output::buffer + Output::bufferAllocSize - Output::bufferFreeSize, Output::bufferFreeSize * sizeof(char16),
+                    buf, (size + 1) * sizeof(char16));
                 bufferFreeSize -= size;
             }
         }
         else
         {
-            fwprintf_s(Output::s_file, CH_WSTR("%s"), buf);
+            fwprintf_s(Output::s_file, _u("%s"), buf);
         }
 
         if(s_outputFile != nullptr && !Output::s_capture)
         {
-            fwprintf_s(s_outputFile, CH_WSTR("%s"), buf);
+            fwprintf_s(s_outputFile, _u("%s"), buf);
         }
     }
 
@@ -378,7 +378,7 @@ void Output::Flush()
     _flushall();
 }
 
-void Output::DirectPrint(wchar16 const * string)
+void Output::DirectPrint(char16 const * string)
 {
     AutoCriticalSection autocs(&s_critsect);
 
@@ -400,7 +400,7 @@ void Output::DirectPrint(wchar16 const * string)
     }
 #endif // _WIN32
 
-    fwprintf(stdout, CH_WSTR("%s"), string);
+    fwprintf(stdout, _u("%s"), string);
 
     // xplat-todo: support console color
 #ifdef _WIN32
@@ -423,7 +423,7 @@ Output::SkipToColumn(size_t column)
 {
     if (column <= Output::s_Column)
     {
-        Output::Print(CH_WSTR(" "));
+        Output::Print(_u(" "));
         return;
     }
 
@@ -434,7 +434,7 @@ Output::SkipToColumn(size_t column)
     // Print at least one space
     while (dist > 0)
     {
-        Output::Print(CH_WSTR(" "));
+        Output::Print(_u(" "));
         dist--;
     }
 }
@@ -526,14 +526,14 @@ Output::CaptureStart()
     s_capture = true;
 }
 
-wchar16 *
+char16 *
 Output::CaptureEnd()
 {
     Assert(s_capture);
     s_capture = false;
     bufferFreeSize = 0;
     bufferAllocSize = 0;
-    wchar16 * returnBuffer = buffer;
+    char16 * returnBuffer = buffer;
     buffer = nullptr;
     return returnBuffer;
 }

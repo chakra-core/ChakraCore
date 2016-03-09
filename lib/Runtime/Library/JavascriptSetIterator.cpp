@@ -42,7 +42,7 @@ namespace Js
 
         if (!JavascriptSetIterator::Is(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSetIterator, L"Set Iterator.prototype.next");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSetIterator, _u("Set Iterator.prototype.next"));
         }
 
         JavascriptSetIterator* iterator = JavascriptSetIterator::FromVar(thisObj);

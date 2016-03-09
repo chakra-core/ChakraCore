@@ -140,7 +140,7 @@ namespace Js
         DeferDeserializeFunctionInfo * GetDeferDeserializeFunctionInfo() const;
         FunctionBody * GetFunctionBody() const;
         virtual JavascriptString* GetDisplayNameImpl() const;
-        JavascriptString* DisplayNameHelper(const wchar_t* name, charcount_t length) const;
+        JavascriptString* DisplayNameHelper(const char16* name, charcount_t length) const;
         JavascriptString* GetDisplayName() const;
         bool GetFunctionName(JavascriptString** name) const;
         bool IsLibraryCode() const;
@@ -239,9 +239,9 @@ namespace Js
     {
         auto library = scriptContext->GetLibrary();
         String sourceString;
-        sourceString = library->CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_HEADER); //L"function "
+        sourceString = library->CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_HEADER); //_u("function ")
         sourceString = StringHelper::Concat(sourceString, name);
-        sourceString = StringHelper::Concat(sourceString, library->CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_BODY)); //L"() { [native code] }"
+        sourceString = StringHelper::Concat(sourceString, library->CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_BODY)); //_u("() { [native code] }")
         return sourceString;
     }
 

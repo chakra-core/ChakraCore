@@ -6,6 +6,12 @@
 
 namespace Js
 {
+    bool IsSimdType(Var aVar)
+    {
+        TypeId tid = JavascriptOperators::GetTypeId(aVar); //Depends on contiguous SIMD TypeIds
+        return (TypeIds_SIMDFloat32x4 <= tid && tid <= TypeIds_SIMDBool8x16) ? true : false;
+    }
+
     int32 SIMDCheckTypedArrayIndex(ScriptContext* scriptContext, Var index)
     {
         int32 int32Value;
@@ -60,7 +66,7 @@ namespace Js
         X86SIMDValue x86Result;
         X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
 
-        _mm_store_ps(x86Result.simdValue.f32, v.m128_value);
+        _mm_store_ps(x86Result.f32, v.m128_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -432,7 +438,7 @@ namespace Js
     {
         if (!SIMDIsSupportedTypedArray(arg1))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, L"Simd typed array access");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("Simd typed array access"));
         }
 
         *index = SIMDCheckInt32Number(scriptContext, arg2);
@@ -443,7 +449,7 @@ namespace Js
         int32 offset = (*index) * bpe;
         if (offset < 0 || (offset + dataWidth) >(int32)(*tarray)->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, L"Simd typed array access");
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
         }
         return (SIMDValue*)((*tarray)->GetByteBuffer() + offset);
     }

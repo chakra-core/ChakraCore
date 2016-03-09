@@ -225,7 +225,7 @@ namespace Js
 
         if (args[0] == 0 || !JavascriptOperators::IsObject(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, L"Error.prototype.toString");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Error.prototype.toString"));
         }
 
         RecyclableObject * thisError = RecyclableObject::FromVar(args[0]);
@@ -242,7 +242,7 @@ namespace Js
         }
         else
         {
-            outputStr = scriptContext->GetLibrary()->CreateStringFromCppLiteral(L"Error");
+            outputStr = scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("Error"));
         }
 
         // get error.message
@@ -261,7 +261,7 @@ namespace Js
 
         if (nameLen > 0 && msgLen > 0)
         {
-           outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(L": "));
+           outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": ")));
            outputStr = JavascriptString::Concat(outputStr, message);
         }
         else if (msgLen > 0)
@@ -421,7 +421,7 @@ namespace Js
         {
             messageString = scriptContext->GetLibrary()->GetEmptyString();
             // Set an empty string so we will return it as a runtime message with the error code to IE
-            pError->originalRuntimeErrorMessage = L"";
+            pError->originalRuntimeErrorMessage = _u("");
         }
 
         JavascriptOperators::InitProperty(pError, PropertyIds::message, messageString);
@@ -438,7 +438,7 @@ namespace Js
     void JavascriptError::SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList)
     {
         Assert(FAILED(hr));
-        wchar_t * allocatedString = nullptr;
+        char16 * allocatedString = nullptr;
 
         if (FACILITY_CONTROL == HRESULT_FACILITY(hr) || FACILITY_JSCRIPT == HRESULT_FACILITY(hr))
         {
@@ -452,7 +452,7 @@ namespace Js
                     size_t len = _vscwprintf(message, argList);
                     Assert(len > 0);
                     len = AllocSizeMath::Add(len, 1);
-                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, len);
+                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, len);
 
 #pragma prefast(push)
 #pragma prefast(disable:26014, "allocatedString allocated size more than msglen")
@@ -476,7 +476,7 @@ namespace Js
                 if (message != nullptr)
                 {
                     uint32 len = SysStringLen(message) +1;
-                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, len);
+                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, len);
                     wcscpy_s(allocatedString, len, message);
                     SysFreeString(message);
                 }
@@ -488,7 +488,7 @@ namespace Js
     void JavascriptError::SetErrorMessage(JavascriptError *pError, HRESULT hr, PCWSTR varName, ScriptContext* scriptContext)
     {
         Assert(FAILED(hr));
-        wchar_t * allocatedString = nullptr;
+        char16 * allocatedString = nullptr;
 
         if (FACILITY_CONTROL == HRESULT_FACILITY(hr) || FACILITY_JSCRIPT == HRESULT_FACILITY(hr))
         {
@@ -502,12 +502,12 @@ namespace Js
                     uint32 msglen = SysStringLen(message);
                     size_t varlen = wcslen(varName);
                     size_t len = AllocSizeMath::Add(msglen, varlen);
-                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, len);
+                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, len);
                     size_t outputIndex = 0;
                     for (size_t i = 0; i < msglen; i++)
                     {
                         Assert(outputIndex < len);
-                        if (message[i] == L'%' && i + 1 < msglen && message[i+1] == L's')
+                        if (message[i] == _u('%') && i + 1 < msglen && message[i+1] == _u('s'))
                         {
                             Assert(len - outputIndex >= varlen);
                             wcscpy_s(allocatedString + outputIndex, len - outputIndex, varName);
@@ -541,7 +541,7 @@ namespace Js
                 if (message != nullptr)
                 {
                     uint32 len = SysStringLen(message) +1;
-                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, len);
+                    allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, len);
                     wcscpy_s(allocatedString, len, message);
                     SysFreeString(message);
                 }
@@ -557,7 +557,7 @@ namespace Js
 
     BOOL JavascriptError::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        wchar_t const *pszMessage = nullptr;
+        char16 const *pszMessage = nullptr;
         GetRuntimeErrorWithScriptEnter(this, &pszMessage);
 
         if (pszMessage)
@@ -571,7 +571,7 @@ namespace Js
 
     BOOL JavascriptError::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Error");
+        stringBuilder->AppendCppLiteral(_u("Error"));
         return TRUE;
     }
 
@@ -600,7 +600,7 @@ namespace Js
 
         if (pMessage != NULL)
         {
-            *pMessage = L"";  // default to have IE load the error message, by returning empty-string
+            *pMessage = _u("");  // default to have IE load the error message, by returning empty-string
 
             // The description property always overrides any error message
             Var description = Js::JavascriptOperators::GetProperty(errorObject, Js::PropertyIds::description, scriptContext, NULL);
@@ -879,14 +879,14 @@ namespace Js
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->line, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(L"line", &record);
+            scriptContext->GetOrAddPropertyRecord(_u("line"), &record);
             JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
         }
 
         if (cse->hasLineNumberInfo)
         {
             value = JavascriptNumber::New(cse->ichMin - cse->ichMinLine, scriptContext);
-            scriptContext->GetOrAddPropertyRecord(L"column", &record);
+            scriptContext->GetOrAddPropertyRecord(_u("column"), &record);
             JavascriptOperators::OP_SetProperty(error, record->GetPropertyId(), value, scriptContext);
         }
 
