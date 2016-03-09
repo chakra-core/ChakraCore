@@ -25,27 +25,6 @@
 
 namespace Wasm
 {
-
-#define WASM_SECTION(name, id, flag, precedent) flag,
-SectionFlag BaseWasmReader::sectionFlags[bSectLimit] = {
-#include "WasmSections.h"
-};
-
-#define WASM_SECTION(name, id, flag, precedent) bSect ## precedent,
-const SectionCode BaseWasmReader::sectionPrecedences[bSectLimit] = {
-#include "WasmSections.h"
-};
-
-#define WASM_SECTION(name, id, flag, precedent) L#name,
-wchar_t* BaseWasmReader::sectionNames[bSectLimit] = {
-#include "WasmSections.h"
-};
-
-#define WASM_SECTION(name, id, flag, precedent) id,
-char* BaseWasmReader::sectionIds[bSectLimit] = {
-#include "WasmSections.h"
-};
-
 namespace Binary
 {
 
@@ -54,8 +33,6 @@ WasmTypes::Signature WasmBinaryReader::opSignatureTable[WasmTypes::OpSignatureId
 WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
 const Wasm::WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { Wasm::WasmTypes::WasmType::Void, Wasm::WasmTypes::WasmType::I32, Wasm::WasmTypes::WasmType::I64, Wasm::WasmTypes::WasmType::F32, Wasm::WasmTypes::WasmType::F64 };
 Wasm::WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1];
-
-
 
 namespace WasmTypes
 {
@@ -135,13 +112,13 @@ WasmBinaryReader::IsBinaryReader()
 bool
 WasmBinaryReader::ReadNextSection(SectionCode nextSection)
 {
-    if (EndOfModule() || sectionFlags[nextSection] == fSectIgnore)
+    if (EndOfModule() || SectionInfo::All[nextSection].flag == fSectIgnore)
     {
         return false;
     }
 
     SectionHeader secHeader = ReadSectionHeader();
-    if (secHeader.code == bSectInvalid || sectionFlags[secHeader.code] == fSectIgnore)
+    if (secHeader.code == bSectInvalid || SectionInfo::All[secHeader.code].flag == fSectIgnore)
     {
         TRACE_WASM_DECODER(L"Ignore this section");
         m_pc = secHeader.end;
@@ -263,7 +240,7 @@ WasmBinaryReader::ReadSectionHeader()
 
     for (int i = 0; i < bSectLimit ; i++)
     {
-        if (!memcmp(sectionIds[i], sectionName, idSize))
+        if (!memcmp(SectionInfo::All[i].id, sectionName, idSize))
         {
             header.code = (SectionCode)i;
             break;

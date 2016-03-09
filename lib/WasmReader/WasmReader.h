@@ -33,6 +33,7 @@ namespace Wasm
 #include "ModuleInfo.h"
 #include "WasmFunctionInfo.h"
 
+#include "WasmSection.h"
 #include "BaseWasmReader.h"
 
 #include "SExprScanner.h"

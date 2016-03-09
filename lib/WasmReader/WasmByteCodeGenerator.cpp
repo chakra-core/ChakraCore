@@ -87,20 +87,20 @@ WasmBytecodeGenerator::GenerateModule()
 
     for (uint32 sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
     {
-        SectionCode precedent = BaseWasmReader::sectionPrecedences[sectionCode];
+        SectionCode precedent = SectionInfo::All[sectionCode].precedent;
         if (m_reader->ReadNextSection((SectionCode)sectionCode))
         {
             if (precedent != bSectInvalid && !visitedSections->Test(precedent))
             {
                 throw WasmCompilationException(L"%s section missing before %s",
-                                               BaseWasmReader::sectionNames[precedent],
-                                               BaseWasmReader::sectionNames[sectionCode]);
+                                               SectionInfo::All[precedent].name,
+                                               SectionInfo::All[sectionCode].name);
             }
             visitedSections->Set(sectionCode);
 
             if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
             {
-                throw WasmCompilationException(L"Error while reading section %s", BaseWasmReader::sectionNames[sectionCode]);
+                throw WasmCompilationException(L"Error while reading section %s", SectionInfo::All[sectionCode].name);
             }
         }
     }
@@ -108,7 +108,7 @@ WasmBytecodeGenerator::GenerateModule()
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections->Test(bSectFunctionSignatures) && !visitedSections->Test(bSectFunctionBodies))
     {
-        throw WasmCompilationException(L"Missing required section: %s", BaseWasmReader::sectionNames[bSectFunctionBodies]);
+        throw WasmCompilationException(L"Missing required section: %s", SectionInfo::All[bSectFunctionBodies].name);
     }
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount();

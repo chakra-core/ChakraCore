@@ -7,21 +7,6 @@
 
 namespace Wasm
 {
-
-    enum SectionFlag
-    {
-        fSectNone,
-        fSectIgnore,
-    };
-
-#define WASM_SECTION(name, id, flag, precendent) bSect ## name,
-    enum SectionCode
-    {
-        bSectInvalid = -1,
-    #include "WasmSections.h"
-        bSectLimit
-    };
-
     enum ProcessSectionResult
     {
         psrContinue,
@@ -43,10 +28,6 @@ namespace Wasm
         WasmNode    m_currentNode;
         ModuleInfo * m_moduleInfo;
 
-        static SectionFlag sectionFlags[bSectLimit];
-        static const SectionCode sectionPrecedences[bSectLimit];
-        static wchar_t* sectionNames[bSectLimit];
-        static char* sectionIds[bSectLimit];
     protected:
         WasmFunctionInfo *  m_funcInfo;
     };
