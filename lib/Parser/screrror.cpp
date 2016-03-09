@@ -360,7 +360,7 @@ HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, Pars
         // Remove E_FAIL once we have this feature.
         // error during code gen - no line number info available
         // E_ABORT may result if compilation does stack probe while thread is in disabled state.
-        Assert(hr == JSERR_AsmJsCompileError || hr == ERRnoMemory || hr == VBSERR_OutOfStack || hr == E_OUTOFMEMORY || hr == E_FAIL || hr == E_ABORT);
+        Assert(hr == JSERR_WasmCompileError || hr == JSERR_AsmJsCompileError || hr == ERRnoMemory || hr == VBSERR_OutOfStack || hr == E_OUTOFMEMORY || hr == E_FAIL || hr == E_ABORT);
     }
     return SCRIPT_E_RECORDED;
 }

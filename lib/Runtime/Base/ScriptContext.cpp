@@ -1976,12 +1976,14 @@ namespace Js
         catch (Js::OutOfMemoryException)
         {
             pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
-            exportObj = nullptr;
         }
         catch (Js::StackOverflowException)
         {
             pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
-            exportObj = nullptr;
+        }
+        catch (Wasm::WasmCompilationException)
+        {
+            pse->ProcessError(nullptr, JSERR_WasmCompileError, nullptr);
         }
 
         if (bytecodeGen)

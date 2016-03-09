@@ -25,6 +25,32 @@
 
 namespace Wasm
 {
+
+#define WASM_SECTION(name, id, flag, precedent, subsequent) flag,
+SectionFlag BaseWasmReader::sectionFlags[bSectLimit] = {
+#include "WasmSections.h"
+};
+
+#define WASM_SECTION(name, id, flag, precedent, subsequent) bSect ## precedent,
+const SectionCode BaseWasmReader::sectionPrecedences[bSectLimit] = {
+#include "WasmSections.h"
+};
+
+#define WASM_SECTION(name, id, flag, precedent, subsequent) bSect ## subsequent,
+const SectionCode BaseWasmReader::sectionSubsequents[bSectLimit] = {
+#include "WasmSections.h"
+};
+
+#define WASM_SECTION(name, id, flag, precedent, subsequent) L#name,
+wchar_t* BaseWasmReader::sectionNames[bSectLimit] = {
+#include "WasmSections.h"
+};
+
+#define WASM_SECTION(name, id, flag, precedent, subsequent) id,
+char* BaseWasmReader::sectionIds[bSectLimit] = {
+#include "WasmSections.h"
+};
+
 namespace Binary
 {
 
@@ -34,15 +60,7 @@ WasmTypes::OpSignatureId WasmBinaryReader::opSignature[WasmBinOp::wbLimit];     
 const Wasm::WasmTypes::WasmType WasmBinaryReader::binaryToWasmTypes[] = { Wasm::WasmTypes::WasmType::Void, Wasm::WasmTypes::WasmType::I32, Wasm::WasmTypes::WasmType::I64, Wasm::WasmTypes::WasmType::F32, Wasm::WasmTypes::WasmType::F64 };
 Wasm::WasmOp WasmBinaryReader::binWasmOpToWasmOp[WasmBinOp::wbLimit + 1];
 
-#define WASM_SECTION(name, id, flag) id,
-char* WasmBinaryReader::sectionIds[bSectLimit] = {
-#include "WasmSections.h"
-};
 
-#define WASM_SECTION(name, id, flag) flag,
-SectionFlag WasmBinaryReader::sectionFlags[bSectLimit] = {
-#include "WasmSections.h"
-};
 
 namespace WasmTypes
 {
@@ -149,7 +167,6 @@ WasmBinaryReader::ReadNextSection(SectionCode nextSection)
     m_moduleState.secHeader = secHeader;
     m_moduleState.count = 0;
     m_moduleState.size = 0;
-    m_visitedSections->Set(secHeader.code);
     return true;
 }
 
@@ -186,26 +203,14 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         break; // This section is not used by bytecode generator, stay in decoder
 
     case bSectFunctionSignatures:
-        if (!m_visitedSections->Test(bSectSignatures))
-        {
-            ThrowDecodingError(L"Signatures section missing before function table");
-        }
         ReadFunctionsSignatures();
         break;
     case bSectExportTable:
-        if (!m_visitedSections->Test(bSectFunctionSignatures))
-        {
-            ThrowDecodingError(L"Function signatures section missing before function exports");
-        }
         ReadExportTable();
         break;
     case bSectFunctionBodies:
         if (isEntry)
         {
-            if (!m_visitedSections->Test(bSectFunctionSignatures))
-            {
-                ThrowDecodingError(L"Function signatures section missing before function bodies");
-            }
             uint32 entries = LEB128(length);
             if (entries != m_moduleInfo->GetFunctionCount())
             {
@@ -218,10 +223,6 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         ++m_moduleState.count;
         break;
     case bSectIndirectFunctionTable:
-        if (!m_visitedSections->Test(bSectFunctionSignatures))
-        {
-            ThrowDecodingError(L"Function signatures section missing before indirect function table");
-        }
         ReadIndirectFunctionTable();
         break;
     case bSectEnd:
@@ -508,7 +509,6 @@ void WasmBinaryReader::ConstNode()
 void
 WasmBinaryReader::ResetModuleData()
 {
-    m_visitedSections = BVFixed::New<ArenaAllocator>(bSectLimit + 1, &m_alloc);
     m_moduleState.count = 0;
     m_moduleState.size = 0;
     m_moduleState.secHeader.code = bSectInvalid;
