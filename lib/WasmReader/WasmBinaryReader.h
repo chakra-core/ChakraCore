@@ -118,7 +118,9 @@ namespace Wasm
             void Signature();
             void ReadFunctionsSignatures();
             void ReadExportTable();
+            void ReadIndirectFunctionTable();
             void FunctionBodyHeader();
+
             wchar_t* ReadInlineName(uint32& length, uint32& nameLength);
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
@@ -131,7 +133,6 @@ namespace Wasm
             bool EndOfFunc();
             bool EndOfModule();
             void ThrowDecodingError(const wchar_t* msg, ...);
-            void Trace(const wchar_t* msg);
 
             ArenaAllocator      m_alloc;
             uint m_funcNumber;

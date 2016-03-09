@@ -13,10 +13,12 @@ namespace Wasm
 ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_memory(),
     m_alloc(alloc),
+    m_funcCount(0),
+    m_indirectFuncCount(0),
     m_exportCount(0)
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
-    m_indirectfuncs = Anew(m_alloc, WasmIndirectFuncArray, m_alloc, 0);
+    m_indirectfuncs = nullptr;
     m_funsigs = nullptr;
     m_exports = nullptr;
 }
@@ -77,9 +79,19 @@ ModuleInfo::GetSignatureCount() const
 }
 
 void
-ModuleInfo::AddIndirectFunctionIndex(uint32 funcIndex)
+ModuleInfo::AllocateIndirectFunctions(uint32 entries)
 {
-    m_indirectfuncs->Add(funcIndex);
+    m_indirectFuncCount = entries;
+    m_indirectfuncs = AnewArray(m_alloc, uint32, entries);
+}
+
+void
+ModuleInfo::SetIndirectFunction(uint32 funcIndex, uint32 indirTableIndex)
+{
+    if (indirTableIndex < GetIndirectFunctionCount())
+    {
+        m_indirectfuncs[indirTableIndex] = funcIndex;
+    }
 }
 
 uint32
@@ -89,13 +101,13 @@ ModuleInfo::GetIndirectFunctionIndex(uint32 indirTableIndex) const
     {
         return Js::Constants::InvalidSourceIndex;
     }
-    return m_indirectfuncs->GetBuffer()[indirTableIndex];
+    return m_indirectfuncs[indirTableIndex];
 }
 
 uint32
 ModuleInfo::GetIndirectFunctionCount() const
 {
-    return m_indirectfuncs->Count();
+    return m_indirectFuncCount;
 }
 
 void

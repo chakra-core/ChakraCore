@@ -657,6 +657,7 @@ WasmBytecodeGenerator::EmitCall()
     {
         Assert(wasmOp == wnCALL_INDIRECT);
         Js::RegSlot tmp = m_i32RegSlots->AcquireTmpRegister();
+        // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, tmp, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
         m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, tmp, indirectIndexInfo.location);
         m_i32RegSlots->ReleaseTmpRegister(tmp);

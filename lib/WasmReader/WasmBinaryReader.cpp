@@ -222,14 +222,8 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         {
             ThrowDecodingError(L"Function signatures section missing before indirect function table");
         }
-
-        for (UINT32 i = 0; i < m_moduleState.size; i++)
-        {
-            m_moduleInfo->AddIndirectFunctionIndex(ReadConst<UINT16>());
-        }
-        m_moduleState.count += m_moduleState.size;
+        ReadIndirectFunctionTable();
         break;
-
     case bSectEnd:
         // One module per file. We will have to skip over func names and data segments.
         m_pc = m_end; // skip to end, we are done.
@@ -616,6 +610,28 @@ void WasmBinaryReader::ReadExportTable()
     }
 }
 
+void WasmBinaryReader::ReadIndirectFunctionTable()
+{
+    uint32 length;
+    uint32 entries = LEB128(length);
+    TRACE_WASM_DECODER(L"Indirect table: %u entries = [", entries);
+    m_moduleInfo->AllocateIndirectFunctions(entries);
+    for (uint32 i = 0; i < entries; i++)
+    {
+        uint32 functionIndex = LEB128(length);
+        if (functionIndex >= m_moduleInfo->GetFunctionCount())
+        {
+            ThrowDecodingError(L"Indirect function index %u is out of bound (max %u)", functionIndex, m_moduleInfo->GetFunctionCount());
+        }
+        if (PHASE_TRACE1(Js::WasmReaderPhase))
+        {
+            Output::Print(L"%u, ", functionIndex);
+        }
+        m_moduleInfo->SetIndirectFunction(functionIndex, i);
+    }
+    TRACE_WASM_DECODER(L"]", entries);
+}
+
 void
 WasmBinaryReader::FunctionBodyHeader()
 {
@@ -670,7 +686,7 @@ wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 }
 
 const char *
-WasmBinaryReader::Name(UINT offset, UINT &length)
+WasmBinaryReader::Name(UINT32 offset, UINT &length)
 {
     BYTE* str = m_start + offset;
     length = 0;
@@ -733,7 +749,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
         }
     }
 
-    if (b & 0x80)
+    if (b & 0x80 || m_pc > m_end)
     {
         ThrowDecodingError(L"Invalid LEB128 format");
     }
