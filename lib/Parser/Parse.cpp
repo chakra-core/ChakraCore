@@ -2125,77 +2125,81 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryLi
     Assert(importEntryList == nullptr || exportEntryList == nullptr);
     Assert((isExportClause && exportEntryList != nullptr) || (!isExportClause && importEntryList != nullptr));
 
-    bool finished = false;
-
     m_pscan->Scan();
 
-    while (!finished)
+    while (m_token.tk != tkRCurly && m_token.tk != tkEOF)
     {
-        switch (m_token.tk)
-        {
-        case tkRCurly:
-            finished = true;
-            break;
+        tokens firstToken = m_token.tk;
 
-        case tkComma:
-            // It is only legal for a comma in an import\export list to follow an identifier token.
-            if (m_pscan->m_tkPrevious != tkID)
+        if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+        {
+            Error(ERRsyntax);
+        }
+
+        IdentPtr identifierName = m_token.GetIdentifier(m_phtbl);
+        IdentPtr identifierAs = identifierName;
+
+        m_pscan->Scan();
+
+        if (m_token.tk == tkID)
+        {
+            // We have the pattern "IdentifierName as"
+            if (wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
             {
                 Error(ERRsyntax);
             }
-             
+
             m_pscan->Scan();
-            break;
 
-        case tkID:
+            // If we are parsing an import statement, the token after 'as' must be a BindingIdentifier.
+            if (!isExportClause)
             {
-                // First identifier name is the name of the export\import.
-                IdentPtr identifierName = m_token.GetIdentifier(m_phtbl);
-                IdentPtr identifierAs = identifierName;
-
-                // If the next token is an identifier but not 'as' this is a syntax error.
-                m_pscan->Scan();
-                if (m_token.tk == tkID)
-                {
-                    if (wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
-                    {
-                        Error(ERRsyntax);
-                    }
-                    
-                    m_pscan->Scan();
-                    ChkCurTokNoScan(tkID, ERRsyntax);
-
-                    // We have the pattern "IdentifierName as IdentifierName"
-                    identifierAs = m_token.GetIdentifier(m_phtbl);
-
-                    // Scan to the next token.
-                    m_pscan->Scan();
-                }
-
-                if (buildAST)
-                {
-                    // The name we will use 'as' this import/export is a binding identifier in import statements.
-                    if (!isExportClause)
-                    {
-                        ParseNodePtr declNode = CreateModuleImportDeclNode(identifierAs);
-
-                        AddModuleImportEntry(importEntryList, identifierName, identifierAs, nullptr, declNode);
-                    }
-                    else
-                    {
-                        MarkIdentifierReferenceIsModuleExport(identifierName);
-
-                        AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
-                    }
-                }
+                ChkCurTokNoScan(tkID, ERRsyntax);
             }
-            break;
 
-        default:
+            if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+            {
+                Error(ERRsyntax);
+            }
+
+            identifierAs = m_token.GetIdentifier(m_phtbl);
+
+            // Scan to the next token.
+            m_pscan->Scan();
+        }
+        else if (!isExportClause && firstToken != tkID)
+        {
+            // If we are parsing an import statement and this ImportSpecifier clause did not have 
+            // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
             Error(ERRsyntax);
-            break;
+        }
+        
+        if (m_token.tk == tkComma)
+        {
+            // Consume a trailing comma
+            m_pscan->Scan();
+        }
+
+        if (buildAST)
+        {
+            // The name we will use 'as' this import/export is a binding identifier in import statements.
+            if (!isExportClause)
+            {
+                ParseNodePtr declNode = CreateModuleImportDeclNode(identifierAs);
+
+                AddModuleImportEntry(importEntryList, identifierName, identifierAs, nullptr, declNode);
+            }
+            else
+            {
+                MarkIdentifierReferenceIsModuleExport(identifierName);
+
+                AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
+            }
         }
     }
+
+    // Final token in a named import or export clause must be a '}'
+    ChkCurTokNoScan(tkRCurly, ERRsyntax);
 }
 
 IdentPtrList* Parser::GetRequestedModulesList()

@@ -6411,6 +6411,50 @@ CommonNumber:
         return propertyId;
     }
 
+    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, ScriptContext* scriptContext)
+    {
+        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
+        Assert(moduleRecord != nullptr);
+
+        return moduleRecord->GetLocalExportSlots();
+    }
+
+    Var* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    {
+        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
+        Assert(moduleRecord != nullptr);
+
+        Var* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, scriptContext);
+        Assert(moduleRecordSlots != nullptr);
+
+        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        {
+            Js::Throw::FatalInternalError();
+        }
+
+        return &moduleRecordSlots[slotIndex];
+    }
+
+    Var JavascriptOperators::OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    {
+        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+
+        Assert(addr != nullptr);
+
+        return *addr;
+    }
+
+    void JavascriptOperators::OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext)
+    {
+        Assert(value != nullptr);
+
+        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+
+        Assert(addr != nullptr);
+
+        *addr = value;
+    }
+
     void JavascriptOperators::OP_InitClassMemberSetComputedName(Var object, Var elementName, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags)
     {
         Js::PropertyId propertyId = JavascriptOperators::OP_InitElemSetter(object, elementName, value, scriptContext);
