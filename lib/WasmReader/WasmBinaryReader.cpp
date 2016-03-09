@@ -26,27 +26,22 @@
 namespace Wasm
 {
 
-#define WASM_SECTION(name, id, flag, precedent, subsequent) flag,
+#define WASM_SECTION(name, id, flag, precedent) flag,
 SectionFlag BaseWasmReader::sectionFlags[bSectLimit] = {
 #include "WasmSections.h"
 };
 
-#define WASM_SECTION(name, id, flag, precedent, subsequent) bSect ## precedent,
+#define WASM_SECTION(name, id, flag, precedent) bSect ## precedent,
 const SectionCode BaseWasmReader::sectionPrecedences[bSectLimit] = {
 #include "WasmSections.h"
 };
 
-#define WASM_SECTION(name, id, flag, precedent, subsequent) bSect ## subsequent,
-const SectionCode BaseWasmReader::sectionSubsequents[bSectLimit] = {
-#include "WasmSections.h"
-};
-
-#define WASM_SECTION(name, id, flag, precedent, subsequent) L#name,
+#define WASM_SECTION(name, id, flag, precedent) L#name,
 wchar_t* BaseWasmReader::sectionNames[bSectLimit] = {
 #include "WasmSections.h"
 };
 
-#define WASM_SECTION(name, id, flag, precedent, subsequent) id,
+#define WASM_SECTION(name, id, flag, precedent) id,
 char* BaseWasmReader::sectionIds[bSectLimit] = {
 #include "WasmSections.h"
 };
@@ -113,7 +108,7 @@ void WasmBinaryReader::InitializeReader()
             prevSect = secHeader.code;
             // skip the section
             m_pc = secHeader.end;
-            doRead = !EndOfModule() && secHeader.code != bSectEnd;
+            doRead = !EndOfModule();
         }
         m_pc = startModule;
     }
@@ -225,9 +220,6 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
     case bSectIndirectFunctionTable:
         ReadIndirectFunctionTable();
         break;
-    case bSectEnd:
-        // One module per file. We will have to skip over func names and data segments.
-        m_pc = m_end; // skip to end, we are done.
     default:
         Assert(false);
         return psrInvalid;

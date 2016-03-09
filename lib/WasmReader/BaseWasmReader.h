@@ -14,7 +14,7 @@ namespace Wasm
         fSectIgnore,
     };
 
-#define WASM_SECTION(name, id, flag, precendent, subsequent) bSect ## name,
+#define WASM_SECTION(name, id, flag, precendent) bSect ## name,
     enum SectionCode
     {
         bSectInvalid = -1,
@@ -45,7 +45,6 @@ namespace Wasm
 
         static SectionFlag sectionFlags[bSectLimit];
         static const SectionCode sectionPrecedences[bSectLimit];
-        static const SectionCode sectionSubsequents[bSectLimit];
         static wchar_t* sectionNames[bSectLimit];
         static char* sectionIds[bSectLimit];
     protected:

@@ -48,11 +48,10 @@ WasmBytecodeGenerator::GenerateModule()
     m_reader->InitializeReader();
 
     BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
-    BVFixed* needToVisitSections = BVFixed::New(bSectLimit + 1, &m_alloc);
 
     const auto readerProcess = [](WasmBytecodeGenerator* gen, SectionCode code) {return gen->m_reader->ProcessSection(code); };
     // By default lest the reader process the section
-#define WASM_SECTION(name, id, flag, precedent, subsequent) readerProcess,
+#define WASM_SECTION(name, id, flag, precedent) readerProcess,
     SectionProcessFunc sectionProcess[bSectLimit + 1] = {
 #include "WasmSections.h"
         nullptr
@@ -89,7 +88,6 @@ WasmBytecodeGenerator::GenerateModule()
     for (uint32 sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
     {
         SectionCode precedent = BaseWasmReader::sectionPrecedences[sectionCode];
-        SectionCode subsequent = BaseWasmReader::sectionSubsequents[sectionCode];
         if (m_reader->ReadNextSection((SectionCode)sectionCode))
         {
             if (precedent != bSectInvalid && !visitedSections->Test(precedent))
@@ -98,42 +96,19 @@ WasmBytecodeGenerator::GenerateModule()
                                                BaseWasmReader::sectionNames[precedent],
                                                BaseWasmReader::sectionNames[sectionCode]);
             }
-            if (subsequent != bSectInvalid)
-            {
-                needToVisitSections->Set(subsequent);
-            }
             visitedSections->Set(sectionCode);
 
             if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
             {
-                throw WasmCompilationException(L"Error while reading section %d", sectionCode);
+                throw WasmCompilationException(L"Error while reading section %s", BaseWasmReader::sectionNames[sectionCode]);
             }
         }
     }
 
-    needToVisitSections->Minus(visitedSections);
-    if (!needToVisitSections->IsAllClear())
+    // If we see a FunctionSignatures section we need to see a FunctionBodies section
+    if (visitedSections->Test(bSectFunctionSignatures) && !visitedSections->Test(bSectFunctionBodies))
     {
-        const size_t bufferSize = 256;
-        wchar_t buffer[bufferSize];
-        size_t remainingBufferSize = bufferSize;
-        for (uint32 sectionCode = 0; sectionCode < bSectLimit; sectionCode++)
-        {
-            if (needToVisitSections->Test(sectionCode))
-            {
-                wchar_t* name = BaseWasmReader::sectionNames[sectionCode];
-                if (wcslen(name) < remainingBufferSize)
-                {
-                    remainingBufferSize -= swprintf_s(
-                        buffer + (bufferSize - remainingBufferSize),
-                        remainingBufferSize,
-                        L"%s, ",
-                        name
-                    );
-                }
-            }
-        }
-        throw WasmCompilationException(L"Missing required sections: %s", buffer);
+        throw WasmCompilationException(L"Missing required section: %s", BaseWasmReader::sectionNames[bSectFunctionBodies]);
     }
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount();
