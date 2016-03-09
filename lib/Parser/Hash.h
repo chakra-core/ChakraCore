@@ -62,8 +62,8 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), span(), sym(nullptr), prev(nullptr) {}
-    PidRefStack(int id) : isAsg(false), isDynamic(false), id(id), span(), sym(nullptr), prev(nullptr) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack(int id) : isAsg(false), isDynamic(false), id(id), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
 
     charcount_t GetIchMin()   { return span.GetIchMin(); }
     charcount_t GetIchLim()   { return span.GetIchLim(); }
@@ -73,6 +73,8 @@ struct PidRefStack
     bool IsAssignment() const { return isAsg; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
+    bool IsModuleExport() const { return isModuleExport; }
+    void SetModuleExport()    { isModuleExport = true; }
 
     void TrackAssignment(charcount_t ichMin, charcount_t ichLim);
 
@@ -83,6 +85,7 @@ struct PidRefStack
 
     bool           isAsg;
     bool           isDynamic;
+    bool           isModuleExport;
     int            id;
     Span           span;
     Symbol        *sym;

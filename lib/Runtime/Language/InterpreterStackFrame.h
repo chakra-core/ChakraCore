@@ -229,7 +229,7 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
-        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const wchar_t* state);
+        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -555,6 +555,8 @@ namespace Js
         template <class T> inline Var OP_ProfiledLdObjSlot(Var instance, const unaligned T* playout);
         template <class T> inline Var OP_LdEnvObjSlot(Var instance, const unaligned T* playout);
         template <class T> inline Var OP_ProfiledLdEnvObjSlot(Var instance, const unaligned T* playout);
+        template <class T> inline Var OP_LdModuleSlot(Var instance, const unaligned T* playout);
+        inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
         inline void OP_StSlot(Var instance, int32 slotIndex, Var value);
         inline void OP_StSlotChkUndecl(Var instance, int32 slotIndex, Var value);
         inline void OP_StEnvSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
@@ -563,6 +565,7 @@ namespace Js
         inline void OP_StObjSlotChkUndecl(Var instance, int32 slotIndex, Var value);
         inline void OP_StEnvObjSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
         inline void OP_StEnvObjSlotChkUndecl(Var instance, int32 slotIndex1, int32 slotIndex2, Var value);
+        inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
         inline Var OP_LdHeapArguments(Var argsArray, ScriptContext* scriptContext);

@@ -95,3 +95,6 @@ LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have n
 LSC_ERROR_MSG(1085, ERRFuncRefFormalNotSupportedInParamScope, "Formals cannot contain functions definitions that reference them")
 LSC_ERROR_MSG(1086, ERREvalNotSupportedInParamScope, "'eval' is not allowed in the default initializer")
 LSC_ERROR_MSG(1087, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
+
+LSC_ERROR_MSG(1088, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
+LSC_ERROR_MSG(1089, ERRInvalidExportName, "Unable to resolve module export name")

@@ -187,10 +187,10 @@ namespace Js
     typedef ConcatStringN<6> ConcatStringN6;
     typedef ConcatStringN<7> ConcatStringN7;
 
-    template <wchar_t L, wchar_t R> class ConcatStringWrapping;
-    typedef ConcatStringWrapping<L'[', L']'> ConcatStringWrappingSB;
-    typedef ConcatStringWrapping<L'{', L'}'> ConcatStringWrappingB;
-    typedef ConcatStringWrapping<L'"', L'"'> ConcatStringWrappingQ;
+    template <char16 L, char16 R> class ConcatStringWrapping;
+    typedef ConcatStringWrapping<_u('['), _u(']')> ConcatStringWrappingSB;
+    typedef ConcatStringWrapping<_u('{'), _u('}')> ConcatStringWrappingB;
+    typedef ConcatStringWrapping<_u('"'), _u('"')> ConcatStringWrappingQ;
 
 } // namespace Js.
 
@@ -211,17 +211,17 @@ namespace JSON
 //
 // Shared string literals
 //
-#define JS_DISPLAY_STRING_NAN           L"NaN"
-#define JS_DISPLAY_STRING_DATE          L"Date"
-#define JS_DISPLAY_STRING_INVALID_DATE  L"Invalid Date"
-#define JS_DISPLAY_STRING_FUNCTION_ANONYMOUS        L"\012function() {\012    [native code]\012}\012"
-#define JS_DISPLAY_STRING_FUNCTION_HEADER           L"function "
-#define JS_DISPLAY_STRING_FUNCTION_BODY             L"() { [native code] }"
+#define JS_DISPLAY_STRING_NAN           _u("NaN")
+#define JS_DISPLAY_STRING_DATE          _u("Date")
+#define JS_DISPLAY_STRING_INVALID_DATE  _u("Invalid Date")
+#define JS_DISPLAY_STRING_FUNCTION_ANONYMOUS        _u("\012function() {\012    [native code]\012}\012")
+#define JS_DISPLAY_STRING_FUNCTION_HEADER           _u("function ")
+#define JS_DISPLAY_STRING_FUNCTION_BODY             _u("() { [native code] }")
 
-#define JS_DIAG_TYPE_JavascriptRegExp               L"Object, (Regular Expression)"
+#define JS_DIAG_TYPE_JavascriptRegExp               _u("Object, (Regular Expression)")
 
-#define JS_DIAG_VALUE_JavascriptRegExpConstructor   L"{...}"
-#define JS_DIAG_TYPE_JavascriptRegExpConstructor    L"Object, (RegExp constructor)"
+#define JS_DIAG_VALUE_JavascriptRegExpConstructor   _u("{...}")
+#define JS_DIAG_TYPE_JavascriptRegExpConstructor    _u("Object, (RegExp constructor)")
 
 #include "Language/SimdUtils.h"
 

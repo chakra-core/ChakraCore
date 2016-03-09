@@ -10,21 +10,21 @@ namespace Js
     {
         charcount_t m_charLength;
         unsigned char m_offset;
-        const wchar_t* m_content;
+        const char16* m_content;
 
     public:
         InternalString() : m_charLength(0), m_content(NULL), m_offset(0) { };
-        InternalString(const wchar_t* content, charcount_t charLength, unsigned char offset = 0);
-        static InternalString* New(ArenaAllocator* alloc, const wchar_t* content, charcount_t length);
-        static InternalString* New(Recycler* recycler, const wchar_t* content, charcount_t length);
-        static InternalString* NewNoCopy(ArenaAllocator* alloc, const wchar_t* content, charcount_t length);
+        InternalString(const char16* content, charcount_t charLength, unsigned char offset = 0);
+        static InternalString* New(ArenaAllocator* alloc, const char16* content, charcount_t length);
+        static InternalString* New(Recycler* recycler, const char16* content, charcount_t length);
+        static InternalString* NewNoCopy(ArenaAllocator* alloc, const char16* content, charcount_t length);
 
         inline charcount_t GetLength() const
         {
             return m_charLength;
         }
 
-        inline const wchar_t* GetBuffer() const
+        inline const char16* GetBuffer() const
         {
             return m_content + m_offset;
         }

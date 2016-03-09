@@ -29,19 +29,19 @@ public:
         switch (errorCode)
         {
         case (JsErrorCode::JsErrorInvalidArgument) :
-            return L"TypeError: InvalidArgument";
+            return _u("TypeError: InvalidArgument");
         case (JsErrorCode::JsErrorNullArgument) :
-            return L"TypeError: NullArgument";
+            return _u("TypeError: NullArgument");
         case (JsErrorCode::JsErrorArgumentNotObject) :
-            return L"TypeError: ArgumentNotAnObject";
+            return _u("TypeError: ArgumentNotAnObject");
         case (JsErrorCode::JsErrorOutOfMemory) :
-            return L"OutOfMemory";
+            return _u("OutOfMemory");
         case (JsErrorCode::JsErrorScriptException) :
-            return L"ScriptError";
+            return _u("ScriptError");
         case (JsErrorCode::JsErrorScriptCompile) :
-            return L"SyntaxError";
+            return _u("SyntaxError");
         case (JsErrorCode::JsErrorFatal) :
-            return L"FatalError";
+            return _u("FatalError");
         default:
             AssertMsg(false, "Unexpected JsErrorCode");
             return nullptr;
@@ -56,7 +56,7 @@ public:
 
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
-    static bool CreateNamedFunction(const wchar_t*, JsNativeFunction callback, JsValueRef* functionVar);
+    static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);
     static JsValueRef __stdcall EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadModuleFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);

@@ -26,12 +26,12 @@ public:
     static void AddLineCountToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
     static void AddSouceToObject(Js::DynamicObject* object, Js::Utf8SourceInfo* utf8SourceInfo);
 
-    static void AddVarPropertyToObject(Js::DynamicObject* object, const wchar_t* propertyName, Js::Var value, Js::ScriptContext* scriptContext);
+    static void AddVarPropertyToObject(Js::DynamicObject* object, const char16* propertyName, Js::Var value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, double value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, UINT value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, ULONG value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, LONG value, Js::ScriptContext* scriptContext);
-    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, const wchar_t * value, Js::ScriptContext* scriptContext);
+    static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, const char16 * value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
 
@@ -39,6 +39,6 @@ public:
 
 private:
     static void AddVarPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
-    static wchar_t* GetClassName(Js::TypeId typeId);
-    static wchar_t* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
+    static char16* GetClassName(Js::TypeId typeId);
+    static char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
 };

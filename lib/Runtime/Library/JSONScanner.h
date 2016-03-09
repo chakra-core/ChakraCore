@@ -17,11 +17,11 @@ namespace JSON
     public:
         JSONScanner();
         tokens Scan();
-        void Init(const wchar_t* input, uint len, Token* pOutToken,
-            ::Js::ScriptContext* sc, const wchar_t* current, ArenaAllocator* allocator);
+        void Init(const char16* input, uint len, Token* pOutToken,
+            ::Js::ScriptContext* sc, const char16* current, ArenaAllocator* allocator);
 
         void Finalizer();
-        wchar_t* GetCurrentString(){return currentString;}
+        char16* GetCurrentString(){return currentString;}
         uint GetCurrentStringLen(){return currentIndex;}
 
 
@@ -32,9 +32,9 @@ namespace JSON
         public:
             uint m_rangeStart;
             uint m_rangeLength;
-            wchar_t m_char;
+            char16 m_char;
             RangeCharacterPair() {}
-            RangeCharacterPair(uint rangeStart, uint rangeLength, wchar_t ch) : m_rangeStart(rangeStart), m_rangeLength(rangeLength), m_char(ch) {}
+            RangeCharacterPair(uint rangeStart, uint rangeLength, char16 ch) : m_rangeStart(rangeStart), m_rangeLength(rangeLength), m_char(ch) {}
         };
 
         typedef JsUtil::List<RangeCharacterPair, ArenaAllocator> RangeCharacterPairList;
@@ -47,12 +47,12 @@ namespace JSON
 
         RangeCharacterPairList* GetCurrentRangeCharacterPairList(void);
 
-        __inline wchar_t ReadNextChar(void)
+        __inline char16 ReadNextChar(void)
         {
             return *currentChar++;
         }
 
-        __inline wchar_t PeekNextChar(void)
+        __inline char16 PeekNextChar(void)
         {
             return *currentChar;
         }
@@ -60,17 +60,17 @@ namespace JSON
         tokens ScanString();
         bool IsJSONNumber();
 
-        const wchar_t* inputText;
+        const char16* inputText;
         uint    inputLen;
-        const wchar_t* currentChar;
-        const wchar_t* pTokenString;
+        const char16* currentChar;
+        const char16* pTokenString;
 
         Token*   pToken;
         ::Js::ScriptContext* scriptContext;
 
         uint     currentIndex;
-        wchar_t* currentString;
-        __field_ecount(stringBufferLength) wchar_t* stringBuffer;
+        char16* currentString;
+        __field_ecount(stringBufferLength) char16* stringBuffer;
         int      stringBufferLength;
 
         friend class JSONParser;

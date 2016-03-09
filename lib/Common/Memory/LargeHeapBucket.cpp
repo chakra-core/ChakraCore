@@ -80,7 +80,7 @@ LargeHeapBucket::SnailAlloc(Recycler * recycler, size_t sizeCat, ObjectInfoBits 
         }
         // Can't even allocate a new block, we need force a collection and
         // allocate some free memory, add a new heap block again, or throw out of memory
-        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"LargeHeapBucket::AddLargeHeapBlock failed, forcing in-thread collection\n");
+        AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("LargeHeapBucket::AddLargeHeapBlock failed, forcing in-thread collection\n"));
         recycler->CollectNow<CollectNowForceInThread>();
     }
 
@@ -185,7 +185,7 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t size, ObjectInfoBits 
     }
 
 #if DBG
-    LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Allocated new large heap block 0x%p for sizeCat 0x%x\n", heapBlock, sizeCat);
+    LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated new large heap block 0x%p for sizeCat 0x%x\n"), heapBlock, sizeCat);
 #endif
 
 #ifdef ENABLE_JS_ETW
@@ -273,7 +273,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
     uint objectCount = LargeHeapBlock::GetMaxLargeObjectCount(pageCount, size);
     LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, objectCount, supportFreeList ? this : nullptr);
 #if DBG
-    LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Allocated new large heap block 0x%p for sizeCat 0x%x\n", heapBlock, sizeCat);
+    LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated new large heap block 0x%p for sizeCat 0x%x\n"), heapBlock, sizeCat);
 #endif
 
 #ifdef ENABLE_JS_ETW
@@ -341,7 +341,7 @@ LargeHeapBucket::TryAllocFromFreeList(Recycler * recycler, size_t sizeCat, Objec
         else
         {
 #if DBG
-            LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Unable to allocate object of size 0x%x from freelist\n", sizeCat);
+            LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Unable to allocate object of size 0x%x from freelist\n"), sizeCat);
 #endif
         }
 
@@ -560,7 +560,7 @@ LargeHeapBucket::Sweep(RecyclerSweep& recyclerSweep)
     if (this->supportFreeList)
     {
 #if DBG
-        LargeAllocationVerboseTrace(recyclerSweep.GetRecycler()->GetRecyclerFlagsTable(), L"Resetting free list for 0x%x bucket\n", this->sizeCat);
+        LargeAllocationVerboseTrace(recyclerSweep.GetRecycler()->GetRecyclerFlagsTable(), _u("Resetting free list for 0x%x bucket\n"), this->sizeCat);
 #endif
         this->freeList = nullptr;
         this->explicitFreeList = nullptr;
@@ -714,7 +714,7 @@ LargeHeapBucket::ConstructFreelist(LargeHeapBlock * heapBlock)
         this->RegisterFreeList(freeList);
 
 #if DBG
-        LargeAllocationVerboseTrace(this->GetRecycler()->GetRecyclerFlagsTable(), L"Free list created for 0x%x bucket\n", this->sizeCat);
+        LargeAllocationVerboseTrace(this->GetRecycler()->GetRecyclerFlagsTable(), _u("Free list created for 0x%x bucket\n"), this->sizeCat);
 #endif
     }
 

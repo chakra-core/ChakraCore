@@ -385,7 +385,7 @@ IRBuilder::Build()
     m_funcAlloc = m_func->m_alloc;
 
 
-    NoRecoverMemoryJitArenaAllocator localAlloc(L"BE-IRBuilder", m_funcAlloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator localAlloc(_u("BE-IRBuilder"), m_funcAlloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     m_tempAlloc = &localAlloc;
 
     uint32 offset;
@@ -1152,7 +1152,7 @@ IRBuilder::BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset)
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 IR::IndirOpnd *
-IRBuilder::BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset, const wchar_t *desc)
+IRBuilder::BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset, const char16 *desc)
 {
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseReg, offset, TyVar, desc, m_func);
     return indirOpnd;
@@ -1347,7 +1347,7 @@ IRBuilder::BuildImplicitArgIns()
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 #define POINTER_OFFSET(opnd, c, field) \
-    BuildIndirOpnd((opnd), c::Get##field##Offset(), L#c L"." L#field)
+    BuildIndirOpnd((opnd), c::Get##field##Offset(), _u(#c) _u(".") _u(#field))
 #else
 #define POINTER_OFFSET(opnd, c, field) \
     BuildIndirOpnd((opnd), c::Get##field##Offset())
@@ -3144,8 +3144,8 @@ IRBuilder::BuildProfiledSlotLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::Sy
             const ValueType valueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (#%s) ValueType = %S ", func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            Output::Print(_u("TestTrace function %s (#%s) ValueType = %S "), func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif
@@ -3919,8 +3919,8 @@ IRBuilder::BuildProfiledFieldLoad(Js::OpCode loadOp, IR::RegOpnd *dstOpnd, IR::S
             const ValueType valueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
             char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
             valueType.ToString(valueTypeStr);
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"TestTrace function %s (%s) ValueType = %i ", func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            Output::Print(_u("TestTrace function %s (%s) ValueType = %i "), func->GetDisplayName(), func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
             instr->DumpTestTrace();
         }
 #endif

@@ -226,6 +226,8 @@ EXDEF3_WMS(GET_ELEM_INNERSLOTNonVar,LdInnerObjSlot,             OP_LdInnerObjSlo
   DEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdEnvSlot,                  OP_LdEnvSlot, ElementSlotI2)
   DEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdEnvObj,                   OP_LdEnvObj, ElementSlotI1)
 EXDEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdEnvObjSlot,               OP_LdEnvObjSlot, ElementSlotI2)
+EXDEF3_WMS(GET_ELEM_ENVSLOTNonVar,  LdModuleSlot,               OP_LdModuleSlot, ElementSlotI2)
+EXDEF2_WMS(SET_ELEM_ENVSLOTNonVar,  StModuleSlot,               OP_StModuleSlot)
   DEF3_WMS(GET_ELEM_SLOTNonVar,     ProfiledLdSlot,             PROFILEDOP(OP_ProfiledLdSlot, OP_LdSlot), ProfiledElementSlot)
   DEF3_WMS(GET_ELEM_INNERSLOTNonVar,ProfiledLdInnerSlot,        PROFILEDOP(OP_ProfiledLdInnerSlot, OP_LdInnerSlot), ProfiledElementSlotI2)
 EXDEF3_WMS(GET_ELEM_INNERSLOTNonVar,ProfiledLdInnerObjSlot,     PROFILEDOP(OP_ProfiledLdInnerObjSlot, OP_LdInnerObjSlot), ProfiledElementSlotI2)

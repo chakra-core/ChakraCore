@@ -44,7 +44,7 @@ namespace Js
 
 #ifdef DYNAMIC_PROFILE_STORAGE
         void SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo);
-        void SaveToDynamicProfileStorage(wchar_t const * url);
+        void SaveToDynamicProfileStorage(char16 const * url);
         template <typename T>
         static SourceDynamicProfileManager * Deserialize(T * reader, Recycler* allocator);
         template <typename T>

@@ -14,9 +14,9 @@ char const * const RegNames[RegNumCount] =
 #undef REGDAT
 };
 
-wchar_t const * const RegNamesW[RegNumCount] =
+char16 const * const RegNamesW[RegNumCount] =
 {
-#define REGDAT(Name, ListName, ...) L"" STRINGIZEW(ListName) L"",
+#define REGDAT(Name, ListName, ...) _u("") STRINGIZEW(ListName) _u(""),
 #include "RegList.h"
 #undef REGDAT
 };
@@ -97,7 +97,7 @@ bool LoweredBasicBlock::Equals(LoweredBasicBlock* otherBlock)
 void
 LinearScan::RegAlloc()
 {
-    NoRecoverMemoryJitArenaAllocator tempAlloc(L"BE-LinearScan", this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator tempAlloc(_u("BE-LinearScan"), this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     this->tempAlloc = &tempAlloc;
     this->opHelperSpilledLiveranges = JitAnew(&tempAlloc, SList<Lifetime *>, &tempAlloc);
     this->activeLiveranges = JitAnew(&tempAlloc, SList<Lifetime *>, &tempAlloc);
@@ -298,7 +298,7 @@ LinearScan::RegAlloc()
     }
     if (PHASE_TRACE(Js::StackPackPhase, this->func))
     {
-        Output::Print(L"---------------------------\n");
+        Output::Print(_u("---------------------------\n"));
     }
 #endif // DBG_DUMP
     DebugOnly(this->func->allowRemoveBailOutArgInstr = true);
@@ -1325,7 +1325,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
     if(PHASE_DUMP(Js::BailOutPhase, this->func))
     {
-        Output::Print(L"-------------------Bailout dump -------------------------\n");
+        Output::Print(_u("-------------------Bailout dump -------------------------\n"));
         instr->Dump();
     }
 #endif
@@ -1395,9 +1395,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
-            Output::Print(L"Constant stack sym #%d (argOut:%s): ",  i, IsTrueOrFalse(stackSym->HasArgSlotNum()));
+            Output::Print(_u("Constant stack sym #%d (argOut:%s): "),  i, IsTrueOrFalse(stackSym->HasArgSlotNum()));
             stackSym->Dump();
-            Output::Print(L" (0x%p (Var) Offset: %d)\n", varValue, funcBailOutData[index].localOffsets[i]);
+            Output::Print(_u(" (0x%p (Var) Offset: %d)\n"), varValue, funcBailOutData[index].localOffsets[i]);
         }
 #endif
         iterator.RemoveCurrent(this->func->m_alloc);
@@ -1668,7 +1668,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
             {
-                Output::Print(L"Bailout function: %s [#%d] \n", currentStartCallFunc->GetJnFunction()->GetDisplayName(),
+                Output::Print(_u("Bailout function: %s [#%d] \n"), currentStartCallFunc->GetJnFunction()->GetDisplayName(),
                     currentStartCallFunc->GetJnFunction()->GetFunctionNumber());
             }
 #endif
@@ -1697,9 +1697,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
                             if (PHASE_DUMP(Js::BailOutPhase, this->func))
                             {
-                                Output::Print(L"OutParam #%d: ", argSlot);
+                                Output::Print(_u("OutParam #%d: "), argSlot);
                                 sym->Dump();
-                                Output::Print(L" (0x%p (Var)))\n", varValue);
+                                Output::Print(_u(" (0x%p (Var)))\n"), varValue);
                             }
 #endif
                             iterator.RemoveCurrent(func->m_alloc);
@@ -1747,11 +1747,11 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
                             if (PHASE_DUMP(Js::BailOutPhase, this->func))
                             {
-                                Output::Print(L"OutParam #%d: ", argSlot);
+                                Output::Print(_u("OutParam #%d: "), argSlot);
                                 sym->Dump();
-                                Output::Print(L" Copy Prop sym:");
+                                Output::Print(_u(" Copy Prop sym:"));
                                 copyStackSym->Dump();
-                                Output::Print(L"\n");
+                                Output::Print(_u("\n"));
                             }
 #endif
                             iter.RemoveCurrent(func->m_alloc);
@@ -1875,9 +1875,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
                     {
-                        Output::Print(L"OutParam #%d: ", argSlot);
+                        Output::Print(_u("OutParam #%d: "), argSlot);
                         sym->Dump();
-                        Output::Print(L"\n");
+                        Output::Print(_u("\n"));
                     }
 #endif
                 }
@@ -1930,8 +1930,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
-            wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(L"Bailout function: %s [%s]\n", funcBailOutData[i].func->GetJnFunction()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
+            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+            Output::Print(_u("Bailout function: %s [%s]\n"), funcBailOutData[i].func->GetJnFunction()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif
@@ -2802,10 +2802,10 @@ LinearScan::SpillLiveRange(Lifetime * spilledRange, IR::Instr *insertionInstr)
 #if DBG_DUMP
     if (PHASE_TRACE(Js::LinearScanPhase, this->func))
     {
-        Output::Print(L"**** Spill: ");
+        Output::Print(_u("**** Spill: "));
         sym->Dump();
-        Output::Print(L"(%S)", RegNames[reg]);
-        Output::Print(L"  SpillCount:%d  Length:%d   Cost:%d\n",
+        Output::Print(_u("(%S)"), RegNames[reg]);
+        Output::Print(_u("  SpillCount:%d  Length:%d   Cost:%d\n"),
             spilledRange->useCount, spilledRange->end - spilledRange->start, this->GetSpillCost(spilledRange));
     }
 #endif
@@ -2963,7 +2963,7 @@ LinearScan::AllocateStackSpace(Lifetime *spilledRange)
                 if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::StackPackPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
                 {
                     spilledSym->Dump();
-                    Output::Print(L" *** stack packed at offset %3d  (%4d - %4d)\n", spilledSym->m_offset, spilledRange->start, spilledRange->end);
+                    Output::Print(_u(" *** stack packed at offset %3d  (%4d - %4d)\n"), spilledSym->m_offset, spilledRange->start, spilledRange->end);
                 }
 #endif
                 break;
@@ -2989,7 +2989,7 @@ LinearScan::AllocateStackSpace(Lifetime *spilledRange)
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::StackPackPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
         {
             spilledSym->Dump();
-            Output::Print(L" at offset %3d  (%4d - %4d)\n", spilledSym->m_offset, spilledRange->start, spilledRange->end);
+            Output::Print(_u(" at offset %3d  (%4d - %4d)\n"), spilledSym->m_offset, spilledRange->start, spilledRange->end);
         }
 #endif
         if (newStackSlot != nullptr)
@@ -3126,9 +3126,9 @@ LinearScan::InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg)
 #if DBG_DUMP
     if (PHASE_TRACE(Js::LinearScanPhase, this->func))
     {
-        Output::Print(L"...Inserting store for ");
+        Output::Print(_u("...Inserting store for "));
         sym->Dump();
-        Output::Print(L"  Cost:%d\n", this->GetSpillCost(sym->scratch.linearScan.lifetime));
+        Output::Print(_u("  Cost:%d\n"), this->GetSpillCost(sym->scratch.linearScan.lifetime));
     }
 #endif
 }
@@ -3198,15 +3198,15 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
 #if DBG_DUMP
     if (PHASE_TRACE(Js::LinearScanPhase, this->func))
     {
-        Output::Print(L"...Inserting load for ");
+        Output::Print(_u("...Inserting load for "));
         sym->Dump();
         if (sym->scratch.linearScan.lifetime)
         {
-            Output::Print(L"  Cost:%d\n", this->GetSpillCost(sym->scratch.linearScan.lifetime));
+            Output::Print(_u("  Cost:%d\n"), this->GetSpillCost(sym->scratch.linearScan.lifetime));
         }
         else
         {
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
 #endif
@@ -4135,9 +4135,9 @@ LinearScan::ReconcileRegContent(Lifetime ** branchRegContent, Lifetime **labelRe
 #if DBG_DUMP
         if (PHASE_TRACE(Js::SecondChancePhase, this->func))
         {
-            Output::Print(L"****** Spilling reg because of bad compensation code order: ");
+            Output::Print(_u("****** Spilling reg because of bad compensation code order: "));
             lifetime->sym->Dump();
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
 #endif
     }
@@ -4316,10 +4316,10 @@ void LinearScan::SecondChanceAllocateToReg(Lifetime *lifetime, RegNum reg)
 #if DBG_DUMP
     if (PHASE_TRACE(Js::SecondChancePhase, this->func))
     {
-        Output::Print(L"**** Second chance: ");
+        Output::Print(_u("**** Second chance: "));
         lifetime->sym->Dump();
-        Output::Print(L"\t Reg: %S  ", RegNames[reg]);
-        Output::Print(L"  SpillCount:%d  Length:%d   Cost:%d  %S\n",
+        Output::Print(_u("\t Reg: %S  "), RegNames[reg]);
+        Output::Print(_u("  SpillCount:%d  Length:%d   Cost:%d  %S\n"),
             lifetime->useCount, lifetime->end - lifetime->start, this->GetSpillCost(lifetime),
             lifetime->isLiveAcrossCalls ? "LiveAcrossCalls" : "");
     }
@@ -4645,7 +4645,7 @@ void LinearScan::PrintStats() const
     this->func->GetJnFunction()->DumpFullFunctionName();
     Output::SkipToColumn(45);
 
-    Output::Print(L"Instrs:%5d, Lds:%4d, Strs:%4d, WLds: %4d, WStrs: %4d, WRefs: %4d\n",
+    Output::Print(_u("Instrs:%5d, Lds:%4d, Strs:%4d, WLds: %4d, WStrs: %4d, WRefs: %4d\n"),
         instrCount, loadCount, storeCount, wLoadCount, wStoreCount, wLoadCount+wStoreCount);
 }
 

@@ -20,9 +20,6 @@ namespace Js {
         static void __declspec(noreturn) FatalInternalError();
         static void __declspec(noreturn) FatalProjectionError();
 
-        static bool IsTEProcess();
-        static void GenerateDumpAndTerminateProcess(PEXCEPTION_POINTERS exceptInfo);
-
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 #ifdef GENERATE_DUMP
         static bool ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message);

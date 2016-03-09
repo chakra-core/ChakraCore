@@ -41,7 +41,7 @@
   <test>
     <default>
       <files>valuesAndEntries.js</files>
-      <compile-flags>-ES7Builtins -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
   </test>

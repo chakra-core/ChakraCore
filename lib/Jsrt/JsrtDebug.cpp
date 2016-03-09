@@ -260,7 +260,7 @@ void JsrtDebug::ReportExceptionBreak(Js::InterpreterHaltState * haltState)
 
         Js::ResolvedObject resolvedObject;
         resolvedObject.scriptContext = scriptContext;
-        resolvedObject.name = L"{exception}";
+        resolvedObject.name = _u("{exception}");
         resolvedObject.typeId = Js::TypeIds_Error;
         resolvedObject.address = nullptr;
         resolvedObject.obj = scriptContext->GetDebugContext()->GetProbeContainer()->GetExceptionObject();
@@ -597,7 +597,7 @@ ArenaAllocator * JsrtDebug::GetDebugObjectArena()
 {
     if (this->debugObjectArena == nullptr)
     {
-        this->debugObjectArena = HeapNew(ArenaAllocator, L"DebugObjectArena", this->threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
+        this->debugObjectArena = HeapNew(ArenaAllocator, _u("DebugObjectArena"), this->threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
 
         this->threadContext->GetRecycler()->RegisterExternalGuestArena(this->debugObjectArena);
     }

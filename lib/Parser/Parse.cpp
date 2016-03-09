@@ -73,7 +73,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 #else
 Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator *alloc, bool isBackground)
 #endif
-    : m_nodeAllocator(L"Parser", alloc ? alloc : scriptContext->GetThreadContext()->GetPageAllocator(), Parser::OutOfMemory),
+    : m_nodeAllocator(_u("Parser"), alloc ? alloc : scriptContext->GetThreadContext()->GetPageAllocator(), Parser::OutOfMemory),
     // use the GuestArena directly for keeping the RegexPattern* alive during byte code generation
     m_registeredRegexPatterns(scriptContext->GetGuestArena())
 {
@@ -982,7 +982,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
 
         if (!sym)
         {
-            const wchar_t *name = reinterpret_cast<const wchar_t*>(pid->Psz());
+            const char16 *name = reinterpret_cast<const char16*>(pid->Psz());
             int nameLength = pid->Cch();
             SymbolName const symName(name, nameLength);
 
@@ -1005,7 +1005,7 @@ void Parser::RestorePidRefForSym(Symbol *sym)
     ref->SetSym(sym);
 }
 
-IdentPtr Parser::GenerateIdentPtr(__ecount(len) wchar_t* name, long len)
+IdentPtr Parser::GenerateIdentPtr(__ecount(len) char16* name, long len)
 {
     return m_phtbl->PidHashNameLen(name,len);
 }
@@ -1398,13 +1398,34 @@ ParseNodePtr Parser::AddVarDeclNode(IdentPtr pid, ParseNodePtr pnodeFnc)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr pid)
+Js::PropertyId Parser::EnsurePropertyId(IdentPtr pid)
 {
-    ParseNodePtr declNode = CreateBlockScopedDeclNode(pid, knopConstDecl);
+    Js::PropertyId propertyId = pid->GetPropertyId();
+    if (propertyId == Js::Constants::NoProperty)
+    {
+        propertyId = m_scriptContext->GetOrAddPropertyIdTracked(pid->Psz(), pid->Cch());
+        pid->SetPropertyId(propertyId);
+    }
+    return propertyId;
+}
 
-    declNode->sxVar.sym->SetIsModuleExportStorage(true);
+ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
+{
+    ParseNodePtr declNode = CreateBlockScopedDeclNode(localName, knopConstDecl);
+    Symbol* sym = declNode->sxVar.sym;
+    
+    sym->SetIsModuleExportStorage(true);
 
     return declNode;
+}
+
+void Parser::MarkIdentifierReferenceIsModuleExport(IdentPtr localName)
+{
+    PidRefStack* pidRef = this->PushPidRef(localName);
+
+    Assert(pidRef != nullptr);
+
+    pidRef->SetModuleExport();
 }
 
 ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
@@ -1745,6 +1766,11 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
+        }
+        if (ref->IsModuleExport())
+        {
+            Assert(sym->GetIsGlobal());
+            sym->SetIsModuleExportStorage(true);
         }
 
         if (ref->GetScopeId() == blockId)
@@ -2157,6 +2183,8 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryLi
                     }
                     else
                     {
+                        MarkIdentifierReferenceIsModuleExport(identifierName);
+
                         AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
                     }
                 }
@@ -2240,6 +2268,16 @@ ModuleExportEntryList* Parser::EnsureModuleStarExportEntryList()
     return m_currentNodeProg->sxModule.starExportEntries;
 }
 
+void Parser::AddModuleSpecifier(IdentPtr moduleRequest)
+{
+    IdentPtrList* requestedModulesList = EnsureRequestedModulesList();
+
+    if (!requestedModulesList->Has(moduleRequest))
+    {
+        requestedModulesList->Prepend(moduleRequest);
+    }
+}
+
 void Parser::AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode)
 {
     ModuleImportEntry* importEntry = Anew(&m_nodeAllocator, ModuleImportEntry);
@@ -2252,6 +2290,23 @@ void Parser::AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentP
     importEntryList->Prepend(*importEntry);
 }
 
+void Parser::CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName)
+{
+    ModuleExportEntry* findResult = exportEntryList->Find([&](ModuleExportEntry exportEntry)
+    {
+        if (exportName == exportEntry.exportName)
+        {
+            return true;
+        }
+        return false;
+    });
+
+    if (findResult != nullptr)
+    {
+        Error(ERRsyntax);
+    }
+}
+
 void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
 {
     ModuleExportEntry* exportEntry = Anew(&m_nodeAllocator, ModuleExportEntry);
@@ -2260,6 +2315,13 @@ void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentP
     exportEntry->localName = localName;
     exportEntry->exportName = exportName;
     exportEntry->moduleRequest = moduleRequest;
+
+    return AddModuleExportEntry(exportEntryList, exportEntry);
+}
+
+void Parser::AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry)
+{
+    CheckForDuplicateExportEntry(exportEntryList, exportEntry->exportName);
 
     exportEntryList->Prepend(*exportEntry);
 }
@@ -2373,7 +2435,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
 
     if (!IsImportOrExportStatementValidHere())
     {
-        Error(ERRsyntax);
+        Error(ERRInvalidModuleImportOrExport);
     }
 
     // We just parsed an import token. Next valid token is *, {, string constant, or binding identifier.
@@ -2385,7 +2447,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
         // "import ModuleSpecifier;"
         if (buildAST)
         {
-            EnsureRequestedModulesList()->Prepend(m_token.GetStr());
+            AddModuleSpecifier(m_token.GetStr());
         }
 
         // Scan past the module identifier.
@@ -2405,7 +2467,7 @@ ParseNodePtr Parser::ParseImportDeclaration()
         {
             Assert(moduleSpecifier != nullptr);
 
-            EnsureRequestedModulesList()->Prepend(moduleSpecifier);
+            AddModuleSpecifier(moduleSpecifier);
 
             importEntryList.Map([this, moduleSpecifier](ModuleImportEntry& importEntry) {
                 importEntry.moduleRequest = moduleSpecifier;
@@ -2447,6 +2509,146 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     return moduleSpecifier;
 }
 
+template<bool buildAST> 
+ParseNodePtr Parser::ParseDefaultExportClause()
+{
+    Assert(m_token.tk == tkDEFAULT);
+
+    m_pscan->Scan();
+    ParseNodePtr pnode = nullptr;
+    ushort flags = fFncNoFlgs;
+    
+    switch (m_token.tk)
+    {
+    case tkCLASS:
+        {
+            if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+            {
+                goto LDefault;
+            }
+
+            // Before we parse the class itself we need to know if the class has an identifier name.
+            // If it does, we'll treat this class as an ordinary class declaration which will bind 
+            // it to that name. Otherwise the class should parse as a nameless class expression and 
+            // bind only to the export binding.
+            BOOL classHasName = false;
+            RestorePoint parsedClass;
+            m_pscan->Capture(&parsedClass);
+            m_pscan->Scan();
+
+            if (m_token.tk == tkID)
+            {
+                classHasName = true;
+            }
+
+            m_pscan->SeekTo(parsedClass);
+            pnode = ParseClassDecl<buildAST>(classHasName, nullptr, nullptr, nullptr);
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnode != nullptr);
+                Assert(pnode->nop == knopClassDecl);
+
+                pnode->sxClass.SetIsDefaultModuleExport(true);
+            }
+
+            break;
+        }
+    case tkID:
+        // If we parsed an async token, it could either modify the next token (if it is a 
+        // function token) or it could be an identifier (let async = 0; export default async;).
+        // To handle both cases, when we parse an async token we need to keep the parser state
+        // and rewind if the next token is not function.
+        if (wellKnownPropertyPids.async == m_token.GetIdentifier(m_phtbl))
+        {
+            RestorePoint parsedAsync;
+            m_pscan->Capture(&parsedAsync);
+            m_pscan->Scan();
+            if (m_token.tk == tkFUNCTION)
+            {
+                // Token after async is function, consume the async token and continue to parse the 
+                // function as an async function.
+                flags |= fFncAsync;
+                goto LFunction;
+            }
+            // Token after async is not function, no idea what the async token is supposed to mean 
+            // so rewind and let the default case handle it.
+            m_pscan->SeekTo(parsedAsync);
+        }
+        goto LDefault;
+        break;
+    case tkFUNCTION:
+        {
+LFunction:
+            // We just parsed a function token but we need to figure out if the function 
+            // has an identifier name or not before we call the helper. 
+            RestorePoint parsedFunction;
+            m_pscan->Capture(&parsedFunction);
+            m_pscan->Scan();
+
+            if (m_token.tk == tkStar)
+            {
+                // If we saw 'function*' that indicates we are going to parse a generator,
+                // but doesn't tell us if the generator has an identifier or not.
+                // Skip the '*' token for now as it doesn't matter yet.
+                m_pscan->Scan();
+            }
+
+            // We say that if the function has an identifier name, it is a 'normal' declaration
+            // and should create a binding to that identifier as well as one for our default export.
+            if (m_token.tk == tkID)
+            {
+                flags |= fFncDeclaration;
+            }
+            else
+            {
+                flags |= fFncNoName;
+            }
+
+            // Rewind back to the function token and let the helper handle the parsing.
+            m_pscan->SeekTo(parsedFunction);
+            pnode = ParseFncDecl<buildAST>(flags);
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnode != nullptr);
+                Assert(pnode->nop == knopFncDecl);
+
+                pnode->sxFnc.SetIsDefaultModuleExport(true);
+            }
+            break;
+        }
+    default:
+LDefault:
+        {
+            ParseNodePtr pnodeExpression = ParseExpr<buildAST>();
+
+            // Consider: Can we detect this syntax error earlier?
+            if (pnodeExpression && pnodeExpression->nop == knopComma)
+            {
+                Error(ERRsyntax);
+            }
+
+            if (buildAST)
+            {
+                AnalysisAssert(pnodeExpression != nullptr);
+
+                // Mark this node as the default module export. We need to make sure it is put into the correct
+                // module export slot when we emit the node.
+                pnode = CreateNode(knopExportDefault);
+                pnode->sxExportDefault.pnodeExpr = pnodeExpression;
+            }
+            break;
+        }
+    }
+
+    IdentPtr exportName = wellKnownPropertyPids.default;
+    IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
+    AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
+
+    return pnode;
+}
+
 template<bool buildAST>
 ParseNodePtr Parser::ParseExportDeclaration()
 {
@@ -2455,14 +2657,14 @@ ParseNodePtr Parser::ParseExportDeclaration()
 
     if (!IsImportOrExportStatementValidHere())
     {
-        Error(ERRsyntax);
+        Error(ERRInvalidModuleImportOrExport);
     }
 
     ParseNodePtr pnode = nullptr;
     IdentPtr moduleIdentifier = nullptr;
     tokens declarationType;
 
-    // We just parsed an export token. Next valid tokens are *, {, var, let, const, function, class, default.
+    // We just parsed an export token. Next valid tokens are *, {, var, let, const, async, function, class, default.
     m_pscan->Scan();
 
     switch (m_token.tk)
@@ -2477,8 +2679,8 @@ ParseNodePtr Parser::ParseExportDeclaration()
         {
             Assert(moduleIdentifier != nullptr);
 
-            EnsureRequestedModulesList()->Prepend(moduleIdentifier);
-            IdentPtr importName = CreatePid(L"*", sizeof("*") - 1);
+            AddModuleSpecifier(moduleIdentifier);
+            IdentPtr importName = wellKnownPropertyPids._star;
 
             AddModuleExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
         }
@@ -2500,7 +2702,7 @@ ParseNodePtr Parser::ParseExportDeclaration()
             {
                 if (moduleIdentifier != nullptr)
                 {
-                    EnsureRequestedModulesList()->Prepend(moduleIdentifier);
+                    AddModuleSpecifier(moduleIdentifier);
                 }
 
                 exportEntryList.Map([this, moduleIdentifier](ModuleExportEntry& exportEntry) {
@@ -2512,11 +2714,11 @@ ParseNodePtr Parser::ParseExportDeclaration()
                         exportEntry.importName = exportEntry.localName;
                         exportEntry.localName = nullptr;
 
-                        EnsureModuleIndirectExportEntryList()->Prepend(exportEntry);
+                        AddModuleExportEntry(EnsureModuleIndirectExportEntryList(), &exportEntry);
                     }
                     else
                     {
-                        EnsureModuleLocalExportEntryList()->Prepend(exportEntry);
+                        AddModuleExportEntry(EnsureModuleLocalExportEntryList(), &exportEntry);
                     }
                 });
 
@@ -2526,13 +2728,31 @@ ParseNodePtr Parser::ParseExportDeclaration()
         break;
 
     case tkID:
-        if (wellKnownPropertyPids.let == m_token.GetIdentifier(m_phtbl))
         {
-            declarationType = tkLET;
-            goto ParseVarDecl;
-        }
-        goto ErrorToken;
+            IdentPtr pid = m_token.GetIdentifier(m_phtbl);
 
+            if (wellKnownPropertyPids.let == pid)
+            {
+                declarationType = tkLET;
+                goto ParseVarDecl;
+            }
+            if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            {
+                // In module export statements, async token is only valid if it's followed by function. 
+                // We need to check here because ParseStatement would think 'async = 20' is a var decl.
+                RestorePoint parsedAsync;
+                m_pscan->Capture(&parsedAsync);
+                m_pscan->Scan();
+                if (m_token.tk == tkFUNCTION)
+                {
+                    // Token after async is function, rewind to the async token and let ParseStatement handle it.
+                    m_pscan->SeekTo(parsedAsync);
+                    goto ParseFunctionDecl;
+                }
+                // Token after async is not function, it's a syntax error.
+            }
+            goto ErrorToken;
+        }
     case tkVAR:
     case tkLET:
     case tkCONST:
@@ -2562,19 +2782,23 @@ ParseVarDecl:
     case tkFUNCTION:
     case tkCLASS:
         {
+ParseFunctionDecl:
             pnode = ParseStatement<buildAST>();
 
-            // TODO: fix binding for anonymous function/class 
             if (buildAST)
             {
                 IdentPtr localName;
                 if (pnode->nop == knopClassDecl)
                 {
+                    pnode->sxClass.pnodeName->sxVar.sym->SetIsModuleExportStorage(true);
+                    pnode->sxClass.pnodeDeclName->sxVar.sym->SetIsModuleExportStorage(true);
                     localName = pnode->sxClass.pnodeName->sxVar.pid;
                 }
                 else
                 {
                     Assert(pnode->nop == knopFncDecl);
+
+                    pnode->sxFnc.GetFuncSymbol()->SetIsModuleExportStorage(true);
                     localName = pnode->sxFnc.pid;
                 }
                 Assert(localName != nullptr);
@@ -2586,50 +2810,7 @@ ParseVarDecl:
         
     case tkDEFAULT:
         {
-            m_pscan->Scan();
-
-            switch (m_token.tk)
-            {
-                case tkCLASS:
-                case tkFUNCTION:
-                    pnode = ParseTerm<buildAST>(FALSE, nullptr, nullptr, nullptr, nullptr, false, nullptr, nullptr);
-                    break;
-
-                default:
-                    pnode = ParseExpr<buildAST>();
-
-                    // Consider: Can we detect this syntax error earlier?
-                    if (pnode && pnode->nop == knopComma)
-                    {
-                        Error(ERRsyntax);
-                    }
-
-                    break;
-            }
-
-            if (buildAST)
-            {
-                AnalysisAssert(pnode != nullptr);
-
-                IdentPtr exportName = wellKnownPropertyPids.default;
-                IdentPtr localName;
-
-                if (pnode->nop == knopFncDecl && pnode->sxFnc.pid != nullptr)
-                {
-                    localName = pnode->sxFnc.pid;
-                }
-                else if (pnode->nop == knopClassDecl && pnode->sxClass.pnodeName != nullptr)
-                {
-                    localName = pnode->sxClass.pnodeName->sxVar.pid;
-                }
-                else
-                {
-                    // Consider: Is this observable? Can we get away with leaving localName null in this case?
-                    localName = wellKnownPropertyPids._starDefaultStar;
-                }
-
-                AddModuleExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
-            }
+            pnode = ParseDefaultExportClause<buildAST>();
         }
         break;
 
@@ -3827,7 +4008,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, ulong* pNameHintLength
         return nullptr;
     }
 
-    ArenaAllocator tempAllocator(L"MemberNames", m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
+    ArenaAllocator tempAllocator(_u("MemberNames"), m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
 
     bool hasDeferredInitError = false;
 
@@ -4943,10 +5124,10 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
 
                 if (!paramScope->GetCanMergeWithBodyScope())
                 {
-                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"The param and body scope of the function %s cannot be merged\n", pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : L"Anonymous function");
+                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : _u("Anonymous function"));
                     // Add a new symbol reference for each formal in the param scope to the body scope.
                     paramScope->ForEachSymbol([this](Symbol* param) {
-                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, L"Creating a duplicate symbol for the parameter %s in the body scope\n", param->GetPid()->Psz());
+                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("Creating a duplicate symbol for the parameter %s in the body scope\n"), param->GetPid()->Psz());
                         ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
                         Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
                         paramNode->sxVar.sym->SetHasInit(true);
@@ -5159,7 +5340,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnode
 
         PHASE_PRINT_TRACE1(
             Js::SkipNestedDeferredPhase,
-            L"Skipping nested deferred function %d. %s: %d...%d\n",
+            _u("Skipping nested deferred function %d. %s: %d...%d\n"),
             pnodeFnc->sxFnc.functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
 
         m_pscan->SeekTo(stub->restorePoint, m_nextFunctionId);
@@ -5314,7 +5495,7 @@ bool Parser::FastScanFormalsAndBody()
                     Assert(strTmplDepth == 0);
                     if (PHASE_TRACE1(Js::ParallelParsePhase))
                     {
-                        Output::Print(L"Finished fast seek: %d. %s -- %d...%d\n",
+                        Output::Print(_u("Finished fast seek: %d. %s -- %d...%d\n"),
                                       m_currentNodeFunc->sxFnc.functionId,
                                       GetFunctionName(m_currentNodeFunc, m_currentNodeFunc->sxFnc.hint),
                                       ichStart, m_pscan->IchLimTok());
@@ -5481,7 +5662,7 @@ bool Parser::FastScanFormalsAndBody()
                 // Unexpected token.
                 if (PHASE_TRACE1(Js::ParallelParsePhase))
                 {
-                    Output::Print(L"Failed fast seek: %d. %s -- %d...%d\n",
+                    Output::Print(_u("Failed fast seek: %d. %s -- %d...%d\n"),
                                   m_currentNodeFunc->sxFnc.functionId,
                                   GetFunctionName(m_currentNodeFunc, m_currentNodeFunc->sxFnc.hint),
                                   ichStart, m_pscan->IchLimTok());
@@ -6424,7 +6605,7 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
         name = GetFunctionName(pnodeFnc, pNameHint);
         m_functionBody = NULL;  // for nested functions we do not want to get the name of the top deferred function return name;
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_START(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeFnc->sxFnc.functionId, 0, m_parseType, name));
-        OUTPUT_TRACE(Js::DeferParsePhase, L"Parsing function (%s) : %s (%d)\n", GetParseType(), name, pnodeFnc->sxFnc.functionId);
+        OUTPUT_TRACE(Js::DeferParsePhase, _u("Parsing function (%s) : %s (%d)\n"), GetParseType(), name, pnodeFnc->sxFnc.functionId);
     }
 
     JS_ETW(EventWriteJSCRIPT_PARSE_FUNC(GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/FALSE));
@@ -6648,7 +6829,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
     ulong nameHintLength = pHintLength ? *pHintLength : 0;
     ulong nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
 
-    ArenaAllocator tempAllocator(L"ClassMemberNames", m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
+    ArenaAllocator tempAllocator(_u("ClassMemberNames"), m_nodeAllocator.GetPageAllocator(), Parser::OutOfMemory);
 
     ParseNodePtr pnodeClass = nullptr;
     if (buildAST)
@@ -6689,7 +6870,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         Error(ERRnoLcurly);
     }
 
-    OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Parsing class (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
+    OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Parsing class (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
 
     ParseNodePtr pnodeDeclName = nullptr;
     if (isDeclaration)
@@ -6954,7 +7135,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
 
     if (!hasConstructor)
     {
-        OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, L"Generating constructor (%s) : %s\n", GetParseType(), name ? name->Psz() : L"anonymous class");
+        OUTPUT_TRACE_DEBUGONLY(Js::ES6VerboseFlag, _u("Generating constructor (%s) : %s\n"), GetParseType(), name ? name->Psz() : _u("anonymous class"));
 
         RestorePoint endClass;
         m_pscan->Capture(&endClass);
@@ -6997,6 +7178,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, ulo
         pnodeClass->sxClass.pnodeExtends = pnodeExtends;
         pnodeClass->sxClass.pnodeMembers = pnodeMembers;
         pnodeClass->sxClass.pnodeStaticMembers = pnodeStaticMembers;
+        pnodeClass->sxClass.isDefaultModuleExport = false;
     }
     FinishParseBlock(pnodeBlock);
 
@@ -7046,9 +7228,9 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
     OUTPUT_TRACE_DEBUGONLY(
         Js::StringTemplateParsePhase,
-        L"Starting to parse a string template (%s)...\n\tis tagged = %s\n",
+        _u("Starting to parse a string template (%s)...\n\tis tagged = %s\n"),
         GetParseType(),
-        isTagged ? L"true" : L"false (Raw and cooked strings will not differ!)");
+        isTagged ? _u("true") : _u("false (Raw and cooked strings will not differ!)"));
 
     // String template grammar
     // `...`   Simple string template
@@ -7102,7 +7284,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
 
             OUTPUT_TRACE_DEBUGONLY(
                 Js::StringTemplateParsePhase,
-                L"Parsed string constant: \n\tcooked = \"%s\" \n\traw = \"%s\" \n\tdiffer = %d\n",
+                _u("Parsed string constant: \n\tcooked = \"%s\" \n\traw = \"%s\" \n\tdiffer = %d\n"),
                 stringLiteral->sxPid.pid->Psz(),
                 stringLiteralRaw->sxPid.pid->Psz(),
                 stringLiteral->sxPid.pid->Psz() == stringLiteralRaw->sxPid.pid->Psz() ? 0 : 1);
@@ -7157,7 +7339,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
                 Error(ERRsyntax);
             }
 
-            OUTPUT_TRACE_DEBUGONLY(Js::StringTemplateParsePhase, L"Parsed expression\n");
+            OUTPUT_TRACE_DEBUGONLY(Js::StringTemplateParsePhase, _u("Parsed expression\n"));
             }
             break;
         default:
@@ -7402,12 +7584,12 @@ LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pN
     LPCOLESTR rightNode = nullptr;
     if (propertyString == nullptr)
     {
-        propertyString = L"";
+        propertyString = _u("");
     }
 
     if (op != knopInt && op != knopFlt && op != knopName && op != knopStr)
     {
-        rightNode = L"";
+        rightNode = _u("");
     }
     else if (op == knopStr)
     {
@@ -7472,7 +7654,7 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR ri
     Assert(leftLen  != 0 || wrapInBrackets);
     Assert(rightLen != 0 || wrapInBrackets);
 
-    bool ignoreDot = rightStr[0] == L'[' && !wrapInBrackets;//if we wrap in brackets it can be a string literal which can have brackets at the first char
+    bool ignoreDot = rightStr[0] == _u('[') && !wrapInBrackets;//if we wrap in brackets it can be a string literal which can have brackets at the first char
     ulong totalLength = leftLen + rightLen + ((ignoreDot) ? 1 : 2); // 1 (for dot or [) + 1 (for null termination)
 
     if (wrapInBrackets)
@@ -7488,22 +7670,22 @@ LPCOLESTR Parser::AppendNameHints(LPCOLESTR leftStr, ulong leftLen, LPCOLESTR ri
 
     if (ignoreAddDotWithSpace)
     {
-        finalName[leftLen++] = (OLECHAR)L' ';
+        finalName[leftLen++] = (OLECHAR)_u(' ');
     }
     // mutually exclusive from ignoreAddDotWithSpace which is used for getters/setters
 
     else if (wrapInBrackets)
     {
-        finalName[leftLen++] = (OLECHAR)L'[';
-        finalName[totalLength-2] = (OLECHAR)L']';
+        finalName[leftLen++] = (OLECHAR)_u('[');
+        finalName[totalLength-2] = (OLECHAR)_u(']');
     }
     else if (!ignoreDot)
     {
-        finalName[leftLen++] = (OLECHAR)L'.';
+        finalName[leftLen++] = (OLECHAR)_u('.');
     }
     //ignore case falls through
     js_wmemcpy_s(finalName + leftLen, rightLen, rightStr, rightLen);
-    finalName[totalLength-1] = (OLECHAR)L'\0';
+    finalName[totalLength-1] = (OLECHAR)_u('\0');
 
     if (pNameLength != nullptr)
     {
@@ -7551,7 +7733,7 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, IdentPtr right, ulong *pNameLen
     }
 
     ulong leftLen = 0;
-    LPCOLESTR leftStr = L"";
+    LPCOLESTR leftStr = _u("");
 
     if (left != nullptr) // if wrapInBrackets is true
     {
@@ -7586,7 +7768,7 @@ LPCOLESTR Parser::AppendNameHints(IdentPtr left, LPCOLESTR right, ulong *pNameLe
         return right;
     }
 
-    LPCOLESTR leftStr = L"";
+    LPCOLESTR leftStr = _u("");
     ulong leftLen = 0;
 
     if (left != nullptr) // if wrapInBrackets is true
@@ -8790,7 +8972,7 @@ ParseNodePtr Parser::ParseCatch()
                 pnodeParam->sxPid.symRef = ref->GetSymRef();
                 pnode->sxCatch.pnodeParam = pnodeParam;
 
-                const wchar_t *name = reinterpret_cast<const wchar_t*>(pidCatch->Psz());
+                const char16 *name = reinterpret_cast<const char16*>(pidCatch->Psz());
                 int nameLength = pidCatch->Cch();
                 SymbolName const symName(name, nameLength);
                 Symbol *sym = Anew(&m_nodeAllocator, Symbol, symName, pnodeParam, STVariable);
@@ -9981,7 +10163,7 @@ LNeedTerminator:
             pCatch->sxCatch.pnodeNext = nullptr;
 
             // create a fake name for the catch var.
-            WCHAR *uniqueNameStr = L"__ehobj";
+            WCHAR *uniqueNameStr = _u("__ehobj");
             IdentPtr uniqueName = m_phtbl->PidHashNameLen(uniqueNameStr, static_cast<long>(wcslen(uniqueNameStr)));
 
             pCatch->sxCatch.pnodeParam = CreateNameNode(uniqueName);
@@ -10351,14 +10533,14 @@ void Parser::InitPids()
     wellKnownPropertyPids.let = m_phtbl->PidHashNameLen(g_ssym_let.sz, g_ssym_let.cch);
     wellKnownPropertyPids.constructor = m_phtbl->PidHashNameLen(g_ssym_constructor.sz, g_ssym_constructor.cch);
     wellKnownPropertyPids.prototype = m_phtbl->PidHashNameLen(g_ssym_prototype.sz, g_ssym_prototype.cch);
-    wellKnownPropertyPids.__proto__ = m_phtbl->PidHashNameLen(L"__proto__", sizeof("__proto__") - 1);
-    wellKnownPropertyPids.of = m_phtbl->PidHashNameLen(L"of", sizeof("of") - 1);
-    wellKnownPropertyPids.target = m_phtbl->PidHashNameLen(L"target", sizeof("target") - 1);
-    wellKnownPropertyPids.as = m_phtbl->PidHashNameLen(L"as", sizeof("as") - 1);
-    wellKnownPropertyPids.from = m_phtbl->PidHashNameLen(L"from", sizeof("from") - 1);
-    wellKnownPropertyPids.default = m_phtbl->PidHashNameLen(L"default", sizeof("default") - 1);
-    wellKnownPropertyPids._starDefaultStar = m_phtbl->PidHashNameLen(L"*default*", sizeof("*default*") - 1);
-    wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(L"*", sizeof("*") - 1);
+    wellKnownPropertyPids.__proto__ = m_phtbl->PidHashNameLen(_u("__proto__"), sizeof("__proto__") - 1);
+    wellKnownPropertyPids.of = m_phtbl->PidHashNameLen(_u("of"), sizeof("of") - 1);
+    wellKnownPropertyPids.target = m_phtbl->PidHashNameLen(_u("target"), sizeof("target") - 1);
+    wellKnownPropertyPids.as = m_phtbl->PidHashNameLen(_u("as"), sizeof("as") - 1);
+    wellKnownPropertyPids.from = m_phtbl->PidHashNameLen(_u("from"), sizeof("from") - 1);
+    wellKnownPropertyPids.default = m_phtbl->PidHashNameLen(_u("default"), sizeof("default") - 1);
+    wellKnownPropertyPids._starDefaultStar = m_phtbl->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
+    wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
 }
 
 void Parser::RestoreScopeInfo(Js::FunctionBody* functionBody)
@@ -10525,7 +10707,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     if(m_parseType != ParseType_Deferred)
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_START(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), *m_nextFunctionId, 0, m_parseType, Js::Constants::GlobalFunction));
-        OUTPUT_TRACE(Js::DeferParsePhase, L"Parsing function (%s) : %s (%d)\n", GetParseType(), Js::Constants::GlobalFunction, *m_nextFunctionId);
+        OUTPUT_TRACE(Js::DeferParsePhase, _u("Parsing function (%s) : %s (%d)\n"), GetParseType(), Js::Constants::GlobalFunction, *m_nextFunctionId);
     }
 
     // Give the scanner the source and get the first token
@@ -10787,7 +10969,7 @@ bool Parser::CheckStrictModeStrPid(IdentPtr pid)
     return pid != nullptr &&
         pid->Cch() == 10 &&
         !m_pscan->IsEscapeOnLastTkStrCon() &&
-        wcsncmp(pid->Psz(), L"use strict", 10) == 0;
+        wcsncmp(pid->Psz(), _u("use strict"), 10) == 0;
 }
 
 bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
@@ -10802,13 +10984,13 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
         AutoSystemInfo::Data.SSE2Available() &&
         pid->Cch() == 7 &&
         !m_pscan->IsEscapeOnLastTkStrCon() &&
-        wcsncmp(pid->Psz(), L"use asm", 10) == 0);
+        wcsncmp(pid->Psz(), _u("use asm"), 10) == 0);
 
     if (isAsmCandidate && m_scriptContext->IsScriptContextInDebugMode())
     {
         // We would like to report this to debugger - they may choose to disable debugging.
         // TODO : localization of the string?
-        m_scriptContext->RaiseMessageToDebugger(DEIT_ASMJS_IN_DEBUGGING, L"AsmJs initialization error - AsmJs disabled due to script debugger", !m_sourceContextInfo->IsDynamic() ? m_sourceContextInfo->url : nullptr);
+        m_scriptContext->RaiseMessageToDebugger(DEIT_ASMJS_IN_DEBUGGING, _u("AsmJs initialization error - AsmJs disabled due to script debugger"), !m_sourceContextInfo->IsDynamic() ? m_sourceContextInfo->url : nullptr);
         return false;
     }
 
@@ -11506,9 +11688,9 @@ inline bool Parser::IsNaNOrInfinityLiteral(LPCOLESTR str)
 {
     // Note: wcscmp crashes when one of the parameters is NULL.
     return str &&
-           (wcscmp(L"NaN", str) == 0 ||
-           wcscmp(L"Infinity", str) == 0 ||
-           CheckForNegativeInfinity && wcscmp(L"-Infinity", str) == 0);
+           (wcscmp(_u("NaN"), str) == 0 ||
+           wcscmp(_u("Infinity"), str) == 0 ||
+           CheckForNegativeInfinity && wcscmp(_u("-Infinity"), str) == 0);
 }
 
 template <bool buildAST>
@@ -12124,7 +12306,7 @@ void PrintFormalsWIndent(ParseNode *pnode, int indentAmt);
 
 void Indent(int indentAmt) {
     for (int i=0;i<indentAmt;i++) {
-        Output::Print(L" ");
+        Output::Print(_u(" "));
     }
 }
 
@@ -12133,19 +12315,19 @@ void PrintBlockType(PnodeBlockType type)
     switch (type)
     {
     case Global:
-        Output::Print(L"(Global)");
+        Output::Print(_u("(Global)"));
         break;
     case Function:
-        Output::Print(L"(Function)");
+        Output::Print(_u("(Function)"));
         break;
     case Regular:
-        Output::Print(L"(Regular)");
+        Output::Print(_u("(Regular)"));
         break;
     case Parameter:
-        Output::Print(L"(Parameter)");
+        Output::Print(_u("(Parameter)"));
         break;
     default:
-        Output::Print(L"(unknown blocktype)");
+        Output::Print(_u("(unknown blocktype)"));
         break;
     }
 }
@@ -12166,33 +12348,33 @@ void PrintScopesWIndent(ParseNode *pnode,int indentAmt) {
     case knopForOf: scope = pnode->sxForInOrForOf.pnodeBlock; firstOnly = true; break;
     }
     if (scope) {
-        Output::Print(L"[%4d, %4d): ", scope->ichMin, scope->ichLim);
+        Output::Print(_u("[%4d, %4d): "), scope->ichMin, scope->ichLim);
         Indent(indentAmt);
-        Output::Print(L"Scopes: ");
+        Output::Print(_u("Scopes: "));
         ParseNode *next = nullptr;
         ParseNode *syntheticBlock = nullptr;
         while (scope) {
             switch (scope->nop) {
-            case knopFncDecl: Output::Print(L"knopFncDecl"); next = scope->sxFnc.pnodeNext; break;
-            case knopBlock: Output::Print(L"knopBlock"); PrintBlockType(scope->sxBlock.blockType); next = scope->sxBlock.pnodeNext; break;
-            case knopCatch: Output::Print(L"knopCatch"); next = scope->sxCatch.pnodeNext; break;
-            case knopWith: Output::Print(L"knopWith"); next = scope->sxWith.pnodeNext; break;
-            default: Output::Print(L"unknown"); break;
+            case knopFncDecl: Output::Print(_u("knopFncDecl")); next = scope->sxFnc.pnodeNext; break;
+            case knopBlock: Output::Print(_u("knopBlock")); PrintBlockType(scope->sxBlock.blockType); next = scope->sxBlock.pnodeNext; break;
+            case knopCatch: Output::Print(_u("knopCatch")); next = scope->sxCatch.pnodeNext; break;
+            case knopWith: Output::Print(_u("knopWith")); next = scope->sxWith.pnodeNext; break;
+            default: Output::Print(_u("unknown")); break;
             }
             if (firstOnly) {
                 next = nullptr;
                 syntheticBlock = scope;
             }
             if (scope->grfpn & fpnSyntheticNode) {
-                Output::Print(L" synthetic");
+                Output::Print(_u(" synthetic"));
                 if (scope->nop == knopBlock)
                     syntheticBlock = scope;
             }
-            Output::Print(L" (%d-%d)", scope->ichMin, scope->ichLim);
-            if (next) Output::Print(L", ");
+            Output::Print(_u(" (%d-%d)"), scope->ichMin, scope->ichLim);
+            if (next) Output::Print(_u(", "));
             scope = next;
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         if (syntheticBlock || firstOnly) {
             PrintScopesWIndent(syntheticBlock, indentAmt + INDENT_SIZE);
         }
@@ -12203,197 +12385,197 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
     if (pnode==NULL)
         return;
 
-    Output::Print(L"[%4d, %4d): ", pnode->ichMin, pnode->ichLim);
+    Output::Print(_u("[%4d, %4d): "), pnode->ichMin, pnode->ichLim);
     switch (pnode->nop) {
         //PTNODE(knopName       , "name"        ,None    ,Pid  ,fnopLeaf)
   case knopName:
       Indent(indentAmt);
       if (pnode->sxPid.pid!=NULL) {
-        Output::Print(L"id: %s\n",pnode->sxPid.pid->Psz());
+        Output::Print(_u("id: %s\n"),pnode->sxPid.pid->Psz());
       }
       else {
-        Output::Print(L"name node\n");
+        Output::Print(_u("name node\n"));
       }
       break;
       //PTNODE(knopInt        , "int const"    ,None    ,Int  ,fnopLeaf|fnopConst)
   case knopInt:
       Indent(indentAmt);
-      Output::Print(L"%d\n",pnode->sxInt.lw);
+      Output::Print(_u("%d\n"),pnode->sxInt.lw);
       break;
       //PTNODE(knopFlt        , "flt const"    ,None    ,Flt  ,fnopLeaf|fnopConst)
   case knopFlt:
       Indent(indentAmt);
-      Output::Print(L"%lf\n",pnode->sxFlt.dbl);
+      Output::Print(_u("%lf\n"),pnode->sxFlt.dbl);
       break;
       //PTNODE(knopStr        , "str const"    ,None    ,Pid  ,fnopLeaf|fnopConst)
   case knopStr:
       Indent(indentAmt);
-      Output::Print(L"\"%s\"\n",pnode->sxPid.pid->Psz());
+      Output::Print(_u("\"%s\"\n"),pnode->sxPid.pid->Psz());
       break;
       //PTNODE(knopRegExp     , "reg expr"    ,None    ,Pid  ,fnopLeaf|fnopConst)
   case knopRegExp:
       Indent(indentAmt);
-      Output::Print(L"/%x/\n",pnode->sxPid.regexPattern);
+      Output::Print(_u("/%x/\n"),pnode->sxPid.regexPattern);
       break;
       //PTNODE(knopThis       , "this"        ,None    ,None ,fnopLeaf)
   case knopThis:
       Indent(indentAmt);
-      Output::Print(L"this\n");
+      Output::Print(_u("this\n"));
       break;
       //PTNODE(knopSuper      , "super"       ,None    ,None ,fnopLeaf)
   case knopSuper:
       Indent(indentAmt);
-      Output::Print(L"super\n");
+      Output::Print(_u("super\n"));
       break;
       //PTNODE(knopNewTarget  , "new.target"  ,None    ,None ,fnopLeaf)
   case knopNewTarget:
       Indent(indentAmt);
-      Output::Print(L"new.target\n");
+      Output::Print(_u("new.target\n"));
       break;
       //PTNODE(knopNull       , "null"        ,Null    ,None ,fnopLeaf)
   case knopNull:
       Indent(indentAmt);
-      Output::Print(L"null\n");
+      Output::Print(_u("null\n"));
       break;
       //PTNODE(knopFalse      , "false"        ,False   ,None ,fnopLeaf)
   case knopFalse:
       Indent(indentAmt);
-      Output::Print(L"false\n");
+      Output::Print(_u("false\n"));
       break;
       //PTNODE(knopTrue       , "true"        ,True    ,None ,fnopLeaf)
   case knopTrue:
       Indent(indentAmt);
-      Output::Print(L"true\n");
+      Output::Print(_u("true\n"));
       break;
       //PTNODE(knopEmpty      , "empty"        ,Empty   ,None ,fnopLeaf)
   case knopEmpty:
       Indent(indentAmt);
-      Output::Print(L"empty\n");
+      Output::Print(_u("empty\n"));
       break;
       // Unary operators.
       //PTNODE(knopNot        , "~"            ,BitNot  ,Uni  ,fnopUni)
   case knopNot:
       Indent(indentAmt);
-      Output::Print(L"~\n");
+      Output::Print(_u("~\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopNeg        , "unary -"    ,Neg     ,Uni  ,fnopUni)
   case knopNeg:
       Indent(indentAmt);
-      Output::Print(L"U-\n");
+      Output::Print(_u("U-\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopPos        , "unary +"    ,Pos     ,Uni  ,fnopUni)
   case knopPos:
       Indent(indentAmt);
-      Output::Print(L"U+\n");
+      Output::Print(_u("U+\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLogNot     , "!"            ,LogNot  ,Uni  ,fnopUni)
   case knopLogNot:
       Indent(indentAmt);
-      Output::Print(L"!\n");
+      Output::Print(_u("!\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopEllipsis     , "..."       ,Spread  ,Uni    , fnopUni)
   case knopEllipsis:
       Indent(indentAmt);
-      Output::Print(L"...<expr>\n");
+      Output::Print(_u("...<expr>\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopIncPost    , "++ post"    ,Inc     ,Uni  ,fnopUni|fnopAsg)
   case knopIncPost:
       Indent(indentAmt);
-      Output::Print(L"<expr>++\n");
+      Output::Print(_u("<expr>++\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDecPost    , "-- post"    ,Dec     ,Uni  ,fnopUni|fnopAsg)
   case knopDecPost:
       Indent(indentAmt);
-      Output::Print(L"<expr>--\n");
+      Output::Print(_u("<expr>--\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopIncPre     , "++ pre"    ,Inc     ,Uni  ,fnopUni|fnopAsg)
   case knopIncPre:
       Indent(indentAmt);
-      Output::Print(L"++<expr>\n");
+      Output::Print(_u("++<expr>\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDecPre     , "-- pre"    ,Dec     ,Uni  ,fnopUni|fnopAsg)
   case knopDecPre:
       Indent(indentAmt);
-      Output::Print(L"--<expr>\n");
+      Output::Print(_u("--<expr>\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopTypeof     , "typeof"    ,None    ,Uni  ,fnopUni)
   case knopTypeof:
       Indent(indentAmt);
-      Output::Print(L"typeof\n");
+      Output::Print(_u("typeof\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopVoid       , "void"        ,Void    ,Uni  ,fnopUni)
   case knopVoid:
       Indent(indentAmt);
-      Output::Print(L"void\n");
+      Output::Print(_u("void\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDelete     , "delete"    ,None    ,Uni  ,fnopUni)
   case knopDelete:
       Indent(indentAmt);
-      Output::Print(L"delete\n");
+      Output::Print(_u("delete\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopArray      , "arr cnst"    ,None    ,Uni  ,fnopUni)
 
   case knopArrayPattern:
       Indent(indentAmt);
-      Output::Print(L"Array Pattern\n");
+      Output::Print(_u("Array Pattern\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
 
   case knopObjectPattern:
       Indent(indentAmt);
-      Output::Print(L"Object Pattern\n");
+      Output::Print(_u("Object Pattern\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
 
   case knopArray:
       Indent(indentAmt);
-      Output::Print(L"Array Literal\n");
+      Output::Print(_u("Array Literal\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopObject     , "obj cnst"    ,None    ,Uni  ,fnopUni)
   case knopObject:
       Indent(indentAmt);
-      Output::Print(L"Object Literal\n");
+      Output::Print(_u("Object Literal\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       // Binary and Ternary Operators
       //PTNODE(knopAdd        , "+"            ,Add     ,Bin  ,fnopBin)
   case knopAdd:
       Indent(indentAmt);
-      Output::Print(L"+\n");
+      Output::Print(_u("+\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopSub        , "-"            ,Sub     ,Bin  ,fnopBin)
   case knopSub:
       Indent(indentAmt);
-      Output::Print(L"-\n");
+      Output::Print(_u("-\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopMul        , "*"            ,Mul     ,Bin  ,fnopBin)
   case knopMul:
       Indent(indentAmt);
-      Output::Print(L"*\n");
+      Output::Print(_u("*\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDiv        , "/"            ,Div     ,Bin  ,fnopBin)
   case knopExpo:
       Indent(indentAmt);
-      Output::Print(L"**\n");
+      Output::Print(_u("**\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2, indentAmt + INDENT_SIZE);
       break;
@@ -12401,189 +12583,189 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
 
   case knopDiv:
       Indent(indentAmt);
-      Output::Print(L"/\n");
+      Output::Print(_u("/\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopMod        , "%"            ,Mod     ,Bin  ,fnopBin)
   case knopMod:
       Indent(indentAmt);
-      Output::Print(L"%\n");
+      Output::Print(_u("%\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopOr         , "|"            ,BitOr   ,Bin  ,fnopBin)
   case knopOr:
       Indent(indentAmt);
-      Output::Print(L"|\n");
+      Output::Print(_u("|\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopXor        , "^"            ,BitXor  ,Bin  ,fnopBin)
   case knopXor:
       Indent(indentAmt);
-      Output::Print(L"^\n");
+      Output::Print(_u("^\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAnd        , "&"            ,BitAnd  ,Bin  ,fnopBin)
   case knopAnd:
       Indent(indentAmt);
-      Output::Print(L"&\n");
+      Output::Print(_u("&\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopEq         , "=="        ,EQ      ,Bin  ,fnopBin|fnopRel)
   case knopEq:
       Indent(indentAmt);
-      Output::Print(L"==\n");
+      Output::Print(_u("==\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopNe         , "!="        ,NE      ,Bin  ,fnopBin|fnopRel)
   case knopNe:
       Indent(indentAmt);
-      Output::Print(L"!=\n");
+      Output::Print(_u("!=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLt         , "<"            ,LT      ,Bin  ,fnopBin|fnopRel)
   case knopLt:
       Indent(indentAmt);
-      Output::Print(L"<\n");
+      Output::Print(_u("<\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLe         , "<="        ,LE      ,Bin  ,fnopBin|fnopRel)
   case knopLe:
       Indent(indentAmt);
-      Output::Print(L"<=\n");
+      Output::Print(_u("<=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopGe         , ">="        ,GE      ,Bin  ,fnopBin|fnopRel)
   case knopGe:
       Indent(indentAmt);
-      Output::Print(L">=\n");
+      Output::Print(_u(">=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopGt         , ">"            ,GT      ,Bin  ,fnopBin|fnopRel)
   case knopGt:
       Indent(indentAmt);
-      Output::Print(L">\n");
+      Output::Print(_u(">\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopCall       , "()"        ,None    ,Bin  ,fnopBin)
   case knopCall:
       Indent(indentAmt);
-      Output::Print(L"Call\n");
+      Output::Print(_u("Call\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeListWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDot        , "."            ,None    ,Bin  ,fnopBin)
   case knopDot:
       Indent(indentAmt);
-      Output::Print(L".\n");
+      Output::Print(_u(".\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsg        , "="            ,None    ,Bin  ,fnopBin|fnopAsg)
   case knopAsg:
       Indent(indentAmt);
-      Output::Print(L"=\n");
+      Output::Print(_u("=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopInstOf     , "instanceof",InstOf  ,Bin  ,fnopBin|fnopRel)
   case knopInstOf:
       Indent(indentAmt);
-      Output::Print(L"instanceof\n");
+      Output::Print(_u("instanceof\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopIn         , "in"        ,In      ,Bin  ,fnopBin|fnopRel)
   case knopIn:
       Indent(indentAmt);
-      Output::Print(L"in\n");
+      Output::Print(_u("in\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopEqv        , "==="        ,Eqv     ,Bin  ,fnopBin|fnopRel)
   case knopEqv:
       Indent(indentAmt);
-      Output::Print(L"===\n");
+      Output::Print(_u("===\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopNEqv       , "!=="        ,NEqv    ,Bin  ,fnopBin|fnopRel)
   case knopNEqv:
       Indent(indentAmt);
-      Output::Print(L"!==\n");
+      Output::Print(_u("!==\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopComma      , ","            ,None    ,Bin  ,fnopBin)
   case knopComma:
       Indent(indentAmt);
-      Output::Print(L",\n");
+      Output::Print(_u(",\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLogOr      , "||"        ,None    ,Bin  ,fnopBin)
   case knopLogOr:
       Indent(indentAmt);
-      Output::Print(L"||\n");
+      Output::Print(_u("||\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLogAnd     , "&&"        ,None    ,Bin  ,fnopBin)
   case knopLogAnd:
       Indent(indentAmt);
-      Output::Print(L"&&\n");
+      Output::Print(_u("&&\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopLsh        , "<<"        ,Lsh     ,Bin  ,fnopBin)
   case knopLsh:
       Indent(indentAmt);
-      Output::Print(L"<<\n");
+      Output::Print(_u("<<\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopRsh        , ">>"        ,Rsh     ,Bin  ,fnopBin)
   case knopRsh:
       Indent(indentAmt);
-      Output::Print(L">>\n");
+      Output::Print(_u(">>\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopRs2        , ">>>"        ,Rs2     ,Bin  ,fnopBin)
   case knopRs2:
       Indent(indentAmt);
-      Output::Print(L">>>\n");
+      Output::Print(_u(">>>\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopNew        , "new"        ,None    ,Bin  ,fnopBin)
   case knopNew:
       Indent(indentAmt);
-      Output::Print(L"new\n");
+      Output::Print(_u("new\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeListWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopIndex      , "[]"        ,None    ,Bin  ,fnopBin)
   case knopIndex:
       Indent(indentAmt);
-      Output::Print(L"[]\n");
+      Output::Print(_u("[]\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeListWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
   case knopQmark:
       Indent(indentAmt);
-      Output::Print(L"?:\n");
+      Output::Print(_u("?:\n"));
       PrintPnodeWIndent(pnode->sxTri.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxTri.pnode2,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxTri.pnode3,indentAmt+INDENT_SIZE);
@@ -12591,28 +12773,28 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopAsgAdd     , "+="        ,Add     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgAdd:
       Indent(indentAmt);
-      Output::Print(L"+=\n");
+      Output::Print(_u("+=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgSub     , "-="        ,Sub     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgSub:
       Indent(indentAmt);
-      Output::Print(L"-=\n");
+      Output::Print(_u("-=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgMul     , "*="        ,Mul     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgMul:
       Indent(indentAmt);
-      Output::Print(L"*=\n");
+      Output::Print(_u("*=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgDiv     , "/="        ,Div     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgExpo:
       Indent(indentAmt);
-      Output::Print(L"**=\n");
+      Output::Print(_u("**=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1, indentAmt + INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2, indentAmt + INDENT_SIZE);
       break;
@@ -12620,63 +12802,63 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
 
   case knopAsgDiv:
       Indent(indentAmt);
-      Output::Print(L"/=\n");
+      Output::Print(_u("/=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgMod     , "%="        ,Mod     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgMod:
       Indent(indentAmt);
-      Output::Print(L"%=\n");
+      Output::Print(_u("%=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgAnd     , "&="        ,BitAnd  ,Bin  ,fnopBin|fnopAsg)
   case knopAsgAnd:
       Indent(indentAmt);
-      Output::Print(L"&=\n");
+      Output::Print(_u("&=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgXor     , "^="        ,BitXor  ,Bin  ,fnopBin|fnopAsg)
   case knopAsgXor:
       Indent(indentAmt);
-      Output::Print(L"^=\n");
+      Output::Print(_u("^=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgOr      , "|="        ,BitOr   ,Bin  ,fnopBin|fnopAsg)
   case knopAsgOr:
       Indent(indentAmt);
-      Output::Print(L"|=\n");
+      Output::Print(_u("|=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgLsh     , "<<="        ,Lsh     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgLsh:
       Indent(indentAmt);
-      Output::Print(L"<<=\n");
+      Output::Print(_u("<<=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgRsh     , ">>="        ,Rsh     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgRsh:
       Indent(indentAmt);
-      Output::Print(L">>=\n");
+      Output::Print(_u(">>=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopAsgRs2     , ">>>="        ,Rs2     ,Bin  ,fnopBin|fnopAsg)
   case knopAsgRs2:
       Indent(indentAmt);
-      Output::Print(L">>>=\n");
+      Output::Print(_u(">>>=\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
 
   case knopComputedName:
       Indent(indentAmt);
-      Output::Print(L"ComputedProperty\n");
+      Output::Print(_u("ComputedProperty\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
 
@@ -12685,7 +12867,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
   case knopMemberShort:
   case knopObjectPatternMember:
       Indent(indentAmt);
-      Output::Print(L":\n");
+      Output::Print(_u(":\n"));
       PrintPnodeWIndent(pnode->sxBin.pnode1,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxBin.pnode2,indentAmt+INDENT_SIZE);
       break;
@@ -12693,25 +12875,25 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopList       , "<list>"    ,None    ,Bin  ,fnopNone)
   case knopList:
       Indent(indentAmt);
-      Output::Print(L"List\n");
+      Output::Print(_u("List\n"));
       PrintPnodeListWIndent(pnode,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopVarDecl    , "varDcl"    ,None    ,Var  ,fnopNone)
   case knopVarDecl:
       Indent(indentAmt);
-      Output::Print(L"var %s\n",pnode->sxVar.pid->Psz());
+      Output::Print(_u("var %s\n"),pnode->sxVar.pid->Psz());
       if (pnode->sxVar.pnodeInit!=NULL)
           PrintPnodeWIndent(pnode->sxVar.pnodeInit,indentAmt+INDENT_SIZE);
       break;
   case knopConstDecl:
       Indent(indentAmt);
-      Output::Print(L"const %s\n",pnode->sxVar.pid->Psz());
+      Output::Print(_u("const %s\n"),pnode->sxVar.pid->Psz());
       if (pnode->sxVar.pnodeInit!=NULL)
           PrintPnodeWIndent(pnode->sxVar.pnodeInit,indentAmt+INDENT_SIZE);
       break;
   case knopLetDecl:
       Indent(indentAmt);
-      Output::Print(L"let %s\n",pnode->sxVar.pid->Psz());
+      Output::Print(_u("let %s\n"),pnode->sxVar.pid->Psz());
       if (pnode->sxVar.pnodeInit!=NULL)
           PrintPnodeWIndent(pnode->sxVar.pnodeInit,indentAmt+INDENT_SIZE);
       break;
@@ -12720,12 +12902,12 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       Indent(indentAmt);
       if (pnode->sxFnc.pid!=NULL)
       {
-          Output::Print(L"fn decl %d nested %d name %s (%d-%d)\n",pnode->sxFnc.IsDeclaration(),pnode->sxFnc.IsNested(),
+          Output::Print(_u("fn decl %d nested %d name %s (%d-%d)\n"),pnode->sxFnc.IsDeclaration(),pnode->sxFnc.IsNested(),
               pnode->sxFnc.pid->Psz(), pnode->ichMin, pnode->ichLim);
       }
       else
       {
-          Output::Print(L"fn decl %d nested %d anonymous (%d-%d)\n",pnode->sxFnc.IsDeclaration(),pnode->sxFnc.IsNested(),pnode->ichMin,pnode->ichLim);
+          Output::Print(_u("fn decl %d nested %d anonymous (%d-%d)\n"),pnode->sxFnc.IsDeclaration(),pnode->sxFnc.IsNested(),pnode->ichMin,pnode->ichLim);
       }
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintFormalsWIndent(pnode->sxFnc.pnodeParams, indentAmt + INDENT_SIZE);
@@ -12735,24 +12917,24 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopProg       , "program"    ,None    ,Fnc  ,fnopNone)
   case knopProg:
       Indent(indentAmt);
-      Output::Print(L"program\n");
+      Output::Print(_u("program\n"));
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeListWIndent(pnode->sxFnc.pnodeBody,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopEndCode    , "<endcode>"    ,None    ,None ,fnopNone)
   case knopEndCode:
       Indent(indentAmt);
-      Output::Print(L"<endcode>\n");
+      Output::Print(_u("<endcode>\n"));
       break;
       //PTNODE(knopDebugger   , "debugger"    ,None    ,None ,fnopNone)
   case knopDebugger:
       Indent(indentAmt);
-      Output::Print(L"<debugger>\n");
+      Output::Print(_u("<debugger>\n"));
       break;
       //PTNODE(knopFor        , "for"        ,None    ,For  ,fnopBreak|fnopContinue)
   case knopFor:
       Indent(indentAmt);
-      Output::Print(L"for\n");
+      Output::Print(_u("for\n"));
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFor.pnodeInit,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxFor.pnodeCond,indentAmt+INDENT_SIZE);
@@ -12762,7 +12944,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopIf         , "if"        ,None    ,If   ,fnopNone)
   case knopIf:
       Indent(indentAmt);
-      Output::Print(L"if\n");
+      Output::Print(_u("if\n"));
       PrintPnodeWIndent(pnode->sxIf.pnodeCond,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxIf.pnodeTrue,indentAmt+INDENT_SIZE);
       if (pnode->sxIf.pnodeFalse!=NULL)
@@ -12771,21 +12953,21 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopWhile      , "while"        ,None    ,While,fnopBreak|fnopContinue)
   case knopWhile:
       Indent(indentAmt);
-      Output::Print(L"while\n");
+      Output::Print(_u("while\n"));
       PrintPnodeWIndent(pnode->sxWhile.pnodeCond,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxWhile.pnodeBody,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopDoWhile    , "do-while"    ,None    ,While,fnopBreak|fnopContinue)
   case knopDoWhile:
       Indent(indentAmt);
-      Output::Print(L"do\n");
+      Output::Print(_u("do\n"));
       PrintPnodeWIndent(pnode->sxWhile.pnodeCond,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxWhile.pnodeBody,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopForIn      , "for in"    ,None    ,ForIn,fnopBreak|fnopContinue|fnopCleanup)
   case knopForIn:
       Indent(indentAmt);
-      Output::Print(L"forIn\n");
+      Output::Print(_u("forIn\n"));
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxForInOrForOf.pnodeLval,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxForInOrForOf.pnodeObj,indentAmt+INDENT_SIZE);
@@ -12793,7 +12975,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       break;
   case knopForOf:
       Indent(indentAmt);
-      Output::Print(L"forOf\n");
+      Output::Print(_u("forOf\n"));
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxForInOrForOf.pnodeLval,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxForInOrForOf.pnodeObj,indentAmt+INDENT_SIZE);
@@ -12802,18 +12984,18 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
   case knopReturn:
       Indent(indentAmt);
-      Output::Print(L"return\n");
+      Output::Print(_u("return\n"));
       if (pnode->sxReturn.pnodeExpr!=NULL)
           PrintPnodeWIndent(pnode->sxReturn.pnodeExpr,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopBlock      , "{}"        ,None    ,Block,fnopNone)
   case knopBlock:
       Indent(indentAmt);
-      Output::Print(L"block ");
+      Output::Print(_u("block "));
       if (pnode->grfpn & fpnSyntheticNode)
-          Output::Print(L"synthetic ");
+          Output::Print(_u("synthetic "));
       PrintBlockType(pnode->sxBlock.blockType);
-      Output::Print(L"(%d-%d)\n",pnode->ichMin,pnode->ichLim);
+      Output::Print(_u("(%d-%d)\n"),pnode->ichMin,pnode->ichLim);
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       if (pnode->sxBlock.pnodeStmt!=NULL)
           PrintPnodeWIndent(pnode->sxBlock.pnodeStmt,indentAmt+INDENT_SIZE);
@@ -12821,7 +13003,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopWith       , "with"        ,None    ,With ,fnopCleanup)
   case knopWith:
       Indent(indentAmt);
-      Output::Print(L"with (%d-%d)\n", pnode->ichMin,pnode->ichLim);
+      Output::Print(_u("with (%d-%d)\n"), pnode->ichMin,pnode->ichLim);
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxWith.pnodeObj,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxWith.pnodeBody,indentAmt+INDENT_SIZE);
@@ -12829,25 +13011,25 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopBreak      , "break"        ,None    ,Jump ,fnopNone)
   case knopBreak:
       Indent(indentAmt);
-      Output::Print(L"break\n");
+      Output::Print(_u("break\n"));
       // TODO: some representation of target
       break;
       //PTNODE(knopContinue   , "continue"    ,None    ,Jump ,fnopNone)
   case knopContinue:
       Indent(indentAmt);
-      Output::Print(L"continue\n");
+      Output::Print(_u("continue\n"));
       // TODO: some representation of target
       break;
       //PTNODE(knopLabel      , "label"        ,None    ,Label,fnopNone)
   case knopLabel:
       Indent(indentAmt);
-      Output::Print(L"label %s",pnode->sxLabel.pid->Psz());
+      Output::Print(_u("label %s"),pnode->sxLabel.pid->Psz());
       // TODO: print labeled statement
       break;
       //PTNODE(knopSwitch     , "switch"    ,None    ,Switch,fnopBreak)
   case knopSwitch:
       Indent(indentAmt);
-      Output::Print(L"switch\n");
+      Output::Print(_u("switch\n"));
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       for (ParseNode *pnodeT = pnode->sxSwitch.pnodeCases; NULL != pnodeT;pnodeT = pnodeT->sxCase.pnodeNext) {
           PrintPnodeWIndent(pnodeT,indentAmt+2);
@@ -12856,7 +13038,7 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopCase       , "case"        ,None    ,Case ,fnopNone)
   case knopCase:
       Indent(indentAmt);
-      Output::Print(L"case\n");
+      Output::Print(_u("case\n"));
       PrintPnodeWIndent(pnode->sxCase.pnodeExpr,indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxCase.pnodeBody,indentAmt+INDENT_SIZE);
       break;
@@ -12867,13 +13049,13 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       break;
   case knopFinally:
       Indent(indentAmt);
-      Output::Print(L"finally\n");
+      Output::Print(_u("finally\n"));
       PrintPnodeWIndent(pnode->sxFinally.pnodeBody,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopCatch      , "catch"     ,None    ,Catch,fnopNone)
   case knopCatch:
       Indent(indentAmt);
-      Output::Print(L"catch (%d-%d)\n", pnode->ichMin,pnode->ichLim);
+      Output::Print(_u("catch (%d-%d)\n"), pnode->ichMin,pnode->ichLim);
       PrintScopesWIndent(pnode, indentAmt+INDENT_SIZE);
       PrintPnodeWIndent(pnode->sxCatch.pnodeParam,indentAmt+INDENT_SIZE);
 //      if (pnode->sxCatch.pnodeGuard!=NULL)
@@ -12888,26 +13070,26 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       //PTNODE(knopTry        , "try"       ,None    ,Try  ,fnopCleanup)
   case knopTry:
       Indent(indentAmt);
-      Output::Print(L"try\n");
+      Output::Print(_u("try\n"));
       PrintPnodeWIndent(pnode->sxTry.pnodeBody,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopThrow      , "throw"     ,None    ,Uni  ,fnopNone)
   case knopThrow:
       Indent(indentAmt);
-      Output::Print(L"throw\n");
+      Output::Print(_u("throw\n"));
       PrintPnodeWIndent(pnode->sxUni.pnode1,indentAmt+INDENT_SIZE);
       break;
       //PTNODE(knopClassDecl, "classDecl", None , Class, fnopLeaf)
   case knopClassDecl:
       Indent(indentAmt);
-      Output::Print(L"class %s", pnode->sxClass.pnodeName->sxVar.pid->Psz());
+      Output::Print(_u("class %s"), pnode->sxClass.pnodeName->sxVar.pid->Psz());
       if (pnode->sxClass.pnodeExtends != nullptr)
       {
-          Output::Print(L" extends ");
+          Output::Print(_u(" extends "));
           PrintPnodeWIndent(pnode->sxClass.pnodeExtends, 0);
       }
       else {
-          Output::Print(L"\n");
+          Output::Print(_u("\n"));
       }
 
       PrintPnodeWIndent(pnode->sxClass.pnodeConstructor,   indentAmt + INDENT_SIZE);
@@ -12916,27 +13098,32 @@ void PrintPnodeWIndent(ParseNode *pnode,int indentAmt) {
       break;
   case knopStrTemplate:
       Indent(indentAmt);
-      Output::Print(L"string template\n");
+      Output::Print(_u("string template\n"));
       PrintPnodeListWIndent(pnode->sxStrTemplate.pnodeSubstitutionExpressions, indentAmt + INDENT_SIZE);
       break;
   case knopYieldStar:
       Indent(indentAmt);
-      Output::Print(L"yield*\n");
+      Output::Print(_u("yield*\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
   case knopYield:
   case knopYieldLeaf:
       Indent(indentAmt);
-      Output::Print(L"yield\n");
+      Output::Print(_u("yield\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
   case knopAwait:
       Indent(indentAmt);
-      Output::Print(L"await\n");
+      Output::Print(_u("await\n"));
       PrintPnodeListWIndent(pnode->sxUni.pnode1, indentAmt + INDENT_SIZE);
       break;
+  case knopExportDefault:
+      Indent(indentAmt);
+      Output::Print(_u("export default\n"));
+      PrintPnodeListWIndent(pnode->sxExportDefault.pnodeExpr, indentAmt + INDENT_SIZE);
+      break;
   default:
-      Output::Print(L"unhandled pnode op %d\n",pnode->nop);
+      Output::Print(_u("unhandled pnode op %d\n"),pnode->nop);
       break;
     }
 }
@@ -12975,8 +13162,8 @@ void ParseNode::Dump()
             name = this->sxFnc.pnodeName->sxVar.pid->Psz();
         }
 
-        Output::Print(L"%s (%d) [%d, %d]:\n", name, this->sxFnc.functionId, this->sxFnc.lineNumber, this->sxFnc.columnNumber);
-        Output::Print(L"hasArguments: %s callsEval:%s childCallsEval:%s HasReferenceableBuiltInArguments:%s ArgumentsObjectEscapes:%s HasWith:%s HasThis:%s HasOnlyThis:%s \n",
+        Output::Print(_u("%s (%d) [%d, %d]:\n"), name, this->sxFnc.functionId, this->sxFnc.lineNumber, this->sxFnc.columnNumber);
+        Output::Print(_u("hasArguments: %s callsEval:%s childCallsEval:%s HasReferenceableBuiltInArguments:%s ArgumentsObjectEscapes:%s HasWith:%s HasThis:%s HasOnlyThis:%s \n"),
             IsTrueOrFalse(this->sxFnc.HasHeapArguments()),
             IsTrueOrFalse(this->sxFnc.CallsEval()),
             IsTrueOrFalse(this->sxFnc.ChildCallsEval()),

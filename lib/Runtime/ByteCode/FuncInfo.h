@@ -94,7 +94,7 @@ public:
 #if DBG
     uint32 outArgsDepth; // number of calls nested in an expression
 #endif
-    const wchar_t *name; // name of the function
+    const char16 *name; // name of the function
     Js::RegSlot nullConstantRegister; // location, if any, of enregistered null constant
     Js::RegSlot undefinedConstantRegister; // location, if any, of enregistered undefined constant
     Js::RegSlot trueConstantRegister; // location, if any, of enregistered true constant
@@ -183,7 +183,7 @@ public:
 
     // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object.
     FuncInfo(
-        const wchar_t *name,
+        const char16 *name,
         ArenaAllocator *alloc,
         Scope *paramScope,
         Scope *bodyScope,
@@ -387,7 +387,7 @@ public:
         return hasEscapedUseNestedFunc;
     }
 
-    void SetHasMaybeEscapedNestedFunc(DebugOnly(wchar_t const * reason));
+    void SetHasMaybeEscapedNestedFunc(DebugOnly(char16 const * reason));
 
     bool IsDeferred() const;
 

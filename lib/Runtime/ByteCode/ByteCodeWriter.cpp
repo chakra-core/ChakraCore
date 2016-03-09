@@ -225,7 +225,7 @@ namespace Js
         if (currentAstSize == maxAstSize)
         {
             float astBytecodeRatio = (float)currentAstSize / (float)byteCount;
-            Output::Print(L"\tAST Bytecode ratio: %f\n", astBytecodeRatio);
+            Output::Print(_u("\tAST Bytecode ratio: %f\n"), astBytecodeRatio);
         }
 #endif
 
@@ -1681,6 +1681,8 @@ StoreCommon:
             case OpCode::StEnvSlotChkUndecl:
             case OpCode::StEnvObjSlot:
             case OpCode::StEnvObjSlotChkUndecl:
+            case OpCode::StModuleSlot:
+            case OpCode::LdModuleSlot:
             {
                 break;
             }
@@ -1710,6 +1712,7 @@ StoreCommon:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
             case OpCode::LdEnvObjSlot:
+            case OpCode::LdModuleSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
                     profileId != Constants::NoProfileId)
                 {
@@ -2911,7 +2914,7 @@ StoreCommon:
 
         debuggerScope->SetParentScope(m_currentDebuggerScope);
         m_currentDebuggerScope = debuggerScope;
-        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"PushDebuggerScope() - Pushed scope 0x%p of type %d.\n", m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
+        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("PushDebuggerScope() - Pushed scope 0x%p of type %d.\n"), m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
     }
 
     // Pops the current debugger scope from the stack.
@@ -2919,7 +2922,7 @@ StoreCommon:
     {
         Assert(m_currentDebuggerScope);
 
-        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, L"PopDebuggerScope() - Popped scope 0x%p of type %d.\n", m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
+        OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("PopDebuggerScope() - Popped scope 0x%p of type %d.\n"), m_currentDebuggerScope, m_currentDebuggerScope->scopeType);
         if (m_currentDebuggerScope != nullptr)
         {
             m_currentDebuggerScope = m_currentDebuggerScope->GetParentScope();

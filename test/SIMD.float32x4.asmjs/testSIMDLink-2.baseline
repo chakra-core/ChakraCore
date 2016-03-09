@@ -1,2 +1,4 @@
 Successfully compiled asm.js code
+Asm.js Runtime Error : Foreign var import g1 is not SIMD type
+asm.js linking failed.
 PASS

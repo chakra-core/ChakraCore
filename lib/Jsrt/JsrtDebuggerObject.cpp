@@ -72,7 +72,7 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
                 resolvedObject.address = NULL;
                 resolvedObject.scriptContext = exception->GetScriptContext();
                 resolvedObject.typeId = Js::JavascriptOperators::GetTypeId(error);
-                resolvedObject.name = L"{error}";
+                resolvedObject.name = _u("{error}");
                 resolvedObject.propId = Js::Constants::NoProperty;
             }
 
@@ -486,7 +486,7 @@ Js::DynamicObject * DebuggerObjectStackFrame::GetLocalsObject()
     return this->propertiesObject;
 }
 
-Js::DynamicObject* DebuggerObjectStackFrame::Evaluate(const wchar_t * pszSrc, bool isLibraryCode)
+Js::DynamicObject* DebuggerObjectStackFrame::Evaluate(const char16 * pszSrc, bool isLibraryCode)
 {
     Js::DynamicObject* evalResult = nullptr;
     if (this->stackFrame != nullptr)
@@ -504,7 +504,7 @@ Js::DynamicObject* DebuggerObjectStackFrame::Evaluate(const wchar_t * pszSrc, bo
         }
         if (resolvedObject.obj == nullptr)
         {
-            resolvedObject.name = L"{exception}";
+            resolvedObject.name = _u("{exception}");
             resolvedObject.typeId = Js::TypeIds_Error;
             resolvedObject.address = nullptr;
 

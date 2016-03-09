@@ -68,7 +68,7 @@ namespace Js
 
         DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
 
-        ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, L"Runtime");
+        ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"));
         {
             JsUtil::List<Var, ArenaAllocator>* tempList = IterableToList(object, scriptContext, tempAlloc);
 
@@ -115,7 +115,7 @@ namespace Js
                 typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
                 if (typedArraySource->IsDetachedBuffer())
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray]");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
                 }
 
                 elementCount = typedArraySource->GetLength();
@@ -131,7 +131,7 @@ namespace Js
                 arrayBuffer = ArrayBuffer::FromVar(firstArgument);
                 if (arrayBuffer->IsDetached())
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray]");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
                 }
             }
             else if (JavascriptNumber::Is(firstArgument) ||
@@ -155,18 +155,18 @@ namespace Js
                         case S_OK:
                             // We found an IBuffer
                             fromExternalObject = true;
-                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query succeeded with HR=0x%08X\n", hr);
+                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
                             // We have an ArrayBuffer now, so we can skip all the object probing.
                             break;
 
                         case S_FALSE:
                             // We didn't find an IBuffer - fall through
-                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n", hr);
+                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
                             break;
 
                         default:
                             // Any FAILURE HRESULT or unexpected HRESULT
-                            OUTPUT_TRACE(TypedArrayPhase, L"Projection ArrayBuffer query failed with HR=0x%08X\n", hr);
+                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
                             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
                             break;
                         }
@@ -241,7 +241,7 @@ namespace Js
 
         if (arrayBuffer->IsDetached())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray]");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
         }
 
         if (mappedLength == -1)
@@ -254,17 +254,17 @@ namespace Js
         if (fromExternalObject)
         {
             // No need to copy externally provided buffer
-            OUTPUT_TRACE(TypedArrayPhase, L"Created a TypedArray from an external buffer source\n");
+            OUTPUT_TRACE(TypedArrayPhase, _u("Created a TypedArray from an external buffer source\n"));
         }
         else if (typedArraySource)
         {
             newArray->Set(typedArraySource, offSet);
-            OUTPUT_TRACE(TypedArrayPhase, L"Created a TypedArray from a typed array source\n");
+            OUTPUT_TRACE(TypedArrayPhase, _u("Created a TypedArray from a typed array source\n"));
         }
         else if (jsArraySource)
         {
             newArray->SetObject(jsArraySource, newArray->GetLength(), offSet);
-            OUTPUT_TRACE(TypedArrayPhase, L"Created a TypedArray from a JavaScript array source\n");
+            OUTPUT_TRACE(TypedArrayPhase, _u("Created a TypedArray from a JavaScript array source\n"));
         }
 
         return newArray;
@@ -315,7 +315,7 @@ namespace Js
 
         if (!(callInfo.Flags & CallFlags_New) || (newTarget && JavascriptOperators::IsUndefinedObject(newTarget)))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, L"[TypedArray]");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("[TypedArray]"));
         }
 
         Var object = TypedArrayBase::CreateNewInstance(args, scriptContext, sizeof(TypeName), TypedArray<TypeName, clamped, virtualAllocated>::Create);
@@ -1103,39 +1103,39 @@ namespace Js
         switch (JavascriptOperators::GetTypeId(args[0]))
         {
         case TypeIds_Int8Array:
-            name = library->CreateStringFromCppLiteral(L"Int8Array");
+            name = library->CreateStringFromCppLiteral(_u("Int8Array"));
             break;
 
         case TypeIds_Uint8Array:
-            name = library->CreateStringFromCppLiteral(L"Uint8Array");
+            name = library->CreateStringFromCppLiteral(_u("Uint8Array"));
             break;
 
         case TypeIds_Uint8ClampedArray:
-            name = library->CreateStringFromCppLiteral(L"Uint8ClampedArray");
+            name = library->CreateStringFromCppLiteral(_u("Uint8ClampedArray"));
             break;
 
         case TypeIds_Int16Array:
-            name = library->CreateStringFromCppLiteral(L"Int16Array");
+            name = library->CreateStringFromCppLiteral(_u("Int16Array"));
             break;
 
         case TypeIds_Uint16Array:
-            name = library->CreateStringFromCppLiteral(L"Uint16Array");
+            name = library->CreateStringFromCppLiteral(_u("Uint16Array"));
             break;
 
         case TypeIds_Int32Array:
-            name = library->CreateStringFromCppLiteral(L"Int32Array");
+            name = library->CreateStringFromCppLiteral(_u("Int32Array"));
             break;
 
         case TypeIds_Uint32Array:
-            name = library->CreateStringFromCppLiteral(L"Uint32Array");
+            name = library->CreateStringFromCppLiteral(_u("Uint32Array"));
             break;
 
         case TypeIds_Float32Array:
-            name = library->CreateStringFromCppLiteral(L"Float32Array");
+            name = library->CreateStringFromCppLiteral(_u("Float32Array"));
             break;
 
         case TypeIds_Float64Array:
-            name = library->CreateStringFromCppLiteral(L"Float64Array");
+            name = library->CreateStringFromCppLiteral(_u("Float64Array"));
             break;
 
         default:
@@ -1206,7 +1206,7 @@ namespace Js
             TypedArrayBase* typedArraySource = TypedArrayBase::FromVar(args[1]);
             if (typedArraySource->IsDetachedBuffer() || typedArrayBase->IsDetachedBuffer()) // If IsDetachedBuffer(targetBuffer) is true, then throw a TypeError exception.
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.set");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.set"));
             }
             typedArrayBase->Set(typedArraySource, (uint32)offset);
         }
@@ -1222,7 +1222,7 @@ namespace Js
             }
             else if (typedArrayBase->IsDetachedBuffer())
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.set");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.set"));
             }
             typedArrayBase->SetObject(sourceArray, typedArrayBase->GetLength(), (uint32)offset);
         }
@@ -1372,14 +1372,14 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].from");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].from"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAFromCount);
 
         if (args.Info.Count < 1 || !JavascriptOperators::IsConstructor(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"[TypedArray].from");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("[TypedArray].from"));
         }
 
         RecyclableObject* constructor = RecyclableObject::FromVar(args[0]);
@@ -1387,7 +1387,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptConversion::ToObject(args[1], scriptContext, &items))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"[TypedArray].from");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("[TypedArray].from"));
         }
 
         bool mapping = false;
@@ -1398,7 +1398,7 @@ namespace Js
         {
             if (!JavascriptFunction::Is(args[2]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].from");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].from"));
             }
 
             mapFn = JavascriptFunction::FromVar(args[2]);
@@ -1421,7 +1421,7 @@ namespace Js
         {
             DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
 
-            ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, L"Runtime");
+            ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"));
             {
                 // Create a temporary list to hold the items returned from the iterator.
                 // We will then iterate over this list and append those items into the object we will return.
@@ -1575,7 +1575,7 @@ namespace Js
 
         if (args.Info.Count < 1)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, L"[TypedArray].of");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("[TypedArray].of"));
         }
 
         return JavascriptArray::OfHelper(true, args, scriptContext);
@@ -1594,7 +1594,7 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.copyWithin");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.copyWithin"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
@@ -1602,7 +1602,7 @@ namespace Js
 
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.copyWithin");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.copyWithin"));
         }
 
         return JavascriptArray::CopyWithinHelper(nullptr, typedArrayBase, typedArrayBase, length, args, scriptContext);
@@ -1620,18 +1620,18 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.entries");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.entries"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.entries");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.entries"));
         }
 
         if (TypedArrayBase::IsDetachedTypedArray(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.entries");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.entries"));
         }
 
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::KeyAndValue);
@@ -1643,7 +1643,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.every");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.every"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAEveryCount);
@@ -1651,7 +1651,7 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.every");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.every"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
@@ -1673,7 +1673,7 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (!TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.fill");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.fill"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
@@ -1689,7 +1689,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.filter");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.filter"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAFilterCount);
@@ -1697,7 +1697,7 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (!TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.filter");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.filter"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
@@ -1705,7 +1705,7 @@ namespace Js
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.filter");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.filter"));
         }
 
         RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
@@ -1732,7 +1732,7 @@ namespace Js
 
         DECLARE_TEMP_GUEST_ALLOCATOR(tempAlloc);
 
-        ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, L"Runtime");
+        ACQUIRE_TEMP_GUEST_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"));
         {
             // Create a temporary list to hold the items selected by the callback function.
             // We will then iterate over this list and append those items into the object we will return.
@@ -1792,7 +1792,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.find");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.find"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAFindCount);
@@ -1800,13 +1800,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.find");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.find"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.find");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.find"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -1819,7 +1819,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.findIndex");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.findIndex"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAFindIndexCount);
@@ -1827,13 +1827,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.findIndex");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.findIndex"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.findIndex");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.findIndex"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -1847,7 +1847,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.forEach");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.forEach"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAForEachCount);
@@ -1856,19 +1856,19 @@ namespace Js
 
         if (args.Info.Count < 1 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.forEach"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.forEach"));
         }
         length = typedArrayBase->GetLength();
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.forEach");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.forEach"));
         }
 
         RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
@@ -1917,13 +1917,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (!TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.indexOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.indexOf"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.indexOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.indexOf"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -1950,13 +1950,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (!TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.includes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.includes"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.includes");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.includes"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -1984,14 +1984,14 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count < 1 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.join");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.join"));
         }
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.join");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.join"));
         }
         uint32 length = typedArrayBase->GetLength();
         JavascriptString* separator = nullptr;
@@ -2056,18 +2056,18 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.keys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.keys"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.keys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.keys"));
         }
 
         if (TypedArrayBase::IsDetachedTypedArray(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.keys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.keys"));
         }
 
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Key);
@@ -2086,13 +2086,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count < 1 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.lastIndexOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.lastIndexOf"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.lastIndexOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.lastIndexOf"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2112,7 +2112,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.map");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.map"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAMapCount);
@@ -2120,13 +2120,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.map");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.map"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.map");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.map"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2139,7 +2139,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.reduce");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.reduce"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAReduceCount);
@@ -2147,13 +2147,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.reduce");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.reduce"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.reduce");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.reduce"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2166,7 +2166,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.reduceRight");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.reduceRight"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TAReduceRightCount);
@@ -2174,13 +2174,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.reduceRight");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.reduceRight"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.reduceRight");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.reduceRight"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2200,13 +2200,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.reverse");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.reverse"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.reverse");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.reverse"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2225,13 +2225,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.slice"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.slice");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.slice"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2244,7 +2244,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.some");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.some"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TASomeCount);
@@ -2252,13 +2252,13 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.some");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.some"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.some");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.some"));
         }
         uint32 length = typedArrayBase->GetLength();
 
@@ -2309,7 +2309,7 @@ namespace Js
             Assert(TypedArrayBase::Is(contextArray[0]));
             if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.sort");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
             }
 
             if (TaggedInt::Is(retVal))
@@ -2358,7 +2358,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"[TypedArray].prototype.sort");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.sort"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TASortCount);
@@ -2366,7 +2366,7 @@ namespace Js
         // For the TypedArray version of the API, we need to throw immediately if this is not a TypedArray object
         if (args.Info.Count == 0 || !TypedArrayBase::Is(args[0]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[TypedArray].prototype.sort");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[TypedArray].prototype.sort"));
         }
 
         TypedArrayBase* typedArrayBase = TypedArrayBase::FromVar(args[0]);
@@ -2374,7 +2374,7 @@ namespace Js
 
         if (typedArrayBase->IsDetachedBuffer())
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.sort");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
         }
 
         // If TypedArray has no length, we don't have any work to do.
@@ -2389,7 +2389,7 @@ namespace Js
         {
             if (!JavascriptConversion::IsCallable(args[1]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"[TypedArray].prototype.sort");
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.sort"));
             }
 
             compareFn = RecyclableObject::FromVar(args[1]);
@@ -2424,18 +2424,18 @@ namespace Js
 
         if (args.Info.Count == 0)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.values");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.values"));
         }
 
         RecyclableObject* thisObj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, L"[TypedArray].prototype.values");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("[TypedArray].prototype.values"));
         }
 
         if (TypedArrayBase::IsDetachedTypedArray(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, L"[TypedArray].prototype.values");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.values"));
         }
 
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
@@ -2455,44 +2455,44 @@ namespace Js
         switch(GetTypeId())
         {
         case TypeIds_Int8Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Int8Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Int8Array)"));
             break;
 
         case TypeIds_Uint8Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Uint8Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Uint8Array)"));
             break;
 
         case TypeIds_Uint8ClampedArray:
-            stringBuilder->AppendCppLiteral(L"Object, (Uint8ClampedArray)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Uint8ClampedArray)"));
             break;
 
         case TypeIds_Int16Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Int16Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Int16Array)"));
             break;
 
         case TypeIds_Uint16Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Uint16Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Uint16Array)"));
             break;
 
         case TypeIds_Int32Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Int32Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Int32Array)"));
             break;
 
         case TypeIds_Uint32Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Uint32Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Uint32Array)"));
             break;
 
         case TypeIds_Float32Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Float32Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Float32Array)"));
             break;
 
         case TypeIds_Float64Array:
-            stringBuilder->AppendCppLiteral(L"Object, (Float64Array)");
+            stringBuilder->AppendCppLiteral(_u("Object, (Float64Array)"));
             break;
 
         default:
             Assert(false);
-            stringBuilder->AppendCppLiteral(L"Object");
+            stringBuilder->AppendCppLiteral(_u("Object"));
             break;
         }
 
@@ -3248,7 +3248,7 @@ namespace Js
     {
         CharArray* arr;
         uint32 totalLength, mappedByteLength;
-        if (UInt32Math::Mul(mappedLength, sizeof(wchar_t), &mappedByteLength) ||
+        if (UInt32Math::Mul(mappedLength, sizeof(char16), &mappedByteLength) ||
             UInt32Math::Add(byteOffSet, mappedByteLength, &totalLength) ||
             (totalLength > arrayBuffer->GetByteLength()))
         {
@@ -3304,8 +3304,8 @@ namespace Js
         }
 
         AssertMsg(index < GetLength(), "Trying to set out of bound index for typed array.");
-        Assert((index + 1)* sizeof(wchar_t) + GetByteOffset() <= GetArrayBuffer()->GetByteLength());
-        wchar_t* typedBuffer = (wchar_t*)buffer;
+        Assert((index + 1)* sizeof(char16) + GetByteOffset() <= GetArrayBuffer()->GetByteLength());
+        char16* typedBuffer = (char16*)buffer;
 
         if (asString != NULL && ::wcslen(asString) == 1)
         {
@@ -3328,8 +3328,8 @@ namespace Js
         }
         if (index < GetLength())
         {
-            Assert((index + 1)* sizeof(wchar_t)+GetByteOffset() <= GetArrayBuffer()->GetByteLength());
-            wchar_t* typedBuffer = (wchar_t*)buffer;
+            Assert((index + 1)* sizeof(char16)+GetByteOffset() <= GetArrayBuffer()->GetByteLength());
+            char16* typedBuffer = (char16*)buffer;
             return GetLibrary()->GetCharStringCache().GetStringForChar(typedBuffer[index]);
         }
         return GetLibrary()->GetUndefined();
@@ -3345,7 +3345,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
 
         Assert(!(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
-        Var object = TypedArrayBase::CreateNewInstance(args, scriptContext, sizeof(wchar_t), CharArray::Create);
+        Var object = TypedArrayBase::CreateNewInstance(args, scriptContext, sizeof(char16), CharArray::Create);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {

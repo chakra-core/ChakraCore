@@ -10,25 +10,25 @@ namespace Js
     {
     protected:
         LiteralString(StaticType* type);
-        LiteralString(StaticType* type, const wchar_t* content, charcount_t charLength);
+        LiteralString(StaticType* type, const char16* content, charcount_t charLength);
         DEFINE_VTABLE_CTOR(LiteralString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
     public:
-        static LiteralString* New(StaticType* type, const wchar_t* content, charcount_t charLength, Recycler* recycler);
+        static LiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);
         static LiteralString* CreateEmptyString(StaticType* type);
     };
 
     class ArenaLiteralString sealed : public JavascriptString
     {
     protected:
-        ArenaLiteralString(StaticType* type, const wchar_t* content, charcount_t charLength);
+        ArenaLiteralString(StaticType* type, const char16* content, charcount_t charLength);
         DEFINE_VTABLE_CTOR(ArenaLiteralString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
     public:
-        static ArenaLiteralString* New(StaticType* type, const wchar_t* content, charcount_t charLength, Recycler* recycler);
-        static ArenaLiteralString* New(StaticType* type, const wchar_t* content, charcount_t charLength, ArenaAllocator* arena);
+        static ArenaLiteralString* New(StaticType* type, const char16* content, charcount_t charLength, Recycler* recycler);
+        static ArenaLiteralString* New(StaticType* type, const char16* content, charcount_t charLength, ArenaAllocator* arena);
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
     };
 }

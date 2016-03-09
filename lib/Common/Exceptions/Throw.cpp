@@ -82,7 +82,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(L"SystemException: OutOfMemory\n");
+            Output::Print(_u("SystemException: OutOfMemory\n"));
             Output::Flush();
         }
 #endif
@@ -104,7 +104,7 @@ namespace Js {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (CONFIG_FLAG(PrintSystemException))
         {
-            Output::Print(L"SystemException: StackOverflow\n");
+            Output::Print(_u("SystemException: StackOverflow\n"));
             Output::Flush();
         }
 #endif
@@ -120,36 +120,6 @@ namespace Js {
         AssertMsg(false, "This functionality is not yet implemented");
 
         throw NotImplementedException();
-    }
-
-    // Returns true when the process is either TE.exe or TE.processhost.exe
-    bool Throw::IsTEProcess()
-    {
-        wchar_t fileName[_MAX_PATH];
-        wchar_t moduleName[_MAX_PATH];
-        GetModuleFileName(0, moduleName, _MAX_PATH);
-        errno_t err = _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
-
-        return err == 0 && _wcsnicmp(fileName, L"TE", 2) == 0;
-    }
-
-    void Throw::GenerateDumpAndTerminateProcess(PEXCEPTION_POINTERS exceptInfo)
-    {
-        if (!Throw::IsTEProcess()
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            && !Js::Configuration::Global.flags.IsEnabled(Js::DumpOnCrashFlag)
-#endif
-            )
-        {
-            return;
-        }
-
-#ifdef GENERATE_DUMP
-        Js::Throw::GenerateDump(exceptInfo, Js::Configuration::Global.flags.DumpOnCrash);
-#endif
-
-        // For now let's terminate the process.
-        TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
     }
 
 #ifdef GENERATE_DUMP
@@ -204,8 +174,8 @@ namespace Js {
             filePath = tempFilePath;
         }
 
-        StringCchPrintf(tempFileName, _countof(tempFileName), L"%s\\CH_%u_%u.dmp", filePath, GetCurrentProcessId(), GetCurrentThreadId());
-        Output::Print(L"dump filename %s \n", tempFileName);
+        StringCchPrintf(tempFileName, _countof(tempFileName), _u("%s\\CH_%u_%u.dmp"), filePath, GetCurrentProcessId(), GetCurrentThreadId());
+        Output::Print(_u("dump filename %s \n"), tempFileName);
         Output::Flush();
 
         hTempFile = CreateFile(tempFileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
@@ -256,7 +226,7 @@ namespace Js {
             }
             if (!dumpGenerated)
             {
-                Output::Print(L"Unable to write minidump (0x%08X)\n", GetLastError());
+                Output::Print(_u("Unable to write minidump (0x%08X)\n"), GetLastError());
                 Output::Flush();
             }
         }
@@ -277,7 +247,7 @@ namespace Js {
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    static const wchar_t * caption = L"CHAKRA ASSERT";
+    static const char16 * caption = _u("CHAKRA ASSERT");
 #endif
 
     bool Throw::ReportAssert(__in LPSTR fileName, uint lineNumber, __in LPSTR error, __in LPSTR message)
@@ -314,9 +284,9 @@ namespace Js {
         // the popup message box might be useful when testing in IE
         if (Js::Configuration::Global.flags.AssertPopUp && IsMessageBoxWPresent())
         {
-            wchar_t buff[1024];
+            char16 buff[1024];
 
-            swprintf_s(buff, _countof(buff), L"%S (%u)\n%S\n%S", fileName, lineNumber, message, error);
+            swprintf_s(buff, _countof(buff), _u("%S (%u)\n%S\n%S"), fileName, lineNumber, message, error);
             buff[_countof(buff)-1] = 0;
 
             int ret = MessageBox(nullptr, buff, caption, MB_ABORTRETRYIGNORE);

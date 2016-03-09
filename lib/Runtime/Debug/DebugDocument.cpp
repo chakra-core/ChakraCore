@@ -108,7 +108,7 @@ namespace Js
                 BreakpointProbeList* pBreakpointList = this->GetBreakpointList();
                 if (pBreakpointList)
                 {
-                    ArenaAllocator arena(L"TemporaryBreakpointList", scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
+                    ArenaAllocator arena(_u("TemporaryBreakpointList"), scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticPageAllocator(), Throw::OutOfMemory);
                     BreakpointProbeList* pDeleteList = this->NewBreakpointList(&arena);
 
                     pBreakpointList->Map([&statement, scriptContext, pDeleteList](int index, BreakpointProbe * breakpointProbe)

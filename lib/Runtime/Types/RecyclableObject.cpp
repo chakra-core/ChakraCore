@@ -227,7 +227,7 @@ namespace Js
             return false;
         }
 
-        Output::Print(L"%S{%x} %p", typeinfo->name(), ((RecyclableObject *)objectAddress)->GetTypeId(), objectAddress);
+        Output::Print(_u("%S{%x} %p"), typeinfo->name(), ((RecyclableObject *)objectAddress)->GetTypeId(), objectAddress);
         return true;
     }
 #endif
@@ -771,6 +771,6 @@ namespace Js
 
     BOOL RecyclableObject::HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache)
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, L"instanceof" /* TODO-ERROR: get arg name - aClass */);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, _u("instanceof") /* TODO-ERROR: get arg name - aClass */);
     }
 } // namespace Js

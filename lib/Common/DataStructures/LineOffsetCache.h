@@ -169,12 +169,12 @@ namespace JsUtil
                 LPCUTF8 previousCharacter = currentSourcePosition;
 
                 // Decode from UTF8 to wide char.  Note that Decode will advance the current character by 1 at least.
-                wchar_t decodedCharacter = utf8::Decode(currentSourcePosition, sourceEndCharacter, options);
+                char16 decodedCharacter = utf8::Decode(currentSourcePosition, sourceEndCharacter, options);
 
                 bool wasLineEncountered = false;
                 switch (decodedCharacter)
                 {
-                case L'\r':
+                case _u('\r'):
                     // Check if the next character is a '\n'.  If so, consume that character as well
                     // (consider as one line).
                     if (*currentSourcePosition == '\n')
@@ -184,7 +184,7 @@ namespace JsUtil
                     }
 
                     // Intentional fall-through.
-                case L'\n':
+                case _u('\n'):
                 case 0x2028:
                 case 0x2029:
                     // Found a new line.

@@ -79,8 +79,8 @@ public:
                     DebuggerObjectBase* debuggerObject = nullptr;
                     if (debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(handle, &debuggerObject))
                     {
-                        wchar_t propertyName[11]; // 4294967295 - Max 10 characters
-                        ::_ui64tow_s(debuggerObject->GetHandle(), propertyName, sizeof(propertyName) / sizeof(wchar_t), 10);
+                        char16 propertyName[11]; // 4294967295 - Max 10 characters
+                        ::_ui64tow_s(debuggerObject->GetHandle(), propertyName, sizeof(propertyName) / sizeof(char16), 10);
 
                         const Js::PropertyRecord* propertyRecord;
                         scriptContext->GetOrAddPropertyRecord(propertyName, static_cast<int>(wcslen(propertyName)), &propertyRecord);
@@ -215,7 +215,7 @@ public:
 
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
     Js::DynamicObject* GetLocalsObject();
-    Js::DynamicObject* Evaluate(const wchar_t*  pszSrc, bool isLibraryCode);
+    Js::DynamicObject* Evaluate(const char16* pszSrc, bool isLibraryCode);
     uint GetIndex() const { return this->frameIndex; }
 
 private:

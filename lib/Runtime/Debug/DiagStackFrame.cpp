@@ -165,7 +165,7 @@ namespace Js
 
         // Do fast path for 'this', fields on slot, TODO : literals (integer,string)
 
-        if (length == 4 && wcsncmp(pszSource, L"this", 4) == 0)
+        if (length == 4 && wcsncmp(pszSource, _u("this"), 4) == 0)
         {
             pOutResolvedObj->obj = this->GetThisFromFrame(&pOutResolvedObj->address);
             if (pOutResolvedObj->obj == nullptr)
@@ -235,7 +235,7 @@ namespace Js
                         pCurrentFuncBody->SetIsNonUserCode(true);
                     }
                 }
-                OUTPUT_TRACE(Js::ConsoleScopePhase, L"EvaluateImmediate strict = %d, libraryCode = %d, source = '%s'\n",
+                OUTPUT_TRACE(Js::ConsoleScopePhase, _u("EvaluateImmediate strict = %d, libraryCode = %d, source = '%s'\n"),
                     this->IsStrictMode(), isLibraryCode, pszSrc);
                 resolvedObject->obj = this->DoEval(pfuncScript);
             }
@@ -253,15 +253,15 @@ namespace Js
         {
             if (Js::Constants::NoProperty == debugManager->mutationNewValuePid)
             {
-                debugManager->mutationNewValuePid = scriptContext->GetOrAddPropertyIdTracked(L"$newValue$", 10);
+                debugManager->mutationNewValuePid = scriptContext->GetOrAddPropertyIdTracked(_u("$newValue$"), 10);
             }
             if (Js::Constants::NoProperty == debugManager->mutationPropertyNamePid)
             {
-                debugManager->mutationPropertyNamePid = scriptContext->GetOrAddPropertyIdTracked(L"$propertyName$", 14);
+                debugManager->mutationPropertyNamePid = scriptContext->GetOrAddPropertyIdTracked(_u("$propertyName$"), 14);
             }
             if (Js::Constants::NoProperty == debugManager->mutationTypePid)
             {
-                debugManager->mutationTypePid = scriptContext->GetOrAddPropertyIdTracked(L"$mutationType$", 14);
+                debugManager->mutationTypePid = scriptContext->GetOrAddPropertyIdTracked(_u("$mutationType$"), 14);
             }
 
             AssertMsg(debugManager->mutationNewValuePid != Js::Constants::NoProperty, "Should have a valid mutationNewValuePid");
@@ -500,7 +500,7 @@ namespace Js
         {
             AssertMsg(FALSE, "Failed to get entry point for native address. Most likely the frame is old/gone.");
         }
-        OUTPUT_TRACE(Js::DebuggerPhase, L"DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n", codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n"), codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
     }
 
     JavascriptFunction* DiagNativeStackFrame::GetJavascriptFunction()

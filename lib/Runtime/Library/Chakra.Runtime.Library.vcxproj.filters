@@ -69,6 +69,7 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptLibrary.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptNumber.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptNumberObject.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptSimdObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptRegExpConstructor.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptRegularExpression.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="JavascriptLibrary.h" />
     <ClInclude Include="JavascriptNumber.h" />
     <ClInclude Include="JavascriptNumberObject.h" />
+    <ClInclude Include="JavascriptSimdObject.h" />
     <ClInclude Include="JavascriptObject.h" />
     <ClInclude Include="JavascriptRegExpConstructor.h" />
     <ClInclude Include="JavascriptRegularExpression.h" />

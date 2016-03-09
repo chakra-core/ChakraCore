@@ -361,7 +361,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyInt32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = L"cookie";
+        cookieOpnd->name = _u("cookie");
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);
@@ -390,7 +390,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyUint32, instr->m_func);
 
 #if DBG_DUMP
-        cookieOpnd->name = L"cookie";
+        cookieOpnd->name = _u("cookie");
 #endif
 
         instrNew = IR::Instr::New(Js::OpCode::Xor_I4, regOpnd, regOpnd, cookieOpnd, instr->m_func);

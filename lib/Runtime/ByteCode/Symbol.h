@@ -24,7 +24,6 @@ private:
     Js::RegSlot location;           // register in which the symbol resides
     Js::PropertyId scopeSlot;
     Js::PropertyId moduleIndex;
-    Js::PropertyId moduleExportSlot;
     Symbol *next;
 
     SymbolType symbolType;
@@ -77,22 +76,21 @@ public:
         isNonSimpleParameter(false),
         assignmentState(NotAssigned),
         isModuleExportStorage(false),
-        moduleIndex(Js::Constants::NoProperty),
-        moduleExportSlot(Js::Constants::NoProperty)
+        moduleIndex(Js::Constants::NoProperty)
     {
         SetSymbolType(symbolType);
 
         // Set it so we don't have to check it explicitly
-        isEval = MatchName(L"eval", 4);
+        isEval = MatchName(_u("eval"), 4);
 
         if (PHASE_TESTTRACE1(Js::StackFuncPhase) && hasFuncAssignment)
         {
-            Output::Print(L"HasFuncDecl: %s\n", this->GetName().GetBuffer());
+            Output::Print(_u("HasFuncDecl: %s\n"), this->GetName().GetBuffer());
             Output::Flush();
         }
     }
 
-    bool MatchName(const wchar_t *key, int length)
+    bool MatchName(const char16 *key, int length)
     {
         return name == SymbolName(key, length);
     }
@@ -166,16 +164,6 @@ public:
     Js::PropertyId GetModuleIndex()
     {
         return moduleIndex;
-    }
-
-    void SetModuleExportSlot(Js::PropertyId slot)
-    {
-        moduleExportSlot = slot;
-    }
-
-    Js::PropertyId GetModuleExportSlot()
-    {
-        return moduleExportSlot;
     }
 
     void SetIsGlobalCatch(bool is)
@@ -376,7 +364,7 @@ public:
     }
 
 #if DBG_DUMP
-    const wchar_t *GetSymbolTypeName();
+    const char16 *GetSymbolTypeName();
 #endif
 
     const JsUtil::CharacterBuffer<WCHAR>& GetName() const

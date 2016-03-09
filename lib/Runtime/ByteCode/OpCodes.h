@@ -387,6 +387,7 @@ MACRO_EXTEND_WMS_AND_PROFILED(LdInnerObjSlot,       ElementSlotI2,  OpTempNumber
 MACRO_EXTEND_WMS_AND_PROFILED(LdObjSlot,            ElementSlot,    None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdLocalObjSlot,       ElementSlotI1,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdEnvObjSlot,         ElementSlotI2,  None)
+MACRO_EXTEND_WMS_AND_PROFILED(LdModuleSlot,         ElementSlotI2,  None)
 MACRO_BACKEND_ONLY(     StSlot,                     ElementSlot,    None)
 MACRO_WMS(              StEnvSlot,                  ElementSlotI2,  None)
 MACRO_WMS(              StInnerSlot,                ElementSlotI2,  None)
@@ -403,6 +404,7 @@ MACRO_EXTEND_WMS(       StEnvObjSlot,               ElementSlotI2,  OpSideEffect
 MACRO_EXTEND_WMS(       StObjSlotChkUndecl,         ElementSlot,    OpSideEffect)
 MACRO_EXTEND_WMS(       StInnerObjSlotChkUndecl,    ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StEnvObjSlotChkUndecl,      ElementSlotI2,  OpSideEffect)
+MACRO_EXTEND_WMS(       StModuleSlot,               ElementSlotI2,  OpSideEffect)
 MACRO_BACKEND_ONLY(     LdAsmJsSlot,                ElementSlot,    OpTempNumberSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     StAsmJsSlot,                ElementSlot,    None)
 #ifndef FLOAT_VAR
