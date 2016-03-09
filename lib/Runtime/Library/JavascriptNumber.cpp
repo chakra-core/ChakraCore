@@ -239,15 +239,7 @@ namespace Js
             // of exponent. This acceleration may lead to significant deviation for larger exponent
             if (intY >= -8 && intY <= 8)
             {
-                uint32 uexp;
-                if (intY >= 0)
-                {
-                    uexp = static_cast<uint32>(intY);
-                }
-                else
-                {
-                    uexp = static_cast<uint32>(-intY);
-                }
+                uint32 uexp = static_cast<uint32>(intY >= 0 ? intY : -intY);
                 for (double result = 1.0; ; x *= x)
                 {
                     if ((uexp & 1) != 0)
