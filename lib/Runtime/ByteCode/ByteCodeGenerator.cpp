@@ -2214,8 +2214,6 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
     MapFormalsWithoutRest(pnode, addArgToScope);
     byteCodeGenerator->SetNumberOfInArgs(pos);
 
-    MapFormalsFromPattern(pnode, addArgToScope);
-
     if (pnode->sxFnc.pnodeRest != nullptr)
     {
         // The rest parameter will always be in a register, regardless of whether it is in a scope slot.
@@ -2227,6 +2225,8 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
 
         assignLocation = assignLocationSave;
     }
+
+    MapFormalsFromPattern(pnode, addArgToScope);
 
     Assert(!assignLocation || byteCodeGenerator->TopFuncInfo()->varRegsCount + 1 == pos);
 }
