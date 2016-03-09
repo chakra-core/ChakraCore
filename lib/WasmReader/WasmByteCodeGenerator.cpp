@@ -47,9 +47,12 @@ WasmBytecodeGenerator::GenerateModule()
 
     m_reader->InitializeReader();
 
+    BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
+    BVFixed* needToVisitSections = BVFixed::New(bSectLimit + 1, &m_alloc);
+
     const auto readerProcess = [](WasmBytecodeGenerator* gen, SectionCode code) {return gen->m_reader->ProcessSection(code); };
     // By default lest the reader process the section
-#define WASM_SECTION(name, id, flag) readerProcess,
+#define WASM_SECTION(name, id, flag, precedent, subsequent) readerProcess,
     SectionProcessFunc sectionProcess[bSectLimit + 1] = {
 #include "WasmSections.h"
         nullptr
@@ -83,10 +86,24 @@ WasmBytecodeGenerator::GenerateModule()
         return lastRes;
     };
 
-    for (int sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
+    for (uint32 sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
     {
+        SectionCode precedent = BaseWasmReader::sectionPrecedences[sectionCode];
+        SectionCode subsequent = BaseWasmReader::sectionSubsequents[sectionCode];
         if (m_reader->ReadNextSection((SectionCode)sectionCode))
         {
+            if (precedent != bSectInvalid && !visitedSections->Test(precedent))
+            {
+                throw WasmCompilationException(L"%s section missing before %s",
+                                               BaseWasmReader::sectionNames[precedent],
+                                               BaseWasmReader::sectionNames[sectionCode]);
+            }
+            if (subsequent != bSectInvalid)
+            {
+                needToVisitSections->Set(subsequent);
+            }
+            visitedSections->Set(sectionCode);
+
             if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
             {
                 throw WasmCompilationException(L"Error while reading section %d", sectionCode);
@@ -94,6 +111,30 @@ WasmBytecodeGenerator::GenerateModule()
         }
     }
 
+    needToVisitSections->Minus(visitedSections);
+    if (!needToVisitSections->IsAllClear())
+    {
+        const size_t bufferSize = 256;
+        wchar_t buffer[bufferSize];
+        size_t remainingBufferSize = bufferSize;
+        for (uint32 sectionCode = 0; sectionCode < bSectLimit; sectionCode++)
+        {
+            if (needToVisitSections->Test(sectionCode))
+            {
+                wchar_t* name = BaseWasmReader::sectionNames[sectionCode];
+                if (wcslen(name) < remainingBufferSize)
+                {
+                    remainingBufferSize -= swprintf_s(
+                        buffer + (bufferSize - remainingBufferSize),
+                        remainingBufferSize,
+                        L"%s, ",
+                        name
+                    );
+                }
+            }
+        }
+        throw WasmCompilationException(L"Missing required sections: %s", buffer);
+    }
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount();
 
@@ -1247,10 +1288,11 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
 
 WasmCompilationException::WasmCompilationException(const wchar_t* _msg, ...)
 {
-    Assert(UNREACHED); // TODO (michhol)
     va_list arglist;
     va_start(arglist, _msg);
-    //vswprintf_s(msg_, _msg, arglist);
+    Output::VPrint(_msg, arglist);
+    Output::Print(L"\r\n");
+    Output::Flush();
 }
 
 } // namespace Wasm

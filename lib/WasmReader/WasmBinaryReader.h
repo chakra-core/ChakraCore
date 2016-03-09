@@ -136,7 +136,6 @@ namespace Wasm
             ArenaAllocator      m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
-            BVFixed * m_visitedSections;
             ReaderState m_moduleState; // module-level
             ReaderState m_funcState;   // func AST level
 
@@ -145,8 +144,6 @@ namespace Wasm
             static bool isInit;
             static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
             static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
-            static char* sectionIds[bSectLimit];
-            static SectionFlag sectionFlags[bSectLimit];
             // maps from binary format to sexpr codes
             // types
             static const Wasm::WasmTypes::WasmType binaryToWasmTypes[];
