@@ -217,7 +217,8 @@
         /// <summary>
         ///     Perform a single step over after a debug break if the next statement is a function call, else behaves as a stepin.
         /// </summary>
-        JsDiagResumeTypeStepOver = 2
+        JsDiagResumeTypeStepOver = 2,
+		JsDiagResumeTypeStepBack = 3
     } JsDiagResumeType;
 
     /// <summary>

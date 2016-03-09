@@ -381,10 +381,8 @@ JsDiagResume(
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_INTO);
         }
-        else if (resumeType == JsDiagResumeTypeStepOut)
+        else if (resumeType == JsDiagResumeTypeStepBack)
         {
-            ////
-            //TEMP DEBUGGING CODE -- set reverse step action
             ThreadContext* threadContext = runtime->GetThreadContext();
 
             TTD::TTDebuggerSourceLocation bpLocation;
@@ -392,10 +390,20 @@ JsDiagResume(
             threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
 
             debugObject->SetResumeType(BREAKRESUMEACTION_CONTINUE);
-            //
-            ////
+        }
+        else if (resumeType == JsDiagResumeTypeStepOut)
+        {
+#if ENABLE_TTD_OUT_SAME_AS_BACK
+            ThreadContext* threadContext = runtime->GetThreadContext();
 
-            //debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+            TTD::TTDebuggerSourceLocation bpLocation;
+            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(bpLocation);
+            threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
+
+            debugObject->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+#else
+            debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
+#endif
         }
         else if (resumeType == JsDiagResumeTypeStepOver)
         {

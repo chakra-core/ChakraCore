@@ -92,6 +92,14 @@ void DebuggerCh::SendMsg(const wchar_t* msg, size_t msgLen)
 #endif
 
     this->SendMsgWHeader(nullptr, msg, msgLen);
+
+#if TTD_VSCODE_WORK_AROUND
+    ////
+    //
+    Sleep(10); //<------------------------------------------------------- Add a delay to response to keep VSCode from getting angry when running in debug build
+    //
+    ////
+#endif
 }
 
 void DebuggerCh::SendMsgWHeader(const wchar_t* header, const wchar_t* body, size_t bodyLen)

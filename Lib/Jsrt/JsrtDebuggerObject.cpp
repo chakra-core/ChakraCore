@@ -49,7 +49,12 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
     Js::IDiagObjectModelWalkerBase* walker = walkerRef->GetStrongReference();
     if (walker != nullptr)
     {
-        ulong childrensCount = walker->GetChildrenCount();
+        ulong childrensCount = 0;
+        try
+        {
+            childrensCount = walker->GetChildrenCount();
+        }
+        catch (Js::JavascriptExceptionObject*) {}
         for (ulong i = 0; i < childrensCount; ++i)
         {
             Js::ResolvedObject resolvedObject;
