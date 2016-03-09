@@ -74,11 +74,11 @@ namespace Wasm
         bool hasSubExpr;
     };
 
-    struct WasmTableSwitchNode
+    struct WasmBrTableNode
     {
-        uint32 numCases;
-        uint32 numEntries;
-        UINT16* jumpTable;
+        uint32 numTargets;
+        uint32* targetTable;
+        uint32 defaultTarget;
     };
 
     struct WasmNode
@@ -92,7 +92,7 @@ namespace Wasm
             WasmOptionalNode opt;
             WasmBlockNode block;
             WasmBrNode br;
-            WasmTableSwitchNode tableswitch;
+            WasmBrTableNode brTable;
             WasmMemOpNode mem;
         };
     };

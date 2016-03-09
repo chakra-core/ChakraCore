@@ -12,7 +12,7 @@ namespace Wasm
     public:
         WasmFunctionInfo(ArenaAllocator * alloc);
 
-        void AddLocal(WasmTypes::WasmType type);
+        void AddLocal(WasmTypes::WasmType type, uint count = 1);
         template <typename T> void AddConst(T constVal, Js::RegSlot reg);
 
         WasmTypes::WasmType GetLocal(uint index) const;

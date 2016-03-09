@@ -322,7 +322,7 @@ WasmBinaryReader::ASTNode()
     }
 
     WasmBinOp op = (WasmBinOp)*m_pc++;
-    m_funcState.count++;
+    ++m_funcState.count;
     switch (op)
     {
     case wbBlock:
@@ -330,6 +330,7 @@ WasmBinaryReader::ASTNode()
         BlockNode();
         break;
     case wbCall:
+    case wbCallImport:
         CallNode();
         break;
     case wbBr:
@@ -337,17 +338,13 @@ WasmBinaryReader::ASTNode()
         BrNode();
         break;
     case wbBrTable:
-        TableSwitchNode();
+        BrTableNode();
         break;
     case wbReturn:
         // Watch out for optional implicit block
         // (non-void return expression)
         if (!EndOfFunc())
             m_currentNode.opt.exists = true;
-        break;
-    case wbI8Const:
-        m_currentNode.cnst.i32 = ReadConst<INT8>();
-        m_funcState.count += sizeof(INT8);
         break;
     case wbI32Const:
         ConstNode<WasmTypes::bAstI32>();
@@ -410,7 +407,7 @@ WasmBinaryReader::CallNode()
     UINT length = 0;
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
-    if (funcNum >= m_moduleInfo->GetSignatureCount())
+    if (funcNum >= m_moduleInfo->GetFunctionCount())
     {
         ThrowDecodingError(L"Function signature is out of bound");
     }
@@ -429,6 +426,9 @@ WasmBinaryReader::BlockNode()
 void
 WasmBinaryReader::BrNode()
 {
+    ReadConst<uint8>(); // arity, ignored for now
+    m_funcState.count++;
+
     UINT len = 0;
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
@@ -437,38 +437,33 @@ WasmBinaryReader::BrNode()
 }
 
 void
-WasmBinaryReader::TableSwitchNode()
+WasmBinaryReader::BrTableNode()
 {
     UINT len = 0;
-    m_currentNode.tableswitch.numCases = LEB128(len);
+    m_currentNode.brTable.numTargets = LEB128(len);
     m_funcState.count += len;
-    m_currentNode.tableswitch.numEntries = LEB128(len);
-    m_funcState.count += len;
-    m_currentNode.tableswitch.jumpTable = AnewArray(&m_alloc, UINT16, m_currentNode.tableswitch.numEntries);
-    // TODO tableswitch to BR_TABLE
-    for (UINT32 i = 0; i < m_currentNode.tableswitch.numEntries; i++)
+    m_currentNode.brTable.targetTable = AnewArray(&m_alloc, UINT32, m_currentNode.brTable.numTargets);
+
+    for (UINT32 i = 0; i < m_currentNode.brTable.numTargets; i++)
     {
-        m_currentNode.tableswitch.jumpTable[i] = ReadConst<UINT16>();
-        m_funcState.count += sizeof(UINT16);
+        m_currentNode.brTable.targetTable[i] = LEB128(len);
+        m_funcState.count += len;
     }
+    m_currentNode.brTable.defaultTarget = LEB128(len);
+    m_funcState.count += len;
 }
 
 WasmOp
 WasmBinaryReader::MemNode(WasmBinOp op)
 {
-    // Read memory access byte
-    m_currentNode.mem.alignment = ReadConst<UINT8>();
-    m_funcState.count++;
-    // If offset bit is set, read memory_offset
-    if (m_currentNode.mem.alignment & 0x08)
-    {
-        UINT length = 0;
-        m_currentNode.mem.offset = LEB128(length);
-        m_funcState.count += length;
-    }
-    else {
-        m_currentNode.mem.offset = 0;
-    }
+    uint len = 0;
+
+    LEB128(len); // flags (unused)
+    m_funcState.count += len;
+
+    m_currentNode.mem.offset = LEB128(len);
+    m_funcState.count += len;
+
     return GetWasmToken(op);
 }
 
@@ -591,7 +586,6 @@ WasmBinaryReader::ReadFunctionsSignatures()
 void
 WasmBinaryReader::FunctionBodyHeader()
 {
-    UINT32 i32Count = 0, i64Count = 0, f32Count = 0, f64Count = 0;
     UINT len = 0;
 
     m_funcInfo = m_moduleInfo->GetFunSig(m_moduleState.count);
@@ -612,44 +606,13 @@ WasmBinaryReader::FunctionBodyHeader()
         m_funcState.size += len;
         UINT8 type = ReadConst<UINT8>();
         m_funcState.size++;
-
-        switch (type)
+        if (type >= Wasm::WasmTypes::Limit || type == Wasm::WasmTypes::Void)
         {
-        case Wasm::WasmTypes::I32:
-            i32Count += count;
-            break;
-        case Wasm::WasmTypes::I64:
-            i64Count += count;
-            break;
-        case Wasm::WasmTypes::F32:
-            f32Count += count;
-            break;
-        case Wasm::WasmTypes::F64:
-            f64Count += count;
-            break;
-        default:
-            ThrowDecodingError(L"Unexpected local type");
+            ThrowDecodingError(L"Invalid local type");
         }
+        m_funcInfo->AddLocal((Wasm::WasmTypes::WasmType)type, count);
+        TRACE_WASM_DECODER(L"Function body header: type = %u, count = %u", type, count);
     }
-
-    for (UINT32 i = 0; i < i32Count; i++)
-    {
-        m_funcInfo->AddLocal(Wasm::WasmTypes::I32);
-    }
-    for (UINT32 i = 0; i < i64Count; i++)
-    {
-        m_funcInfo->AddLocal(Wasm::WasmTypes::I64);
-    }
-    for (UINT32 i = 0; i < f32Count; i++)
-    {
-        m_funcInfo->AddLocal(Wasm::WasmTypes::F32);
-    }
-    for (UINT32 i = 0; i < f64Count; i++)
-    {
-        m_funcInfo->AddLocal(Wasm::WasmTypes::F64);
-    }
-
-    TRACE_WASM_DECODER(L"Function body header: i32 = %u, i64 = %u, f32 = %u, f64 = %u", i32Count, i64Count, f32Count, f64Count);
 }
 
 const char *

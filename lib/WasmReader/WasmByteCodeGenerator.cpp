@@ -151,8 +151,7 @@ WasmBytecodeGenerator::GenerateFunction()
     while ((op = m_reader->ReadExpr()) != wnLIMIT)
     {
         exprInfo = EmitExpr(op);
-        // REVIEW: should this be Assert or throw if false, or does this even hold?
-        // Assert(exprInfo.type == WasmTypes::Void);
+        ReleaseLocation(&exprInfo);
     }
 
     // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
@@ -289,9 +288,31 @@ WasmBytecodeGenerator::EnregisterLocals()
     }
 }
 
+void
+WasmBytecodeGenerator::PrintOpName(WasmOp op)
+{
+#define MakeWide(x) L##x
+    switch (op)
+    {
+#define WASM_KEYWORD(token, name) \
+    case wn##token: \
+        Output::Print(MakeWide(#token ## "\r\n")); \
+        break;
+#include "WasmKeywords.h"
+    }
+#undef MakeWide
+}
+
 EmitInfo
 WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    {
+        PrintOpName(op);
+    }
+#endif
+
     switch (op)
     {
     case wnGETLOCAL:
@@ -373,29 +394,31 @@ WasmBytecodeGenerator::EmitGetLocal()
 EmitInfo
 WasmBytecodeGenerator::EmitSetLocal()
 {
-    if (m_funcInfo->GetLocalCount() < m_reader->m_currentNode.var.num)
+    uint localNum = m_reader->m_currentNode.var.num;
+    if (localNum >= m_funcInfo->GetLocalCount())
     {
-        throw WasmCompilationException(L"%u is not a valid local", m_reader->m_currentNode.var.num);
+        throw WasmCompilationException(L"%u is not a valid local", localNum);
     }
 
-    WasmLocal local = m_locals[m_reader->m_currentNode.var.num];
+    WasmLocal local = m_locals[localNum];
 
     Js::OpCodeAsmJs op = GetLoadOp(local.type);
     WasmRegisterSpace * regSpace = GetRegisterSpace(local.type);
-
     EmitInfo info = EmitExpr(m_reader->ReadExpr());
 
     if (info.type != local.type)
     {
-        throw WasmCompilationException(L"TypeError in setlocal for %u", m_reader->m_currentNode.var.num);
+        throw WasmCompilationException(L"TypeError in setlocal for %u", localNum);
     }
 
     m_writer.AsmReg2(op, local.location, info.location);
 
     regSpace->ReleaseLocation(&info);
 
-    // REVIEW: should this produce result of setlocal? currently produces void
-    return EmitInfo();
+    Js::RegSlot tmp = regSpace->AcquireTmpRegister();
+    m_writer.AsmReg2(op, tmp, local.location);
+
+    return EmitInfo(tmp, local.type);
 }
 
 template<WasmTypes::WasmType type>
@@ -441,6 +464,7 @@ WasmBytecodeGenerator::EmitBlock()
         {
             op = m_reader->ReadFromBlock();
             EmitInfo info = EmitExpr(op);
+            ReleaseLocation(&info);
         }
     }
     else
@@ -453,8 +477,7 @@ WasmBytecodeGenerator::EmitBlock()
         do
         {
             EmitInfo info = EmitExpr(op);
-            // REVIEW: should this be Assert or throw if false, or does this even hold?
-            Assert(info.type == WasmTypes::Void);
+            ReleaseLocation(&info);
             op = m_reader->ReadFromBlock();
         } while (op != wnLIMIT);
     }
@@ -471,6 +494,10 @@ WasmBytecodeGenerator::EmitLoop()
     Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
     m_labels->Push(loopHeaderLabel);
     m_writer.MarkAsmJsLabel(loopHeaderLabel);
+
+    Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
+    m_labels->Push(loopTailLabel);
+
     if (m_reader->IsBinaryReader())
     {
         UINT blockCount = m_reader->m_currentNode.block.count;
@@ -482,8 +509,11 @@ WasmBytecodeGenerator::EmitLoop()
         {
             op = m_reader->ReadFromBlock();
             EmitInfo info = EmitExpr(op);
+            ReleaseLocation(&info);
         }
     }
+    m_writer.MarkAsmJsLabel(loopTailLabel);
+    m_labels->Pop();
     m_labels->Pop();
     return EmitInfo();
 }
@@ -501,14 +531,12 @@ WasmBytecodeGenerator::EmitCall()
     if (wasmOp == wnCALL)
     {
         funcNum = m_reader->m_currentNode.var.num;
-        if (funcNum >= m_module->functions->Count())
+        if (funcNum >= m_module->info->GetFunctionCount())
         {
-            // TODO: implement forward calls
-            AssertMsg(UNREACHED, "Forward calls currently unsupported");
+            throw WasmCompilationException(L"Call is to unknown function");
         }
-        WasmFunction * callee = m_module->functions->GetBuffer()[funcNum];
-        calleeSignature = callee->wasmInfo->GetSignature();
-        imported = callee->wasmInfo->Imported();
+        calleeSignature = m_module->info->GetFunSig(funcNum)->GetSignature();
+        imported = m_module->info->GetFunSig(funcNum)->Imported();
     }
     else
     {
@@ -651,30 +679,32 @@ WasmBytecodeGenerator::EmitCall()
     // emit result coercion
     EmitInfo retInfo;
     retInfo.type = calleeSignature->GetResultType();
-    Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
-    switch (retInfo.type)
+    if (retInfo.type != WasmTypes::Void)
     {
-    case WasmTypes::F32:
-        Assert(!imported);
-        retInfo.location = m_f32RegSlots->AcquireTmpRegister();
-        convertOp = Js::OpCodeAsmJs::I_Conv_VTF;
-        break;
-    case WasmTypes::F64:
-        retInfo.location = m_f64RegSlots->AcquireTmpRegister();
-        convertOp = imported ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
-        break;
-    case WasmTypes::I32:
-        retInfo.location = m_i32RegSlots->AcquireTmpRegister();
-        convertOp = imported ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
-        break;
-    case WasmTypes::I64:
-        Assert(UNREACHED);
-        break;
-    default:
-        Assume(UNREACHED);
+        Js::OpCodeAsmJs convertOp = Js::OpCodeAsmJs::Nop;
+        switch (retInfo.type)
+        {
+        case WasmTypes::F32:
+            Assert(!imported);
+            retInfo.location = m_f32RegSlots->AcquireTmpRegister();
+            convertOp = Js::OpCodeAsmJs::I_Conv_VTF;
+            break;
+        case WasmTypes::F64:
+            retInfo.location = m_f64RegSlots->AcquireTmpRegister();
+            convertOp = imported ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
+            break;
+        case WasmTypes::I32:
+            retInfo.location = m_i32RegSlots->AcquireTmpRegister();
+            convertOp = imported ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
+            break;
+        case WasmTypes::I64:
+            Assert(UNREACHED);
+            break;
+        default:
+            Assume(UNREACHED);
+        }
+        m_writer.AsmReg2(convertOp, retInfo.location, 0);
     }
-    m_writer.AsmReg2(convertOp, retInfo.location, 0);
-
 
     // track stack requirements for out params
 
@@ -774,35 +804,50 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     EmitInfo falseExpr = EmitExpr(m_reader->ReadExpr());
 
-    if (falseExpr.type != trueExpr.type)
+    EmitInfo retInfo;
+    if (falseExpr.type == WasmTypes::Void)
+    {
+        if (trueExpr.type != WasmTypes::Void)
+        {
+            GetRegisterSpace(trueExpr.type)->ReleaseLocation(&trueExpr);
+        }
+    }
+    else if (trueExpr.type == WasmTypes::Void)
+    {
+        GetRegisterSpace(falseExpr.type)->ReleaseLocation(&falseExpr);
+    }
+    else if (falseExpr.type != trueExpr.type)
     {
         throw WasmCompilationException(L"If/Else branches must have same result type");
     }
-
-    // we will use result info true expr as our result info
-    // review: how will this work with break? must we store this location?
-    if (falseExpr.type != WasmTypes::Void && falseExpr.location != trueExpr.location)
+    else
     {
-        Js::OpCodeAsmJs op = Js::OpCodeAsmJs::Nop;
-        switch (falseExpr.type)
+        // we will use result info true expr as our result info
+        // review: how will this work with break? must we store this location?
+        if (falseExpr.location != trueExpr.location)
         {
-        case WasmTypes::F32:
-            op = Js::OpCodeAsmJs::Ld_Flt;
-            break;
-        case WasmTypes::F64:
-            op = Js::OpCodeAsmJs::Ld_Db;
-            break;
-        case WasmTypes::I32:
-            op = Js::OpCodeAsmJs::Ld_Int;
-            break;
-        case WasmTypes::I64:
-            AssertMsg(UNREACHED, "NYI");
-            break;
-        default:
-            Assume(UNREACHED);
+            Js::OpCodeAsmJs op = Js::OpCodeAsmJs::Nop;
+            switch (falseExpr.type)
+            {
+            case WasmTypes::F32:
+                op = Js::OpCodeAsmJs::Ld_Flt;
+                break;
+            case WasmTypes::F64:
+                op = Js::OpCodeAsmJs::Ld_Db;
+                break;
+            case WasmTypes::I32:
+                op = Js::OpCodeAsmJs::Ld_Int;
+                break;
+            case WasmTypes::I64:
+                AssertMsg(UNREACHED, "NYI");
+                break;
+            default:
+                Assume(UNREACHED);
+            }
+            m_writer.AsmReg2(op, trueExpr.location, falseExpr.location);
+            GetRegisterSpace(falseExpr.type)->ReleaseLocation(&falseExpr);
         }
-        m_writer.AsmReg2(op, trueExpr.location, falseExpr.location);
-        GetRegisterSpace(falseExpr.type)->ReleaseLocation(&falseExpr);
+        retInfo = trueExpr;
     }
 
     m_writer.MarkAsmJsLabel(endLabel);
@@ -810,59 +855,49 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     Assert(m_nestedIfLevel > 0);
     --m_nestedIfLevel;
 
-    return trueExpr;
+    return retInfo;
 }
 
 EmitInfo
 WasmBytecodeGenerator::EmitBrTable()
 {
-    Js::ByteCodeLabel defaultLabel = m_writer.DefineLabel();
-    Js::ByteCodeLabel breakLabel = m_writer.DefineLabel();
-    uint numEntries = m_reader->m_currentNode.tableswitch.numEntries;
-    uint numCases = m_reader->m_currentNode.tableswitch.numCases;
-    UINT16* jumpTable = m_reader->m_currentNode.tableswitch.jumpTable;
-    Js::ByteCodeLabel* labels = AnewArray(&m_alloc, Js::ByteCodeLabel, numEntries);
+    const uint numTargets = m_reader->m_currentNode.brTable.numTargets;
+    const UINT* targetTable = m_reader->m_currentNode.brTable.targetTable;
+    const UINT defaultEntry = m_reader->m_currentNode.brTable.defaultTarget;
 
-    Assert((numCases == numEntries) || (numCases + 1 == numEntries));
-
-    m_labels->Push(breakLabel);
     // Compile scrutinee
     WasmOp op = m_reader->ReadFromBlock();
     EmitInfo scrutineeInfo = EmitExpr(op);
 
+    Js::ByteCodeLabel fallthroughLabel = m_writer.DefineLabel();
+    
     WasmRegisterSpace* regSpace = GetRegisterSpace(WasmTypes::I32);
     Js::RegSlot scrutineeVal = regSpace->AcquireTmpRegister();
     m_writer.AsmReg2(Js::OpCodeAsmJs::BeginSwitch_Int, scrutineeVal, scrutineeInfo.location);
     // Compile cases
-    for (uint i = 0; i < numEntries; i++)
+    for (uint i = 0; i < numTargets; i++)
     {
+        uint target = targetTable[i];
         Js::RegSlot caseLoc = regSpace->AcquireTmpRegister();
-        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, jumpTable[i]);
-        Js::ByteCodeLabel label;
-        if (i == numEntries - 1) {
-            label = defaultLabel;
+        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, target);
+        Js::ByteCodeLabel targetLabel;
+        if (target == 0)
+        {
+            targetLabel = fallthroughLabel;
         }
         else
         {
-            label = m_writer.DefineLabel();
+            targetLabel = GetLabel(target);
         }
-        labels[i] = label;
-
-        m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, label, scrutineeVal, caseLoc);
+        m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, targetLabel, scrutineeVal, caseLoc);
         regSpace->ReleaseTmpRegister(caseLoc);
     }
     regSpace->ReleaseTmpRegister(scrutineeVal);
-    m_writer.AsmBr(defaultLabel, Js::OpCodeAsmJs::EndSwitch_Int);
 
-    for (uint i = 0; i < numEntries; i++)
-    {
-        m_writer.MarkAsmJsLabel(labels[i]);
-        WasmOp op = m_reader->ReadFromBlock();
-        EmitInfo info = EmitExpr(op);
-    }
+    m_writer.AsmBr(defaultEntry, Js::OpCodeAsmJs::EndSwitch_Int);
 
-    m_labels->Pop();
-    m_writer.MarkAsmJsLabel(breakLabel);
+    m_writer.MarkAsmJsLabel(fallthroughLabel);
+
     return EmitInfo();
 }
 
@@ -877,7 +912,7 @@ WasmBytecodeGenerator::EmitBinExpr()
     {
         throw WasmCompilationException(L"Invalid type for LHS");
     }
-    if (rhsType != lhs.type)
+    if (rhsType != rhs.type)
     {
         throw WasmCompilationException(L"Invalid type for RHS");
     }
@@ -943,7 +978,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
     // TODO (michhol): combine with MemRead
-    Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
+    Js::RegSlot indexReg = m_i32RegSlots->AcquireTmpRegister();
     // TODO: emit less bytecode with expr + 0
     m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, m_reader->m_currentNode.mem.offset);
 
@@ -955,16 +990,22 @@ WasmBytecodeGenerator::EmitMemStore()
     }
 
     m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, indexReg, exprInfo.location, indexReg);
-    GetRegisterSpace(WasmTypes::I32)->ReleaseLocation(&exprInfo);
+    m_i32RegSlots->ReleaseLocation(&exprInfo);
 
     EmitInfo rhsInfo = EmitExpr(m_reader->ReadExpr());
+    if (rhsInfo.type != type)
+    {
+        throw WasmCompilationException(L"Invalid type for store op");
+    }
 
     m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, indexReg, GetViewType(wasmOp));
+    ReleaseLocation(&rhsInfo);
+    m_i32RegSlots->ReleaseTmpRegister(indexReg);
 
-    GetRegisterSpace(rhsInfo.type)->ReleaseLocation(&rhsInfo);
-    GetRegisterSpace(WasmTypes::I32)->ReleaseTmpRegister(indexReg);
+    Js::RegSlot retLoc = GetRegisterSpace(rhsInfo.type)->AcquireTmpRegister();
+    m_writer.AsmReg2(GetLoadOp(rhsInfo.type), retLoc, rhsInfo.location);
 
-    return EmitInfo();
+    return EmitInfo(retLoc, rhsInfo.type);
 }
 
 template<typename T>
@@ -1088,8 +1129,8 @@ template<WasmOp wasmOp>
 EmitInfo
 WasmBytecodeGenerator::EmitBr()
 {
-    UINT depth = m_reader->m_currentNode.br.depth;
-    Assert(depth < m_labels->Count());
+    UINT depth = m_reader->m_currentNode.br.depth + 1;
+    Assert(depth <= m_labels->Count());
 
     EmitInfo conditionInfo;
     if (wasmOp == WasmOp::wnBR_IF)
@@ -1107,12 +1148,7 @@ WasmBytecodeGenerator::EmitBr()
         EmitInfo info = EmitExpr(m_reader->ReadFromBlock());
     }
 
-    SListCounted<Js::ByteCodeLabel>::Iterator itr(m_labels);
-    itr.Next();
-    for (UINT i = 0; i < depth; i++) {
-        itr.Next();
-    }
-    Js::ByteCodeLabel target = itr.Data();
+    Js::ByteCodeLabel target = GetLabel(depth);
     if (wasmOp == WasmOp::wnBR)
     {
         m_writer.AsmBr(target);
@@ -1242,6 +1278,29 @@ WasmBytecodeGenerator::AddExport()
 
     funcs[exportId]->wasmInfo->SetExported(true);
     funcs[exportId]->wasmInfo->SetName(m_reader->m_currentNode.var.exportName);
+}
+
+
+void
+WasmBytecodeGenerator::ReleaseLocation(EmitInfo * info)
+{
+    if (info->type != WasmTypes::Void)
+    {
+        Assert(info->type < WasmTypes::Limit);
+        GetRegisterSpace(info->type)->ReleaseLocation(info);
+    }
+}
+
+Js::ByteCodeLabel
+WasmBytecodeGenerator::GetLabel(uint depth)
+{
+    Assert(depth != 0);
+    SListCounted<Js::ByteCodeLabel>::Iterator itr(m_labels);
+    for (UINT i = 0; i < depth; ++i)
+    {
+        itr.Next();
+    }
+    return itr.Data();
 }
 
 WasmRegisterSpace *

@@ -109,7 +109,7 @@ namespace Wasm
             void CallNode();
             void BlockNode();
             void BrNode();
-            void TableSwitchNode();
+            void BrTableNode();
             WasmOp MemNode(WasmBinOp op);
             void VarNode();
             template <WasmTypes::LocalType type> void ConstNode();
