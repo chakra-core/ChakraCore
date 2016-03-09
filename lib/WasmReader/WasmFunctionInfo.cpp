@@ -12,7 +12,6 @@ namespace Wasm
 
 WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
     : m_alloc(alloc),
-    m_exported(false),
     m_imported(false),
     m_name(nullptr)
 {
@@ -129,22 +128,10 @@ WasmFunctionInfo::SetImported(const bool imported)
     m_imported = imported;
 }
 
-void
-WasmFunctionInfo::SetExported(const bool exported)
-{
-    m_exported = exported;
-}
-
 bool
 WasmFunctionInfo::Imported() const
 {
     return m_imported;
-}
-
-bool
-WasmFunctionInfo::Exported() const
-{
-    return m_exported;
 }
 
 void

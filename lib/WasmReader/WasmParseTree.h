@@ -96,6 +96,13 @@ namespace Wasm
             WasmMemOpNode mem;
         };
     };
+
+    struct WasmExport
+    {
+        uint32 funcIndex;
+        uint32 nameLength;
+        wchar_t* name;
+    };
 }
 
 #define FOREACH_WASMNODE_IN_LIST(node, head) \

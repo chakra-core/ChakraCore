@@ -117,7 +117,9 @@ namespace Wasm
             void ReadMemorySection();
             void Signature();
             void ReadFunctionsSignatures();
+            void ReadExportTable();
             void FunctionBodyHeader();
+            wchar_t* ReadInlineName(uint32& length, uint32& nameLength);
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
             UINT LEB128(UINT &length, bool sgn = false);

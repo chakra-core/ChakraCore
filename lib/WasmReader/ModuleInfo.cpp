@@ -12,11 +12,13 @@ namespace Wasm
 
 ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_memory(),
-    m_alloc(alloc)
+    m_alloc(alloc),
+    m_exportCount(0)
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
     m_indirectfuncs = Anew(m_alloc, WasmIndirectFuncArray, m_alloc, 0);
     m_funsigs = nullptr;
+    m_exports = nullptr;
 }
 
 bool
@@ -137,6 +139,28 @@ ModuleInfo::GetFunSig(uint index) const
         return nullptr;
     }
     return m_funsigs[index];
+}
+
+void ModuleInfo::AllocateFunctionExports(uint32 entries)
+{
+    m_exports = AnewArrayZ(m_alloc, WasmExport, entries);
+    m_exportCount = entries;
+}
+
+void ModuleInfo::SetFunctionExport(uint32 iExport, uint32 funcIndex, wchar_t* exportName, uint32 nameLength)
+{
+    m_exports[iExport].funcIndex = funcIndex;
+    m_exports[iExport].nameLength = nameLength;
+    m_exports[iExport].name = exportName;
+}
+
+Wasm::WasmExport* ModuleInfo::GetFunctionExport(uint32 iExport) const
+{
+    if (iExport >= m_exportCount)
+    {
+        return nullptr;
+    }
+    return &m_exports[iExport];
 }
 
 } // namespace Wasm
