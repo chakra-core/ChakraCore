@@ -61,7 +61,7 @@ AutoSystemInfo::Initialize()
 {
     Assert(!initialized);
 #ifndef _WIN32
-    PAL_InitializeChakraCore("/home/hiteshk/code/core/BuildLinux/bin/GCStress/GCStress");
+    PAL_InitializeDLL();
 #endif
 
     processHandle = GetCurrentProcess();
