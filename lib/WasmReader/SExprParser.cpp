@@ -404,14 +404,26 @@ SExprParser::ParseTable()
     m_currentNode.op = wnTABLE;
 
     SExprTokenType tok;
+    uint32 count = 0;
+    LPCUTF8 p = m_scanner->m_currentChar;
     while ((tok = m_scanner->Scan()) == wtkINTLIT)
     {
         if (m_token.u.lng < 0 || m_token.u.lng >= UINT_MAX)
         {
             ThrowSyntaxError();
         }
-        m_moduleInfo->AddIndirectFunctionIndex((uint32)m_token.u.lng);
+        ++count;
     }
+    m_moduleInfo->AllocateIndirectFunctions(count);
+
+    uint32 i = 0;
+    // not a very nice solution, but it's in line with the binary format behavior
+    m_scanner->m_currentChar = p;
+    while ((tok = m_scanner->Scan()) == wtkINTLIT)
+    {
+        m_moduleInfo->SetIndirectFunction((uint32)m_token.u.lng, i++);
+    }
+    Assert(i == count);
     if (tok != wtkRPAREN)
     {
         ThrowSyntaxError();

@@ -1956,13 +1956,13 @@ namespace Js
             for (uint i = 0; i < wasmModule->info->GetIndirectFunctionCount(); ++i)
             {
                 uint funcIndex = wasmModule->info->GetIndirectFunctionIndex(i);
-                if (funcIndex >= wasmModule->functions->Count())
+                if (funcIndex >= wasmModule->info->GetFunctionCount())
                 {
-                    // TODO: michhol give error message
+                    // TODO: michhol give error messages
                     Js::Throw::InternalError();
                 }
-                Wasm::WasmFunction * indirFunc = functionArray[funcIndex];
-                uint sigId = indirFunc->wasmInfo->GetSignature()->GetSignatureId();
+                Wasm::WasmFunctionInfo * indirFunc = wasmModule->info->GetFunSig(funcIndex);
+                uint sigId = indirFunc->GetSignature()->GetSignatureId();
                 if (!indirectFunctionTables[sigId])
                 {
                     // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
