@@ -61,7 +61,7 @@ namespace Wasm
 
     struct WasmModule
     {
-        WasmModule() : functions(nullptr)
+        WasmModule() : functions(nullptr), memSize(0), indirFuncTableOffset(0), heapOffset(0), funcOffset(0)
         {
         }
         // TODO (michhol): use normal array, and get info from parser
@@ -128,7 +128,6 @@ namespace Wasm
         EmitInfo EmitConst();
 
         void EnregisterLocals();
-        void AddExport();
 
         void ReadParams(WasmNode * paramExpr);
         void ReadResult(WasmNode * paramExpr);

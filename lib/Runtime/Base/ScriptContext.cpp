@@ -1783,14 +1783,15 @@ namespace Js
 
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
+        Wasm::BaseWasmReader *reader = nullptr;
+        Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
+        Js::Var exportObj = nullptr;
         try
         {
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
             Js::AutoDynamicCodeReference dynamicFunctionReference(this);
             *ppSourceInfo = nullptr;
             Wasm::WasmModule * wasmModule = nullptr;
-            Wasm::BaseWasmReader *reader = nullptr;
-            Wasm::WasmBytecodeGenerator *bytecodeGen = nullptr;
 
             if (!isBinary)
             {
@@ -1848,7 +1849,7 @@ namespace Js
 
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
 
-            Js::Var exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
+            exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
             Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
 
             PropertyRecord const * exportsPropertyRecord = nullptr;
@@ -1926,26 +1927,27 @@ namespace Js
                     entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
                     funcObj->SetEnvironment(frameDisplay);
                     localModuleFunctions[i] = funcObj;
-                    if (functionArray[i]->wasmInfo->Exported())
+                }
+            }
+
+            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
+            {
+                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+                if (funcExport)
+                {
+                    PropertyRecord const * propertyRecord = nullptr;
+                    GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
+                    Var funcObj;
+                    // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
+                    if (funcExport->funcIndex < wasmModule->functions->Count())
                     {
-                        PropertyRecord const * propertyRecord = nullptr;
-                        LPCUTF8 name = functionArray[i]->wasmInfo->GetName();
-                        AnalysisAssertMsg(name, "export function is guaranteed to have name.");
-                        utf8::DecodeOptions decodeOptions = utf8::doDefault;
-                        UINT utf16Len = utf8::ByteIndexIntoCharacterIndex(name, strlen((const char*)name), decodeOptions);
-                        LPCWSTR contents = HeapNewArray(WCHAR, (utf16Len + 1));
-                        if (contents == nullptr)
-                        {
-                            Js::Throw::OutOfMemory();
-                        }
-                        utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
-
-                        GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
-                        HeapDeleteArray(utf16Len + 1, contents);
-
-                        JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
-
+                        funcObj = localModuleFunctions[funcExport->funcIndex];
                     }
+                    else
+                    {
+                        funcObj = GetLibrary()->GetUndefined();
+                    }
+                    JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), funcObj, this);
                 }
             }
 
@@ -1969,7 +1971,24 @@ namespace Js
                 indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
             }
 
+        }
+        catch (Js::OutOfMemoryException)
+        {
+            pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
+            exportObj = nullptr;
+        }
+        catch (Js::StackOverflowException)
+        {
+            pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
+            exportObj = nullptr;
+        }
+
+        if (bytecodeGen)
+        {
             HeapDelete(bytecodeGen);
+        }
+        if (reader)
+        {
             if (!isBinary)
             {
                 HeapDelete((Wasm::SExprParser*)reader);
@@ -1978,19 +1997,8 @@ namespace Js
             {
                 HeapDelete((Wasm::Binary::WasmBinaryReader*)reader);
             }
-
-            return exportObj;
         }
-        catch (Js::OutOfMemoryException)
-        {
-            pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
-            return nullptr;
-        }
-        catch (Js::StackOverflowException)
-        {
-            pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
-            return nullptr;
-        }
+        return exportObj;
     }
 #endif
 

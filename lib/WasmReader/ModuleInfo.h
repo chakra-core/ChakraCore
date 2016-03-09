@@ -42,7 +42,10 @@ public:
     void AllocateFunctions(uint32 count);
     bool SetFunSig(WasmFunctionInfo* funsig, uint32 index);
     WasmFunctionInfo * GetFunSig(uint index) const;
-
+    void AllocateFunctionExports(uint32 entries);
+    uint GetExportCount() const { return m_exportCount; }
+    void SetFunctionExport(uint32 iExport, uint32 funcIndex, wchar_t* exportName, uint32 nameLength);
+    WasmExport* GetFunctionExport(uint32 iExport) const;
 private:
     typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;
     typedef JsUtil::GrowingArray<uint32, ArenaAllocator> WasmIndirectFuncArray;
@@ -50,8 +53,10 @@ private:
     WasmSignatureArray * m_signatures;
     WasmIndirectFuncArray * m_indirectfuncs;
     WasmFunctionInfo** m_funsigs;
+    WasmExport* m_exports;
 
     uint m_funcCount;
+    uint m_exportCount;
     ArenaAllocator * m_alloc;
 };
 
