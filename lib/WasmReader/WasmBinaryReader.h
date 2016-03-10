@@ -122,6 +122,8 @@ namespace Wasm
             void FunctionBodyHeader();
 
             char16* ReadInlineName(uint32& length, uint32& nameLength);
+            void ImportEntry();
+
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
             UINT LEB128(UINT &length, bool sgn = false);

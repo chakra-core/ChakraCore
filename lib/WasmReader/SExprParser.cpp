@@ -269,11 +269,6 @@ SExprParser::ParseFunctionHeader()
 
     m_funcInfo = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
 
-    if (type == funcImport)
-    {
-        m_funcInfo->SetImported(true);
-    }
-
     if (tok == wtkSTRINGLIT)
     {
         if (type == funcImport)

@@ -12,8 +12,8 @@ namespace Wasm
 
 WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc)
     : m_alloc(alloc),
-    m_imported(false),
-    m_name(nullptr)
+    m_name(nullptr),
+    m_mod(nullptr)
 {
     m_i32Consts = Anew(m_alloc, ConstMap<int32>, m_alloc);
     m_i64Consts = Anew(m_alloc, ConstMap<int64>, m_alloc);
@@ -126,18 +126,6 @@ WasmFunctionInfo::GetParamCount() const
 }
 
 void
-WasmFunctionInfo::SetImported(const bool imported)
-{
-    m_imported = imported;
-}
-
-bool
-WasmFunctionInfo::Imported() const
-{
-    return m_imported;
-}
-
-void
 WasmFunctionInfo::SetName(LPCUTF8 name)
 {
     m_name = name;
@@ -147,6 +135,18 @@ LPCUTF8
 WasmFunctionInfo::GetName() const
 {
     return m_name;
+}
+
+void
+WasmFunctionInfo::SetModuleName(LPCUTF8 name)
+{
+    m_mod = name;
+}
+
+LPCUTF8
+WasmFunctionInfo::GetModuleName() const
+{
+    return m_mod;
 }
 
 void

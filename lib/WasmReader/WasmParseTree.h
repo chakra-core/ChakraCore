@@ -103,6 +103,15 @@ namespace Wasm
         uint32 nameLength;
         char16* name;
     };
+
+    struct WasmImport
+    {
+        uint32 sigId;
+        uint32 modNameLen;
+        wchar_t* modName;
+        uint32 fnNameLen;
+        wchar_t* fnName;
+    };
 }
 
 #define FOREACH_WASMNODE_IN_LIST(node, head) \

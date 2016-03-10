@@ -47,6 +47,12 @@ public:
     uint GetExportCount() const { return m_exportCount; }
     void SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength);
     WasmExport* GetFunctionExport(uint32 iExport) const;
+
+    void AllocateFunctionImports(uint32 entries);
+    uint32 GetImportCount() const { return m_importCount;  }
+    void SetFunctionImport(uint32 i, uint32 sigId, wchar_t* modName, uint32 modNameLen, wchar_t* fnName, uint32 fnNameLen);
+    WasmImport* GetFunctionImport(uint32 i) const;
+
 private:
     typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;
 
@@ -54,10 +60,13 @@ private:
     uint32* m_indirectfuncs;
     WasmFunctionInfo** m_funsigs;
     WasmExport* m_exports;
+    WasmImport* m_imports;
 
     uint m_funcCount;
     uint m_indirectFuncCount;
     uint m_exportCount;
+    uint32 m_importCount;
+
     ArenaAllocator * m_alloc;
 };
 

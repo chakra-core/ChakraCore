@@ -23,10 +23,10 @@ namespace Wasm
         uint32 GetLocalCount() const;
         uint32 GetParamCount() const;
 
-        void SetImported(const bool imported);
-        bool Imported() const;
         void SetName(LPCUTF8 name);
         LPCUTF8 GetName() const;
+        void SetModuleName(LPCUTF8 name);
+        LPCUTF8 GetModuleName() const;
 
         void SetNumber(UINT32 number);
         UINT32 GetNumber() const;
@@ -47,11 +47,11 @@ namespace Wasm
 
         WasmTypeArray * m_locals;
 
-        bool m_imported;
         ArenaAllocator * m_alloc;
         WasmSignature * m_signature;
         Js::ByteCodeLabel m_ExitLabel;
         LPCUTF8 m_name;
+        LPCUTF8 m_mod; // imported module
         UINT32 m_number;
     };
 } // namespace Wasm
