@@ -1153,4 +1153,11 @@
         <baseline>HTMLComments.baseline</baseline>
     </default>
 </test>
+<test>
+  <default>
+    <files>await-futreserved-only-in-modules.js</files>
+    <compile-flags>-ES6Module</compile-flags>
+    <tags>exclude_dynapogo</tags>
+  </default>
+</test>
 </regress-exe>
