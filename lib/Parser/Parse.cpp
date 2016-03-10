@@ -8655,11 +8655,11 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             nameHintLength = pid->Cch();
             nameHintOffset = 0;
 
-			if ((declarationType == tkCONST || declarationType == tkLET) &&
-				wcsncmp(pNameHint, L"let", 4) == 0)
-			{
-				Error(ERRLetIDInLexicalDecl, pnodeThis);
-			}
+            if ((declarationType == tkCONST || declarationType == tkLET) &&
+                wcsncmp(pNameHint, L"let", 4) == 0)
+            {
+                Error(ERRLetIDInLexicalDecl, pnodeThis);
+            }
 
             if (declarationType == tkVAR)
             {
