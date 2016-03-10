@@ -112,9 +112,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 #endif
             if (committed)
             {
-#pragma warning(suppress: 6250)
                 GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
-#pragma warning(suppress: 6250)
                 GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
             }
             this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount) * AutoSystemInfo::PageSize);
