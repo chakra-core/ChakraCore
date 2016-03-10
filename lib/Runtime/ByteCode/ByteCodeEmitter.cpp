@@ -2915,6 +2915,13 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
     Js::ParseableFunctionInfo* deferParseFunction = funcInfo->byteCodeFunction;
     deferParseFunction->SetGrfscr(deferParseFunction->GetGrfscr() | (this->flags & ~fscrDeferredFncExpression));
+    if (this->pRootFunc != deferParseFunction)
+    {
+        // Don't mark deferred nested function as an event handler. It doesn't require different code gen to support
+        // the semantics (the frame display given to it by the parent function does that), and we don't want to
+        // try to build an event-handler-style frame display for it.
+        deferParseFunction->SetGrfscr(deferParseFunction->GetGrfscr() & ~(fscrImplicitThis | fscrImplicitParents));
+    }
     deferParseFunction->SetSourceInfo(this->GetCurrentSourceIndex(),
         funcInfo->root,
         !!(this->flags & fscrEvalCode),
