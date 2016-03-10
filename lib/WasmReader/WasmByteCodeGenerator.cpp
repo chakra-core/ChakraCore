@@ -29,7 +29,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
 }
-typedef ProcessSectionResult(*SectionProcessFunc)(WasmBytecodeGenerator*, SectionCode);
+typedef bool(*SectionProcessFunc)(WasmBytecodeGenerator*);
+typedef void(*AfterSectionCallback)(WasmBytecodeGenerator*);
 
 WasmModule *
 WasmBytecodeGenerator::GenerateModule()
@@ -48,7 +49,7 @@ WasmBytecodeGenerator::GenerateModule()
 
     BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
 
-    const auto readerProcess = [](WasmBytecodeGenerator* gen, SectionCode code) {return gen->m_reader->ProcessSection(code); };
+    const auto readerProcess = [](WasmBytecodeGenerator* gen) { return gen->m_reader->ProcessCurrentSection(); };
     // By default lest the reader process the section
 #define WASM_SECTION(name, id, flag, precedent) readerProcess,
     SectionProcessFunc sectionProcess[bSectLimit + 1] = {
@@ -56,37 +57,22 @@ WasmBytecodeGenerator::GenerateModule()
         nullptr
     };
 
-    sectionProcess[bSectFunctionSignatures] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectFunctionSignatures);
-        if (gen->m_reader->ProcessSection(code) != psrEnd)
-        {
-            return psrInvalid;
-        }
-        gen->m_module->importFuncOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount(); 
-        return psrEnd;
-    };
+    // Will callback regardless if the section is present or not
+    AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
 
-    sectionProcess[bSectImportTable] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectImportTable);
-        // todo::
-        if (gen->m_reader->ProcessSection(code) != psrEnd)
-        {
-            return psrInvalid;
-        }
+    afterSectionCallback[bSectImportTable] = [](WasmBytecodeGenerator* gen) {
+        gen->m_module->importFuncOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount();
+    };
+    afterSectionCallback[bSectIndirectFunctionTable] = [](WasmBytecodeGenerator* gen) {
         gen->m_module->indirFuncTableOffset = gen->m_module->importFuncOffset + gen->m_module->info->GetImportCount();
-        return psrEnd;
     };
 
-    sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectFunctionBodies);
-        bool isEntry = true;
-        ProcessSectionResult lastRes;
-        while ((lastRes = gen->m_reader->ProcessSection(code, isEntry)) == psrContinue)
-        {
-            isEntry = false;
+    sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen) {
+        return gen->m_reader->ReadFunctionBodies([](void* g) {
+            WasmBytecodeGenerator* gen = (WasmBytecodeGenerator*)g;
             gen->m_module->functions->Add(gen->GenerateFunction());
-        }
-        return lastRes;
+            return true;
+        }, gen);
     };
 
     for (uint32 sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
@@ -102,10 +88,15 @@ WasmBytecodeGenerator::GenerateModule()
             }
             visitedSections->Set(sectionCode);
 
-            if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
+            if (!sectionProcess[sectionCode](this))
             {
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
+        }
+
+        if (afterSectionCallback[sectionCode])
+        {
+            afterSectionCallback[sectionCode](this);
         }
     }
 
@@ -131,12 +122,8 @@ WasmBytecodeGenerator::InitializeImport()
 WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
-#if DBG
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
-    {
-        Output::Print(L"GenerateFunction %u \n", m_reader->m_currentNode.func.info->GetNumber());
-    }
-#endif
+    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), m_reader->m_currentNode.func.info->GetNumber());
+
     WasmRegisterSpace f32Space(ReservedRegisterCount);
     WasmRegisterSpace f64Space(ReservedRegisterCount);
     WasmRegisterSpace i32Space(ReservedRegisterCount);

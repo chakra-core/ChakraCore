@@ -52,11 +52,6 @@ namespace Wasm
         };
     };
 
-    struct WasmOptionalNode
-    {
-        bool exists;
-    };
-
     struct WasmBlockNode
     {
         uint32 count;
@@ -89,7 +84,6 @@ namespace Wasm
             WasmVarNode var;
             WasmConstLitNode cnst;
             WasmFuncNode func;
-            WasmOptionalNode opt;
             WasmBlockNode block;
             WasmBrNode br;
             WasmBrTableNode brTable;

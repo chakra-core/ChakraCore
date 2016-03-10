@@ -8,8 +8,24 @@
 #include "Common.h"
 
 #include "Runtime.h"
-
+#if DBG
 #ifdef ENABLE_WASM
+#define TRACE_WASM_DECODER_PHASE(phase, ...) \
+    if (PHASE_TRACE1(Js::phase##Phase)) \
+    {\
+        Output::Print(__VA_ARGS__); \
+        Output::Print(_u("\n")); \
+        Output::Flush(); \
+    }
+#define TRACE_WASM_DECODER(...) TRACE_WASM_DECODER_PHASE(WasmReader, __VA_ARGS__)
+#define TRACE_WASM_DECODER(...) TRACE_WASM_DECODER_PHASE(WasmReader, __VA_ARGS__)
+#define TRACE_WASM_LEB128(...) TRACE_WASM_DECODER_PHASE(WasmLEB128, __VA_ARGS__)
+#else
+#define TRACE_WASM_DECODER_PHASE(...)
+#define TRACE_WASM_DECODER(...)
+#define TRACE_WASM_DECODER(...)
+#define TRACE_WASM_LEB128(...)
+#endif
 
 namespace Wasm
 {

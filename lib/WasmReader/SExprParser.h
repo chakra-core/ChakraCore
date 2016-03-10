@@ -33,7 +33,7 @@ namespace Wasm
 
         virtual void InitializeReader() override;
         virtual bool ReadNextSection(SectionCode nextSection) override;
-        virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) override;
+        virtual bool ProcessCurrentSection() override;
         // todo:: Remove and use ReadNextSection and ProcessSection instead
         virtual WasmOp ReadFromModule();
         virtual WasmOp ReadFromBlock() override;
@@ -79,6 +79,8 @@ namespace Wasm
 
         bool IsEndOfExpr(SExprTokenType tok) const;
         WasmTypes::WasmType GetWasmType(SExprTokenType tok) const;
+
+        virtual bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata) override;
 
         ArenaAllocator      m_alloc;
         SExprScanner *      m_scanner;

@@ -543,11 +543,9 @@ SExprParser::ParseReturnExpr()
     SExprTokenType tok = m_scanner->Scan();
     if (tok == wtkRPAREN)
     {
-        m_currentNode.opt.exists = false;
     }
     else if (tok == wtkLPAREN)
     {
-        m_currentNode.opt.exists = true;
         m_inExpr = true;
         m_blockNesting->Push(SExpr::Expr);
     }
@@ -761,14 +759,22 @@ SExprParser::GetWasmType(SExprTokenType tok) const
     }
 }
 
-bool SExprParser::ReadNextSection(SectionCode nextSection)
+bool
+SExprParser::ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata)
 {
     return false;
 }
 
-ProcessSectionResult SExprParser::ProcessSection(SectionCode nextSection, bool isEntry /*= true*/)
+bool
+SExprParser::ReadNextSection(SectionCode nextSection)
 {
-    return psrInvalid;
+    return false;
+}
+
+bool
+SExprParser::ProcessCurrentSection()
+{
+    return false;
 }
 
 void
