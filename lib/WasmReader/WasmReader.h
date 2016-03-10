@@ -19,8 +19,8 @@ namespace Wasm
     class WasmFunctionInfo;
 }
 
-#include "ByteCode\ByteCodeWriter.h"
-#include "ByteCode\AsmJsByteCodeWriter.h"
+#include "ByteCode/ByteCodeWriter.h"
+#include "ByteCode/AsmJsByteCodeWriter.h"
 
 #include "WasmParseTree.h"
 
@@ -43,9 +43,9 @@ namespace Wasm
 #include "WasmBytecodeGenerator.h"
 
 // TODO (michhol): cleanup includes
-#include "Bytecode\AsmJsByteCodeWriter.h"
-#include "Bytecode\ByteCodeDumper.h"
-#include "Bytecode\AsmJsByteCodeDumper.h"
-#include "Language\AsmJSTypes.h"
+#include "Bytecode/AsmJsByteCodeWriter.h"
+#include "Bytecode/ByteCodeDumper.h"
+#include "Bytecode/AsmJsByteCodeDumper.h"
+#include "Language/AsmJSTypes.h"
 
 #endif // ENABLE_WASM

@@ -11,4 +11,4 @@
 #include "WasmReader.h"
 
 // Runtime includes
-#include "..\Runtime\runtime.h"
+#include "../Runtime/runtime.h"
