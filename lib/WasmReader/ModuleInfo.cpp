@@ -175,6 +175,32 @@ Wasm::WasmExport* ModuleInfo::GetFunctionExport(uint32 iExport) const
     return &m_exports[iExport];
 }
 
+void
+ModuleInfo::AllocateFunctionImports(uint32 entries)
+{
+    m_imports = AnewArrayZ(m_alloc, WasmImport, entries);
+    m_importCount = entries;
+}
+
+void
+ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, wchar_t* modName, uint32 modNameLen, wchar_t* fnName, uint32 fnNameLen)
+{
+    m_imports[i].sigId = sigId;
+    m_imports[i].modNameLen = modNameLen;
+    m_imports[i].modName = modName;
+    m_imports[i].fnNameLen = fnNameLen;
+    m_imports[i].fnName = fnName;
+}
+
+Wasm::WasmImport* ModuleInfo::GetFunctionImport(uint32 i) const
+{
+    if (i >= m_importCount)
+    {
+        return nullptr;
+    }
+    return &m_imports[i];
+}
+
 } // namespace Wasm
 
 #endif // ENABLE_WASM

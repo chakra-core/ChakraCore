@@ -197,6 +197,14 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
     case bSectIndirectFunctionTable:
         ReadIndirectFunctionTable();
         break;
+    case bSectImportTable:
+        m_moduleState.size = LEB128(length);
+        m_moduleInfo->AllocateFunctionImports(m_moduleState.size);
+        for (m_moduleState.count = 0; m_moduleState.count < m_moduleState.size; m_moduleState.count++)
+        {
+            ImportEntry();
+        }
+        break;
     default:
         Assert(false);
         return psrInvalid;
@@ -638,7 +646,7 @@ wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     nameLength = LEB128(length);
     CheckBytesLeft(nameLength);
     LPCUTF8 rawName = (LPCUTF8)(m_pc);
-    
+
     m_pc += nameLength;
     length += nameLength;
 
@@ -652,6 +660,23 @@ wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, rawName, utf16Len, decodeOptions);
 
     return contents;
+}
+
+void
+WasmBinaryReader::ImportEntry()
+{
+    UINT len = 0;
+    UINT sigId = LEB128(len);
+    UINT modNameLen = 0, fnNameLen = 0;
+
+    if (sigId >= m_moduleInfo->GetSignatureCount())
+    {
+        ThrowDecodingError(L"Function signature is out of bound");
+    }
+
+    wchar_t* modName = ReadInlineName(len, modNameLen);
+    wchar_t* fnName = ReadInlineName(len, fnNameLen);
+    m_moduleInfo->SetFunctionImport(m_moduleState.count, sigId, modName, modNameLen, fnName, fnNameLen);
 }
 
 const char *
@@ -674,8 +699,8 @@ WasmBinaryReader::Name(UINT32 offset, UINT &length)
     } while (*str++);
 
     return (const char*)(m_start + offset);
-
 }
+
 UINT
 WasmBinaryReader::Offset()
 {
