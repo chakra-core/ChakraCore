@@ -140,7 +140,7 @@ namespace Js
                 return this->fields->u32Fields[type] = val;
             }
 
-            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when allocating the counters structure
+            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
             return val;
         }
 
@@ -180,7 +180,7 @@ namespace Js
                 return this->fields->i32Fields[type] = val;
             }
 
-            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when allocating the counters structure
+            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
             return val;
         }
 
