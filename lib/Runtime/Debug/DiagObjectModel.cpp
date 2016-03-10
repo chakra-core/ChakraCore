@@ -575,6 +575,29 @@ namespace Js
         return offset;
     }
 
+    DebuggerScope * VariableWalkerBase::GetScopeWhenHaltAtFormals()
+    {
+        if (IsWalkerForCurrentFrame())
+        {
+            Js::ScopeObjectChain * scopeObjectChain = pFrame->GetJavascriptFunction()->GetFunctionBody()->GetScopeObjectChain();
+
+            if (scopeObjectChain != nullptr && scopeObjectChain->pScopeChain != nullptr)
+            {
+                int currentOffset = GetAdjustedByteCodeOffset();
+                for (int i = 0; i < scopeObjectChain->pScopeChain->Count(); i++)
+                {
+                    Js::DebuggerScope * scope = scopeObjectChain->pScopeChain->Item(i);
+                    if (scope->scopeType == Js::DiagParamScope && scope->GetEnd() > currentOffset)
+                    {
+                        return scope;
+                    }
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
     // Allocates and returns a property display info.
     DebuggerPropertyDisplayInfo* VariableWalkerBase::AllocateNewPropertyDisplayInfo(PropertyId propertyId, Var value, bool isConst, bool isInDeadZone)
     {
@@ -614,6 +637,8 @@ namespace Js
                     uint slotArrayCount = slotArray.GetCount();
                     pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, slotArrayCount);
 
+                    DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
+
                     for (ulong i = 0; i < slotArrayCount; i++)
                     {
                         Js::PropertyId propertyId = pFBody->GetPropertyIdsForScopeSlotArray()[i];
@@ -622,21 +647,24 @@ namespace Js
                         bool isInDeadZone = false;
                         if (propertyId != Js::Constants::NoProperty && IsPropertyValid(propertyId, i, &isPropertyInDebuggerScope, &isConst, &isInDeadZone))
                         {
-                            Var value = slotArray.Get(i);
-
-                            if (pFrame->GetScriptContext()->IsUndeclBlockVar(value))
+                            if (formalScope == nullptr || formalScope->HasProperty(propertyId))
                             {
-                                isInDeadZone = true;
+                                Var value = slotArray.Get(i);
+
+                                if (pFrame->GetScriptContext()->IsUndeclBlockVar(value))
+                                {
+                                    isInDeadZone = true;
+                                }
+
+                                DebuggerPropertyDisplayInfo *pair = AllocateNewPropertyDisplayInfo(
+                                    propertyId,
+                                    value,
+                                    isConst,
+                                    isInDeadZone);
+
+                                Assert(pair != nullptr);
+                                pMembersList->Add(pair);
                             }
-
-                            DebuggerPropertyDisplayInfo *pair = AllocateNewPropertyDisplayInfo(
-                                propertyId,
-                                value,
-                                isConst,
-                                isInDeadZone);
-
-                            Assert(pair != nullptr);
-                            pMembersList->Add(pair);
                         }
                     }
                 }
@@ -692,6 +720,8 @@ namespace Js
 
             PropertyIdOnRegSlotsContainer *propIdContainer = pFBody->GetPropertyIdOnRegSlotsContainer();
 
+            DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
+
             // this container can be nullptr if there is no locals in current function.
             if (propIdContainer != nullptr)
             {
@@ -718,6 +748,11 @@ namespace Js
                     {
                         bool isPropertyInDebuggerScope = false;
                         shouldInsert = IsPropertyValid(propertyId, reg, &isPropertyInDebuggerScope, &isConst, &isInDeadZone) && !isPropertyInDebuggerScope;
+                    }
+
+                    if (shouldInsert && formalScope != nullptr)
+                    {
+                        shouldInsert = formalScope->HasProperty(propertyId);
                     }
 
                     if (shouldInsert)
@@ -815,6 +850,8 @@ namespace Js
     {
         ScriptContext * scriptContext = pFrame->GetScriptContext();
 
+        DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
+
         // For the scopes and locals only enumerable properties will be shown.
         for (int i = 0; i < count; i++)
         {
@@ -833,16 +870,24 @@ namespace Js
                     itemObj = scriptContext->GetLibrary()->GetUndefined();
                 }
 
-                AssertMsg(!RootObjectBase::Is(object) || !isConst, "root object shouldn't produce const properties through IsPropertyValid");
+                if (formalScope == nullptr || formalScope->HasProperty(propertyId))
+                {
+                    if (formalScope != nullptr && pFrame->GetScriptContext()->IsUndeclBlockVar(itemObj))
+                    {
+                        itemObj = scriptContext->GetLibrary()->GetUndefined();
+                    }
 
-                DebuggerPropertyDisplayInfo *info = AllocateNewPropertyDisplayInfo(
-                    propertyId,
-                    itemObj,
-                    isConst,
-                    isInDeadZone);
+                    AssertMsg(!RootObjectBase::Is(object) || !isConst, "root object shouldn't produce const properties through IsPropertyValid");
 
-                Assert(info);
-                pMembersList->Add(info);
+                    DebuggerPropertyDisplayInfo *info = AllocateNewPropertyDisplayInfo(
+                        propertyId,
+                        itemObj,
+                        isConst,
+                        isInDeadZone);
+
+                    Assert(info);
+                    pMembersList->Add(info);
+                }
             }
         }
     }
@@ -924,7 +969,9 @@ namespace Js
             {
                 Js::DebuggerScope *debuggerScope = pScopeObjectChain->pScopeChain->Item(i);
                 bool isScopeInRange = debuggerScope->IsOffsetInScope(bytecodeOffset);
-                if (isScopeInRange && (debuggerScope->IsOwnScope() || debuggerScope->scopeType == DiagBlockScopeDirect))
+                if (isScopeInRange
+                    && debuggerScope->scopeType != DiagParamScope
+                    && (debuggerScope->IsOwnScope() || (debuggerScope->scopeType == DiagBlockScopeDirect && debuggerScope->HasProperties())))
                 {
                     switch (debuggerScope->scopeType)
                     {

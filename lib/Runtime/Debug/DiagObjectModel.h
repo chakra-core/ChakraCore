@@ -200,6 +200,7 @@ namespace Js
 
         bool IsInGroup() const { return (groupType != UIGroupType::UIGroupType_None && groupType != UIGroupType::UIGroupType_InnerScope); }
         bool IsWalkerForCurrentFrame() const { return groupType == UIGroupType::UIGroupType_None; }
+        DebuggerScope * GetScopeWhenHaltAtFormals();
 
         int GetAdjustedByteCodeOffset() const;
 
