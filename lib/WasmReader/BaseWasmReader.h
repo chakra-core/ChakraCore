@@ -7,20 +7,17 @@
 
 namespace Wasm
 {
-    enum ProcessSectionResult
-    {
-        psrContinue,
-        psrEnd,
-        psrInvalid
-    };
+    typedef bool(*FunctionBodyCallback)(void* data);
 
     class BaseWasmReader
     {
     public:
         virtual void InitializeReader() = 0;
         virtual bool ReadNextSection(SectionCode nextSection) = 0;
-        virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) = 0;
+        // Fully read the section in the reader. Return true if the section fully read
+        virtual bool ProcessCurrentSection() = 0;
 
+        virtual bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata) = 0;
         virtual WasmOp ReadExpr() = 0;
         virtual WasmOp ReadFromBlock() = 0;
         virtual WasmOp ReadFromCall() = 0;

@@ -50,13 +50,15 @@ public:
     WasmExport* GetFunctionExport(uint32 iExport) const;
 
     void AllocateFunctionImports(uint32 entries);
-    uint32 GetImportCount() const { return m_importCount;  }
-    void SetFunctionImport(uint32 i, uint32 sigId, wchar_t* modName, uint32 modNameLen, wchar_t* fnName, uint32 fnNameLen);
+    uint32 GetImportCount() const { return m_importCount; }
+    void SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen);
     WasmImport* GetFunctionImport(uint32 i) const;
 
     void AllocateDataSegs(uint32 count);
     bool AddDataSeg(WasmDataSegment* seg, uint32 index);
     WasmDataSegment * GetDataSeg(uint32 index) const;
+    uint32 GetDataSegCount() const { return m_datasegCount; }
+
 
 private:
     typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;

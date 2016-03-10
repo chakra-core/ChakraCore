@@ -29,7 +29,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, 
     // Initialize maps needed by binary reader
     Binary::WasmBinaryReader::Init(scriptContext);
 }
-typedef ProcessSectionResult(*SectionProcessFunc)(WasmBytecodeGenerator*, SectionCode);
+typedef bool(*SectionProcessFunc)(WasmBytecodeGenerator*);
+typedef void(*AfterSectionCallback)(WasmBytecodeGenerator*);
 
 WasmModule *
 WasmBytecodeGenerator::GenerateModule()
@@ -42,13 +43,14 @@ WasmBytecodeGenerator::GenerateModule()
     m_module->functions = Anew(&m_alloc, WasmFunctionArray, &m_alloc, 0);
     m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
+    m_module->importFuncOffset = m_module->heapOffset + 1;
     m_module->funcOffset = m_module->heapOffset + 1;
 
     m_reader->InitializeReader();
 
     BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
 
-    const auto readerProcess = [](WasmBytecodeGenerator* gen, SectionCode code) {return gen->m_reader->ProcessSection(code); };
+    const auto readerProcess = [](WasmBytecodeGenerator* gen) { return gen->m_reader->ProcessCurrentSection(); };
     // By default lest the reader process the section
 #define WASM_SECTION(name, id, flag, precedent) readerProcess,
     SectionProcessFunc sectionProcess[bSectLimit + 1] = {
@@ -56,40 +58,25 @@ WasmBytecodeGenerator::GenerateModule()
         nullptr
     };
 
-    sectionProcess[bSectFunctionSignatures] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectFunctionSignatures);
-        if (gen->m_reader->ProcessSection(code) != psrEnd)
-        {
-            return psrInvalid;
-        }
-        gen->m_module->importFuncOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount(); 
-        return psrEnd;
+    // Will callback regardless if the section is present or not
+    AfterSectionCallback afterSectionCallback[bSectLimit + 1] = {};
+
+    afterSectionCallback[bSectFunctionSignatures] = [](WasmBytecodeGenerator* gen) {
+        gen->m_module->funcOffset = gen->m_module->importFuncOffset + gen->m_module->info->GetImportCount();
+    };
+    afterSectionCallback[bSectIndirectFunctionTable] = [](WasmBytecodeGenerator* gen) {
+        gen->m_module->indirFuncTableOffset = gen->m_module->funcOffset + gen->m_module->info->GetFunctionCount();
     };
 
-    sectionProcess[bSectImportTable] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectImportTable);
-        // todo::
-        if (gen->m_reader->ProcessSection(code) != psrEnd)
-        {
-            return psrInvalid;
-        }
-        gen->m_module->indirFuncTableOffset = gen->m_module->importFuncOffset + gen->m_module->info->GetImportCount();
-        return psrEnd;
-    };
-
-    sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen, SectionCode code) {
-        Assert(code == bSectFunctionBodies);
-        bool isEntry = true;
-        ProcessSectionResult lastRes;
-        while ((lastRes = gen->m_reader->ProcessSection(code, isEntry)) == psrContinue)
-        {
-            isEntry = false;
+    sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen) {
+        return gen->m_reader->ReadFunctionBodies([](void* g) {
+            WasmBytecodeGenerator* gen = (WasmBytecodeGenerator*)g;
             gen->m_module->functions->Add(gen->GenerateFunction());
-        }
-        return lastRes;
+            return true;
+        }, gen);
     };
 
-    for (uint32 sectionCode = 0; sectionCode < bSectLimit ; sectionCode++)
+    for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
     {
         SectionCode precedent = SectionInfo::All[sectionCode].precedent;
         if (m_reader->ReadNextSection((SectionCode)sectionCode))
@@ -102,10 +89,15 @@ WasmBytecodeGenerator::GenerateModule()
             }
             visitedSections->Set(sectionCode);
 
-            if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
+            if (!sectionProcess[sectionCode](this))
             {
                 throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
+        }
+
+        if (afterSectionCallback[sectionCode])
+        {
+            afterSectionCallback[sectionCode](this);
         }
     }
 
@@ -131,12 +123,9 @@ WasmBytecodeGenerator::InitializeImport()
 WasmFunction *
 WasmBytecodeGenerator::GenerateFunction()
 {
-#if DBG
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
-    {
-        Output::Print(L"GenerateFunction %u \n", m_reader->m_currentNode.func.info->GetNumber());
-    }
-#endif
+    WasmFunctionInfo* wasmInfo = m_reader->m_currentNode.func.info;
+    TRACE_WASM_DECODER(_u("GenerateFunction %u \n"), wasmInfo->GetNumber());
+
     WasmRegisterSpace f32Space(ReservedRegisterCount);
     WasmRegisterSpace f64Space(ReservedRegisterCount);
     WasmRegisterSpace i32Space(ReservedRegisterCount);
@@ -146,15 +135,17 @@ WasmBytecodeGenerator::GenerateFunction()
     m_i32RegSlots = &i32Space;
 
     m_func = Anew(&m_alloc, WasmFunction);
+    char16* functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 16);
+    int nameLength = swprintf_s(functionName, 16, _u("Wasm%u"), wasmInfo->GetNumber());
     m_func->body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
-        _u("func"),
-        5,
+        functionName,
+        nameLength,
         0,
         0,
         m_sourceInfo,
         m_sourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId,
-        0,
+        wasmInfo->GetNumber(),
         nullptr,
         Js::FunctionInfo::Attributes::None
 #ifdef PERF_COUNTERS
@@ -167,6 +158,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_func->body->SetIsAsmJsFunction(true);
     m_func->body->SetIsAsmjsMode(true);
     m_func->body->SetIsWasmFunction(true);
+    m_func->body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
     m_funcInfo = m_reader->m_currentNode.func.info;
     m_func->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
@@ -526,12 +518,13 @@ WasmBytecodeGenerator::EmitBlock()
 EmitInfo
 WasmBytecodeGenerator::EmitLoop()
 {
+    Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
+    m_labels->Push(loopTailLabel);
+
     Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
     m_labels->Push(loopHeaderLabel);
     m_writer.MarkAsmJsLabel(loopHeaderLabel);
 
-    Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
-    m_labels->Push(loopTailLabel);
 
     EmitInfo loopInfo;
     if (m_reader->IsBinaryReader())
@@ -719,12 +712,12 @@ WasmBytecodeGenerator::EmitCall()
     if (wasmOp == wnCALL_IMPORT)
     {
         args = (Js::ArgSlot)(calleeSignature->GetParamCount() + 1);
-        callOp = Js::OpCodeAsmJs::I_Call;
+        callOp = Js::OpCodeAsmJs::Call;
     }
     else
     {
         args = (Js::ArgSlot)(::ceil((double)(argSize / sizeof(Js::Var)))) + 1;
-        callOp = Js::OpCodeAsmJs::Call;
+        callOp = Js::OpCodeAsmJs::I_Call;
     }
 
     m_writer.AsmCall(callOp, 0, 0, args, GetAsmJsReturnType(calleeSignature->GetResultType()));
@@ -884,7 +877,7 @@ WasmBytecodeGenerator::EmitBrTable()
 {
     const uint numTargets = m_reader->m_currentNode.brTable.numTargets;
     const UINT* targetTable = m_reader->m_currentNode.brTable.targetTable;
-    const UINT defaultEntry = m_reader->m_currentNode.brTable.defaultTarget;
+    const UINT defaultEntry = m_reader->m_currentNode.brTable.defaultTarget + 1;
 
     // Compile scrutinee
     WasmOp op = m_reader->ReadFromBlock();
@@ -900,24 +893,16 @@ WasmBytecodeGenerator::EmitBrTable()
     // Compile cases
     for (uint i = 0; i < numTargets; i++)
     {
-        uint target = targetTable[i];
+        uint target = targetTable[i] + 1;
         Js::RegSlot caseLoc = m_i32RegSlots->AcquireTmpRegister();
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, target);
-        Js::ByteCodeLabel targetLabel;
-        if (target == 0)
-        {
-            targetLabel = fallthroughLabel;
-        }
-        else
-        {
-            targetLabel = GetLabel(target);
-        }
+        Js::ByteCodeLabel targetLabel = GetLabel(target);
         m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, targetLabel, scrutineeInfo.location, caseLoc);
         m_i32RegSlots->ReleaseTmpRegister(caseLoc);
     }
     m_i32RegSlots->ReleaseTmpRegister(scrutineeInfo.location);
 
-    m_writer.AsmBr(defaultEntry, Js::OpCodeAsmJs::EndSwitch_Int);
+    m_writer.AsmBr(GetLabel(defaultEntry), Js::OpCodeAsmJs::EndSwitch_Int);
 
     m_writer.MarkAsmJsLabel(fallthroughLabel);
 
@@ -974,6 +959,7 @@ template<WasmOp wasmOp, WasmTypes::WasmType type>
 EmitInfo
 WasmBytecodeGenerator::EmitMemRead()
 {
+    m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     Js::RegSlot indexReg = m_i32RegSlots->AcquireTmpRegister();
     // TODO: emit less bytecode with expr + 0
     m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, indexReg, m_reader->m_currentNode.mem.offset);
@@ -1000,6 +986,7 @@ template<WasmOp wasmOp, WasmTypes::WasmType type>
 EmitInfo
 WasmBytecodeGenerator::EmitMemStore()
 {
+    m_func->body->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
     // TODO (michhol): combine with MemRead
     Js::RegSlot indexReg = m_i32RegSlots->AcquireTmpRegister();
     // TODO: emit less bytecode with expr + 0

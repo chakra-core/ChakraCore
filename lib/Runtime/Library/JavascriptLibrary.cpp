@@ -1551,10 +1551,13 @@ namespace Js
 
         nullEnumerator = RecyclerNew(this->recycler, NullEnumerator, scriptContext);
 #ifdef ENABLE_WASM
-        wasmObject  = DynamicObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-            DeferredTypeHandler<InitializeWasmObject>::GetDefaultInstance()));
-        AddMember(globalObject, PropertyIds::Wasm, wasmObject);
+        if (!PHASE_OFF1(WasmPhase))
+        {
+            wasmObject  = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeWasmObject>::GetDefaultInstance()));
+            AddMember(globalObject, PropertyIds::Wasm, wasmObject);
+        }
 #endif
     }
 
