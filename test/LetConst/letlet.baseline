@@ -1,0 +1,13 @@
+*** Running test #1 (0): 'let' should not be an allowed name in let declarations
+PASSED
+*** Running test #2 (1): 'let' should not be an allowed name in const declarations
+PASSED
+*** Running test #3 (2): 'let' should not be an allowed name in destructuring let declarations
+PASSED
+*** Running test #4 (3): 'let' should not be an allowed name in destructuring const declarations
+PASSED
+*** Running test #5 (4): 'let' should not be an allowed name in 'for(let .. in ..)' declarations
+PASSED
+*** Running test #6 (5): 'let' is OK if used in var declarations
+PASSED
+Summary of tests: total executed: 6; passed: 6; failed: 0
