@@ -44,4 +44,4 @@ var tests = [
     },
 ]
 
-testRunner.runTests(tests);
+testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

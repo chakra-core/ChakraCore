@@ -8655,8 +8655,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             nameHintLength = pid->Cch();
             nameHintOffset = 0;
 
-            if ((declarationType == tkCONST || declarationType == tkLET) &&
-                wcsncmp(pNameHint, L"let", 4) == 0)
+            if (pid == wellKnownPropertyPids.let && (declarationType == tkCONST || declarationType == tkLET))
             {
                 Error(ERRLetIDInLexicalDecl, pnodeThis);
             }

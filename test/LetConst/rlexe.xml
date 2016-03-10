@@ -376,7 +376,7 @@
   <test>
     <default>
       <files>letlet.js</files>
-      <baseline>letlet.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>
