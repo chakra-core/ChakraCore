@@ -322,6 +322,7 @@ WasmBinaryReader::ASTNode()
         break;
     case wbCall:
     case wbCallImport:
+    case wbCallIndirect:
         CallNode();
         break;
     case wbBr:
@@ -332,10 +333,6 @@ WasmBinaryReader::ASTNode()
         BrTableNode();
         break;
     case wbReturn:
-        // Watch out for optional implicit block
-        // (non-void return expression)
-        if (!EndOfFunc())
-            m_currentNode.opt.exists = true;
         break;
     case wbI32Const:
         ConstNode<WasmTypes::bAstI32>();
@@ -417,12 +414,13 @@ WasmBinaryReader::BlockNode()
 void
 WasmBinaryReader::BrNode()
 {
-    ReadConst<uint8>(); // arity, ignored for now
-    m_funcState.count++;
-
     UINT len = 0;
     m_currentNode.br.depth = LEB128(len);
     m_funcState.count += len;
+
+    ReadConst<uint8>(); // arity, ignored for now
+    m_funcState.count++;
+
     // TODO: binary encoding doesn't yet support br yielding value
     m_currentNode.br.hasSubExpr = false;
 }
@@ -670,7 +668,7 @@ char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
     charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(rawName, nameLength, decodeOptions);
-    char16* contents = AnewArray(&m_alloc, char16, utf16Len);
+    char16* contents = AnewArray(&m_alloc, char16, utf16Len + 1);
     if (contents == nullptr)
     {
         Js::Throw::OutOfMemory();

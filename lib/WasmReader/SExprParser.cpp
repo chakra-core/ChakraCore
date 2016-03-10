@@ -195,6 +195,7 @@ SExprParser::ReadExprCore(SExprTokenType tok)
     case wtkBLOCK:
         return ParseBlock();
     case wtkCALL:
+    case wtkCALL_IMPORT:
         return ParseCall();
     case wtkCALL_INDIRECT:
         return ParseCallIndirect();

@@ -57,6 +57,7 @@
     <ClInclude Include="WasmDataSegment.h" />
     <ClInclude Include="WasmFunctionInfo.h" />
     <ClInclude Include="WasmKeywordSwitch.h" />
+    <ClInclude Include="WasmKeywordTypes.h" />
     <ClInclude Include="WasmReader.h" />
     <ClInclude Include="WasmKeywords.h" />
     <ClInclude Include="WasmReaderPch.h" />
