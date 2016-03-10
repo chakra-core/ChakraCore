@@ -54,7 +54,7 @@ void WasmBinaryReader::InitializeReader()
 {
     ModuleHeader();
 #if DBG
-    if (PHASE_TRACE1(Js::WasmReaderPhase))
+    if (DO_WASM_TRACE_SECTION)
     {
         byte* startModule = m_pc;
 
@@ -65,7 +65,7 @@ void WasmBinaryReader::InitializeReader()
             SectionHeader secHeader = ReadSectionHeader();
             if (secHeader.code <= prevSect)
             {
-                TRACE_WASM_DECODER(_u("Unknown section order"));
+                TRACE_WASM_SECTION(_u("Unknown section order"));
             }
             prevSect = secHeader.code;
             // skip the section
@@ -129,6 +129,7 @@ bool
 WasmBinaryReader::ProcessCurrentSection()
 {
     Assert(m_currentSection.code != bSectInvalid);
+    TRACE_WASM_SECTION(_u("Process section %s"), SectionInfo::All[m_currentSection.code].name);
     switch (m_currentSection.code)
     {
     case bSectMemory:
@@ -200,7 +201,7 @@ WasmBinaryReader::ReadSectionHeader()
     size_t convertedChars = 0;
     mbstowcs_s(&convertedChars, buf, idSize + 1, sectionName, _TRUNCATE);
     buf[idSize] = 0;
-    TRACE_WASM_DECODER(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
+    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
 #endif
     return header;
 }
@@ -563,7 +564,7 @@ void WasmBinaryReader::ReadExportTable()
         }
         uint32 nameLength;
         char16* exportName = ReadInlineName(length, nameLength);
-        TRACE_WASM_DECODER(_u("Export: Function(%u) => %s"), funcIndex, exportName);
+        TRACE_WASM_DECODER(_u("Export #%u: Function(%u) => %s"), iExport, funcIndex, exportName);
         m_moduleInfo->SetFunctionExport(iExport, funcIndex, exportName, nameLength);
     }
 }
@@ -652,8 +653,9 @@ WasmBinaryReader::ReadImportEntries()
             ThrowDecodingError(_u("Function signature %u is out of bound"), sigId);
         }
 
-        wchar_t* modName = ReadInlineName(len, modNameLen);
-        wchar_t* fnName = ReadInlineName(len, fnNameLen);
+        char16* modName = ReadInlineName(len, modNameLen);
+        char16* fnName = ReadInlineName(len, fnNameLen);
+        TRACE_WASM_DECODER(_u("Import #%u: \"%s\".\"%s\""), i, modName, fnName);
         m_moduleInfo->SetFunctionImport(i, sigId, modName, modNameLen, fnName, fnNameLen);
     }
 }

@@ -102,9 +102,9 @@ namespace Wasm
     {
         uint32 sigId;
         uint32 modNameLen;
-        wchar_t* modName;
+        char16* modName;
         uint32 fnNameLen;
-        wchar_t* fnName;
+        char16* fnName;
     };
 }
 

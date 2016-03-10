@@ -10,20 +10,32 @@
 #include "Runtime.h"
 #if DBG
 #ifdef ENABLE_WASM
-#define TRACE_WASM_DECODER_PHASE(phase, ...) \
-    if (PHASE_TRACE1(Js::phase##Phase)) \
+#define TRACE_WASM(condition, ...) \
+    if (condition)\
     {\
         Output::Print(__VA_ARGS__); \
         Output::Print(_u("\n")); \
         Output::Flush(); \
     }
-#define TRACE_WASM_DECODER(...) TRACE_WASM_DECODER_PHASE(WasmReader, __VA_ARGS__)
-#define TRACE_WASM_DECODER(...) TRACE_WASM_DECODER_PHASE(WasmReader, __VA_ARGS__)
-#define TRACE_WASM_LEB128(...) TRACE_WASM_DECODER_PHASE(WasmLEB128, __VA_ARGS__)
+
+// Level of tracing
+#define DO_WASM_TRACE_ALL       PHASE_TRACE1(Js::WasmPhase)
+#define DO_WASM_TRACE_DECODER   DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmReaderPhase)
+  #define DO_WASM_TRACE_SECTION DO_WASM_TRACE_DECODER || PHASE_TRACE1(Js::WasmSectionPhase)
+#define DO_WASM_TRACE_LEB128    DO_WASM_TRACE_ALL || PHASE_TRACE1(Js::WasmSectionPhase)
+
+#define TRACE_WASM_DECODER(...) TRACE_WASM(DO_WASM_TRACE_DECODER, __VA_ARGS__)
+#define TRACE_WASM_SECTION(...) TRACE_WASM(DO_WASM_TRACE_SECTION, __VA_ARGS__)
+#define TRACE_WASM_LEB128(...) TRACE_WASM(DO_WASM_TRACE_LEB128, __VA_ARGS__)
 #else
-#define TRACE_WASM_DECODER_PHASE(...)
+#define DO_WASM_TRACE_ALL
+#define DO_WASM_TRACE_DECODER
+#define DO_WASM_TRACE_SECTION
+#define DO_WASM_TRACE_LEB128
+
+#define TRACE_WASM(...)
 #define TRACE_WASM_DECODER(...)
-#define TRACE_WASM_DECODER(...)
+#define TRACE_WASM_SECTION(...)
 #define TRACE_WASM_LEB128(...)
 #endif
 

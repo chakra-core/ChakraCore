@@ -1853,6 +1853,19 @@ namespace Js
                 }
                 // TODO: create new type array buffer that is non detachable
                 *heap = JavascriptArrayBuffer::Create((uint32)maxSize, GetLibrary()->arrayBufferType);
+                BYTE* buffer = ((JavascriptArrayBuffer*)*heap)->GetBuffer();
+                for (uint32 iSeg = 0; iSeg < wasmModule->info->GetDataSegCount(); ++iSeg)
+                {
+                    Wasm::WasmDataSegment* segment = wasmModule->info->GetDataSeg(iSeg);
+                    Assert(segment != nullptr);
+                    const uint32 offset = segment->getDestAddr();
+                    const uint32 size = segment->getSourceSize();
+                    if (offset > maxSize || UInt32Math::Add(offset, size) >= maxSize)
+                    {
+                        throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
+                    }
+                    js_memcpy_s(buffer + offset, maxSize - offset, segment->getData(), size);
+                }
                 if (wasmModule->info->GetMemory()->exported)
                 {
                     PropertyRecord const * propertyRecord = nullptr;
@@ -1907,7 +1920,12 @@ namespace Js
             }
 
             Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
-            for (uint32 i = 0; i < wasmModule->info->GetImportCount(); ++i)
+            const uint32 importCount = wasmModule->info->GetImportCount();
+            if (importCount > 0 && (!ffi || !JavascriptObject::Is(ffi)))
+            {
+                throw Wasm::WasmCompilationException(_u("Import object is invalid"));
+            }
+            for (uint32 i = 0; i < importCount; ++i)
             {
                 PropertyRecord const * modPropertyRecord = nullptr;
                 PropertyRecord const * propertyRecord = nullptr;
@@ -1920,18 +1938,16 @@ namespace Js
                 uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
                 GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
 
-                if (!ffi)
-                {
-                    // TODO: michhol give error message
-                    Js::Throw::InternalError();
-                }
                 Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
-                if (!JavascriptFunction::Is(modProp))
+                if (!JavascriptObject::Is(modProp))
                 {
-                    Assert(UNREACHED);
-                    // TODO: michhol figure out correct error path
+                    throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
                 }
                 Var prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
+                if (!JavascriptFunction::Is(prop))
+                {
+                    throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);
+                }
                 importFunctions[i] = prop;
             }
 

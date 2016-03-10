@@ -15,7 +15,8 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_alloc(alloc),
     m_funcCount(0),
     m_indirectFuncCount(0),
-    m_exportCount(0)
+    m_exportCount(0),
+    m_datasegCount(0)
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
     m_indirectfuncs = nullptr;
@@ -183,7 +184,7 @@ ModuleInfo::AllocateFunctionImports(uint32 entries)
 }
 
 void
-ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, wchar_t* modName, uint32 modNameLen, wchar_t* fnName, uint32 fnNameLen)
+ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, char16* modName, uint32 modNameLen, char16* fnName, uint32 fnNameLen)
 {
     m_imports[i].sigId = sigId;
     m_imports[i].modNameLen = modNameLen;
