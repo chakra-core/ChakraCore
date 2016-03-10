@@ -1814,7 +1814,7 @@ namespace Js
 
                 // Free unused bytes
                 Assert(cbNeeded + 1 <= cbUtf8Buffer);
-                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo);
+                *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, false);
                 //
                 // Parse and execute the source file.
                 //
@@ -1823,7 +1823,7 @@ namespace Js
             else
             {
 
-                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo);
+                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo, false);
                 // Binary file
                 reader = HeapNew(Wasm::Binary::WasmBinaryReader, threadContext->GetPageAllocator(), (byte*)script, lengthBytes);
             }

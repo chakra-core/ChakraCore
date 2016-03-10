@@ -264,7 +264,7 @@ WasmBytecodeGenerator::GenerateFunction()
     info->SetFloatByteOffset(info->GetIntByteOffset() + m_i32RegSlots->GetRegisterCount() * sizeof(int32));
     info->SetDoubleByteOffset(Math::Align<int>(info->GetFloatByteOffset() + m_f32RegSlots->GetRegisterCount() * sizeof(float), sizeof(double)));
 
-    m_func->body->SetOutParamDepth(m_maxArgOutDepth);
+    m_func->body->SetOutParamMaxDepth(m_maxArgOutDepth);
     m_func->body->SetVarCount(m_f32RegSlots->GetRegisterCount() + m_f64RegSlots->GetRegisterCount() + m_i32RegSlots->GetRegisterCount());
     return m_func;
 }
