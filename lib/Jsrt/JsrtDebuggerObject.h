@@ -28,7 +28,7 @@ public:
     uint GetHandle() const { return handle; }
     DebuggerObjectsManager* GetDebuggerObjectsManager();
     virtual Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext) = 0;
-    virtual Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext);
+    virtual Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
     template<class DebuggerObjectType, class PostFunction>
     static void CreateDebuggerObject(DebuggerObjectsManager* debuggerObjectsManager, Js::ResolvedObject resolvedObject, Js::ScriptContext* scriptContext, PostFunction postFunction)
@@ -46,57 +46,8 @@ public:
         }
     }
 
-    template<class PostFunction>
-    static JsErrorCode ProcessHandlesArray(JsrtDebug* debugObject, Js::ScriptContext* scriptContext, JsValueRef handlesArray, PostFunction postFunction)
-    {
-        if (!Js::JavascriptArray::Is(handlesArray))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::JavascriptArray* handles = Js::JavascriptArray::FromVar(handlesArray);
-
-        uint32 length = handles->GetLength();
-        uint32 index = handles->GetNextIndex(Js::JavascriptArray::InvalidIndex);
-
-        for (uint32 i = index; i < length; ++i)
-        {
-            Js::Var item = nullptr;
-            if (handles->GetItem(handles, i, &item, scriptContext))
-            {
-                uint handle = 0;
-                if (Js::JavascriptNumber::Is(item))
-                {
-                    handle = (uint)Js::JavascriptNumber::GetValue(item);
-                }
-                else if (Js::TaggedInt::Is(item))
-                {
-                    handle = Js::TaggedInt::ToUInt32(item);
-                }
-
-                if (handle) // valid handle starts with 1 see DebuggerObjectsManager::GetNextHandle
-                {
-                    DebuggerObjectBase* debuggerObject = nullptr;
-                    if (debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(handle, &debuggerObject))
-                    {
-                        char16 propertyName[11]; // 4294967295 - Max 10 characters
-                        ::_ui64tow_s(debuggerObject->GetHandle(), propertyName, sizeof(propertyName) / sizeof(char16), 10);
-
-                        const Js::PropertyRecord* propertyRecord;
-                        scriptContext->GetOrAddPropertyRecord(propertyName, static_cast<int>(wcslen(propertyName)), &propertyRecord);
-
-                        Assert(propertyRecord != nullptr);
-
-                        postFunction(propertyRecord, debuggerObject);
-                    }
-                }
-            }
-        }
-        return JsNoError;
-    }
-
 protected:
-    Js::DynamicObject* GetChildrens(WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, Js::ScriptContext * scriptContext);
+    Js::DynamicObject* GetChildrens(WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef, Js::ScriptContext * scriptContext, uint fromCount, uint totalCount);
 private:
     DebuggerObjectType type;
     uint handle;
@@ -153,12 +104,13 @@ public:
     static DebuggerObjectBase* Make(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
 
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
-    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
     DebuggerObjectProperty(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
     ~DebuggerObjectProperty();
     WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay;
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef;
     Js::DynamicObject* propertyObject;
 };
 
@@ -168,12 +120,13 @@ public:
     static DebuggerObjectBase* Make(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
 
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
-    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
     DebuggerObjectGlobalsNode(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay);
     ~DebuggerObjectGlobalsNode();
     WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay;
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef;
     Js::DynamicObject* propertyObject;
 };
 
@@ -183,12 +136,13 @@ public:
     static DebuggerObjectBase* Make(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, uint index);
 
     Js::DynamicObject* GetJSONObject(Js::ScriptContext* scriptContext);
-    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext);
+    Js::DynamicObject* GetChildrens(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount);
 
 private:
     DebuggerObjectScope(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, uint index);
     ~DebuggerObjectScope();
     WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay;
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef;
     Js::DynamicObject* scopeObject;
     uint index;
 };

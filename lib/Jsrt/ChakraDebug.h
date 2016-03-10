@@ -399,30 +399,32 @@
     /// <summary>
     ///     Gets the list of properties corresponding to the scope, global or object
     /// </summary>
-    /// <param name="handlesArray">Handles of scope, globals or object</param>
+    /// <param name="objectHandle">Handle of object</param>
+    /// <param name="fromCount">0-based from count of properties, ideally 0</param>
+    /// <param name="totalCount">Number of properties to return</param>
     /// <param name="propertiesObject">Array of properties</param>
+    /// <remarks>For scenarios where object have large number of properties totalCount can be used to control how many properties are displayed</remarks>
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "112" : {
-    ///             "properties" : [{
-    ///                     "name" : "__proto__",
-    ///                     "type" : "object",
-    ///                     "display" : "{...}",
-    ///                     "className" : "Object",
-    ///                     "propertyAttributes" : 1,
-    ///                     "handle" : 156
-    ///                 }
-    ///             ],
-    ///             "debuggerOnlyProperties" : [{
-    ///                     "name" : "[Map]",
-    ///                     "type" : "string",
-    ///                     "value" : "size = 0",
-    ///                     "propertyAttributes" : 2,
-    ///                     "handle" : 157
-    ///                 }
-    ///             ]
-    ///         }
+    ///         "propertiesCount": 2,
+    ///         "properties" : [{
+    ///                 "name" : "__proto__",
+    ///                 "type" : "object",
+    ///                 "display" : "{...}",
+    ///                 "className" : "Object",
+    ///                 "propertyAttributes" : 1,
+    ///                 "handle" : 156
+    ///             }
+    ///         ],
+    ///         "debuggerOnlyProperties" : [{
+    ///                 "name" : "[Map]",
+    ///                 "type" : "string",
+    ///                 "value" : "size = 0",
+    ///                 "propertyAttributes" : 2,
+    ///                 "handle" : 157
+    ///             }
+    ///         ]
     ///     }
     ///     </para>
     /// </remarks>
@@ -431,51 +433,36 @@
     /// </returns>
     STDAPI_(JsErrorCode)
         JsDiagGetProperties(
-            _In_ JsValueRef handlesArray,
+            _In_ unsigned int objectHandle,
+            _In_ unsigned int fromCount,
+            _In_ unsigned int totalCount,
             _Out_ JsValueRef *propertiesObject);
 
 
     /// <summary>
-    ///     Get the objects corresponding to handles
+    ///     Get the object corresponding to handle
     /// </summary>
-    /// <param name="handlesArray">Array of handles</param>
-    /// <param name="valuesObject">Collection of objects as property bag based on handles</param>
+    /// <param name="objectHandle">Handle of object</param>
+    /// <param name="handleObject">Object corresponding to the handle</param>
     /// <remarks>
     ///     <para>
     ///     {
-    ///        "2" : {
-    ///            "scriptId" : 24,
-    ///            "line" : 1,
-    ///            "column" : 63,
-    ///            "name" : "foo",
-    ///            "type" : "function",
-    ///            "handle" : 2
-    ///        },
-    ///        "3" : {
-    ///            "scriptId" : 24,
-    ///            "fileName" : "c:\\nodejs\\Test\\Test.js",
-    ///            "lineCount" : 8,
-    ///            "sourceLength" : 137,
-    ///            "handle" : 3
-    ///        },
-    ///        "20" : {
-    ///            "name" : "this",
-    ///            "type" : "object",
-    ///            "display" : "{...}",
-    ///            "className" : "Object",
-    ///            "propertyAttributes" : 1,
-    ///            "handle" : 20
-    ///        }
-    ///    }
+    ///         "scriptId" : 24,
+    ///          "line" : 1,
+    ///          "column" : 63,
+    ///          "name" : "foo",
+    ///          "type" : "function",
+    ///          "handle" : 2
+    ///     }
     ///    </para>
     /// </remarks>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsDiagLookupHandles(
-            _In_ JsValueRef handlesArray,
-            _Out_ JsValueRef *valuesObject);
+        JsDiagGetObjectFromHandle(
+            _In_ unsigned int objectHandle,
+            _Out_ JsValueRef *handleObject);
 
 
     /// <summary>

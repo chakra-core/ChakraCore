@@ -529,12 +529,13 @@ JsDiagGetStackProperties(
 
 STDAPI_(JsErrorCode)
 JsDiagGetProperties(
-    _In_ JsValueRef handlesArray,
+    _In_ unsigned int objectHandle,
+    _In_ unsigned int fromCount,
+    _In_ unsigned int totalCount,
     _Out_ JsValueRef *propertiesObject)
 {
 
     return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        VALIDATE_INCOMING_REFERENCE(handlesArray, scriptContext);
         PARAM_NOT_NULL(propertiesObject);
 
         *propertiesObject = JS_INVALID_REFERENCE;
@@ -548,40 +549,33 @@ JsDiagGetProperties(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        Js::DynamicObject* object = scriptContext->GetLibrary()->CreateObject();
-
-        JsErrorCode error = DebuggerObjectBase::ProcessHandlesArray(debugObject, scriptContext, handlesArray, [&](const Js::PropertyRecord* propertyRecord, DebuggerObjectBase* debuggerObject)
+        DebuggerObjectBase* debuggerObject = nullptr;
+        if (!debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(objectHandle, &debuggerObject) || debuggerObject == nullptr)
         {
-            if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
-            {
-                Js::DynamicObject* properties = debuggerObject->GetChildrens(scriptContext);
-                if (properties != nullptr)
-                {
-                    JsrtDebugUtils::AddVarPropertyToObject(object, propertyRecord->GetBuffer(), properties, scriptContext);
-                }
-            }
-        });
-
-        if (error == JsNoError)
-        {
-            *propertiesObject = object;
+            return JsErrorDiagInvalidHandle;
         }
 
-        return error;
+        Js::DynamicObject* properties = debuggerObject->GetChildrens(scriptContext, fromCount, totalCount);
+        if (properties != nullptr)
+        {
+            *propertiesObject = properties;
+            return JsNoError;
+        }
+
+        return JsErrorDiagUnableToPerformAction;
     });
 }
 
 
 STDAPI_(JsErrorCode)
-JsDiagLookupHandles(
-    _In_ JsValueRef handlesArray,
-    _Out_ JsValueRef *valuesObject)
+JsDiagGetObjectFromHandle(
+    _In_ unsigned int objectHandle,
+    _Out_ JsValueRef *handleObject)
 {
     return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        VALIDATE_INCOMING_REFERENCE(handlesArray, scriptContext);
-        PARAM_NOT_NULL(valuesObject);
+        PARAM_NOT_NULL(handleObject);
 
-        *valuesObject = JS_INVALID_REFERENCE;
+        *handleObject = JS_INVALID_REFERENCE;
 
         JsrtContext* context = JsrtContext::GetCurrent();
         JsrtRuntime* runtime = context->GetRuntime();
@@ -592,37 +586,21 @@ JsDiagLookupHandles(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        Js::DynamicObject* object = scriptContext->GetLibrary()->CreateObject();
-
-        JsErrorCode error = DebuggerObjectBase::ProcessHandlesArray(debugObject, scriptContext, handlesArray, [&](const Js::PropertyRecord* propertyRecord, DebuggerObjectBase* debuggerObject)
+        DebuggerObjectBase* debuggerObject = nullptr;
+        if (!debugObject->GetDebuggerObjectsManager()->TryGetDebuggerObjectFromHandle(objectHandle, &debuggerObject) || debuggerObject == nullptr)
         {
-            if (!object->HasOwnProperty(propertyRecord->GetPropertyId()))
-            {
-                switch (debuggerObject->GetType())
-                {
-                case DebuggerObjectType_Function:
-                case DebuggerObjectType_Script:
-                case DebuggerObjectType_StackFrame:
-                case DebuggerObjectType_Property:
-                case DebuggerObjectType_Globals:
-                case DebuggerObjectType_Scope:
-                {
-                    JsrtDebugUtils::AddVarPropertyToObject(object, propertyRecord->GetBuffer(), debuggerObject->GetJSONObject(scriptContext), scriptContext);
-                    break;
-                }
-                default:
-                    AssertMsg(false, "Unhandled DebuggerObjectType");
-                    break;
-                }
-            }
-        });
-
-        if (error == JsNoError)
-        {
-            *valuesObject = object;
+            return JsErrorDiagInvalidHandle;
         }
 
-        return error;
+        Js::DynamicObject* object = debuggerObject->GetJSONObject(scriptContext);
+
+        if (object != nullptr)
+        {
+            *handleObject = object;
+            return JsNoError;
+        }
+
+        return JsErrorDiagUnableToPerformAction;
     });
 }
 

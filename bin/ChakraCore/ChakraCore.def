@@ -12,7 +12,7 @@ JsDiagGetScripts
 JsDiagGetSource
 JsDiagGetStackProperties
 JsDiagGetStacktrace
-JsDiagLookupHandles
+JsDiagGetObjectFromHandle
 JsDiagRemoveBreakpoint
 JsDiagRequestAsyncBreak
 JsDiagResume

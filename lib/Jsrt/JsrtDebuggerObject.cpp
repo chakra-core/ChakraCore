@@ -25,81 +25,80 @@ DebuggerObjectsManager * DebuggerObjectBase::GetDebuggerObjectsManager()
     return this->debuggerObjectsManager;
 }
 
-Js::DynamicObject * DebuggerObjectBase::GetChildrens(Js::ScriptContext * scriptContext)
+Js::DynamicObject * DebuggerObjectBase::GetChildrens(Js::ScriptContext * scriptContext, uint fromCount, uint totalCount)
 {
     Assert("Wrong type for GetChildrens");
     return nullptr;
 }
 
-Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, Js::ScriptContext * scriptContext)
+Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef, Js::ScriptContext * scriptContext, uint fromCount, uint totalCount)
 {
-    Js::IDiagObjectModelDisplay* objectDisplayRef = objectDisplay->GetStrongReference();
-    if (objectDisplayRef == nullptr)
-    {
-        return nullptr;
-    }
-
-    uint debuggerOnlyPropertiesArrayCount = 0;
-    uint propertiesArrayCount = 0;
     Js::DynamicObject* childrensObject = scriptContext->GetLibrary()->CreateObject();
-    Js::JavascriptArray* debuggerOnlyPropertiesArray = scriptContext->GetLibrary()->CreateArray();
+
+    uint propertiesArrayCount = 0;
     Js::JavascriptArray* propertiesArray = scriptContext->GetLibrary()->CreateArray();
 
-    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* walkerRef = objectDisplayRef->CreateWalker();
+    uint debuggerOnlyPropertiesArrayCount = 0;
+    Js::JavascriptArray* debuggerOnlyPropertiesArray = scriptContext->GetLibrary()->CreateArray();
+
     Js::IDiagObjectModelWalkerBase* walker = walkerRef->GetStrongReference();
+
+    ulong childrensCount = 0;
 
     if (walker != nullptr)
     {
-        ulong childrensCount = 0;
         try
         {
             childrensCount = walker->GetChildrenCount();
         }
         catch (Js::JavascriptExceptionObject*) {}
 
-        for (ulong i = 0; i < childrensCount; ++i)
+        if (fromCount < childrensCount)
         {
-            Js::ResolvedObject resolvedObject;
+            for (ulong i = fromCount; i < childrensCount && (propertiesArrayCount + debuggerOnlyPropertiesArrayCount) < totalCount; ++i)
+            {
+                Js::ResolvedObject resolvedObject;
 
-            try
-            {
-                walker->Get(i, &resolvedObject);
-            }
-            catch (Js::JavascriptExceptionObject* exception)
-            {
-                Js::Var error = exception->GetThrownObject(scriptContext);
-                resolvedObject.obj = error;
-                resolvedObject.address = NULL;
-                resolvedObject.scriptContext = exception->GetScriptContext();
-                resolvedObject.typeId = Js::JavascriptOperators::GetTypeId(error);
-                resolvedObject.name = _u("{error}");
-                resolvedObject.propId = Js::Constants::NoProperty;
-            }
+                try
+                {
+                    walker->Get(i, &resolvedObject);
+                }
+                catch (Js::JavascriptExceptionObject* exception)
+                {
+                    Js::Var error = exception->GetThrownObject(scriptContext);
+                    resolvedObject.obj = error;
+                    resolvedObject.address = NULL;
+                    resolvedObject.scriptContext = exception->GetScriptContext();
+                    resolvedObject.typeId = Js::JavascriptOperators::GetTypeId(error);
+                    resolvedObject.name = _u("{error}");
+                    resolvedObject.propId = Js::Constants::NoProperty;
+                }
 
-            AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
-            Js::IDiagObjectModelDisplay* resolvedObjectDisplay = objectDisplayWeakRef->GetStrongReference();
-            if (resolvedObjectDisplay != nullptr)
-            {
-                DebuggerObjectBase* debuggerObject = DebuggerObjectProperty::Make(this->GetDebuggerObjectsManager(), objectDisplayWeakRef);
-                Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
-                Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
-                if (resolvedObjectDisplay->IsFake())
+                AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef = resolvedObject.GetObjectDisplay();
+                Js::IDiagObjectModelDisplay* resolvedObjectDisplay = objectDisplayWeakRef->GetStrongReference();
+                if (resolvedObjectDisplay != nullptr)
                 {
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)debuggerOnlyPropertiesArray, Js::JavascriptNumber::ToVar(debuggerOnlyPropertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                    DebuggerObjectBase* debuggerObject = DebuggerObjectProperty::Make(this->GetDebuggerObjectsManager(), objectDisplayWeakRef);
+                    Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext);
+                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
+                    if (resolvedObjectDisplay->IsFake())
+                    {
+                        Js::JavascriptOperators::OP_SetElementI((Js::Var)debuggerOnlyPropertiesArray, Js::JavascriptNumber::ToVar(debuggerOnlyPropertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                    }
+                    else
+                    {
+                        Js::JavascriptOperators::OP_SetElementI((Js::Var)propertiesArray, Js::JavascriptNumber::ToVar(propertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                    }
+                    objectDisplayWeakRef->ReleaseStrongReference();
+                    objectDisplayWeakRef.Detach();
                 }
-                else
-                {
-                    Js::JavascriptOperators::OP_SetElementI((Js::Var)propertiesArray, Js::JavascriptNumber::ToVar(propertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
-                }
-                objectDisplayWeakRef->ReleaseStrongReference();
-                objectDisplayWeakRef.Detach();
             }
         }
-        walkerRef->ReleaseStrongReference();
-        HeapDelete(walkerRef);
-    }
-    objectDisplay->ReleaseStrongReference();
 
+        walkerRef->ReleaseStrongReference();
+    }
+
+    JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::propertiesCount, childrensCount, scriptContext);
     JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::properties, propertiesArray, scriptContext);
     JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::debuggerOnlyProperties, debuggerOnlyPropertiesArray, scriptContext);
 
@@ -593,7 +592,8 @@ Js::DynamicObject * DebuggerObjectScript::GetJSONObject(Js::ScriptContext* scrip
 DebuggerObjectProperty::DebuggerObjectProperty(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
     DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Property, debuggerObjectsManager),
     objectDisplay(objectDisplay),
-    propertyObject(nullptr)
+    propertyObject(nullptr),
+    walkerRef(nullptr)
 {
     Assert(objectDisplay != nullptr);
 }
@@ -605,6 +605,13 @@ DebuggerObjectProperty::~DebuggerObjectProperty()
         HeapDelete(this->objectDisplay);
         this->objectDisplay = nullptr;
     }
+
+    if (this->walkerRef != nullptr)
+    {
+        HeapDelete(this->walkerRef);
+        this->walkerRef = nullptr;
+    }
+
     this->propertyObject = nullptr;
 }
 
@@ -649,16 +656,32 @@ Js::DynamicObject * DebuggerObjectProperty::GetJSONObject(Js::ScriptContext* scr
     return this->propertyObject;
 }
 
-Js::DynamicObject* DebuggerObjectProperty::GetChildrens(Js::ScriptContext* scriptContext)
+Js::DynamicObject* DebuggerObjectProperty::GetChildrens(Js::ScriptContext* scriptContext, uint fromCount, uint totalCount)
 {
-    return __super::GetChildrens(this->objectDisplay, scriptContext);
+    Js::IDiagObjectModelDisplay* objectDisplayRef = objectDisplay->GetStrongReference();
+    if (objectDisplayRef == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (this->walkerRef == nullptr)
+    {
+        this->walkerRef = objectDisplayRef->CreateWalker();
+    }
+
+    Js::DynamicObject* childrens = __super::GetChildrens(this->walkerRef, scriptContext, fromCount, totalCount);
+
+    objectDisplay->ReleaseStrongReference();
+
+    return childrens;
 }
 
 DebuggerObjectScope::DebuggerObjectScope(DebuggerObjectsManager * debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay, uint index) :
     DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Scope, debuggerObjectsManager),
     objectDisplay(objectDisplay),
     index(index),
-    scopeObject(nullptr)
+    scopeObject(nullptr),
+    walkerRef(nullptr)
 {
     Assert(this->objectDisplay != nullptr);
 }
@@ -670,6 +693,13 @@ DebuggerObjectScope::~DebuggerObjectScope()
         HeapDelete(this->objectDisplay);
         this->objectDisplay = nullptr;
     }
+
+    if (this->walkerRef != nullptr)
+    {
+        HeapDelete(this->walkerRef);
+        this->walkerRef = nullptr;
+    }
+
     this->scopeObject = nullptr;
 }
 
@@ -710,9 +740,24 @@ Js::DynamicObject * DebuggerObjectScope::GetJSONObject(Js::ScriptContext* script
     return this->scopeObject;
 }
 
-Js::DynamicObject * DebuggerObjectScope::GetChildrens(Js::ScriptContext * scriptContext)
+Js::DynamicObject * DebuggerObjectScope::GetChildrens(Js::ScriptContext * scriptContext, uint fromCount, uint totalCount)
 {
-    return __super::GetChildrens(this->objectDisplay, scriptContext);
+    Js::IDiagObjectModelDisplay* objectDisplayRef = objectDisplay->GetStrongReference();
+    if (objectDisplayRef == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (this->walkerRef == nullptr)
+    {
+        this->walkerRef = objectDisplayRef->CreateWalker();
+    }
+
+    Js::DynamicObject* childrens = __super::GetChildrens(this->walkerRef, scriptContext, fromCount, totalCount);
+
+    objectDisplay->ReleaseStrongReference();
+
+    return childrens;
 }
 
 DebuggerObjectFunction::DebuggerObjectFunction(DebuggerObjectsManager* debuggerObjectsManager, Js::FunctionBody* functionBody) :
@@ -768,7 +813,8 @@ Js::DynamicObject * DebuggerObjectFunction::GetJSONObject(Js::ScriptContext * sc
 DebuggerObjectGlobalsNode::DebuggerObjectGlobalsNode(DebuggerObjectsManager* debuggerObjectsManager, WeakArenaReference<Js::IDiagObjectModelDisplay>* objectDisplay) :
     DebuggerObjectBase(DebuggerObjectType::DebuggerObjectType_Globals, debuggerObjectsManager),
     objectDisplay(objectDisplay),
-    propertyObject(nullptr)
+    propertyObject(nullptr),
+    walkerRef(nullptr)
 {
     Assert(objectDisplay != nullptr);
 }
@@ -780,6 +826,13 @@ DebuggerObjectGlobalsNode::~DebuggerObjectGlobalsNode()
         HeapDelete(this->objectDisplay);
         this->objectDisplay = nullptr;
     }
+
+    if (this->walkerRef != nullptr)
+    {
+        HeapDelete(this->walkerRef);
+        this->walkerRef = nullptr;
+    }
+
     this->propertyObject = nullptr;
 }
 
@@ -818,9 +871,24 @@ Js::DynamicObject * DebuggerObjectGlobalsNode::GetJSONObject(Js::ScriptContext *
     return this->propertyObject;
 }
 
-Js::DynamicObject * DebuggerObjectGlobalsNode::GetChildrens(Js::ScriptContext * scriptContext)
+Js::DynamicObject * DebuggerObjectGlobalsNode::GetChildrens(Js::ScriptContext * scriptContext, uint fromCount, uint totalCount)
 {
-    return __super::GetChildrens(this->objectDisplay, scriptContext);
+    Js::IDiagObjectModelDisplay* objectDisplayRef = objectDisplay->GetStrongReference();
+    if (objectDisplayRef == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (this->walkerRef == nullptr)
+    {
+        this->walkerRef = objectDisplayRef->CreateWalker();
+    }
+
+    Js::DynamicObject* childrens = __super::GetChildrens(this->walkerRef, scriptContext, fromCount, totalCount);
+
+    objectDisplay->ReleaseStrongReference();
+
+    return childrens;
 }
 
 JsrtDebugStackFrames::JsrtDebugStackFrames(JsrtDebug* debugObject):
