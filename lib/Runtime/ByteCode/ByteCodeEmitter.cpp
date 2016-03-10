@@ -1702,7 +1702,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 {
     if (funcInfo->NeedEnvRegister())
     {
-        bool constReg = !funcInfo->GetIsEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
+        bool constReg = !funcInfo->GetIsTopLevelEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
         funcInfo->AssignEnvRegister(constReg);
     }
 
@@ -1902,7 +1902,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     if (funcInfo->NeedEnvRegister())
     {
         byteCodeFunction->MapAndSetEnvRegister(funcInfo->GetEnvRegister());
-        if (funcInfo->GetIsEventHandler())
+        if (funcInfo->GetIsTopLevelEventHandler())
         {
             byteCodeFunction->MapAndSetThisRegisterForEventHandler(funcInfo->thisPointerRegister);
             // The environment is the namespace hierarchy starting with "this".
