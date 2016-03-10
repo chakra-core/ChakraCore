@@ -1919,7 +1919,7 @@ namespace Js
                 }
             }
 
-            UINT32 localFuncCount = wasmModule->functions->Count();
+            Var* importFunctions = moduleMemoryPtr + wasmModule->importFuncOffset;
             for (uint32 i = 0; i < wasmModule->info->GetImportCount(); ++i)
             {
                 PropertyRecord const * modPropertyRecord = nullptr;
@@ -1945,7 +1945,7 @@ namespace Js
                     // TODO: michhol figure out correct error path
                 }
                 Var prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
-                localModuleFunctions[i+localFuncCount] = prop;
+                importFunctions[i] = prop;
             }
 
             Var** indirectFunctionTables = (Var**)(moduleMemoryPtr + wasmModule->indirFuncTableOffset);

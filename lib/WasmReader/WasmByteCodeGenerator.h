@@ -61,7 +61,13 @@ namespace Wasm
 
     struct WasmModule
     {
-        WasmModule() : functions(nullptr), memSize(0), indirFuncTableOffset(0), heapOffset(0), funcOffset(0)
+        WasmModule() :
+            functions(nullptr),
+            memSize(0),
+            indirFuncTableOffset(0),
+            heapOffset(0),
+            funcOffset(0),
+            importFuncOffset(0)
         {
         }
         // TODO (michhol): use normal array, and get info from parser
@@ -69,6 +75,7 @@ namespace Wasm
         ModuleInfo * info;
         uint heapOffset;
         uint funcOffset;
+        uint importFuncOffset;
         uint indirFuncTableOffset;
         uint memSize;
     };
