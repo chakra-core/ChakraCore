@@ -108,6 +108,54 @@ function asmModule(stdlib, imports, buffer) {
     var Uint32Heap = new stdlib.Uint32Array(buffer);
     var Float32Heap = new stdlib.Float32Array(buffer);
 
+    function func0()
+    {
+        var x  = i4(1, 2, 3, 4);
+        var y  = i4(0, 0, 0, 0);
+        var st = i4(0, 0, 0, 0);
+        var ld = i4(0, 0, 0, 0);
+        
+        var t0 = i4(0, 0, 0, 0);
+        var t1 = i4(0, 0, 0, 0);
+        var t2 = i4(0, 0, 0, 0);
+        var t3 = i4(0, 0, 0, 0);
+        
+        var index = 100;
+        var size = 10;
+        var loopIndex = 0;
+        
+        for (loopIndex = 0; (loopIndex | 0) < (size | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            st = i4store(Int8Heap, index >> 0, x);
+            ld = i4load(Int8Heap, index >> 0);
+            y = i4add(st, ld);  // (0,0,0,0)
+            t0 = i4add(i4store(Int8Heap, index >> 0, x), i4load(Int8Heap, index   >> 0));
+            t0 = i4add(y, t0);
+            
+            st = i4store1(Int8Heap, index >> 0, x);
+            ld = i4load(Int8Heap, index >> 0);
+            y = i4add(st, ld);  // (0,0,0,0)
+            t1 = i4add(i4store1(Int8Heap, index >> 0, x), i4load(Int8Heap, index   >> 0));
+            t1 = i4add(y, t1);
+             
+            st = i4store2(Int8Heap, index >> 0, x);
+            ld = i4load(Int8Heap, index >> 0);
+            y = i4add(st, ld);  // (0,0,0,0)
+            t2 = i4add(i4store2(Int8Heap, index >> 0, x), i4load(Int8Heap, index   >> 0));
+            t2 = i4add(y, t2);
+
+            st = i4store3(Int8Heap, index >> 0, x);
+            ld = i4load(Int8Heap, index >> 0);
+            y = i4add(st, ld);  // (0,0,0,0)
+            t3 = i4add(i4store3(Int8Heap, index >> 0, x), i4load(Int8Heap, index   >> 0));
+            t3 = i4add(y, t3);
+
+            t0 = i4add(t0, i4add(t1, i4add(t2, t3)));
+            index = (index + 16 ) | 0;
+        }
+        return i4check(t0);
+    }
+
     function func1()
     {
         var x = i4(1, 2, 3, 4);
@@ -592,6 +640,7 @@ function asmModule(stdlib, imports, buffer) {
     }
 
     return {
+        func0:func0,
         func1:func1, 
         func1OOB_1:func1OOB_1, 
         func1OOB_2:func1OOB_2, 
@@ -621,6 +670,9 @@ var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
 var ret;
+
+ret = m.func0();
+equalSimd([16, 32, 48, 64], ret, SIMD.Int32x4, "Test Load Store");
 
 ret = m.func1();
 equalSimd([10, 20, 30, 40], ret, SIMD.Int32x4, "Test Load Store1");
