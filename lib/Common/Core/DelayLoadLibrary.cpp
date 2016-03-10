@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCorePch.h"
-#include "core\DelayLoadLibrary.h"
+#include "Core/DelayLoadLibrary.h"
 
 DelayLoadLibrary::DelayLoadLibrary()
 {
@@ -57,7 +57,7 @@ NtdllLibrary* NtdllLibrary::Instance = &NtdllLibraryObject;
 
 LPCTSTR NtdllLibrary::GetLibraryName() const
 {
-    return L"ntdll.dll";
+    return _u("ntdll.dll");
 }
 
 _Success_(return == 0)

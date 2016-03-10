@@ -5,6 +5,7 @@
 #pragma once
 #include <windows.h>
 #include <wtypes.h>
+#include "../Core/CommonTypedefs.h"
 
 typedef unsigned __int32 uint32;
 
@@ -30,7 +31,7 @@ namespace utf8
     //                     code point.
     //   UTF-8           - An encoding of UCS code points as defined by RFC-3629.
     //   UTF-16          - An encoding of UCS code points as defined by RFC-2781. Use as a synonym for UNICODE or
-    //                     UCS-2. This is technically incorrect but usually harmless. This file assumes wchar_t *
+    //                     UCS-2. This is technically incorrect but usually harmless. This file assumes char16 *
     //                     maps to an UTF-16LE (little-endian) encoded sequence of words.
     //   Unit            - The unit of encoding. For UTF-8 it is a byte (octet). For UTF-16 it is a word (two octets).
     //   Valid           - A UTF-8 byte sequence conforming to RFC-3629.
@@ -40,12 +41,12 @@ namespace utf8
     //   Lead byte       - A byte can start a well-formed multi-unit sequence but not a single byte sequence.
     //   Trail byte      - A byte that can appear after a lead-byte in a well-formed multi-unit sequence.
     //   Surrogate pair  - A UTF-16 word pair to encode characters outside the Unicode base plain as defined by
-    //                     RFC-2781. Two wchar_t values are used to encode one UCS code point.
+    //                     RFC-2781. Two char16 values are used to encode one UCS code point.
     //   character index - The index into a UTF-16 sequence.
     //   byte index      - The index into a UTF-8 sequence.
 
     // Return the number of bytes needed to encode the given character (ignoring surrogate pairs)
-    inline size_t EncodedSize(wchar_t ch)
+    inline size_t EncodedSize(char16 ch)
     {
         if (ch < 0x0080) return 1;
         if (ch < 0x0800) return 2;
@@ -71,29 +72,29 @@ namespace utf8
 
     // Decode the trail bytes after the UTF8 lead byte c1 but returning 0xFFFD if trail bytes are expected after end.
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))
-    wchar_t DecodeTail(wchar_t c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options);
+    char16 DecodeTail(char16 c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options);
 
     // Decode the UTF8 sequence into a UTF16 encoding. Code points outside the Unicode base plain will generate
     // surrogate pairs, using the 'doSecondSurrogatePair' option to remember the first word has already been returned.
     // If ptr == end 0x0000 is emitted. If ptr < end but the lead byte of the UTF8 sequence
     // expects trail bytes past end then 0xFFFD are emitted until ptr == end.
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) && ptr <= end))
-    inline wchar_t Decode(LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options)
+    inline char16 Decode(LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options)
     {
         if (ptr >= end) return 0;
         utf8char_t c1 = *ptr++;
-        if (c1 < 0x80) return static_cast<wchar_t>(c1);
+        if (c1 < 0x80) return static_cast<char16>(c1);
         return DecodeTail(c1, ptr, end, options);
     }
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points). Use Encode() instead of EncodeFull() directly because it
     // special cases ASCII to avoid a call the most common characters.
-    LPUTF8 EncodeFull(wchar_t ch, __out_ecount(3) LPUTF8 ptr);
+    LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points).
-    inline LPUTF8 Encode(wchar_t ch, __out_ecount(3) LPUTF8 ptr)
+    inline LPUTF8 Encode(char16 ch, __out_ecount(3) LPUTF8 ptr)
     {
         if (ch < 0x80)
         {
@@ -155,23 +156,23 @@ namespace utf8
     // Decode a UTF-8 sequence of cch UTF-16 characters into buffer. ptr could advance up to 3 times
     // longer than cch so DecodeInto should only be used when it is already known that
     // ptr refers to at least cch number of UTF-8 sequences.
-    void DecodeInto(__out_ecount_full(cch) wchar_t *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
+    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
 
     // Provided for dual-mode templates
-    inline void DecodeInto(__out_ecount_full(cch) wchar_t *buffer, const wchar_t *ptr, size_t cch, DecodeOptions /* options */ = doDefault)
+    inline void DecodeInto(__out_ecount_full(cch) char16 *buffer, const char16 *ptr, size_t cch, DecodeOptions /* options */ = doDefault)
     {
-        memcpy_s(buffer, cch * sizeof(wchar_t), ptr, cch * sizeof(wchar_t));
+        memcpy_s(buffer, cch * sizeof(char16), ptr, cch * sizeof(char16));
     }
 
     // Like DecodeInto but ensures buffer ends with a NULL at buffer[cch].
-    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated wchar_t *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
+    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
 
     // Decode cb bytes from ptr to into buffer returning the number of characters converted and written to buffer
     _Ret_range_(0, pbEnd - _Old_(pbUtf8))
-    size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) wchar_t *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
+    size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
 
     // Decode cb bytes from ptr to into buffer returning the number of characters converted and written to buffer (excluding the null terminator)
-    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated wchar_t *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
+    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
 
     // Encode a UTF-8 sequence into a UTF-8 sequence (which is just a memcpy). This is included for convenience in templates
     // when the character encoding is a template parameter.
@@ -187,11 +188,11 @@ namespace utf8
     // than cch.
     // Returns the number of bytes copied into the buffer.
     __range(0, cch * 3)
-    size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const wchar_t *source, charcount_t cch);
+    size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
 
     // Like EncodeInto but ensures that buffer[return value] == 0.
     __range(0, cch * 3)
-    size_t EncodeIntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const wchar_t *source, charcount_t cch);
+    size_t EncodeIntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
 
     // Returns true if the pch refers to a UTF-16LE encoding of the given UTF-8 encoding bch.
     bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options = doDefault);

@@ -223,21 +223,13 @@ namespace Js
     template <typename T>
     void CrossSiteObject<T>::RemoveFromPrototype(ScriptContext * requestContext)
     {
-        if (GetScriptContext() == requestContext)
-        {
-            __super::RemoveFromPrototype(requestContext);
-        }
-        // else do nothing because we never cache cross-context
+        __super::RemoveFromPrototype(GetScriptContext());
     }
 
     template <typename T>
     void CrossSiteObject<T>::AddToPrototype(ScriptContext * requestContext)
     {
-        if (GetScriptContext() == requestContext)
-        {
-            __super::AddToPrototype(requestContext);
-        }
-        // else do nothing because we never cache cross-context
+        __super::AddToPrototype(GetScriptContext());
     }
 
     template <typename T>

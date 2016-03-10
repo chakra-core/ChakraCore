@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Debug\DiagHelperMethodWrapper.h"
-#include "Library\ThrowErrorObject.h"
+#include "Debug/DiagHelperMethodWrapper.h"
+#include "Library/ThrowErrorObject.h"
 
 namespace Js
 {
@@ -18,7 +18,7 @@ namespace Js
         ThrowErrorObject* throwErrorObject = ThrowErrorObject::FromVar(function);
 
         bool useExceptionWrapper =
-            scriptContext->IsInDebugMode() &&
+            scriptContext->IsScriptContextInDebugMode() /* Check for script context is intentional as library code also uses exception wrapper */ &&
             (ScriptContext::IsExceptionWrapperForBuiltInsEnabled(scriptContext) || ScriptContext::IsExceptionWrapperForHelpersEnabled(scriptContext)) &&
             !AutoRegisterIgnoreExceptionWrapper::IsRegistered(scriptContext->GetThreadContext());
 

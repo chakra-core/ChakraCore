@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 #include "shlwapi.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/InterpreterStackFrame.h"
 
 #ifdef _M_IX86
 #ifdef _CONTROL_FLOW_GUARD
@@ -49,7 +49,7 @@ namespace Js
         m_previousCatchHandlerExists = m_threadContext->HasCatchHandler();
         m_threadContext->SetHasCatchHandler(TRUE);
         m_previousCatchHandlerToUserCodeStatus = m_threadContext->IsUserCode();
-        if (scriptContext->IsInDebugMode())
+        if (scriptContext->IsScriptContextInDebugMode())
         {
             FetchNonUserCodeStatus(scriptContext);
         }
@@ -760,7 +760,7 @@ namespace Js
         {
             return;
         }
-        Output::Print(L"\nStack trace for thrown exception\n");
+        Output::Print(_u("\nStack trace for thrown exception\n"));
 
         JavascriptExceptionContext::StackTrace *stackTrace = exceptionContext.GetStackTrace();
         for (int i=0; i < stackTrace->Count(); i++)
@@ -772,7 +772,7 @@ namespace Js
             {
                 currFrame.GetFunctionBody()->GetLineCharOffset(currFrame.GetByteCodeOffset(), &lineNumber, &characterPosition);
             }
-            Output::Print(L"    %3d: %s (%d, %d)\n", i, currFrame.GetFunctionName(), lineNumber, characterPosition);
+            Output::Print(_u("    %3d: %s (%d, %d)\n"), i, currFrame.GetFunctionName(), lineNumber, characterPosition);
         }
         Output::Flush();
 #endif
@@ -872,7 +872,7 @@ namespace Js
         Assert(exceptionObject != NULL);
         Assert(scriptContext != NULL);
 
-        if (scriptContext->IsInDebugMode()
+        if (scriptContext->IsScriptContextInDebugMode()
             && scriptContext->GetDebugContext()->GetProbeContainer()->HasAllowedForException(exceptionObject))
         {
             InterpreterHaltState haltState(STOP_EXCEPTIONTHROW, /*executingFunction*/nullptr);
@@ -1155,12 +1155,12 @@ namespace Js
                     {
                         functionName = functionBody->GetExternalDisplayName();
                     }
-                    AppendExternalFrameToStackTrace(stringBuilder, functionName, pUrl ? pUrl : L"", lineNumber + 1, characterPosition + 1);
+                    AppendExternalFrameToStackTrace(stringBuilder, functionName, pUrl ? pUrl : _u(""), lineNumber + 1, characterPosition + 1);
                 }
             }
 
-            // Try to create the string object even if we did OOM, but if can't, just return what we've got. We catch and ignore OOM so it doesn’t propagate up.
-            // With all the stack trace functionality, we do best effort to produce the stack trace in the case of OOM, but don’t want it to trigger an OOM. Idea is if do take
+            // Try to create the string object even if we did OOM, but if can't, just return what we've got. We catch and ignore OOM so it doesn't propagate up.
+            // With all the stack trace functionality, we do best effort to produce the stack trace in the case of OOM, but don't want it to trigger an OOM. Idea is if do take
             // an OOM, have some chance of producing a stack trace to see where it happened.
             stringMessage = stringBuilder;
         }
@@ -1219,26 +1219,26 @@ namespace Js
         // format is equivalent to printf("\n   at %s (%s:%d:%d)", functionName, filename, lineNumber, characterPosition);
 
         const CharCount maxULongStringLength = 10; // excluding null terminator
-        const auto ConvertULongToString = [](const ULONG value, wchar_t *const buffer, const CharCount charCapacity)
+        const auto ConvertULongToString = [](const ULONG value, char16 *const buffer, const CharCount charCapacity)
         {
             const errno_t err = _ultow_s(value, buffer, charCapacity, 10);
             Assert(err == 0);
         };
         if (CONFIG_FLAG(ExtendedErrorStackForTestHost))
         {
-            bs->AppendChars(L"\n\tat ");
+            bs->AppendChars(_u("\n\tat "));
         }
         else
         {
-            bs->AppendChars(L"\n   at ");
+            bs->AppendChars(_u("\n   at "));
         }
         bs->AppendCharsSz(functionName);
-        bs->AppendChars(L" (");
+        bs->AppendChars(_u(" ("));
 
-        if (CONFIG_FLAG(ExtendedErrorStackForTestHost) && *fileName != L'\0')
+        if (CONFIG_FLAG(ExtendedErrorStackForTestHost) && *fileName != _u('\0'))
         {
-            wchar_t shortfilename[_MAX_FNAME];
-            wchar_t ext[_MAX_EXT];
+            char16 shortfilename[_MAX_FNAME];
+            char16 ext[_MAX_EXT];
             errno_t err = _wsplitpath_s(fileName, NULL, 0, NULL, 0, shortfilename, _MAX_FNAME, ext, _MAX_EXT);
             if (err != 0)
             {
@@ -1254,19 +1254,19 @@ namespace Js
         {
             bs->AppendCharsSz(fileName);
         }
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         bs->AppendChars(lineNumber, maxULongStringLength, ConvertULongToString);
-        bs->AppendChars(L':');
+        bs->AppendChars(_u(':'));
         bs->AppendChars(characterPosition, maxULongStringLength, ConvertULongToString);
-        bs->AppendChars(L')');
+        bs->AppendChars(_u(')'));
     }
 
     void JavascriptExceptionOperators::AppendLibraryFrameToStackTrace(CompoundString* bs, LPCWSTR functionName)
     {
         // format is equivalent to printf("\n   at %s (native code)", functionName);
-        bs->AppendChars(L"\n   at ");
+        bs->AppendChars(_u("\n   at "));
         bs->AppendCharsSz(functionName);
-        bs->AppendChars(L" (native code)");
+        bs->AppendChars(_u(" (native code)"));
     }
 
 } // namespace Js

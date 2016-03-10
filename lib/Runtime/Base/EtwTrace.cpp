@@ -5,8 +5,8 @@
 #include "RuntimeBasePch.h"
 
 #ifdef ENABLE_JS_ETW
-#include "core\EtwTraceCore.h"
-#include "Base\EtwTrace.h"
+#include "Core/EtwTraceCore.h"
+#include "Base/EtwTrace.h"
 
 #ifdef VTUNE_PROFILING
 #ifdef CDECL
@@ -29,7 +29,7 @@ using namespace Js;
 //
 
 static const char LoopStr[] = "Loop";
-static const wchar_t LoopWStr[] = L"Loop";
+static const char16 LoopWStr[] = _u("Loop");
 
 void EtwCallbackApi::OnSessionChange(ULONG controlCode, PVOID callbackContext)
 {
@@ -206,7 +206,7 @@ void EtwTrace::PerformRundown(bool start)
                     }
                 });
 
-                body->MapLoopHeaders([&](uint loopNumber, LoopHeader* header)
+                body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
                 {
                     header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
                     {
@@ -214,11 +214,11 @@ void EtwTrace::PerformRundown(bool start)
                         {
                             if(start)
                             {
-                                LogLoopBodyEvent(EventWriteMethodDCStart, body, header, entryPoint);
+                                LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                             }
                             else
                             {
-                                LogLoopBodyEvent(EventWriteMethodDCEnd, body, header, entryPoint);
+                                LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
                             }
                         }
                     });
@@ -302,20 +302,20 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
     {
         iJIT_Method_Load methodInfo;
         memset(&methodInfo, 0, sizeof(iJIT_Method_Load));
-        const wchar_t* methodName = body->GetExternalDisplayName();
+        const char16* methodName = body->GetExternalDisplayName();
         // Append function line number info to method name so that VTune can distinguish between polymorphic methods
-        wchar_t methodNameBuffer[_MAX_PATH];
+        char16 methodNameBuffer[_MAX_PATH];
         ULONG lineNumber = body->GetLineNumber();
-        wchar_t numberBuffer[20];
+        char16 numberBuffer[20];
         _ltow_s(lineNumber, numberBuffer, 10);
         wcscpy_s(methodNameBuffer, methodName);
         if(entryPoint->GetJitMode() == ExecutionMode::SimpleJit)
         {
-            wcscat_s(methodNameBuffer, L" Simple");
+            wcscat_s(methodNameBuffer, _u(" Simple"));
         }
-        wcscat_s(methodNameBuffer, L" {line:");
+        wcscat_s(methodNameBuffer, _u(" {line:"));
         wcscat_s(methodNameBuffer, numberBuffer);
-        wcscat_s(methodNameBuffer, L"}");
+        wcscat_s(methodNameBuffer, _u("}"));
 
         size_t methodLength = wcslen(methodNameBuffer);
         Assert(methodLength < _MAX_PATH);
@@ -353,7 +353,7 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
             utf8char_t* utf8Url = GetUrl(body, &urlLength);
             methodInfo.source_file_name = (char*)utf8Url;
             methodInfo.env = iJDE_JittingAPI;
-            OUTPUT_TRACE(Js::ProfilerPhase, L"Method load event: %s\n", methodNameBuffer);
+            OUTPUT_TRACE(Js::ProfilerPhase, _u("Method load event: %s\n"), methodNameBuffer);
             iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, &methodInfo);
 
             HeapDeleteArray(lineCount, pLineInfo);
@@ -369,16 +369,16 @@ void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointIn
 #endif
 }
 
-void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint)
+void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
-    LogLoopBodyEvent(EventWriteMethodLoad, body, loopHeader, entryPoint);
+    LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
 
 #ifdef VTUNE_PROFILING
     if(isJitProfilingActive)
     {
         iJIT_Method_Load methodInfo;
         memset(&methodInfo, 0, sizeof(iJIT_Method_Load));
-        const wchar_t* methodName = body->GetExternalDisplayName();
+        const char16* methodName = body->GetExternalDisplayName();
         size_t methodLength = wcslen(methodName);
         methodLength = min(methodLength, (size_t)UINT_MAX); // Just truncate if it is too big
         size_t length = methodLength * 3 + /* spaces */ 2 + _countof(LoopStr) + /*size of loop number*/ 10 + /*NULL*/ 1;
@@ -399,7 +399,7 @@ void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, 
             methodInfo.env = iJDE_JittingAPI;
 
             iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, &methodInfo);
-            OUTPUT_TRACE(Js::ProfilerPhase, L"Loop body load event: %s Loop %d\n", methodName, loopNumber);
+            OUTPUT_TRACE(Js::ProfilerPhase, _u("Loop body load event: %s Loop %d\n"), methodName, loopNumber);
 
             if(urlLength > 0)
             {
@@ -440,7 +440,7 @@ void EtwTrace::LogScriptContextLoadEvent(ScriptContext* scriptContext)
 //
 // Logs the runtime source module load event.
 //
-void EtwTrace::LogSourceModuleLoadEvent(ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const wchar_t* url)
+void EtwTrace::LogSourceModuleLoadEvent(ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const char16* url)
 {
     AssertMsg(sourceContext != Constants::NoHostSourceContext, "We should not be logged this if there is no source code available");
 
@@ -454,12 +454,12 @@ void EtwTrace::LogSourceModuleLoadEvent(ScriptContext* scriptContext, DWORD_PTR 
 //
 // This emulates the logic used by the F12 profiler to give names to functions
 //
-const wchar_t* EtwTrace::GetFunctionName(FunctionBody* body)
+const char16* EtwTrace::GetFunctionName(FunctionBody* body)
 {
     return body->GetExternalDisplayName();
 }
 
-size_t EtwTrace::GetLoopBodyName(_In_ FunctionBody* body, _In_ LoopHeader* loopHeader, _Out_writes_opt_z_(size) wchar_t* nameBuffer, _In_ size_t size)
+size_t EtwTrace::GetLoopBodyName(_In_ FunctionBody* body, _In_ LoopHeader* loopHeader, _Out_writes_opt_z_(size) char16* nameBuffer, _In_ size_t size)
 {
     return body->GetLoopBodyName(body->GetLoopNumber(loopHeader), nameBuffer, size);
 }
@@ -467,17 +467,17 @@ size_t EtwTrace::GetLoopBodyName(_In_ FunctionBody* body, _In_ LoopHeader* loopH
 _Success_(return == 0)
 size_t EtwTrace::GetSimpleJitFunctionName(
     Js::FunctionBody *const body,
-    _Out_writes_opt_z_(nameCharCapacity) wchar_t *const name,
+    _Out_writes_opt_z_(nameCharCapacity) char16 *const name,
     const size_t nameCharCapacity)
 {
     Assert(body);
     Assert(name);
     Assert(nameCharCapacity != 0);
 
-    const wchar_t *const suffix = L"Simple";
-    const size_t suffixCharLength = _countof(L"Simple") - 1;
+    const char16 *const suffix = _u("Simple");
+    const size_t suffixCharLength = _countof(_u("Simple")) - 1;
 
-    const wchar_t *const functionName = GetFunctionName(body);
+    const char16 *const functionName = GetFunctionName(body);
     const size_t functionNameCharLength = wcslen(functionName);
     const size_t requiredCharCapacity = functionNameCharLength + suffixCharLength + 1;
     if(requiredCharCapacity > nameCharCapacity)

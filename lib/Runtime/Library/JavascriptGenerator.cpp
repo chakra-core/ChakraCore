@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/InterpreterStackFrame.h"
 
 namespace Js
 {
@@ -24,7 +24,7 @@ namespace Js
         return static_cast<JavascriptGenerator*>(var);
     }
 
-    Var JavascriptGenerator::CallGenerator(ResumeYieldData* yieldData, const wchar_t* apiNameForErrorMessage)
+    Var JavascriptGenerator::CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage)
     {
         ScriptContext* scriptContext = this->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
@@ -98,11 +98,11 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Generator.prototype.next");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.next"));
 
         if (!JavascriptGenerator::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Generator.prototype.next", L"Generator");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.next"), _u("Generator"));
         }
 
         JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
@@ -114,7 +114,7 @@ namespace Js
         }
 
         ResumeYieldData yieldData(input, nullptr);
-        return generator->CallGenerator(&yieldData, L"Generator.prototype.next");
+        return generator->CallGenerator(&yieldData, _u("Generator.prototype.next"));
     }
 
     Var JavascriptGenerator::EntryReturn(RecyclableObject* function, CallInfo callInfo, ...)
@@ -125,11 +125,11 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Generator.prototype.return");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.return"));
 
         if (!JavascriptGenerator::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Generator.prototype.return", L"Generator");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.return"), _u("Generator"));
         }
 
         JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
@@ -146,7 +146,7 @@ namespace Js
         }
 
         ResumeYieldData yieldData(input, RecyclerNew(scriptContext->GetRecycler(), GeneratorReturnExceptionObject, input, scriptContext));
-        return generator->CallGenerator(&yieldData, L"Generator.prototype.return");
+        return generator->CallGenerator(&yieldData, _u("Generator.prototype.return"));
     }
 
     Var JavascriptGenerator::EntryThrow(RecyclableObject* function, CallInfo callInfo, ...)
@@ -157,11 +157,11 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Generator.prototype.throw");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.throw"));
 
         if (!JavascriptGenerator::Is(args[0]))
         {
-            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, L"Generator.prototype.throw", L"Generator");
+            JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.throw"), _u("Generator"));
         }
 
         JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
@@ -178,6 +178,6 @@ namespace Js
         }
 
         ResumeYieldData yieldData(input, RecyclerNew(scriptContext->GetRecycler(), JavascriptExceptionObject, input, scriptContext, nullptr));
-        return generator->CallGenerator(&yieldData, L"Generator.prototype.throw");
+        return generator->CallGenerator(&yieldData, _u("Generator.prototype.throw"));
     }
 }

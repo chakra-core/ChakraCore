@@ -18,10 +18,8 @@ void Scope::SetHasLocalInClosure(bool has)
 {
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
-    // Do not mark the entire function if the closure is just inside the param scope and is not merged.
-    bool isMergedParamScope = this == func->GetParamScope() && func->GetParamScope()->GetCanMergeWithBodyScope();
     bool notCatch = this->scopeType != ScopeType_Catch && this->scopeType != ScopeType_CatchParamPattern;
-    if (has && (this == func->GetBodyScope() || isMergedParamScope) || (GetCanMerge() && notCatch))
+    if (has && (this == func->GetBodyScope() || this == func->GetParamScope()) || (GetCanMerge() && notCatch))
     {
         func->SetHasLocalInClosure(true);
     }
@@ -29,7 +27,7 @@ void Scope::SetHasLocalInClosure(bool has)
     {
         if (hasCrossScopeFuncAssignment)
         {
-            func->SetHasMaybeEscapedNestedFunc(DebugOnly(L"InstantiateScopeWithCrossScopeAssignment"));
+            func->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("InstantiateScopeWithCrossScopeAssignment")));
         }
         SetMustInstantiate(true);
     }
@@ -40,7 +38,7 @@ int Scope::AddScopeSlot()
     int slot = scopeSlotCount++;
     if (scopeSlotCount == Js::ScopeSlots::MaxEncodedSlotCount)
     {
-        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(L"TooManySlots"));
+        this->GetEnclosingFunc()->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("TooManySlots")));
     }
     return slot;
 }
@@ -89,7 +87,7 @@ void Scope::SetIsObject()
         {
             if (sym->GetHasFuncAssignment())
             {
-                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(L"DelayedObjectScopeAssignment"));
+                funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("DelayedObjectScopeAssignment")));
                 return true;
             }
             return false;

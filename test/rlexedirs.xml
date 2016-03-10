@@ -313,6 +313,12 @@
 </dir>
 <dir>
   <default>
+    <files>SIMD.wrappers</files>
+    <tags>exclude_serialized,exclude_arm,exclude_arm64,require_backend</tags>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>SIMD.TypeSpec</files>
     <tags>exclude_serialized,exclude_arm,exclude_arm64</tags>
   </default>

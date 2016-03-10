@@ -29,7 +29,7 @@ public:
         , m_switchBuilder(&m_switchAdapter)
     {
         func->m_workItem->InitializeReader(m_jnReader, m_statementReader);
-        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfo();
+        m_asmFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
         if (func->IsLoopBody())
         {
             Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)(func->m_workItem->GetEntryPoint());
@@ -98,7 +98,7 @@ private:
 #define LAYOUT_TYPE_WMS(layout) \
     template <typename SizePolicy> void Build##layout(Js::OpCodeAsmJs newOpcode, uint32 offset);
 #define EXCLUDE_FRONTEND_LAYOUT
-#include "ByteCode\LayoutTypesAsmJs.h"
+#include "ByteCode/LayoutTypesAsmJs.h"
 
     void                    BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 slotIndex, Js::RegSlot value, Js::RegSlot instance);
     void                    BuildAsmUnsigned1(Js::OpCodeAsmJs newOpcode, uint value);

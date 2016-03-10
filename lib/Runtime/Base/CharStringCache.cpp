@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
 
-#include "Library\ProfileString.h"
-#include "Library\SingleCharString.h"
+#include "Library/ProfileString.h"
+#include "Library/SingleCharString.h"
 
 namespace Js
 {
@@ -22,7 +22,7 @@ namespace Js
         if (str == nullptr)
         {
             PropertyRecord const * propertyRecord;
-            wchar_t wc = c;
+            char16 wc = c;
             JavascriptLibrary * javascriptLibrary = JavascriptLibrary::FromCharStringCache(this);
             javascriptLibrary->GetScriptContext()->GetOrAddPropertyRecord(&wc, 1, &propertyRecord);
             str = javascriptLibrary->CreatePropertyString(propertyRecord);
@@ -33,7 +33,7 @@ namespace Js
     }
 
 
-    JavascriptString* CharStringCache::GetStringForChar(wchar_t c)
+    JavascriptString* CharStringCache::GetStringForChar(char16 c)
     {
 #ifdef PROFILE_STRINGS
         StringProfiler::RecordSingleCharStringRequest(JavascriptLibrary::FromCharStringCache(this)->GetScriptContext());
@@ -46,7 +46,7 @@ namespace Js
         return GetStringForCharW(c);
     }
 
-    JavascriptString* CharStringCache::GetStringForCharW(wchar_t c)
+    JavascriptString* CharStringCache::GetStringForCharW(char16 c)
     {
         Assert(!JavascriptString::IsASCII7BitChar(c));
         JavascriptString* str;
@@ -74,8 +74,8 @@ namespace Js
     JavascriptString* CharStringCache::GetStringForCharSP(codepoint_t c)
     {
         Assert(c >= 0x10000);
-        CompileAssert(sizeof(wchar_t) * 2 == sizeof(codepoint_t));
-        wchar_t buffer[2];
+        CompileAssert(sizeof(char16) * 2 == sizeof(codepoint_t));
+        char16 buffer[2];
 
         Js::NumberUtilities::CodePointAsSurrogatePair(c, buffer, buffer + 1);
         JavascriptString* str = JavascriptString::NewCopyBuffer(buffer, 2, JavascriptLibrary::FromCharStringCache(this)->GetScriptContext());

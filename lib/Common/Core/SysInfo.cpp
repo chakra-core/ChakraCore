@@ -46,7 +46,7 @@ AutoSystemInfo::Initialize()
 
     isWindows8OrGreater = IsWindows8OrGreater();
 
-    binaryName[0] = L'\0';
+    binaryName[0] = _u('\0');
 
     dllLoadAddress = (UINT_PTR)&__ImageBase;
     dllHighAddress = (UINT_PTR)&__ImageBase +
@@ -57,7 +57,7 @@ AutoSystemInfo::Initialize()
     initialized = true;
 #endif
     WCHAR DisableDebugScopeCaptureFlag[MAX_PATH];
-    if (::GetEnvironmentVariable(L"JS_DEBUG_SCOPE", DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
+    if (::GetEnvironmentVariable(_u("JS_DEBUG_SCOPE"), DisableDebugScopeCaptureFlag, _countof(DisableDebugScopeCaptureFlag)) != 0)
     {
         disableDebugScopeCapture = true;
     }
@@ -380,7 +380,7 @@ HRESULT AutoSystemInfo::GetVersionInfo(__in LPCWSTR pszPath, DWORD* majorVersion
             if(GetFileVersionInfoEx(FILE_VER_GET_LOCALISED|FILE_VER_GET_NEUTRAL, pszPath, 0, cbVersionSz, pVerBuffer))
             {
                 UINT    uiSz = sizeof(VS_FIXEDFILEINFO);
-                if(!VerQueryValue(pVerBuffer, L"\\", (LPVOID*)&pFileInfo, &uiSz))
+                if(!VerQueryValue(pVerBuffer, _u("\\"), (LPVOID*)&pFileInfo, &uiSz))
                 {
                     hr = HRESULT_FROM_WIN32(GetLastError());
                 }

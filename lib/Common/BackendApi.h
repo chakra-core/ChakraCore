@@ -39,8 +39,8 @@ typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
 #include "InterpreterThunkEmitter.h"
-#include "BackEndOpCodeAttr.h"
-#include "BackEndOpCodeAttrAsmJs.h"
+#include "BackendOpCodeAttr.h"
+#include "BackendOpCodeAttrAsmJs.h"
 #include "CodeGenNumberAllocator.h"
 #include "NativeCodeData.h"
 #include "JnHelperMethod.h"
@@ -57,7 +57,6 @@ void UpdateNativeCodeGeneratorForDebugMode(NativeCodeGenerator* nativeCodeGen);
 CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCodeGen);
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem);
 void NativeCodeGenEnterScriptStart(NativeCodeGenerator * nativeCodeGen);
-bool IsNativeFunctionAddr(Js::ScriptContext *scriptContext, void * address);
 void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, void* address);
 CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
 void GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::ScriptFunction * function = NULL);
@@ -259,6 +258,8 @@ enum VTableValue {
     VtableNativeFloatArray,
     VtableJavascriptNativeIntArray,
     VtableJavascriptRegExp,
+    VtableScriptFunction,
+    VtableJavascriptGeneratorFunction,
     VtableStackScriptFunction,
     VtableConcatStringMulti,
     VtableCompoundString,
@@ -269,7 +270,7 @@ enum VTableValue {
 };
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-const wchar_t *GetVtableName(VTableValue value);
+const char16 *GetVtableName(VTableValue value);
 #endif
 
 enum AuxArrayValue {

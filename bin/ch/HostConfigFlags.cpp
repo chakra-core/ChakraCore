@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "StdAfx.h"
+#include "stdafx.h"
 
 HostConfigFlags HostConfigFlags::flags;
 LPWSTR* HostConfigFlags::argsVal;
@@ -38,7 +38,7 @@ void HostConfigFlags::Parse<BSTR>(ICmdLineArgsParser * parser, BSTR * bstr)
     *bstr = parser->GetCurrentString();
     if (*bstr == NULL)
     {
-        *bstr = SysAllocString(L"");
+        *bstr = SysAllocString(_u(""));
     }
 }
 
@@ -54,7 +54,7 @@ HostConfigFlags::HostConfigFlags() :
 bool HostConfigFlags::ParseFlag(LPCWSTR flagsString, ICmdLineArgsParser * parser)
 {
 #define FLAG(Type, Name, Desc, Default) \
-    if (_wcsicmp(L ## #Name, flagsString) == 0) \
+    if (_wcsicmp(_u(#Name), flagsString) == 0) \
     { \
         this->Name##IsEnabled = true; \
         Parse<Type>(parser, &this->Name); \
@@ -67,7 +67,7 @@ bool HostConfigFlags::ParseFlag(LPCWSTR flagsString, ICmdLineArgsParser * parser
 void HostConfigFlags::PrintUsageString()
 {
 #define FLAG(Type, Name, Desc, Default) \
-    wprintf(L"%20ls          \t%ls\n", L ## #Name, L ## #Desc);
+    wprintf(_u("%20ls          \t%ls\n"), _u(#Name), _u(#Desc));
 #include "HostConfigFlagsList.h"
 }
 
@@ -78,15 +78,15 @@ void HostConfigFlags::PrintUsage()
         pfnPrintUsage();
     }
 
-    wprintf(L"\nFlag List : \n");
+    wprintf(_u("\nFlag List : \n"));
     HostConfigFlags::PrintUsageString();
     ChakraRTInterface::PrintConfigFlagsUsageString();
 }
 
 void HostConfigFlags::HandleArgsFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[])
 {
-    const LPCWSTR argsFlag = L"-args";
-    const LPCWSTR endArgsFlag = L"-endargs";
+    const LPCWSTR argsFlag = _u("-args");
+    const LPCWSTR endArgsFlag = _u("-endargs");
     int argsFlagLen = static_cast<int>(wcslen(argsFlag));
     int i;
     for (i = 1; i < argc; i++)

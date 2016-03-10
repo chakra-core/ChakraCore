@@ -2,9 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "Base\EtwTrace.h"
-#include "Base\ScriptContextProfiler.h"
+#include "Backend.h"
+#include "Base/EtwTrace.h"
+#include "Base/ScriptContextProfiler.h"
 
 Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
     Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
@@ -38,6 +38,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     m_loopParamSym(nullptr),
     m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
+    m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
@@ -272,18 +273,18 @@ Func::Codegen()
     {
         if (this->IsLoopBody())
         {
-            Output::Print(L"---BeginBackEnd: function: %s, loop:%d---\r\n", this->GetJnFunction()->GetDisplayName(),
+            Output::Print(_u("---BeginBackEnd: function: %s, loop:%d---\r\n"), this->GetJnFunction()->GetDisplayName(),
                 static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"---BeginBackEnd: function: %s---\r\n", this->GetJnFunction()->GetDisplayName());
+            Output::Print(_u("---BeginBackEnd: function: %s---\r\n"), this->GetJnFunction()->GetDisplayName());
         }
         Output::Flush();
     }
 #endif
 
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
     LARGE_INTEGER start_time = { 0 };
 
     if(PHASE_TRACE(Js::BackEndPhase, GetJnFunction()))
@@ -292,7 +293,7 @@ Func::Codegen()
         if (this->IsLoopBody())
         {
             Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S",
+                _u("BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S"),
                 GetJnFunction()->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
@@ -300,17 +301,17 @@ Func::Codegen()
                 ExecutionModeName(m_workItem->GetJitMode()));
             if (this->m_jnFunction->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         else
         {
             Output::Print(
-                L"BeginBackEnd - function: %s (%s, line %u), mode: %S",
+                _u("BeginBackEnd - function: %s (%s, line %u), mode: %S"),
                 GetJnFunction()->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
@@ -318,11 +319,11 @@ Func::Codegen()
 
             if (this->m_jnFunction->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         Output::Flush();
@@ -333,18 +334,18 @@ Func::Codegen()
         if (this->m_jitTimeData->inlineCacheStats)
         {
             auto stats = this->m_jitTimeData->inlineCacheStats;
-            Output::Print(L"ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n", this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
-            Output::Print(L"    overall: total %u, no profile info %u\n", stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
-            Output::Print(L"    mono: total %u, empty %u, cloned %u\n",
+            Output::Print(_u("ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n"), this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("    overall: total %u, no profile info %u\n"), stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
+            Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
                 stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
-            Output::Print(L"    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n",
+            Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
                 stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
                 stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
                 stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
         }
         else
         {
-            Output::Print(L"EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n", this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n"), this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
         }
         Output::Flush();
     }
@@ -392,7 +393,7 @@ Func::Codegen()
         // FlowGraph
         {
             // Scope for FlowGraph arena
-            NoRecoverMemoryJitArenaAllocator fgAlloc(L"BE-FlowGraph", m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+            NoRecoverMemoryJitArenaAllocator fgAlloc(_u("BE-FlowGraph"), m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
 
             BEGIN_CODEGEN_PHASE(this, Js::FGBuildPhase);
 
@@ -524,7 +525,7 @@ Func::Codegen()
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
     {
-        Output::Print(L"---EndBackEnd---\r\n");
+        Output::Print(_u("---EndBackEnd---\r\n"));
         Output::Flush();
     }
 #endif
@@ -545,7 +546,7 @@ Func::Codegen()
         if (this->IsLoopBody())
         {
             Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec",
+                _u("EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec"),
                 GetJnFunction()->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
@@ -555,17 +556,17 @@ Func::Codegen()
 
             if (this->m_jnFunction->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         else
         {
             Output::Print(
-                L"EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec",
+                _u("EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec"),
                 GetJnFunction()->GetDisplayName(),
                 GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
                 GetJnFunction()->GetLineNumber(),
@@ -574,11 +575,11 @@ Func::Codegen()
 
             if (this->m_jnFunction->GetIsAsmjsMode())
             {
-                Output::Print(L" (Asmjs)\n");
+                Output::Print(_u(" (Asmjs)\n"));
             }
             else
             {
-                Output::Print(L"\n");
+                Output::Print(_u("\n"));
             }
         }
         Output::Flush();
@@ -956,7 +957,7 @@ void Func::InitLocalClosureSyms()
     // Allocate stack space for closure pointers. Do this only if we're jitting for stack closures, and
     // tell bailout that these are not byte code symbols so that we don't try to encode them in the bailout record,
     // as they don't have normal lifetimes.
-    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureReg();
+    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localClosureSym =
@@ -964,7 +965,14 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
-    regSlot = this->GetJnFunction()->GetLocalFrameDisplayReg();
+
+    if (!this->GetJnFunction()->IsParamAndBodyScopeMerged())
+    {
+        Assert(this->GetParamClosureSym() == nullptr);
+        this->m_paramClosureSym = StackSym::New(TyVar, this);
+    }
+
+    regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localFrameDisplaySym =
@@ -978,7 +986,7 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode() && !GetScriptContext()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
+        !IsJitInDebugMode() && !this->m_workItem->GetFunctionBody()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
 #if _M_IX86
         && m_workItem->GetJitMode() == ExecutionMode::FullJit && GetCodeGenAllocators()->canCreatePreReservedSegment);
 #elif _M_X64
@@ -1109,15 +1117,15 @@ Func::EndPhase(Js::Phase tag, bool dump)
     if(dump && (PHASE_DUMP(tag, this)
         || PHASE_DUMP(Js::BackEndPhase, this)))
     {
-        Output::Print(L"-----------------------------------------------------------------------------\n");
+        Output::Print(_u("-----------------------------------------------------------------------------\n"));
 
         if (m_workItem->Type() == JsLoopBodyWorkItemType)
         {
-            Output::Print(L"************   IR after %s (%S) Loop %d ************\n", Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()), ((JsLoopBodyCodeGen*)m_workItem)->GetLoopNumber());
+            Output::Print(_u("************   IR after %s (%S) Loop %d ************\n"), Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()), ((JsLoopBodyCodeGen*)m_workItem)->GetLoopNumber());
         }
         else
         {
-            Output::Print(L"************   IR after %s (%S)  ************\n", Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()));
+            Output::Print(_u("************   IR after %s (%S)  ************\n"), Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()));
         }
         this->Dump(Js::Configuration::Global.flags.AsmDiff? IRDumpFlags_AsmDumpMode : IRDumpFlags_None);
     }
@@ -1676,19 +1684,19 @@ Func::GetFunctionEntryInsertionPoint()
 void
 Func::DumpHeader()
 {
-    Output::Print(L"-----------------------------------------------------------------------------\n");
+    Output::Print(_u("-----------------------------------------------------------------------------\n"));
     this->m_jnFunction->DumpFullFunctionName();
 
     Output::SkipToColumn(50);
-    Output::Print(L"Instr Count:%d", GetInstrCount());
+    Output::Print(_u("Instr Count:%d"), GetInstrCount());
 
     if(m_codeSize > 0)
     {
-        Output::Print(L"\t\tSize:%d\n\n", m_codeSize);
+        Output::Print(_u("\t\tSize:%d\n\n"), m_codeSize);
     }
     else
     {
-        Output::Print(L"\n\n");
+        Output::Print(_u("\n\n"));
     }
 }
 

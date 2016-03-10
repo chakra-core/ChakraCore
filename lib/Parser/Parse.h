@@ -23,16 +23,15 @@ enum
     koplCmp,    // < <= > >=
     koplShf,    // << >> >>>
     koplAdd,    // + -
-    koplExpo,   // **
     koplMul,    // * / %
+    koplExpo,   // **
     koplUni,    // unary operators
     koplLim
 };
 enum ParseType
 {
     ParseType_Upfront,
-    ParseType_Deferred,
-    ParseType_Reparse
+    ParseType_Deferred
 };
 
 enum DestructuringInitializerContext
@@ -138,7 +137,7 @@ public:
     static IdentPtr PidFromNode(ParseNodePtr pnode);
 
     ParseNode* CopyPnode(ParseNode* pnode);
-    IdentPtr GenerateIdentPtr(__ecount(len) wchar_t* name,long len);
+    IdentPtr GenerateIdentPtr(__ecount(len) char16* name,long len);
 
     ArenaAllocator *GetAllocator() { return &m_nodeAllocator;}
 
@@ -171,7 +170,7 @@ public:
     // Used by deferred parsing to parse a deferred function.
     HRESULT ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
         bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber,
-        SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo, bool isReparse);
+        SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo);
 
 protected:
     HRESULT ParseSourceInternal(
@@ -317,8 +316,6 @@ public:
     ParseNodePtr CreateBlockScopedDeclNode(IdentPtr pid, OpCode nodeType);
 
     void RegisterRegexPattern(UnifiedRegex::RegexPattern *const regexPattern);
-    bool IsReparsing() const { return m_parseType == ParseType_Reparse; }
-
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     WCHAR* GetParseType() const
@@ -326,11 +323,9 @@ public:
         switch(m_parseType)
         {
             case ParseType_Upfront:
-                return L"Upfront";
+                return _u("Upfront");
             case ParseType_Deferred:
-                return L"Deferred";
-            case ParseType_Reparse:
-                return L"Reparse";
+                return _u("Deferred");
         }
         Assert(false);
         return NULL;
@@ -366,6 +361,9 @@ private:
     ParseNodePtr * m_ppnodeVar;  // variable list tail
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
+
+    // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
+    bool m_hasDeferredShorthandInitError;
     uint * m_pnestedCount; // count of functions nested at one level below the current node
 
     struct WellKnownPropertyPids
@@ -496,6 +494,26 @@ private:
         }
     }
 
+    struct ParserState
+    {
+        ParseNodePtr *m_ppnodeScopeSave;
+        ParseNodePtr *m_ppnodeExprScopeSave;
+        charcount_t m_funcInArraySave;
+        long *m_pCurrentAstSizeSave;
+        uint m_funcInArrayDepthSave;
+        uint m_nestedCountSave;
+#if DEBUG
+        // For very basic validation purpose - to check that we are not going restore to some other block.
+        BlockInfoStack *m_currentBlockInfo;
+#endif
+    };
+
+    // This function is going to capture some of the important current state of the parser to an object. Once we learn
+    // that we need to reparse the grammar again we could use RestoreStateFrom to restore that state to the parser.
+    void CaptureState(ParserState *state);
+    void RestoreStateFrom(ParserState *state);
+    // Future recommendation : Consider consolidating Parser::CaptureState and Scanner::Capture together if we do CaptureState more often.
+
 public:
     IdentPtrList* GetRequestedModulesList();
     ModuleImportEntryList* GetModuleImportEntryList();
@@ -510,11 +528,16 @@ protected:
     ModuleExportEntryList* EnsureModuleIndirectExportEntryList();
     ModuleExportEntryList* EnsureModuleStarExportEntryList();
 
+    void AddModuleSpecifier(IdentPtr moduleRequest);
     void AddModuleImportEntry(ModuleImportEntryList* importEntryList, IdentPtr importName, IdentPtr localName, IdentPtr moduleRequest, ParseNodePtr declNode);
+    void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, ModuleExportEntry* exportEntry);
     void AddModuleExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
+    void CheckForDuplicateExportEntry(ModuleExportEntryList* exportEntryList, IdentPtr exportName);
 
-    ParseNodePtr CreateModuleImportDeclNode(IdentPtr pid);
+    Js::PropertyId EnsurePropertyId(IdentPtr pid);
+    ParseNodePtr CreateModuleImportDeclNode(IdentPtr localName);
+    void MarkIdentifierReferenceIsModuleExport(IdentPtr localName);
 
 public:
     WellKnownPropertyPids* names(){ return &wellKnownPropertyPids; }
@@ -796,6 +819,7 @@ private:
     template<bool buildAST> void ParseImportClause(ModuleImportEntryList* importEntryList, bool parsingAfterComma = false);
 
     template<bool buildAST> ParseNodePtr ParseExportDeclaration();
+    template<bool buildAST> ParseNodePtr ParseDefaultExportClause();
 
     template<bool buildAST> void ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryList, ModuleExportEntryList* exportEntryList, bool isExportClause);
     template<bool buildAST> IdentPtr ParseImportOrExportFromClause(bool throwIfNotFound);

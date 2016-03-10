@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\JavascriptStackWalker.h"
+#include "Language/JavascriptStackWalker.h"
 namespace Js
 {
     DebugManager::DebugManager(ThreadContext* _pThreadContext, AllocationPolicyManager * allocationPolicyManager) :
@@ -26,7 +26,7 @@ namespace Js
         dispatchHaltFrameAddress = nullptr;
         // diagnosticPageAllocator may be used in multiple thread, but it's usage is synchronized.
         diagnosticPageAllocator.SetDisableThreadAccessCheck();
-        diagnosticPageAllocator.debugName = L"Diagnostic";
+        diagnosticPageAllocator.debugName = _u("Diagnostic");
 #endif
     }
 
@@ -76,7 +76,7 @@ namespace Js
 
         pCurrentInterpreterLocation = pHaltState;
 
-        AutoAllocatorObjectPtr<ArenaAllocator, HeapAllocator> pDiagArena(HeapNew(ArenaAllocator, L"DiagHaltState", this->pThreadContext->GetPageAllocator(), Js::Throw::OutOfMemory), &HeapAllocator::Instance);
+        AutoAllocatorObjectPtr<ArenaAllocator, HeapAllocator> pDiagArena(HeapNew(ArenaAllocator, _u("DiagHaltState"), this->pThreadContext->GetPageAllocator(), Js::Throw::OutOfMemory), &HeapAllocator::Instance);
         AutoAllocatorObjectPtr<ReferencedArenaAdapter, HeapAllocator> referencedDiagnosticArena(HeapNew(ReferencedArenaAdapter, pDiagArena), &HeapAllocator::Instance);
         pCurrentInterpreterLocation->referencedDiagnosticArena = referencedDiagnosticArena;
 
@@ -168,14 +168,14 @@ namespace Js
                 BOOL gotPropertyValue = recyclableObject->GetProperty(recyclableObject, propertyId, &propertyValue, &propertyValueInfo, scriptContext);
                 AssertMsg(gotPropertyValue, "DebugManager::UpdateConsoleScope Should have got valid value?");
 
-                OUTPUT_TRACE(Js::ConsoleScopePhase, L"Adding property '%s'\n", scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding property '%s'\n"), scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 BOOL updateSuccess = consoleScope->SetPropertyWithAttributes(propertyId, propertyValue, propertyValueInfo.GetAttributes(), &propertyValueInfo);
                 AssertMsg(updateSuccess, "DebugManager::UpdateConsoleScope Unable to update property value. Am I missing a scenario?");
             }
         }
 
-        OUTPUT_TRACE(Js::ConsoleScopePhase, L"Number of properties on console scope object after update are %d\n", consoleScope->GetPropertyCount());
+        OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Number of properties on console scope object after update are %d\n"), consoleScope->GetPropertyCount());
     }
 
 #if DBG

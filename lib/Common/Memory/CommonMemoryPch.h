@@ -18,19 +18,19 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #endif
 
 // Exceptions
-#include "Exceptions\Exceptionbase.h"
-#include "Exceptions\OutOfMemoryException.h"
+#include "Exceptions/ExceptionBase.h"
+#include "Exceptions/OutOfMemoryException.h"
 
 // Other Memory headers
-#include "Memory\leakreport.h"
-#include "Memory\AutoPtr.h"
+#include "Memory/LeakReport.h"
+#include "Memory/AutoPtr.h"
 
 // Other core headers
-#include "Core\FinalizableObject.h"
-#include "core\EtwTraceCore.h"
-#include "core\ProfileInstrument.h"
-#include "core\ProfileMemory.h"
-#include "core\StackBackTrace.h"
+#include "Core/FinalizableObject.h"
+#include "Core/EtwTraceCore.h"
+#include "Core/ProfileInstrument.h"
+#include "Core/ProfileMemory.h"
+#include "Core/StackBackTrace.h"
 
 #pragma warning(push)
 #if defined(PROFILE_RECYCLER_ALLOC) || defined(HEAP_TRACK_ALLOC) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
@@ -39,12 +39,12 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #pragma warning(pop)
 
 // Inl files
-#include "Memory\Recycler.inl"
-#include "Memory\MarkContext.inl"
-#include "Memory\HeapBucket.inl"
-#include "Memory\LargeHeapBucket.inl"
-#include "Memory\HeapBlock.inl"
-#include "Memory\HeapBlockMap.inl"
+#include "Memory/Recycler.inl"
+#include "Memory/MarkContext.inl"
+#include "Memory/HeapBucket.inl"
+#include "Memory/LargeHeapBucket.inl"
+#include "Memory/HeapBlock.inl"
+#include "Memory/HeapBlockMap.inl"
 
 // Memory Protections
 #ifdef _CONTROL_FLOW_GUARD

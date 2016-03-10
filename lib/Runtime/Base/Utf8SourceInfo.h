@@ -17,8 +17,8 @@ namespace Js
     public:
         bool HasSource() const { return !this->sourceHolder->IsEmpty(); }
 
-        LPCUTF8 GetSource(const wchar_t * reason = nullptr) const;
-        size_t GetCbLength(const wchar_t * reason = nullptr) const;
+        LPCUTF8 GetSource(const char16 * reason = nullptr) const;
+        size_t GetCbLength(const char16 * reason = nullptr) const;
 
         ULONG GetParseFlags()
         {
@@ -40,27 +40,31 @@ namespace Js
             this->byteCodeGenerationFlags = byteCodeGenerationFlags;
         }
 
-        bool IsInDebugMode()
+        bool IsInDebugMode() const
         {
-            return this->debugModeSource != nullptr || this->debugModeSourceIsEmpty;
+            return (this->debugModeSource != nullptr || this->debugModeSourceIsEmpty) && this->m_isInDebugMode;
         }
 
         // For Hybrid debugging purposes we need to have the source mapped in because chakra may be in a frozen state when the source would be needed.
         void SetInDebugMode(bool inDebugMode)
         {
+            AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");
+
             AssertMsg(this->sourceHolder != nullptr, "We have no source holder.");
+
+            AssertMsg(this->m_isInDebugMode != inDebugMode, "Why are we setting same value");
+
+            this->m_isInDebugMode = inDebugMode;
+
             if (!this->sourceHolder->IsDeferrable())
             {
-                //The source should be already loaded;
-                AssertMsg(IsInDebugMode(), "Debug mode source should have been loaded as the source holder isn't deferrable.");
                 return;
             }
 
             if (inDebugMode)
             {
-                AssertMsg(!IsInDebugMode(), "Debug mode source should have not yet been set.");
-                this->debugModeSource = this->sourceHolder->GetSource(L"Entering Debug Mode");
-                this->debugModeSourceLength = this->sourceHolder->GetByteLength(L"Entering Debug Mode");
+                this->debugModeSource = this->sourceHolder->GetSource(_u("Entering Debug Mode"));
+                this->debugModeSourceLength = this->sourceHolder->GetByteLength(_u("Entering Debug Mode"));
                 this->debugModeSourceIsEmpty = !this->HasSource() || this->debugModeSource == nullptr;
                 this->EnsureLineOffsetCache();
             }
@@ -75,18 +79,18 @@ namespace Js
 
         void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
         {
-            size_t cbMin = GetCbLength(L"Utf8SourceInfo::RetrieveSourceText") == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(L"Utf8SourceInfo::RetrieveSourceText"), GetCbLength(L"Utf8SourceInfo::RetrieveSourceText"), cchMin, utf8::doAllowThreeByteSurrogates);
-            utf8::DecodeInto(cpText, GetSource(L"Utf8SourceInfo::RetrieveSourceText") + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
+            size_t cbMin = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")) == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(_u("Utf8SourceInfo::RetrieveSourceText")), GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")), cchMin, utf8::doAllowThreeByteSurrogates);
+            utf8::DecodeInto(cpText, GetSource(_u("Utf8SourceInfo::RetrieveSourceText")) + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
         }
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
         {
-            return cchIndex < m_cchLength ? (GetCbLength(L"CharacterIndexToByteIndex") == m_cchLength ?  cchIndex : utf8::CharacterIndexToByteIndex(this->GetSource(L"CharacterIndexToByteIndex"), GetCbLength(L"CharacterIndexToByteIndex"), cchIndex, utf8::doAllowThreeByteSurrogates)) : m_cchLength;
+            return cchIndex < m_cchLength ? (GetCbLength(_u("CharacterIndexToByteIndex")) == m_cchLength ?  cchIndex : utf8::CharacterIndexToByteIndex(this->GetSource(_u("CharacterIndexToByteIndex")), GetCbLength(_u("CharacterIndexToByteIndex")), cchIndex, utf8::doAllowThreeByteSurrogates)) : m_cchLength;
         }
 
         charcount_t ByteIndexToCharacterIndex(size_t cbIndex) const
         {
-            return cbIndex < GetCbLength(L"CharacterIndexToByteIndex") ? static_cast< charcount_t>(GetCbLength(L"CharacterIndexToByteIndex") == m_cchLength ? cbIndex : utf8::ByteIndexIntoCharacterIndex(this->GetSource(L"CharacterIndexToByteIndex"), cbIndex, utf8::doAllowThreeByteSurrogates)) : static_cast< charcount_t >(GetCbLength(L"CharacterIndexToByteIndex"));
+            return cbIndex < GetCbLength(_u("CharacterIndexToByteIndex")) ? static_cast< charcount_t>(GetCbLength(_u("CharacterIndexToByteIndex")) == m_cchLength ? cbIndex : utf8::ByteIndexIntoCharacterIndex(this->GetSource(_u("CharacterIndexToByteIndex")), cbIndex, utf8::doAllowThreeByteSurrogates)) : static_cast< charcount_t >(GetCbLength(_u("CharacterIndexToByteIndex")));
         }
 
         charcount_t GetCchLength() const
@@ -233,11 +237,6 @@ namespace Js
             return m_secondaryHostSourceContext;
         }
 
-        void SetIsLibraryCode()
-        {
-            m_isLibraryCode = true;
-        }
-
         bool GetIsLibraryCode() const
         {
             return m_isLibraryCode;
@@ -273,9 +272,9 @@ namespace Js
         virtual void Dispose(bool isShutdown) override;
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        static Utf8SourceInfo* NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo);
-        static Utf8SourceInfo* New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo);
-        static Utf8SourceInfo* NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo);
+        static Utf8SourceInfo* NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo, bool isLibraryCode);
+        static Utf8SourceInfo* New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode);
+        static Utf8SourceInfo* NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode);
         static Utf8SourceInfo* Clone(ScriptContext* scriptContext, const Utf8SourceInfo* sourceinfo);
         static Utf8SourceInfo* CloneNoCopy(ScriptContext* scriptContext, const Utf8SourceInfo* sourceinfo, SRCINFO const * srcInfo);
 
@@ -384,6 +383,7 @@ namespace Js
         // we found that m_isXDomain could cause regression without CORS, so the new flag is just for callee.caller in window.onerror
         bool m_isXDomainString : 1;
         bool debugModeSourceIsEmpty : 1;
+        bool m_isInDebugMode : 1;
 
         uint m_sourceInfoId;
 
@@ -391,7 +391,7 @@ namespace Js
         ULONG parseFlags;
         ULONG byteCodeGenerationFlags;
 
-        Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext);
+        Utf8SourceInfo(ISourceHolder *sourceHolder, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext, bool isLibraryCode);
     };
 }
 

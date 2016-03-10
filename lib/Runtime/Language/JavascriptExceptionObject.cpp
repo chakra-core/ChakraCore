@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
-#include "Library\StackScriptFunction.h"
+#include "Library/StackScriptFunction.h"
 
 namespace Js
 {
@@ -199,7 +199,7 @@ namespace Js
         // and we will return the thrown function, but the stack already unwound.
         // We will need to just box the function
 
-        m_throwingFunction = StackScriptFunction::EnsureBoxed(BOX_PARAM(function, returnAddress, L"throw"));
+        m_throwingFunction = StackScriptFunction::EnsureBoxed(BOX_PARAM(function, returnAddress, _u("throw")));
         m_throwingFunctionByteCodeOffset = byteCodeOffset;
     }
 #if DBG

@@ -145,7 +145,7 @@ const Js::Var Js::MutationBreakpoint::GetBreakNewValueVar() const
 bool Js::MutationBreakpoint::IsFeatureEnabled(ScriptContext *scriptContext)
 {
     Assert(scriptContext != nullptr);
-    return scriptContext->IsInDebugMode() && !PHASE_OFF1(Js::ObjectMutationBreakpointPhase);
+    return scriptContext->IsScriptContextInDebugMode() && !PHASE_OFF1(Js::ObjectMutationBreakpointPhase);
 }
 
 bool Js::MutationBreakpoint::CanSet(Var object)
@@ -314,7 +314,7 @@ bool Js::MutationBreakpoint::GetDidCauseBreak() const
     return this->didCauseBreak;
 }
 
-const wchar_t * Js::MutationBreakpoint::GetBreakPropertyName() const
+const char16 * Js::MutationBreakpoint::GetBreakPropertyName() const
 {
     Assert(this->didCauseBreak);
     Assert(this->propertyRecord);
@@ -327,7 +327,7 @@ const Js::PropertyId Js::MutationBreakpoint::GetParentPropertyId() const
     return this->parentPropertyId;
 }
 
-const wchar_t * Js::MutationBreakpoint::GetParentPropertyName() const
+const char16 * Js::MutationBreakpoint::GetParentPropertyName() const
 {
     Assert(this->didCauseBreak);
     const PropertyRecord *pr = nullptr;
@@ -340,7 +340,7 @@ const wchar_t * Js::MutationBreakpoint::GetParentPropertyName() const
             return pr->GetBuffer();
         }
     }
-    return L"";
+    return _u("");
 }
 
 MutationType Js::MutationBreakpoint::GetBreakMutationType() const
@@ -356,25 +356,25 @@ const Js::PropertyId Js::MutationBreakpoint::GetBreakPropertyId() const
     return this->propertyRecord->GetPropertyId();
 }
 
-const wchar_t * Js::MutationBreakpoint::GetBreakMutationTypeName(MutationType mutationType)
+const char16 * Js::MutationBreakpoint::GetBreakMutationTypeName(MutationType mutationType)
 {
     switch (mutationType)
     {
-    case MutationTypeUpdate: return L"Changing";
-    case MutationTypeDelete: return L"Deleting";
-    case MutationTypeAdd: return L"Adding";
-    default: AssertMsg(false, "Unhandled break reason mutation type. Did we add a new mutation type?"); return L"";
+    case MutationTypeUpdate: return _u("Changing");
+    case MutationTypeDelete: return _u("Deleting");
+    case MutationTypeAdd: return _u("Adding");
+    default: AssertMsg(false, "Unhandled break reason mutation type. Did we add a new mutation type?"); return _u("");
     }
 }
 
-const wchar_t * Js::MutationBreakpoint::GetMutationTypeForConditionalEval(MutationType mutationType)
+const char16 * Js::MutationBreakpoint::GetMutationTypeForConditionalEval(MutationType mutationType)
 {
     switch (mutationType)
     {
-    case MutationTypeUpdate: return L"update";
-    case MutationTypeDelete: return L"delete";
-    case MutationTypeAdd: return L"add";
-    default: AssertMsg(false, "Unhandled mutation type in conditional object mutation breakpoint."); return L"";
+    case MutationTypeUpdate: return _u("update");
+    case MutationTypeDelete: return _u("delete");
+    case MutationTypeAdd: return _u("add");
+    default: AssertMsg(false, "Unhandled mutation type in conditional object mutation breakpoint."); return _u("");
     }
 }
 

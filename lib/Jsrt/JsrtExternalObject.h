@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#include "chakracommon.h"
+#include "ChakraCommon.h"
 
 #define BEGIN_INTERCEPTOR(scriptContext) \
     BEGIN_LEAVE_SCRIPT(scriptContext) \

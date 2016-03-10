@@ -15,7 +15,7 @@
 #endif
 
 // === Codex Header Files ===
-#include "codex\Utf8Codex.h"
+#include "Codex/Utf8Codex.h"
 
 
 

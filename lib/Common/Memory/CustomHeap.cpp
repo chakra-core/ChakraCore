@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 #ifdef _M_X64
-#include "Memory\amd64\XDataAllocator.h"
+#include "Memory/amd64/XDataAllocator.h"
 #elif defined(_M_ARM)
-#include "Memory\arm\XDataAllocator.h"
+#include "Memory/arm/XDataAllocator.h"
 #include <wchar.h>
 #elif defined(_M_ARM64)
-#include "Memory\arm64\XDataAllocator.h"
+#include "Memory/arm64/XDataAllocator.h"
 #endif
 #include "CustomHeap.h"
 
@@ -20,21 +20,19 @@ namespace CustomHeap
 
 #pragma region "Constructor and Destructor"
 
-Heap::Heap(AllocationPolicyManager * policyManager, ArenaAllocator * alloc, bool allocXdata):
+Heap::Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators):
     auxiliaryAllocator(alloc),
-    allocXdata(allocXdata),
+    codePageAllocators(codePageAllocators),
+    lastSecondaryAllocStateChangedCount(0)
 #if DBG_DUMP
-    freeObjectSize(0),
-    totalAllocationSize(0),
-    allocationsSinceLastCompact(0),
-    freesSinceLastCompact(0),
+    , freeObjectSize(0)
+    , totalAllocationSize(0)
+    , allocationsSinceLastCompact(0)
+    , freesSinceLastCompact(0)
 #endif
 #if DBG
-    inDtor(false),
+    , inDtor(false)
 #endif
-    pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/),
-    preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/),
-    cs(4000)
 {
     for (int i = 0; i < NumBuckets; i++)
     {
@@ -55,6 +53,7 @@ Heap::~Heap()
 #pragma region "Public routines"
 void Heap::FreeAll()
 {
+    CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
     FreeBuckets(false);
 
     FreeLargeObjects();
@@ -63,13 +62,13 @@ void Heap::FreeAll()
     FreeDecommittedLargeObjects();
 }
 
-bool Heap::Free(__in Allocation* object)
+void Heap::Free(__in Allocation* object)
 {
     Assert(object != nullptr);
 
     if (object == nullptr)
     {
-        return false;
+        return;
     }
 
     BucketId bucket = (BucketId) GetBucketForSize(object->size);
@@ -82,13 +81,13 @@ bool Heap::Free(__in Allocation* object)
             FreeXdata(&object->xdata, object->largeObjectAllocation.segment);
         }
 #endif
-        if (object->largeObjectAllocation.isDecommitted)
+        if (!object->largeObjectAllocation.isDecommitted)
         {
-            return true;
+            FreeLargeObject(object);
         }
-
-        return FreeLargeObject<false>(object);
+        return;
     }
+
 #if PDATA_ENABLED
     if(!object->xdata.IsFreed())
     {
@@ -96,84 +95,106 @@ bool Heap::Free(__in Allocation* object)
     }
 #endif
 
-    if (object->page->isDecommitted)
+    if (!object->page->isDecommitted)
     {
-        return true;
+        FreeAllocation(object);
     }
-
-    return FreeAllocation(object);
 }
 
-bool Heap::Decommit(__in Allocation* object)
+void Heap::DecommitAll()
 {
     // This function doesn't really touch the page allocator data structure.
     // DecommitPages is merely a wrapper for VirtualFree
     // So no need to take the critical section to synchronize
-    Assert(object != nullptr);
 
-    if (object == nullptr)
-    {
-        return false;
+    DListBase<Allocation>::EditingIterator i(&this->largeObjectAllocations);
+    while (i.Next())
+    { 
+        Allocation& allocation = i.Data();
+        Assert(!allocation.largeObjectAllocation.isDecommitted);
+
+        this->codePageAllocators->DecommitPages(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
+        i.MoveCurrentTo(&this->decommittedLargeObjects);
+        allocation.largeObjectAllocation.isDecommitted = true;
     }
 
-    Assert(object->isAllocationUsed);
-
-    BucketId bucket = (BucketId) GetBucketForSize(object->size);
-
-    if (bucket == BucketId::LargeObjectList)
+    for (int bucket = 0; bucket < BucketId::NumBuckets; bucket++)
     {
-        Assert(!object->largeObjectAllocation.isDecommitted);
-
-        if (!object->largeObjectAllocation.isDecommitted)
+        FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &(this->fullPages[bucket]), bucketIter1)
         {
-#if PDATA_ENABLED
-            if(!object->xdata.IsFreed())
-            {
-                FreeXdata(&object->xdata, object->largeObjectAllocation.segment);
-            }
-#endif
-            this->DecommitPages(object->address, object->GetPageCount(), object->largeObjectAllocation.segment);
-            this->largeObjectAllocations.MoveElementTo(object, &this->decommittedLargeObjects);
-            object->largeObjectAllocation.isDecommitted = true;
+            Assert(page.inFullList);
+            this->codePageAllocators->DecommitPages(page.address, 1 /* pageCount */, page.segment);
+            bucketIter1.MoveCurrentTo(&(this->decommittedPages));
+            page.isDecommitted = true;
+        }
+        NEXT_DLISTBASE_ENTRY_EDITING;
+
+        FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &(this->buckets[bucket]), bucketIter2)
+        {
+            Assert(!page.inFullList);
+            this->codePageAllocators->DecommitPages(page.address, 1 /* pageCount */, page.segment);
+            bucketIter2.MoveCurrentTo(&(this->decommittedPages));
+            page.isDecommitted = true;
+        }
+        NEXT_DLISTBASE_ENTRY_EDITING;
+    }
+}
+
+bool Heap::IsInHeap(DListBase<Page> const& bucket, __in void * address)
+{
+    DListBase<Page>::Iterator i(&bucket);
+    while (i.Next())
+    {
+        Page& page = i.Data();
+        if (page.address <= address && address < page.address + AutoSystemInfo::PageSize)
+        {
             return true;
         }
     }
-
-    // Skip asserting here- multiple objects could be on the same page
-    // Review: should we really decommit here or decommit only when all objects
-    // on the page have been decommitted?
-
-    if (!object->page->isDecommitted)
-    {
-#if PDATA_ENABLED
-        if(!object->xdata.IsFreed())
-        {
-            FreeXdata(&object->xdata, object->page->segment);
-        }
-#endif
-        bucket = object->page->currentBucket;
-
-        this->DecommitPages(object->page->address, 1, object->page->segment);
-
-        if (this->ShouldBeInFullList(object->page))
-        {
-            this->fullPages[bucket].MoveElementTo(object->page, &this->decommittedPages);
-        }
-        else
-        {
-            this->buckets[bucket].MoveElementTo(object->page, &this->decommittedPages);
-        }
-        object->page->isDecommitted = true;
-    }
-
-    return true;
+    return false;
 }
 
-bool Heap::IsInRange(__in void* address)
+bool Heap::IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void * address)
 {
-    AutoCriticalSection autocs(&this->cs);
+    for (uint i = 0; i < NumBuckets; i++)
+    {
+        if (this->IsInHeap(buckets[i], address))
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
-    return (this->preReservedHeapPageAllocator.GetVirtualAllocator()->IsInRange(address) || this->pageAllocator.IsAddressFromAllocator(address));
+bool Heap::IsInHeap(DListBase<Allocation> const& allocations, __in void *address)
+{
+    DListBase<Allocation>::Iterator i(&allocations);
+    while (i.Next())
+    {
+        Allocation& allocation = i.Data();
+        if (allocation.address <= address && address < allocation.address + allocation.size)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool Heap::IsInHeap(__in void* address)
+{
+    return IsInHeap(buckets, address) || IsInHeap(fullPages, address) || IsInHeap(largeObjectAllocations, address);
+}
+
+Page * Heap::GetExistingPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment)
+{
+    if (!this->buckets[bucket].Empty())
+    {
+        Assert(!this->buckets[bucket].Head().inFullList);
+        return &this->buckets[bucket].Head();
+    }
+
+    return FindPageToSplit(bucket, canAllocInPreReservedHeapPageSegment);
 }
 
 /*
@@ -186,57 +207,61 @@ bool Heap::IsInRange(__in void* address)
 Allocation* Heap::Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion)
 {
     Assert(bytes > 0);
-    Assert((allocXdata || pdataCount == 0) && (!allocXdata || pdataCount > 0));
+    Assert((codePageAllocators->AllocXdata() || pdataCount == 0) && (!codePageAllocators->AllocXdata() || pdataCount > 0));
     Assert(pdataCount > 0 || (pdataCount == 0 && xdataSize == 0));
 
     // Round up to power of two to allocate, and figure out which bucket to allocate in
     size_t bytesToAllocate = PowerOf2Policy::GetSize(bytes);
     BucketId bucket = (BucketId) GetBucketForSize(bytesToAllocate);
-    Allocation* allocation;
 
     if (bucket == BucketId::LargeObjectList)
     {
-        allocation = AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
+        Allocation * allocation = AllocLargeObject(bytes, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
 #if defined(DBG)
-        MEMORY_BASIC_INFORMATION memBasicInfo;
-        size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
-        Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+        if (allocation)
+        {
+            MEMORY_BASIC_INFORMATION memBasicInfo;
+            size_t resultBytes = VirtualQuery(allocation->address, &memBasicInfo, sizeof(memBasicInfo));
+            Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+        }
 #endif
         return allocation;
     }
 
-    VerboseHeapTrace(L"Bucket is %d\n", bucket);
-    VerboseHeapTrace(L"Requested: %d bytes. Allocated: %d bytes\n", bytes, bytesToAllocate);
+    VerboseHeapTrace(_u("Bucket is %d\n"), bucket);
+    VerboseHeapTrace(_u("Requested: %d bytes. Allocated: %d bytes\n"), bytes, bytesToAllocate);
 
-    Page* page = nullptr;
-    if(!this->buckets[bucket].Empty())
+    do
     {
-        page = &this->buckets[bucket].Head();
-    }
-    else
-    {
-        page = FindPageToSplit(bucket, canAllocInPreReservedHeapPageSegment);
-    }
+        Page* page = GetExistingPage(bucket, canAllocInPreReservedHeapPageSegment);
+        if (page == nullptr && UpdateFullPages())
+        {
+            page = GetExistingPage(bucket, canAllocInPreReservedHeapPageSegment);
+        }
 
-    if(page == nullptr)
-    {
-        page = AllocNewPage(bucket, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
-    }
+        if (page == nullptr)
+        {
+            page = AllocNewPage(bucket, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
+        }
 
-    // Out of memory
-    if (page == nullptr)
-    {
-        return nullptr;
-    }
+        // Out of memory
+        if (page == nullptr)
+        {
+            return nullptr;
+        }
 
 #if defined(DBG)
-    MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
-    Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
+        MEMORY_BASIC_INFORMATION memBasicInfo;
+        size_t resultBytes = VirtualQuery(page->address, &memBasicInfo, sizeof(memBasicInfo));
+        Assert(resultBytes != 0 && memBasicInfo.Protect == PAGE_EXECUTE);
 #endif
 
-    allocation = AllocInPage(page, bytesToAllocate, pdataCount, xdataSize);
-    return allocation;
+        Allocation* allocation = nullptr;
+        if (AllocInPage(page, bytesToAllocate, pdataCount, xdataSize, &allocation))
+        {
+            return allocation;
+        }
+    } while (true);
 }
 
 BOOL Heap::ProtectAllocationWithExecuteReadWrite(Allocation *allocation, char* addressInPage)
@@ -289,7 +314,7 @@ BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtect
 #if DBG_DUMP || defined(RECYCLER_TRACE)
         if (Js::Configuration::Global.flags.IsEnabled(Js::TraceProtectPagesFlag))
         {
-            Output::Print(L"Protecting large allocation\n");
+            Output::Print(_u("Protecting large allocation\n"));
         }
 #endif
         segment = allocation->largeObjectAllocation.segment;
@@ -309,23 +334,23 @@ BOOL Heap::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtect
             pageCount = allocation->GetPageCount();
         }
 
-        VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
-        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
+        VerboseHeapTrace(_u("Protecting 0x%p with 0x%x\n"), address, dwVirtualProtectFlags);
+        return this->codePageAllocators->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
     else
     {
 #if DBG_DUMP || defined(RECYCLER_TRACE)
         if (Js::Configuration::Global.flags.IsEnabled(Js::TraceProtectPagesFlag))
         {
-            Output::Print(L"Protecting small allocation\n");
+            Output::Print(_u("Protecting small allocation\n"));
         }
 #endif
         segment = allocation->page->segment;
         address = allocation->page->address;
         pageCount = 1;
 
-        VerboseHeapTrace(L"Protecting 0x%p with 0x%x\n", address, dwVirtualProtectFlags);
-        return this->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
+        VerboseHeapTrace(_u("Protecting 0x%p with 0x%x\n"), address, dwVirtualProtectFlags);
+        return this->codePageAllocators->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
     }
 }
 
@@ -349,20 +374,8 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
 #endif
 
     {
-        AutoCriticalSection autocs(&this->cs);
-        if (canAllocInPreReservedHeapPageSegment)
-        {
-            address = this->preReservedHeapPageAllocator.Alloc(&pages, (SegmentBase<PreReservedVirtualAllocWrapper>**)(&segment));
-        }
-
-        if (address == nullptr)
-        {
-            if (isAnyJittedCode)
-            {
-                *isAllJITCodeInPreReservedRegion = false;
-            }
-            address = this->pageAllocator.Alloc(&pages, (Segment**)&segment);
-        }
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        address = this->codePageAllocators->Alloc(&pages, &segment, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
 
         // Out of memory
         if (address == nullptr)
@@ -380,15 +393,14 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
         {
             protectFlags = PAGE_EXECUTE;
         }
-        this->ProtectPages(address, pages, segment, protectFlags /*dwVirtualProtectFlags*/, PAGE_READWRITE /*desiredOldProtectFlags*/);
+        this->codePageAllocators->ProtectPages(address, pages, segment, protectFlags /*dwVirtualProtectFlags*/, PAGE_READWRITE /*desiredOldProtectFlags*/);
 
 #if PDATA_ENABLED
         if(pdataCount > 0)
         {
-            if (!this->AllocSecondary(segment, (ULONG_PTR) address, bytes, pdataCount, xdataSize, &xdata))
+            if (!this->codePageAllocators->AllocSecondary(segment, (ULONG_PTR) address, bytes, pdataCount, xdataSize, &xdata))
             {
-                AutoCriticalSection autocs(&this->cs);
-                this->Release(address, pages, segment);
+                this->codePageAllocators->Release(address, pages, segment);
                 return nullptr;
             }
         }
@@ -399,13 +411,13 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
     Allocation* allocation = this->largeObjectAllocations.PrependNode(this->auxiliaryAllocator);
     if (allocation == nullptr)
     {
-        AutoCriticalSection autocs(&this->cs);
-        this->Release(address, pages, segment);
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        this->codePageAllocators->Release(address, pages, segment);
 
 #if PDATA_ENABLED
         if(pdataCount > 0)
         {
-            this->ReleaseSecondary(xdata, segment);
+            this->codePageAllocators->ReleaseSecondary(xdata, segment);
         }
 #endif
         return nullptr;
@@ -418,33 +430,19 @@ Allocation* Heap::AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdata
 
 #if PDATA_ENABLED
     allocation->xdata = xdata;
-
-    if (((Segment*)segment)->GetSecondaryAllocator() != nullptr && !((Segment*)segment)->CanAllocSecondary())
-    {
-        TransferPages(
-            [&](Page* currentPage) -> bool
-        {
-            bool transfer = currentPage->segment == segment;
-            if(transfer)
-            {
-                VerboseHeapTrace(L"Moving page from bucket %d to full list because no XDATA allocations can be made\n", currentPage->currentBucket);
-            }
-            return transfer;
-        } , this->buckets, this->fullPages);
-    }
 #endif
     return allocation;
 }
 
 void Heap::FreeDecommittedLargeObjects()
 {
-    // This is only call when the heap is being destroy, so don't need to sync with the background thread.
+    // CodePageAllocators is locked in FreeAll
     Assert(inDtor);
     FOREACH_DLISTBASE_ENTRY_EDITING(Allocation, allocation, &this->decommittedLargeObjects, largeObjectIter)
     {
-        VerboseHeapTrace(L"Decommitting large object at address 0x%p of size %u\n", allocation.address, allocation.size);
+        VerboseHeapTrace(_u("Decommitting large object at address 0x%p of size %u\n"), allocation.address, allocation.size);
 
-        this->ReleaseDecommitted(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
+        this->codePageAllocators->ReleaseDecommitted(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
         largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
@@ -476,39 +474,47 @@ DWORD Heap::EnsureAllocationExecuteWriteable(Allocation* allocation)
     }   
 }
 
-template <bool freeAll>
-bool Heap::FreeLargeObject(Allocation* address)
+void Heap::FreeLargeObjects()
 {
-    AutoCriticalSection autocs(&this->cs);
+    CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
     FOREACH_DLISTBASE_ENTRY_EDITING(Allocation, allocation, &this->largeObjectAllocations, largeObjectIter)
     {
-        if (address == (&allocation) || freeAll)
-        {
-            EnsureAllocationWriteable(&allocation);
+        EnsureAllocationWriteable(&allocation);
 #if PDATA_ENABLED
-            Assert(allocation.xdata.IsFreed());
+        Assert(allocation.xdata.IsFreed());
 #endif
-            this->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
+        this->codePageAllocators->Release(allocation.address, allocation.GetPageCount(), allocation.largeObjectAllocation.segment);
 
-            largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
-            if (!freeAll) return true;
-        }
+        largeObjectIter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
+}
 
-    // If we're not freeing everything, and we hit this point, that means that
-    // something that wasn't in the large object list was asked to be free.
-    // So, assert that we're freeing everything if we get to this point.
-    Assert(freeAll);
-    return false;
+void Heap::FreeLargeObject(Allocation* allocation)
+{
+    CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+
+    EnsureAllocationWriteable(allocation);
+#if PDATA_ENABLED
+    Assert(allocation->xdata.IsFreed());
+#endif
+    this->codePageAllocators->Release(allocation->address, allocation->GetPageCount(), allocation->largeObjectAllocation.segment);
+
+    this->largeObjectAllocations.RemoveElement(this->auxiliaryAllocator, allocation);
 }
 
 #pragma endregion
 
 #pragma region "Page methods"
 
-Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize)
+bool Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocationOut)
 {
+    Allocation * allocation = AnewNoThrowStruct(this->auxiliaryAllocator, Allocation);
+    if (allocation == nullptr)
+    {
+        return true;
+    }
+
     Assert(Math::IsPow2((int32)bytes));
 
     uint length = GetChunkSizeForBytes(bytes);
@@ -520,28 +526,27 @@ Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushor
     XDataAllocation xdata;
     if(pdataCount > 0)
     {
-        AutoCriticalSection autocs(&this->cs);
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        if (this->ShouldBeInFullList(page))
         {
-            if(!this->AllocSecondary(page->segment, (ULONG_PTR)address, bytes, pdataCount, xdataSize, &xdata))
-            {
-                return nullptr;
-            }
-        }
-    }
-#endif
+            Adelete(this->auxiliaryAllocator, allocation);
+            // If we run out of XData space with the segment, move the page to the full page list, and return false to try the next page.
+            BucketId bucket = page->currentBucket;
+            VerboseHeapTrace(_u("Moving page from bucket %d to full list\n"), bucket);
 
-    Allocation* allocation = AnewNoThrowStruct(this->auxiliaryAllocator, Allocation);
-    if (allocation == nullptr)
-    {
-#if PDATA_ENABLED
-        if(pdataCount > 0)
-        {
-            AutoCriticalSection autocs(&this->cs);
-            this->ReleaseSecondary(xdata, page->segment);
+            Assert(!page->inFullList);
+            this->buckets[bucket].MoveElementTo(page, &this->fullPages[bucket]);
+            page->inFullList = true;
+            return false;
         }
-#endif
-        return nullptr;
+
+        if (!this->codePageAllocators->AllocSecondary(page->segment, (ULONG_PTR)address, bytes, pdataCount, xdataSize, &xdata))
+        {
+            Adelete(this->auxiliaryAllocator, allocation);
+            return true;
+        }
     }
+#endif
 
 #if DBG
     allocation->isAllocationUsed = false;
@@ -558,61 +563,29 @@ Allocation* Heap::AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushor
 #endif
 
     page->freeBitVector.ClearRange(index, length);
-    VerboseHeapTrace(L"ChunkSize: %d, Index: %d, Free bit vector in page: ", length, index);
+    VerboseHeapTrace(_u("ChunkSize: %d, Index: %d, Free bit vector in page: "), length, index);
 
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
-
+    VerboseHeapTrace(_u("\n"));
 
     if (this->ShouldBeInFullList(page))
     {
         BucketId bucket = page->currentBucket;
-        VerboseHeapTrace(L"Moving page from bucket %d to full list\n", bucket);
+        VerboseHeapTrace(_u("Moving page from bucket %d to full list\n"), bucket);
 
+        Assert(!page->inFullList);
         this->buckets[bucket].MoveElementTo(page, &this->fullPages[bucket]);
+        page->inFullList = true;
     }
 
 #if PDATA_ENABLED
     allocation->xdata = xdata;
-
-    if(((Segment*)page->segment)->GetSecondaryAllocator() != nullptr && !((Segment*)page->segment)->CanAllocSecondary())
-    {
-        TransferPages(
-            [&](Page* currentPage) -> bool
-        {
-            bool transfer = currentPage->segment == page->segment;
-            if(transfer)
-            {
-                VerboseHeapTrace(L"Moving page from bucket %d to full list because no XDATA allocations can be made\n", page->currentBucket);
-            }
-            return transfer;
-        } , this->buckets, this->fullPages);
-    }
 #endif
 
-    return allocation;
-}
-
-char *
-Heap::EnsurePreReservedPageAllocation(PreReservedVirtualAllocWrapper * preReservedVirtualAllocator)
-{
-        AutoCriticalSection autocs(&this->cs);
-        Assert(preReservedVirtualAllocator != nullptr);
-        Assert(preReservedHeapPageAllocator.GetVirtualAllocator() == preReservedVirtualAllocator);
-
-        char * preReservedRegionStartAddress = (char*)preReservedVirtualAllocator->GetPreReservedStartAddress();
-        if (preReservedRegionStartAddress == nullptr)
-        {
-            preReservedRegionStartAddress = preReservedHeapPageAllocator.InitPageSegment();
-        }
-
-        if (preReservedRegionStartAddress == nullptr)
-        {
-            VerboseHeapTrace(L"PRE-RESERVE: PreReserved Segment CANNOT be allocated \n");
-        }
-        return preReservedRegionStartAddress;
+    *allocationOut = allocation;
+    return true;
 }
 
 Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion)
@@ -621,30 +594,8 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
 
     char* address = nullptr;
     {
-        AutoCriticalSection autocs(&this->cs);
-
-        if (canAllocInPreReservedHeapPageSegment)
-        {
-            address = this->preReservedHeapPageAllocator.AllocPages(1, (PageSegmentBase<PreReservedVirtualAllocWrapper>**)&pageSegment);
-
-            if (address == nullptr)
-            {
-                VerboseHeapTrace(L"PRE-RESERVE: PreReserved Segment CANNOT be allocated \n");
-            }
-        }
-
-        if (address == nullptr)    // if no space in Pre-reserved Page Segment, then allocate in regular ones.
-        {
-            if (isAnyJittedCode)
-            {
-                *isAllJITCodeInPreReservedRegion = false;
-            }
-            address = this->pageAllocator.AllocPages(1, (PageSegmentBase<VirtualAllocWrapper>**)&pageSegment);
-        }
-        else
-        {
-            VerboseHeapTrace(L"PRE-RESERVE: Allocing new page in PreReserved Segment \n");
-        }
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        address = this->codePageAllocators->AllocPages(1, &pageSegment, canAllocInPreReservedHeapPageSegment, isAnyJittedCode, isAllJITCodeInPreReservedRegion);
     }
 
     if (address == nullptr)
@@ -666,16 +617,16 @@ Page* Heap::AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegm
     }
 
     //Change the protection of the page to Read-Only Execute, before adding it to the bucket list.
-    ProtectPages(address, 1, pageSegment, protectFlags, PAGE_READWRITE);
+    this->codePageAllocators->ProtectPages(address, 1, pageSegment, protectFlags, PAGE_READWRITE);
 
     // Switch to allocating on a list of pages so we can do leak tracking later
-    VerboseHeapTrace(L"Allocing new page in bucket %d\n", bucket);
+    VerboseHeapTrace(_u("Allocing new page in bucket %d\n"), bucket);
     Page* page = this->buckets[bucket].PrependNode(this->auxiliaryAllocator, address, pageSegment, bucket);
 
     if (page == nullptr)
     {
-        AutoCriticalSection autocs(&this->cs);
-        this->ReleasePages(address, 1, pageSegment);
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        this->codePageAllocators->ReleasePages(address, 1, pageSegment);
         return nullptr;
     }
 
@@ -697,10 +648,13 @@ Page* Heap::AddPageToBucket(Page* page, BucketId bucket, bool wasFull)
     if (wasFull)
     {
         #pragma prefast(suppress: __WARNING_UNCHECKED_LOWER_BOUND_FOR_ENUMINDEX, "targetBucket is always in range >= SmallObjectList, but an __in_range doesn't fix the warning.");
+        Assert(page->inFullList);
         this->fullPages[oldBucket].MoveElementTo(page, &this->buckets[bucket]);
+        page->inFullList = false;
     }
     else
     {
+        Assert(!page->inFullList);
         #pragma prefast(suppress: __WARNING_UNCHECKED_LOWER_BOUND_FOR_ENUMINDEX, "targetBucket is always in range >= SmallObjectList, but an __in_range doesn't fix the warning.");
         this->buckets[oldBucket].MoveElementTo(page, &this->buckets[bucket]);
     }
@@ -729,7 +683,8 @@ Page* Heap::FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages
         #pragma prefast(suppress: __WARNING_UNCHECKED_LOWER_BOUND_FOR_ENUMINDEX, "targetBucket is always in range >= SmallObjectList, but an __in_range doesn't fix the warning.");
         FOREACH_DLISTBASE_ENTRY_EDITING(Page, pageInBucket, &this->buckets[b], bucketIter)
         {
-            if (findPreReservedHeapPages && !IsPreReservedSegment(pageInBucket.segment))
+            Assert(!pageInBucket.inFullList);
+            if (findPreReservedHeapPages && !this->codePageAllocators->IsPreReservedSegment(pageInBucket.segment))
             {
                 //Find only pages that are pre-reserved using preReservedHeapPageAllocator
                 continue;
@@ -740,9 +695,9 @@ Page* Heap::FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages
                 Page* page = &pageInBucket;
                 if (findPreReservedHeapPages)
                 {
-                    VerboseHeapTrace(L"PRE-RESERVE: Found page for splitting in Pre Reserved Segment\n");
+                    VerboseHeapTrace(_u("PRE-RESERVE: Found page for splitting in Pre Reserved Segment\n"));
                 }
-                VerboseHeapTrace(L"Found page to split. Moving from bucket %d to %d\n", b, targetBucket);
+                VerboseHeapTrace(_u("Found page to split. Moving from bucket %d to %d\n"), b, targetBucket);
                 return AddPageToBucket(page, targetBucket);
             }
         }
@@ -750,22 +705,6 @@ Page* Heap::FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages
     }
 
     return nullptr;
-}
-
-void Heap::RemovePageFromFullList(Page* pageToRemove)
-{
-    FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &this->fullPages[pageToRemove->currentBucket], pageIter)
-    {
-        if (&page == pageToRemove)
-        {
-            pageIter.RemoveCurrent(this->auxiliaryAllocator);
-            return;
-        }
-    }
-    NEXT_DLISTBASE_ENTRY_EDITING;
-
-    // Page not found- why?
-    Assert(false);
 }
 
 BVIndex Heap::GetIndexInPage(__in Page* page, __in char* address)
@@ -798,9 +737,9 @@ bool Heap::FreeAllocation(Allocation* object)
     }
 #endif
 
-    if (this->ShouldBeInFullList(page))
+    if (page->inFullList)
     {
-        VerboseHeapTrace(L"Recycling page 0x%p because address 0x%p of size %d was freed\n", page->address, object->address, object->size);
+        VerboseHeapTrace(_u("Recycling page 0x%p because address 0x%p of size %d was freed\n"), page->address, object->address, object->size);
 
         // If the object being freed is equal to the page size, we're
         // going to remove it anyway so don't add it to a bucket
@@ -817,7 +756,7 @@ bool Heap::FreeAllocation(Allocation* object)
 
             void* pageAddress = page->address;
 
-            RemovePageFromFullList(page);
+            this->fullPages[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);            
 
             // The page is not in any bucket- just update the stats, free the allocation
             // and dump the page- we don't need to update free object size since the object
@@ -827,10 +766,10 @@ bool Heap::FreeAllocation(Allocation* object)
 #endif
             this->auxiliaryAllocator->Free(object, sizeof(Allocation));
             {
-                AutoCriticalSection autocs(&this->cs);
-                this->ReleasePages(pageAddress, 1, segment);
+                CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+                this->codePageAllocators->ReleasePages(pageAddress, 1, segment);
             }
-            VerboseHeapTrace(L"FastPath: freeing page-sized object directly\n");
+            VerboseHeapTrace(_u("FastPath: freeing page-sized object directly\n"));
             return true;
         }
     }
@@ -850,18 +789,18 @@ bool Heap::FreeAllocation(Allocation* object)
     // Fill the old buffer with debug breaks
     CustomHeap::FillDebugBreak((BYTE *)object->address, object->size);
 
-    VerboseHeapTrace(L"Setting %d bits starting at bit %d, Free bit vector in page was ", length, index);
+    VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
+    VerboseHeapTrace(_u("\n"));
 
     page->freeBitVector.SetRange(index, length);
-    VerboseHeapTrace(L"Free bit vector in page: ", length, index);
+    VerboseHeapTrace(_u("Free bit vector in page: "), length, index);
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();
 #endif
-    VerboseHeapTrace(L"\n");
+    VerboseHeapTrace(_u("\n"));
 
 #if DBG_DUMP
     this->freeObjectSize += object->size;
@@ -872,28 +811,7 @@ bool Heap::FreeAllocation(Allocation* object)
 
     if (page->IsEmpty())
     {
-        // Find the page and remove it from the buckets- the page is going to be freed anyway
-        FOREACH_DLISTBASE_ENTRY_EDITING(Page, pageInBucket, &this->buckets[page->currentBucket], pageIter)
-        {
-            // Templatize this to remove branches/make code more compact?
-            if (&pageInBucket == page)
-            {
-                VerboseHeapTrace(L"Removing page in bucket %d\n", page->currentBucket);
-                {
-                    AutoCriticalSection autocs(&this->cs);
-                    this->ReleasePages(page->address, 1, page->segment);
-                }
-                pageIter.RemoveCurrent(this->auxiliaryAllocator);
-
-#if DBG_DUMP
-                this->freeObjectSize -= pageSize;
-                this->totalAllocationSize -= pageSize;
-#endif
-                return true;
-            }
-        }
-        NEXT_DLISTBASE_ENTRY_EDITING;
-
+        this->buckets[page->currentBucket].RemoveElement(this->auxiliaryAllocator, page);
         return false;
     }
     else // after freeing part of the page, the page should be in PAGE_EXECUTE_READWRITE protection, and turning to PAGE_EXECUTE (always with TARGETS_NO_UPDATE state)
@@ -908,18 +826,18 @@ bool Heap::FreeAllocation(Allocation* object)
         {
             protectFlags = PAGE_EXECUTE;
         }
-        this->ProtectPages(page->address, 1, segment, protectFlags, PAGE_EXECUTE_READWRITE);
+        this->codePageAllocators->ProtectPages(page->address, 1, segment, protectFlags, PAGE_EXECUTE_READWRITE);
         return true;
     }
 }
 
 void Heap::FreeDecommittedBuckets()
 {
-    // This is only call when the heap is being destroy, so don't need to sync with the background thread.
+    // CodePageAllocators is locked in FreeAll
     Assert(inDtor);
     FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &this->decommittedPages, iter)
     {
-        this->TrackDecommittedPages(page.address, 1, page.segment);
+        this->codePageAllocators->TrackDecommittedPages(page.address, 1, page.segment);
         iter.RemoveCurrent(this->auxiliaryAllocator);
     }
     NEXT_DLISTBASE_ENTRY_EDITING;
@@ -927,14 +845,14 @@ void Heap::FreeDecommittedBuckets()
 
 void Heap::FreePage(Page* page)
 {
-    // This is only call when the heap is being destroy, so don't need to sync with the background thread.
+    // CodePageAllocators is locked in FreeAll
     Assert(inDtor);
     DWORD pageSize = AutoSystemInfo::PageSize;
     EnsurePageWriteable(page);
     size_t freeSpace = page->freeBitVector.Count() * Page::Alignment;
 
-    VerboseHeapTrace(L"Removing page in bucket %d, freeSpace: %d\n", page->currentBucket, freeSpace);
-    this->ReleasePages(page->address, 1, page->segment);
+    VerboseHeapTrace(_u("Removing page in bucket %d, freeSpace: %d\n"), page->currentBucket, freeSpace);
+    this->codePageAllocators->ReleasePages(page->address, 1, page->segment);
 
 #if DBG_DUMP
     this->freeObjectSize -= freeSpace;
@@ -944,7 +862,7 @@ void Heap::FreePage(Page* page)
 
 void Heap::FreeBucket(DListBase<Page>* bucket, bool freeOnlyEmptyPages)
 {
-    // This is only call when the heap is being destroy, so don't need to sync with the background thread.
+    // CodePageAllocators is locked in FreeAll
     Assert(inDtor);
     FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, bucket, pageIter)
     {
@@ -960,7 +878,7 @@ void Heap::FreeBucket(DListBase<Page>* bucket, bool freeOnlyEmptyPages)
 
 void Heap::FreeBuckets(bool freeOnlyEmptyPages)
 {
-    // This is only call when the heap is being destroy, so don't need to sync with the background thread.
+    // CodePageAllocators is locked in FreeAll
     Assert(inDtor);
     for (int i = 0; i < NumBuckets; i++)
     {
@@ -974,26 +892,38 @@ void Heap::FreeBuckets(bool freeOnlyEmptyPages)
 #endif
 }
 
+bool Heap::UpdateFullPages()
+{
+    bool updated = false;
+    if (this->codePageAllocators->HasSecondaryAllocStateChanged(&lastSecondaryAllocStateChangedCount))
+    {
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        for (int bucket = 0; bucket < BucketId::NumBuckets; bucket++)
+        {
+            FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &(this->fullPages[bucket]), bucketIter)
+            {
+                Assert(page.inFullList);
+                if (!this->ShouldBeInFullList(&page))
+                {
+                    VerboseHeapTrace(_u("Recycling page 0x%p because XDATA was freed\n"), page.address);
+                    bucketIter.MoveCurrentTo(&(this->buckets[bucket]));
+                    page.inFullList = false;
+                    updated = true;
+                }
+            }
+            NEXT_DLISTBASE_ENTRY_EDITING;
+        }
+    }
+    return updated;
+}
+
 #if PDATA_ENABLED
 void Heap::FreeXdata(XDataAllocation* xdata, void* segment)
 {
-    Assert(!xdata->IsFreed());
-
-    if(!((Segment*)segment)->CanAllocSecondary())
+    Assert(!xdata->IsFreed()); 
     {
-        this->TransferPages([&](Page* currentPage) -> bool
-        {
-            bool transfer = currentPage->segment == segment && !currentPage->HasNoSpace();
-            if(transfer)
-            {
-                VerboseHeapTrace(L"Recycling page 0x%p because XDATA was freed\n", currentPage->address);
-            }
-            return transfer;
-        }, this->fullPages, this->buckets);
-    }
-    {
-        AutoCriticalSection autocs(&this->cs);
-        this->ReleaseSecondary(*xdata, segment);
+        CodePageAllocators::AutoLock autoLock(this->codePageAllocators);
+        this->codePageAllocators->ReleaseSecondary(*xdata, segment);
         xdata->Free();
     }
 }
@@ -1002,13 +932,13 @@ void Heap::FreeXdata(XDataAllocation* xdata, void* segment)
 #if DBG_DUMP
 void Heap::DumpStats()
 {
-    HeapTrace(L"Total allocation size: %d\n", totalAllocationSize);
-    HeapTrace(L"Total free size: %d\n", freeObjectSize);
-    HeapTrace(L"Total allocations since last compact: %d\n", allocationsSinceLastCompact);
-    HeapTrace(L"Total frees since last compact: %d\n", freesSinceLastCompact);
-    HeapTrace(L"Large object count: %d\n", this->largeObjectAllocations.Count());
+    HeapTrace(_u("Total allocation size: %d\n"), totalAllocationSize);
+    HeapTrace(_u("Total free size: %d\n"), freeObjectSize);
+    HeapTrace(_u("Total allocations since last compact: %d\n"), allocationsSinceLastCompact);
+    HeapTrace(_u("Total frees since last compact: %d\n"), freesSinceLastCompact);
+    HeapTrace(_u("Large object count: %d\n"), this->largeObjectAllocations.Count());
 
-    HeapTrace(L"Buckets: \n");
+    HeapTrace(_u("Buckets: \n"));
     for (int i = 0; i < BucketId::NumBuckets; i++)
     {
         printf("\t%d => %u [", (1 << (i + 7)), buckets[i].Count());
@@ -1082,9 +1012,9 @@ void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteC
     // While it could be easier to put 0xBE (same way as 0xCC on x86), BKPT is not recommended -- it may cause unexpected side effects.
     // So, use same sequence are C++ compiler uses (0xDEFE), this is recognized by debugger as __debugbreak.
     // This is 2 bytes, and in case there is a gap of 1 byte in the end, fill it with 0 (there is no 1 byte long THUMB instruction).
-    CompileAssert(sizeof(wchar_t) == 2);
-    wchar_t pattern = 0xDEFE;
-    wmemset(reinterpret_cast<wchar_t*>(buffer), pattern, byteCount / 2);
+    CompileAssert(sizeof(char16) == 2);
+    char16 pattern = 0xDEFE;
+    wmemset(reinterpret_cast<char16*>(buffer), pattern, byteCount / 2);
     if (byteCount % 2)
     {
         // Note: this is valid scenario: in JIT mode, we may not be 2-byte-aligned in the end of unwind info.

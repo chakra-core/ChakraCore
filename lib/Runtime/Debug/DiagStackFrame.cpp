@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
 
 namespace Js
 {
@@ -98,7 +98,7 @@ namespace Js
         m_interpreterFrame(frame)
     {
         Assert(m_interpreterFrame != NULL);
-        AssertMsg(m_interpreterFrame->GetScriptContext() && m_interpreterFrame->GetScriptContext()->IsInDebugMode(),
+        AssertMsg(m_interpreterFrame->GetScriptContext() && m_interpreterFrame->GetScriptContext()->IsScriptContextInDebugMode(),
             "This only supports interpreter stack frames running in debug mode.");
     }
 
@@ -184,7 +184,7 @@ namespace Js
         m_localVarChangedOffset(InvalidOffset)
     {
         Assert(m_stackAddr != NULL);
-        AssertMsg(m_function && m_function->GetScriptContext() && m_function->GetScriptContext()->IsInDebugMode(),
+        AssertMsg(m_function && m_function->GetScriptContext() && m_function->GetScriptContext()->IsScriptContextInDebugMode(),
             "This only supports functions in debug mode.");
 
         FunctionEntryPointInfo * entryPointInfo = GetFunction()->GetEntryPointFromNativeAddress((DWORD_PTR)codeAddr);
@@ -197,7 +197,7 @@ namespace Js
         {
             AssertMsg(FALSE, "Failed to get entry point for native address. Most likely the frame is old/gone.");
         }
-        OUTPUT_TRACE(Js::DebuggerPhase, L"DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n", codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("DiagNativeStackFrame::DiagNativeStackFrame: e.p(addr %p)=%p varOff=%d changedOff=%d\n"), codeAddr, entryPointInfo, m_localVarSlotsOffset, m_localVarChangedOffset);
     }
 
     JavascriptFunction* DiagNativeStackFrame::GetJavascriptFunction()

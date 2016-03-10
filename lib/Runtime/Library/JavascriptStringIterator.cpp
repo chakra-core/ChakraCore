@@ -41,7 +41,7 @@ namespace Js
 
         if (!JavascriptStringIterator::Is(thisObj))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedStringIterator, L"String Iterator.prototype.next");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedStringIterator, _u("String Iterator.prototype.next"));
         }
 
         JavascriptStringIterator* iterator = JavascriptStringIterator::FromVar(thisObj);
@@ -63,7 +63,7 @@ namespace Js
             return library->CreateIteratorResultObjectUndefinedTrue();
         }
 
-        wchar_t chFirst = string->GetItem(index);
+        char16 chFirst = string->GetItem(index);
         Var result;
 
         if (index + 1 == string->GetLength() ||

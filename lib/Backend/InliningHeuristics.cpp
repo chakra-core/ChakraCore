@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 InliningThreshold::InliningThreshold(Js::FunctionBody *topFunc, bool aggressive) : topFunc(topFunc)
 {
@@ -66,8 +66,8 @@ void InliningThreshold::SetHeuristics()
 bool InliningHeuristics::CanRecursivelyInline(Js::FunctionBody* inlinee, Js::FunctionBody *inliner, bool allowRecursiveInlining, uint recursiveInlineDepth)
 {
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
 
@@ -76,7 +76,7 @@ bool InliningHeuristics::CanRecursivelyInline(Js::FunctionBody* inlinee, Js::Fun
         &&  inlinee == inliner
         &&  inlinee->CanInlineRecursively(recursiveInlineDepth) )
     {
-        INLINE_TESTTRACE(L"INLINING: Inlined recursively\tInlinee: %s (%s)\tCaller: %s (%s)\tDepth: %d\n",
+        INLINE_TESTTRACE(_u("INLINING: Inlined recursively\tInlinee: %s (%s)\tCaller: %s (%s)\tDepth: %d\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer2), recursiveInlineDepth);
         return true;
@@ -84,7 +84,7 @@ bool InliningHeuristics::CanRecursivelyInline(Js::FunctionBody* inlinee, Js::Fun
 
     if (!inlinee->CanInlineAgain())
     {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline: Do not inline recursive functions\tInlinee: %s (%s)\tCaller: %s (%s)\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline: Do not inline recursive functions\tInlinee: %s (%s)\tCaller: %s (%s)\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inliner->GetDisplayName(),
             inliner->GetDebugNumberSet(debugStringBuffer2));
         return false;
@@ -181,14 +181,14 @@ bool InliningHeuristics::DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js:
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
     if (inlineeByteCodeCount > (uint)this->threshold.inlineThreshold)         // Don't inline function too big to inline
     {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline: Bytecode greater than threshold\tInlinee: %s (%s)\tByteCodeCount: %d\tByteCodeInlinedThreshold: %d\tCaller: %s (%s) \tRoot: %s (%s)\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline: Bytecode greater than threshold\tInlinee: %s (%s)\tByteCodeCount: %d\tByteCodeInlinedThreshold: %d\tCaller: %s (%s) \tRoot: %s (%s)\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetByteCodeCount(), this->threshold.inlineThreshold,
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
             topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
@@ -206,7 +206,7 @@ bool InliningHeuristics::DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js:
             isConstructorCall ||                                                        // If the function is constructor or has polymorphic fields don't inline.
             PHASE_OFF(Js::InlineFunctionsWithLoopsPhase,this->topFunc))
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %B\tisConstructorCall:%B\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Has loops \tBytecode size: %d \tgetNumberOfInlineesWithLoop: %d\tloopCount: %d\thasNestedLoop: %B\tisConstructorCall:%B\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 inlinee->GetByteCodeCount(),
                 inliningDecider->getNumberOfInlineesWithLoop(),
                 inlinee->GetLoopCount(),
@@ -228,7 +228,7 @@ bool InliningHeuristics::DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js:
             inlineeByteCodeCount > (uint)threshold.polymorphicInlineThreshold ||     // This is second level check to ensure we don't inline huge polymorphic functions.
             isConstructorCall)
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Polymorphic call under PolymorphicInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Polymorphic call under PolymorphicInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 threshold.polymorphicInlineThreshold,
                 inlinee->GetByteCodeCount(),
                 inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
@@ -266,7 +266,7 @@ bool InliningHeuristics::DeciderInlineIntoInliner(Js::FunctionBody* inlinee, Js:
         // Negative ConstructorInlineThreshold always disable constructor inlining
         if (threshold.constructorInlineThreshold < 0 || inlineeByteCodeCount >(uint)threshold.constructorInlineThreshold)
         {
-            INLINE_TESTTRACE(L"INLINING: Skip Inline: Constructor with no polymorphic field access \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n",
+            INLINE_TESTTRACE(_u("INLINING: Skip Inline: Constructor with no polymorphic field access \tBytecode size: %d\tInlinee: %s (%s)\tCaller: %s (%s) \tRoot: %s (%s)\n"),
                 inlinee->GetByteCodeCount(),
                 inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
                 inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
@@ -310,9 +310,9 @@ bool InliningHeuristics::BackendInlineIntoInliner(Js::FunctionBody* inlinee,
     //     4a. Only inline small inlinees. Governed by OutsideLoopInlineThreshold (16)
     // 5. Rest are inlined.
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    wchar_t debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
     bool doBackEndAggressiveInline = (constantArguments & inlinee->m_argUsedForBranch) != 0;
@@ -321,7 +321,7 @@ bool InliningHeuristics::BackendInlineIntoInliner(Js::FunctionBody* inlinee,
         && inlinee == inliner
         && (!inlinee->CanInlineRecursively(recursiveInlineDepth, doBackEndAggressiveInline)))
     {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Recursive inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s) Depth: %d\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline (backend): Recursive inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s) Depth: %d\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
             topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3),
@@ -374,7 +374,7 @@ bool InliningHeuristics::BackendInlineIntoInliner(Js::FunctionBody* inlinee,
 
     if (isCallInsideLoop && inlinee->GetHasLoops() )                            // Don't inline function with loops inside another loop unless it is a leaf
     {
-        INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Recursive loop inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline (backend): Recursive loop inlining\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2),
             topFunc->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3));
@@ -392,7 +392,7 @@ bool InliningHeuristics::BackendInlineIntoInliner(Js::FunctionBody* inlinee,
         inlinee->GetByteCodeWithoutLDACount() > (uint)threshold.outsideLoopInlineThreshold * scale))
     {
         Assert(!isCallInsideLoop);
-        INLINE_TESTTRACE(L"INLINING: Skip Inline (backend): Inlining outside loop doesn't meet OutsideLoopInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n",
+        INLINE_TESTTRACE(_u("INLINING: Skip Inline (backend): Inlining outside loop doesn't meet OutsideLoopInlineThreshold: %d \tBytecode size: %d\tInlinee: %s (#%s)\tCaller: %s (#%s) \tRoot: %s (#%s)\n"),
             threshold.outsideLoopInlineThreshold,
             inlinee->GetByteCodeCount(),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer),
@@ -406,14 +406,14 @@ bool InliningHeuristics::BackendInlineIntoInliner(Js::FunctionBody* inlinee,
 bool InliningHeuristics::ContinueInliningUserDefinedFunctions(uint32 bytecodeInlinedCount) const
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    wchar_t debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
     if (PHASE_FORCE(Js::InlinePhase, this->topFunc) || bytecodeInlinedCount <= (uint)threshold.inlineCountMax)
     {
         return true;
     }
 
-    INLINE_TESTTRACE(L"INLINING: Skip Inline: InlineCountMax threshold %d, reached: %s (#%s)\n",
+    INLINE_TESTTRACE(_u("INLINING: Skip Inline: InlineCountMax threshold %d, reached: %s (#%s)\n"),
         (uint)threshold.inlineCountMax,
         this->topFunc->GetDisplayName(), this->topFunc->GetDebugNumberSet(debugStringBuffer));
 

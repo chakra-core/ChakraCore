@@ -106,13 +106,13 @@ InstanceBase::IsEnabled() const
 }
 
 static const size_t GUID_LEN = 37;   // includes null
-static const wchar_t s_wszObjectNamePrefix[] = L"jscript9_perf_counter_";
+static const char16 s_wszObjectNamePrefix[] = _u("jscript9_perf_counter_");
 static const size_t OBJECT_NAME_LEN = GUID_LEN + _countof(s_wszObjectNamePrefix) + 11;
 
 static
-void GetSharedMemoryObjectName(__inout_ecount(OBJECT_NAME_LEN) wchar_t wszObjectName[OBJECT_NAME_LEN], DWORD pid, GUID const& guid)
+void GetSharedMemoryObjectName(__inout_ecount(OBJECT_NAME_LEN) char16 wszObjectName[OBJECT_NAME_LEN], DWORD pid, GUID const& guid)
 {
-    swprintf_s(wszObjectName, OBJECT_NAME_LEN, L"%s%d_%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+    swprintf_s(wszObjectName, OBJECT_NAME_LEN, _u("%s%d_%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x"),
         s_wszObjectNamePrefix, pid,
         guid.Data1,
         guid.Data2,
@@ -122,7 +122,7 @@ void GetSharedMemoryObjectName(__inout_ecount(OBJECT_NAME_LEN) wchar_t wszObject
 }
 
 bool
-InstanceBase::Initialize(wchar_t const * wszInstanceName, DWORD processId)
+InstanceBase::Initialize(char16 const * wszInstanceName, DWORD processId)
 {
     if (provider.IsInitialized())
     {
@@ -139,7 +139,7 @@ InstanceBase::InitializeSharedMemory(DWORD numCounter, HANDLE& handle)
     Assert(!IsEnabled());
 
     DWORD size = numCounter * sizeof(DWORD);
-    wchar_t wszObjectName[OBJECT_NAME_LEN];
+    char16 wszObjectName[OBJECT_NAME_LEN];
     GetSharedMemoryObjectName(wszObjectName, GetCurrentProcessId(), guid);
     handle = ::CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, wszObjectName);
     if (handle == NULL)
@@ -156,14 +156,14 @@ InstanceBase::InitializeSharedMemory(DWORD numCounter, HANDLE& handle)
 }
 
 DWORD *
-InstanceBase::OpenSharedMemory(__in_ecount(MAX_OBJECT_NAME_PREFIX) wchar_t const wszObjectNamePrefix[MAX_OBJECT_NAME_PREFIX],
+InstanceBase::OpenSharedMemory(__in_ecount(MAX_OBJECT_NAME_PREFIX) char16 const wszObjectNamePrefix[MAX_OBJECT_NAME_PREFIX],
     DWORD pid, DWORD numCounter, HANDLE& handle)
 {
     DWORD size = numCounter * sizeof(DWORD);
-    wchar_t wszObjectName[OBJECT_NAME_LEN];
+    char16 wszObjectName[OBJECT_NAME_LEN];
     GetSharedMemoryObjectName(wszObjectName, pid, guid);
-    wchar_t wszObjectNameFull[MAX_OBJECT_NAME_PREFIX + OBJECT_NAME_LEN];
-    swprintf_s(wszObjectNameFull, L"%s\\%s", wszObjectNamePrefix, wszObjectName);
+    char16 wszObjectNameFull[MAX_OBJECT_NAME_PREFIX + OBJECT_NAME_LEN];
+    swprintf_s(wszObjectNameFull, _u("%s\\%s"), wszObjectNamePrefix, wszObjectName);
     handle = ::OpenFileMapping(FILE_MAP_READ, FALSE, wszObjectNameFull);
     if (handle == NULL)
     {

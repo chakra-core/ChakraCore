@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/InterpreterStackFrame.h"
 
 #define InvalidScriptId 0xFFFFFFFF
 
@@ -241,7 +241,7 @@ namespace Js
         FunctionBody* body = haltState->framePointers->Peek()->GetJavascriptFunction()->GetFunctionBody();
         bool canPossiblyHalt = haltCallback->CanHalt(haltState);
 
-        OUTPUT_TRACE(Js::DebuggerPhase, L"StepController::IsStepComplete(): stepType = %d ", stepType);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("StepController::IsStepComplete(): stepType = %d "), stepType);
 
         uint scriptId = GetScriptId(body);
         AssertMsg(scriptId != InvalidScriptId, "scriptId cannot be 'invalid-reserved'");
@@ -256,13 +256,13 @@ namespace Js
         }
         else if (STEP_DOCUMENT == stepType)
         {
-            OUTPUT_TRACE(Js::DebuggerPhase, L"StepController::IsStepComplete(): docId when set=%d, currentDocId = %d, can Halt = %d, will halt = %d ", this->scriptIdWhenSet, scriptId, canPossiblyHalt, fCanHalt);
+            OUTPUT_TRACE(Js::DebuggerPhase, _u("StepController::IsStepComplete(): docId when set=%d, currentDocId = %d, can Halt = %d, will halt = %d "), this->scriptIdWhenSet, scriptId, canPossiblyHalt, fCanHalt);
             fCanHalt = (scriptId != this->scriptIdWhenSet) && canPossiblyHalt;
         }
         else if (STEP_IN != stepType && this->frameCountWhenSet < currentFrameCount)
         {
             // Only step into allows the stack to be deeper
-            OUTPUT_TRACE(Js::DebuggerPhase, L"StepController::IsStepComplete(stepType = %d) returning false ", stepType);
+            OUTPUT_TRACE(Js::DebuggerPhase, _u("StepController::IsStepComplete(stepType = %d) returning false "), stepType);
             return false;
         }
         else if (STEP_OUT == stepType)
@@ -316,7 +316,7 @@ namespace Js
             }
         }
 
-        OUTPUT_TRACE(Js::DebuggerPhase, L"StepController::IsStepComplete(stepType = %d) returning %d ", stepType, fCanHalt);
+        OUTPUT_TRACE(Js::DebuggerPhase, _u("StepController::IsStepComplete(stepType = %d) returning %d "), stepType, fCanHalt);
         return fCanHalt;
     }
 

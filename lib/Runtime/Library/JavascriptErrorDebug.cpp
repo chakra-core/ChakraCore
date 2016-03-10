@@ -6,7 +6,7 @@
 #include <strsafe.h>
 #include "restrictederrorinfo.h"
 #include "errstr.h"
-#include "Library\JavascriptErrorDebug.h"
+#include "Library/JavascriptErrorDebug.h"
 
 // Temporarily undefining "null" (defined in Common.h) to avoid compile errors when importing mscorlib.tlb
 #import <mscorlib.tlb> raw_interfaces_only \
@@ -16,7 +16,7 @@ namespace Js
 {
     using namespace mscorlib;
 
-    __declspec(thread)  wchar_t JavascriptErrorDebug::msgBuff[512];
+    __declspec(thread)  char16 JavascriptErrorDebug::msgBuff[512];
 
     bool JavascriptErrorDebug::Is(Var aValue)
     {
@@ -131,7 +131,7 @@ namespace Js
     {
         Assert(FAILED(hr));
 
-        wchar_t* allocatedString = nullptr;
+        char16* allocatedString = nullptr;
         BSTR restrictedDescription = nullptr;
         BSTR message = nullptr;
         size_t length = 1; // +1 for null character
@@ -161,8 +161,8 @@ namespace Js
             if (message == nullptr)
             {
                 // Default argument array of empty strings, for CLR parity
-                DWORD_PTR pArgs[] = { (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"",
-                    (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"", (DWORD_PTR)L"" };
+                DWORD_PTR pArgs[] = { (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u(""),
+                    (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u(""), (DWORD_PTR)_u("") };
 
                 if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_ARGUMENT_ARRAY,
@@ -193,12 +193,12 @@ namespace Js
              if (restrictedDescription != nullptr)
              {
                  // length should be longer by 2 characters to handle the \r\n
-                 allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, length + 2);
-                 StringCchPrintfW(allocatedString, length + 2, L"%s\r\n%s", varDescription ? varDescription : message, restrictedDescription);
+                 allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length + 2);
+                 StringCchPrintfW(allocatedString, length + 2, _u("%s\r\n%s"), varDescription ? varDescription : message, restrictedDescription);
              }
              else
              {
-                 allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), wchar_t, length);
+                 allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, length);
                  wcscpy_s(allocatedString, length, varDescription ? varDescription : message);
              }
         }

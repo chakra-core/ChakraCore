@@ -178,7 +178,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache get miss",
+                    _u("TypePropertyCache get miss"),
                     propertyId,
                     requestContext,
                     propertyObject);
@@ -194,7 +194,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache get hit",
+                    _u("TypePropertyCache get hit"),
                     propertyId,
                     requestContext,
                     propertyObject);
@@ -251,7 +251,7 @@ namespace Js
         {
             CacheOperators::TraceCache(
                 static_cast<InlineCache *>(nullptr),
-                L"TypePropertyCache get hit prototype",
+                _u("TypePropertyCache get hit prototype"),
                 propertyId,
                 requestContext,
                 propertyObject);
@@ -327,7 +327,7 @@ namespace Js
             {
                 CacheOperators::TraceCache(
                     static_cast<InlineCache *>(nullptr),
-                    L"TypePropertyCache set miss",
+                    _u("TypePropertyCache set miss"),
                     propertyId,
                     requestContext,
                     object);
@@ -341,7 +341,7 @@ namespace Js
         {
             CacheOperators::TraceCache(
                 static_cast<InlineCache *>(nullptr),
-                L"TypePropertyCache set hit",
+                _u("TypePropertyCache set hit"),
                 propertyId,
                 requestContext,
                 object);

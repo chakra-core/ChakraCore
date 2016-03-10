@@ -11,4 +11,4 @@
 #include "CharMap.h"
 #include "CharTrie.h"
 #include "TextbookBoyerMoore.h"
-#include "RegexRunTime.h"
+#include "RegexRuntime.h"

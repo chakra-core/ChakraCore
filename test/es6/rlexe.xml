@@ -243,6 +243,12 @@
   </test>
   <test>
     <default>
+      <files>letconst_global_shadow_builtins_nonconfigurable.js</files>
+      <baseline>letconst_global_shadow_builtins_nonconfigurable.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>letconst_global_shadow_deleted.js</files>
       <baseline>letconst_global_shadow_deleted.baseline</baseline>
     </default>
@@ -350,7 +356,7 @@
   <test>
     <default>
       <files>ES6StringAPIs.js</files>
-      <compile-flags> -ES6String -args summary -endargs</compile-flags>
+      <compile-flags>-ES6String -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -682,6 +688,18 @@
   </test>
   <test>
     <default>
+      <files>default-splitscope.js</files>
+      <compile-flags>-off:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default-splitscope.js</files>
+      <compile-flags>-force:deferparse -ES6DefaultArgsSplitScope -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>rest.js</files>
       <compile-flags>-ES6Rest -ES6ObjectLiterals -ES6Spread -ES6DefaultArgs -ES6Classes -args summary -endargs</compile-flags>
     </default>
@@ -879,7 +897,7 @@
   <test>
     <default>
       <files>regex-symbols.js</files>
-      <compile-flags>-ES6RegExSymbols -args summary -endargs</compile-flags>
+      <compile-flags>-ES6RegExSymbols -ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -932,6 +950,12 @@
       <baseline>ProxyInProxy.baseline</baseline>
       <compile-flags> -mic:1 -off:simpleJIT </compile-flags>
       <tags>exclude_fre</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ProxySetPrototypeOf.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1123,33 +1147,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-
 <test>
     <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
-    </default>
-</test>
-<test>
-    <default>
-        <files>module-syntax1.js</files>
-        <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_dynapogo</tags>
+        <files>HTMLComments.js</files>
+        <baseline>HTMLComments.baseline</baseline>
     </default>
 </test>
 </regress-exe>

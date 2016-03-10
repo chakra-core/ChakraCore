@@ -30,7 +30,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ExceptionCheck.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)reporterror.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ReportError.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExceptionBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonExceptionsPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -50,7 +50,7 @@
     <ClInclude Include="OperationAbortedException.h" />
     <ClInclude Include="OutOfMemoryException.h" />
     <ClInclude Include="RejitException.h" />
-    <ClInclude Include="reporterror.h" />
+    <ClInclude Include="ReportError.h" />
     <ClInclude Include="ScriptAbortException.h" />
     <ClInclude Include="StackOverflowException.h" />
     <ClInclude Include="Throw.h" />

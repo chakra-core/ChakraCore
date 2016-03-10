@@ -2,13 +2,13 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "Language\JavascriptFunctionArgIndex.h"
+#include "Backend.h"
+#include "Language/JavascriptFunctionArgIndex.h"
 
-#include "Types\DynamicObjectEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library\ForInObjectEnumerator.h"
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/ForInObjectEnumerator.h"
 
 const Js::OpCode LowererMD::MDUncondBranchOpcode = Js::OpCode::JMP;
 const Js::OpCode LowererMD::MDTestOpcode = Js::OpCode::TEST;
@@ -646,15 +646,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutExpectingObject ||
-            callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
             bailOutInstr->InsertBefore(callInstr);
 
-            IR::BailOutKind bailOutKind = bailOutInstr->GetBailOutKind();
-            bailOutInstr->m_opcode = bailOutKind == IR::BailOutExpectingObject ? Js::OpCode::BailOnNotObject : Js::OpCode::BailOnNotPrimitive;
+            bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
         else
@@ -786,7 +784,7 @@ LowererMD::LowerRet(IR::Instr * retInstr)
 
     if (m_func->GetJnFunction()->GetIsAsmjsMode() && !m_func->IsLoopBody()) // for loop body ret is the bytecodeoffset
     {
-        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetReturnType();
+        Js::AsmJsRetType asmType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetReturnType();
         IRType regType = TyInt32;
         if (asmType.which() == Js::AsmJsRetType::Double)
         {
@@ -5617,7 +5615,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
 
     this->m_lowerer->GenerateStringTest(regSrcStr, insertInstr, labelHelper, nullptr, false);
 
-    // r1 contains the value of the wchar_t* pointer inside JavascriptString.
+    // r1 contains the value of the char16* pointer inside JavascriptString.
     // MOV r1, [regSrcStr + offset(m_pszValue)]
     IR::RegOpnd *r1 = IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(regSrcStr->AsRegOpnd(), Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr, this->m_func);
@@ -5648,7 +5646,7 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
         instr = IR::BranchInstr::New(Js::OpCode::JBE, labelHelper, this->m_func);
         insertInstr->InsertBefore(instr);
 
-        indirOpnd = IR::IndirOpnd::New(r1, Js::TaggedInt::ToUInt32(srcIndex->AsAddrOpnd()->m_address) * sizeof(wchar_t), TyInt16, this->m_func);
+        indirOpnd = IR::IndirOpnd::New(r1, Js::TaggedInt::ToUInt32(srcIndex->AsAddrOpnd()->m_address) * sizeof(char16), TyInt16, this->m_func);
     }
     else
     {
@@ -5820,7 +5818,7 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
     if (m_func->CanAllocInPreReservedHeapPageSegment())
     {
         PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator();
-        preReservedRegionStartAddress = m_func->GetEmitBufferManager()->EnsurePreReservedPageAllocation(preReservedVirtualAllocator);
+        preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
         if (preReservedRegionStartAddress != nullptr)
         {
             Assert(preReservedVirtualAllocator);
@@ -7920,7 +7918,7 @@ LowererMD::LowerCommitScope(IR::Instr *instrCommit)
     IR::IntConstOpnd *intConstOpnd = instrCommit->UnlinkSrc2()->AsIntConstOpnd();
     LowererMD::ChangeToAssign(instrCommit);
 
-    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(intConstOpnd->AsUint32(), instrCommit->m_func->GetJnFunction());
+    const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArrayWithLock(intConstOpnd->AsUint32(), instrCommit->m_func->GetJnFunction());
     intConstOpnd->Free(this->m_func);
 
     uint firstVarSlot = (uint)Js::ActivationObjectEx::GetFirstVarSlot(propIds);

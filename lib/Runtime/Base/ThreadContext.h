@@ -372,8 +372,9 @@ public:
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
     };
 
+#if ENABLE_NATIVE_CODEGEN
     void ReleasePreReservedSegment();
-    void IncrementThreadContextsWithPreReservedSegment();
+#endif
 
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
     DWORD GetCurrentThreadId() const { return this->currentThreadId; }
@@ -416,8 +417,6 @@ public:
     }
 #endif
 
-    bool CanPreReserveSegmentForCustomHeap();
-
 #if ENABLE_NATIVE_CODEGEN
     // used by inliner. Maps Simd FuncInfo (library func) to equivalent opcode.
     typedef JsUtil::BaseDictionary<Js::FunctionInfo *, Js::OpCode, ArenaAllocator> FuncInfoToOpcodeMap;
@@ -451,10 +450,6 @@ private:
     StackProber * GetStackProber() const { return this->stackProber; }
     PBYTE GetStackLimitForCurrentThread() const;
     void SetStackLimitForCurrentThread(PBYTE limit);
-
-#if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
-    static uint numOfThreadContextsWithPreReserveSegment;
-#endif
 
     // The current heap enumeration object being used during enumeration.
     IActiveScriptProfilerHeapEnum* heapEnum;
@@ -493,7 +488,7 @@ public:
 
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
-    typedef JsUtil::BaseDictionary<const wchar_t*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
+    typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
 
     class SourceDynamicProfileManagerCache
     {
@@ -591,8 +586,6 @@ private:
     AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
-    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
-
     uint callRootLevel;
 
     // The thread page allocator is used by the recycler and need the background page queue
@@ -641,6 +634,11 @@ private:
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
+    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators thunkPageAllocators;
+#endif
+    CustomHeap::CodePageAllocators codePageAllocators;
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -735,7 +733,7 @@ private:
     // Regex globals
     //
     UnifiedRegex::StandardChars<uint8>* standardUTF8Chars;
-    UnifiedRegex::StandardChars<wchar_t>* standardUnicodeChars;
+    UnifiedRegex::StandardChars<char16>* standardUnicodeChars;
 
     Js::ImplicitCallFlags implicitCallFlags;
 
@@ -783,7 +781,14 @@ public:
     PageAllocator * GetPageAllocator() { return &pageAllocator; }
 
     AllocationPolicyManager * GetAllocationPolicyManager() { return allocationPolicyManager; }
+
+#if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::CodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
+#endif
+    CustomHeap::CodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
+#endif // ENABLE_NATIVE_CODEGEN
 
     void ResetIsAllJITCodeInPreReservedRegion() { isAllJITCodeInPreReservedRegion = false; }
     bool IsAllJITCodeInPreReservedRegion() { return isAllJITCodeInPreReservedRegion; }
@@ -1009,7 +1014,7 @@ private:
 public:
     void FindPropertyRecord(Js::JavascriptString *pstName, Js::PropertyRecord const ** propertyRecord);
     void FindPropertyRecord(__in LPCWSTR propertyName, __in int propertyNameLength, Js::PropertyRecord const ** propertyRecord);
-    const Js::PropertyRecord * FindPropertyRecord(const wchar_t * propertyName, int propertyNameLength);
+    const Js::PropertyRecord * FindPropertyRecord(const char16 * propertyName, int propertyNameLength);
 
     JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>* FindPropertyIdNoCase(Js::ScriptContext * scriptContext, LPCWSTR propertyName, int propertyNameLength);
     JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>* FindPropertyIdNoCase(Js::ScriptContext * scriptContext, JsUtil::CharacterBuffer<WCHAR> const& propertyName);
@@ -1017,11 +1022,11 @@ public:
     void CleanNoCasePropertyMap();
     void ForceCleanPropertyMap();
 
-    const Js::PropertyRecord * GetOrAddPropertyRecord(JsUtil::CharacterBuffer<wchar_t> propertyName)
+    const Js::PropertyRecord * GetOrAddPropertyRecord(JsUtil::CharacterBuffer<char16> propertyName)
     {
         return GetOrAddPropertyRecordImpl(propertyName, false);
     }
-    const Js::PropertyRecord * GetOrAddPropertyRecordBind(JsUtil::CharacterBuffer<wchar_t> propertyName)
+    const Js::PropertyRecord * GetOrAddPropertyRecordBind(JsUtil::CharacterBuffer<char16> propertyName)
     {
         return GetOrAddPropertyRecordImpl(propertyName, true);
     }
@@ -1037,10 +1042,10 @@ public:
 #endif
 
 private:
-    const Js::PropertyRecord * GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<wchar_t> propertyName, bool bind);
+    const Js::PropertyRecord * GetOrAddPropertyRecordImpl(JsUtil::CharacterBuffer<char16> propertyName, bool bind);
     void AddPropertyRecordInternal(const Js::PropertyRecord * propertyRecord);
     void BindPropertyRecord(const Js::PropertyRecord * propertyRecord);
-    bool IsDirectPropertyName(const wchar_t * propertyName, int propertyNameLength);
+    bool IsDirectPropertyName(const char16 * propertyName, int propertyNameLength);
 
     RecyclerWeakReference<const Js::PropertyRecord> * CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRecord);
     void AddCaseInvariantPropertyRecord(const Js::PropertyRecord * propertyRecord);
@@ -1101,9 +1106,8 @@ public:
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
 #if ENABLE_NATIVE_CODEGEN
-    BOOL IsNativeAddress(void *pCodeAddr);
+    BOOL IsNativeAddress(void * pCodeAddr);
     JsUtil::JobProcessor *GetJobProcessor();
-    static void CloseSharedJobProcessor(const bool waitForThread);
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
@@ -1296,8 +1300,8 @@ public:
 #endif
 
     void EnsureSymbolRegistrationMap();
-    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const wchar_t* stringKey);
-    const Js::PropertyRecord* AddSymbolToRegistrationMap(const wchar_t* stringKey, charcount_t stringLength);
+    const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey);
+    const Js::PropertyRecord* AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength);
 
     inline void ClearPendingSOError()
     {
@@ -1506,7 +1510,7 @@ public:
     // Regex helpers
     //
     UnifiedRegex::StandardChars<uint8>* GetStandardChars(__inout_opt uint8* dummy);
-    UnifiedRegex::StandardChars<wchar_t>* GetStandardChars(__inout_opt wchar_t* dummy);
+    UnifiedRegex::StandardChars<char16>* GetStandardChars(__inout_opt char16* dummy);
 
     bool IsOptimizedForManyInstances() const { return isOptimizedForManyInstances; }
 

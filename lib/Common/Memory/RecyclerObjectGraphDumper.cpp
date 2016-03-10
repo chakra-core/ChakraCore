@@ -24,18 +24,18 @@ RecyclerObjectGraphDumper::~RecyclerObjectGraphDumper()
     recycler->objectGraphDumper = nullptr;
 }
 
-void RecyclerObjectGraphDumper::BeginDumpObject(wchar_t const * name)
+void RecyclerObjectGraphDumper::BeginDumpObject(char16 const * name)
 {
     Assert(dumpObjectName == nullptr);
     Assert(dumpObject == nullptr);
     dumpObjectName = name;
 }
 
-void RecyclerObjectGraphDumper::BeginDumpObject(wchar_t const * name, void * address)
+void RecyclerObjectGraphDumper::BeginDumpObject(char16 const * name, void * address)
 {
     Assert(dumpObjectName == nullptr);
     Assert(dumpObject == nullptr);
-    swprintf_s(tempObjectName, _countof(tempObjectName), L"%s %p", name, address);
+    swprintf_s(tempObjectName, _countof(tempObjectName), _u("%s %p"), name, address);
     dumpObjectName = tempObjectName;
 }
 
@@ -79,10 +79,10 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
             if (!this->param->dumpReferenceFunc(this->dumpObjectName, this->dumpObject, objectAddress))
                 return;
         }
-        Output::Print(L"\"");
+        Output::Print(_u("\""));
         if (this->dumpObjectName)
         {
-            Output::Print(L"%s", this->dumpObjectName);
+            Output::Print(_u("%s"), this->dumpObjectName);
         }
         else
         {
@@ -90,14 +90,14 @@ void RecyclerObjectGraphDumper::DumpObjectReference(void * objectAddress, bool r
 #ifdef PROFILE_RECYCLER_ALLOC
             RecyclerObjectDumper::DumpObject(this->dumpObjectTypeInfo, this->dumpObjectIsArray, this->dumpObject);
 #else
-            Output::Print(L"Address %p", objectAddress);
+            Output::Print(_u("Address %p"), objectAddress);
 #endif
         }
 
-        Output::Print(remark? L"\" => \"" : L"\" -> \"");
+        Output::Print(remark? _u("\" => \"") : _u("\" -> \""));
         recycler->DumpObjectDescription(objectAddress);
 
-        Output::Print(L"\"\n");
+        Output::Print(_u("\"\n"));
     }
 }
 #endif

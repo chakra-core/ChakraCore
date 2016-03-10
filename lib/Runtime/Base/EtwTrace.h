@@ -76,8 +76,8 @@ enum MethodType : uint16
     Assert(entryPoint->GetNativeAddress() != NULL);                                                 \
     Assert(entryPoint->GetCodeSize() > 0);                                                          \
     Assert(entryPoint->IsNativeCode());                                                             \
-    wchar_t functionNameArray[NameBufferLength];                                                    \
-    const wchar_t *functionName;                                                                    \
+    char16 functionNameArray[NameBufferLength];                                                     \
+    const char16 *functionName;                                                                     \
     bool deleteFunctionName = false;                                                                \
     const ExecutionMode jitMode = entryPoint->GetJitMode();                                         \
     if(jitMode == ExecutionMode::SimpleJit)                                                         \
@@ -91,7 +91,7 @@ enum MethodType : uint16
         else                                                                                        \
         {                                                                                           \
             Assert(requiredCharCapacity > NameBufferLength);                                        \
-            wchar_t *const allocatedFunctionName = new wchar_t[requiredCharCapacity];               \
+            char16 *const allocatedFunctionName = new char16[requiredCharCapacity];                 \
             if(allocatedFunctionName)                                                               \
             {                                                                                       \
                 const size_t newRequiredCharCapacity =                                              \
@@ -102,7 +102,7 @@ enum MethodType : uint16
             }                                                                                       \
             else                                                                                    \
             {                                                                                       \
-                functionNameArray[0] = L'\0';                                                       \
+                functionNameArray[0] = _u('\0');                                                    \
                 functionName = functionNameArray;                                                   \
             }                                                                                       \
         }                                                                                           \
@@ -111,7 +111,7 @@ enum MethodType : uint16
     {                                                                                               \
         functionName = GetFunctionName(Body);                                                       \
     }                                                                                               \
-    JS_ETW(Function(                                                                                 \
+    JS_ETW(Function(                                                                                \
         Body->GetScriptContext(),                                                                   \
         (void *)entryPoint->GetNativeAddress(),                                                     \
         entryPoint->GetCodeSize(),                                                                  \
@@ -178,11 +178,11 @@ enum MethodType : uint16
         }                                                                                                  \
         else                                                                                               \
         {                                                                                                  \
-            loopBodyNameArray[0] = L'\0';                                                                  \
+            loopBodyNameArray[0] = _u('\0');                                                               \
             loopBodyName = loopBodyNameArray;                                                              \
         }                                                                                                  \
     }                                                                                                      \
-    JS_ETW(Function(Body->GetScriptContext(),                                                               \
+    JS_ETW(Function(Body->GetScriptContext(),                                                              \
         (void *)entryPoint->GetNativeAddress(),                                                            \
         entryPoint->GetCodeSize(),                                                                         \
         GetFunctionId(Body),                                                                               \
@@ -209,6 +209,51 @@ enum MethodType : uint16
     }
 
 
+#define LogLoopBodyEventBG(Function, Body, loopHeader, entryPoint, loopNumber)                             \
+    Assert(entryPoint->GetNativeAddress() != NULL);                                                        \
+    Assert(entryPoint->GetCodeSize() > 0);                                                                 \
+    WCHAR loopBodyNameArray[NameBufferLength];                                                             \
+    WCHAR* loopBodyName = loopBodyNameArray;                                                               \
+    size_t bufferSize = Body->GetLoopBodyName(loopNumber, loopBodyName, NameBufferLength);                 \
+    if(bufferSize > NameBufferLength) /* insufficient buffer space*/                                       \
+    {                                                                                                      \
+        loopBodyName = new WCHAR[bufferSize];                                                              \
+        if(loopBodyName)                                                                                   \
+        {                                                                                                  \
+            GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
+        }                                                                                                  \
+        else                                                                                               \
+        {                                                                                                  \
+            loopBodyNameArray[0] = _u('\0');                                                               \
+            loopBodyName = loopBodyNameArray;                                                              \
+        }                                                                                                  \
+    }                                                                                                      \
+    JS_ETW(Function(Body->GetScriptContext(),                                                              \
+        (void *)entryPoint->GetNativeAddress(),                                                            \
+        entryPoint->GetCodeSize(),                                                                         \
+        GetFunctionId(Body),                                                                               \
+        0 /* methodFlags - for future use*/,                                                               \
+        MethodType_LoopBody + (uint16)loopNumber,                                                          \
+        GetSourceId(Body),                                                                                 \
+        /*line*/ 0,                                                                                        \
+        /*column*/ 0,                                                                                      \
+        loopBodyName));                                                                                    \
+   WriteMethodEvent(STRINGIZEW(Function),                                                                  \
+        Body->GetScriptContext(),                                                                          \
+        (void *)entryPoint->GetNativeAddress(),                                                            \
+        entryPoint->GetCodeSize(),                                                                         \
+        GetFunctionId(Body),                                                                               \
+        0 /* methodFlags - for future use*/,                                                               \
+        MethodType_LoopBody + (uint16)loopNumber,                                     \
+        GetSourceId(Body),                                                                                 \
+        /*line*/ 0,                                                                                        \
+        /*column*/ 0,                                                                                      \
+        loopBodyName);                                                                                     \
+    if(loopBodyNameArray != loopBodyName)                                                                  \
+    {                                                                                                      \
+        delete[] loopBodyName;                                                                             \
+    }
+
 //
 // Encapsulates all ETW event logging and registration related to symbol decoding.
 //
@@ -234,15 +279,15 @@ public:
     static void LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::FunctionEntryPointInfo* entryPoint);
 
 
-    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint);
+    static void LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopHeader* loopHeader, Js::LoopEntryPointInfo* entryPoint, uint16 loopNumber);
     static void LogScriptContextLoadEvent(Js::ScriptContext* scriptContext);
-    static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const wchar_t* url);
+    static void LogSourceModuleLoadEvent(Js::ScriptContext* scriptContext, DWORD_PTR sourceContext, _In_z_ const char16* url);
 
 
-    static const wchar_t* GetFunctionName(Js::FunctionBody* body);
-    static size_t GetLoopBodyName(_In_ Js::FunctionBody* body, _In_ Js::LoopHeader* loopHeader, _Out_writes_opt_z_(size) wchar_t* nameBuffer, _In_ size_t size );
+    static const char16* GetFunctionName(Js::FunctionBody* body);
+    static size_t GetLoopBodyName(_In_ Js::FunctionBody* body, _In_ Js::LoopHeader* loopHeader, _Out_writes_opt_z_(size) char16* nameBuffer, _In_ size_t size );
     _Success_(return == 0)
-    static size_t GetSimpleJitFunctionName(Js::FunctionBody *const body, _Out_writes_opt_z_(nameCharCapacity) wchar_t *const name, const size_t nameCharCapacity);
+    static size_t GetSimpleJitFunctionName(Js::FunctionBody *const body, _Out_writes_opt_z_(nameCharCapacity) char16 *const name, const size_t nameCharCapacity);
     static DWORD_PTR GetSourceId(Js::FunctionBody* body);
     static uint GetFunctionId(Js::FunctionProxy* body);
 

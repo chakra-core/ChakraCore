@@ -279,7 +279,7 @@ public:
 
     uint GetInterpretedCount() const override
     {
-        return this->functionBody->interpretedCount;
+        return this->functionBody->GetInterpretedCount();
     }
 
     void Delete() override
@@ -333,7 +333,7 @@ struct JsLoopBodyCodeGen sealed : public CodeGenWorkItem
 
     uint GetLoopNumber() const override
     {
-        return functionBody->GetLoopNumber(loopHeader);
+        return functionBody->GetLoopNumberWithLock(loopHeader);
     }
 
     uint GetByteCodeCount() const override

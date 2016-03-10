@@ -8,13 +8,13 @@
 
 #include "CodeGenAllocators.h"
 #ifdef DBG_DUMP
-#include "ByteCode\ByteCodeDumper.h"
-#include "ByteCode\AsmJSByteCodeDumper.h"
+#include "ByteCode/ByteCodeDumper.h"
+#include "ByteCode/AsmJsByteCodeDumper.h"
 #endif
-#include "AsmJSEncoder.inl"
+#include "AsmJsEncoder.inl"
 
 #if DBG_DUMP
-#include "ByteCode\OpCodeUtilAsmJs.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
 #endif
 
 namespace Js
@@ -40,12 +40,12 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Small)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Small)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Small, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient
 #if DBG_DUMP
-            Output::Print( L"Dispatch to bad opcode : %s\n", OpCodeUtilAsmJs::GetOpCodeName(op));
+            Output::Print( _u("Dispatch to bad opcode : %s\n"), OpCodeUtilAsmJs::GetOpCodeName(op));
             Output::Flush();
 #endif
             Assert( false );
@@ -64,12 +64,12 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Medium)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Medium)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Medium, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient
 #if DBG_DUMP
-            Output::Print( L"Dispatch to bad opcode : %s\n", OpCodeUtilAsmJs::GetOpCodeName(op));
+            Output::Print( _u("Dispatch to bad opcode : %s\n"), OpCodeUtilAsmJs::GetOpCodeName(op));
             Output::Flush();
 #endif
             Assert( false );
@@ -88,12 +88,12 @@ namespace Js
 #define EXDEF2_WMS(x, op, func) PROCESS_ENCODE_##x##_COMMON(op, func, _Large)
 #define EXDEF3_WMS(x, op, func, y) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Large)
 #define EXDEF4_WMS(x, op, func, y, t) PROCESS_ENCODE_##x##_COMMON(op, func, y, _Large, t)
-#include "AsmJSEncoderHandler.inl"
+#include "AsmJsEncoderHandler.inl"
         default:
             // Help the C++ optimizer by declaring that the cases we
             // have above are sufficient
 #if DBG_DUMP
-            Output::Print( L"Dispatch to bad opcode : %s\n", OpCodeUtilAsmJs::GetOpCodeName(op));
+            Output::Print( _u("Dispatch to bad opcode : %s\n"), OpCodeUtilAsmJs::GetOpCodeName(op));
             Output::Flush();
 #endif
             Assert( false );
@@ -112,7 +112,7 @@ namespace Js
 #if DBG_DUMP
         if (PHASE_TRACE(Js::AsmjsEncoderPhase, mFunctionBody))
         {
-            Output::Print(L"%d.%d:Encoding ",
+            Output::Print(_u("%d.%d:Encoding "),
                            this->mFunctionBody->GetSourceContextId(),
                            this->mFunctionBody->GetLocalFunctionId());
             AsmJsByteCodeDumper::DumpOp( op, layoutSize, mReader, mFunctionBody );
@@ -120,7 +120,7 @@ namespace Js
             {
                 mReader.SetIP( ip );
             }
-            Output::Print(L"  at offset 0x%X (buffer size = 0x%X)\n",
+            Output::Print(_u("  at offset 0x%X (buffer size = 0x%X)\n"),
                            bytecodeoffset, (int)(mPc-mEncodeBuffer));
             Output::Flush();
         }
@@ -171,7 +171,7 @@ namespace Js
         mFloatOffset = asmInfo->GetFloatByteOffset() + GetOffset<Var>();
         mSimdOffset = asmInfo->GetSimdByteOffset() + GetOffset<Var>();
 
-        NoRecoverMemoryArenaAllocator localAlloc(L"BE-AsmJsEncoder", GetPageAllocator(), Js::Throw::OutOfMemory);
+        NoRecoverMemoryArenaAllocator localAlloc(_u("BE-AsmJsEncoder"), GetPageAllocator(), Js::Throw::OutOfMemory);
         mLocalAlloc = &localAlloc;
 
         mRelocLabelMap = Anew( mLocalAlloc, RelocLabelMap, mLocalAlloc );
@@ -185,9 +185,9 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if( PHASE_TRACE( Js::AsmjsEncoderPhase, mFunctionBody ) )
         {
-            Output::Print( L"\n\n" );
+            Output::Print( _u("\n\n") );
             functionBody->DumpFullFunctionName();
-            Output::Print( L"\n StackSize = %d , Offsets: Var = %d, Int = %d, Double = %d\n", mFunctionBody->GetAsmJsFunctionInfo()->GetTotalSizeinBytes(), GetOffset<Var>(), GetOffset<int>(), GetOffset<double>() );
+            Output::Print( _u("\n StackSize = %d , Offsets: Var = %d, Int = %d, Double = %d\n"), mFunctionBody->GetAsmJsFunctionInfo()->GetTotalSizeinBytes(), GetOffset<Var>(), GetOffset<int>(), GetOffset<double>() );
         }
 #endif
 
@@ -224,9 +224,9 @@ namespace Js
 
             // TODO: improve this once EntryPoint cleanup work is complete!
 #if 0
-            const wchar_t *const functionName = functionBody->GetDisplayName();
-            const wchar_t *const suffix = L"TJ";
-            wchar_t functionNameArray[256];
+            const char16 *const functionName = functionBody->GetDisplayName();
+            const char16 *const suffix = _u("TJ");
+            char16 functionNameArray[256];
             const size_t functionNameCharLength = functionBody->GetDisplayNameLength();
             wcscpy_s(functionNameArray, 256, functionName);
             wcscpy_s(&functionNameArray[functionNameCharLength], 256 - functionNameCharLength, suffix);
@@ -274,7 +274,7 @@ namespace Js
 #if DBG_DUMP
             if( !label->labelSeen )
             {
-                Output::Print( L"Label expected at bytecode offset 0x%x\n", mRelocLabelMap->GetKeyAt( i ) );
+                Output::Print( _u("Label expected at bytecode offset 0x%x\n"), mRelocLabelMap->GetKeyAt( i ) );
                 Output::Flush();
             }
 #endif

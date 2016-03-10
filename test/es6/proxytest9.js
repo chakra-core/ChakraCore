@@ -386,10 +386,16 @@ function test22(){
     print('writable : ' + x.writable);
     print('enumerable : ' + x.enumerable);
     
-    //2. Revoked proxy passed as target/handler
     var revocable = Proxy.revocable({}, {});
+    var revokeFunction = revocable.revoke;
+	
+    //2. Revoke function's properties
+    print(Object.prototype.hasOwnProperty.call(revokeFunction, "prototype"));
+    print(Object.prototype.hasOwnProperty.call(revokeFunction, "name"));
+	
+     //3. Revoked proxy passed as target/handler
     revocable.revoke();
-    try{
+    try {
         var x = new Proxy({}, revocable.proxy);
     } catch(e) {
         print('expected :' + e.message);
@@ -401,11 +407,13 @@ function test22(){
         print('expected :' + e.message);
     }
 
-    //3. Proxy doesn't have prototype
+    //4. Proxy doesn't have prototype
     print('Proxy.prototype = ' + Object.hasOwnProperty.call(Proxy, 'prototype'));
 
-    //4. Reflect.defineProperty should not throw if target already has a property
+    //5. Reflect.defineProperty should not throw if target already has a property
     Reflect.defineProperty(Object.defineProperty({},"x", {value:1}), "x", {value : 2});
+	
+	
     
     print('done test22');
 }

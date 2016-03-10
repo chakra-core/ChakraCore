@@ -3,14 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Runtime.h"
-#include "core\AtomLockGuids.h"
-#include "core\ConfigParser.h"
-#include "Base\ThreadContextTLSEntry.h"
-#include "Base\ThreadBoundThreadContextManager.h"
+#include "Core/AtomLockGuids.h"
+#include "Core/ConfigParser.h"
+#include "Base/ThreadContextTlsEntry.h"
+#include "Base/ThreadBoundThreadContextManager.h"
 #ifdef DYNAMIC_PROFILE_STORAGE
-#include "Language\DynamicProfileStorage.h"
+#include "Language/DynamicProfileStorage.h"
 #endif
-#include "jsrtcontext.h"
+#include "JsrtContext.h"
 #include "TestHooks.h"
 
 extern HANDLE g_hInstance;
@@ -50,7 +50,7 @@ static BOOL AttachProcess(HANDLE hmod)
     ValueType::Initialize();
     ThreadContext::GlobalInitialize();
 
-    wchar_t *engine = szChakraCoreLock;
+    char16 *engine = szChakraCoreLock;
     if (::FindAtom(szJScript9Lock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded jscript9.dll");

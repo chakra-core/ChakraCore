@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 
 int const TySize[] = {
 #define IRTYPE(ucname, baseType, size, bitSize, enRegOk, dname) size,
@@ -27,8 +27,8 @@ int const TyBaseType[] = {
 #undef IRTYPE
 };
 
-wchar_t * const TyDumpName[] = {
-#define IRTYPE(ucname, baseType, size, bitSize, enRegOk, dname) L# dname,
+char16 * const TyDumpName[] = {
+#define IRTYPE(ucname, baseType, size, bitSize, enRegOk, dname) _u(#dname),
 #include "IRTypeList.h"
 #undef IRTYPE
 };

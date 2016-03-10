@@ -66,6 +66,7 @@ namespace Js
         DiagObjectModelDisplayType_RecyclableObjectDisplay,
         DiagObjectModelDisplayType_RecyclableCollectionObjectDisplay,
         DiagObjectModelDisplayType_RecyclableKeyValueDisplay,
+        DiagObjectModelDisplayType_RecyclableSimdDisplay,
     };
 
     // Allow getting information across different data types
@@ -336,7 +337,7 @@ namespace Js
                     {
                         if (!activeScopeObject->HasOwnProperty(resolveObject.propId))
                         {
-                            OUTPUT_TRACE(Js::ConsoleScopePhase, L"Adding '%s' property to activeScopeObject\n", resolveObject.scriptContext->GetPropertyName(resolveObject.propId)->GetBuffer());
+                            OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding '%s' property to activeScopeObject\n"), resolveObject.scriptContext->GetPropertyName(resolveObject.propId)->GetBuffer());
                             if (resolveObject.IsInDeadZone())
                             {
                                 PropertyOperationFlags flags = static_cast<PropertyOperationFlags>(PropertyOperation_SpecialValue | PropertyOperation_AllowUndecl);
@@ -768,7 +769,7 @@ namespace Js
 
         JsUtil::List<RecyclableCollectionObjectWalkerPropertyData<TData>, ArenaAllocator>* propertyList;
 
-        const wchar_t* Name();
+        const char16* Name();
         IDiagObjectModelDisplay* CreateTDataDisplay(ResolvedObject* resolvedObject, int i);
         void GetChildren();
 
@@ -788,14 +789,14 @@ namespace Js
     class RecyclableCollectionObjectDisplay : public IDiagObjectModelDisplay
     {
         ScriptContext* scriptContext;
-        const wchar_t* name;
+        const char16* name;
         RecyclableCollectionObjectWalker<TData>* walker;
 
     public:
-        RecyclableCollectionObjectDisplay(ScriptContext* scriptContext, const wchar_t* name, RecyclableCollectionObjectWalker<TData>* walker) : scriptContext(scriptContext), name(name), walker(walker) { }
+        RecyclableCollectionObjectDisplay(ScriptContext* scriptContext, const char16* name, RecyclableCollectionObjectWalker<TData>* walker) : scriptContext(scriptContext), name(name), walker(walker) { }
 
         virtual LPCWSTR Name() override { return name; }
-        virtual LPCWSTR Type() override { return L""; }
+        virtual LPCWSTR Type() override { return _u(""); }
         virtual LPCWSTR Value(int radix) override;
         virtual BOOL HasChildren() override { return walker->GetChildrenCount() > 0; }
         virtual BOOL Set(Var updateObject) override { return FALSE; }
@@ -813,13 +814,13 @@ namespace Js
         ScriptContext* scriptContext;
         Var key;
         Var value;
-        const wchar_t* name;
+        const char16* name;
 
     public:
-        RecyclableKeyValueDisplay(ScriptContext* scriptContext, Var key, Var value, const wchar_t* name) : scriptContext(scriptContext), key(key), value(value), name(name) { }
+        RecyclableKeyValueDisplay(ScriptContext* scriptContext, Var key, Var value, const char16* name) : scriptContext(scriptContext), key(key), value(value), name(name) { }
 
         virtual LPCWSTR Name() override { return name; }
-        virtual LPCWSTR Type() override { return L""; }
+        virtual LPCWSTR Type() override { return _u(""); }
         virtual LPCWSTR Value(int radix) override;
         virtual BOOL HasChildren() override { return TRUE; }
         virtual BOOL Set(Var updateObject) override { return FALSE; }
@@ -935,7 +936,7 @@ namespace Js
         MutationType mutationType;
     public:
         PendingMutationBreakpointDisplay(ResolvedObject* resolvedObject, MutationType mutationType);
-        virtual LPCWSTR Value(int radix) override { return L""; }
+        virtual LPCWSTR Value(int radix) override { return _u(""); }
         virtual BOOL HasChildren() override { return TRUE; }
         virtual WeakArenaReference<IDiagObjectModelWalkerBase>* CreateWalker() override;
     };
@@ -950,4 +951,56 @@ namespace Js
         virtual ulong GetChildrenCount() override;
     };
 #endif
+
+    // For SIMD walker
+    template <typename simdType, uint elementCount>
+    class RecyclableSimdObjectWalker : public RecyclableObjectWalker
+    {
+    public:
+        RecyclableSimdObjectWalker(ScriptContext* pContext, Var instance) : RecyclableObjectWalker(pContext, instance) { }
+
+        virtual BOOL Get(int i, ResolvedObject* pResolvedObject) override;
+
+        virtual ulong GetChildrenCount() override { return elementCount; }
+    };
+
+    // For SIMD concrete walker: specify SIMD type and total elementCount
+    // elementCount can be 4, 8 or 16 for SIMD type like int32x4, int16x8, int8x16
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDFloat32x4, 4>  RecyclableSimdFloat32x4ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDInt32x4,   4>  RecyclableSimdInt32x4ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDInt8x16,  16>  RecyclableSimdInt8x16ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDInt16x8,   8>  RecyclableSimdInt16x8ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDBool32x4,  4>  RecyclableSimdBool32x4ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDBool8x16, 16>  RecyclableSimdBool8x16ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDBool16x8,  8>  RecyclableSimdBool16x8ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDUint32x4,  4>  RecyclableSimdUint32x4ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDUint8x16, 16>  RecyclableSimdUint8x16ObjectWalker;
+    typedef RecyclableSimdObjectWalker<JavascriptSIMDUint16x8,  8>  RecyclableSimdUint16x8ObjectWalker;
+
+    // For SIMD display
+    template <typename simdType, typename simdWalker>
+    class RecyclableSimdObjectDisplay : public RecyclableObjectDisplay
+    {
+    public:
+        RecyclableSimdObjectDisplay(ResolvedObject* resolvedObject) : RecyclableObjectDisplay(resolvedObject) {};
+
+        virtual LPCWSTR Type() override;
+        virtual LPCWSTR Value(int radix) override;
+        virtual BOOL HasChildren() override { return TRUE; }
+        virtual WeakArenaReference<IDiagObjectModelWalkerBase>* CreateWalker() override;
+        virtual DBGPROP_ATTRIB_FLAGS GetTypeAttribute() override { return DBGPROP_ATTRIB_VALUE_IS_EXPANDABLE | DBGPROP_ATTRIB_VALUE_IS_FAKE | DBGPROP_ATTRIB_VALUE_READONLY; }
+        virtual DiagObjectModelDisplayType GetType() { return DiagObjectModelDisplayType_RecyclableSimdDisplay; }
+    };
+
+    // For SIMD concrete display: specify SIMD type and concrete simd walker
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDFloat32x4, RecyclableSimdFloat32x4ObjectWalker>   RecyclableSimdFloat32x4ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDInt32x4,   RecyclableSimdInt32x4ObjectWalker>     RecyclableSimdInt32x4ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDInt8x16,   RecyclableSimdInt8x16ObjectWalker>     RecyclableSimdInt8x16ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDInt16x8,   RecyclableSimdInt16x8ObjectWalker>     RecyclableSimdInt16x8ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDBool32x4,  RecyclableSimdBool32x4ObjectWalker>    RecyclableSimdBool32x4ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDBool8x16,  RecyclableSimdBool8x16ObjectWalker>    RecyclableSimdBool8x16ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDBool16x8,  RecyclableSimdBool16x8ObjectWalker>    RecyclableSimdBool16x8ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint32x4,  RecyclableSimdUint32x4ObjectWalker>    RecyclableSimdUint32x4ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint8x16,  RecyclableSimdUint8x16ObjectWalker>    RecyclableSimdUint8x16ObjectDisplay;
+    typedef RecyclableSimdObjectDisplay<JavascriptSIMDUint16x8,  RecyclableSimdUint16x8ObjectWalker>    RecyclableSimdUint16x8ObjectDisplay;
 }

@@ -489,13 +489,13 @@ namespace Js
 
     BOOL DynamicObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"{...}");
+        stringBuilder->AppendCppLiteral(_u("{...}"));
         return TRUE;
     }
 
     BOOL DynamicObject::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
-        stringBuilder->AppendCppLiteral(L"Object");
+        stringBuilder->AppendCppLiteral(_u("Object"));
         return TRUE;
     }
 

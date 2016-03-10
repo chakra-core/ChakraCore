@@ -2,13 +2,13 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
+#include "Backend.h"
 #include "ARMEncode.h"
-#include "Language\JavascriptFunctionArgIndex.h"
+#include "Language/JavascriptFunctionArgIndex.h"
 
 const FormTable * InstrEncode[]={
 #define MACRO(name, jnLayout, attrib, byte2, form, opbyte, ...) opbyte,
-#include "MdOpcodes.h"
+#include "MdOpCodes.h"
 #undef ASMDAT
 };
 
@@ -1847,7 +1847,7 @@ EncoderMD::IsBuggyHardware()
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::EncoderPhase))
         {
-            Output::Print(L"TRACE: Running in buggy hardware.\n");
+            Output::Print(_u("TRACE: Running in buggy hardware.\n"));
         }
 #endif
         return true;
@@ -1975,7 +1975,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
     #if DBG_DUMP
             if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::EncoderPhase))
             {
-                Output::Print(L"TRACE: Avoiding Branch instruction and Dummy nops at 0x*E \n");
+                Output::Print(_u("TRACE: Avoiding Branch instruction and Dummy nops at 0x*E \n"));
             }
     #endif
             Assert(size == 8);

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
 #include <float.h>
-#include "Common\SmartFPUControl.h"
+#include "Common/SmartFpuControl.h"
 
 //
 // Floating point unit utility functions

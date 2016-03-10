@@ -196,7 +196,7 @@ template <class TBlockAttributes>
 bool
 SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObject * object, uint objectIndex, Recycler * recycler)
 {
-    RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), L"Marking 0x%08x during rescan\n", object);
+    RecyclerVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Marking 0x%08x during rescan\n"), object);
 #if ENABLE_CONCURRENT_GC
 #if ENABLE_PARTIAL_GC
     if (recycler->inPartialCollectMode)

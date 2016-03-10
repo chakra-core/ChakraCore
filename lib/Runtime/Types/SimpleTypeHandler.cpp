@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-#include "Types\NullTypeHandler.h"
-#include "Types\SimpleTypeHandler.h"
+#include "Types/NullTypeHandler.h"
+#include "Types/SimpleTypeHandler.h"
 
 namespace Js
 {

@@ -438,11 +438,11 @@ HashTable<T, TAllocator>::Dump(uint newLinePerEntry)
     FOREACH_HASHTABLE_ENTRY(T, bucket, this)
     {
 
-        Output::Print(L"%4d  =>  ", bucket.value);
+        Output::Print(_u("%4d  =>  "), bucket.value);
         ::Dump<T>(bucket.element);
         for (uint i = 0; i < newLinePerEntry; i++)
         {
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
     }
     NEXT_HASHTABLE_ENTRY;
@@ -455,9 +455,9 @@ HashTable<T, TAllocator>::Dump(void (*valueDump)(int))
     FOREACH_HASHTABLE_ENTRY(T, bucket, this)
     {
         valueDump(bucket.value);
-        Output::Print(L"  =>  ", bucket.value);
+        Output::Print(_u("  =>  "), bucket.value);
         ::Dump<T>(bucket.element);
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
     }
     NEXT_HASHTABLE_ENTRY;
 }

@@ -7,8 +7,8 @@
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
 
 #include "errstr.h"
-#include "Library\EngineInterfaceObject.h"
-#include "Types\DeferredTypeHandler.h"
+#include "Library/EngineInterfaceObject.h"
+#include "Types/DeferredTypeHandler.h"
 
 #define IfFailThrowHr(op) \
     if (FAILED(hr=(op))) \
@@ -279,7 +279,7 @@ namespace Js
             {
                 JavascriptString* customFunctionName = JavascriptString::FromVar(args.Values[2]);
                 // tagPublicFunction("Intl.Collator", Collator); in Intl.js calls TagPublicLibraryCode the expected name is Collator so we need to calculate the offset
-                const wchar_t * shortName = wcsrchr(customFunctionName->GetString(), L'.');
+                const char16 * shortName = wcsrchr(customFunctionName->GetString(), _u('.'));
                 uint shortNameOffset = 0;
                 if (shortName != nullptr)
                 {

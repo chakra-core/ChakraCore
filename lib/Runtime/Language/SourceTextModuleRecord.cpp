@@ -13,34 +13,65 @@ namespace Js
         parser(nullptr),
         pSourceInfo(nullptr),
         rootFunction(nullptr),
-        requestModuleList(nullptr),
+        requestedModuleList(nullptr),
         importRecordList(nullptr),
         localExportRecordList(nullptr),
         indirectExportRecordList(nullptr),
         starExportRecordList(nullptr),
         childrenModuleSet(nullptr),
         parentModuleList(nullptr),
+        localExportMapByExportName(nullptr),
+        localExportMapByLocalName(nullptr),
+        localExportIndexList(nullptr),
         errorObject(nullptr),
         hostDefined(nullptr),
+        exportedNames(nullptr),
+        resolvedExportMap(nullptr),
         tempAllocatorObject(nullptr),
         wasParsed(false),
         wasDeclarationInitialized(false),
-        isRootModule(false)
+        isRootModule(false),
+        localExportSlots(nullptr),
+        numUnParsedChildrenModule(0),
+        moduleId(InvalidModuleIndex),
+        localSlotCount(InvalidSlotCount)
     {
-
     }
 
     SourceTextModuleRecord* SourceTextModuleRecord::Create(ScriptContext* scriptContext)
     {
         Recycler* recycler = scriptContext->GetRecycler();
         SourceTextModuleRecord* childModuleRecord;
-        childModuleRecord = RecyclerNew(recycler, Js::SourceTextModuleRecord, scriptContext);
+        childModuleRecord = RecyclerNewFinalized(recycler, Js::SourceTextModuleRecord, scriptContext);
         // There is no real reference to lifetime management in ecmascript
         // The life time of a module record should be controlled by the module registry as defined in WHATWG module loader spec
         // in practice the modulerecord lifetime should be the same as the scriptcontext so it could be retrieved for the same
-        // site. DOM might hold a reference to the module as well after the initialize the module. 
-        scriptContext->BindReference(childModuleRecord);
+        // site. Host might hold a reference to the module as well after initializing the module. 
+        // In our implementation, we'll use the moduleId in bytecode to identify the module.
+        childModuleRecord->moduleId = scriptContext->GetLibrary()->EnsureModuleRecordList()->Add(childModuleRecord);
         return childModuleRecord;
+    }
+
+    void SourceTextModuleRecord::Finalize(bool isShutdown)
+    {
+        parseTree = nullptr;
+        requestedModuleList = nullptr;
+        importRecordList = nullptr;
+        localExportRecordList = nullptr;
+        indirectExportRecordList = nullptr;
+        starExportRecordList = nullptr;
+        childrenModuleSet = nullptr;
+        parentModuleList = nullptr;
+        if (parser != nullptr)
+        {
+            AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
+            parser = nullptr;
+        }
+        if (tempAllocatorObject != nullptr)
+        {
+            GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
+            tempAllocatorObject = nullptr;
+        }
     }
 
     HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, unsigned long sourceLength, Var* exceptionVar, bool isUtf8)
@@ -50,18 +81,32 @@ namespace Js
         HRESULT hr = NOERROR;
         ScriptContext* scriptContext = GetScriptContext();
         CompileScriptException se;
-        TempArenaAllocatorObject* allocatorObject = EnsureTempAllocator();
-        ArenaAllocator* allocator = allocatorObject->GetAllocator();
+        ArenaAllocator* allocator = EnsureTempAllocator();
+        *exceptionVar = nullptr;
+        if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            return E_NOTIMPL;
+        }
+        // Host indicates that the current module failed to load.
+        if (sourceText == nullptr)
+        {
+            Assert(sourceLength == 0);
+            JavascriptError *pError = scriptContext->GetLibrary()->CreateError();
+            JavascriptError::SetErrorMessageProperties(pError, E_FAIL, _u("empty module"), scriptContext);
+        }
         try
         {
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
             this->parser = (Parser*)AllocatorNew(ArenaAllocator, allocator, Parser, scriptContext);
+            this->srcInfo = {};
+            this->srcInfo.sourceContextInfo = scriptContext->CreateSourceContextInfo(sourceLength, Js::Constants::NoHostSourceContext);
+//            this->srcInfo.sourceContextInfo->url = nullptr;
+            this->srcInfo.moduleID = moduleId;
             LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                 (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, nullptr, &se, &pSourceInfo, L"module", loadScriptFlag, &sourceIndex);
+            this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, &srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
             if (parseTree == nullptr)
             {
-                // Assert have error.
                 hr = E_FAIL;
             }
         }
@@ -81,20 +126,46 @@ namespace Js
         }
         if (FAILED(hr))
         {
-            *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            if (*exceptionVar == nullptr)
+            {
+                *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            }
             if (this->parser)
             {
                 this->parseTree = nullptr;
                 AllocatorDelete(ArenaAllocator, allocator, this->parser);
                 this->parser = nullptr;
             }
+            if (this->errorObject == nullptr)
+            {
+                this->errorObject = *exceptionVar;
+            }
+            NotifyParentsAsNeeded();
         }
         return hr;
     }
 
-    // TODO: read the importentries/exportentries etc.
+    void SourceTextModuleRecord::NotifyParentsAsNeeded()
+    {
+        // Notify the parent modules that this child module is either in fault state or finished.
+        if (this->parentModuleList != nullptr)
+        {
+            parentModuleList->Map([=](uint i, SourceTextModuleRecord* parentModule)
+            {
+                parentModule->OnChildModuleReady(this, this->errorObject);
+            });
+        }
+    }
+
     void SourceTextModuleRecord::ImportModuleListsFromParser()
     {
+        Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
+        PnModule* moduleParseNode = static_cast<PnModule*>(&this->parseTree->sxModule);
+        SetrequestedModuleList(moduleParseNode->requestedModules);
+        SetImportRecordList(moduleParseNode->importEntries);
+        SetStarExportRecordList(moduleParseNode->starExportEntries);
+        SetIndirectExportRecordList(moduleParseNode->indirectExportEntries);
+        SetLocalExportRecordList(moduleParseNode->localExportEntries);
     }
 
     HRESULT SourceTextModuleRecord::PostParseProcess()
@@ -104,19 +175,29 @@ namespace Js
         ImportModuleListsFromParser();
         ResolveExternalModuleDependencies();
 
-        if (parentModuleList != nullptr)
+        hr = PrepareForModuleDeclarationInitialization();
+        return hr;
+    }
+
+    HRESULT SourceTextModuleRecord::PrepareForModuleDeclarationInitialization()
+    {
+        HRESULT hr = NO_ERROR;
+
+        if (numUnParsedChildrenModule == 0)
         {
-            parentModuleList->Map([=](SourceTextModuleRecord* parentModule)
+            NotifyParentsAsNeeded();
+        
+            if (!WasDeclarationInitialized() && isRootModule)
             {
-                parentModule->OnChildModuleReady(this, this->errorObject);
-            });
-        }
-        if (numUnParsedChildrenModule == 0 && !WasDeclarationInitialized() && isRootModule)
-        {
-            // TODO: move this as a promise call? if parser is called from a different thread
-            // We'll need to call the bytecode gen in the main thread as we are accessing GC.
-            ModuleDeclarationInstantiation();
-            hr = GetScriptContext()->GetHostScriptContext()->NotifyHostAboutModuleReady(this, errorObject);
+                // TODO: move this as a promise call? if parser is called from a different thread
+                // We'll need to call the bytecode gen in the main thread as we are accessing GC.
+                ScriptContext* scriptContext = GetScriptContext();
+                Assert(!scriptContext->GetThreadContext()->IsScriptActive());
+                Assert(this->errorObject == nullptr);
+
+                ModuleDeclarationInstantiation();
+                hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
+            }
         }
         return hr;
     }
@@ -129,64 +210,298 @@ namespace Js
             return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
         }
         numUnParsedChildrenModule--;
-        if (numUnParsedChildrenModule == 0 && !WasDeclarationInitialized() && isRootModule)
-        {
-            ModuleDeclarationInstantiation();
-            hr = GetScriptContext()->GetHostScriptContext()->NotifyHostAboutModuleReady(this, errorObject);
-        }
+        hr = PrepareForModuleDeclarationInitialization();
         return hr;
     }
 
-    TempArenaAllocatorObject* SourceTextModuleRecord::EnsureTempAllocator()
+    ArenaAllocator* SourceTextModuleRecord::EnsureTempAllocator()
     {
         if (tempAllocatorObject == nullptr)
         {
-            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(L"Module");
+            tempAllocatorObject = scriptContext->GetThreadContext()->GetTemporaryAllocator(_u("Module"));
         }
-        return tempAllocatorObject;
+        return tempAllocatorObject->GetAllocator();
     }
 
-    bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolutionDictionary* resolveSet, ResolveSet* exportStarSet, ModuleNameRecord* exportRecord)
+    ExportedNames* SourceTextModuleRecord::GetExportedNames(ExportModuleRecordList* exportStarSet)
     {
-        return false;
+        if (exportedNames != nullptr)
+        {
+            return exportedNames;
+        }
+        ArenaAllocator* allocator = EnsureTempAllocator();
+        if (exportStarSet->Has(this))
+        {
+            return nullptr;
+        }
+        exportStarSet->Prepend(this);
+        ExportedNames* localNames = nullptr;
+        if (this->localExportRecordList != nullptr)
+        {
+            localNames = (ExportedNames*)AllocatorNew(ArenaAllocator, allocator, ExportedNames, allocator);
+            this->localExportRecordList->Map([=](ModuleExportEntry exportEntry) {
+                PropertyId exportNameId = EnsurePropertyIdForIdentifier(exportEntry.exportName);
+                localNames->Prepend(exportNameId);
+            });
+        }
+        if (this->indirectExportRecordList != nullptr)
+        {
+            if (localNames == nullptr)
+            {
+                localNames = (ExportedNames*)AllocatorNew(ArenaAllocator, allocator, ExportedNames, allocator);
+            }
+            this->indirectExportRecordList->Map([=](ModuleExportEntry exportEntry) {
+                PropertyId exportedNameId = EnsurePropertyIdForIdentifier(exportEntry.exportName);
+                localNames->Prepend(exportedNameId);
+            });
+        }
+        if (this->starExportRecordList != nullptr)
+        {
+            if (localNames == nullptr)
+            {
+                localNames = (ExportedNames*)AllocatorNew(ArenaAllocator, allocator, ExportedNames, allocator);
+            }
+            const PropertyRecord* defaultRecord;
+            scriptContext->GetOrAddPropertyRecord(_u("default"), &defaultRecord);
+            PropertyId defaultPropertyId = defaultRecord->GetPropertyId();
+            this->starExportRecordList->Map([=](ModuleExportEntry exportEntry) {
+                Assert(exportEntry.moduleRequest != nullptr);
+                SourceTextModuleRecord* moduleRecord;
+                if (this->childrenModuleSet->TryGetValue(exportEntry.moduleRequest->Psz(), &moduleRecord))
+                {
+                    Assert(moduleRecord->WasParsed());
+                    Assert(moduleRecord->WasDeclarationInitialized()); // we should be half way during initialization
+                    Assert(!moduleRecord->WasEvaluated());
+                    ExportedNames* starExportedNames = moduleRecord->GetExportedNames(exportStarSet);
+                    // We are not rejecting ambiguous resolution at this time.
+                    if (starExportedNames != nullptr)
+                    {
+                        starExportedNames->Map([&](PropertyId propertyId) {
+                            if (propertyId != defaultPropertyId && !localNames->Has(propertyId))
+                            {
+                                localNames->Prepend(propertyId);
+                            }
+                        });
+                    }
+                }
+#if DBG
+                else
+                {
+                    AssertMsg(false, "dependent modules should have been initialized");
+                }
+#endif
+            });
+        }
+        exportedNames = localNames;
+        return localNames;
+    }
+
+    // return false when "ambiguous". 
+    // otherwise nullptr means "null" where we have circular reference/cannot resolve.
+    bool SourceTextModuleRecord::ResolveExport(PropertyId exportName, ResolveSet* resolveSet, ExportModuleRecordList* exportStarSet, ModuleNameRecord** exportRecord)
+    {
+        ArenaAllocator* allocator = EnsureTempAllocator();
+        if (resolvedExportMap == nullptr)
+        {
+            resolvedExportMap = AllocatorNew(ArenaAllocator, allocator, ResolvedExportMap, allocator);
+        }
+        if (resolvedExportMap->TryGetReference(exportName, exportRecord))
+        {
+            return true;
+        }
+        // TODO: use per-call/loop allocator?
+        if (exportStarSet == nullptr)
+        {
+            exportStarSet = (ExportModuleRecordList*)AllocatorNew(ArenaAllocator, allocator, ExportModuleRecordList, allocator);
+        }
+        if (resolveSet == nullptr)
+        {
+            resolveSet = (ResolveSet*)AllocatorNew(ArenaAllocator, allocator, ResolveSet, allocator);
+        }
+
+        *exportRecord = nullptr;
+        bool hasCircularRef = false;
+        resolveSet->MapUntil([&](ModuleNameRecord moduleNameRecord) {
+            if (moduleNameRecord.module == this && moduleNameRecord.bindingName == exportName)
+            {
+                *exportRecord = nullptr;
+                hasCircularRef = true;
+                return true;
+            }
+            return false;
+        });
+        if (hasCircularRef)
+        {
+            Assert(*exportRecord == nullptr);
+            return true;
+        }
+        resolveSet->Prepend({ this, exportName });
+
+        if (localExportRecordList != nullptr)
+        {
+            PropertyId localNameId = Js::Constants::NoProperty;
+            localExportRecordList->MapUntil([&](ModuleExportEntry exportEntry) {
+                PropertyId exportNameId = EnsurePropertyIdForIdentifier(exportEntry.exportName);
+                if (exportNameId == exportName)
+                {
+                    localNameId = EnsurePropertyIdForIdentifier(exportEntry.localName);
+                    return true;
+                }
+                return false;
+            });
+            if (localNameId != Js::Constants::NoProperty)
+            {
+                resolvedExportMap->AddNew(exportName, { this, localNameId });
+                // return the address from Map buffer.
+                resolvedExportMap->TryGetReference(exportName, exportRecord);
+                return true;
+            }
+        }
+
+        if (indirectExportRecordList != nullptr)
+        {
+            bool isAmbiguous = false;
+            indirectExportRecordList->MapUntil([&](ModuleExportEntry exportEntry) {
+                PropertyId importNameId = EnsurePropertyIdForIdentifier(exportEntry.importName);
+                SourceTextModuleRecord* childModuleRecord = GetChildModuleRecord(exportEntry.moduleRequest->Psz());
+                if (childModuleRecord == nullptr)
+                {
+                    JavascriptError::ThrowReferenceError(scriptContext, JSERR_CannotResolveModule, exportEntry.moduleRequest->Psz());
+                }
+                else
+                {
+                    isAmbiguous = !childModuleRecord->ResolveExport(importNameId, resolveSet, exportStarSet, exportRecord);
+                    if (isAmbiguous)
+                    {
+                        // ambiguous; don't need to search further
+                        return true;
+                    }
+                    else
+                    {
+                        // found a resolution. done;
+                        if (*exportRecord != nullptr)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+            if (isAmbiguous)
+            {
+                return false;
+            }
+            if (*exportRecord != nullptr)
+            {
+                return true;
+            }
+        }
+
+        if (exportName == PropertyIds::default_)
+        {
+            JavascriptError::ThrowSyntaxError(GetScriptContext(), JSERR_ModuleResolveExport, scriptContext->GetPropertyName(exportName)->GetBuffer());
+        }
+
+        if (exportStarSet->Has(this))
+        {
+            *exportRecord = nullptr;
+            return true;
+        }
+
+        exportStarSet->Prepend(this);
+        bool ambiguousResolution = false;
+        if (this->starExportRecordList != nullptr)
+        {
+            ModuleNameRecord* starResolution = nullptr;
+            starExportRecordList->MapUntil([&](ModuleExportEntry starExportEntry) {
+                ModuleNameRecord* currentResolution = nullptr;
+                SourceTextModuleRecord* childModule = GetChildModuleRecord(starExportEntry.moduleRequest->Psz());
+                if (childModule == nullptr)
+                {
+                    JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CannotResolveModule, starExportEntry.moduleRequest->Psz());
+                }
+                if (childModule->errorObject != nullptr)
+                {
+                    JavascriptExceptionOperators::Throw(childModule->errorObject, GetScriptContext());
+                }
+
+                // if ambigious, return "ambigious"
+                if (!childModule->ResolveExport(exportName, resolveSet, exportStarSet, &currentResolution))
+                {
+                    ambiguousResolution = true;
+                    return true;
+                }
+                if (currentResolution != nullptr)
+                {
+                    if (starResolution == nullptr)
+                    {
+                        starResolution = currentResolution;
+                    }
+                    else
+                    {
+                        if (currentResolution->bindingName != starResolution->bindingName ||
+                            currentResolution->module != starResolution->module)
+                        {
+                            ambiguousResolution = true;
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            });
+            if (!ambiguousResolution)
+            {
+                *exportRecord = starResolution;
+            }
+        }
+        return !ambiguousResolution;
     }
 
     void SourceTextModuleRecord::ResolveExternalModuleDependencies()
     {
         ScriptContext* scriptContext = GetScriptContext();
-        if (requestModuleList != nullptr)
+        Recycler* recycler = scriptContext->GetRecycler();
+        HRESULT hr = NOERROR;
+        if (requestedModuleList != nullptr)
         {
             if (nullptr == childrenModuleSet)
             {
-                TempArenaAllocatorObject* allocatorObject = EnsureTempAllocator();
-                ArenaAllocator* allocator = allocatorObject->GetAllocator();
+                ArenaAllocator* allocator = EnsureTempAllocator();
                 childrenModuleSet = (ChildModuleRecordSet*)AllocatorNew(ArenaAllocator, allocator, ChildModuleRecordSet, allocator);
             }
-            requestModuleList->Map([=](LiteralString* specifier) {
+            requestedModuleList->MapUntil([&](IdentPtr specifier) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
-                bool itemFound = childrenModuleSet->TryGetValue(specifier, &moduleRecord);
+                LPCOLESTR moduleName = specifier->Psz();
+                bool itemFound = childrenModuleSet->TryGetValue(moduleName, &moduleRecord);
                 if (!itemFound)
                 {
-                    HRESULT result = scriptContext->GetHostScriptContext()->FetchImportedModule(this, specifier, &moduleRecordBase);
-                    if (result == NOERROR)
+                    hr = scriptContext->GetHostScriptContext()->FetchImportedModule(this, moduleName, &moduleRecordBase);
+                    if (FAILED(hr))
                     {
-                        moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
-                        childrenModuleSet->AddNew(specifier, moduleRecord);
-                        if (moduleRecord->parentModuleList == nullptr)
-                        {
-                            TempArenaAllocatorObject* allocatorObject = EnsureTempAllocator();
-                            ArenaAllocator* allocator = allocatorObject->GetAllocator();
-                            moduleRecord->parentModuleList = AllocatorNew(ArenaAllocator, allocator, ModuleRecordList, allocator);
-                        }
-                        moduleRecord->parentModuleList->Prepend(this);
-                        if (!moduleRecord->WasParsed())
-                        {
-                            numUnParsedChildrenModule++;
-                        }
+                        return true;
+                    }
+                    moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
+                    childrenModuleSet->AddNew(moduleName, moduleRecord);
+                    if (moduleRecord->parentModuleList == nullptr)
+                    {
+                        moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+                    }
+                    moduleRecord->parentModuleList->Add(this);
+                    if (!moduleRecord->WasParsed())
+                    {
+                        numUnParsedChildrenModule++;
                     }
                 }
+                return false;
             });
+            if (FAILED(hr))
+            {
+                JavascriptError *error = scriptContext->GetLibrary()->CreateError();
+                JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
+                this->errorObject = error;
+                NotifyParentsAsNeeded();
+            }
         }
     }
 
@@ -194,31 +509,59 @@ namespace Js
     {
         // zero out fields is more a defense in depth as those fields are not needed anymore
         Assert(wasParsed);
+        Assert(wasEvaluated);
         Assert(wasDeclarationInitialized);
-        Assert(!wasEvaluated);
-        parseTree = nullptr;
-        requestModuleList = nullptr;
-        importRecordList = nullptr;
-        localExportRecordList = nullptr;
-        indirectExportRecordList = nullptr;
-        starExportRecordList = nullptr;
-        childrenModuleSet = nullptr;
-        parentModuleList = nullptr;
-        AllocatorDelete(ArenaAllocator, tempAllocatorObject->GetAllocator(), parser);
-        parser = nullptr;
-        GetScriptContext()->GetThreadContext()->ReleaseTemporaryAllocator(tempAllocatorObject);
-        tempAllocatorObject = nullptr;
+        Finalize(false);
     }
 
     void SourceTextModuleRecord::ModuleDeclarationInstantiation()
     {
         ScriptContext* scriptContext = GetScriptContext();
-        Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        uint sourceIndex = scriptContext->SaveSourceNoCopy(this->pSourceInfo, static_cast<charcount_t>(this->pSourceInfo->GetCchLength()), /*isCesu8*/ true);
-        // BUGBUG: pse
-        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), nullptr, L"module");
         SetWasDeclarationInitialized();
-        CleanupBeforeExecution();
+        if (childrenModuleSet != nullptr)
+        {
+            childrenModuleSet->Map([](LPCOLESTR specifier, SourceTextModuleRecord* moduleRecord)
+            {
+                Assert(moduleRecord->WasParsed());
+                if (!moduleRecord->WasDeclarationInitialized())
+                {
+                    moduleRecord->ModuleDeclarationInstantiation();
+                }
+            });
+        }
+        try
+        {
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory|ExceptionType_JavascriptException));
+            if (this->localExportRecordList != nullptr)
+            {
+                InitializeLocalExports();
+            }
+
+            if (this->indirectExportRecordList != nullptr)
+            {
+                InitializeIndirectExports();
+            }
+        }
+        catch (Js::JavascriptExceptionObject * exceptionObject)
+        {
+            this->errorObject = exceptionObject->GetThrownObject(scriptContext);
+        }
+
+        if (this->errorObject != nullptr)
+        {
+            NotifyParentsAsNeeded();
+            return; 
+        }
+        Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
+        Assert(this == scriptContext->GetLibrary()->GetModuleRecord(srcInfo.moduleID));
+        uint sourceIndex = scriptContext->SaveSourceNoCopy(this->pSourceInfo, static_cast<charcount_t>(this->pSourceInfo->GetCchLength()), /*isCesu8*/ true);
+        CompileScriptException se;
+        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
+        if (rootFunction == nullptr)
+        {
+            this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            NotifyParentsAsNeeded();
+        }
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()
@@ -233,6 +576,10 @@ namespace Js
             });
         }
 #endif
+        if (!scriptContext->GetConfig()->IsES6ModuleEnabled())
+        {
+            return nullptr;
+        }
         SetWasEvaluated();
         if (childrenModuleSet != nullptr)
         {
@@ -244,6 +591,8 @@ namespace Js
                 }
             });
         }
+        CleanupBeforeExecution();
+
         Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
         return rootFunction->CallRootFunction(outArgs, scriptContext, true);
     }
@@ -264,6 +613,145 @@ namespace Js
         // a sub module failed to download. we need to notify that the parent that sub module failed and we need to report back.
         return NOERROR;
     }
+
+    SourceTextModuleRecord* SourceTextModuleRecord::GetChildModuleRecord(LPCOLESTR specifier) const
+    {
+        SourceTextModuleRecord* childModuleRecord = nullptr;
+        if (childrenModuleSet == nullptr)
+        {
+            AssertMsg(false, "We should have some child modulerecords first before trying to get child modulerecord.");
+            return nullptr;
+        }
+        if (!childrenModuleSet->TryGetValue(specifier, &childModuleRecord))
+        {
+            return nullptr;
+        }
+        return childModuleRecord;
+    }
+
+    // Local exports are stored in the slotarray in the SourceTextModuleRecord.
+    void SourceTextModuleRecord::InitializeLocalExports()
+    {
+        Recycler* recycler = scriptContext->GetRecycler();
+        Var undefineValue = scriptContext->GetLibrary()->GetUndefined();
+        if (localSlotCount == InvalidSlotCount)
+        {
+            if (localExportRecordList != nullptr)
+            {
+                uint currentSlotCount = 0;
+                ArenaAllocator* allocator = EnsureTempAllocator();
+                localExportMapByExportName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
+                localExportMapByLocalName = AllocatorNew(ArenaAllocator, allocator, LocalExportMap, allocator);
+                localExportIndexList = RecyclerNew(recycler, LocalExportIndexList, recycler);
+                localExportRecordList->Map([&](ModuleExportEntry exportEntry)
+                {
+                    Assert(exportEntry.moduleRequest == nullptr);
+                    Assert(exportEntry.importName == nullptr);
+                    PropertyId exportNameId = EnsurePropertyIdForIdentifier(exportEntry.exportName);
+                    PropertyId localNameId = EnsurePropertyIdForIdentifier(exportEntry.localName);
+                    uint exportSlot = UINT_MAX;
+
+                    for (uint i = 0; i < (uint)localExportIndexList->Count(); i++)
+                    {
+                        if (localExportIndexList->Item(i) == localNameId)
+                        {
+                            exportSlot = i;
+                            break;
+                        }
+                    }
+
+                    if (exportSlot == UINT_MAX)
+                    {
+                        exportSlot = currentSlotCount;
+                        localExportMapByLocalName->Add(localNameId, exportSlot);
+                        localExportIndexList->Add(localNameId);
+                        Assert(localExportIndexList->Item(currentSlotCount) == localNameId);
+                        currentSlotCount++;
+                        if (currentSlotCount >= UINT_MAX)
+                        {
+                            JavascriptError::ThrowRangeError(scriptContext, JSERR_TooManyImportExprots);
+                        }
+                    }
+
+                    localExportMapByExportName->Add(exportNameId, exportSlot);
+                    
+                });
+                localExportSlots = RecyclerNewArray(recycler, Var, currentSlotCount);
+                for (uint i = 0; i < currentSlotCount; i++)
+                {
+                    localExportSlots[i] = undefineValue;
+                }
+                localSlotCount = currentSlotCount;
+            }
+            else
+            {
+                localSlotCount = 0;
+            }
+        }
+    }
+
+    PropertyId SourceTextModuleRecord::EnsurePropertyIdForIdentifier(IdentPtr pid)
+    {
+        PropertyId propertyId = pid->GetPropertyId();
+        if (propertyId == Js::Constants::NoProperty)
+        {
+            propertyId = scriptContext->GetOrAddPropertyIdTracked(pid->Psz(), pid->Cch());
+            pid->SetPropertyId(propertyId);
+        }
+        return propertyId;
+    }
+
+    void SourceTextModuleRecord::InitializeIndirectExports()
+    {
+        ModuleNameRecord* exportRecord = nullptr;
+        indirectExportRecordList->Map([&](ModuleExportEntry exportEntry)
+        {
+            PropertyId propertyId = EnsurePropertyIdForIdentifier(exportEntry.importName);
+            SourceTextModuleRecord* childModuleRecord = GetChildModuleRecord(exportEntry.moduleRequest->Psz());
+            if (childModuleRecord == nullptr)
+            {
+                JavascriptError::ThrowReferenceError(scriptContext, JSERR_CannotResolveModule, exportEntry.moduleRequest->Psz());
+            }
+            if (!childModuleRecord->ResolveExport(propertyId, nullptr, nullptr, &exportRecord) ||
+                (exportRecord == nullptr))
+            {
+                JavascriptError::ThrowSyntaxError(GetScriptContext(), JSERR_ModuleResolveExport, exportEntry.exportName->Psz());
+            }
+        });
+    }
+
+    uint SourceTextModuleRecord::GetLocalExportSlotIndexByExportName(PropertyId exportNameId)
+    {
+        Assert(localSlotCount != 0);
+        Assert(localExportSlots != nullptr);
+        uint slotIndex = InvalidSlotIndex;
+        if (!localExportMapByExportName->TryGetValue(exportNameId, &slotIndex))
+        {
+            AssertMsg(false, "exportNameId is not in local export list");
+            return InvalidSlotIndex;
+        }
+        else
+        {
+            return slotIndex;
+        }
+    }
+
+    uint SourceTextModuleRecord::GetLocalExportSlotIndexByLocalName(PropertyId localNameId)
+    {
+        Assert(localSlotCount != 0);
+        Assert(localExportSlots != nullptr);
+        uint slotIndex = InvalidSlotIndex;
+        if (!localExportMapByLocalName->TryGetValue(localNameId, &slotIndex))
+        {
+            AssertMsg(false, "exportNameId is not in local export list");
+            return InvalidSlotIndex;
+        }
+        else
+        {
+            return slotIndex;
+        }
+    }
+
 #if DBG
     void SourceTextModuleRecord::AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, unsigned long specifierLength)
     {

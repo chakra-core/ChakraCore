@@ -4,10 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Types\DynamicObjectEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumerator.h"
-#include "Types\DynamicObjectSnapshotEnumeratorWPCache.h"
-#include "Library\ForInObjectEnumerator.h"
+#include "Types/DynamicObjectEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumerator.h"
+#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Library/ForInObjectEnumerator.h"
 
 namespace Js
 {
@@ -18,18 +18,18 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.defineProperty");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.defineProperty"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.defineProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.defineProperty"));
         }
 
         Var propertyKey, attributes;
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.defineProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.defineProperty"));
         }
         Var target = args[1];
 
@@ -65,17 +65,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.deleteProperty");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.deleteProperty"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.deleteProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.deleteProperty"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.deleteProperty");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.deleteProperty"));
         }
         Var target = args[1];
         Var propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
@@ -89,17 +89,17 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.enumerate");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.enumerate"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.enumerate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.enumerate"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.enumerate");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.enumerate"));
         }
         Var target = args[1];
 
@@ -117,17 +117,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.get");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.get"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.get");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.get"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.get");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.get"));
         }
         Var target = args[1];
         Var propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
@@ -144,17 +144,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.getOwnPropertyDescriptor");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.getOwnPropertyDescriptor"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.getOwnPropertyDescriptor");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.getOwnPropertyDescriptor"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.getOwnPropertyDescriptor");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.getOwnPropertyDescriptor"));
         }
         Var target = args[1];
         Var propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
@@ -177,17 +177,17 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.getPrototypeOf");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.getPrototypeOf"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.getPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.getPrototypeOf"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.getPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.getPrototypeOf"));
         }
         Var target = args[1];
         return JavascriptObject::GetPrototypeOf(RecyclableObject::FromVar(target), scriptContext);
@@ -200,17 +200,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.has");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.has"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.has");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.has"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.has");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.has"));
         }
         Var target = args[1];
 
@@ -225,17 +225,17 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.issExtensible");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.issExtensible"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.isExtensible");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.isExtensible"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.iesExtensible");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.iesExtensible"));
         }
         Var target = args[1];
         RecyclableObject *object = RecyclableObject::FromVar(target);
@@ -256,17 +256,17 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.ownKeys");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.ownKeys"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.ownKeys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.ownKeys"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.ownKeys");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.ownKeys"));
         }
         Var target = args[1];
 
@@ -279,17 +279,17 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.preventExtensions");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.preventExtensions"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.preventExtensions");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.preventExtensions"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.preventExtensions");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.preventExtensions"));
         }
         Var target = args[1];
 
@@ -310,17 +310,17 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.set");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.set"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.set");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.set"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.set");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.set"));
         }
         Var target = args[1];
         Var propertyKey = args.Info.Count > 2 ? args[2] : undefinedValue;
@@ -338,24 +338,24 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.setPrototypeOf");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.setPrototypeOf"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if  (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.setPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.setPrototypeOf"));
         }
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, L"Reflect.setPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.setPrototypeOf"));
         }
         Var target = args[1];
         target = JavascriptOperators::ToObject(target, scriptContext);
 
         if (args.Info.Count < 3 || !JavascriptOperators::IsObjectOrNull(args[2]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, L"Object.setPrototypeOf");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.setPrototypeOf"));
         }
 
         RecyclableObject* newPrototype = RecyclableObject::FromVar(args[2]);
@@ -371,18 +371,18 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.apply");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.apply"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.apply");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.apply"));
         }
 
         Var target = args.Info.Count > 1 ? args[1] : undefinedValue;
         if (!JavascriptConversion::IsCallable(target))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, L"Reflect.apply");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Reflect.apply"));
         }
         Var thisArgument = args.Info.Count > 2 ? args[2] : undefinedValue;
         Var argArray = args.Info.Count > 3 ? args[3] : undefinedValue;
@@ -398,19 +398,19 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, L"Reflect.construct");
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Reflect.construct"));
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         if (args.Info.Flags & CallFlags_New)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, L"Reflect.construct");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew, _u("Reflect.construct"));
         }
 
         Var target = args.Info.Count > 1 ? args[1] : undefinedValue;
 
         if (!JavascriptOperators::IsConstructor(target))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, L"target");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, _u("target"));
         }
 
         Var newTarget = nullptr;
@@ -421,7 +421,7 @@ namespace Js
                 newTarget = args[3];
                 if (!JavascriptOperators::IsConstructor(newTarget))
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, L"newTarget");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, _u("newTarget"));
                 }
             }
             else

@@ -430,18 +430,18 @@ LblDone:
         return JavascriptNumber::ToVar(uValue >> (nShift & 0x1F), scriptContext);
     }
 
-    void TaggedInt::ToBuffer(Var aValue, __out_ecount_z(bufSize) wchar_t * buffer, uint bufSize)
+    void TaggedInt::ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
     {
         return ToBuffer(ToInt32(aValue), buffer, bufSize);
     }
 
-    void TaggedInt::ToBuffer(int value, __out_ecount_z(bufSize) wchar_t * buffer, uint bufSize)
+    void TaggedInt::ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
     {
         Assert(bufSize > 10);
         _itow_s(value, buffer, bufSize, 10);
     }
 
-    void TaggedInt::ToBuffer(uint value, __out_ecount_z(bufSize) wchar_t * buffer, uint bufSize)
+    void TaggedInt::ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize)
     {
         Assert(bufSize > 10);
         _ultow_s(value, buffer, bufSize, 10);
@@ -454,14 +454,14 @@ LblDone:
 
     JavascriptString* TaggedInt::ToString(int value, ScriptContext* scriptContext)
     {
-        wchar_t szBuffer[20];
+        char16 szBuffer[20];
         ToBuffer(value, szBuffer, _countof(szBuffer));
 
         return JavascriptString::NewCopySz(szBuffer, scriptContext);
     }
     JavascriptString* TaggedInt::ToString(uint value, ScriptContext* scriptContext)
     {
-        wchar_t szBuffer[20];
+        char16 szBuffer[20];
         ToBuffer(value, szBuffer, _countof(szBuffer));
 
         return JavascriptString::NewCopySz(szBuffer, scriptContext);

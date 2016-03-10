@@ -53,7 +53,7 @@ namespace Js
         }
         // CVTTPS2DQ does a range check over signed range [-2^31, 2^31-1], so will fail to convert values >= 2^31.
         // To fix this, subtract 2^31 from values >= 2^31, do CVTTPS2DQ, then add 2^31 back.
-        _mm_store_ps(two_31_f4.simdValue.f32, X86_TWO_31_F4.m128_value);
+        _mm_store_ps(two_31_f4.f32, X86_TWO_31_F4.m128_value);
         // any lanes >= 2^31 ?
         temp.m128_value = _mm_cmpge_ps(v.m128_value, two_31_f4.m128_value);
         // two_31_f4 has f32(2^31) for lanes >= 2^31, 0 otherwise
@@ -77,7 +77,7 @@ namespace Js
         // add 2^31 values back to adjusted values.
         // Use first bit from the 2^31 float mask (0x4f000...0 << 1)
         // and result with 2^31 int mask (0x8000..0) setting first bit to zero if lane hasn't been adjusted
-        _mm_store_ps(two_31_i4.simdValue.f32, X86_TWO_31_I4.m128_value);
+        _mm_store_ps(two_31_i4.f32, X86_TWO_31_I4.m128_value);
         two_31_f4.m128i_value = _mm_slli_epi32(two_31_f4.m128i_value, 1);
         two_31_i4.m128i_value = _mm_and_si128(two_31_i4.m128i_value, two_31_f4.m128i_value);
         // add 2^31 back to adjusted values

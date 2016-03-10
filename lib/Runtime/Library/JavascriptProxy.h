@@ -65,6 +65,8 @@ namespace Js
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor);
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
 
+        static DWORD GetOffsetOfTarget() { return offsetof(JavascriptProxy, target); }
+
         virtual BOOL HasProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
         virtual BOOL HasOwnPropertyNoHostObject(PropertyId propertyId) override;
@@ -166,7 +168,7 @@ namespace Js
 
                 if (!(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, L"ownKeys");
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }
 
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord);

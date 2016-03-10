@@ -2,15 +2,15 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#include "BackEnd.h"
-#include "ByteCode\OpCodeUtilAsmJs.h"
+#include "Backend.h"
+#include "ByteCode/OpCodeUtilAsmJs.h"
 
 void
 IRBuilderAsmJs::Build()
 {
     m_funcAlloc = m_func->m_alloc;
 
-    NoRecoverMemoryJitArenaAllocator localAlloc(L"BE-IRBuilder", m_funcAlloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    NoRecoverMemoryJitArenaAllocator localAlloc(_u("BE-IRBuilder"), m_funcAlloc->GetPageAllocator(), Js::Throw::OutOfMemory);
     m_tempAlloc = &localAlloc;
 
     uint32 offset;
@@ -61,7 +61,7 @@ IRBuilderAsmJs::Build()
 
 #define MACRO_SIMD_EXTEND_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_SIMD_EXTEND(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr)
 
-#include "ByteCode\OpCodesSimd.h"
+#include "ByteCode/OpCodesSimd.h"
 
     }
 
@@ -163,7 +163,7 @@ IRBuilderAsmJs::Build()
             Build##layout<Js::LargeLayoutSizePolicy>(newOpcode, offset); \
             break;
 #define EXCLUDE_FRONTEND_LAYOUT
-#include "ByteCode\LayoutTypesAsmJs.h"
+#include "ByteCode/LayoutTypesAsmJs.h"
 
         default:
             AssertMsg(UNREACHED, "Unimplemented layout");
@@ -333,7 +333,7 @@ IRBuilderAsmJs::BuildIntConstOpnd(Js::RegSlot regSlot)
 {
     Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
     int * intConstTable = reinterpret_cast<int *>(constTable + Js::AsmJsFunctionMemory::RequiredVarConstants - 1);
-    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
+    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetIntConstCount();
 
     Assert(regSlot >= Js::FunctionBody::FirstRegSlot && regSlot < intConstCount);
     const int32 value = intConstTable[regSlot];
@@ -692,9 +692,10 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset)
 void
 IRBuilderAsmJs::BuildConstantLoads()
 {
-    uint32 intConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetIntConstCount();
-    uint32 floatConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetFloatConstCount();
-    uint32 doubleConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetDoubleConstCount();
+    Js::AsmJsFunctionInfo* asmJsFuncInfo = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock();
+    uint32 intConstCount = asmJsFuncInfo->GetIntConstCount();
+    uint32 floatConstCount = asmJsFuncInfo->GetFloatConstCount();
+    uint32 doubleConstCount = asmJsFuncInfo->GetDoubleConstCount();
     Js::Var * constTable = m_func->GetJnFunction()->GetConstTable();
 
     // Load FrameDisplay
@@ -798,7 +799,7 @@ IRBuilderAsmJs::BuildConstantLoads()
         ++regAllocated;
     }
 
-    uint32 simdConstCount = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetSimdConstCount();
+    uint32 simdConstCount = asmJsFuncInfo->GetSimdConstCount();
     // Space for SIMD0
     ++regAllocated;
     AsmJsSIMDValue *simdConstTable = reinterpret_cast<AsmJsSIMDValue *>(doubleConstTable + doubleConstCount);
@@ -846,7 +847,7 @@ IRBuilderAsmJs::BuildImplicitArgIns()
         IR::RegOpnd * dstOpnd = nullptr;
         IR::Instr * instr = nullptr;
         // TODO: double args are not aligned on stack
-        Js::AsmJsVarType varType = m_func->GetJnFunction()->GetAsmJsFunctionInfo()->GetArgType(i - 1);
+        Js::AsmJsVarType varType = m_func->GetJnFunction()->GetAsmJsFunctionInfoWithLock()->GetArgType(i - 1);
         switch (varType.which())
         {
         case Js::AsmJsVarType::Which::Int:

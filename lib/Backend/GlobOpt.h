@@ -309,7 +309,7 @@ public:
     Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
 
 #if DBG_DUMP
-    __declspec(noinline) void Dump() const { Output::Print(L"0x%X  ValueNumber: %3d,  -> ", this, this->valueNumber);  this->valueInfo->Dump(); }
+    __declspec(noinline) void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
 #endif
 };
 

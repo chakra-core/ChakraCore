@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
-#include "Language\JavascriptFunctionArgIndex.h"
-#include "Language\InterpreterStackFrame.h"
+#include "Language/JavascriptFunctionArgIndex.h"
+#include "Language/InterpreterStackFrame.h"
 
 #define FAligned(VALUE, TYPE) ((((LONG_PTR)VALUE) & (sizeof(TYPE)-1)) == 0)
 
@@ -450,7 +450,7 @@ namespace Js
             {
                 if(functionBody->GetUtf8SourceInfo()->IsDynamic())
                 {
-                    *sourceFileName = L"Dynamic Code";
+                    *sourceFileName = _u("Dynamic Code");
                 }
                 else
                 {

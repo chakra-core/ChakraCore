@@ -5,7 +5,7 @@
 // ChakraDiag does not link with Runtime.lib and does not include .cpp files, so this file will be included as a header
 #pragma once
 #include "RuntimeLibraryPch.h"
-#include "DataStructures\LargeStack.h"
+#include "DataStructures/LargeStack.h"
 
 namespace Js
 {
@@ -23,7 +23,7 @@ namespace Js
 
     inline StringCopyInfo::StringCopyInfo(
         JavascriptString *const sourceString,
-        _Inout_count_(sourceString->m_charLength) wchar_t *const destinationBuffer)
+        _Inout_count_(sourceString->m_charLength) char16 *const destinationBuffer)
         : sourceString(sourceString), destinationBuffer(destinationBuffer)
     {
         Assert(sourceString);
@@ -41,7 +41,7 @@ namespace Js
         return sourceString;
     }
 
-    inline wchar_t *StringCopyInfo::DestinationBuffer() const
+    inline char16 *StringCopyInfo::DestinationBuffer() const
     {
         Assert(isInitialized);
         return destinationBuffer;
@@ -59,7 +59,7 @@ namespace Js
 
         StringCopyInfo copyInfo;
         JavascriptString *const string = nullptr;
-        wchar_t *const buffer = nullptr;
+        char16 *const buffer = nullptr;
 
         (StringCopyInfo());
         (StringCopyInfo(string, buffer));
@@ -119,7 +119,7 @@ namespace Js
         Assert(!allocator);
         Assert(!stack);
 
-        allocator = scriptContext->GetTemporaryAllocator(L"StringCopyInfoStack");
+        allocator = scriptContext->GetTemporaryAllocator(_u("StringCopyInfoStack"));
         Assert(allocator);
         stack = LargeStack<StringCopyInfo>::New(allocator->GetAllocator());
         Assert(stack);

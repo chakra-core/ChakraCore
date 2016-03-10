@@ -5,8 +5,8 @@
 #include "CommonCommonPch.h"
 
 #ifdef CONTROL_FLOW_GUARD_LOGGER
-#include "common\CFGLogger.h"
-#include "core\DbgHelpSymbolManager.h"
+#include "Common/CfgLogger.h"
+#include "Core/DbgHelpSymbolManager.h"
 
 // Initialization order
 //  AB AutoSystemInfo
@@ -55,10 +55,10 @@ CFGLogger::~CFGLogger()
         guardCheckRecord.Map([&total](uintptr_t Target, uint count)
         {
             DbgHelpSymbolManager::PrintSymbol((PVOID)Target);
-            Output::Print(L"%8d\n", count);
+            Output::Print(_u("%8d\n"), count);
             total += count;
         });
-        Output::Print(L"Total: %d\n", total);
+        Output::Print(_u("Total: %d\n"), total);
         Output::Flush();
     }
 }

@@ -12,7 +12,7 @@ void regex::ImmutableStringBuilder<chunkSize>::AppendInt32(int32 value)
 {
     WCHAR buffer[11]; // -2,147,483,648 w.o ',' + \0
     HRESULT hr = S_OK;
-    hr = StringCchPrintfW(buffer, _countof(buffer), L"%d", value);
+    hr = StringCchPrintfW(buffer, _countof(buffer), _u("%d"), value);
     AssertMsg(SUCCEEDED(hr), "StringCchPrintfW");
     if (FAILED(hr) )
     {
@@ -28,7 +28,7 @@ void regex::ImmutableStringBuilder<chunkSize>::AppendUInt64(uint64 value)
 {
     WCHAR buffer[21]; // 18,446,744,073,709,551,615 w.o ',' + \0
     HRESULT hr = S_OK;
-    hr = StringCchPrintfW(buffer, _countof(buffer), L"%llu", value);
+    hr = StringCchPrintfW(buffer, _countof(buffer), _u("%llu"), value);
     AssertMsg(SUCCEEDED(hr), "StringCchPrintfW");
     if (FAILED(hr) )
     {
