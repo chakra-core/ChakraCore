@@ -462,7 +462,7 @@ namespace Js
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
 #endif
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#ifdef STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
 
@@ -496,7 +496,7 @@ namespace Js
         uint32 pendingPolymorphicCacheState;
 #endif
         State state; // Single state member so users can query state w/o a lock
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#ifdef STACK_BACK_TRACE
         CleanupReason cleanupReason;
 #endif
         BYTE   pendingInlinerVersion;
@@ -522,7 +522,7 @@ namespace Js
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#ifdef STACK_BACK_TRACE
             , cleanupStack(nullptr)
             , cleanupReason(NotCleanedUp)
 #endif
@@ -636,7 +636,7 @@ namespace Js
             this->state = PendingCleanup;
         }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#ifdef STACK_BACK_TRACE
         void SetCleanupReason(CleanupReason reason)
         {
             this->cleanupReason = reason;
@@ -1706,7 +1706,7 @@ namespace Js
                 FuncExprScopeRegister                   = 21,
                 FirstTmpRegister                        = 22,
 
-                // Signed integers need keep the sign when promoting 
+                // Signed integers need keep the sign when promoting
                 SignedFieldsStart                       = 23,
                 SerializationIndex                      = 23,
 

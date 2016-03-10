@@ -588,8 +588,10 @@ private:
     JsUtil::ThreadService threadService;
     uint callRootLevel;
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
     // The thread page allocator is used by the recycler and need the background page queue
     PageAllocator::BackgroundPageQueue backgroundPageQueue;
+#endif
     IdleDecommitPageAllocator pageAllocator;
     Recycler* recycler;
 

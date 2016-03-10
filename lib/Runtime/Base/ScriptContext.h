@@ -1353,6 +1353,7 @@ private:
 #if DBG
         SourceContextInfo const * GetNoContextSourceContextInfo() const { return cache->noContextSourceContextInfo; }
 
+#ifdef ENABLE_SCRIPT_PROFILING
         int GetProfileSession()
         {
             AssertMsg(m_pProfileCallback != nullptr, "Asking for profile session when we aren't in one.");
@@ -1369,6 +1370,7 @@ private:
         {
             AssertMsg(m_pProfileCallback == nullptr, "How to stop when there is still the callback out there");
         }
+#endif // ENABLE_SCRIPT_PROFILING
 
         bool hadProfiled;
         bool HadProfiled() const { return hadProfiled; }

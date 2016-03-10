@@ -231,8 +231,8 @@ public:
         NodeBase * UnlinkCurrentNode()
         {
             NodeBase * unlinkedNode = const_cast<NodeBase *>(this->current);
-            Assert(current != nullptr);
-            Assert(!list->IsHead(this->current));
+            Assert(this->current != nullptr);
+            Assert(!this->list->IsHead(this->current));
             Assert(last != nullptr);
 
             const_cast<NodeBase *>(last)->Next() = this->current->Next();

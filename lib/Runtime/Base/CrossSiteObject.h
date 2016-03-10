@@ -223,13 +223,13 @@ namespace Js
     template <typename T>
     void CrossSiteObject<T>::RemoveFromPrototype(ScriptContext * requestContext)
     {
-        __super::RemoveFromPrototype(GetScriptContext());
+        __super::RemoveFromPrototype(this->GetScriptContext());
     }
 
     template <typename T>
     void CrossSiteObject<T>::AddToPrototype(ScriptContext * requestContext)
     {
-        __super::AddToPrototype(GetScriptContext());
+        __super::AddToPrototype(this->GetScriptContext());
     }
 
     template <typename T>
