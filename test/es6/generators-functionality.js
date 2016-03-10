@@ -1425,6 +1425,21 @@ var tests = [
         }
     },
     {
+        name: "yield* forwards .next() parameter to iterable's .next() call",
+        body: function () {
+            function* inner() {
+                assert.areEqual(yield, "a");
+            }
+            function* outer() {
+                yield* inner();
+            }
+
+            var it = outer();
+            it.next();
+            it.next("a");
+        }
+    },
+    {
         name: "Testing 'super' reference inside a generator function",
         body: function () {
             class BASE {
