@@ -19,6 +19,7 @@
     <ClInclude Include="WasmSignature.h" />
     <ClInclude Include="WasmSections.h" />
     <ClInclude Include="WasmSection.h" />
+    <ClInclude Include="WasmDataSegment.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)SExprParser.cpp" />
@@ -31,8 +32,10 @@
     <ClCompile Include="ModuleInfo.cpp" />
     <ClCompile Include="WasmSignature.cpp" />
     <ClCompile Include="WasmSection.cpp" />
+    <ClCompile Include="WasmDataSegment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="SExprScan.js" />
   </ItemGroup>
 </Project>
+

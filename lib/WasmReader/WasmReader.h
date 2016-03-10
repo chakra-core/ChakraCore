@@ -30,6 +30,7 @@ namespace Wasm
 }
 
 #include "WasmSignature.h"
+#include "WasmDataSegment.h"
 #include "ModuleInfo.h"
 #include "WasmFunctionInfo.h"
 

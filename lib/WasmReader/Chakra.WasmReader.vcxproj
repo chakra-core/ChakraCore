@@ -37,6 +37,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SExprParser.cpp" />
     <ClCompile Include="ModuleInfo.cpp" />
     <ClCompile Include="WasmBytecodeGenerator.cpp" />
+    <ClCompile Include="WasmDataSegment.cpp" />
     <ClCompile Include="WasmFunctionInfo.cpp" />
     <ClCompile Include="WasmReaderPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -53,6 +54,7 @@
     <ClInclude Include="SExprParser.h" />
     <ClInclude Include="SExprScanner.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
+    <ClInclude Include="WasmDataSegment.h" />
     <ClInclude Include="WasmFunctionInfo.h" />
     <ClInclude Include="WasmKeywordSwitch.h" />
     <ClInclude Include="WasmReader.h" />

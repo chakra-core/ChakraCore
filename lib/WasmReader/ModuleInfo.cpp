@@ -192,13 +192,43 @@ ModuleInfo::SetFunctionImport(uint32 i, uint32 sigId, wchar_t* modName, uint32 m
     m_imports[i].fnName = fnName;
 }
 
-Wasm::WasmImport* ModuleInfo::GetFunctionImport(uint32 i) const
+Wasm::WasmImport*
+ModuleInfo::GetFunctionImport(uint32 i) const
 {
     if (i >= m_importCount)
     {
         return nullptr;
     }
     return &m_imports[i];
+}
+
+void
+ModuleInfo::AllocateDataSegs(uint32 count)
+{
+    Assert(count != 0);
+    m_datasegCount = count;
+    m_datasegs = AnewArray(m_alloc, WasmDataSegment*, count);
+}
+
+bool
+ModuleInfo::AddDataSeg(WasmDataSegment* seg, uint32 index)
+{
+    if (index >= m_datasegCount)
+    {
+        return false;
+    }
+    m_datasegs[index] = seg;
+    return true;
+}
+
+WasmDataSegment*
+ModuleInfo::GetDataSeg(uint32 index) const
+{
+    if (index >= m_datasegCount)
+    {
+        return nullptr;
+    }
+    return m_datasegs[index];
 }
 
 } // namespace Wasm
