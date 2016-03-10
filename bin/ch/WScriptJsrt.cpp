@@ -438,8 +438,8 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool
     }
     else
     {
-        const wchar_t *fileContent;
-        const wchar_t *fileName;
+        const char16 *fileContent;
+        const char16 *fileName;
         size_t fileNameLength;
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
@@ -480,7 +480,7 @@ Error:
     return returnValue;
 }
 
-bool WScriptJsrt::CreateNamedFunction(const wchar_t* nameString, JsNativeFunction callback, JsValueRef* functionVar)
+bool WScriptJsrt::CreateNamedFunction(const char16* nameString, JsNativeFunction callback, JsValueRef* functionVar)
 {
     JsValueRef nameVar;
     IfJsrtErrorFail(ChakraRTInterface::JsPointerToString(nameString, wcslen(nameString), &nameVar), false);
@@ -498,13 +498,13 @@ JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isCon
 
     if (argumentCount < 2 || argumentCount > 5)
     {
-        fwprintf(stderr, L"Too many or too few arguments.\n");
+        fwprintf(stderr, _u("Too many or too few arguments.\n"));
     }
     else
     {
-        const wchar_t *fileContent;
-        const wchar_t *fileName;
-        const wchar_t *scriptInjectType = L"self";
+        const char16 *fileContent;
+        const char16 *fileName;
+        const char16 *scriptInjectType = L"self";
         size_t fileNameLength;
         size_t scriptInjectTypeLength;
         bool isBinaryFormat = false;
@@ -543,7 +543,7 @@ JsValueRef __stdcall WScriptJsrt::LoadWasmCallback(JsValueRef callee, bool isCon
             }
             if (FAILED(hr))
             {
-                fwprintf(stderr, L"Couldn't load file.\n");
+                fwprintf(stderr, _u("Couldn't load file.\n"));
             }
             else
             {
@@ -556,7 +556,7 @@ Error:
     return returnValue;
 }
 
-JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi)
+JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, const char16* fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi)
 {
     HRESULT hr = E_FAIL;
     JsErrorCode errorCode = JsNoError;
@@ -565,7 +565,7 @@ JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWST
     JsValueRef returnValue = JS_INVALID_REFERENCE;
     JsErrorCode innerErrorCode = JsNoError;
 
-    wchar_t fullPath[_MAX_PATH];
+    char16 fullPath[_MAX_PATH];
     if (_wfullpath(fullPath, fileName, _MAX_PATH) == nullptr)
     {
         IfFailGo(E_FAIL);
@@ -577,7 +577,7 @@ JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWST
         fullPath[i] = towlower(fullPath[i]);
     }
 
-    if (wcscmp(scriptInjectType, L"self") == 0)
+    if (wcscmp(scriptInjectType, _u("self")) == 0)
     {
         errorCode = ChakraRTInterface::JsRunWasmScript(fileContent, 0, fullPath, isBinary, lengthBytes, ffi, &returnValue);
         if (errorCode != JsNoError)
@@ -588,7 +588,7 @@ JsValueRef WScriptJsrt::LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWST
     else
     {
         errorCode = JsErrorInvalidArgument;
-        errorMessage = L"Unsupported argument type inject type.";
+        errorMessage = _u("Unsupported argument type inject type.");
     }
 
 
@@ -633,14 +633,14 @@ bool WScriptJsrt::Initialize()
     JsValueRef loadWasm;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateFunction(LoadWasmCallback, nullptr, &loadWasm), false);
     JsPropertyIdRef loadWasmName;
-    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"LoadWasmFile", &loadWasmName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("LoadWasmFile"), &loadWasmName), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadWasmName, loadWasm, true), false);
 #endif
 
     JsValueRef loadBinaryFile;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateFunction(LoadBinaryFileCallback, nullptr, &loadBinaryFile), false);
     JsPropertyIdRef loadBinaryFileName;
-    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"LoadBinaryFile", &loadBinaryFileName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("LoadBinaryFile"), &loadBinaryFileName), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadBinaryFileName, loadBinaryFile, true), false);
 
     JsValueRef echo;

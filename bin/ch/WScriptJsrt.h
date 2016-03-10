@@ -55,7 +55,7 @@ public:
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
 
 #ifdef ENABLE_WASM
-    static JsValueRef LoadWasm(LPCWSTR fileName, size_t fileNameLength, LPCWSTR fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi);
+    static JsValueRef LoadWasm(LPCWSTR fileName, size_t fileNameLength, const char16* fileContent, const bool isBinary, const UINT lengthBytes, LPCWSTR scriptInjectType, JsValueRef ffi);
 #endif
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);

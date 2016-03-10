@@ -121,7 +121,7 @@ namespace Wasm
             void ReadIndirectFunctionTable();
             void FunctionBodyHeader();
 
-            wchar_t* ReadInlineName(uint32& length, uint32& nameLength);
+            char16* ReadInlineName(uint32& length, uint32& nameLength);
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
             UINT LEB128(UINT &length, bool sgn = false);
@@ -132,7 +132,7 @@ namespace Wasm
             void CheckBytesLeft(UINT bytesNeeded);
             bool EndOfFunc();
             bool EndOfModule();
-            void ThrowDecodingError(const wchar_t* msg, ...);
+            void ThrowDecodingError(const char16* msg, ...);
 
             ArenaAllocator      m_alloc;
             uint m_funcNumber;

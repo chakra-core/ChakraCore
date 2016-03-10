@@ -101,7 +101,7 @@ namespace Wasm
     {
         uint32 funcIndex;
         uint32 nameLength;
-        wchar_t* name;
+        char16* name;
     };
 }
 

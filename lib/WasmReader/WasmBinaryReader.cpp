@@ -11,7 +11,7 @@
     if (PHASE_TRACE1(Js::WasmReaderPhase)) \
     {\
         Output::Print(__VA_ARGS__); \
-        Output::Print(L"\n"); \
+        Output::Print(_u("\n")); \
         Output::Flush(); \
     } \
 
@@ -19,7 +19,7 @@
     if (PHASE_TRACE1(Js::phase##Phase)) \
     {\
         Output::Print(__VA_ARGS__); \
-        Output::Print(L"\n"); \
+        Output::Print(_u("\n")); \
         Output::Flush(); \
     } \
 
@@ -56,7 +56,7 @@ Signature::Signature(ArenaAllocator *alloc, uint count, ...)
 } // namespace WasmTypes
 
 WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t length) :
-    m_alloc(L"WasmBinaryDecoder", alloc, Js::Throw::OutOfMemory)
+    m_alloc(_u("WasmBinaryDecoder"), alloc, Js::Throw::OutOfMemory)
 {
     m_moduleInfo = Anew(&m_alloc, ModuleInfo, &m_alloc);
 
@@ -80,7 +80,7 @@ void WasmBinaryReader::InitializeReader()
             SectionHeader secHeader = ReadSectionHeader();
             if (secHeader.code <= prevSect)
             {
-                TRACE_WASM_DECODER(L"Unknown section order");
+                TRACE_WASM_DECODER(_u("Unknown section order"));
             }
             prevSect = secHeader.code;
             // skip the section
@@ -93,11 +93,11 @@ void WasmBinaryReader::InitializeReader()
 }
 
 void
-WasmBinaryReader::ThrowDecodingError(const wchar_t* msg, ...)
+WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
 {
     va_list argptr;
     va_start(argptr, msg);
-    Output::Print(L"Binary decoding failed: ");
+    Output::Print(_u("Binary decoding failed: "));
     Output::VPrint(msg, argptr);
     Output::Flush();
     Js::Throw::InternalError();
@@ -120,18 +120,18 @@ WasmBinaryReader::ReadNextSection(SectionCode nextSection)
     SectionHeader secHeader = ReadSectionHeader();
     if (secHeader.code == bSectInvalid || SectionInfo::All[secHeader.code].flag == fSectIgnore)
     {
-        TRACE_WASM_DECODER(L"Ignore this section");
+        TRACE_WASM_DECODER(_u("Ignore this section"));
         m_pc = secHeader.end;
         return ReadNextSection(nextSection);
     }
     if (secHeader.code < nextSection)
     {
-        ThrowDecodingError(L"Invalid Section %s", secHeader.code);
+        ThrowDecodingError(_u("Invalid Section %s"), secHeader.code);
     }
 
     if (secHeader.code != nextSection)
     {
-        TRACE_WASM_DECODER(L"The current section is not the one we are looking for");
+        TRACE_WASM_DECODER(_u("The current section is not the one we are looking for"));
         // We know about this section, but it's not the one we're looking for
         m_pc = secHeader.start;
         return false;
@@ -160,7 +160,7 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
         // signatures table
         for (UINT32 i = 0; i < count; i++)
         {
-            TRACE_WASM_DECODER(L"Signature #%u", i);
+            TRACE_WASM_DECODER(_u("Signature #%u"), i);
             Signature();
         }
         break; // This section is not used by bytecode generator, stay in decoder
@@ -186,7 +186,7 @@ WasmBinaryReader::ProcessSection(SectionCode sectionId, bool isEntry /*= true*/)
             uint32 entries = LEB128(length);
             if (entries != m_moduleInfo->GetFunctionCount())
             {
-                ThrowDecodingError(L"Function signatures and function bodies count mismatch");
+                ThrowDecodingError(_u("Function signatures and function bodies count mismatch"));
             }
             m_moduleState.size = entries;
             m_moduleState.count = 0;
@@ -233,7 +233,7 @@ WasmBinaryReader::ReadSectionHeader()
     idSize = LEB128(len);
     if (sectionSize < idSize + len)
     {
-        ThrowDecodingError(L"Invalid section size");
+        ThrowDecodingError(_u("Invalid section size"));
     }
     const char *sectionName = (char*)(m_pc);
     m_pc += idSize;
@@ -249,11 +249,11 @@ WasmBinaryReader::ReadSectionHeader()
 
 #if DBG
     Assert(idSize < 64);
-    wchar_t buf[64];
+    char16 buf[64];
     size_t convertedChars = 0;
     mbstowcs_s(&convertedChars, buf, idSize + 1, sectionName, _TRUNCATE);
     buf[idSize] = 0;
-    TRACE_WASM_DECODER(L"Section Header: %s, length = %u (0x%x)", buf, sectionSize, sectionSize);
+    TRACE_WASM_DECODER(_u("Section Header: %s, length = %u (0x%x)"), buf, sectionSize, sectionSize);
 #endif
     return header;
 }
@@ -366,15 +366,15 @@ WasmBinaryReader::ModuleHeader()
 {
     uint32 magicNumber = ReadConst<UINT32>();
     uint32 version = ReadConst<UINT32>();
-    TRACE_WASM_DECODER(L"Module Header: Magic 0x%x, Version %u", magicNumber, version);
+    TRACE_WASM_DECODER(_u("Module Header: Magic 0x%x, Version %u"), magicNumber, version);
     if (magicNumber != 0x6d736100)
     {
-        ThrowDecodingError(L"Malformed WASM module header!");
+        ThrowDecodingError(_u("Malformed WASM module header!"));
     }
 
     if (version != 10)
     {
-        ThrowDecodingError(L"Invalid WASM version!");
+        ThrowDecodingError(_u("Invalid WASM version!"));
     }
 }
 
@@ -386,7 +386,7 @@ WasmBinaryReader::CallNode()
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetFunctionCount())
     {
-        ThrowDecodingError(L"Function is out of bound");
+        ThrowDecodingError(_u("Function is out of bound"));
     }
     m_currentNode.var.num = funcNum;
 }
@@ -550,7 +550,7 @@ WasmBinaryReader::ReadFunctionsSignatures()
         uint32 sigIndex = LEB128(len);
         if (sigIndex >= m_moduleInfo->GetSignatureCount())
         {
-            ThrowDecodingError(L"Function signature is out of bound");
+            ThrowDecodingError(_u("Function signature is out of bound"));
         }
         WasmFunctionInfo* newFunction = Anew(&m_alloc, WasmFunctionInfo, &m_alloc);
         WasmSignature* sig = m_moduleInfo->GetSignature(sigIndex);
@@ -570,11 +570,11 @@ void WasmBinaryReader::ReadExportTable()
         uint32 funcIndex = LEB128(length);
         if (funcIndex >= m_moduleInfo->GetFunctionCount())
         {
-            ThrowDecodingError(L"Invalid Export %u => func[%u]", iExport, funcIndex);
+            ThrowDecodingError(_u("Invalid Export %u => func[%u]"), iExport, funcIndex);
         }
         uint32 nameLength;
-        wchar_t* exportName = ReadInlineName(length, nameLength);
-        TRACE_WASM_DECODER(L"Export: Function(%u) => %s", funcIndex, exportName);
+        char16* exportName = ReadInlineName(length, nameLength);
+        TRACE_WASM_DECODER(_u("Export: Function(%u) => %s"), funcIndex, exportName);
         m_moduleInfo->SetFunctionExport(iExport, funcIndex, exportName, nameLength);
     }
 }
@@ -583,22 +583,22 @@ void WasmBinaryReader::ReadIndirectFunctionTable()
 {
     uint32 length;
     uint32 entries = LEB128(length);
-    TRACE_WASM_DECODER(L"Indirect table: %u entries = [", entries);
+    TRACE_WASM_DECODER(_u("Indirect table: %u entries = ["), entries);
     m_moduleInfo->AllocateIndirectFunctions(entries);
     for (uint32 i = 0; i < entries; i++)
     {
         uint32 functionIndex = LEB128(length);
         if (functionIndex >= m_moduleInfo->GetFunctionCount())
         {
-            ThrowDecodingError(L"Indirect function index %u is out of bound (max %u)", functionIndex, m_moduleInfo->GetFunctionCount());
+            ThrowDecodingError(_u("Indirect function index %u is out of bound (max %u)"), functionIndex, m_moduleInfo->GetFunctionCount());
         }
         if (PHASE_TRACE1(Js::WasmReaderPhase))
         {
-            Output::Print(L"%u, ", functionIndex);
+            Output::Print(_u("%u, "), functionIndex);
         }
         m_moduleInfo->SetIndirectFunction(functionIndex, i);
     }
-    TRACE_WASM_DECODER(L"]", entries);
+    TRACE_WASM_DECODER(_u("]"), entries);
 }
 
 void
@@ -626,14 +626,14 @@ WasmBinaryReader::FunctionBodyHeader()
         m_funcState.count++;
         if (type >= Wasm::WasmTypes::Limit || type == Wasm::WasmTypes::Void)
         {
-            ThrowDecodingError(L"Invalid local type");
+            ThrowDecodingError(_u("Invalid local type"));
         }
         m_funcInfo->AddLocal((Wasm::WasmTypes::WasmType)type, count);
-        TRACE_WASM_DECODER(L"Function body header: type = %u, count = %u", type, count);
+        TRACE_WASM_DECODER(_u("Function body header: type = %u, count = %u"), type, count);
     }
 }
 
-wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
+char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
     nameLength = LEB128(length);
     CheckBytesLeft(nameLength);
@@ -644,12 +644,12 @@ wchar_t* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
     charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(rawName, nameLength, decodeOptions);
-    wchar_t* contents = AnewArray(&m_alloc, wchar_t, utf16Len);
+    char16* contents = AnewArray(&m_alloc, char16, utf16Len);
     if (contents == nullptr)
     {
         Js::Throw::OutOfMemory();
     }
-    utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, rawName, utf16Len, decodeOptions);
+    utf8::DecodeIntoAndNullTerminate((char16*)contents, rawName, utf16Len, decodeOptions);
 
     return contents;
 }
@@ -668,7 +668,7 @@ WasmBinaryReader::Name(UINT32 offset, UINT &length)
     {
         if (str >= m_end)
         {
-            ThrowDecodingError(L"Offset is out of range");
+            ThrowDecodingError(_u("Offset is out of range"));
         }
         length++;
     } while (*str++);
@@ -683,7 +683,7 @@ WasmBinaryReader::Offset()
     UINT32 offset = LEB128(len);
     if (offset > (UINT)(m_end - m_start))
     {
-        ThrowDecodingError(L"Offset is out of range");
+        ThrowDecodingError(_u("Offset is out of range"));
     }
     return offset;
 }
@@ -720,7 +720,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
 
     if (b & 0x80 || m_pc > m_end)
     {
-        ThrowDecodingError(L"Invalid LEB128 format");
+        ThrowDecodingError(_u("Invalid LEB128 format"));
     }
 
     if (sgn && (shamt + 7 < sizeof(INT) * 8) && (0x40 & b))
@@ -730,7 +730,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
 
     if (!sgn)
     {
-        TRACE_WASM_DECODER_PHASE(WasmLEB128, L"Binary decoder: LEB128 value = %u, length = %u", result, length);
+        TRACE_WASM_DECODER_PHASE(WasmLEB128, _u("Binary decoder: LEB128 value = %u, length = %u"), result, length);
     }
 
     return result;
@@ -742,7 +742,7 @@ WasmBinaryReader::SLEB128(UINT &length)
 {
     INT result = LEB128(length, true);
 
-    TRACE_WASM_DECODER(L"Binary decoder: LEB128 value = %d, length = %u", result, length);
+    TRACE_WASM_DECODER(_u("Binary decoder: LEB128 value = %d, length = %u"), result, length);
     return result;
 }
 
@@ -762,8 +762,8 @@ WasmBinaryReader::CheckBytesLeft(UINT bytesNeeded)
     UINT bytesLeft = (UINT)(m_end - m_pc);
     if ( bytesNeeded > bytesLeft)
     {
-        Output::Print(L"Out of file: Needed: %d, Left: %d", bytesNeeded, bytesLeft);
-        ThrowDecodingError(L"Out of file.");
+        Output::Print(_u("Out of file: Needed: %d, Left: %d"), bytesNeeded, bytesLeft);
+        ThrowDecodingError(_u("Out of file."));
     }
 }
 

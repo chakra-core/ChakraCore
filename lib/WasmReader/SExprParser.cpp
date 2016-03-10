@@ -11,7 +11,7 @@ namespace Wasm
 {
 
 SExprParser::SExprParser(PageAllocator * alloc, LPCUTF8 source, size_t length) :
-    m_alloc(L"SExprParser", alloc, Js::Throw::OutOfMemory),
+    m_alloc(_u("SExprParser"), alloc, Js::Throw::OutOfMemory),
     m_inExpr(false)
 {
     m_scanner = Anew(&m_alloc, SExprScanner, &m_alloc);

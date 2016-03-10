@@ -308,7 +308,7 @@ namespace Js
 
     void ByteCodeDumper::DumpR4(float value)
     {
-        Output::Print(L" float:%g ", value);
+        Output::Print(_u(" float:%g "), value);
     }
     void ByteCodeDumper::DumpR8(double value)
     {

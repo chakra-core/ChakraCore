@@ -42,7 +42,7 @@ namespace Wasm
     class WasmCompilationException
     {
     public:
-        WasmCompilationException(const wchar_t* _msg, ...);
+        WasmCompilationException(const char16* _msg, ...);
     };
 
 

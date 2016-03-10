@@ -1761,7 +1761,7 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
-    Var ScriptContext::LoadWasmScript(const wchar_t* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const wchar_t *rootDisplayName, Js::Var ffi)
+    Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1805,10 +1805,10 @@ namespace Js
 #if DBG_DUMP
                 if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
                 {
-                    Output::Print(L"Loading script.\n"
-                        L"  Unicode (in bytes)    %u\n"
-                        L"  UTF-8 size (in bytes) %u\n"
-                        L"  Expected savings      %d\n", length * sizeof(wchar_t), cbNeeded, length * sizeof(wchar_t)-cbNeeded);
+                    Output::Print(_u("Loading script.\n")
+                        _u("  Unicode (in bytes)    %u\n")
+                        _u("  UTF-8 size (in bytes) %u\n")
+                        _u("  Expected savings      %d\n"), length * sizeof(char16), cbNeeded, length * sizeof(char16)-cbNeeded);
                 }
 #endif
 
@@ -1823,7 +1823,7 @@ namespace Js
             else
             {
 
-                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(wchar_t), lengthBytes, pSrcInfo);
+                *ppSourceInfo = Utf8SourceInfo::New(this, (LPCUTF8)script, lengthBytes / sizeof(char16), lengthBytes, pSrcInfo);
                 // Binary file
                 reader = HeapNew(Wasm::Binary::WasmBinaryReader, threadContext->GetPageAllocator(), (byte*)script, lengthBytes);
             }
@@ -1841,7 +1841,7 @@ namespace Js
 
             PropertyRecord const * exportsPropertyRecord = nullptr;
 
-            GetOrAddPropertyRecord(L"exports", lstrlen(L"exports"), &exportsPropertyRecord);
+            GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
             JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
 
             if (wasmModule->info->GetMemory()->minSize != 0)
@@ -1856,7 +1856,7 @@ namespace Js
                 if (wasmModule->info->GetMemory()->exported)
                 {
                     PropertyRecord const * propertyRecord = nullptr;
-                    GetOrAddPropertyRecord(L"memory", lstrlen(L"memory"), &propertyRecord);
+                    GetOrAddPropertyRecord(_u("memory"), lstrlen(_u("memory")), &propertyRecord);
                     JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), *heap, this);
                 }
             }
@@ -1886,7 +1886,7 @@ namespace Js
                     {
                         Js::Throw::OutOfMemory();
                     }
-                    utf8::DecodeIntoAndNullTerminate((wchar_t*)contents, name, utf16Len, decodeOptions);
+                    utf8::DecodeIntoAndNullTerminate((char16*)contents, name, utf16Len, decodeOptions);
 
                     GetOrAddPropertyRecord(contents, utf16Len, &propertyRecord);
                     HeapDeleteArray(utf16Len + 1, contents);

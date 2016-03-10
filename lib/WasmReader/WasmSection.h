@@ -27,7 +27,7 @@ namespace Wasm
     {
         SectionFlag flag;
         SectionCode precedent;
-        wchar_t* name;
+        char16* name;
         char* id;
         static SectionInfo All[bSectLimit];
     };

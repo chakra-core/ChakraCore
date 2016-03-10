@@ -159,7 +159,7 @@ void ModuleInfo::AllocateFunctionExports(uint32 entries)
     m_exportCount = entries;
 }
 
-void ModuleInfo::SetFunctionExport(uint32 iExport, uint32 funcIndex, wchar_t* exportName, uint32 nameLength)
+void ModuleInfo::SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength)
 {
     m_exports[iExport].funcIndex = funcIndex;
     m_exports[iExport].nameLength = nameLength;

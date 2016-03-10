@@ -145,13 +145,13 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
     // etc.
     //
-    if (_wfopen_s(&file, filename, L"rb") != 0)
+    if (_wfopen_s(&file, filename, _u("rb")) != 0)
     {
         if (printFileOpenError)
         {
             DWORD lastError = GetLastError();
-            wchar_t wszBuff[512];
-            fwprintf(stderr, L"Error in opening file '%s' ", filename);
+            char16 wszBuff[512];
+            fwprintf(stderr, _u("Error in opening file '%s' "), filename);
             wszBuff[0] = 0;
             if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                 nullptr,
@@ -161,9 +161,9 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
                 _countof(wszBuff),
                 nullptr))
             {
-                fwprintf(stderr, L": %s", wszBuff);
+                fwprintf(stderr, _u(": %s"), wszBuff);
             }
-            fwprintf(stderr, L"\n");
+            fwprintf(stderr, _u("\n"));
             IfFailGo(E_FAIL);
         }
         else
@@ -183,7 +183,7 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
     contents = (LPCWSTR)HeapAlloc(GetProcessHeap(), 0, lengthBytes);
     if (nullptr == contents)
     {
-        fwprintf(stderr, L"out of memory");
+        fwprintf(stderr, _u("out of memory"));
         IfFailGo(E_OUTOFMEMORY);
     }
     //
@@ -192,7 +192,7 @@ HRESULT Helpers::LoadBinaryFile(LPCWSTR filename, LPCWSTR& contents, UINT& lengt
     size_t result = fread((void*)contents, sizeof(char), lengthBytes, file);
     if (result != lengthBytes)
     {
-        fwprintf(stderr, L"Read error");
+        fwprintf(stderr, _u("Read error"));
         IfFailGo(E_FAIL);
     }
     fclose(file);

@@ -207,7 +207,7 @@ namespace Js
                 Assert(reader.GetCurrentOffset() == body->GetByteCode()->GetLength());
                 break;
             }
-            Output::Print(L"    %04x %2s", byteOffset, layoutSize == LargeLayout ? L"L-" : layoutSize == MediumLayout ? L"M-" : L"");
+            Output::Print(_u("    %04x %2s"), byteOffset, layoutSize == LargeLayout ? _u("L-") : layoutSize == MediumLayout ? _u("M-") : _u(""));
             DumpOp(op, layoutSize, reader, body);
             if (Js::Configuration::Global.flags.Verbose)
             {
@@ -216,13 +216,13 @@ namespace Js
                 Output::SkipToColumn(70);
                 if (layoutSize == LargeLayout)
                 {
-                    Output::Print(L"%02X ",
+                    Output::Print(_u("%02X "),
                         op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
                         Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::LargeLayoutPrefix);
                 }
                 else if (layoutSize == MediumLayout)
                 {
-                    Output::Print(L"%02X ",
+                    Output::Print(_u("%02X "),
                         op > Js::OpCodeAsmJs::MaxByteSizedOpcodes ?
                         Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix);
                 }
@@ -231,24 +231,24 @@ namespace Js
                     Assert(layoutSize == SmallLayout);
                     if (op > Js::OpCodeAsmJs::MaxByteSizedOpcodes)
                     {
-                        Output::Print(L"%02X ", Js::OpCodeAsmJs::ExtendedOpcodePrefix);
+                        Output::Print(_u("%02X "), Js::OpCodeAsmJs::ExtendedOpcodePrefix);
                     }
                     else
                     {
-                        Output::Print(L"   ");
+                        Output::Print(_u("   "));
                         layoutStart--;          // don't have a prefix
                     }
                 }
 
-                Output::Print(L"%02x", (byte)op);
+                Output::Print(_u("%02x"), (byte)op);
                 for (int i = layoutStart; i < endByteOffset; i++)
                 {
-                    Output::Print(L" %02x", reader.GetRawByte(i));
+                    Output::Print(_u(" %02x"), reader.GetRawByte(i));
                 }
             }
-            Output::Print(L"\n");
+            Output::Print(_u("\n"));
         }
-        Output::Print(L"\n");
+        Output::Print(_u("\n"));
         Output::Flush();
     }
 

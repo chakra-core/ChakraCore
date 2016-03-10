@@ -45,7 +45,7 @@ public:
     WasmFunctionInfo * GetFunSig(uint index) const;
     void AllocateFunctionExports(uint32 entries);
     uint GetExportCount() const { return m_exportCount; }
-    void SetFunctionExport(uint32 iExport, uint32 funcIndex, wchar_t* exportName, uint32 nameLength);
+    void SetFunctionExport(uint32 iExport, uint32 funcIndex, char16* exportName, uint32 nameLength);
     WasmExport* GetFunctionExport(uint32 iExport) const;
 private:
     typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;

@@ -12,7 +12,7 @@ namespace Wasm
 WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext * scriptContext, Js::Utf8SourceInfo * sourceInfo, BaseWasmReader * reader) :
     m_scriptContext(scriptContext),
     m_sourceInfo(sourceInfo),
-    m_alloc(L"WasmBytecodeGen", scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
+    m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_reader(reader)
 {
     m_writer.Create();
@@ -92,7 +92,7 @@ WasmBytecodeGenerator::GenerateModule()
         {
             if (precedent != bSectInvalid && !visitedSections->Test(precedent))
             {
-                throw WasmCompilationException(L"%s section missing before %s",
+                throw WasmCompilationException(_u("%s section missing before %s"),
                                                SectionInfo::All[precedent].name,
                                                SectionInfo::All[sectionCode].name);
             }
@@ -100,7 +100,7 @@ WasmBytecodeGenerator::GenerateModule()
 
             if (sectionProcess[sectionCode](this, (SectionCode)sectionCode) == psrInvalid)
             {
-                throw WasmCompilationException(L"Error while reading section %s", SectionInfo::All[sectionCode].name);
+                throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
             }
         }
     }
@@ -108,7 +108,7 @@ WasmBytecodeGenerator::GenerateModule()
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections->Test(bSectFunctionSignatures) && !visitedSections->Test(bSectFunctionBodies))
     {
-        throw WasmCompilationException(L"Missing required section: %s", SectionInfo::All[bSectFunctionBodies].name);
+        throw WasmCompilationException(_u("Missing required section: %s"), SectionInfo::All[bSectFunctionBodies].name);
     }
     // reserve space for as many function tables as there are signatures, though we won't fill them all
     m_module->memSize = m_module->funcOffset + m_module->info->GetFunctionCount() + m_module->info->GetSignatureCount();
@@ -130,7 +130,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_func = Anew(&m_alloc, WasmFunction);
     m_func->body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
-        L"func",
+        _u("func"),
         5,
         0,
         0,
@@ -307,16 +307,14 @@ WasmBytecodeGenerator::EnregisterLocals()
 void
 WasmBytecodeGenerator::PrintOpName(WasmOp op)
 {
-#define MakeWide(x) L##x
     switch (op)
     {
 #define WASM_KEYWORD(token, name) \
     case wn##token: \
-        Output::Print(MakeWide(#token ## "\r\n")); \
+        Output::Print(_u(#token ## "\r\n")); \
         break;
 #include "WasmKeywords.h"
     }
-#undef MakeWide
 }
 
 EmitInfo
@@ -392,7 +390,7 @@ WasmBytecodeGenerator::EmitGetLocal()
 {
     if (m_funcInfo->GetLocalCount() < m_reader->m_currentNode.var.num)
     {
-        throw WasmCompilationException(L"%u is not a valid local", m_reader->m_currentNode.var.num);
+        throw WasmCompilationException(_u("%u is not a valid local"), m_reader->m_currentNode.var.num);
     }
 
     WasmLocal local = m_locals[m_reader->m_currentNode.var.num];
@@ -413,7 +411,7 @@ WasmBytecodeGenerator::EmitSetLocal()
     uint localNum = m_reader->m_currentNode.var.num;
     if (localNum >= m_funcInfo->GetLocalCount())
     {
-        throw WasmCompilationException(L"%u is not a valid local", localNum);
+        throw WasmCompilationException(_u("%u is not a valid local"), localNum);
     }
 
     WasmLocal local = m_locals[localNum];
@@ -424,7 +422,7 @@ WasmBytecodeGenerator::EmitSetLocal()
 
     if (info.type != local.type)
     {
-        throw WasmCompilationException(L"TypeError in setlocal for %u", localNum);
+        throw WasmCompilationException(_u("TypeError in setlocal for %u"), localNum);
     }
 
     m_writer.AsmReg2(op, local.location, info.location);
@@ -474,7 +472,7 @@ WasmBytecodeGenerator::EmitBlock()
         UINT blockCount = m_reader->m_currentNode.block.count;
         if (blockCount <= 0)
         {
-            throw WasmCompilationException(L"Invalid block node count");
+            throw WasmCompilationException(_u("Invalid block node count"));
         }
         for (UINT i = 0; i < blockCount; i++)
         {
@@ -488,7 +486,7 @@ WasmBytecodeGenerator::EmitBlock()
         op = m_reader->ReadFromBlock();
         if (op == wnLIMIT)
         {
-            throw WasmCompilationException(L"Block must have at least one expression");
+            throw WasmCompilationException(_u("Block must have at least one expression"));
         }
         do
         {
@@ -519,7 +517,7 @@ WasmBytecodeGenerator::EmitLoop()
         UINT blockCount = m_reader->m_currentNode.block.count;
         if (blockCount <= 0)
         {
-            throw WasmCompilationException(L"Invalid block node count");
+            throw WasmCompilationException(_u("Invalid block node count"));
         }
         for (UINT i = 0; i < blockCount; i++)
         {
@@ -549,7 +547,7 @@ WasmBytecodeGenerator::EmitCall()
         funcNum = m_reader->m_currentNode.var.num;
         if (funcNum >= m_module->info->GetFunctionCount())
         {
-            throw WasmCompilationException(L"Call is to unknown function");
+            throw WasmCompilationException(_u("Call is to unknown function"));
         }
         calleeSignature = m_module->info->GetFunSig(funcNum)->GetSignature();
         imported = m_module->info->GetFunSig(funcNum)->Imported();
@@ -568,7 +566,7 @@ WasmBytecodeGenerator::EmitCall()
         indirectIndexInfo = EmitExpr(indexOp);
         if (indirectIndexInfo.type != WasmTypes::I32)
         {
-            throw WasmCompilationException(L"Indirect call index must be int type");
+            throw WasmCompilationException(_u("Indirect call index must be int type"));
         }
     }
 
@@ -585,7 +583,7 @@ WasmBytecodeGenerator::EmitCall()
     {
         if (calleeSignature->GetParamSize() >= UINT16_MAX)
         {
-            throw WasmCompilationException(L"Argument size too big");
+            throw WasmCompilationException(_u("Argument size too big"));
         }
         argSize = (Js::ArgSlot)calleeSignature->GetParamSize();
 
@@ -605,7 +603,7 @@ WasmBytecodeGenerator::EmitCall()
         EmitInfo info = EmitExpr(op);
         if (calleeSignature->GetParam(i) != info.type)
         {
-            throw WasmCompilationException(L"Call argument does not match formal type");
+            throw WasmCompilationException(_u("Call argument does not match formal type"));
         }
 
         Js::OpCodeAsmJs argOp = Js::OpCodeAsmJs::Nop;
@@ -661,7 +659,7 @@ WasmBytecodeGenerator::EmitCall()
 
     if (i != calleeSignature->GetParamCount())
     {
-        throw WasmCompilationException(L"Call has wrong number of arguments");
+        throw WasmCompilationException(_u("Call has wrong number of arguments"));
     }
 
     // emit call
@@ -761,7 +759,7 @@ WasmBytecodeGenerator::EmitIfExpr()
 
     if (checkExpr.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"If expression must have type i32");
+        throw WasmCompilationException(_u("If expression must have type i32"));
     }
 
     // TODO: save this so I can break
@@ -775,7 +773,7 @@ WasmBytecodeGenerator::EmitIfExpr()
 
     if (innerExpr.type != WasmTypes::Void)
     {
-        throw WasmCompilationException(L"Result of if must be void");
+        throw WasmCompilationException(_u("Result of if must be void"));
     }
 
     m_writer.MarkAsmJsLabel(falseLabel);
@@ -802,7 +800,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
 
     if (checkExpr.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"If expression must have type i32");
+        throw WasmCompilationException(_u("If expression must have type i32"));
     }
 
     // TODO: save this so I can break
@@ -835,7 +833,7 @@ WasmBytecodeGenerator::EmitIfElseExpr()
     }
     else if (falseExpr.type != trueExpr.type)
     {
-        throw WasmCompilationException(L"If/Else branches must have same result type");
+        throw WasmCompilationException(_u("If/Else branches must have same result type"));
     }
     else
     {
@@ -927,11 +925,11 @@ WasmBytecodeGenerator::EmitBinExpr()
 
     if (lhsType != lhs.type)
     {
-        throw WasmCompilationException(L"Invalid type for LHS");
+        throw WasmCompilationException(_u("Invalid type for LHS"));
     }
     if (rhsType != rhs.type)
     {
-        throw WasmCompilationException(L"Invalid type for RHS");
+        throw WasmCompilationException(_u("Invalid type for RHS"));
     }
 
     GetRegisterSpace(rhsType)->ReleaseLocation(&rhs);
@@ -952,7 +950,7 @@ WasmBytecodeGenerator::EmitUnaryExpr()
 
     if (inputType != info.type)
     {
-        throw WasmCompilationException(L"Invalid input type");
+        throw WasmCompilationException(_u("Invalid input type"));
     }
 
     GetRegisterSpace(inputType)->ReleaseLocation(&info);
@@ -976,7 +974,7 @@ WasmBytecodeGenerator::EmitMemRead()
 
     if (exprInfo.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"Index expression must be of type I32");
+        throw WasmCompilationException(_u("Index expression must be of type I32"));
     }
 
     m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, indexReg, exprInfo.location, indexReg);
@@ -1003,7 +1001,7 @@ WasmBytecodeGenerator::EmitMemStore()
 
     if (exprInfo.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"Index expression must be of type I32");
+        throw WasmCompilationException(_u("Index expression must be of type I32"));
     }
 
     m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Int, indexReg, exprInfo.location, indexReg);
@@ -1012,7 +1010,7 @@ WasmBytecodeGenerator::EmitMemStore()
     EmitInfo rhsInfo = EmitExpr(m_reader->ReadExpr());
     if (rhsInfo.type != type)
     {
-        throw WasmCompilationException(L"Invalid type for store op");
+        throw WasmCompilationException(_u("Invalid type for store op"));
     }
 
     m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArr, rhsInfo.location, indexReg, GetViewType(wasmOp));
@@ -1048,7 +1046,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
     {
         if (m_funcInfo->GetResultType() == WasmTypes::Void)
         {
-            throw WasmCompilationException(L"Void result type cannot return expression");
+            throw WasmCompilationException(_u("Void result type cannot return expression"));
         }
 
         EmitInfo retExprInfo;
@@ -1065,7 +1063,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
 
         if (m_funcInfo->GetResultType() != retExprInfo.type)
         {
-            throw WasmCompilationException(L"Result type must match return type");
+            throw WasmCompilationException(_u("Result type must match return type"));
         }
 
         Js::OpCodeAsmJs retOp = Js::OpCodeAsmJs::Nop;
@@ -1095,7 +1093,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
         // void expression
         if (m_funcInfo->GetResultType() != WasmTypes::Void)
         {
-            throw WasmCompilationException(L"Non-void result type must have return expression");
+            throw WasmCompilationException(_u("Non-void result type must have return expression"));
         }
 
         // TODO (michhol): consider moving off explicit 0 for return reg
@@ -1112,7 +1110,7 @@ WasmBytecodeGenerator::EmitSelect()
     EmitInfo conditionInfo = EmitExpr(m_reader->ReadExpr());
     if (conditionInfo.type != WasmTypes::I32)
     {
-        throw WasmCompilationException(L"select condition must have I32 type");
+        throw WasmCompilationException(_u("select condition must have I32 type"));
     }
 
     Js::ByteCodeLabel falseLabel = m_writer.DefineLabel();
@@ -1128,7 +1126,7 @@ WasmBytecodeGenerator::EmitSelect()
     EmitInfo falseInfo = EmitExpr(m_reader->ReadExpr());
     if (trueInfo.type != falseInfo.type)
     {
-        throw WasmCompilationException(L"select operands must both have same type");
+        throw WasmCompilationException(_u("select operands must both have same type"));
     }
 
     Js::OpCodeAsmJs op = GetLoadOp(trueInfo.type);
@@ -1155,7 +1153,7 @@ WasmBytecodeGenerator::EmitBr()
         conditionInfo = EmitExpr(m_reader->ReadFromBlock());
         if (conditionInfo.type != WasmTypes::I32)
         {
-            throw WasmCompilationException(L"br_if condition must have I32 type");
+            throw WasmCompilationException(_u("br_if condition must have I32 type"));
         }
     }
 
@@ -1321,12 +1319,12 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
     }
 }
 
-WasmCompilationException::WasmCompilationException(const wchar_t* _msg, ...)
+WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
     va_list arglist;
     va_start(arglist, _msg);
     Output::VPrint(_msg, arglist);
-    Output::Print(L"\r\n");
+    Output::Print(_u("\r\n"));
     Output::Flush();
 }
 

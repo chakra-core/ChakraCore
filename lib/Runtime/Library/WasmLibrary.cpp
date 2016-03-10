@@ -19,16 +19,16 @@ namespace Js
 
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[Wasm].instantiateModule(typedArray,)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[Wasm].instantiateModule(typedArray,)"));
         }
         if (args.Info.Count < 3)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, L"[Wasm].instantiateModule(,ffi)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[Wasm].instantiateModule(,ffi)"));
         }
 
         if (!Js::TypedArrayBase::Is(args[1]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, L"[Wasm].instantiateModule(typedArray,)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedTypedArray, _u("[Wasm].instantiateModule(typedArray,)"));
         }
         Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(args[1]);
         BYTE* buffer = array->GetByteBuffer();
@@ -36,7 +36,7 @@ namespace Js
 
         if (!Js::JavascriptObject::Is(args[2]))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, L"[Wasm].instantiateModule(,ffi)");
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[Wasm].instantiateModule(,ffi)"));
         }
         Js::Var ffi = args[2];
 
@@ -45,7 +45,7 @@ namespace Js
         Js::Utf8SourceInfo* utf8SourceInfo;
         BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
             exportObject = scriptContext->LoadWasmScript(
-                (const wchar_t*)buffer,
+                (const char16*)buffer,
                 nullptr, // source info
                 &se,
                 false, // isExpression
