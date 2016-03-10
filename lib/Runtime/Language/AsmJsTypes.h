@@ -49,11 +49,8 @@ namespace Js
         AsmJS_Uint8x16,
     };
 
-
-
     namespace ArrayBufferView
     {
-
         enum ViewType
         {
             TYPE_INT8 = 0,
@@ -1214,7 +1211,7 @@ namespace Js
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_bool32x4_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_bool16x8_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_bool8x16_extractLane ||
-                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_float32x4_extractLane 
+                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_float32x4_extractLane
                 );
         }
         bool IsReplaceLaneFunc()
@@ -1259,11 +1256,11 @@ namespace Js
             }
             Assert(UNREACHED);
             return 0;
-        }   
-            
+        }
+
        bool IsShuffleFunc()
        {
-            
+
            return (
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int32x4_shuffle ||
                mBuiltIn == AsmJsSIMDBuiltinFunction::AsmJsSIMDBuiltin_int16x8_shuffle ||
@@ -1296,20 +1293,17 @@ namespace Js
                 mBuiltIn == AsmJsSIMDBuiltin_bool32x4_allTrue || mBuiltIn == AsmJsSIMDBuiltin_bool32x4_anyTrue ||
                 mBuiltIn == AsmJsSIMDBuiltin_bool16x8_allTrue || mBuiltIn == AsmJsSIMDBuiltin_bool16x8_anyTrue ||
                 mBuiltIn == AsmJsSIMDBuiltin_bool8x16_allTrue || mBuiltIn == AsmJsSIMDBuiltin_bool8x16_anyTrue ||
-                mBuiltIn == AsmJsSIMDBuiltin_bool32x4_extractLane || 
+                mBuiltIn == AsmJsSIMDBuiltin_bool32x4_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltin_bool16x8_extractLane ||
                 mBuiltIn == AsmJsSIMDBuiltin_bool8x16_extractLane );
-
         }
 
         AsmJsVarType GetTypeCheckVarType();
         AsmJsVarType GetConstructorVarType();
-
         OpCodeAsmJs GetOpcode() { return mOpCode;  }
 
     private:
         virtual bool SupportsArgCall(ArgSlot argCount, AsmJsType* args, AsmJsRetType& retType) override;
     };
-
 };
 #endif
