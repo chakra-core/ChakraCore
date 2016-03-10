@@ -281,6 +281,11 @@ namespace Js
         static void OP_InitClassMemberSet(Var object, PropertyId propertyId, Var setter);
         static void OP_InitClassMemberSetComputedName(Var object, Var elementName, Var getter, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
 
+        static Var* OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static Var* OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static Var OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static void OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext);
+
         static Js::PropertyId GetPropertyId(Var propertyName, ScriptContext* scriptContext);
 
         static BOOL OP_HasItem(Var instance, Var aElementIndex, ScriptContext* scriptContext);

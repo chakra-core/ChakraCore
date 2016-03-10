@@ -2694,6 +2694,12 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
 #endif
 
     Assert(pnodeProg && pnodeProg->nop == knopProg);
+
+    if (IsModuleCode())
+    {
+        EnsureImportBindingScopeSlots(pnodeProg, pnodeProg->sxFnc.funcInfo);
+    }
+
     if (this->parentScopeInfo)
     {
         // Scope stack is already set up the way we want it, so don't visit the global scope.
@@ -3168,11 +3174,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         if (funcInfo->IsGlobalFunction())
         {
             EnsureNoRedeclarations(pnode->sxFnc.pnodeScopes, funcInfo);
-        }
-
-        if (IsModuleCode() && funcInfo->IsGlobalFunction() && pnode->nop == knopProg)
-        {
-            EnsureImportBindingScopeSlots(pnode, funcInfo);
         }
 
         ::BeginEmitBlock(pnode->sxFnc.pnodeScopes, this, funcInfo);

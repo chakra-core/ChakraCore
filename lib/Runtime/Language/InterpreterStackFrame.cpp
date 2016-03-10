@@ -7935,39 +7935,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     template <class T>
     Var InterpreterStackFrame::OP_LdModuleSlot(Var instance, const unaligned T* playout)
     {
-        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(playout->SlotIndex1);
-        Assert(moduleRecord != nullptr);
-
-        Var* moduleRecordSlots = moduleRecord->GetLocalExportSlots();
-        Assert(moduleRecordSlots != nullptr);
-
-        if (moduleRecord->GetLocalExportCount() <= (uint)playout->SlotIndex2)
-        {
-            Js::Throw::FatalInternalError();
-        }
-
-        Var value = moduleRecordSlots[playout->SlotIndex2];
-        Assert(value != nullptr);
-
-        return value;
+        return JavascriptOperators::OP_LdModuleSlot(playout->SlotIndex1, playout->SlotIndex2, scriptContext);
     }
 
     inline void InterpreterStackFrame::OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value)
     {
-        Assert(value != nullptr);
-
-        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(slotIndex1);
-        Assert(moduleRecord != nullptr);
-
-        Var* moduleRecordSlots = moduleRecord->GetLocalExportSlots();
-        Assert(moduleRecordSlots != nullptr);
-
-        if (moduleRecord->GetLocalExportCount() <= (uint)slotIndex2)
-        {
-            Js::Throw::FatalInternalError();
-        }
-
-        moduleRecordSlots[slotIndex2] = value;
+        JavascriptOperators::OP_StModuleSlot(slotIndex1, slotIndex2, value, scriptContext);
     }
 
 #if ENABLE_PROFILE_INFO
