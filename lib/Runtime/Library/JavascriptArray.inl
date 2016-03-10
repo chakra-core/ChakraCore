@@ -1209,23 +1209,22 @@ SECOND_PASS:
             {
                 Assert(current == head);
             }
-
+        }
 
 #ifdef VALIDATE_ARRAY
 SECOND_PASS:
-            if (!first_pass)
+        if (!first_pass)
+        {
+            current = (SparseArraySegment<T>*)this->GetBeginLookupSegment(itemIndex, false);
+            // If it doesn't fit in current chunk (watch for overflow), start from beginning as we'll
+            // need the prev
+            if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
             {
-                current = (SparseArraySegment<T>*)this->GetBeginLookupSegment(itemIndex, false);
-                // If it doesn't fit in current chunk (watch for overflow), start from beginning as we'll
-                // need the prev
-                if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
-                {
-                    current = (SparseArraySegment<T>*)head;
-                }
-                prev = nullptr;
+                current = (SparseArraySegment<T>*)head;
             }
-#endif
+            prev = nullptr;
         }
+#endif
 
         uint probeCost = 0;
         while(current != nullptr)

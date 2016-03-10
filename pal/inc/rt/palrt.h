@@ -1257,6 +1257,25 @@ typedef union __m128i {
     unsigned __int32    m128i_u32[4];
     unsigned __int64    m128i_u64[2];
 } __m128i;
+
+// from emmintrin.h
+static __inline__ __m128d __attribute__((__always_inline__, __nodebug__))
+_mm_load_sd(double const *__dp)
+{
+  struct __mm_load_sd_struct {
+    double __u;
+  } __attribute__((__packed__, __may_alias__));
+  double __u = ((struct __mm_load_sd_struct*)__dp)->__u;
+  return (__m128d){ __u, 0 };
+}
+
+// from emmintrin.h
+static __inline__ int __attribute__((__always_inline__, __nodebug__))
+_mm_cvtsd_si32(__m128d __a)
+{
+  return __builtin_ia32_cvtsd2si(__a);
+}
+
 #endif
 
 #define PF_COMPARE_EXCHANGE_DOUBLE          2

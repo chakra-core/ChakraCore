@@ -7,9 +7,10 @@
 namespace Js
 {
     class ModuleRecordBase;
+    class ModuleNamespace;
     typedef SList<PropertyId> ExportedNames;
     typedef SList<ModuleRecordBase*> ExportModuleRecordList;
-    typedef struct ModuleNameRecord
+    struct ModuleNameRecord
     {
         ModuleRecordBase* module;
         PropertyId bindingName;

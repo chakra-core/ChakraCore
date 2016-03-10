@@ -9,29 +9,32 @@
 
 namespace Js
 {
-    template<class T, typename CountT = T::CounterFields>
+    template<class T, typename CountT = typename T::CounterFields>
     struct CompactCounters
-    {    
+    {
+        // requires an integral type constant to use as array size
+        static const int CountTMax = static_cast<int>(CountT::Max);
+
         struct Fields {
             union {
-                uint8 u8Fields[CountT::Max];
-                int8 i8Fields[CountT::Max];
-                uint16 u16Fields[CountT::Max];
-                int16 i16Fields[CountT::Max];
-                uint32 u32Fields[CountT::Max];
-                int32 i32Fields[CountT::Max];
+                uint8 u8Fields[CountTMax];
+                int8 i8Fields[CountTMax];
+                uint16 u16Fields[CountTMax];
+                int16 i16Fields[CountTMax];
+                uint32 u32Fields[CountTMax];
+                int32 i32Fields[CountTMax];
             };
             Fields() {}
         };
 
         uint8 fieldSize;
 #if DBG
-    
+
         mutable bool bgThreadCallStarted;
         bool isCleaningUp;
-#endif    
+#endif
         WriteBarrierPtr<Fields> fields;
-    
+
         CompactCounters() { }
         CompactCounters(T* host)
             :fieldSize(sizeof(uint8))
@@ -99,7 +102,7 @@ namespace Js
         }
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
-        {            
+        {
             Assert(bgThreadCallStarted == false || isCleaningUp == true);
 
             uint8 type = static_cast<uint8>(typeEnum);

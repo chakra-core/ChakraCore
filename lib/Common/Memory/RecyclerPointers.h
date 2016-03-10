@@ -146,12 +146,6 @@ private:
 };
 }
 
-#if USING_PAL_MINMAX
-#pragma push_macro("min")
-#pragma push_macro("max")
-#undef min
-#undef max
-#endif
 
 template<class T> inline
 const T& min(const T& a, const NoWriteBarrierField<T>& b) { return a < b ? a : b; }
@@ -172,10 +166,6 @@ const T& max(const T& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b
 template<class T> inline
 const T& max(const NoWriteBarrierField<T>& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b; }
 
-#if USING_PAL_MINMAX
-#pragma pop_macro("min")
-#pragma pop_macro("max")
-#endif
 
 // Disallow memcpy, memmove of WriteBarrierPtr
 

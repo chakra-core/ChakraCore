@@ -75,7 +75,7 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     add_definitions(
         -DDISABLE_JIT=1
         )
-      
+
     # xplat-todo: revisit these
     # also, we should change this from add_definitions- the intent of that
     # is to just add -D flags
@@ -105,7 +105,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -DDBG=1
         -DDEBUG=1
         -D_DEBUG=1 # for PAL
-        -DDBG_DUMP=1        
+        -DDBG_DUMP=1
     )
     # xplat-todo: reenable this warning
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-writable-strings")
@@ -132,6 +132,11 @@ include_directories(
     pal/inc
     pal/inc/rt
     )
+
+
+add_subdirectory (pal)
+
+# build the rest with NO_PAL_MINMAX
+add_definitions(-DNO_PAL_MINMAX)
 add_subdirectory (lib)
 add_subdirectory (bin)
-add_subdirectory (pal)
