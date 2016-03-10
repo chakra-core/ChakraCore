@@ -6411,26 +6411,24 @@ CommonNumber:
         return propertyId;
     }
 
-    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, ScriptContext* scriptContext)
+    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
     {
         Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
         Assert(moduleRecord != nullptr);
+
+        // Require caller to also provide the intended access slot so we can do bounds check now.
+        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        {
+            Js::Throw::FatalInternalError();
+        }
 
         return moduleRecord->GetLocalExportSlots();
     }
 
     Var* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
     {
-        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
-        Assert(moduleRecord != nullptr);
-
-        Var* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, scriptContext);
+        Var* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, slotIndex, scriptContext);
         Assert(moduleRecordSlots != nullptr);
-
-        if (moduleRecord->GetLocalExportCount() <= slotIndex)
-        {
-            Js::Throw::FatalInternalError();
-        }
 
         return &moduleRecordSlots[slotIndex];
     }
