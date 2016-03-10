@@ -88,7 +88,8 @@ namespace Wasm
             virtual void InitializeReader() override;
             virtual bool IsBinaryReader() override;
             virtual bool ReadNextSection(SectionCode nextSection) override;
-            virtual ProcessSectionResult ProcessSection(SectionCode nextSection, bool isEntry = true) override;
+            virtual bool ProcessCurrentSection() override;
+            virtual bool ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata) override;
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
@@ -96,12 +97,10 @@ namespace Wasm
         private:
             struct ReaderState
             {
-                SectionHeader secHeader;
-                UINT32 count;         // current entry
-                UINT32 size;          // number of entries
+                UINT32 count; // current entry
+                UINT32 size;  // number of entries
             };
 
-            void ResetModuleData();
             Wasm::WasmTypes::WasmType GetWasmType(WasmTypes::LocalType type);
             WasmOp GetWasmToken(WasmBinOp op);
             WasmBinOp ASTNode();
@@ -116,15 +115,14 @@ namespace Wasm
             template <WasmTypes::LocalType type> void ConstNode();
             // readers
             void ReadMemorySection();
-            void Signature();
+            void ReadSignatures();
             void ReadFunctionsSignatures();
             void ReadExportTable();
             void ReadIndirectFunctionTable();
-            void FunctionBodyHeader();
-            void DataSegment();
+            void ReadDataSegments();
+            void ReadImportEntries();
 
             char16* ReadInlineName(uint32& length, uint32& nameLength);
-            void ImportEntry();
 
             const char* Name(UINT32 offset, UINT &length);
             UINT32 Offset();
@@ -141,7 +139,7 @@ namespace Wasm
             ArenaAllocator      m_alloc;
             uint m_funcNumber;
             byte *m_start, *m_end, *m_pc;
-            ReaderState m_moduleState; // module-level
+            SectionHeader m_currentSection;
             ReaderState m_funcState;   // func AST level
 
         private:
