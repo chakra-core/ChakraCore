@@ -8,8 +8,8 @@
 #include "Common.h"
 
 #include "Runtime.h"
-#if DBG
 #ifdef ENABLE_WASM
+#if DBG
 #define TRACE_WASM(condition, ...) \
     if (condition)\
     {\

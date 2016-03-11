@@ -1864,7 +1864,7 @@ namespace Js
                     {
                         throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
                     }
-                    js_memcpy_s(buffer + offset, maxSize - offset, segment->getData(), size);
+                    js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
                 }
                 if (wasmModule->info->GetMemory()->exported)
                 {
@@ -1966,7 +1966,7 @@ namespace Js
                 {
                     // TODO: initialize all indexes to "Js::Throw::RuntimeError" or similar type thing
                     // now, indirect func call to invalid type will give nullptr deref
-                    indirectFunctionTables[sigId] = RecyclerNewArrayZ(GetRecycler(), Js::Var, wasmModule->info->GetFunctionCount());
+                    indirectFunctionTables[sigId] = RecyclerNewArrayZ(GetRecycler(), Js::Var, wasmModule->info->GetIndirectFunctionCount());
                 }
                 indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
             }

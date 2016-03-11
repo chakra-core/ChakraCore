@@ -410,6 +410,10 @@ IRBuilderAsmJs::BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Proper
 uint
 IRBuilderAsmJs::AddStatementBoundary(uint statementIndex, uint offset)
 {
+    if (m_func->GetJnFunction()->IsWasmFunction())
+    {
+        return 0;
+    }
     IR::PragmaInstr* pragmaInstr = IR::PragmaInstr::New(Js::OpCode::StatementBoundary, statementIndex, m_func);
     this->AddInstr(pragmaInstr, offset);
 
@@ -1410,7 +1414,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         }
         Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
         IR::RegOpnd * maskedOpnd = nullptr;
-        if (mask)
+        if (mask && !m_func->GetJnFunction()->IsWasmFunction())
         {
             maskedOpnd = IR::RegOpnd::New(TyUint32, m_func);
             maskInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, BuildSrcOpnd(indexRegSlot, TyInt32), IR::IntConstOpnd::New(mask, TyUint32, m_func), m_func);
@@ -2188,7 +2192,7 @@ IRBuilderAsmJs::BuildDouble1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js:
 {
     Assert(newOpcode == Js::OpCodeAsmJs::Ld_DbConst);
 
-    Js::RegSlot dstRegSlot = GetRegSlotFromIntReg(dst);
+    Js::RegSlot dstRegSlot = GetRegSlotFromDoubleReg(dst);
 
     IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TyFloat64);
     dstOpnd->SetValueType(ValueType::Float);
@@ -2875,7 +2879,7 @@ IRBuilderAsmJs::BuildBrInt1(Js::OpCodeAsmJs newOpcode, uint32 offset, int32 rela
 
     uint targetOffset = m_jnReader.GetCurrentOffset() + relativeOffset;
 
-    IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BrTrue_I4, nullptr, src1Opnd, m_func);
+    IR::BranchInstr * branchInstr = IR::BranchInstr::New(op, nullptr, src1Opnd, m_func);
     AddBranchInstr(branchInstr, offset, targetOffset);
 }
 

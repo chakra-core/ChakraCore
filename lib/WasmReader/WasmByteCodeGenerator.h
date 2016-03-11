@@ -138,7 +138,7 @@ namespace Wasm
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo * info);
 
-        Js::ByteCodeLabel GetLabel(uint depth);
+        Js::ByteCodeLabel GetLabel(uint index);
 
         void ReadParams(WasmNode * paramExpr);
         void ReadResult(WasmNode * paramExpr);
