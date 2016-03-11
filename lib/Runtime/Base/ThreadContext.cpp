@@ -366,7 +366,7 @@ ThreadContext::~ThreadContext()
     {
         for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
         {
-            if (!scriptContext->IsClosed())
+            if (!scriptContext->IsActuallyClosed())
             {
                 // We close ScriptContext here because anyhow HeapDelete(recycler) when disposing the
                 // JavaScriptLibrary will close ScriptContext. Explicit close gives us chance to clear
@@ -426,12 +426,7 @@ ThreadContext::~ThreadContext()
         this->codeGenNumberThreadAllocator = nullptr;
 #endif
 
-        if (this->debugManager != nullptr)
-        {
-            this->debugManager->Close();
-            HeapDelete(this->debugManager);
-            this->debugManager = nullptr;
-        }
+        Assert(this->debugManager == nullptr);
 
         HeapDelete(recycler);
     }
@@ -1965,6 +1960,7 @@ void ThreadContext::EnsureDebugManager()
 void ThreadContext::ReleaseDebugManager()
 {
     Assert(crefSContextForDiag > 0);
+    Assert(this->debugManager != nullptr);
 
     long lref = InterlockedDecrement(&crefSContextForDiag);
 
@@ -1974,9 +1970,13 @@ void ThreadContext::ReleaseDebugManager()
         {
             this->recyclableData->returnedValueList = nullptr;
         }
-        this->debugManager->Close();
-        HeapDelete(this->debugManager);
-        this->debugManager = nullptr;
+
+        if (this->debugManager != nullptr)
+        {
+            this->debugManager->Close();
+            HeapDelete(this->debugManager);
+            this->debugManager = nullptr;
+        }
     }
 }
 

@@ -362,6 +362,12 @@ namespace Js
         {
             bool isAmbiguous = false;
             indirectExportRecordList->MapUntil([&](ModuleExportEntry exportEntry) {
+                PropertyId reexportNameId = EnsurePropertyIdForIdentifier(exportEntry.exportName);
+                if (exportName != reexportNameId)
+                {
+                    return false;
+                }
+
                 PropertyId importNameId = EnsurePropertyIdForIdentifier(exportEntry.importName);
                 SourceTextModuleRecord* childModuleRecord = GetChildModuleRecord(exportEntry.moduleRequest->Psz());
                 if (childModuleRecord == nullptr)

@@ -115,6 +115,7 @@ namespace Js
         }
 
         static bool Is(Var aValue);
+        static bool IsRegExpLike(Var aValue, ScriptContext* scriptContext);
         static JavascriptRegExp* FromVar(Var aValue);
 
         static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,

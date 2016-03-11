@@ -3954,7 +3954,7 @@ namespace Js
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::assign, &JavascriptObject::EntryInfo::Assign, 2));
         }
 
-        if (scriptContext->GetConfig()->IsES7BuiltinsEnabled())
+        if (scriptContext->GetConfig()->IsES7ValuesEntriesEnabled())
         {
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Values.GetOriginalEntryPoint(),
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::values, &JavascriptObject::EntryInfo::Values, 1));
@@ -6626,7 +6626,7 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(assign, JavascriptObject::EntryAssign);
         }
 
-        if (config.IsES7BuiltinsEnabled())
+        if (config.IsES7ValuesEntriesEnabled())
         {
             REG_OBJECTS_LIB_FUNC(values, JavascriptObject::EntryValues);
             REG_OBJECTS_LIB_FUNC(entries, JavascriptObject::EntryEntries);

@@ -356,7 +356,7 @@
   <test>
     <default>
       <files>ES6StringAPIs.js</files>
-      <compile-flags> -ES6String -args summary -endargs</compile-flags>
+      <compile-flags>-ES6String -ES6RegExSymbols -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -1152,5 +1152,12 @@
         <files>HTMLComments.js</files>
         <baseline>HTMLComments.baseline</baseline>
     </default>
+</test>
+<test>
+  <default>
+    <files>await-futreserved-only-in-modules.js</files>
+    <compile-flags>-ES6Module</compile-flags>
+    <tags>exclude_dynapogo</tags>
+  </default>
 </test>
 </regress-exe>

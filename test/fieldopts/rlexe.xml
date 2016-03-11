@@ -859,4 +859,10 @@
       <files>fixedfieldmonocheck4.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck5.js</files>
+      <compile-flags>-maxinterpretcount:2 -maxsimplejitruncount:6</compile-flags>
+    </default>
+  </test>
 </regress-exe>

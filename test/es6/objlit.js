@@ -72,23 +72,24 @@ var tests = [
     {
         name: "Computed property names",
         body: function() {
+            var x;
             var obj = {
-                ["foo" + "bar"]         : 1,
-                [1 * 10 * 10]           : 2,
-                ["foobar", "notfoobar"] : 3, // Should evaluate to notfoobar
+                ["foo" + "bar"]   : 1,
+                [1 * 10 * 10]     : 2,
+                [x = "notfoobar"] : 3,
 
                 // computed function name
                 ["bar" + "foo"] () { return 4 },
                 [2 * 10 * 10] () { return 5 },
-                ["barfoo", "notbarfoo"] () { return 6 },
+                [x = "notbarfoo"] () { return 6 },
 
                 // computed get/set method name
                 set ["boo" + "far" ] (a) { this.x = a * 2 },
                 get ["boo" + "far" ] () { return this.x },
                 set [3 * 10 * 10] (a) { this.y = a * a },
                 get [3 * 10 * 10] () { return this.y },
-                set ["boofar", "notboofar"] (a) { this.z = a / 3 },
-                get ["boofar", "notboofar"] () { return this.z }
+                set [x = "notboofar"] (a) { this.z = a / 3 },
+                get [x = "notboofar"] () { return this.z }
             };
 
             assert.areEqual(1, obj.foobar, "String concat expr as property name");
@@ -123,7 +124,9 @@ var tests = [
             };
             assert.areEqual(protoObj.abc, 123, "__proto__ get assigned when used as a normal production");
 
-            assert.throws(function () { eval("var b = { ['str'] }"); },            SyntaxError, "Invalid computed identifier shorthand");
+            assert.throws(function () { eval("var b = { ['str'] }"); }, SyntaxError, "Invalid computed identifier shorthand", "Expected ':'");
+
+            assert.throws(function () { eval("var b = { [1, 2]: 3 }"); }, SyntaxError, "Disallow 'Expression' inside 'ComputedPropertyName'", "Expected ']'");
         }
     },
     {

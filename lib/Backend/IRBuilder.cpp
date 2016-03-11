@@ -3659,6 +3659,36 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
 
     switch (newOpcode)
     {
+        case Js::OpCode::LdModuleSlot:
+        case Js::OpCode::StModuleSlot:
+        {
+            Js::Var* moduleExportVarArrayAddr = Js::JavascriptOperators::OP_GetModuleExportSlotArrayAddress(slotId1, slotId2, m_func->GetScriptContext());
+            IR::AddrOpnd* addrOpnd = IR::AddrOpnd::New(moduleExportVarArrayAddr, IR::AddrOpndKindConstant, m_func, true);
+            regOpnd = IR::RegOpnd::New(TyVar, m_func);
+            instr = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, m_func);
+            this->AddInstr(instr, offset);
+
+            fieldSym = PropertySym::FindOrCreate(regOpnd->m_sym->m_id, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
+            
+            if (newOpcode == Js::OpCode::LdModuleSlot)
+            {
+                newOpcode = Js::OpCode::LdSlot;
+                regOpnd = this->BuildDstOpnd(regSlot);
+                instr = IR::Instr::New(newOpcode, regOpnd, fieldOpnd, m_func);
+            }
+            else
+            {
+                Assert(newOpcode == Js::OpCode::StModuleSlot);
+                newOpcode = Js::OpCode::StSlot;
+                regOpnd = this->BuildSrcOpnd(regSlot);
+                instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
+            }
+
+            this->AddInstr(instr, offset);
+            break;
+        }
+
         case Js::OpCode::LdEnvSlot:
         case Js::OpCode::LdEnvObjSlot:
         case Js::OpCode::StEnvSlot:

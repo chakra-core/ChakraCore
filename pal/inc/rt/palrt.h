@@ -1276,6 +1276,23 @@ _mm_cvtsd_si32(__m128d __a)
   return __builtin_ia32_cvtsd2si(__a);
 }
 
+// from xmmintrin.h
+static __inline__ __m128 __attribute__((__always_inline__, __nodebug__))
+_mm_loadu_ps(const float *__p)
+{
+  struct __loadu_ps {
+    __m128 __v;
+  } __attribute__((__packed__, __may_alias__));
+  return ((struct __loadu_ps*)__p)->__v;
+}
+
+// from xmmintrin.h
+static __inline__ void __attribute__((__always_inline__, __nodebug__))
+_mm_storeu_ps(float *__p, __m128 __a)
+{
+  __builtin_ia32_storeups(__p, __a);
+}
+
 #endif
 
 #define PF_COMPARE_EXCHANGE_DOUBLE          2
