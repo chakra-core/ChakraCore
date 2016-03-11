@@ -355,6 +355,7 @@ private:
     ParseNodePtr m_currentNodeDeferredFunc; // current function or NULL
     ParseNodePtr m_currentNodeProg; // current program
     DeferredFunctionStub *m_currDeferredStub;
+    DeferredFunctionStub *m_prevSiblingDeferredStub;
     long * m_pCurrentAstSize;
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
