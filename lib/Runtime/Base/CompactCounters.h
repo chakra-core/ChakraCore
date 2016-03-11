@@ -11,7 +11,7 @@ namespace Js
 {
     template<class T, typename CountT = T::CounterFields>
     struct CompactCounters
-    {    
+    {
         struct Fields {
             union {
                 uint8 u8Fields[CountT::Max];
@@ -26,15 +26,15 @@ namespace Js
 
         uint8 fieldSize;
 #if DBG
-    
+
         mutable bool bgThreadCallStarted;
         bool isCleaningUp;
-#endif    
+#endif
         WriteBarrierPtr<Fields> fields;
-    
+
         CompactCounters() { }
         CompactCounters(T* host)
-            :fieldSize(sizeof(uint8))
+            :fieldSize(0)
 #if DBG
             , bgThreadCallStarted(false), isCleaningUp(false)
 #endif
@@ -61,10 +61,13 @@ namespace Js
             {
                 value = this->fields->u16Fields[type];
             }
+            else if (localFieldSize == 4)
+            {
+                value = this->fields->u32Fields[type];
+            }
             else
             {
-                Assert(localFieldSize == 4);
-                value = this->fields->u32Fields[type];
+                Assert(localFieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when initial allocation failed
             }
 
             return value;
@@ -90,16 +93,19 @@ namespace Js
             {
                 value = this->fields->i16Fields[type];
             }
+            else if (localFieldSize == 4)
+            {
+                value = this->fields->i32Fields[type];
+            }
             else
             {
-                Assert(localFieldSize == 4);
-                value = this->fields->i32Fields[type];
+                Assert(localFieldSize == 0 && this->isCleaningUp && this->fields == nullptr); // OOM when initial allocation failed
             }
             return value;
         }
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
-        {            
+        {
             Assert(bgThreadCallStarted == false || isCleaningUp == true);
 
             uint8 type = static_cast<uint8>(typeEnum);
@@ -129,8 +135,13 @@ namespace Js
                 }
             }
 
-            Assert(fieldSize == 4);
-            return this->fields->u32Fields[type] = val;
+            if (fieldSize == 4)
+            {
+                return this->fields->u32Fields[type] = val;
+            }
+
+            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
+            return val;
         }
 
         int32 SetSigned(CountT typeEnum, int32 val, T* host)
@@ -164,8 +175,13 @@ namespace Js
                 }
             }
 
-            Assert(fieldSize == 4);
-            return this->fields->i32Fields[type] = val;
+            if (fieldSize == 4)
+            {
+                return this->fields->i32Fields[type] = val;
+            }
+
+            Assert(fieldSize == 0 && this->isCleaningUp && this->fields == nullptr && val == 0); // OOM when allocating the counters structure
+            return val;
         }
 
         uint32 Increase(CountT typeEnum, T* host)
@@ -253,7 +269,7 @@ namespace Js
             }
             else
             {
-                Assert(false);
+                Assert(this->fieldSize==0);
             }
 
             this->fieldSize = sizeof(FieldT);
