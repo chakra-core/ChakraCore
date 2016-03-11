@@ -1,8 +1,15 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
+
+
+#if _M_IX86 || _M_AMD64
+// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+_x86_SIMDValue X86_TEMP_SIMD[] = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+#endif
 
 namespace Js
 {
@@ -82,6 +89,8 @@ namespace Js
     }
 #endif
 
+
+
     template <int laneCount>
     SIMDValue SIMD128InnerShuffle(SIMDValue src1, SIMDValue src2, int32 lane0, int32 lane1, int32 lane2, int32 lane3)
     {
@@ -89,15 +98,15 @@ namespace Js
         CompileAssert(laneCount == 4 || laneCount == 2);
         if (laneCount == 4)
         {
-            result.i32[SIMD_X] = lane0 < 4 ? src1.i32[lane0] : src2.i32[lane0 - 4];
-            result.i32[SIMD_Y] = lane1 < 4 ? src1.i32[lane1] : src2.i32[lane1 - 4];
-            result.i32[SIMD_Z] = lane2 < 4 ? src1.i32[lane2] : src2.i32[lane2 - 4];
-            result.i32[SIMD_W] = lane3 < 4 ? src1.i32[lane3] : src2.i32[lane3 - 4];
+            result.i32[SIMD_X] = lane0 < laneCount ? src1.i32[lane0] : src2.i32[lane0 - laneCount];
+            result.i32[SIMD_Y] = lane1 < laneCount ? src1.i32[lane1] : src2.i32[lane1 - laneCount];
+            result.i32[SIMD_Z] = lane2 < laneCount ? src1.i32[lane2] : src2.i32[lane2 - laneCount];
+            result.i32[SIMD_W] = lane3 < laneCount ? src1.i32[lane3] : src2.i32[lane3 - laneCount];
         }
         else
         {
-            result.f64[SIMD_X] = lane0 < 2 ? src1.f64[lane0] : src2.f64[lane0 - 2];
-            result.f64[SIMD_Y] = lane1 < 2 ? src1.f64[lane1] : src2.f64[lane1 - 2];
+            result.f64[SIMD_X] = lane0 < laneCount ? src1.f64[lane0] : src2.f64[lane0 - laneCount];
+            result.f64[SIMD_Y] = lane1 < laneCount ? src1.f64[lane1] : src2.f64[lane1 - laneCount];
         }
         return result;
     }
@@ -202,10 +211,10 @@ namespace Js
         return SIMDType::New(&result, scriptContext);
     }
 
-    template Var SIMD128SlowShuffle<JavascriptSIMDInt32x4, 4>   (Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
+    template Var SIMD128SlowShuffle<JavascriptSIMDInt32x4  , 4> (Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
     template Var SIMD128SlowShuffle<JavascriptSIMDFloat32x4, 4> (Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
     template Var SIMD128SlowShuffle<JavascriptSIMDFloat64x2, 2> (Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
-    template Var SIMD128SlowShuffle<JavascriptSIMDUint32x4, 4>(Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
+    template Var SIMD128SlowShuffle<JavascriptSIMDUint32x4 , 4> (Var src1, Var src2, Var lane0, Var lane1, Var lane2, Var lane3, int range, ScriptContext* scriptContext);
 
     //Int8x16 LaneAccess
     inline int8 SIMD128InnerExtractLaneI16(const SIMDValue& src1, const int32 lane)

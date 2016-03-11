@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -211,10 +212,6 @@ namespace Js
         template <class T> void OP_Simd128_SelectF4(const unaligned T* playout);
         template <class T> void OP_Simd128_SelectI4(const unaligned T* playout);
         template <class T> void OP_Simd128_SelectD2(const unaligned T* playout);
-
-        template <class T> void OP_Simd128_LdSignMaskF4(const unaligned T* playout);
-        template <class T> void OP_Simd128_LdSignMaskI4(const unaligned T* playout);
-        template <class T> void OP_Simd128_LdSignMaskD2(const unaligned T* playout);
 
         template <class T> void OP_Simd128_ExtractLaneI4(const unaligned T* playout);
         template <class T> void OP_Simd128_ExtractLaneF4(const unaligned T* playout);

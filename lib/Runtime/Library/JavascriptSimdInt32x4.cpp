@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -39,12 +39,6 @@ namespace Js
         return reinterpret_cast<JavascriptSIMDInt32x4 *>(aValue);
     }
 
-    JavascriptSIMDInt32x4* JavascriptSIMDInt32x4::FromBool(SIMDValue *val, ScriptContext* requestContext)
-    {
-        SIMDValue result = SIMDInt32x4Operation::OpFromBool(*val);
-        return JavascriptSIMDInt32x4::New(&result, requestContext);
-    }
-
     JavascriptSIMDInt32x4* JavascriptSIMDInt32x4::FromFloat64x2(JavascriptSIMDFloat64x2 *instance, ScriptContext* requestContext)
     {
         SIMDValue result = SIMDInt32x4Operation::OpFromFloat64x2(instance->GetValue());
@@ -58,20 +52,6 @@ namespace Js
 
     bool JavascriptSIMDInt32x4::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {
-        switch (propertyId)
-        {
-        case PropertyIds::signMask:
-            *value = GetSignMask();
-            return true;
-
-        case PropertyIds::flagX:
-        case PropertyIds::flagY:
-        case PropertyIds::flagZ:
-        case PropertyIds::flagW:
-            *value = GetLaneAsFlag(propertyId - PropertyIds::flagX, requestContext);
-            return true;
-        }
-
         return false;
     }
 
@@ -93,29 +73,5 @@ namespace Js
         char16 *typeString = _u("SIMD.Int32x4(");
         return JavascriptSIMDObject::FromVar(&obj)->ToLocaleString<int, 4>(args, numArgs, typeString,
             simdValue.i32, &callInfo, &requestContext);
-    }
-
-    Var  JavascriptSIMDInt32x4::CopyAndSetLaneFlag(uint index, BOOL value, ScriptContext* requestContext)
-    {
-        AnalysisAssert(index < 4);
-        Var instance = Copy(requestContext);
-        JavascriptSIMDInt32x4 *insValue = JavascriptSIMDInt32x4::FromVar(instance);
-        Assert(insValue);
-        insValue->value.i32[index] = value ? -1 : 0;
-        return instance;
-    }
-
-    __inline Var  JavascriptSIMDInt32x4::GetLaneAsFlag(uint index, ScriptContext* requestContext)
-    {
-        // convert value.i32[index] to TaggedInt
-        AnalysisAssert(index < 4);
-        return JavascriptNumber::ToVar(value.i32[index] != 0x0, requestContext);
-    }
-
-    __inline Var JavascriptSIMDInt32x4::GetSignMask()
-    {
-        int signMask = SIMDInt32x4Operation::OpGetSignMask(value);
-
-        return TaggedInt::ToVarUnchecked(signMask);
     }
 }

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -26,6 +26,7 @@ namespace Js {
 
             // UnaryOps
             static FunctionInfo Not;
+            static FunctionInfo Neg;
             // BinaryOps
             static FunctionInfo Add;
             static FunctionInfo Sub;
@@ -82,6 +83,7 @@ namespace Js {
 
         // UnaryOps
         static Var EntryNot(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryNeg(RecyclableObject* function, CallInfo callInfo, ...);
         // BinaryOps
         static Var EntryAdd(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySub(RecyclableObject* function, CallInfo callInfo, ...);

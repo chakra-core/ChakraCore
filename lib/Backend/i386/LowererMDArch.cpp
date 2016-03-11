@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "Backend.h"
 #include "LowererMDArch.h"
 #include "Library/JavascriptGeneratorFunction.h"
@@ -102,6 +103,14 @@ LowererMDArch::GetAssignOp(IRType type)
         return Js::OpCode::MOVSS;
     case TySimd128F4:
     case TySimd128I4:
+    case TySimd128I8:
+    case TySimd128I16:
+    case TySimd128U4:
+    case TySimd128U8:
+    case TySimd128U16:
+    case TySimd128B4:
+    case TySimd128B8:
+    case TySimd128B16:
     case TySimd128D2:
         return Js::OpCode::MOVUPS;
     default:
@@ -1790,6 +1799,38 @@ LowererMDArch::LowerExitInstrAsmJs(IR::ExitInstr * exitInstr)
     else if (asmRetType.toVarType().isInt32x4())
     {
         regType = TySimd128I4;
+    }
+    else if (asmRetType.toVarType().isInt16x8())
+    {
+        regType = TySimd128I8;
+    }
+    else if (asmRetType.toVarType().isInt8x16())
+    {
+        regType = TySimd128I16;
+    }
+    else if (asmRetType.toVarType().isUint32x4())
+    {
+        regType = TySimd128U4;
+    }
+    else if (asmRetType.toVarType().isUint16x8())
+    {
+        regType = TySimd128U8;
+    }
+    else if (asmRetType.toVarType().isUint8x16())
+    {
+        regType = TySimd128U16;
+    }
+    else if (asmRetType.toVarType().isBool32x4())
+    {
+        regType = TySimd128B4;
+    }
+    else if (asmRetType.toVarType().isBool16x8())
+    {
+        regType = TySimd128B8;
+    }
+    else if (asmRetType.toVarType().isBool8x16())
+    {
+        regType = TySimd128B16;
     }
     else if (asmRetType.toVarType().isFloat64x2())
     {
