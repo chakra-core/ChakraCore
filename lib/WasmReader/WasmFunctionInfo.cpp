@@ -27,7 +27,7 @@ WasmFunctionInfo::AddLocal(WasmTypes::WasmType type, uint count)
 {
     for (uint i = 0; i < count; ++i)
     {
-        m_locals->Add(type);
+        m_locals->Add(Wasm::Local(type));
     }
 }
 
@@ -68,7 +68,7 @@ WasmFunctionInfo::GetLocal(uint index) const
 {
     if (index < m_locals->Count())
     {
-        return m_locals->GetBuffer()[index];
+        return m_locals->GetBuffer()[index].t;
     }
     return WasmTypes::Limit;
 }
@@ -126,24 +126,24 @@ WasmFunctionInfo::GetParamCount() const
 }
 
 void
-WasmFunctionInfo::SetName(LPCUTF8 name)
+WasmFunctionInfo::SetName(char16* name)
 {
     m_name = name;
 }
 
-LPCUTF8
+char16*
 WasmFunctionInfo::GetName() const
 {
     return m_name;
 }
 
 void
-WasmFunctionInfo::SetModuleName(LPCUTF8 name)
+WasmFunctionInfo::SetModuleName(char16* name)
 {
     m_mod = name;
 }
 
-LPCUTF8
+char16*
 WasmFunctionInfo::GetModuleName() const
 {
     return m_mod;
@@ -166,7 +166,7 @@ WasmFunctionInfo::SetSignature(WasmSignature * signature)
 {
     for (uint32 i = 0; i < signature->GetParamCount(); ++i)
     {
-        m_locals->Add(signature->GetParam(i));
+        m_locals->Add(Wasm::Local(signature->GetParam(i)));
     }
 
     m_signature = signature;
@@ -188,6 +188,20 @@ Js::ByteCodeLabel
 WasmFunctionInfo::GetExitLabel() const
 {
     return m_ExitLabel;
+}
+
+void
+WasmFunctionInfo::SetLocalName(uint i, char16* n)
+{
+    Assert(i < GetLocalCount());
+    m_locals->GetBuffer()[i].name = n;
+}
+
+char16*
+WasmFunctionInfo::GetLocalName(uint i)
+{
+    Assert(i < GetLocalCount());
+    return m_locals->GetBuffer()[i].name;
 }
 
 } // namespace Wasm

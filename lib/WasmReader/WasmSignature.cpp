@@ -22,7 +22,7 @@ WasmSignature::WasmSignature(ArenaAllocator * alloc) :
 void
 WasmSignature::AddParam(WasmTypes::WasmType type)
 {
-    m_params->Add(type);
+    m_params->Add(Wasm::Local(type));
 }
 
 void
@@ -44,7 +44,7 @@ WasmSignature::GetParam(uint index) const
 {
     if (index < m_params->Count())
     {
-        return m_params->GetBuffer()[index];
+        return m_params->GetBuffer()[index].t;
     }
     return WasmTypes::Limit;
 }
