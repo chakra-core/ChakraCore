@@ -376,6 +376,9 @@ namespace Js
         JavascriptFunction* objectValueOfFunction;
         JavascriptFunction* objectToStringFunction;
 
+#ifdef ENABLE_WASM
+        DynamicObject* wasmObject;
+#endif
 
         // SIMD_JS
         JavascriptFunction* simdFloat32x4ToStringFunction;
