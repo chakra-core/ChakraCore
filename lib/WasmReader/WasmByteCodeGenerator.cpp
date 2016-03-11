@@ -206,8 +206,9 @@ WasmBytecodeGenerator::GenerateFunction()
     Js::ArgSlot paramCount = (Js::ArgSlot)m_funcInfo->GetParamCount();
     info->SetArgCount(paramCount);
 
-    info->SetArgSizeArrayLength(max(paramCount, 3ui16));
-    uint* argSizeArray = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), uint, paramCount);
+    Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
+    info->SetArgSizeArrayLength(argSizeLength);
+    uint* argSizeArray = RecyclerNewArrayLeafZ(m_scriptContext->GetRecycler(), uint, argSizeLength);
     info->SetArgsSizesArray(argSizeArray);
 
     if (m_module->memSize > 0)
@@ -694,11 +695,9 @@ WasmBytecodeGenerator::EmitCall()
         break;
     case wnCALL_INDIRECT:
     {
-        Js::RegSlot tmp = m_i32RegSlots->AcquireTmpRegister();
         // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, tmp, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, tmp, indirectIndexInfo.location);
-        m_i32RegSlots->ReleaseTmpRegister(tmp);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->indirFuncTableOffset);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
         ReleaseLocation(&indirectIndexInfo);
         break;
     }

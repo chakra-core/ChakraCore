@@ -426,6 +426,50 @@ Error:
     return JS_INVALID_REFERENCE;
 }
 
+JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    if (argumentCount < 2)
+    {
+        fwprintf(stderr, L"Too too few arguments.\n");
+    }
+    else
+    {
+        const char16 *fileContent;
+        const char16 *fileName;
+        size_t fileNameLength;
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsStringToPointer(arguments[1], &fileName, &fileNameLength));
+
+        if (errorCode == JsNoError)
+        {
+            HRESULT hr;
+            UINT lengthBytes = 0;
+            bool isUtf8 = false;
+            LPCOLESTR contentsRaw = nullptr;
+            hr = Helpers::LoadScriptFromFile(fileName, fileContent, &isUtf8, &contentsRaw, &lengthBytes);
+            fileContent; // Unused for now.
+
+            if (FAILED(hr))
+            {
+                fwprintf(stderr, L"Couldn't load file.\n");
+            }
+            else
+            {
+                JsValueRef stringObject;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsPointerToString(fileContent, lengthBytes, &stringObject));
+                return stringObject;
+            }
+        }
+    }
+
+Error:
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     HRESULT hr = E_FAIL;
@@ -643,6 +687,12 @@ bool WScriptJsrt::Initialize()
     IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("LoadBinaryFile"), &loadBinaryFileName), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadBinaryFileName, loadBinaryFile, true), false);
 
+    JsValueRef loadTextFile;
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateFunction(LoadTextFileCallback, nullptr, &loadTextFile), false);
+    JsPropertyIdRef loadTextFileName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(_u("LoadTextFile"), &loadTextFileName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(wscript, loadTextFileName, loadTextFile, true), false);
+
     JsValueRef echo;
     JsPropertyIdRef echoPropertyId;
     const wchar_t* echoString = L"Echo";
@@ -719,6 +769,14 @@ bool WScriptJsrt::Initialize()
     JsPropertyIdRef printName;
     IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"print", &printName), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, printName, echo, true), false);
+
+    JsPropertyIdRef readName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"read", &readName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, readName, loadTextFile, true), false);
+
+    JsPropertyIdRef readbufferName;
+    IfJsrtErrorFail(ChakraRTInterface::JsGetPropertyIdFromName(L"readbuffer", &readbufferName), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, readbufferName, loadBinaryFile, true), false);
 
     return true;
 }

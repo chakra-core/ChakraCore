@@ -2858,6 +2858,18 @@ namespace Js
         uint homingAreaSize = 0;
 #endif
 
+#if DBG_DUMP
+        const bool tracingFunc = PHASE_TRACE(AsmjsFunctionEntryPhase, functionBody);
+        if (tracingFunc)
+        {
+            if (AsmJsCallDepth)
+            {
+                Output::Print(_u("%*c"), AsmJsCallDepth, ' ');
+            }
+            Output::Print(_u("Executing function %s("), functionBody->GetDisplayName());
+            ++AsmJsCallDepth;
+        }
+#endif
         uintptr_t argAddress = (uintptr_t)m_inParams;
         for (ArgSlot i = 0; i < argCount; i++)
         {
@@ -2888,18 +2900,36 @@ namespace Js
                 if (info->GetArgType(i).isInt())
                 {
                     *intArg = *(int*)argAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%d, "), *intArg);
+                    }
+#endif
                     ++intArg;
                     homingAreaSize += MachPtr;
                 }
                 else if (info->GetArgType(i).isFloat())
                 {
                     *floatArg = *(float*)floatSpillAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%.2f, "), *floatArg);
+                    }
+#endif
                     ++floatArg;
                     homingAreaSize += MachPtr;
                 }
                 else if (info->GetArgType(i).isDouble())
                 {
                     *doubleArg = *(double*)floatSpillAddress;
+#if DBG_DUMP
+                    if (tracingFunc)
+                    {
+                        Output::Print(_u("%.2f, "), *doubleArg);
+                    }
+#endif
                     ++doubleArg;
                     homingAreaSize += MachPtr;
                 }
@@ -2927,12 +2957,24 @@ namespace Js
             if (info->GetArgType(i).isInt())
             {
                 *intArg = *(int*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%d, "), *intArg);
+                }
+#endif
                 ++intArg;
                 argAddress += MachPtr;
             }
             else if (info->GetArgType(i).isFloat())
             {
                 *floatArg = *(float*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%.2f, "), *floatArg);
+                }
+#endif
                 ++floatArg;
                 argAddress += MachPtr;
             }
@@ -2940,6 +2982,12 @@ namespace Js
             {
                 Assert(info->GetArgType(i).isDouble());
                 *doubleArg = *(double*)argAddress;
+#if DBG_DUMP
+                if (tracingFunc)
+                {
+                    Output::Print(_u("%.2f, "), *doubleArg);
+                }
+#endif
                 ++doubleArg;
                 argAddress += sizeof(double);
             }
@@ -2954,19 +3002,6 @@ namespace Js
                 AssertMsg(UNREACHED, "Invalid function arg type.");
             }
         }
-
-#if DBG_DUMP
-        const bool tracingFunc = PHASE_TRACE( AsmjsFunctionEntryPhase, functionBody );
-        if( tracingFunc )
-        {
-            if( AsmJsCallDepth )
-            {
-                Output::Print( _u("%*c"), AsmJsCallDepth,' ');
-            }
-            Output::Print( _u("Executing function %s"), functionBody->GetDisplayName());
-            ++AsmJsCallDepth;
-        }
-#endif
 
 #if DBG_DUMP
         if (tracingFunc)
@@ -3099,11 +3134,11 @@ namespace Js
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-                        Output::Print( _u(" = %d"), JavascriptMath::ToInt32( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %d"), (int)(int64)returnVar );
                         break;
                     case AsmJsRetType::Float:
                     case AsmJsRetType::Double:
-                        Output::Print( _u(" = %.4f"), JavascriptConversion::ToNumber( returnVar, scriptContext ) );
+                        Output::Print( _u(" = %.4f"), (double)(int64)returnVar );
                         break;
                     default:
                         break;
