@@ -6,7 +6,7 @@
 # We will run dos2unix on the argument and make sure that it doesn't change.
 # If it changes, that means someone introduced a CRLF by not setting core.autocrlf to true.
 
-ERRFILE=jenkins.check_eol.sh.err
+ERRFILE=check_eol.sh.err
 ERRFILETEMP=$ERRFILE.0
 
 # display a helpful message for someone reading the log
