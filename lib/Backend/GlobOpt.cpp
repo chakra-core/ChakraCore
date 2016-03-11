@@ -6280,6 +6280,17 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
                 Assert(!propertySymOpnd->IsTypeChecked());
                 checkObjTypeInstr = this->SetTypeCheckBailOut(checkObjTypeOpnd, checkObjTypeInstr, nullptr);
                 Assert(checkObjTypeInstr->HasBailOutInfo());
+
+                if (this->currentBlock->loop && !this->IsLoopPrePass())
+                {
+                    BVSparse<JitArenaAllocator> *currentBytecodeUses = this->byteCodeUses;
+                    PropertySym * currentPropertySymUse = this->propertySymUse;
+                    this->byteCodeUses = NULL;
+                    this->propertySymUse = NULL;
+                    TryHoistInvariant(checkObjTypeInstr, this->currentBlock, NULL, this->FindValue(copySym), NULL, true);
+                    this->byteCodeUses = currentBytecodeUses;
+                    this->propertySymUse = currentPropertySymUse;
+                }
             }
         }
 
