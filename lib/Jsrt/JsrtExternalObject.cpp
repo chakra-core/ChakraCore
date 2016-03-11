@@ -48,7 +48,7 @@ void JsrtExternalObject::Finalize(bool isShutdown)
     JsFinalizeCallback finalizeCallback = this->GetExternalType()->GetJsFinalizeCallback();
     if (nullptr != finalizeCallback)
     {
-        JsrtCallbackState scope(reinterpret_cast<ThreadContext*>(this->GetExternalType()->GetScriptContext()->GetThreadContext()));
+        JsrtCallbackState scope(nullptr);
         finalizeCallback(this->slot);
     }
 }
