@@ -3007,6 +3007,7 @@ namespace Js
         if (tracingFunc)
         {
             Output::Print(_u("){\n"));
+            Output::Flush();
         }
 #endif
         if( info->GetReturnType() == AsmJsRetType::Void )
@@ -3134,16 +3135,20 @@ namespace Js
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-                        Output::Print( _u(" = %d"), (int)(int64)returnVar );
+
+                        Output::Print( _u(" = %d"), m_localIntSlots[0]);
                         break;
                     case AsmJsRetType::Float:
+                        Output::Print(_u(" = %.4f"), (double)m_localFloatSlots[0]);
+                        break;
                     case AsmJsRetType::Double:
-                        Output::Print( _u(" = %.4f"), (double)(int64)returnVar );
+                        Output::Print( _u(" = %.4f"), (double)m_localDoubleSlots[0]);
                         break;
                     default:
                         break;
                     }
                     Output::Print( _u(";\n") );
+                    Output::Flush();
                 }
 #endif
                 return returnVar;

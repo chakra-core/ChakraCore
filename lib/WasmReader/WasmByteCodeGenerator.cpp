@@ -181,7 +181,7 @@ WasmBytecodeGenerator::GenerateFunction()
     }
 
     // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
-    if (op != wnLIMIT && op != wnRETURN)
+    if (op != wnRETURN && exprInfo.type == m_funcInfo->GetSignature()->GetResultType())
     {
         EmitReturnExpr(&exprInfo);
     }
@@ -892,7 +892,7 @@ WasmBytecodeGenerator::EmitBrTable()
     {
         uint target = targetTable[i];
         Js::RegSlot caseLoc = m_i32RegSlots->AcquireTmpRegister();
-        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, target);
+        m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, caseLoc, i);
         Js::ByteCodeLabel targetLabel = GetLabel(target);
         m_writer.AsmBrReg2(Js::OpCodeAsmJs::Case_Int, targetLabel, scrutineeInfo.location, caseLoc);
         m_i32RegSlots->ReleaseTmpRegister(caseLoc);
