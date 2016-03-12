@@ -191,13 +191,13 @@ public:
         return address;
     }
 
-    char * AllocPages(size_t pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
+    char * AllocPages(uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
     {
         Assert(this->cs.IsLocked());
         char * address = nullptr;
         if (canAllocInPreReservedHeapPageSegment)
         {
-            address = this->preReservedHeapPageAllocator.AllocPages(1, (PageSegmentBase<PreReservedVirtualAllocWrapper>**)pageSegment);
+            address = this->preReservedHeapPageAllocator.AllocPages(pages, (PageSegmentBase<PreReservedVirtualAllocWrapper>**)pageSegment);
 
             if (address == nullptr)
             {
@@ -211,7 +211,7 @@ public:
             {
                 *isAllJITCodeInPreReservedRegion = false;
             }
-            address = this->pageAllocator.AllocPages(1, (PageSegmentBase<VirtualAllocWrapper>**)pageSegment);
+            address = this->pageAllocator.AllocPages(pages, (PageSegmentBase<VirtualAllocWrapper>**)pageSegment);
         }
         else
         {

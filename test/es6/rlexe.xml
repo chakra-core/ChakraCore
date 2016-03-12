@@ -1160,4 +1160,11 @@
     <tags>exclude_dynapogo</tags>
   </default>
 </test>
+<test>
+  <default>
+    <files>OS_5500719.js</files>
+    <compile-flags>-forceserialized</compile-flags>
+    <tags>exclude_dynapogo</tags>
+  </default>
+</test>
 </regress-exe>

@@ -254,12 +254,15 @@ namespace Js
             regex::Interval func2Range(candidateMatch2.function->StartInDocument());
             func2Range.End(func2Range.Begin() + candidateMatch2.function->LengthInBytes());
 
-            if (func1Range.Includes(func2Range) && func2Range.Includes(ibos))
+            // If cursor (ibos) is just after the closing braces of the inner function then we can't
+            // directly choose inner function and have to make line break check, so fallback
+            // function foo(){function bar(){var y=1;}#var x=1;bar();}foo(); - ibos is #
+            if (func1Range.Includes(func2Range) && func2Range.Includes(ibos) && func2Range.End() != ibos)
             {
                 *plocation = candidateMatch2;
                 return TRUE;
             }
-            else if (func2Range.Includes(func1Range) && func1Range.Includes(ibos))
+            else if (func2Range.Includes(func1Range) && func1Range.Includes(ibos) && func1Range.End() != ibos)
             {
                 *plocation = candidateMatch1;
                 return TRUE;

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -21,6 +22,16 @@ namespace Js {
         static void DumpR8Float(float value);
         static void DumpFloat32x4Reg(RegSlot reg);
         static void DumpInt32x4Reg(RegSlot reg);
+        
+        static void DumpUint32x4Reg(RegSlot reg);
+        static void DumpInt16x8Reg(RegSlot reg);
+        static void DumpUint16x8Reg(RegSlot reg);
+        static void DumpInt8x16Reg(RegSlot reg);
+        static void DumpUint8x16Reg(RegSlot reg);
+        static void DumpBool32x4Reg(RegSlot reg);
+        static void DumpBool16x8Reg(RegSlot reg);
+        static void DumpBool8x16Reg(RegSlot reg);
+
         static void DumpFloat64x2Reg(RegSlot reg);
 
 #define LAYOUT_TYPE(layout) \

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeByteCodePch.h"
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -174,6 +175,89 @@ namespace Js
         return false;
     }
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8)
+    {
+        OpLayoutT_AsmReg9<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) &&
+            SizePolicy::Assign(layout.R5, R5) && SizePolicy::Assign(layout.R6, R6) && SizePolicy::Assign(layout.R7, R7) && SizePolicy::Assign(layout.R8, R8))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg10(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9)
+    {
+        OpLayoutT_AsmReg10<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) &&
+            SizePolicy::Assign(layout.R5, R5) && SizePolicy::Assign(layout.R6, R6) && SizePolicy::Assign(layout.R7, R7) && SizePolicy::Assign(layout.R8, R8) && SizePolicy::Assign(layout.R9, R9))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg11(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9, RegSlot R10)
+    {
+        OpLayoutT_AsmReg11<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) &&
+            SizePolicy::Assign(layout.R5, R5) && SizePolicy::Assign(layout.R6, R6) && SizePolicy::Assign(layout.R7, R7) && SizePolicy::Assign(layout.R8, R8) && SizePolicy::Assign(layout.R9, R9) &&
+            SizePolicy::Assign(layout.R10, R10))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg17(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+                                                               RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16)
+    {
+        OpLayoutT_AsmReg17<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0)   && SizePolicy::Assign(layout.R1, R1)   && SizePolicy::Assign(layout.R2, R2)   && SizePolicy::Assign(layout.R3, R3)   && SizePolicy::Assign(layout.R4, R4)   &&
+            SizePolicy::Assign(layout.R5, R5)   && SizePolicy::Assign(layout.R6, R6)   && SizePolicy::Assign(layout.R7, R7)   && SizePolicy::Assign(layout.R8, R8)   && SizePolicy::Assign(layout.R9, R9)   &&
+            SizePolicy::Assign(layout.R10, R10) && SizePolicy::Assign(layout.R11, R11) && SizePolicy::Assign(layout.R12, R12) && SizePolicy::Assign(layout.R13, R13) && SizePolicy::Assign(layout.R14, R14) &&
+            SizePolicy::Assign(layout.R15, R15) && SizePolicy::Assign(layout.R16, R16))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg18(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+        RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17)
+    {
+        OpLayoutT_AsmReg18<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) &&
+            SizePolicy::Assign(layout.R5, R5) && SizePolicy::Assign(layout.R6, R6) && SizePolicy::Assign(layout.R7, R7) && SizePolicy::Assign(layout.R8, R8) && SizePolicy::Assign(layout.R9, R9) &&
+            SizePolicy::Assign(layout.R10, R10) && SizePolicy::Assign(layout.R11, R11) && SizePolicy::Assign(layout.R12, R12) && SizePolicy::Assign(layout.R13, R13) && SizePolicy::Assign(layout.R14, R14) &&
+            SizePolicy::Assign(layout.R15, R15) && SizePolicy::Assign(layout.R16, R16) && SizePolicy::Assign(layout.R17, R17))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmReg19(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+        RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18)
+    {
+        OpLayoutT_AsmReg19<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) &&
+            SizePolicy::Assign(layout.R5, R5) && SizePolicy::Assign(layout.R6, R6) && SizePolicy::Assign(layout.R7, R7) && SizePolicy::Assign(layout.R8, R8) && SizePolicy::Assign(layout.R9, R9) &&
+            SizePolicy::Assign(layout.R10, R10) && SizePolicy::Assign(layout.R11, R11) && SizePolicy::Assign(layout.R12, R12) && SizePolicy::Assign(layout.R13, R13) && SizePolicy::Assign(layout.R14, R14) &&
+            SizePolicy::Assign(layout.R15, R15) && SizePolicy::Assign(layout.R16, R16) && SizePolicy::Assign(layout.R17, R17) && SizePolicy::Assign(layout.R18, R18))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
     {
         OpLayoutT_AsmReg2IntConst1<SizePolicy> layout;
@@ -327,7 +411,39 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg7, op, R0, R1, R2, R3, R4, R5, R6);
     }
+    
+    void AsmJsByteCodeWriter::AsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg9, op, R0, R1, R2, R3, R4, R5, R6, R7, R8);
+    }
 
+    void AsmJsByteCodeWriter::AsmReg10(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg10, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+    }
+    
+    void AsmJsByteCodeWriter::AsmReg11(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9, RegSlot R10)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg11, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+    }
+
+    void AsmJsByteCodeWriter::AsmReg17(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+                                                       RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg17, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16);
+    }
+    
+    void AsmJsByteCodeWriter::AsmReg18(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+        RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg18, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17);
+    }
+
+    void AsmJsByteCodeWriter::AsmReg19(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
+        RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18)
+    {
+        MULTISIZE_LAYOUT_WRITE(AsmReg19, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18);
+    }
     void AsmJsByteCodeWriter::AsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg2IntConst1, op, R0, R1, C2);

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js {
@@ -14,7 +15,6 @@ namespace Js {
         public:
             static FunctionInfo Float64x2;
             static FunctionInfo Check;
-            static FunctionInfo Zero;
             static FunctionInfo Splat;
 
             static FunctionInfo FromFloat32x4;
@@ -50,7 +50,6 @@ namespace Js {
 
             static FunctionInfo Swizzle;
             static FunctionInfo Shuffle;
-            static FunctionInfo Clamp;
             static FunctionInfo Select;
 
             static FunctionInfo Load;
@@ -64,7 +63,6 @@ namespace Js {
         // constructor
         static Var EntryFloat64x2(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCheck(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryZero(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySplat(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryFromFloat32x4(RecyclableObject* function, CallInfo callInfo, ...);
@@ -100,7 +98,6 @@ namespace Js {
 
         static Var EntrySwizzle(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryShuffle(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryClamp(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySelect(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryLoad(RecyclableObject* function, CallInfo callInfo, ...);

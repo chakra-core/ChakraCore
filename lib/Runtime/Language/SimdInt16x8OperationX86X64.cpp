@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
@@ -9,16 +10,16 @@
 namespace Js
 {
     // SIMD.Int16x8 operation wrappers that cover instrinsics for x86/x64 system
-    SIMDValue SIMDInt16x8Operation::OpInt16x8(short x0, short x1, short x2, short x3, short x4, short x5, short x6, short x7)
+    SIMDValue SIMDInt16x8Operation::OpInt16x8(int16 values[])
     {
         X86SIMDValue x86Result;
         // Sets the 8 signed 16-bit integer values, note in revised order: starts with x7
-        x86Result.m128i_value = _mm_set_epi16(x7, x6, x5, x4, x3, x2, x1, x0);
+        x86Result.m128i_value = _mm_set_epi16(values[7], values[6], values[5], values[4], values[3], values[2], values[1], values[0]);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt16x8Operation::OpSplat(short x)
+    SIMDValue SIMDInt16x8Operation::OpSplat(int16 x)
     {
         X86SIMDValue x86Result;
         // set 8 signed 16-bit integers values to input value x

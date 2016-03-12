@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js {
@@ -15,13 +16,11 @@ namespace Js {
             // Float32x4
             static FunctionInfo Float32x4;
             static FunctionInfo Check;
-            static FunctionInfo Zero;
             static FunctionInfo Splat;
             static FunctionInfo FromFloat64x2;
             static FunctionInfo FromFloat64x2Bits;
             static FunctionInfo FromInt32x4;
             static FunctionInfo FromUint32x4;
-
             static FunctionInfo FromInt8x16Bits;
             static FunctionInfo FromInt16x8Bits;
             static FunctionInfo FromInt32x4Bits;
@@ -56,12 +55,10 @@ namespace Js {
             static FunctionInfo NotEqual;
             static FunctionInfo GreaterThan;
             static FunctionInfo GreaterThanOrEqual;
-
             static FunctionInfo Swizzle;
             static FunctionInfo Shuffle;
             static FunctionInfo Clamp;
             static FunctionInfo Select;
-
             //Lane access
             static FunctionInfo ExtractLane;
             static FunctionInfo ReplaceLane;
@@ -70,7 +67,6 @@ namespace Js {
             static FunctionInfo Load1;
             static FunctionInfo Load2;
             static FunctionInfo Load3;
-
             static FunctionInfo Store;
             static FunctionInfo Store1;
             static FunctionInfo Store2;
@@ -81,8 +77,6 @@ namespace Js {
         // constructor
         static Var EntryFloat32x4(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCheck(RecyclableObject* function, CallInfo callInfo, ...);
-
-        static Var EntryZero(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySplat(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryFromFloat64x2(RecyclableObject* function, CallInfo callInfo, ...);

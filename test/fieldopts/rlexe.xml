@@ -865,4 +865,9 @@
       <compile-flags>-maxinterpretcount:2 -maxsimplejitruncount:6</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck6.js</files>
+    </default>
+  </test>
 </regress-exe>

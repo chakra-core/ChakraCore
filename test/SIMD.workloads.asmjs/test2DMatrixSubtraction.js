@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function asmModule(stdlib, imports, buffer) {
@@ -89,11 +90,11 @@ function asmModule(stdlib, imports, buffer) {
 function verify_results(type, results_ex, buffer, count)
 {
     var i4;
-	for (var i = 0, idx = 0; i < count/* * 16*/; i += 4)
+    for (var i = 0, idx = 0; i < count/* * 16*/; i += 4)
     {
         i4 = type.load(buffer, i);
-		equalSimd(results_ex[idx++], i4, type, "Reverse Heap" );
-	}
+        equalSimd(results_ex[idx++], i4, type, "Reverse Heap" );
+    }
 }
 
 var buffer = new ArrayBuffer(16 * 1024 * 1024);

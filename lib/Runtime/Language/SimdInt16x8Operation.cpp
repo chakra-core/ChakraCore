@@ -1,29 +1,24 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 #if defined(_M_ARM32_OR_ARM64)
 
 namespace Js
 {
-    SIMDValue SIMDInt16x8Operation::OpInt16x8(int16 x0, int16 x1, int16 x2, int16 x3, int16 x4, int16 x5, int16 x6, int16 x7)
+    SIMDValue SIMDInt16x8Operation::OpInt16x8(int16 values[])
     {
         SIMDValue result;
-
-        result.i16[0] = x0;
-        result.i16[1] = x1;
-        result.i16[2] = x2;
-        result.i16[3] = x3;
-        result.i16[4] = x4;
-        result.i16[5] = x5;
-        result.i16[6] = x6;
-        result.i16[7] = x7;
-
+        for (uint i = 0; i < 8; i ++)
+        { 
+            result.i16[i] = values[i];
+        }
         return result;
     }
 
-    SIMDValue SIMDInt16x8Operation::OpSplat(short x)
+    SIMDValue SIMDInt16x8Operation::OpSplat(int16 x)
     {
         SIMDValue result;
 

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
@@ -11,8 +12,7 @@ function asmModule(stdlib, imports) {
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    var i4fromFloat64x2 = i4.fromFloat64x2;
-    var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
+    
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     var i4neg = i4.neg;
@@ -32,8 +32,7 @@ function asmModule(stdlib, imports) {
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
-    var f4fromFloat64x2 = f4.fromFloat64x2;
-    var f4fromFloat64x2Bits = f4.fromFloat64x2Bits;
+    
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -42,7 +41,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     
@@ -61,40 +60,14 @@ function asmModule(stdlib, imports) {
     var f4xor = f4.xor;
     var f4not = f4.not;
 
-    var d2 = stdlib.SIMD.Float64x2;  
-    var d2check = d2.check;
-    var d2splat = d2.splat;
-    var d2fromFloat32x4 = d2.fromFloat32x4;
-    var d2fromFloat32x4Bits = d2.fromFloat32x4Bits;
-    var d2fromInt32x4 = d2.fromInt32x4;
-    var d2fromInt32x4Bits = d2.fromInt32x4Bits;
-    var d2abs = d2.abs;
-    var d2neg = d2.neg;
-    var d2add = d2.add;
-    var d2sub = d2.sub;
-    var d2mul = d2.mul;
-    var d2div = d2.div;
-    var d2clamp = d2.clamp;
-    var d2min = d2.min;
-    var d2max = d2.max;
-    var d2sqrt = d2.sqrt;
-
-    var d2lessThan = d2.lessThan;
-    var d2lessThanOrEqual = d2.lessThanOrEqual;
-    var d2equal = d2.equal;
-    var d2notEqual = d2.notEqual;
-    var d2greaterThan = d2.greaterThan;
-    var d2greaterThanOrEqual = d2.greaterThanOrEqual;
-    var d2select = d2.select;
-
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
-    var globImportD2 = d2check(imports.g3);       // global var import
+    
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    var g3 = d2(0.12344,-1.6578);          // global var initialized
+    
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -225,7 +198,7 @@ function asmModule(stdlib, imports) {
     return {func1:func1, func2:func2, func3:func3, func4:func4, func5:func5, func6:func6};
 }
 
-var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Float64x2(110.20, 58967.0, 14511.670, 191766.23431)});
+var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
 var c;
 c = m.func1();

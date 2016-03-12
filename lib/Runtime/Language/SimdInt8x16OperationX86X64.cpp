@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
@@ -9,14 +10,14 @@
 namespace Js
 {
     // SIMD.Int8x16 operation wrappers that cover intrinsics for x86/x64 system
-    SIMDValue SIMDInt8x16Operation::OpInt8x16(int8 x0, int8 x1, int8 x2, int8 x3
-        , int8 x4, int8 x5, int8 x6, int8 x7
-        , int8 x8, int8 x9, int8 x10, int8 x11
-        , int8 x12, int8 x13, int8 x14, int8 x15)
+    SIMDValue SIMDInt8x16Operation::OpInt8x16(int8 values[])
     {
         X86SIMDValue x86Result;
         // Sets the 16 signed 8-bit integer values, note in revised order: starts with x15 below
-        x86Result.m128i_value = _mm_set_epi8((int8)x15, (int8)x14, (int8)x13, (int8)x12, (int8)x11, (int8)x10, (int8)x9, (int8)x8, (int8)x7, (int8)x6, (int8)x5, (int8)x4, (int8)x3, (int8)x2, (int8)x1, (int8)x0);
+        x86Result.m128i_value = _mm_set_epi8(values[15], values[14], values[13], values[12],
+                                             values[11], values[10], values[9], values[8],
+                                             values[7], values[6], values[5], values[4],
+                                             values[3], values[2], values[1], values[0]);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
@@ -221,39 +222,33 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftLeftByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftLeftByScalar(const SIMDValue& value, int count)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         X86SIMDValue x86tmp1;
-
-        const _x86_SIMDValue X86_LOWBYTE_MASK  = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
-        const _x86_SIMDValue X86_HIGHBYTE_MASK = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
 
         if (count < 0 || count > 8)
         {
             count = 8;
         }
 
-        x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTES_MASK.m128i_value);
         x86tmp1.m128i_value = _mm_slli_epi16(x86tmp1.m128i_value, count);
 
         tmpaValue.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, count);
-        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_LOWBYTES_MASK.m128i_value);
 
         x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int8 count)
+    SIMDValue SIMDInt8x16Operation::OpShiftRightByScalar(const SIMDValue& value, int count)
     {
         X86SIMDValue x86Result;
         X86SIMDValue tmpaValue = X86SIMDValue::ToX86SIMDValue(value);
         X86SIMDValue x86tmp1;
-
-        const _x86_SIMDValue X86_LOWBYTE_MASK  = { 0x00ff00ff, 0x00ff00ff, 0x00ff00ff, 0x00ff00ff };
-        const _x86_SIMDValue X86_HIGHBYTE_MASK = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };
 
         if (count < 0 || count > 8)
         {
@@ -263,10 +258,10 @@ namespace Js
         x86tmp1.m128i_value = _mm_slli_epi16(tmpaValue.m128i_value, 8);
         x86tmp1.m128i_value = _mm_srai_epi16(x86tmp1.m128i_value, count + 8);
 
-        x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTE_MASK.m128i_value);
+        x86tmp1.m128i_value = _mm_and_si128(x86tmp1.m128i_value, X86_LOWBYTES_MASK.m128i_value);
 
         tmpaValue.m128i_value = _mm_srai_epi16(tmpaValue.m128i_value, count);
-        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTE_MASK.m128i_value);
+        tmpaValue.m128i_value = _mm_and_si128(tmpaValue.m128i_value, X86_HIGHBYTES_MASK.m128i_value);
 
         x86Result.m128i_value = _mm_or_si128(tmpaValue.m128i_value, x86tmp1.m128i_value);
 

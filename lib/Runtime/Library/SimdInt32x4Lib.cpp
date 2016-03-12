@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -57,27 +57,6 @@ namespace Js
         SIMDValue lanes = SIMDInt32x4Operation::OpSplat(value);
 
         return JavascriptSIMDInt32x4::New(&lanes, scriptContext);
-    }
-
-    Var SIMDInt32x4Lib::EntryBool(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // if incoming parameter is undefined, treat it as false (0), otherwise use typical Javascript boolean conversion.
-        // after boolean conversion: if it's true, make it to be -1, if it's false, make it to be 0.
-        int intSIMD_X = args.Info.Count >= 2 ? (JavascriptConversion::ToBoolean((args)[1], scriptContext) ? -1 : 0) : 0;
-        int intSIMD_Y = args.Info.Count >= 3 ? (JavascriptConversion::ToBoolean((args)[2], scriptContext) ? -1 : 0) : 0;
-        int intSIMD_Z = args.Info.Count >= 4 ? (JavascriptConversion::ToBoolean((args)[3], scriptContext) ? -1 : 0) : 0;
-        int intSIMD_W = args.Info.Count >= 5 ? (JavascriptConversion::ToBoolean((args)[4], scriptContext) ? -1 : 0) : 0;
-
-        SIMDValue value = SIMDInt32x4Operation::OpBool(intSIMD_X, intSIMD_Y, intSIMD_Z, intSIMD_W);
-
-        return JavascriptSIMDInt32x4::New(&value, scriptContext);
     }
 
     Var SIMDInt32x4Lib::EntryFromFloat64x2(RecyclableObject* function, CallInfo callInfo, ...)
@@ -258,114 +237,6 @@ namespace Js
         JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("fromInt16x8Bits"));
     }
 
-     // withFlagX/Y/Z/W
-    Var SIMDInt32x4Lib::EntryWithFlagX(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // withFlagX(t, value)
-        // if value arg is missing, then it is undefined, which is false by javascript semantics
-        // t arg has to be int32x4, so cannot be missing.
-
-        if (args.Info.Count >= 2 && JavascriptSIMDInt32x4::Is(args[1]))
-        {
-            JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
-            Assert(instance);
-
-            Var value = args.Info.Count >= 3 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
-
-            return instance->CopyAndSetLaneFlag(SIMD_X, JavascriptConversion::ToBoolean(value, scriptContext), scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("withFlagX"));
-    }
-
-    Var SIMDInt32x4Lib::EntryWithFlagY(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // withFlagY(t, value)
-        // if value arg is missing, then it is undefined, which is false by javascript semantics
-        // t arg has to be int32x4, so cannot be missing.
-
-        if (args.Info.Count >= 2 && JavascriptSIMDInt32x4::Is(args[1]))
-        {
-            JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
-            Assert(instance);
-
-            Var value = args.Info.Count >= 3 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
-
-            return instance->CopyAndSetLaneFlag(SIMD_Y, JavascriptConversion::ToBoolean(value, scriptContext), scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("withFlagY"));
-    }
-
-    Var SIMDInt32x4Lib::EntryWithFlagZ(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // withFlagZ(t, value)
-        // if value arg is missing, then it is undefined, which is false by javascript semantics
-        // t arg has to be int32x4, so cannot be missing.
-
-        if (args.Info.Count >= 2 && JavascriptSIMDInt32x4::Is(args[1]))
-        {
-            JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
-            Assert(instance);
-
-            Var value = args.Info.Count >= 3 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
-
-            return instance->CopyAndSetLaneFlag(SIMD_Z, JavascriptConversion::ToBoolean(value, scriptContext), scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("withFlagZ"));
-    }
-
-    Var SIMDInt32x4Lib::EntryWithFlagW(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        // withFlagW(t, value)
-        // if value arg is missing, then it is undefined, which is false by javascript semantics
-        // t arg has to be int32x4, so cannot be missing.
-
-        if (args.Info.Count >= 2 && JavascriptSIMDInt32x4::Is(args[1]))
-        {
-            JavascriptSIMDInt32x4 *instance = JavascriptSIMDInt32x4::FromVar(args[1]);
-            Assert(instance);
-
-            Var value = args.Info.Count >= 3 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
-
-            return instance->CopyAndSetLaneFlag(SIMD_W, JavascriptConversion::ToBoolean(value, scriptContext), scriptContext);
-        }
-
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("withFlagW"));
-    }
     //Lane Access
     Var SIMDInt32x4Lib::EntryExtractLane(RecyclableObject* function, CallInfo callInfo, ...)
     {

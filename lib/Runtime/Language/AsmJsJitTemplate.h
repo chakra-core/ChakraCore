@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 #ifndef TEMP_DISABLE_ASMJS
@@ -304,11 +305,7 @@ namespace Js
         CreateTemplate(Simd128_ReplaceLane_I4, int targetOffsetI4_0, int srcOffsetI4_1, int index, int srcOffsetI3);
         CreateTemplate(Simd128_ReplaceLane_F4, int targetOffsetF4_0, int srcOffsetF4_1, int index, int srcOffsetF3);
 
-        CreateTemplate(Simd128_LdSignMask_F4, int targetOffsetI0, int srcOffsetF4_1);
-        CreateTemplate(Simd128_LdSignMask_I4, int targetOffsetI0, int srcOffsetI4_1);
-        CreateTemplate(Simd128_LdSignMask_D2, int targetOffsetI0, int srcOffsetD2_1);
-
-        CreateTemplate(Simd128_I_ArgOut_F4, int argIndex, int offset );
+        CreateTemplate(Simd128_I_ArgOut_F4, int argIndex, int offset);
         CreateTemplate(Simd128_I_ArgOut_I4, int argIndex, int offset);
         CreateTemplate(Simd128_I_ArgOut_D2, int argIndex, int offset);
 
