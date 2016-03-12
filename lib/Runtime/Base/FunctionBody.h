@@ -1700,16 +1700,17 @@ namespace Js
 
                 // Following counters uses ((uint32)-1) as default value
                 LocalClosureRegister                    = 16,
-                LocalFrameDisplayRegister               = 17,
-                EnvRegister                             = 18,
-                ThisRegisterForEventHandler             = 19,
-                FirstInnerScopeRegister                 = 20,
-                FuncExprScopeRegister                   = 21,
-                FirstTmpRegister                        = 22,
+                ParamClosureRegister                    = 17,
+                LocalFrameDisplayRegister               = 18,
+                EnvRegister                             = 19,
+                ThisRegisterForEventHandler             = 20,
+                FirstInnerScopeRegister                 = 21,
+                FuncExprScopeRegister                   = 22,
+                FirstTmpRegister                        = 23,
 
                 // Signed integers need keep the sign when promoting 
-                SignedFieldsStart                       = 23,
-                SerializationIndex                      = 23,
+                SignedFieldsStart                       = 24,
+                SerializationIndex                      = 24,
 
                 Max
             };
@@ -1958,6 +1959,7 @@ namespace Js
         bool m_isPartialDeserializedFunction : 1;
         bool m_isAsmJsScheduledForFullJIT : 1;
         bool m_hasLocalClosureRegister : 1;
+        bool m_hasParamClosureRegister : 1;
         bool m_hasLocalFrameDisplayRegister : 1;
         bool m_hasEnvRegister : 1;
         bool m_hasThisRegisterForEventHandler : 1;
@@ -2107,9 +2109,13 @@ namespace Js
         void SetThisRegisterForEventHandler(RegSlot reg);
         void MapAndSetThisRegisterForEventHandler(RegSlot reg);
         RegSlot GetThisRegisterForEventHandler() const;
+
         void SetLocalClosureRegister(RegSlot reg);
         void MapAndSetLocalClosureRegister(RegSlot reg);
         RegSlot GetLocalClosureRegister() const;
+        void SetParamClosureRegister(RegSlot reg);
+        void MapAndSetParamClosureRegister(RegSlot reg);
+        RegSlot GetParamClosureRegister() const;
 
         void SetLocalFrameDisplayRegister(RegSlot reg);
         void MapAndSetLocalFrameDisplayRegister(RegSlot reg);

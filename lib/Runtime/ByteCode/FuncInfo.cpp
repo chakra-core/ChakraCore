@@ -36,6 +36,7 @@ FuncInfo::FuncInfo(
     envRegister(Js::Constants::NoRegister),
     frameObjRegister(Js::Constants::NoRegister),
     frameSlotsRegister(Js::Constants::NoRegister),
+    paramSlotsRegister(Js::Constants::NoRegister),
     frameDisplayRegister(Js::Constants::NoRegister),
     funcObjRegister(Js::Constants::NoRegister),
     localClosureReg(Js::Constants::NoRegister),

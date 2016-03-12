@@ -223,39 +223,6 @@ var tests = [
   {
     name: "Split parameter scope",
     body: function () {
-        assert.throws(function () { eval('function f(a = 1, b = function () { return a; }) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { var a1 = 10; return a; }) { var a = 20;}') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope even if it is redeclared in teh body", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('obj = { f(a = 1, b = function () { return a; }) { } }') }, SyntaxError, "Object methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('class c { f(a = 1, b = function () { return a; }) { } }') }, SyntaxError, "Class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function c() { return a; }) { }') }, SyntaxError, "Function expressions with name that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = 2, c = function () { return a + b; }) {}') }, SyntaxError, "Functions that refer to formals are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { return function () { return a; } }) { }') }, SyntaxError, "Nested functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f8(a = 1, b = function () { return a; }, ...c) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope when rest param is present", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f9( {a:a1, b:b1}, c = function() { return a1 + b1; } ) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope even in destructured scenario", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f10({x:x = 10, y:y = function () { return x; }}) { }') }, SyntaxError, "Functions that refer to a formal are not allowed in the param scope in destructured scenario", "Formals cannot contain functions definitions that reference them");
-
-        assert.doesNotThrow(function (a = 10, b = a++, c = a + b) {}, "Using formals without closure does not throw a syntax error");
-        assert.doesNotThrow(function f1(a = 10, b = function () { return 20; }) {}, "Function definitions without any reference to the formals works");
-
-        var a1 = 10
-        function f1(b = function () { return a1; }) {
-            assert.areEqual(a1, undefined, "Inside the function body the assignment hasn't happened yet");
-            var a1 = 20;
-            assert.areEqual(a1, 20, "Assignment to the symbol inside the function changes the value");
-            return b;
-        }
-        assert.areEqual(f1()(), 10, "Function in the param scope correctly binds to the outer variable");
-
-        assert.throws(function () { eval('function f(a = 1, b = () => a) { }') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { var a1 = 10; return a; }) { var a = 20;}') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope even if it is redeclared in teh body", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { return () => a; }) { }') }, SyntaxError, "Nested Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = function () { return () => a; }) { }') }, SyntaxError, "Arrow function nested inside a function  that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('(a = 1, b = () => a) => { }') }, SyntaxError, "Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('(a = 1, b = () => { return () => a; }) => { }') }, SyntaxError, "Nested Arrow functions that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-
-        assert.throws(function () { eval('function f(a = 1, b = class c { f() { var a1 = 10; return a; }}) { }') }, SyntaxError, "Class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        assert.throws(function () { eval('function f(a = 1, b = () => { return class c { f() { var a1 = 10; return a; }} }) { }') }, SyntaxError, "Nested class methods that refer to a formal are not allowed in the param scope", "Formals cannot contain functions definitions that reference them");
-        
         assert.doesNotThrow(function f(a = 1, b = class c { f() { return 2; }}) { }, "Class methods that do not refer to a formal are allowed in the param scope");
 
         assert.throws(function () { eval("function f(a = eval('1')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");

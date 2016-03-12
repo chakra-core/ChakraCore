@@ -1708,6 +1708,11 @@ void ByteCodeGenerator::SetClosureRegisters(FuncInfo* funcInfo, Js::FunctionBody
     {
         byteCodeFunction->MapAndSetLocalClosureRegister(funcInfo->frameSlotsRegister);
     }
+
+    if (funcInfo->paramSlotsRegister != Js::Constants::NoRegister)
+    {
+        byteCodeFunction->MapAndSetParamClosureRegister(funcInfo->paramSlotsRegister);
+    }
 }
 
 void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction)
@@ -3262,14 +3267,21 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         {
             // Emit bytecode to copy the initial values from param names to their corresponding body bindings.
             // We have to do this after the rest param is marked as false for need declaration.
-            paramScope->ForEachSymbol([this, funcInfo](Symbol* param) {
+            paramScope->ForEachSymbol([this, funcInfo, paramScope](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
                 Assert(varSym || param->GetIsArguments());
                 Assert(param->GetIsArguments() || param->IsInSlot(funcInfo));
                 if (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
                 {
+                    // Simulating EmitPropLoad here. We can't directly call the method as we have to use the param scope specifically.
+                    // Walking the scope chain is not possible at this time.
                     Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
-                    this->EmitPropLoad(tempReg, param, param->GetPid(), funcInfo, true);
+                    Js::PropertyId slot = param->EnsureScopeSlot(funcInfo);
+                    Js::ProfileId profileId = funcInfo->FindOrAddSlotProfileId(paramScope, slot);
+                    Js::OpCode op = paramScope->GetIsObject() ? Js::OpCode::LdParamObjSlot : Js::OpCode::LdParamSlot;
+                    slot = slot + (paramScope->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
+
+                    this->m_writer.SlotI1(op, tempReg, slot, profileId);
                     this->EmitPropStore(tempReg, varSym, varSym->GetPid(), funcInfo);
                     funcInfo->ReleaseTmpRegister(tempReg);
                 }
@@ -3762,13 +3774,16 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             bodyScope->SetLocation(funcInfo->frameSlotsRegister);
         }
 
-        if (paramScope->GetIsObject())
+        if (!paramScope->GetCanMergeWithBodyScope())
         {
-            paramScope->SetLocation(funcInfo->frameObjRegister);
-        }
-        else
-        {
-            paramScope->SetLocation(funcInfo->frameSlotsRegister);
+            if (paramScope->GetIsObject())
+            {
+                paramScope->SetLocation(funcInfo->frameObjRegister);
+            }
+            else
+            {
+                paramScope->SetLocation(funcInfo->frameSlotsRegister);
+            }
         }
 
         bodyScope->SetMustInstantiate(funcInfo->frameObjRegister != Js::Constants::NoRegister || funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
@@ -4956,7 +4971,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
 }
 
 Js::OpCode
-ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo, bool useParamScope)
+ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo)
 {
     Js::OpCode op;
 
@@ -4970,13 +4985,6 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
         {
             op = Js::OpCode::LdEnvSlot;
         }
-    }
-    else if (!scope->GetCanMergeWithBodyScope() && this->currentScope == scope->GetFunc()->GetBodyScope())
-    {
-        // When param and body scopes are not merged the only place where you try to load the value from a param scoped symbol,
-        // while in body scope, is when we use its value to initialize the corresponding value in the body scope. That time we
-        // cannot use the normal LdLocalSlot as we have to use the param scope closure to load that field.
-        op = Js::OpCode::LdParamSlot;
     }
     else if (scopeLocation != Js::Constants::NoRegister &&
              scopeLocation == funcInfo->frameSlotsRegister)
@@ -5008,7 +5016,7 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
     return op;
 }
 
-void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool useParamScope)
+void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo)
 {
     // If sym belongs to a parent frame, get it from the closure environment.
     // If it belongs to this func, but there's a non-local reference, get it from the heap-allocated frame.
@@ -5201,7 +5209,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         Js::OpCode op;
 
         // Now get the property from its slot.
-        op = this->GetLdSlotOp(scope, envIndex, scopeLocation, funcInfo, useParamScope);
+        op = this->GetLdSlotOp(scope, envIndex, scopeLocation, funcInfo);
         slot = slot + (sym->GetScope()->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
 
         if (envIndex != -1)

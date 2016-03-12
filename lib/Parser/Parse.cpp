@@ -5107,16 +5107,9 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                     paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
                         if (sym->GetPid()->GetTopRef()->sym == nullptr)
                         {
-                            if (m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
-                            {
-                                // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                                paramScope->SetCannotMergeWithBodyScope();
-                                return true;
-                            }
-                            else
-                            {
-                                Error(ERRFuncRefFormalNotSupportedInParamScope);
-                            }
+                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                            paramScope->SetCannotMergeWithBodyScope();
+                            return true;
                         }
                         else
                         {
