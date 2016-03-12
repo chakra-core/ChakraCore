@@ -1758,6 +1758,10 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
     IRType laneType = TyInt16;
     uint8 *tempSIMD = (uint8*) &(X86_TEMP_SIMD[0]);
     uint8 *dstSIMD = (uint8*) &(X86_TEMP_SIMD[2]);
+#if DBG
+    uint8 *endAddrSIMD = (dstSIMD + sizeof(X86SIMDValue));
+#endif
+    void *address = nullptr;
     args = Simd128GetExtendedArgs(instr);
 
     switch (irOpcode)
@@ -1783,6 +1787,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
         Assert(args->Count() == 11);
         laneCount = 8;
         isShuffle = true;
+        laneType = TyUint16;
         scale = 2;
         break;
         case Js::OpCode::Simd128_Shuffle_I16:
@@ -1790,6 +1795,7 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
         Assert(args->Count() == 19);
         laneCount = 16;
         isShuffle = true;
+        laneType = TyUint8;
         scale = 1;
         break;
     default:
@@ -1827,12 +1833,16 @@ IR::Instr* LowererMD::Simd128LowerShuffle(IR::Instr* instr)
     {
         //. MOV tmp, [tempSIMD + laneValue*scale]
         IR::RegOpnd *tmp = IR::RegOpnd::New(laneType, m_func);
-        newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, IR::MemRefOpnd::New((void*)(tempSIMD + lanes[i] * scale), laneType, m_func), m_func);
+        address = (void*)(tempSIMD + lanes[i] * scale);
+        Assert((intptr_t)address + (intptr_t)scale <= (intptr_t)endAddrSIMD);
+        newInstr = IR::Instr::New(Js::OpCode::MOV, tmp, IR::MemRefOpnd::New(address, laneType, m_func), m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
 
         //. MOV [dstSIMD + i*scale], tmp
-        newInstr = IR::Instr::New(Js::OpCode::MOV,IR::MemRefOpnd::New((void*)(dstSIMD + i * scale), laneType, m_func), tmp, m_func);
+        address = (void*)(dstSIMD + i * scale);
+        Assert((intptr_t)address + (intptr_t) scale <= (intptr_t)endAddrSIMD);
+        newInstr = IR::Instr::New(Js::OpCode::MOV,IR::MemRefOpnd::New(address, laneType, m_func), tmp, m_func);
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
     }
