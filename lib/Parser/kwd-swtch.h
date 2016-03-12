@@ -13,7 +13,7 @@
             case 'w':
                 if (p[1] == 'a' && p[2] == 'i' && p[3] == 't' && !IsIdContinueNext(p+4, last)) {
                     p += 4;
-                    if (this->m_fAwaitIsKeyword || !this->m_parser || this->m_parser->IsStrictMode()) {
+                    if (this->m_fAwaitIsKeyword || this->m_fIsModuleCode) {
                         token = tkAWAIT;
                         goto LReserved;
                     }
@@ -512,10 +512,10 @@
         goto LIdentifier;
 
     // characters not in a reserved word
-
-              case 'g': case 'h':           case 'j':
-    case 'k':           case 'm':           case 'o':
-              case 'q':
-    case 'u':                     case 'x':
-    case 'z':
+                                                      
+              case 'g': case 'h':           case 'j': 
+    case 'k':           case 'm':           case 'o': 
+              case 'q':                               
+    case 'u':                     case 'x':           
+    case 'z': 
         goto LIdentifier;

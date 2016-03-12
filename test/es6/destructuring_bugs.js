@@ -81,6 +81,13 @@ var tests = [
       assert.doesNotThrow(function () { eval("function foo() { function bar([a], {b, b1}, [c]) { var b1 = 1; } }"); }, "variable 'b1' is not a re-declaration" );
       assert.doesNotThrow(function () { eval("function foo() { ({c}) => { var c = 1; } }"); }, "variable 'c' is not a re-declaration" );
     }
+  },
+  {
+    name: "Destructuring bug fix - pattern with rest parameter",
+    body: function () {
+      assert.doesNotThrow(function () { eval("function foo({a}, ...b) { if (b) { } }; foo({});"); } );
+      assert.doesNotThrow(function () { eval("function foo([], ...b) { if (b) { } }; foo([]);"); });
+    }
   }
 ];
 

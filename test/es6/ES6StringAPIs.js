@@ -7,6 +7,38 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+function verifyThrowsIfRegExpSearchString(functionName) {
+    var f = String.prototype[functionName].bind("abc");
+
+    var re = /./;
+    assert.throws(f.bind(undefined, re), TypeError, "Regular RegExp");
+
+    helpers.withPropertyDeleted(RegExp.prototype, Symbol.match, function () {
+        assert.throws(f.bind(undefined, re), TypeError, "Regular RegExp without Symbol.match property");
+    })
+
+    re = 1;
+    assert.doesNotThrow(f.bind(undefined, re), "Not an Object (Number)");
+
+    re = {};
+    assert.doesNotThrow(f.bind(undefined, re), "Object without Symbol.match property");
+
+    re = {
+        [Symbol.match]: true
+    };
+    assert.throws(f.bind(undefined, re), TypeError, "Object with Boolean Symbol.match property");
+
+    re = {
+        [Symbol.match]: 'coerced to true'
+    };
+    assert.throws(f.bind(undefined, re), TypeError, "Object with Symbol.match property coerced to 'true'");
+
+    re = {
+        [Symbol.match]: null
+    };
+    assert.doesNotThrow(f.bind(undefined, re), "Object with Symbol.match property coerced to 'false'");
+}
+
 var tests = [
     {
         name: "Array prototype and String prototype should have spec defined built-ins with correct lengths",
@@ -258,7 +290,6 @@ var tests = [
 
             s = "";
 
-            assert.throws(function () { s.startsWith(/a/) }, TypeError, "startsWith throws TypeError if searchString is a RegExp.");
             assert.isTrue(s.startsWith(""), "the empty string starts with the empty string");
             assert.isFalse(s.startsWith("anything"), "the empty string does not start with any non-empty string");
             assert.isTrue(s.startsWith("", 1), "the search position is clipped to exist within the string and thus the the empty string starts with the empty string for any given position argument");
@@ -301,6 +332,10 @@ var tests = [
             assert.isTrue(String.prototype.startsWith.call(n, "123"), "startsWith works even when its this argument is not a string object");
             assert.isFalse(String.prototype.startsWith.call(n, "45"), "startsWith works even when its this argument is not a string object");
         }
+    },
+    {
+        name: "startsWith throws if searchString is a RegExp",
+        body: verifyThrowsIfRegExpSearchString.bind(undefined, "startsWith")
     },
     {
         name: "endsWith returns true if the given search string matches the substring of the given string ending at the given position",
@@ -359,6 +394,10 @@ var tests = [
         }
     },
     {
+        name: "endsWith throws if searchString is a RegExp",
+        body: verifyThrowsIfRegExpSearchString.bind(undefined, "endsWith")
+    },
+    {
         name: "includes returns true if the given search string matches any substring of the given string",
         body: function () {
             assert.throws(function () { String.prototype.includes.call(); }, TypeError, "includes throws TypeError if it is given no arguments", "String.prototype.includes: 'this' is null or undefined");
@@ -414,6 +453,10 @@ var tests = [
             assert.isTrue(String.prototype.includes.call(n, "34"), "includes works even when its this argument is not a string object");
             assert.isFalse(String.prototype.includes.call(n, "7"), "includes works even when its this argument is not a string object");
         }
+    },
+    {
+        name: "includes throws if searchString is a RegExp",
+        body: verifyThrowsIfRegExpSearchString.bind(undefined, "includes")
     },
     {
         name: "String.fromCodePoint has correct shape",

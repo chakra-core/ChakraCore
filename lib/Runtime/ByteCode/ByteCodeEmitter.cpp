@@ -1702,7 +1702,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 {
     if (funcInfo->NeedEnvRegister())
     {
-        bool constReg = !funcInfo->GetIsEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
+        bool constReg = !funcInfo->GetIsTopLevelEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
         funcInfo->AssignEnvRegister(constReg);
     }
 
@@ -1902,7 +1902,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     if (funcInfo->NeedEnvRegister())
     {
         byteCodeFunction->MapAndSetEnvRegister(funcInfo->GetEnvRegister());
-        if (funcInfo->GetIsEventHandler())
+        if (funcInfo->GetIsTopLevelEventHandler())
         {
             byteCodeFunction->MapAndSetThisRegisterForEventHandler(funcInfo->thisPointerRegister);
             // The environment is the namespace hierarchy starting with "this".
@@ -2694,6 +2694,12 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
 #endif
 
     Assert(pnodeProg && pnodeProg->nop == knopProg);
+
+    if (IsModuleCode())
+    {
+        EnsureImportBindingScopeSlots(pnodeProg, pnodeProg->sxFnc.funcInfo);
+    }
+
     if (this->parentScopeInfo)
     {
         // Scope stack is already set up the way we want it, so don't visit the global scope.
@@ -2735,8 +2741,35 @@ void ByteCodeGenerator::EmitInitCapturedNewTarget(FuncInfo* funcInfo, Scope* sco
 void EmitDestructuredObject(ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
+void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode)
+{
+    Js::DebuggerScope *debuggerScope = nullptr;
+    auto processArg = [&](ParseNode *pnodeArg) {
+        if (pnodeArg->IsVarLetOrConst())
+        {
+            if (debuggerScope == nullptr)
+            {
+                debuggerScope = RecordStartScopeObject(pnode, Js::DiagParamScope);
+                debuggerScope->SetBegin(beginOffset);
+            }
+
+            debuggerScope->AddProperty(pnodeArg->sxVar.sym->GetLocation(), pnodeArg->sxVar.sym->EnsurePosition(funcInfo), Js::DebuggerScopePropertyFlags_None);
+        }
+    };
+
+    MapFormals(pnode, processArg);
+    MapFormalsFromPattern(pnode, processArg);
+
+    if (debuggerScope != nullptr)
+    {
+        RecordEndScopeObject(pnode);
+    }
+}
+
 void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
 {
+    uint beginOffset = m_writer.GetCurrentOffset();
+
     auto emitDefaultArg = [&](ParseNode *pnodeArg)
     {
         if (pnodeArg->nop == knopParamPattern)
@@ -2861,6 +2894,11 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     {
         // Rest cannot have a default argument, so we ignore it.
         MapFormalsWithoutRest(pnode, emitDefaultArg);
+    }
+
+    if (ShouldTrackDebuggerMetadata() && m_writer.GetCurrentOffset() > beginOffset)
+    {
+        PopulateFormalsScope(beginOffset, funcInfo, pnode);
     }
 }
 
@@ -3136,11 +3174,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         if (funcInfo->IsGlobalFunction())
         {
             EnsureNoRedeclarations(pnode->sxFnc.pnodeScopes, funcInfo);
-        }
-
-        if (IsModuleCode() && funcInfo->IsGlobalFunction() && pnode->nop == knopProg)
-        {
-            EnsureImportBindingScopeSlots(pnode, funcInfo);
         }
 
         ::BeginEmitBlock(pnode->sxFnc.pnodeScopes, this, funcInfo);
@@ -3968,7 +4001,7 @@ void ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo,
         Js::SourceTextModuleRecord* childModuleRecord = moduleRecord->GetChildModuleRecord(moduleSpecifier->Psz());
 
         AssertMsg(childModuleRecord != nullptr, "We somehow tried to resolve an import from a module we didn't resolve.");
-        
+
         Js::ModuleNameRecord* moduleNameRecord = nullptr;
         if (!childModuleRecord->ResolveExport(exportNameId, nullptr, nullptr, &moduleNameRecord) ||
             moduleNameRecord == nullptr)
@@ -4018,7 +4051,7 @@ void ByteCodeGenerator::EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo
 
     pnode->sxModule.importEntries->Map([this, funcInfo](ModuleImportEntry& importEntry) {
         Symbol* sym = importEntry.varDecl->sxVar.sym;
-        
+
         Assert(sym->GetIsModuleExportStorage());
         Assert(importEntry.moduleRequest != nullptr);
 
@@ -6992,7 +7025,7 @@ void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId
     bool isRoot = pnode->nop == knopName && (pnode->sxPid.sym == nullptr || pnode->sxPid.sym->GetIsGlobal());
     bool isScoped = (byteCodeGenerator->GetFlags() & fscrEval) != 0 ||
         (isRoot && callObjLocation != ByteCodeGenerator::RootObjectRegister);
-    
+
     EmitMethodFld(isRoot, isScoped, pnode->location, callObjLocation, propertyId, byteCodeGenerator, funcInfo, registerCacheIdForCall);
 }
 
@@ -9149,14 +9182,14 @@ void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerato
 
     EmitGetIterator(iteratorLocation, yieldStarNode->sxUni.pnode1->location, byteCodeGenerator, funcInfo);
 
+    // Get a temporary to hold the input for the next() calls.  Initialize it to undefined for the first call.
+    Js::RegSlot nextInputLocation = funcInfo->AcquireTmpRegister();
+    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, nextInputLocation, funcInfo->undefinedConstantRegister);
+
     uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
     // since a yield* doesn't have a user defined body, we cannot return from this loop
     // which means we don't need to support EmitJumpCleanup() and there do not need to
     // remember the loopId like the loop statements do.
-
-    // Get a temporary to hold the input for the next() calls.  Initialize it to undefined for the first call.
-    Js::RegSlot nextInputLocation = funcInfo->AcquireTmpRegister();
-    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, nextInputLocation, funcInfo->undefinedConstantRegister);
 
     // Call the iterator's next()
     EmitIteratorNext(yieldStarNode->location, iteratorLocation, nextInputLocation, byteCodeGenerator, funcInfo);

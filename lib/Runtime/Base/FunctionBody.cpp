@@ -5241,6 +5241,12 @@ namespace Js
         this->scopeProperties->Add(scopeProperty);
     }
 
+    bool DebuggerScope::HasProperty(Js::PropertyId propertyId)
+    {
+        int i = -1;
+        return GetPropertyIndex(propertyId, i);
+    }
+
     bool DebuggerScope::GetPropertyIndex(Js::PropertyId propertyId, int& index)
     {
         if (!this->HasProperties())
@@ -5304,6 +5310,8 @@ namespace Js
             return _u("DiagUnknownScope");
         case DiagExtraScopesType::DiagWithScope:
             return _u("DiagWithScope");
+        case DiagExtraScopesType::DiagParamScope:
+            return _u("DiagParamScope");
         default:
             AssertMsg(false, "Missing a debug scope type.");
             return _u("");
@@ -5667,7 +5675,7 @@ namespace Js
         {
             Js::DebuggerScope *debuggerScope = pScopeChain->Item(i);
             DebuggerScopeProperty debuggerScopeProperty;
-            if (debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
+            if (debuggerScope->scopeType != DiagParamScope && debuggerScope->TryGetProperty(propertyId, location, &debuggerScopeProperty))
             {
                 bool isOffsetInScope = debuggerScope->IsOffsetInScope(offset);
 

@@ -129,13 +129,6 @@ var tests = [
         }
     },
     {
-        name: "await is a future reserved keyword and recognized in strict mode as an error in non-async functions",
-        body: function () {
-            assert.throws(function () { eval("function f() { 'use strict'; await 10; }"); }, SyntaxError, "await expression not allowed in self-strict non-async function", "'await' expression not allowed in this context");
-            assert.throws(function () { "use strict"; eval("function f() { await 10; }"); }, SyntaxError, "await expression not allowed in parent-strict non-async function", "'await' expression not allowed in this context");
-        }
-    },
-    {
         name: "It is a Syntax Error if FormalParameters Contains AwaitExpression is true",
         body: function () {
             assert.throws(function () { eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in non-strict async function", "'await' expression not allowed in this context");

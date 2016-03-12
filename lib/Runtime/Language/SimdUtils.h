@@ -89,20 +89,14 @@ struct _x86_SIMDValue
     static _x86_SIMDValue ToX86SIMDValue(const SIMDValue& val)
     {
         _x86_SIMDValue result;
-        result.i32[SIMD_X] = val.i32[SIMD_X];
-        result.i32[SIMD_Y] = val.i32[SIMD_Y];
-        result.i32[SIMD_Z] = val.i32[SIMD_Z];
-        result.i32[SIMD_W] = val.i32[SIMD_W];
+        result.m128_value = _mm_loadu_ps((float*) &val);
         return result;
     }
 
     static SIMDValue ToSIMDValue(const _x86_SIMDValue& val)
     {
         SIMDValue result;
-        result.i32[SIMD_X] = val.i32[SIMD_X];
-        result.i32[SIMD_Y] = val.i32[SIMD_Y];
-        result.i32[SIMD_Z] = val.i32[SIMD_Z];
-        result.i32[SIMD_W] = val.i32[SIMD_W];
+        _mm_storeu_ps((float*) &result, val.m128_value);
         return result;
     }
 };

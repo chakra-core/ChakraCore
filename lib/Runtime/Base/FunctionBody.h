@@ -66,6 +66,7 @@ namespace Js
         DiagBlockScopeInSlot,       // Block scope in slot array
         DiagBlockScopeInObject,     // Block scope in activation object
         DiagBlockScopeRangeEnd,     // Used to end a block scope range.
+        DiagParamScope,             // The scope represents symbols at formals
     };
 
     class PropertyGuard
@@ -3452,6 +3453,7 @@ namespace Js
         DebuggerScope * GetSiblingScope(RegSlot location, FunctionBody *functionBody);
         void AddProperty(RegSlot location, Js::PropertyId propertyId, DebuggerScopePropertyFlags flags);
         bool GetPropertyIndex(Js::PropertyId propertyId, int& i);
+        bool HasProperty(Js::PropertyId propertyId);
 
         bool IsOffsetInScope(int offset) const;
         bool Contains(Js::PropertyId propertyId, RegSlot location) const;

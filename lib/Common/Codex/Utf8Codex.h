@@ -13,7 +13,18 @@
 #include "inc/rt/palrt.h"
 #endif
 
-#include "../Core/CommonTypedefs.h"
+
+// Utf8Codex.h needs to be self contained, so these type defs are duplicated from CommonTypeDefs.h
+#ifdef _WIN32
+typedef WCHAR char16;
+#define _u(s) L##s
+#else
+typedef char16_t char16;
+#define _u(s) u##s
+#endif
+
+typedef char16 wchar;
+
 
 #ifndef _WIN32
 // Templates are defined here in order to avoid a dependency on C++
