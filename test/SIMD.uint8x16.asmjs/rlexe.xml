@@ -514,7 +514,6 @@
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -maic:0</compile-flags>
     </default>
   </test>
-  <!-- Disable now due to bug
   <test>
     <default>
       <files>testShift.js</files>
@@ -523,7 +522,6 @@
       <compile-flags>-bgjit- -on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -lic:1</compile-flags>
     </default>
   </test>
-  -->
   <test>
     <default>
       <files>testShift.js</files>
