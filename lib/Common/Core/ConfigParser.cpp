@@ -491,13 +491,23 @@ HRESULT ConfigParser::SetOutputFile(const WCHAR* outputFile, const WCHAR* openMo
 
     char16 fileName[_MAX_PATH];
     char16 moduleName[_MAX_PATH];
-    GetModuleFileName(0, moduleName, _MAX_PATH);
-    _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
+    DWORD moduleLength = GetModuleFileName(0, moduleName, _MAX_PATH);
+
+    Assert(moduleLength > 0);
+    if (moduleLength > 0)
+    {
+        _wsplitpath_s(moduleName, nullptr, 0, nullptr, 0, fileName, _MAX_PATH, nullptr, 0);
+    }
+    else
+    {
+        AssertMsg(false, "Could not populate moduleName.");
+        return E_FAIL;
+    }
+
     if (_wcsicmp(fileName, _u("WWAHost")) == 0 || _wcsicmp(fileName, _u("ByteCodeGenerator")) == 0 ||
         _wcsicmp(fileName, _u("spartan")) == 0 || _wcsicmp(fileName, _u("spartan_edge")) == 0 ||
         _wcsicmp(fileName, _u("MicrosoftEdge")) == 0 || _wcsicmp(fileName, _u("MicrosoftEdgeCP")) == 0)
     {
-
         // we need to output to %temp% directory in wwa. we don't have permission otherwise.
         if (GetEnvironmentVariable(_u("temp"), fileName, _MAX_PATH) != 0)
         {

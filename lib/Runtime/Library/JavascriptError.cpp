@@ -557,10 +557,11 @@ namespace Js
 
     BOOL JavascriptError::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
+        HRESULT hr = S_OK;
         char16 const *pszMessage = nullptr;
-        GetRuntimeErrorWithScriptEnter(this, &pszMessage);
+        hr = GetRuntimeErrorWithScriptEnter(this, &pszMessage);
 
-        if (pszMessage)
+        if (SUCCEEDED(hr) && pszMessage != nullptr)
         {
             stringBuilder->AppendSz(pszMessage);
             return TRUE;
@@ -849,7 +850,11 @@ namespace Js
         {
             LPCWSTR msg = nullptr;
             HRESULT hr = JavascriptError::GetRuntimeError(this, &msg);
-            jsNewError->SetErrorMessageProperties(jsNewError, hr, msg, targetJavascriptLibrary->GetScriptContext());
+            Assert(SUCCEEDED(hr));
+            if (SUCCEEDED(hr))
+            {
+                jsNewError->SetErrorMessageProperties(jsNewError, hr, msg, targetJavascriptLibrary->GetScriptContext());
+            }
         }
         return jsNewError;
     }

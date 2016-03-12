@@ -1191,7 +1191,7 @@ bool InlineCacheAllocator::IsDeadWeakRef(Recycler* recycler, void* ptr)
     return recycler->IsObjectMarked(ptr);
 }
 
-bool InlineCacheAllocator::CacheHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache)
+bool InlineCacheAllocator::CacheHasDeadWeakRefs(__notnull Recycler* recycler, __notnull CacheLayout* cache)
 {
     for (intptr_t* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
     {
@@ -1271,7 +1271,7 @@ bool InlineCacheAllocator::HasNoDeadWeakRefs(Recycler* recycler)
     return true;
 }
 
-void InlineCacheAllocator::ClearCacheIfHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache)
+void InlineCacheAllocator::ClearCacheIfHasDeadWeakRefs(__notnull Recycler* recycler, __notnull CacheLayout* cache)
 {
     for (intptr_t* curWeakRefPtr = cache->weakRefs; curWeakRefPtr < &cache->strongRef; curWeakRefPtr++)
     {
