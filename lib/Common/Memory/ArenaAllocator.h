@@ -671,9 +671,9 @@ public:
     void ZeroAll();
 
     bool IsDeadWeakRef(Recycler* recycler, void* ptr);
-    bool CacheHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache);
+    bool CacheHasDeadWeakRefs(__notnull Recycler* recycler, __notnull CacheLayout* cache);
     bool HasNoDeadWeakRefs(Recycler* recycler);
-    void ClearCacheIfHasDeadWeakRefs(Recycler* recycler, CacheLayout* cache);
+    void ClearCacheIfHasDeadWeakRefs(__notnull Recycler* recycler, __notnull CacheLayout* cache);
     void ClearCachesWithDeadWeakRefs(Recycler* recycler);
 
 #ifdef POLY_INLINE_CACHE_SIZE_STATS

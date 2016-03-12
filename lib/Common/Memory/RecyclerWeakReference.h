@@ -198,7 +198,7 @@ public:
         {
             if (DefaultComparer<char*>::Equals(key, current->strongRef))
             {
-                 *pprev = current->next;
+                *pprev = current->next;
                 if (pOut != nullptr)
                 {
                     (*pOut) = current;
@@ -228,8 +228,9 @@ public:
         uint countedEntries = 0;
 #endif
 
-        for (uint i=0;i<size;i++)
+        for (uint i = 0; i < size; i++)
         {
+#pragma warning(suppress:28182) // Not a useful error: "Dereferencing NULL pointer. 'buckets' contains the same NULL value as 'current' did."
             RecyclerWeakReferenceBase ** pprev = &buckets[i];
             RecyclerWeakReferenceBase *current = *pprev;
             while (current)
