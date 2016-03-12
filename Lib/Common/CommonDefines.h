@@ -274,7 +274,7 @@
 
 #define ENABLE_TTD_DEBUGGING 1
 
-//A workaround for VSCode getting angry with timing when we are in the Debug Build (adds a Sleep before sending msgs)
+//A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
 #define TTD_VSCODE_WORK_AROUND 1
 
 //Set to make step out behave the same as step back

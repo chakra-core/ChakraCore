@@ -655,6 +655,7 @@ namespace TTD
 
     void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool shouldPrint, int64 optUserEventId, bool shouldBreak)
     {
+#if TTD_FORCE_DEBUG_MODE_IN_RECORD
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
 
         TTString infoString;
@@ -685,6 +686,7 @@ namespace TTD
         TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
 
         this->InsertEventAtHead(tevent);
+#endif
     }
 
     void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)

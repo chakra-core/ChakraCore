@@ -381,6 +381,7 @@ JsDiagResume(
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_INTO);
         }
+#if ENABLE_TTD_DEBUGGING
         else if (resumeType == JsDiagResumeTypeStepBack)
         {
             ThreadContext* threadContext = runtime->GetThreadContext();
@@ -391,6 +392,7 @@ JsDiagResume(
 
             debugObject->SetResumeType(BREAKRESUMEACTION_CONTINUE);
         }
+#endif
         else if (resumeType == JsDiagResumeTypeStepOut)
         {
 #if ENABLE_TTD_OUT_SAME_AS_BACK
