@@ -174,10 +174,19 @@ WasmBytecodeGenerator::GenerateFunction()
 
     WasmOp op;
     EmitInfo exprInfo;
-    while ((op = m_reader->ReadExpr()) != wnLIMIT)
+
+    try
     {
-        exprInfo = EmitExpr(op);
-        ReleaseLocation(&exprInfo);
+        while ((op = m_reader->ReadExpr()) != wnLIMIT)
+        {
+            exprInfo = EmitExpr(op);
+            ReleaseLocation(&exprInfo);
+        }
+    }
+    catch (...)
+    {
+        m_writer.Reset();
+        throw;
     }
 
     // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
