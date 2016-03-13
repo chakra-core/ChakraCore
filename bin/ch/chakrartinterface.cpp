@@ -61,16 +61,19 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtConvertValueToString = (JsAPIHooks::JsrtConvertValueToStringPtr)GetProcAddress(library, "JsConvertValueToString");
     m_jsApiHooks.pfJsrtConvertValueToNumber = (JsAPIHooks::JsrtConvertValueToNumberPtr)GetProcAddress(library, "JsConvertValueToNumber");
     m_jsApiHooks.pfJsrtConvertValueToBoolean = (JsAPIHooks::JsrtConvertValueToBooleanPtr)GetProcAddress(library, "JsConvertValueToBoolean");
+    m_jsApiHooks.pfJsrtConvertValueToObject = (JsAPIHooks::JsrtConvertValueToObjectPtr)GetProcAddress(library, "JsConvertValueToObject");
     m_jsApiHooks.pfJsrtStringToPointer = (JsAPIHooks::JsrtStringToPointerPtr)GetProcAddress(library, "JsStringToPointer");
     m_jsApiHooks.pfJsrtBooleanToBool = (JsAPIHooks::JsrtBooleanToBoolPtr)GetProcAddress(library, "JsBooleanToBool");
     m_jsApiHooks.pfJsrtGetPropertyIdFromName = (JsAPIHooks::JsrtGetPropertyIdFromNamePtr)GetProcAddress(library, "JsGetPropertyIdFromName");
     m_jsApiHooks.pfJsrtGetProperty = (JsAPIHooks::JsrtGetPropertyPtr)GetProcAddress(library, "JsGetProperty");
     m_jsApiHooks.pfJsrtHasProperty = (JsAPIHooks::JsrtHasPropertyPtr)GetProcAddress(library, "JsHasProperty");
+    m_jsApiHooks.pfJsrtParseScriptWithFlags = (JsAPIHooks::JsrtParseScriptWithFlagsPtr)GetProcAddress(library, "JsParseScriptWithFlags");
     m_jsApiHooks.pfJsrtRunScript = (JsAPIHooks::JsrtRunScriptPtr)GetProcAddress(library, "JsRunScript");
     m_jsApiHooks.pfJsrtRunModule = (JsAPIHooks::JsrtRunModulePtr)GetProcAddress(library, "JsExperimentalApiRunModule");
     m_jsApiHooks.pfJsrtCallFunction = (JsAPIHooks::JsrtCallFunctionPtr)GetProcAddress(library, "JsCallFunction");
     m_jsApiHooks.pfJsrtNumbertoDouble = (JsAPIHooks::JsrtNumberToDoublePtr)GetProcAddress(library, "JsNumberToDouble");
     m_jsApiHooks.pfJsrtNumbertoInt = (JsAPIHooks::JsrtNumberToIntPtr)GetProcAddress(library, "JsNumberToInt");
+    m_jsApiHooks.pfJsrtIntToNumber = (JsAPIHooks::JsrtIntToNumberPtr)GetProcAddress(library, "JsIntToNumber");
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetProcAddress(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetProcAddress(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetProcAddress(library, "JsCreateArray");
@@ -87,6 +90,24 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetProcAddress(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtGetContextOfObject = (JsAPIHooks::JsrtGetContextOfObjectPtr)GetProcAddress(library, "JsGetContextOfObject");
 
+    m_jsApiHooks.pfJsrtDiagStartDebugging = (JsAPIHooks::JsrtDiagStartDebuggingPtr)GetProcAddress(library, "JsDiagStartDebugging");
+    m_jsApiHooks.pfJsrtDiagGetScripts = (JsAPIHooks::JsrtDiagGetScriptsPtr)GetProcAddress(library, "JsDiagGetScripts");
+    m_jsApiHooks.pfJsrtDiagGetSource = (JsAPIHooks::JsrtDiagGetSourcePtr)GetProcAddress(library, "JsDiagGetSource");
+    m_jsApiHooks.pfJsrtDiagResume = (JsAPIHooks::JsrtDiagResumePtr)GetProcAddress(library, "JsDiagResume");
+    m_jsApiHooks.pfJsrtDiagSetBreakpoint = (JsAPIHooks::JsrtDiagSetBreakpointPtr)GetProcAddress(library, "JsDiagSetBreakpoint");
+    m_jsApiHooks.pfJsrtDiagGetFunctionPosition = (JsAPIHooks::JsrtDiagGetFunctionPositionPtr)GetProcAddress(library, "JsDiagGetFunctionPosition");
+    m_jsApiHooks.pfJsrtDiagGetStacktrace = (JsAPIHooks::JsrtDiagGetStacktracePtr)GetProcAddress(library, "JsDiagGetStacktrace");
+    m_jsApiHooks.pfJsrtDiagGetStackProperties = (JsAPIHooks::JsrtDiagGetStackPropertiesPtr)GetProcAddress(library, "JsDiagGetStackProperties");
+    m_jsApiHooks.pfJsrtDiagLookupHandles = (JsAPIHooks::JsrtDiagLookupHandlesPtr)GetProcAddress(library, "JsDiagLookupHandles");
+    m_jsApiHooks.pfJsrtDiagEvaluate = (JsAPIHooks::JsrtDiagEvaluatePtr)GetProcAddress(library, "JsDiagEvaluate");
+    m_jsApiHooks.pfJsrtDiagGetBreakpoints = (JsAPIHooks::JsrtDiagGetBreakpointsPtr)GetProcAddress(library, "JsDiagGetBreakpoints");
+    m_jsApiHooks.pfJsrtDiagGetProperties = (JsAPIHooks::JsrtDiagGetPropertiesPtr)GetProcAddress(library, "JsDiagGetProperties");
+    m_jsApiHooks.pfJsrtDiagRemoveBreakpoint = (JsAPIHooks::JsrtDiagRemoveBreakpointPtr)GetProcAddress(library, "JsDiagRemoveBreakpoint");
+
+    m_jsApiHooks.pfJsrtDiagSetBreakOnException = (JsAPIHooks::JsrtDiagSetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagSetBreakOnException");
+    m_jsApiHooks.pfJsrtDiagGetBreakOnException = (JsAPIHooks::JsrtDiagGetBreakOnExceptionPtr)GetProcAddress(library, "JsDiagGetBreakOnException");
+
+
 #if DBG || ENABLE_DEBUG_CONFIG_OPTIONS
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetProcAddress(library, "JsTTDCreateRecordRuntime");
     m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = (JsAPIHooks::JsrtTTDCreateDebugRuntimePtr)GetProcAddress(library, "JsTTDCreateDebugRuntime");
@@ -94,7 +115,7 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtTTDRunScript = (JsAPIHooks::JsrtTTDRunScriptPtr)GetProcAddress(library, "JsTTDRunScript");
     m_jsApiHooks.pfJsrtTTDCallFunction = (JsAPIHooks::JsrtTTDCallFunctionPtr)GetProcAddress(library, "JsTTDCallFunction");
 
-    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = (JsAPIHooks::JsrtTTDSetDebuggerCallbackPtr)GetProcAddress(library, "JsTTDSetDebuggerCallback");
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = (JsAPIHooks::JsrtTTDSetDebuggerForReplayPtr)GetProcAddress(library, "JsTTDSetDebuggerForReplay");
     m_jsApiHooks.pfJsrtTTDSetIOCallbacks = (JsAPIHooks::JsrtTTDSetIOCallbacksPtr)GetProcAddress(library, "JsTTDSetIOCallbacks");
 
     m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = (JsAPIHooks::JsrtTTDStartTimeTravelRecordingPtr)GetProcAddress(library, "JsTTDStartTimeTravelRecording");
@@ -105,45 +126,34 @@ HINSTANCE ChakraRTInterface::LoadChakraDll(ArgInfo& argInfo)
     m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation = (JsAPIHooks::JsrtTTDPauseTimeTravelBeforeRuntimeOperationPtr)GetProcAddress(library, "JsTTDPauseTimeTravelBeforeRuntimeOperation");
     m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation = (JsAPIHooks::JsrtTTDReStartTimeTravelAfterRuntimeOperationPtr)GetProcAddress(library, "JsTTDReStartTimeTravelAfterRuntimeOperation");
 
-    m_jsApiHooks.pfJsrtTTDPrintVariable = (JsAPIHooks::JsrtTTDPrintVariablePtr)GetProcAddress(library, "JsTTDPrintVariable");
-
-    m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo = (JsAPIHooks::JsrtTTDGetExecutionTimeInfoPtr)GetProcAddress(library, "JsTTDGetExecutionTimeInfo");
-    m_jsApiHooks.pfJsrtTTDGetLastExceptionThrowTimeInfo = (JsAPIHooks::JsrtTTDGetLastExceptionThrowTimeInfoPtr)GetProcAddress(library, "JsTTDGetLastExceptionThrowTimeInfo");
-    m_jsApiHooks.pfJsrtTTDGetLastFunctionReturnTimeInfo = (JsAPIHooks::JsrtTTDGetLastFunctionReturnTimeInfoPtr)GetProcAddress(library, "JsTTDGetLastFunctionReturnTimeInfo");
-
     m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = (JsAPIHooks::JsrtTTDNotifyHostCallbackCreatedOrCanceledPtr)GetProcAddress(library, "JsTTDNotifyHostCallbackCreatedOrCanceled");
-    m_jsApiHooks.pfJsrtTTDGetCurrentCallbackOperationTimeInfo = (JsAPIHooks::JsrtTTDGetCurrentCallbackOperationTimeInfoPtr)GetProcAddress(library, "JsTTDGetCurrentCallbackOperationTimeInfo");
-
-    m_jsApiHooks.pfJsrtTTDSetBP = (JsAPIHooks::JsrtTTDSetBPPtr)GetProcAddress(library, "JsTTDSetBP");
-    m_jsApiHooks.pfJsrtTTDSetStepBP = (JsAPIHooks::JsrtTTDSetStepBPPtr)GetProcAddress(library, "JsTTDSetStepBP");
-    m_jsApiHooks.pfJsrtTTDSetContinueBP = (JsAPIHooks::JsrtTTDSetContinueBPPtr)GetProcAddress(library, "JsTTDSetContinueBP");
 
     m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = (JsAPIHooks::JsrtTTDPrepContextsForTopLevelEventMovePtr)GetProcAddress(library, "JsTTDPrepContextsForTopLevelEventMove");
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetProcAddress(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetProcAddress(library, "JsTTDReplayExecution");
-
-    m_jsApiHooks.pfJsrtTTDTestingCompareArtifacts = (JsAPIHooks::JsrtTTDTestingCompareArtifactsPtr)GetProcAddress(library, "JsTTDTestingCompareArtifacts");
 #else
-    m_jsApiHooks.pfJsrtTTDSetDebuggerCallback = nullptr;
-    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = nullptr;
-    m_jsApiHooks.pfJsrtTTDPrintVariable = nullptr;
+    m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = nullptr;
+    m_jsApiHooks.pfJsrtTTDCreateDebugRuntime = nullptr;
+    m_jsApiHooks.pfJsrtTTDCreateContext = nullptr;
+    m_jsApiHooks.pfJsrtTTDRunScript = nullptr;
+    m_jsApiHooks.pfJsrtTTDCallFunction = nullptr;
 
-    m_jsApiHooks.pfJsrtTTDGetExecutionTimeInfo = nullptr;
-    m_jsApiHooks.pfJsrtTTDGetLastExceptionThrowTimeInfo = nullptr;
-    m_jsApiHooks.pfJsrtTTDGetLastFunctionReturnTimeInfo = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetDebuggerForReplay = nullptr;
+    m_jsApiHooks.pfJsrtTTDSetIOCallbacks = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelRecording = nullptr;
+    m_jsApiHooks.pfJsrtTTDStopTimeTravelRecording = nullptr;
+    m_jsApiHooks.pfJsrtTTDEmitTimeTravelRecording = nullptr;
+
+    m_jsApiHooks.pfJsrtTTDStartTimeTravelDebugging = nullptr;
+    m_jsApiHooks.pfJsrtTTDPauseTimeTravelBeforeRuntimeOperation = nullptr;
+    m_jsApiHooks.pfJsrtTTDReStartTimeTravelAfterRuntimeOperation = nullptr;
 
     m_jsApiHooks.pfJsrtTTDNotifyHostCallbackCreatedOrCanceled = nullptr;
-    m_jsApiHooks.pfJsrtTTDGetCurrentCallbackOperationTimeInfo = nullptr;
-
-    m_jsApiHooks.pfJsrtTTDSetBP = nullptr;
-    m_jsApiHooks.pfJsrtTTDSetStepBP = nullptr;
-    m_jsApiHooks.pfJsrtTTDSetContinueBP = nullptr;
 
     m_jsApiHooks.pfJsrtTTDPrepContextsForTopLevelEventMove = nullptr;
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = nullptr;
     m_jsApiHooks.pfJsrtTTDReplayExecution = nullptr;
-
-    m_jsApiHooks.pfJsrtTTDTestingCompareArtifacts = nullptr;
 #endif
 
     return library;

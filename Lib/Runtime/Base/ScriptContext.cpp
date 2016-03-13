@@ -138,6 +138,7 @@ namespace Js
         , bindRef(MiscAllocator())
 #endif
 #if ENABLE_TTD
+        , m_ttdHostCallbackFunctor()
         , m_ttdRootSet(nullptr)
         , m_ttdTopLevelScriptLoad(&HeapAllocator::Instance)
         , m_ttdTopLevelNewFunction(&HeapAllocator::Instance)
@@ -1216,7 +1217,7 @@ namespace Js
 #if ENABLE_TTD
         if(this->m_ttdRootSet == nullptr)
         {
-            this->m_ttdRootSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
+            this->m_ttdRootSet = RecyclerNew(this->recycler, TTD::ObjectPinSet, this->recycler);
             this->recycler->RootAddRef(this->m_ttdRootSet);
         }
 #endif
@@ -2405,6 +2406,16 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void ScriptContext::SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor)
+    {
+        this->m_ttdHostCallbackFunctor = functor;
+    }
+
+    const HostScriptContextCallbackFunctor& ScriptContext::GetCallbackFunctor_TTD() const
+    {
+        return this->m_ttdHostCallbackFunctor;
+    }
+
     bool ScriptContext::IsRootTrackedObject_TTD(Js::RecyclableObject* obj)
     {
         return this->m_ttdRootSet->ContainsKey(obj);
@@ -2513,7 +2524,7 @@ namespace Js
         {
             if(this->m_ttdPinnedRootFunctionSet == nullptr)
             {
-                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::ReferencePinSet, this->recycler);
+                this->m_ttdPinnedRootFunctionSet = RecyclerNew(this->recycler, TTD::FunctionBodyPinSet, this->recycler);
                 this->recycler->RootAddRef(this->m_ttdPinnedRootFunctionSet);
             }
 
@@ -2537,6 +2548,25 @@ namespace Js
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
+    FunctionBody* ScriptContext::FindFunctionBodyByFileName_TTD(LPCWSTR filename) const
+    {
+        AssertMsg(filename != nullptr, "We don't want to set breakpoints in non-user code!!!");
+
+        for(auto iter = this->m_ttdPinnedRootFunctionSet->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            FunctionBody* cfb = static_cast<Js::FunctionBody*>(iter.CurrentValue());
+
+            LPCWSTR curi = cfb->GetSourceContextInfo()->url;
+            if(curi != nullptr && wcscmp(filename, curi) == 0)
+            {
+                return cfb;
+            }
+        }
+
+        AssertMsg(false, "We should never get here!!!");
+        return nullptr;
+    }
+
     void ScriptContext::InitializeCoreImage_TTD()
     {
         AssertMsg(this->m_ttdAddtlRuntimeContext == nullptr, "This should only happen once!!!");
@@ -2553,24 +2583,17 @@ namespace Js
 
     void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
     {
-#if ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD
-        //Ensure that we behave somewhat nicely
-        this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
-#endif
-
         this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetGlobalObject());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetUndefined());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetNull());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetTrue());
-        this->threadContext->TTDInfo->TrackTagObject(this->GetLibrary()->GetFalse());
-
         this->ScriptContextLogTag = this->threadContext->TTDInfo->LookupTagForObject(this->GetLibrary()->GetGlobalObject());
+
+#if TTD_FORCE_DEBUG_MODE_IN_RECORD
+        this->ForceNoNative();
+#endif
     }
 
     void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
     {
         this->ForceNoNative();
-        this->debugContext->SetDebuggerMode(DebuggerMode::Debugging);
     }
 
 #endif

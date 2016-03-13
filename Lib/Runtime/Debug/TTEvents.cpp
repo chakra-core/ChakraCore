@@ -59,6 +59,246 @@ namespace TTD
         return this->m_staticAbortMessage;
     }
 
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation()
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
+    {
+        ;
+    }
+
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
+        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_functionLine(other.m_functionLine), m_functionColumn(other.m_functionColumn), m_line(other.m_line), m_column(other.m_column)
+    {
+        if(other.m_sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
+        }
+    }
+
+    TTDebuggerSourceLocation::~TTDebuggerSourceLocation()
+    {
+        this->Clear();
+    }
+
+    bool TTDebuggerSourceLocation::HasValue() const
+    {
+        return this->m_etime != -1;
+    }
+
+    void TTDebuggerSourceLocation::Clear()
+    {
+        this->m_etime = -1;
+        this->m_ftime = 0;
+        this->m_ltime = 0;
+
+        this->m_docid = 0;
+
+        this->m_functionLine = 0;
+        this->m_functionColumn = 0;
+
+        this->m_line = 0;
+        this->m_column = 0;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            delete[] this->m_sourceFile;
+        }
+        this->m_sourceFile = nullptr;
+    }
+
+    void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
+    {
+        this->m_etime = other.m_etime;
+        this->m_ftime = other.m_ftime;
+        this->m_ltime = other.m_ltime;
+
+        this->m_docid = other.m_docid;
+
+        this->m_functionLine = other.m_functionLine;
+        this->m_functionColumn = other.m_functionColumn;
+
+        this->m_line = other.m_line;
+        this->m_column = other.m_column;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            delete[] this->m_sourceFile;
+        }
+        this->m_sourceFile = nullptr;
+
+        if(other.m_sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(other.m_sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
+        }
+    }
+
+    void TTDebuggerSourceLocation::SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
+    {
+        this->m_etime = etime;
+        this->m_ftime = ftime;
+        this->m_ltime = ltime;
+
+        this->m_docid = body->GetUtf8SourceInfo()->GetSourceInfoId();
+
+        this->m_functionLine = body->GetLineNumber();
+        this->m_functionColumn = body->GetColumnNumber();
+
+        this->m_line = (uint32)line;
+        this->m_column = (uint32)column;
+
+        if(this->m_sourceFile != nullptr)
+        {
+            delete[] this->m_sourceFile;
+        }
+        this->m_sourceFile = nullptr;
+
+        LPCWSTR sourceFile = body->GetSourceContextInfo()->url;
+        if(sourceFile != nullptr)
+        {
+            size_t wcharLength = wcslen(sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            this->m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
+        }
+    }
+
+    int64 TTDebuggerSourceLocation::GetRootEventTime() const
+    {
+        return this->m_etime;
+    }
+
+    int64 TTDebuggerSourceLocation::GetFunctionTime() const
+    {
+        return this->m_ftime;
+    }
+
+    int64 TTDebuggerSourceLocation::GetLoopTime() const
+    {
+        return this->m_ltime;
+    }
+
+    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx)
+    {
+        Js::FunctionBody* resBody = ctx->FindFunctionBodyByFileName_TTD(this->m_sourceFile);
+
+        while(true)
+        {
+            for(uint32 i = 0; i < resBody->GetNestedCount(); ++i)
+            {
+                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunc(i)->EnsureDeserialized();
+                Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
+
+                if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
+                {
+                    return ifb;
+                }
+
+                //if it starts on a larger line or if same line but larger column then we don't contain the target
+                AssertMsg(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
+
+                uint32 endLine = UINT32_MAX;
+                uint32 endColumn = UINT32_MAX;
+                if(i + 1 < resBody->GetNestedCount())
+                {
+                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunc(i + 1)->EnsureDeserialized();
+                    Js::FunctionBody* ifbnext = JsSupport::ForceAndGetFunctionBody(ipfinext);
+
+                    endLine = ifbnext->GetLineNumber();
+                    endColumn = ifbnext->GetColumnNumber();
+                }
+
+                if(endLine > this->m_functionLine || (endLine == this->m_functionLine && endColumn > this->m_functionColumn))
+                {
+                    resBody = ifb;
+                    break;
+                }
+            }
+        }
+
+        AssertMsg(false, "We should never get here!!!");
+        return nullptr;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetLine() const
+    {
+        return this->m_line;
+    }
+
+    uint32 TTDebuggerSourceLocation::GetColumn() const
+    {
+        return this->m_column;
+    }
+
+    void TTDebuggerSourceLocation::Emit(FileWriter* writer, NSTokens::Separator separator) const
+    {
+        writer->WriteKey(NSTokens::Key::srcLocation, separator);
+        writer->WriteRecordStart();
+
+        writer->WriteBool(NSTokens::Key::isValid, this->HasValue());
+        if(this->HasValue())
+        {
+            writer->WriteInt64(NSTokens::Key::eventTime, this->m_etime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::functionTime, this->m_ftime, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt64(NSTokens::Key::loopTime, this->m_ltime, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::documentId, this->m_docid, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::functionLine, this->m_functionLine, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::functionColumn, this->m_functionColumn, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::line, this->m_line, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::column, this->m_column, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteFileNameForSourceLocation(this->m_sourceFile, NSTokens::Separator::CommaSeparator);
+        }
+
+        writer->WriteRecordEnd();
+    }
+
+    void TTDebuggerSourceLocation::ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator)
+    {
+        reader->ReadKey(NSTokens::Key::srcLocation, readSeperator);
+        reader->ReadRecordStart();
+
+        bool hasValue = reader->ReadBool(NSTokens::Key::isValid);
+        if(!hasValue)
+        {
+            into.Clear();
+        }
+        else
+        {
+            into.m_etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
+            into.m_ftime = reader->ReadInt64(NSTokens::Key::functionTime, true);
+            into.m_ltime = reader->ReadInt64(NSTokens::Key::loopTime, true);
+
+            into.m_docid = reader->ReadUInt32(NSTokens::Key::documentId, true);
+
+            into.m_functionLine = reader->ReadUInt32(NSTokens::Key::functionLine, true);
+            into.m_functionColumn = reader->ReadUInt32(NSTokens::Key::functionColumn, true);
+
+            into.m_line = reader->ReadUInt32(NSTokens::Key::line, true);
+            into.m_column = reader->ReadUInt32(NSTokens::Key::column, true);
+
+            LPCWSTR sourceFile = reader->ReadFileNameForSourceLocation(true);
+
+            size_t wcharLength = wcslen(sourceFile) + 1;
+            size_t byteLength = wcharLength * sizeof(wchar);
+
+            into.m_sourceFile = new wchar[wcharLength];
+            js_memcpy_s(into.m_sourceFile, byteLength, sourceFile, byteLength);
+        }
+
+        reader->ReadRecordEnd();
+    }
+
     //////////////////
 
     EventLogEntry::EventLogEntry(EventKind tag, int64 eventTimestamp)
@@ -78,6 +318,10 @@ namespace TTD
 
         writer->WriteTag<EventKind>(NSTokens::Key::eventKind, this->m_eventKind);
         writer->WriteInt64(NSTokens::Key::eventTime, this->m_eventTimestamp, NSTokens::Separator::CommaSeparator);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        writer->WriteLogTag(NSTokens::Key::logTag, this->DiagnosticEventTagValue, NSTokens::Separator::CommaSeparator);
+#endif
     }
 
     EventLogEntry::EventKind EventLogEntry::GetEventKind() const
@@ -102,11 +346,18 @@ namespace TTD
         EventKind kind = reader->ReadTag<EventKind>(NSTokens::Key::eventKind);
         int64 etime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        TTD_LOG_TAG diagnosticTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
+#endif
+
         EventLogEntry* res = nullptr;
         switch(kind)
         {
         case EventKind::SnapshotTag:
             res = SnapshotEventLogEntry::CompleteParse(true, reader, alloc, etime);
+            break;
+        case EventKind::TelemetryLogEntry:
+            res = TelemetryEventLogEntry::CompleteParse(true, reader, alloc, etime);
             break;
         case EventKind::DoubleTag:
             res = DoubleEventLogEntry::CompleteParse(true, reader, alloc, etime);
@@ -137,6 +388,10 @@ namespace TTD
         }
 
         reader->ReadRecordEnd();
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        res->DiagnosticEventTagValue = diagnosticTag;
+#endif
 
         return res;
     }
@@ -221,6 +476,88 @@ namespace TTD
         TTD_IDENTITY_TAG restoreIdentityTag = reader->ReadIdentityTag(NSTokens::Key::restoreIdentityTag, true);
 
         return alloc.SlabNew<SnapshotEventLogEntry>(eTime, nullptr, restoreTime, restoreLogTag, restoreIdentityTag);
+    }
+
+    //////////////////
+
+    TelemetryEventLogEntry::TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation)
+        : EventLogEntry(EventKind::TelemetryLogEntry, eTime), m_infoString(infoString), m_shouldPrint(shouldPrint), m_optUserEventId(optUserEventId), m_shouldBreak(shouldBreak), m_sourceLocation(sourceLocation)
+    {
+        ;
+    }
+
+    void TelemetryEventLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        alloc.UnlinkString(this->m_infoString);
+        if(this->m_shouldBreak)
+        {
+            this->m_sourceLocation.Clear();
+        }
+    }
+
+    TelemetryEventLogEntry* TelemetryEventLogEntry::As(EventLogEntry* e)
+    {
+        AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry, "Not a telemetry event!");
+
+        return static_cast<TelemetryEventLogEntry*>(e);
+    }
+
+    const TTString& TelemetryEventLogEntry::GetInfoString() const
+    {
+        return this->m_infoString;
+    }
+
+    bool TelemetryEventLogEntry::ShouldPrint() const
+    {
+        return this->m_shouldPrint;
+    }
+
+    int64 TelemetryEventLogEntry::GetOptUserEventId() const
+    {
+        return this->m_optUserEventId;
+    }
+
+    bool TelemetryEventLogEntry::ShouldBreak() const
+    {
+        return this->m_shouldBreak;
+    }
+
+    void TelemetryEventLogEntry::GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const
+    {
+        AssertMsg(this->m_shouldBreak, "Need to check this first");
+
+        sourceLocation.SetLocation(this->m_sourceLocation);
+    }
+
+    void TelemetryEventLogEntry::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    {
+        this->BaseStdEmit(writer, separator);
+
+        writer->WriteString(NSTokens::Key::stringVal, this->m_infoString, NSTokens::Separator::CommaSeparator);
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldPrint, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteInt64(NSTokens::Key::i64Val, this->m_optUserEventId, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteBool(NSTokens::Key::boolVal, this->m_shouldBreak, NSTokens::Separator::CommaSeparator);
+        this->m_sourceLocation.Emit(writer, NSTokens::Separator::CommaSeparator);
+
+        writer->WriteRecordEnd();
+    }
+
+    TelemetryEventLogEntry* TelemetryEventLogEntry::CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime)
+    {
+        TTString infoString;
+        TTDebuggerSourceLocation sourceLocation;
+
+        reader->ReadString(NSTokens::Key::stringVal, alloc, infoString, true);
+        bool shouldPrint = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+        int64 optUserEventId = reader->ReadInt64(NSTokens::Key::i64Val, true);
+
+        bool shouldBreak = reader->ReadBool(NSTokens::Key::boolVal, true);
+        TTDebuggerSourceLocation::ParseInto(sourceLocation, reader, true);
+
+        return alloc.SlabNew<TelemetryEventLogEntry>(eTime, infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
     }
 
     //////////////////
@@ -456,39 +793,75 @@ namespace TTD
 
     namespace NSLogValue
     {
+        void UnloadData(const ArgRetValue& val, UnlinkableSlabAllocator& alloc)
+        {
+            if(val.Tag == ArgRetValueTag::ChakraString)
+            {
+                //Unlink the string contents and the string object
+                alloc.UnlinkString(*(val.m_optStringContents));
+                alloc.UnlinkAllocation(val.m_optStringContents);
+            }
+        }
+
         void InitializeArgRetValueAsInvalid(ArgRetValue& val)
         {
             val.Tag = ArgRetValueTag::Invalid;
         }
 
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val)
+        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val, UnlinkableSlabAllocator& alloc)
         {
+            val.u_uint64Val = 0;
+            val.m_optStringContents = nullptr;
+
             if(var == nullptr)
             {
                 val.Tag = ArgRetValueTag::RawNull;
             }
             else
             {
-                if(JsSupport::IsVarTaggedInline(var))
+                Js::TypeId tid = Js::JavascriptOperators::GetTypeId(var);
+                switch(tid)
                 {
-#if FLOATVAR
-                    if(Js::TaggedInt::Is(var))
-                    {
-#endif
-                        val.Tag = ArgRetValueTag::ChakraTaggedInteger;
-                        val.u_int64Val = Js::TaggedInt::ToInt32(var);
-#if FLOATVAR
-                    }
-                    else
-                    {
-                        AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
-
-                        val.Tag = ArgRetValueTag::ChakraTaggedDouble;
-                        val.u_doubleVal = Js::JavascriptNumber::GetValue(var);
-                    }
-#endif
+                case Js::TypeIds_Undefined:
+                    val.Tag = ArgRetValueTag::ChakraUndefined;
+                    break;
+                case Js::TypeIds_Null:
+                    val.Tag = ArgRetValueTag::ChakraNull;
+                    break;
+                case Js::TypeIds_Boolean:
+                    val.Tag = ArgRetValueTag::ChakraBool;
+                    val.u_boolVal = Js::JavascriptBoolean::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_Integer:
+                    val.Tag = ArgRetValueTag::ChakraInteger;
+                    val.u_int64Val = Js::TaggedInt::ToInt64(var);
+                    break;
+                case Js::TypeIds_Number:
+                    val.Tag = ArgRetValueTag::ChakraNumber;
+                    val.u_doubleVal = Js::JavascriptNumber::GetValue(var);
+                    break;
+                case Js::TypeIds_Int64Number:
+                    val.Tag = ArgRetValueTag::ChakraInt64;
+                    val.u_int64Val = Js::JavascriptInt64Number::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_UInt64Number:
+                    val.Tag = ArgRetValueTag::ChakraUInt64;
+                    val.u_uint64Val = Js::JavascriptUInt64Number::FromVar(var)->GetValue();
+                    break;
+                case Js::TypeIds_String:
+                {
+                    val.Tag = ArgRetValueTag::ChakraString;
+                    val.m_optStringContents = alloc.SlabAllocateStruct<TTString>();
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength(), *(val.m_optStringContents));
+                    break;
                 }
-                else
+                case Js::TypeIds_Symbol:
+                {
+                    val.Tag = ArgRetValueTag::ChakraSymbol;
+                    val.u_propertyId = Js::RecyclableObject::FromVar(var)->GetScriptContext()->GetLibrary()->ExtractPrimitveSymbolId_TTD(var);
+                    break;
+                }
+                default:
                 {
                     val.Tag = ArgRetValueTag::ChakraLoggedObject;
 
@@ -497,6 +870,8 @@ namespace TTD
                     AssertMsg(logTag != TTD_INVALID_LOG_TAG, "Object was not logged previously!!!");
 
                     val.u_objectTag = logTag;
+                    break;
+                }
                 }
             }
         }
@@ -505,23 +880,44 @@ namespace TTD
         {
             Js::Var res = nullptr;
 
-            if(val.Tag == ArgRetValueTag::RawNull)
+            switch(val.Tag)
             {
+            case ArgRetValueTag::RawNull:
                 res = nullptr;
-            }
-            else if(val.Tag == ArgRetValueTag::ChakraTaggedInteger)
-            {
-                res = Js::TaggedInt::ToVarUnchecked((int32)val.u_int64Val);
-            }
-#if FLOATVAR
-            else if(val.Tag == ArgRetValueTag::ChakraTaggedDouble)
-            {
-                res = Js::JavascriptNumber::NewInlined(val.u_doubleVal, nullptr);
-            }
-#endif
-            else
-            {
+                break;
+            case ArgRetValueTag::ChakraUndefined:
+                res = ctx->GetLibrary()->GetUndefined();
+                break;
+            case ArgRetValueTag::ChakraNull:
+                res = ctx->GetLibrary()->GetNull();
+                break;
+            case ArgRetValueTag::ChakraBool:
+                res = (val.u_boolVal ? ctx->GetLibrary()->GetTrue() : ctx->GetLibrary()->GetFalse());
+                break;
+            case ArgRetValueTag::ChakraInteger:
+                res = Js::TaggedInt::ToVarUnchecked((int)val.u_int64Val);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                res = Js::JavascriptInt64Number::ToVar(val.u_int64Val, ctx);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                res = Js::JavascriptUInt64Number::ToVar(val.u_uint64Val, ctx);
+                break;
+            case ArgRetValueTag::ChakraNumber:
+                res = Js::JavascriptNumber::ToVarWithCheck(val.u_doubleVal, ctx);
+                break;
+            case ArgRetValueTag::ChakraString:
+                res = Js::JavascriptString::NewCopyBuffer(val.m_optStringContents->Contents, val.m_optStringContents->Length, ctx);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                res = ctx->GetLibrary()->CreatePrimitveSymbol_TTD(val.u_propertyId);
+                break;
+            case ArgRetValueTag::ChakraLoggedObject:
                 res = ctx->GetThreadContext()->TTDInfo->LookupObjectForTag(val.u_objectTag);
+                break;
+            default:
+                AssertMsg(false, "Missing case??");
+                break;
             }
 
             return res;
@@ -535,15 +931,30 @@ namespace TTD
             switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
+            case ArgRetValueTag::ChakraUndefined:
+            case ArgRetValueTag::ChakraNull:
                 break;
-            case ArgRetValueTag::ChakraTaggedInteger:
-                writer->WriteInt32(NSTokens::Key::i32Val, (int32)val.u_int64Val, NSTokens::Separator::CommaSeparator);
+            case ArgRetValueTag::ChakraBool:
+                writer->WriteInt32(NSTokens::Key::boolVal, val.u_boolVal, NSTokens::Separator::CommaSeparator);
                 break;
-#if FLOATVAR
-            case ArgRetValueTag::ChakraTaggedDouble:
+            case ArgRetValueTag::ChakraInteger:
+                writer->WriteInt64(NSTokens::Key::i64Val, val.u_int64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                writer->WriteInt64(NSTokens::Key::i64Val, val.u_int64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                writer->WriteInt64(NSTokens::Key::u64Val, val.u_uint64Val, NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraNumber:
                 writer->WriteDouble(NSTokens::Key::doubleVal, val.u_doubleVal, NSTokens::Separator::CommaSeparator);
                 break;
-#endif
+            case ArgRetValueTag::ChakraString:
+                writer->WriteString(NSTokens::Key::stringVal, *(val.m_optStringContents), NSTokens::Separator::CommaSeparator);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                writer->WriteInt32(NSTokens::Key::propertyId, val.u_propertyId, NSTokens::Separator::CommaSeparator);
+                break;
             case ArgRetValueTag::ChakraLoggedObject:
                 writer->WriteLogTag(NSTokens::Key::tagVal, val.u_objectTag, NSTokens::Separator::CommaSeparator);
                 break;
@@ -555,24 +966,42 @@ namespace TTD
             writer->WriteRecordEnd();
         }
 
-        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader)
+        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
 
-            val.Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
+            val.u_uint64Val = 0;
+            val.m_optStringContents = nullptr;
 
+            val.Tag = reader->ReadTag<ArgRetValueTag>(NSTokens::Key::argRetValueType);
             switch(val.Tag)
             {
             case ArgRetValueTag::RawNull:
+            case ArgRetValueTag::ChakraUndefined:
+            case ArgRetValueTag::ChakraNull:
                 break;
-            case ArgRetValueTag::ChakraTaggedInteger:
-                val.u_int64Val = reader->ReadInt32(NSTokens::Key::i32Val, true);
+            case ArgRetValueTag::ChakraBool:
+                val.u_int64Val = reader->ReadInt32(NSTokens::Key::boolVal, true);
                 break;
-#if FLOATVAR
-            case ArgRetValueTag::ChakraTaggedDouble:
+            case ArgRetValueTag::ChakraInteger:
+                val.u_int64Val = reader->ReadInt64(NSTokens::Key::i64Val, true);
+                break;
+            case ArgRetValueTag::ChakraInt64:
+                val.u_int64Val = reader->ReadInt64(NSTokens::Key::i64Val, true);
+                break;
+            case ArgRetValueTag::ChakraUInt64:
+                val.u_uint64Val = reader->ReadInt64(NSTokens::Key::u64Val, true);
+                break;
+            case ArgRetValueTag::ChakraNumber:
                 val.u_doubleVal = reader->ReadDouble(NSTokens::Key::doubleVal, true);
                 break;
-#endif
+            case ArgRetValueTag::ChakraString:
+                val.m_optStringContents = alloc.SlabAllocateStruct<TTString>();
+                reader->ReadString(NSTokens::Key::stringVal, alloc, *(val.m_optStringContents), true);
+                break;
+            case ArgRetValueTag::ChakraSymbol:
+                val.u_propertyId = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
+                break;
             case ArgRetValueTag::ChakraLoggedObject:
                 val.u_objectTag = reader->ReadLogTag(NSTokens::Key::tagVal, true);
                 break;
@@ -657,6 +1086,11 @@ namespace TTD
         ;
     }
 
+    void ExternalCallEventEndLogEntry::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_returnVal, alloc);
+    }
+
     ExternalCallEventEndLogEntry* ExternalCallEventEndLogEntry::As(EventLogEntry* e)
     {
         AssertMsg(e->GetEventKind() == EventLogEntry::EventKind::ExternalCallEndTag, "Not an external call event!");
@@ -715,7 +1149,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue retVal;
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(retVal, false, reader);
+        NSLogValue::ParseArgRetValue(retVal, false, reader, alloc);
 
         double endTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 

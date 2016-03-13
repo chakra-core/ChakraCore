@@ -158,6 +158,8 @@ namespace TTD
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
         void WriteWellKnownToken(NSTokens::Key key, TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator);
+
+        virtual void WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) = 0;
     };
 
     //A implements the writer for JSON formatted output to a file
@@ -214,6 +216,8 @@ namespace TTD
         virtual void WriteNakedString(const TTString& val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
 
         virtual void WriteNakedWellKnownToken(TTD_WELLKNOWN_TOKEN val, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
+
+        virtual void WriteFileNameForSourceLocation(LPCWSTR filename, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) override;
     };
 
     //////////////////
@@ -330,6 +334,8 @@ namespace TTD
             this->ReadKey(keyCheck, readSeparator);
             return this->ReadNakedWellKnownToken(alloc);
         }
+
+        virtual LPCWSTR ReadFileNameForSourceLocation(bool readSeparator = false) = 0;
     };
 
     //////////////////
@@ -392,6 +398,8 @@ namespace TTD
 
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(SlabAllocator& alloc, bool readSeparator = false) override;
         virtual TTD_WELLKNOWN_TOKEN ReadNakedWellKnownToken(UnlinkableSlabAllocator& alloc, bool readSeparator = false) override;
+
+        virtual LPCWSTR ReadFileNameForSourceLocation(bool readSeparator = false) override;
     };
 }
 

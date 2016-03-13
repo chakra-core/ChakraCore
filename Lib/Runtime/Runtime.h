@@ -97,11 +97,10 @@ typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
 
 #include "Debug\TTSupport.h"
 
+class HostScriptContextCallbackFunctor;
+
 namespace TTD
 {
-    //typedef for a pin set (ensure that objects are kept live).
-    typedef JsUtil::BaseHashSet<FinalizableObject*, Recycler> ReferencePinSet;
-
     class RuntimeThreadInfo;
     class RuntimeContextInfo;
 
@@ -161,6 +160,7 @@ namespace TTD
     class EventLog;
 
     class TTDebuggerAbortException;
+    class TTDebuggerSourceLocation;
 }
 ////////
 
@@ -412,6 +412,16 @@ namespace Js
     };
 }
 
+namespace TTD
+{
+    //typedef for a pin set (ensure that objects are kept live).
+    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, Recycler> PropertyRecordPinSet;
+    typedef JsUtil::BaseHashSet<Js::FunctionBody*, Recycler> FunctionBodyPinSet;
+    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, Recycler> ObjectPinSet;
+    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, Recycler> EnvironmentPinSet;
+    typedef JsUtil::BaseHashSet<Js::Var, Recycler> SlotArrayPinSet;
+}
+
 #include "DataStructures\EvalMapString.h"
 
 bool IsMathLibraryId(Js::PropertyId propertyId);
@@ -577,10 +587,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #if ENABLE_TTD
 #include "screrror.h"
-
-#if ENABLE_TTD_FORCE_RECORD_NODE
-#include "Debug\TTDefaultHostFunctions.h"
-#endif 
 
 #include "Debug\TTRuntimeInfoTracker.h"
 #include "Debug\TTInflateMap.h"

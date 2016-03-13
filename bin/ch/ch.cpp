@@ -13,6 +13,11 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
 wchar_t* ttUri = nullptr;
+UINT32 snapInterval = UINT32_MAX;
+UINT32 snapHistoryLength = UINT32_MAX;
+
+wchar_t* dbgIPAddr = nullptr;
+unsigned short dbgPort = 0;
 
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
@@ -279,273 +284,58 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     messageQueue->Push(msg);
 }
 
-static void TTDebuggerCommands(wchar_t* msg)
+JsValueRef LoadNamedProperty(JsValueRef obj, LPCWSTR name)
 {
-    wprintf(L"Enter a command.\n");
-
-    wprintf(L"c  - continue\n");
-    wprintf(L"s  - step\n");
-    wprintf(L"si - step into\n");
-
-    wprintf(L"rl - reverse local\n");
-    wprintf(L"rd - reverse dynamic\n");
-
-    wprintf(L"o - originator for callback (if available)\n");
+    JsPropertyIdRef pid;
+    ChakraRTInterface::JsGetPropertyIdFromName(name, &pid);
+    JsValueRef val;
+    ChakraRTInterface::JsGetProperty(obj, pid, &val);
+    return val;
+}
+unsigned int LoadNamedPropertyAsUInt(JsValueRef obj, LPCWSTR name)
+{
+    JsValueRef rval = LoadNamedProperty(obj, name);
+    int val = -1;
+    ChakraRTInterface::JsNumberToInt(rval, &val);
+    AssertMsg(val >= 0, "Failed conversion.");
+    return (unsigned int)val;
 }
 
-static void TTDebuggerPrintVar(wchar_t* buff)
+void StartupDebuggerAsNeeded()
 {
-    wchar_t* ebuff = buff + 1;
-    while(*ebuff != L'\0' && iswblank(*ebuff))
+    if(dbgIPAddr == nullptr)
     {
-        ebuff++;
-    }
-
-    if(wcslen(ebuff) == 0)
-    {
-        wprintf(L"Bad variable name: %ls\n", buff);
-        return;
-    }
-
-    ChakraRTInterface::JsTTDPrintVariable(ebuff);
-}
-
-static bool TTDebuggerHandleStep(wchar_t* buff)
-{
-    if(wcslen(buff) == 1 && buff[0] == L'c')
-    {
-        ChakraRTInterface::JsTTDSetContinueBP();
-        return true;
-    }
-    else
-    {
-        if(wcslen(buff) == 1 && buff[0] == L's')
+        if(doTTDebug)
         {
-            ChakraRTInterface::JsTTDSetStepBP(false);
-            return true;
-        }
-        else if(wcslen(buff) == 2 && buff[0] == L's' && buff[1] == L'i')
-        {
-            ChakraRTInterface::JsTTDSetStepBP(true);
-            return true;
-        }
-        else
-        {
-            TTDebuggerCommands(L"Unknown command.\n");
-            return false;
-        }
-    }
-}
-
-static bool TTDebuggerHandleReverseStep(wchar_t* buff, INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage)
-{
-    *optEventTimeRequest = -1;
-    *optStaticRequestMessage = nullptr;
-
-    if(wcslen(buff) == 2 && buff[1] == L'l')
-    {
-        bool noPrevious = false;
-        INT64 rootEventTime = -1;
-        UINT64 ftime = 0;
-        UINT64 ltime = 0;
-        UINT32 line = 0;
-        UINT32 column = 0;
-        UINT32 sourceId = 0;
-        ChakraRTInterface::JsTTDGetExecutionTimeInfo(true, &noPrevious, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-        if(noPrevious)
-        {
-            wprintf(L"No previous statment in this event -- use originator command (o)\n");
-            return false;
-        }
-        else
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse step in local scope.";
-
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
-        }
-    }
-    else if(wcslen(buff) == 2 && buff[1] == L'd')
-    {
-        INT64 rootEventTime = -1;
-        UINT64 ftime = 0;
-        UINT64 ltime = 0;
-        UINT32 line = 0;
-        UINT32 column = 0;
-        UINT32 sourceId = 0;
-
-        //first see if we just returned from a call (we may have an exception as well but be in a finally)
-        bool hasReturn = false;
-        ChakraRTInterface::JsTTDGetLastFunctionReturnTimeInfo(&hasReturn, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-        if(hasReturn)
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse to callee return.";
-
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
-        }
-
-        //next see if we have an exception
-        bool hasException = false;
-        ChakraRTInterface::JsTTDGetLastExceptionThrowTimeInfo(&hasException, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-        if(hasException)
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse to exception source (from breakpoint).";
-
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
-        }
-
-        //finally see if we can just reverse locally
-        bool noPrevious = false;
-        ChakraRTInterface::JsTTDGetExecutionTimeInfo(true, &noPrevious, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-        if(noPrevious)
-        {
-            wprintf(L"No previous statment in this event -- use originator command (o)\n");
-            return false;
-        }
-        else
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse step in local scope.";
-
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
+            //we need to force the script context into dbg mode for replay even if we don't attach the debugger -- so do that here
+            ChakraRTInterface::JsTTDSetDebuggerForReplay();
         }
     }
     else
     {
-        TTDebuggerCommands(L"Unknown command.\n");
-        return false;
-    }
-}
+        wchar_t* path = (wchar_t*)CoTaskMemAlloc(MAX_PATH * sizeof(wchar_t));
+        path[0] = L'\0';
 
-static bool TTDebuggerHandleGotoOriginator(wchar_t* buff, INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage)
-{
-    *optEventTimeRequest = -1;
-    *optStaticRequestMessage = nullptr;
+        GetModuleFileName(NULL, path, MAX_PATH);
 
-    if(wcslen(buff) == 1)
-    {
-        bool hasEvent = false;
-        bool hasEventInfo = false;
-        INT64 rootEventTime = -1;
-        UINT64 ftime = 0;
-        UINT64 ltime = 0;
-        UINT32 line = 0;
-        UINT32 column = 0;
-        UINT32 sourceId = 0;
-        ChakraRTInterface::JsTTDGetCurrentCallbackOperationTimeInfo(true, &hasEvent, &hasEventInfo, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
+        //
+        //TODO: this is an ugly semi-hard coded path we need to fix up
+        //
+        wchar_t* spos = wcsstr(path, L"\\ch.exe");
+        AssertMsg(spos != nullptr, "Something got renamed or moved!!!");
 
-        if(!hasEvent)
-        {
-            wprintf(L"The origin of this event is not known (before the recording was initiated) or it was invoked directly by the host.\n");
-            return false;
-        }
-        if(!hasEventInfo)
-        {
-            //
-            //TODO: we need to fire off a sequence of steps with the top-level handler to:
-            //      (1) Execute the specified event
-            //      (2) Get the info and set the breakpoint
-            //
+        int ccount = (int)((((byte*)spos) - ((byte*)path)) / sizeof(wchar_t));
+        std::wstring dbgPath;
+        dbgPath.append(path, 0, ccount);
+        dbgPath.append(L"\\..\\chakra_debug.js");
 
-            wprintf(L"Event with the originator info was not previously executed -- we don't support automatic re-execution yet!!!\n");
-            return false;
-        }
-        else
-        {
-            *optEventTimeRequest = rootEventTime;
-            *optStaticRequestMessage = L"Reverse step in local scope.";
+        LPCWSTR contents = nullptr;
+        Helpers::LoadScriptFromFile(dbgPath.c_str(), contents);
 
-            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-            return true;
-        }
-    }
-    else
-    {
-        TTDebuggerCommands(L"Unknown command.\n");
-        return false;
-    }
-}
+        DebuggerCh::SetDbgSrcInfo(contents);
+        DebuggerCh::StartDebugging(chRuntime, dbgIPAddr, dbgPort);
 
-static bool CALLBACK TTDebuggerCallback(INT64* optEventTimeRequest, wchar_t** optStaticRequestMessage)
-{
-    wchar_t inputArray[256];
-    *optEventTimeRequest = -1;
-    *optStaticRequestMessage = nullptr;
-
-    while(true)
-    {
-        wprintf(L"TTDebug>");
-        std::fgetws(inputArray, 256, stdin);
-
-        //trim any leading whitespace
-        wchar_t* buff = inputArray;
-        while(*buff != L'\0' && iswblank(*buff))
-        {
-            buff++;
-        }
-
-        //get rid of \n
-        wchar_t* tail = buff + wcslen(buff) - 1;
-        *tail = L'\0';
-        tail--;
-
-        //trim any tailing whitespace
-        while(tail >= buff && iswblank(*tail))
-        {
-            *tail = L'\0';
-            tail--;
-        }
-
-        if(wcslen(buff) == 0)
-        {
-            TTDebuggerCommands(L"Enter a command.\n");
-        }
-        else if(buff[0] == L'p')
-        {
-            TTDebuggerPrintVar(buff);
-        }
-        else if(buff[0] == L'c' || buff[0] == L's')
-        {
-            bool ok = TTDebuggerHandleStep(buff);
-            if(ok)
-            {
-                return true;
-            }
-        }
-        else if(buff[0] == L'r')
-        {
-            bool ok = TTDebuggerHandleReverseStep(buff, optEventTimeRequest, optStaticRequestMessage);
-            if(ok)
-            {
-                return false;
-            }
-        }
-        else if(buff[0] == L'o')
-        {
-            bool ok = TTDebuggerHandleGotoOriginator(buff, optEventTimeRequest, optStaticRequestMessage);
-            if(ok)
-            {
-                return false;
-            }
-        }
-        else if(wcslen(buff) == 1 && buff[0] == L'q')
-        {
-            ExitProcess(0);
-        }
-        else
-        {
-            TTDebuggerCommands(L"Unknown command.\n");
-        }
+        CoTaskMemFree(path);
     }
 }
 
@@ -664,7 +454,7 @@ void GetDefaultTTDDirectory(std::wstring& res, const wchar_t* optExtraDir)
     }
 
     wchar_t lastChar = res.back();
-    if(lastChar != '\\')
+    if(lastChar != L'\\')
     {
         res.append(L"\\");
     }
@@ -871,9 +661,6 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
 
         ChakraRTInterface::JsTTDStartTimeTravelDebugging();
 
-        ChakraRTInterface::JsTTDSetDebuggerCallback(&TTDebuggerCallback);
-        ChakraRTInterface::JsTTDSetStepBP(true); //ignored if we set the free-run flag
-
         try
         {
             INT64 snapEventTime = -1;
@@ -890,36 +677,9 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
                 //handle any uncaught exception by immediately time-traveling to the throwing line
                 if(res == JsErrorCategoryScript)
                 {
-                    INT64 rootEventTime = -1;
-                    UINT64 ftime = 0;
-                    UINT64 ltime = 0;
-                    UINT32 line = 0;
-                    UINT32 column = 0;
-                    UINT32 sourceId = 0;
+                    wprintf(L"An unhandled script exception occoured!!!\n");
 
-                    //first see if we have an exception
-                    bool hasException = false;
-                    ChakraRTInterface::JsTTDGetLastExceptionThrowTimeInfo(&hasException, &rootEventTime, &ftime, &ltime, &line, &column, &sourceId);
-
-                    if(hasException)
-                    {
-                        wprintf(L"An unhandled script exception occoured!!!\n");
-                        wprintf(L"Time-Travel to throwing line y/n?\n");
-
-                        wchar_t input[16];
-                        std::fgetws(input, 16, stdin);
-                        if(input[0] == 'y' || input[0] == 'Y')
-                        {
-                            wprintf(L"Time-travel to throwing line initiated...\n");
-
-                            nextEventTime = rootEventTime;
-                            ChakraRTInterface::JsTTDSetBP(rootEventTime, ftime, ltime, line, column, sourceId);
-                        }
-                        else
-                        {
-                            ExitProcess(0);
-                        }
-                    }
+                    ExitProcess(0);
                 }
 
                 if(nextEventTime == -1)
@@ -973,6 +733,13 @@ HRESULT RunScript(LPCWSTR fileName, LPCWSTR fileContents, BYTE *bcBuffer, wchar_
     }
 
 Error:
+#if ENABLE_TTD
+    if(doTTRecord)
+    {
+        ChakraRTInterface::JsTTDStopTimeTravelRecording();
+    }
+#endif
+
     if (messageQueue != nullptr)
     {
         delete messageQueue;
@@ -1043,18 +810,15 @@ HRESULT ExecuteTest(LPCWSTR fileName)
         }
 
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
-
         chRuntime = runtime;
+
+        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
         JsContextRef context = JS_INVALID_REFERENCE;
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
-        if(!WScriptJsrt::Initialize())
-        {
-            IfFailGo(E_FAIL);
-        }
+        StartupDebuggerAsNeeded();
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
 #endif
@@ -1076,14 +840,16 @@ HRESULT ExecuteTest(LPCWSTR fileName)
 #if ENABLE_TTD
         if(doTTRecord)
         {
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, nullptr, &runtime));
-            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
-
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, snapInterval, snapHistoryLength, nullptr, &runtime));
             chRuntime = runtime;
+
+            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &GetTTDDirectory, &TTInitializeForWriteLogStreamCallback, &TTGetLogStreamCallback, &TTGetSnapshotStreamCallback, &TTGetSrcCodeStreamCallback, &TTReadBytesFromStreamCallback, &TTWriteBytesToStreamCallback, &TTFlushAndCloseStreamCallback);
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
+            StartupDebuggerAsNeeded();
         }
         else
         {
@@ -1093,6 +859,8 @@ HRESULT ExecuteTest(LPCWSTR fileName)
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
+            StartupDebuggerAsNeeded();
         }
 #else
         IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
@@ -1165,6 +933,8 @@ HRESULT ExecuteTest(LPCWSTR fileName)
     }
 
 Error:
+    DebuggerCh::CloseDebuggerIfNeeded();
+
     ChakraRTInterface::JsSetCurrentContext(nullptr);
 
     if (runtime != JS_INVALID_RUNTIME_HANDLE)
@@ -1228,52 +998,43 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         return EXIT_FAILURE;
     }
 
-    bool move = false;
+    int cpos = 0;
     for(int i = 0; i < argc; ++i)
     {
         if(wcsstr(argv[i], L"-TTRecord:") == argv[i])
         {
-            if(move)
-            {
-                printf("We should only see one  -TTxxx flag\n");
-                return 1;
-            }
-
             doTTRecord = true;
             ttUri = argv[i] + wcslen(L"-TTRecord:");
-
-            move = true;
-            i++;
         }
         else if(wcsstr(argv[i], L"-TTDebug:") == argv[i])
         {
-            if(move)
-            {
-                printf("We should only see one  -TTxxx flag\n");
-                return 1;
-            }
-
             doTTDebug = true;
             ttUri = argv[i] + wcslen(L"-TTDebug:");
+        }
+        else if(wcsstr(argv[i], L"-TTSnapInterval:") == argv[i])
+        {
+            LPCWSTR intervalStr = argv[i] + wcslen(L"-TTSnapInterval:");
+            snapInterval = (UINT32)_wtoi(intervalStr);
+        }
+        else if(wcsstr(argv[i], L"-TTHistoryLength:") == argv[i])
+        {
+            LPCWSTR historyStr = argv[i] + wcslen(L"-TTHistoryLength:");
+            snapHistoryLength = (UINT32)_wtoi(historyStr);
+        }
+        else if(wcsstr(argv[i], L"--debug-brk=") == argv[i])
+        {
+            dbgIPAddr = L"127.0.0.1";
 
-            move = true;
-            i++;
+            LPCWSTR portStr = argv[i] + wcslen(L"--debug-brk=");
+            dbgPort = (unsigned short)_wtoi(portStr);
         }
         else
         {
-            ;
-        }
-
-        if(move)
-        {
-            argv[i - 1] = argv[i];
+            argv[cpos] = argv[i];
+            cpos++;
         }
     }
-
-    if(move)
-    {
-        argc--;
-    }
+    argc = cpos;
 
     HostConfigFlags::pfnPrintUsage = PrintUsageFormat;
 
@@ -1287,7 +1048,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, &fileName.m_str };
     HINSTANCE chakraLibrary = ChakraRTInterface::LoadChakraDll(argInfo);
 
-    if (fileName.m_str == nullptr) {
+    if (fileName.m_str == nullptr) 
+    {
         fileName = CComBSTR(argv[1]);
     }
 

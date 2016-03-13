@@ -16,7 +16,7 @@ namespace TTD
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
             sobj->SnapObjectTag = obj->GetSnapTag_TTD();
-            sobj->OptWellKnownToken = isWellKnown ? obj->GetScriptContext()->ResolveKnownTokenForGeneralObject_TTD(obj) : TTD_INVALID_WELLKNOWN_TOKEN;
+            sobj->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? obj->GetScriptContext()->ResolveKnownTokenForGeneralObject_TTD(obj) : TTD_INVALID_WELLKNOWN_TOKEN);
 
             Js::Type* objType = obj->GetType();
             sobj->SnapType = idToTypeMap.LookupKnownItem(TTD_CONVERT_TYPEINFO_TO_PTR_ID(objType));
@@ -112,43 +112,72 @@ namespace TTD
             AssertMsg(Js::DynamicType::Is(robj->GetTypeId()), "You should only do this for dynamic objects!!!");
 
             Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(robj);
+            return ObjectPropertyReset(snpObject, dynObj, inflator, TRUE);
+        }
+
+        Js::DynamicObject* ObjectPropertyReset(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator, BOOL bailOnUnclearable)
+        {
             JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator>& propertyReset = inflator->GetPropertyResetSet();
             propertyReset.Clear();
 
             ////
-
-            BOOL hasInternalProperty = false;
+            BOOL hasInternalProperty = FALSE;
+            BOOL hasNonConfigProperty = FALSE;
             for(int32 i = 0; i < dynObj->GetPropertyCount(); i++)
             {
                 Js::PropertyId pid = dynObj->GetPropertyId((Js::PropertyIndex)i);
-                propertyReset.AddNew(pid);
+                if(pid != Js::Constants::NoProperty)
+                {
+                    propertyReset.AddNew(pid);
 
-                hasInternalProperty |= Js::IsInternalPropertyId(pid);
+                    hasInternalProperty |= Js::IsInternalPropertyId(pid);
+                    hasNonConfigProperty |= !dynObj->IsConfigurable(pid);
+                }
             }
 
             //We don't want to deal with internal property ids and their semantics so clean up and create a new object instead of trying to reuse
-            if(hasInternalProperty)
+            if((hasInternalProperty | hasNonConfigProperty) & bailOnUnclearable)
             {
                 propertyReset.Clear();
-
                 return nullptr;
             }
 
             const NSSnapType::SnapHandler* handler = snpObject->SnapType->TypeHandlerInfo;
             for(uint32 i = 0; i < handler->MaxPropertyIndex; ++i)
             {
-                if(handler->PropertyInfoArray[i].DataKind != NSSnapType::SnapEntryDataKindTag::Clear)
+                BOOL isClear = (handler->PropertyInfoArray[i].DataKind != NSSnapType::SnapEntryDataKindTag::Clear);
+                BOOL isInternal = Js::IsInternalPropertyId(handler->PropertyInfoArray[i].PropertyRecordId);
+
+                if(isClear | isInternal)
                 {
                     Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
                     propertyReset.Remove(pid);
                 }
             }
 
+            Js::Var undefined = dynObj->GetScriptContext()->GetLibrary()->GetUndefined();
             if(propertyReset.Count() != 0)
             {
                 for(auto iter = propertyReset.GetIterator(); iter.IsValid(); iter.MoveNext())
                 {
-                    dynObj->DeleteProperty(iter.CurrentValue(), Js::PropertyOperationFlags::PropertyOperation_Force);
+                    BOOL ok = FALSE;
+                    Js::PropertyId pid = iter.CurrentValue();
+                    if(!dynObj->IsConfigurable(pid))
+                    {
+                        ok = dynObj->SetProperty(pid, undefined, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                    }
+                    else
+                    {
+                        ok = dynObj->DeleteProperty(pid, Js::PropertyOperationFlags::PropertyOperation_Force);
+                    }
+
+                    if(!ok & bailOnUnclearable)
+                    {
+                        propertyReset.Clear();
+                        return nullptr;
+                    }
+
+                    AssertMsg(ok, "This property is stuck!!!");
                 }
             }
 

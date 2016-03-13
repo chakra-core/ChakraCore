@@ -40,7 +40,7 @@ namespace Js
 
     //
     // Some helper routines
-
+    /*
     int __cdecl ElementsComparer(__in void* context, __in const void* item1, __in const void* item2)
     {
         ScriptContext *scriptContext = (ScriptContext *)context;
@@ -61,7 +61,7 @@ namespace Js
         // Do the natural comparison, for example test2 comes before test11.
         return StrCmpLogicalW(str1, str2);
     }
-
+    */
     ArenaAllocator *GetArenaFromContext(ScriptContext *scriptContext)
     {
         Assert(scriptContext);
@@ -183,12 +183,9 @@ namespace Js
         if (pRefArena)
         {
             IDiagObjectModelWalkerBase * pOMWalker = nullptr;
-            BEGIN_JS_RUNTIME_CALL_EX(pFrame->GetScriptContext(), false);
-            {
-                IGNORE_STACKWALK_EXCEPTION(scriptContext);
-                pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
-            }
-            END_JS_RUNTIME_CALL(scriptContext);
+
+            IGNORE_STACKWALK_EXCEPTION(scriptContext);
+            pOMWalker = Anew(pRefArena->Arena(), LocalsWalker, pFrame, FrameWalkerFlags::FW_MakeGroups);
 
             return HeapNew(WeakArenaReference<IDiagObjectModelWalkerBase>,pRefArena, pOMWalker);
         }
@@ -239,6 +236,41 @@ namespace Js
     }
 
     /*static*/
+    void VariableWalkerBase::GetReturnedValueResolvedObject(ReturnedValue * returnValue, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
+    {
+        DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
+        WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
+        if (returnValue->isValueOfReturnStatement)
+        {
+            swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[Return value]");
+            pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
+            pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
+        }
+        else
+        {
+            if (returnValue->calledFunction->IsScriptFunction())
+            {
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
+            }
+            else
+            {
+                Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
+                swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", builtInName->GetSz());
+            }
+            pResolvedObject->obj = returnValue->returnedValue;
+            defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
+            pResolvedObject->address = nullptr;
+        }
+        Assert(pResolvedObject->obj != nullptr);
+
+        pResolvedObject->name = finalName;
+        pResolvedObject->typeId = TypeIds_Object;
+
+        pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
+        pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
+    }
+
+    /*static*/
     BOOL VariableWalkerBase::GetReturnedValue(int &index, DiagStackFrame* frame, ResolvedObject* pResolvedObject)
     {
         Assert(pResolvedObject);
@@ -251,38 +283,8 @@ namespace Js
         {
             if (index < returnedValueList->Count())
             {
-                DBGPROP_ATTRIB_FLAGS defaultAttributes = DBGPROP_ATTRIB_VALUE_IS_RETURN_VALUE | DBGPROP_ATTRIB_VALUE_IS_FAKE;
-                WCHAR * finalName = AnewArray(GetArenaFromContext(pResolvedObject->scriptContext), WCHAR, RETURN_VALUE_MAX_NAME);
                 ReturnedValue * returnValue = returnedValueList->Item(index);
-                if (returnValue->isValueOfReturnStatement)
-                {
-                    swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[Return value]");
-                    pResolvedObject->obj = frame->GetRegValue(Js::FunctionBody::ReturnValueRegSlot);
-                    pResolvedObject->address = Anew(frame->GetArena(), LocalObjectAddressForRegSlot, frame, Js::FunctionBody::ReturnValueRegSlot, pResolvedObject->obj);
-                }
-                else
-                {
-                    if (returnValue->calledFunction->IsScriptFunction())
-                    {
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", returnValue->calledFunction->GetFunctionBody()->GetDisplayName());
-                    }
-                    else
-                    {
-                        Js::JavascriptString *builtInName = returnValue->calledFunction->GetDisplayName();
-                        swprintf_s(finalName, RETURN_VALUE_MAX_NAME, L"[%s returned]", builtInName->GetSz());
-                    }
-                    pResolvedObject->obj = returnValue->returnedValue;
-                    defaultAttributes |= DBGPROP_ATTRIB_VALUE_READONLY;
-                    pResolvedObject->address = nullptr;
-                }
-                Assert(pResolvedObject->obj != nullptr);
-
-                pResolvedObject->name = finalName;
-                pResolvedObject->typeId = TypeIds_Object;
-
-                pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
-                pResolvedObject->objectDisplay->SetDefaultTypeAttribute(defaultAttributes);
-
+                VariableWalkerBase::GetReturnedValueResolvedObject(returnValue, frame, pResolvedObject);
                 return TRUE;
             }
 
@@ -1278,6 +1280,91 @@ namespace Js
         return totalLocalsCount;
     }
 
+    ulong LocalsWalker::GetLocalVariablesCount()
+    {
+        ulong localsCount = 0;
+        if (pVarWalkers)
+        {
+            for (int i = 0; i < pVarWalkers->Count(); i++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(i);
+
+                // In the case of making groups, we want to include any variables that aren't
+                // part of a group as part of the local variable count.
+                if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+                {
+                    localsCount += variableWalker->GetChildrenCount();
+                }
+            }
+        }
+        return localsCount;
+    }
+
+    BOOL LocalsWalker::GetLocal(int i, ResolvedObject* pResolvedObject)
+    {
+        if (!pVarWalkers || pVarWalkers->Count() == 0)
+        {
+            return FALSE;
+        }
+
+        for (int j = 0; j < pVarWalkers->Count(); ++j)
+        {
+            VariableWalkerBase *variableWalker = pVarWalkers->Item(j);
+
+            if (!ShouldMakeGroups() || !variableWalker->IsInGroup())
+            {
+                int count = variableWalker->GetChildrenCount();
+
+                if (i < count)
+                {
+                    return variableWalker->Get(i, pResolvedObject);
+                }
+                i -= count;
+            }
+            else
+            {
+                // We've finished with all walkers for the current locals level so
+                // break out in order to handle the groups.
+                break;
+            }
+        }
+
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetGroupObject(Js::UIGroupType uiGroupType, int i, ResolvedObject* pResolvedObject)
+    {
+        if (pVarWalkers)
+        {
+            int scopeCount = 0;
+            for (int j = 0; j < pVarWalkers->Count(); j++)
+            {
+                VariableWalkerBase* variableWalker = pVarWalkers->Item(j);
+
+                if (variableWalker->groupType == uiGroupType)
+                {
+                    scopeCount++;
+                    if (i < scopeCount)
+                    {
+                        return variableWalker->GetGroupObject(pResolvedObject);
+                    }
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    BOOL LocalsWalker::GetScopeObject(int i, ResolvedObject* pResolvedObject)
+    {
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Scope, i, pResolvedObject);
+    }
+
+    BOOL LocalsWalker::GetGlobalsObject(ResolvedObject* pResolvedObject)
+    {
+        int i = 0;
+        return this->GetGroupObject(Js::UIGroupType::UIGroupType_Globals, i, pResolvedObject);
+    }
+
     /*static*/
     DWORD LocalsWalker::GetCurrentFramesLocalsType(DiagStackFrame* frame)
     {
@@ -1853,7 +1940,7 @@ namespace Js
 
                 try
                 {
-                    BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                    auto funcPtr = [&]()
                     {
                         IGNORE_STACKWALK_EXCEPTION(scriptContext);
                         if (object->CanHaveInterceptors())
@@ -1869,8 +1956,29 @@ namespace Js
                         {
                             return TRUE;
                         }
+
+                        return FALSE;
+                    };
+
+                    BOOL autoFuncReturn = FALSE;
+
+                    if (!scriptContext->GetThreadContext()->IsScriptActive())
+                    {
+                        BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
+                        {
+                            autoFuncReturn = funcPtr();
+                        }
+                        END_JS_RUNTIME_CALL(scriptContext);
                     }
-                    END_JS_RUNTIME_CALL(scriptContext);
+                    else
+                    {
+                        autoFuncReturn = funcPtr();
+                    }
+
+                    if (autoFuncReturn == TRUE)
+                    {
+                        return TRUE;
+                    }
                 }
                 catch (Js::JavascriptExceptionObject* exception)
                 {
@@ -2403,7 +2511,7 @@ namespace Js
             }
 
             // Sort current pMembersList.
-            pMembersList->Sort(ElementsComparer, scriptContext);
+            //pMembersList->Sort(ElementsComparer, scriptContext);
         }
 
         ulong childrenCount =
@@ -2468,15 +2576,23 @@ namespace Js
 
         if (JavascriptOperators::GetTypeId(itemObj) == TypeIds_Function)
         {
-            EnsureFakeGroupObjectWalkerList();
-
-            if (*ppMethodsGroupWalker == nullptr)
+            if (scriptContext->GetThreadContext()->GetDebugManager()->IsLocalsDisplayFlagsSet(Js::DebugManager::LocalsDisplayFlags::LocalsDisplayFlags_NoGroupMethods))
             {
-                *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
-                fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
+                pMembersList->Add(info);
             }
+            else 
+            {
+                EnsureFakeGroupObjectWalkerList();
 
-            (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+                if (*ppMethodsGroupWalker == nullptr)
+                {
+                    *ppMethodsGroupWalker = Anew(arena, RecyclableMethodsGroupWalker, scriptContext, instance);
+                    fakeGroupObjectWalkerList->Add(*ppMethodsGroupWalker);
+                }
+
+                (*ppMethodsGroupWalker)->AddItem(propertyId, itemObj);
+            }
         }
         else
         {
@@ -3562,7 +3678,7 @@ namespace Js
 
     void RecyclableMethodsGroupWalker::Sort()
     {
-        pMembersList->Sort(ElementsComparer, scriptContext);
+        //pMembersList->Sort(ElementsComparer, scriptContext);
     }
 
     RecyclableMethodsGroupDisplay::RecyclableMethodsGroupDisplay(RecyclableMethodsGroupWalker *_methodGroupWalker, ResolvedObject* resolvedObject)

@@ -931,6 +931,8 @@ public:
     bool IsTTRecordRequested;
     bool IsTTDebugRequested;
     LPCWSTR TTDUri;
+    uint32 TTSnapInterval;
+    uint32 TTSnapHistoryLength;
 
     ArenaAllocator TTDGeneralAllocator;
     ArenaAllocator TTDBulkAllocator;
@@ -945,8 +947,8 @@ public:
     bool IsTTDInitialized() const;
 
     //Initialize the context for time-travel
-    void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay);
-    void BeginCtxTimeTravel(Js::ScriptContext* ctx);
+    void InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength);
+    void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
     void EndCtxTimeTravel(Js::ScriptContext* ctx);
 
     void MarkLoggedObjects_TTD(TTD::MarkTable& marks) const;

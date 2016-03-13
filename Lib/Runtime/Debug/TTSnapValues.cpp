@@ -231,7 +231,7 @@ namespace TTD
 
             snapValue->ValueLogTag = isLogged ? jsValue->GetScriptContext()->GetThreadContext()->TTDInfo->LookupTagForObject(jsValue) : TTD_INVALID_LOG_TAG;
 
-            snapValue->OptWellKnownToken = (isWellKnown) ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN;
+            snapValue->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(isWellKnown ? jsValue->GetScriptContext()->ResolveKnownTokenForPrimitive_TTD(jsValue) : TTD_INVALID_WELLKNOWN_TOKEN);
 
             if(snapValue->OptWellKnownToken == TTD_INVALID_WELLKNOWN_TOKEN)
             {
@@ -428,7 +428,7 @@ namespace TTD
                     reader->ReadString(NSTokens::Key::stringVal, alloc, *(snapValue->m_optStringValue), true);
                     break;
                 case Js::TypeIds_Symbol:
-                    snapValue->u_propertyIdValue = reader->ReadInt32(NSTokens::Key::propertyId, true);
+                    snapValue->u_propertyIdValue = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
                     break;
                 default:
                     AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
@@ -894,6 +894,12 @@ namespace TTD
 
             //walk global body to (1) add functions to pin set (2) build parent map
             ctx->ProcessFunctionBodyOnLoad(globalBody, nullptr);
+
+            const HostScriptContextCallbackFunctor& hostFunctor = ctx->GetCallbackFunctor_TTD();
+            if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+            {
+                hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, scriptFunction, utf8SourceInfo, &se);
+            }
             ////
 
             return globalBody;
@@ -1069,7 +1075,7 @@ namespace TTD
 
             if(isWellKnown)
             {
-                fbInfo->OptKnownPath = fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb);
+                fbInfo->OptKnownPath = alloc.CopyRawNullTerminatedStringInto(fb->GetScriptContext()->ResolveKnownTokenForRuntimeFunctionBody_TTD(fb));
 
                 fbInfo->OptParentBodyId = TTD_INVALID_PTR_ID;
                 fbInfo->OptLine = -1;

@@ -85,6 +85,8 @@ namespace TTD
 
     double TTDRecordExternalFunctionCallActionPopper::GetStartTime()
     {
+        this->m_startTime = this->m_timer.Now();
+
         return this->m_startTime;
     }
 
@@ -386,6 +388,10 @@ namespace TTD
 
     void EventLog::InsertEventAtHead(EventLogEntry* evnt)
     {
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        evnt->DiagnosticEventTagValue = this->m_threadContext->TTDInfo->GetLogTagValueForDiagnostics();
+#endif
+
         this->m_eventList.AddEntry(evnt);
     }
 
@@ -469,35 +475,29 @@ namespace TTD
         this->m_threadContext->TTDInfo->GetTagsForSnapshot(logTag, identityTag);
     }
 
-    EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir)
-        : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
+    EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength)
+        : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL), m_snapInterval(snapInterval), m_snapHistoryLength(snapHistoryLength),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
 #if ENABLE_TTD_DEBUGGING
-        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(),
+        m_isReturnFrame(false), m_isExceptionFrame(false), m_lastFrame(), m_pendingTTDBP(), m_activeBPId(-1), m_activeTTDBP(),
 #endif
         m_modeStack(&HeapAllocator::Instance), m_currentMode(TTDMode::Pending),
         m_ttdContext(nullptr),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordPinSet(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator)
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-        , BPIsSet(false)
-        , BPRootEventTime(-1)
-        , BPFunctionTime(0)
-        , BPLoopTime(0)
-        , BPLine(0)
-        , BPColumn(0)
-        , BPSourceContextId(0)
-        , BPBreakAtNextStmtInto(false)
-        , BPBreakAtNextStmtDepth(-1)
-#endif
     {
         JsSupport::CopyStringToHeapAllocator(logDir, this->m_logInfoRootDir);
 
+        if(this->m_snapHistoryLength < 2)
+        {
+            this->m_snapHistoryLength = 2;
+        }
+
         this->m_modeStack.Add(TTDMode::Pending);
 
-        this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), ReferencePinSet, threadContext->GetRecycler());
+        this->m_propertyRecordPinSet = RecyclerNew(threadContext->GetRecycler(), PropertyRecordPinSet, threadContext->GetRecycler());
         this->m_threadContext->GetRecycler()->RootAddRef(this->m_propertyRecordPinSet);
     }
 
@@ -550,11 +550,13 @@ namespace TTD
         }
     }
 
-    void EventLog::StartTimeTravelOnScript(Js::ScriptContext* ctx)
+    void EventLog::StartTimeTravelOnScript(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
     {
         AssertMsg(this->m_ttdContext == nullptr, "Should only add 1 time!");
 
         ctx->SetMode_TTD(this->m_currentMode);
+        ctx->SetCallbackFunctor_TTD(callbackFunctor);
+
         this->m_ttdContext = ctx;
 
         ctx->InitializeRecordingActionsAsNeeded_TTD();
@@ -651,6 +653,70 @@ namespace TTD
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
     }
 
+    void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool shouldPrint, int64 optUserEventId, bool shouldBreak)
+    {
+#if TTD_FORCE_DEBUG_MODE_IN_RECORD
+        AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
+
+        TTString infoString;
+        this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetSz(), infoStringJs->GetLength(), infoString);
+
+        //find the first frame that is not /telemetry.js
+        int32 fpos = this->m_callStack.Count() - 1;
+        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
+
+        LPCWSTR telemetrySrcFile = this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url;
+        while(fpos >= 0 && wcscmp(telemetrySrcFile, this->m_callStack.Item(fpos).Function->GetSourceContextInfo()->url) == 0)
+        {
+            fpos--;
+        }
+        AssertMsg(fpos >= 0, "Someone has to have called this!!!");
+
+        const SingleCallCounter& clientFrame = this->m_callStack.Item(fpos);
+
+
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = clientFrame.Function->GetStatementStartOffset(clientFrame.CurrentStatementIndex);
+        clientFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+
+        TTDebuggerSourceLocation sourceLocation;
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, clientFrame.FunctionTime, clientFrame.LoopTime, clientFrame.Function, srcLine, srcColumn);
+
+        TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, shouldPrint, optUserEventId, shouldBreak, sourceLocation);
+
+        this->InsertEventAtHead(tevent);
+#endif
+    }
+
+    void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
+    {
+        AssertMsg(this->ShouldPerformDebugAction(), "Mode is inconsistent!");
+
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+
+        AssertMsg(this->m_currentReplayEventIterator.Current()->GetEventTime() == this->m_eventTimeCtr, "Out of Sync!!!");
+
+        TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(this->m_currentReplayEventIterator.Current());
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        AssertMsg(wcscmp(tevent->GetInfoString().Contents, infoStringJs->GetSz()) == 0, "Telemetry messages differ??");
+#endif
+
+        if(tevent->ShouldPrint())
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls", tevent->GetInfoString().Contents);
+        }
+
+        this->AdvanceTimeAndPositionForReplay();
+    }
+
     void EventLog::RecordDateTimeEvent(double time)
     {
         AssertMsg(this->ShouldPerformRecordAction(), "Mode is inconsistent!");
@@ -744,9 +810,9 @@ namespace TTD
             this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #else
-        if(pid == Js::Constants::NoProperty)
+        if(returnCode && pid == Js::Constants::NoProperty)
         {
-            this->m_slabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
+            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), optName);
         }
 #endif
 
@@ -838,7 +904,7 @@ namespace TTD
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
         NSLogValue::ArgRetValue retVal;
-        NSLogValue::ExtractArgRetValueFromVar(value, retVal);
+        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_eventSlabAllocator);
 
         ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootNestingDepth, hasScriptException, hasTerminatingException, endTime, retVal);
 
@@ -868,7 +934,7 @@ namespace TTD
         AssertMsg(this->ShouldPerformRecordAction(), "Shouldn't be logging during replay!");
 
         NSLogValue::ArgRetValue retVal;
-        NSLogValue::ExtractArgRetValueFromVar(value, retVal);
+        NSLogValue::ExtractArgRetValueFromVar(value, retVal, this->m_eventSlabAllocator);
 
         ExternalCallEventEndLogEntry* eevent = this->m_eventSlabAllocator.SlabNew<ExternalCallEventEndLogEntry>(this->GetCurrentEventTimeAndAdvance(), matchingBeginTime, rootDepth, false, false, endTime, retVal);
 
@@ -893,7 +959,18 @@ namespace TTD
         //replay anything that happens when we are out of the call
         if(this->m_currentReplayEventIterator.IsValid() && this->m_currentReplayEventIterator.Current()->GetEventKind() == EventLogEntry::EventKind::JsRTActionTag)
         {
-            this->ReplayActionLoopStep();
+            if(!ctx->GetThreadContext()->IsScriptActive())
+            {
+                this->ReplayActionLoopStep();
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(ctx)
+                {
+                    this->ReplayActionLoopStep();
+                }
+                END_LEAVE_SCRIPT_WITH_EXCEPTION(ctx);
+            }
         }
 
         //May have exited inside the external call without anything else
@@ -1036,6 +1113,105 @@ namespace TTD
 
         this->m_lastFrame = this->m_callStack.Last();
     }
+
+    bool EventLog::HasPendingTTDBP() const
+    {
+        return this->m_pendingTTDBP.HasValue();
+    }
+
+    int64 EventLog::GetPendingTTDBPTargetEventTime() const
+    {
+        return this->m_pendingTTDBP.GetRootEventTime();
+    }
+
+    void EventLog::GetPendingTTDBPInfo(TTDebuggerSourceLocation& BPLocation) const
+    {
+        BPLocation.SetLocation(this->m_pendingTTDBP);
+    }
+
+    void EventLog::ClearPendingTTDBPInfo()
+    {
+        this->m_pendingTTDBP.Clear();
+    }
+
+    void EventLog::SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation)
+    {
+        this->m_pendingTTDBP.SetLocation(BPLocation);
+    }
+
+    bool EventLog::HasActiveBP() const
+    {
+        return this->m_activeBPId != -1;
+    }
+
+    UINT EventLog::GetActiveBPId() const
+    {
+        AssertMsg(this->HasActiveBP(), "Should check this first!!!");
+
+        return (UINT)this->m_activeBPId;
+    }
+
+    void EventLog::ClearActiveBP()
+    {
+        this->m_activeBPId = -1;
+        this->m_activeTTDBP.Clear();
+    }
+
+    void EventLog::SetActiveBP(UINT bpId, const TTDebuggerSourceLocation& bpLocation)
+    {
+        this->m_activeBPId = bpId;
+        this->m_activeTTDBP.SetLocation(bpLocation);
+    }
+
+    bool EventLog::ProcessBPInfoPreBreak()
+    {
+        if(!this->ShouldPerformDebugAction())
+        {
+            return true;
+        }
+
+        if(!this->HasActiveBP())
+        {
+            return true;
+        }
+
+        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
+        ULONG srcLine = 0;
+        LONG srcColumn = -1;
+        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
+        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+
+        bool locationOk = ((uint32)srcLine == this->m_activeTTDBP.GetLine()) & ((uint32)srcColumn == this->m_activeTTDBP.GetColumn());
+        bool ftimeOk = (this->m_activeTTDBP.GetFunctionTime() == -1) | ((uint64)this->m_activeTTDBP.GetFunctionTime() == cfinfo.FunctionTime);
+        bool ltimeOk = (this->m_activeTTDBP.GetLoopTime() == -1) | ((uint64)this->m_activeTTDBP.GetLoopTime() == cfinfo.CurrentStatementLoopTime);
+
+        return locationOk & ftimeOk & ltimeOk;
+    }
+
+    void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)
+    {
+        if(!this->ShouldPerformDebugAction())
+        {
+            return;
+        }
+
+        if(this->HasActiveBP())
+        {
+            Js::DebugDocument* debugDocument = fb->GetUtf8SourceInfo()->GetDebugDocument();
+            Js::StatementLocation statement;
+            if(debugDocument->FindBPStatementLocation(this->GetActiveBPId(), &statement))
+            {
+                debugDocument->SetBreakPoint(statement, BREAKPOINT_DELETED);
+            }
+
+            this->ClearActiveBP();
+        }
+
+        if(this->HasPendingTTDBP())
+        {
+            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), L"Reverse operation requested.");
+        }
+    }
 #endif
 
     void EventLog::UpdateLoopCountInfo()
@@ -1050,12 +1226,12 @@ namespace TTD
     }
 
 #if ENABLE_TTD_DEBUGGING
-    bool EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
+    void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
     {
         SingleCallCounter& cfinfo = this->GetTopCallCounter();
         if((cfinfo.CurrentStatementBytecodeMin <= bytecodeOffset) & (bytecodeOffset <= cfinfo.CurrentStatementBytecodeMax))
         {
-            return false;
+            return;
         }
         else
         {
@@ -1078,62 +1254,52 @@ namespace TTD
                 cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
                 cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
             }
-
-            return newstmt;
         }
     }
 
-    void EventLog::GetTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    void EventLog::GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        *rootEventTime = this->m_topLevelCallbackEventTime;
-        *ftime = cfinfo.FunctionTime;
-        *ltime = cfinfo.LoopTime;
 
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
         cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        *line = (uint32)srcLine;
-        *column = (uint32)srcColumn;
-        *sourceId = cfinfo.Function->GetSourceContextId();
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, cfinfo.Function, srcLine, srcColumn);
     }
 
-    bool EventLog::GetPreviousTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        //this always works -- even if we are at the start of the function
-        *rootEventTime = this->m_topLevelCallbackEventTime;
 
         //check if we are at the first statement in the callback event
         if(this->m_callStack.Count() == 1 && cfinfo.LastStatementIndex == -1)
         {
+            //Set the position info to the current statement and return true
+            this->GetTimeAndPositionForDebugger(sourceLocation);
+
             return true;
         }
 
         //if we are at the first statement in the function then we want the parents current
         Js::FunctionBody* fbody = nullptr;
         int32 statementIndex = -1;
+        uint64 ftime = 0;
+        uint64 ltime = 0;
         if(cfinfo.LastStatementIndex == -1)
         {
             const SingleCallCounter& cfinfoCaller = this->GetTopCallCallerCounter();
-            *ftime = cfinfoCaller.FunctionTime;
-            *ltime = cfinfoCaller.CurrentStatementLoopTime;
+            ftime = cfinfoCaller.FunctionTime;
+            ltime = cfinfoCaller.CurrentStatementLoopTime;
 
             fbody = cfinfoCaller.Function;
             statementIndex = cfinfoCaller.CurrentStatementIndex;
         }
         else
         {
-            *ftime = cfinfo.FunctionTime;
-            *ltime = cfinfo.LastStatementLoopTime;
+            ftime = cfinfo.FunctionTime;
+            ltime = cfinfo.LastStatementLoopTime;
 
             fbody = cfinfo.Function;
             statementIndex = cfinfo.LastStatementIndex;
@@ -1144,75 +1310,45 @@ namespace TTD
         uint32 startOffset = fbody->GetStatementStartOffset(statementIndex);
         fbody->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        *line = (uint32)srcLine;
-        *column = (uint32)srcColumn;
-        *sourceId = fbody->GetSourceContextId();
+        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, ftime, ltime, fbody, srcLine, srcColumn);
 
         return false;
     }
 
-    bool EventLog::GetExceptionTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetExceptionTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         if(!this->m_isExceptionFrame)
         {
-            *rootEventTime = -1;
-            *ftime = 0;
-            *ltime = 0;
-
-            *line = 0;
-            *column = 0;
-            *sourceId = 0;
-
+            sourceLocation.Clear();
             return false;
         }
         else
         {
-            *rootEventTime = this->m_topLevelCallbackEventTime;
-            *ftime = this->m_lastFrame.FunctionTime;
-            *ltime = this->m_lastFrame.CurrentStatementLoopTime;
-
             ULONG srcLine = 0;
             LONG srcColumn = -1;
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            *line = (uint32)srcLine;
-            *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetSourceContextId();
-
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, this->m_lastFrame.Function, srcLine, srcColumn);
             return true;
         }
     }
 
-    bool EventLog::GetImmediateReturnTimeAndPositionForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool EventLog::GetImmediateReturnTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
         if(!this->m_isReturnFrame)
         {
-            *rootEventTime = -1;
-            *ftime = 0;
-            *ltime = 0;
-
-            *line = 0;
-            *column = 0;
-            *sourceId = 0;
-
+            sourceLocation.Clear();
             return false;
         }
         else
         {
-            *rootEventTime = this->m_topLevelCallbackEventTime;
-            *ftime = this->m_lastFrame.FunctionTime;
-            *ltime = this->m_lastFrame.CurrentStatementLoopTime;
-
             ULONG srcLine = 0;
             LONG srcColumn = -1;
             uint32 startOffset = this->m_lastFrame.Function->GetStatementStartOffset(this->m_lastFrame.CurrentStatementIndex);
             this->m_lastFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            *line = (uint32)srcLine;
-            *column = (uint32)srcColumn;
-            *sourceId = this->m_lastFrame.Function->GetSourceContextId();
-
+            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, this->m_lastFrame.FunctionTime, this->m_lastFrame.CurrentStatementLoopTime, this->m_lastFrame.Function, srcLine, srcColumn);
             return true;
         }
     }
@@ -1270,233 +1406,24 @@ namespace TTD
         return -1;
     }
 
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-    void EventLog::ClearBreakpointOnNextStatement()
+    bool EventLog::TryGetFirstTelemetryBreakLocation(TTDebuggerSourceLocation& sourceLocation) const
     {
-        this->BPBreakAtNextStmtInto = false;
-        this->BPBreakAtNextStmtDepth = -1;
-    }
-
-    void EventLog::SetBreakpointOnNextStatement(bool into)
-    {
-        this->BPBreakAtNextStmtInto = into;
-        this->BPBreakAtNextStmtDepth = this->m_callStack.Count();
-    }
-
-    void EventLog::BPPrintBaseVariable(Js::ScriptContext* ctx, Js::Var var, bool expandObjects)
-    {
-        Js::TypeId tid = Js::JavascriptOperators::GetTypeId(var);
-        switch(tid)
+        for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
-        case Js::TypeIds_Undefined:
-            wprintf(L"undefined");
-            break;
-        case Js::TypeIds_Null:
-            wprintf(L"null");
-            break;
-        case Js::TypeIds_Boolean:
-            wprintf(Js::JavascriptBoolean::FromVar(var)->GetValue() ? L"true" : L"false");
-            break;
-        case Js::TypeIds_Integer:
-            wprintf(L"%I32i", Js::TaggedInt::ToInt32(var));
-            break;
-        case Js::TypeIds_Number:
-        {
-            if(Js::NumberUtilities::IsNan(Js::JavascriptNumber::GetValue(var)))
+            if(iter.Current()->GetEventKind() == EventLogEntry::EventKind::TelemetryLogEntry)
             {
-                wprintf(L"#Nan");
-            }
-            else if(!Js::NumberUtilities::IsFinite(Js::JavascriptNumber::GetValue(var)))
-            {
-                wprintf(L"Infinite");
-            }
-            else
-            {
-                if(floor(Js::JavascriptNumber::GetValue(var)) == Js::JavascriptNumber::GetValue(var))
+                TelemetryEventLogEntry* tevent = TelemetryEventLogEntry::As(iter.Current());
+                if(tevent->ShouldBreak())
                 {
-                    wprintf(L"%I64i", (int64)Js::JavascriptNumber::GetValue(var));
-                }
-                else
-                {
-                    wprintf(L"%.22f", Js::JavascriptNumber::GetValue(var));
+                    tevent->GetBreakSourceLocation(sourceLocation);
+                    return true;
                 }
             }
-            break;
         }
-        case Js::TypeIds_Int64Number:
-            wprintf(L"%I64i", Js::JavascriptInt64Number::FromVar(var)->GetValue());
-            break;
-        case Js::TypeIds_UInt64Number:
-            wprintf(L"%I64u", Js::JavascriptUInt64Number::FromVar(var)->GetValue());
-            break;
-        case Js::TypeIds_String:
-            wprintf(L"\"%ls\"", Js::JavascriptString::FromVar(var)->GetSz());
-            break;
-        case Js::TypeIds_Symbol:
-        case Js::TypeIds_Enumerator:
-        case Js::TypeIds_VariantDate:
-        case Js::TypeIds_SIMDFloat32x4:
-        case Js::TypeIds_SIMDFloat64x2:
-        case Js::TypeIds_SIMDInt32x4:
-            wprintf(L"Printing not supported for variable!");
-            break;
-        default:
-        {
-#if ENABLE_TTD_IDENTITY_TRACING
-            if(Js::StaticType::Is(tid))
-            {
-                wprintf(L"static object w/o identity: {");
-            }
-            else
-            {
-                wprintf(L"object w/ identity %I64i: {", Js::DynamicObject::FromVar(var)->TTDObjectIdentityTag);
-            }
-#else
-            wprintf(L"untagged object: {");
-#endif
 
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(var);
-            int32 pcount = obj->GetPropertyCount();
-            bool first = true;
-            for(int32 i = 0; i < pcount; ++i)
-            {
-                Js::PropertyId propertyId = obj->GetPropertyId((Js::PropertyIndex)i);
-                if(Js::IsInternalPropertyId(propertyId))
-                {
-                    continue;
-                }
-
-                if(!first)
-                {
-                    wprintf(L", ");
-                }
-                first = false;
-
-                wprintf(L"%ls: ", ctx->GetPropertyName(propertyId)->GetBuffer());
-
-                Js::Var pval = nullptr;
-                Js::JavascriptOperators::GetProperty(obj, propertyId, &pval, ctx, nullptr);
-                this->BPPrintBaseVariable(ctx, pval, false);
-            }
-
-            wprintf(L"}");
-            break;
-        }
-        }
+        sourceLocation.Clear();
+        return false;
     }
-
-    void EventLog::BPPrintVariable(Js::ScriptContext* ctx, LPCWSTR name)
-    {
-        Js::PropertyId propertyId = ctx->GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR>(name, (charcount_t)wcslen(name)));
-        Js::Var var = Js::JavascriptOperators::GetProperty(ctx->GetGlobalObject(), propertyId, ctx, nullptr);
-
-        if(var == nullptr)
-        {
-            wprintf(L"Name was not found in the global scope.\n");
-            return;
-        }
-
-        wprintf(L"  -> ");
-        this->BPPrintBaseVariable(ctx, var, true);
-        wprintf(L"\n");
-    }
-
-    void EventLog::BPCheckAndAction(Js::ScriptContext* ctx)
-    {
-        AssertMsg(this->ShouldPerformDebugAction(), "This should only be executed if we are debugging.");
-
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        bool bpHit = false;
-
-        if(this->BPBreakAtNextStmtDepth != -1)
-        {
-            if(this->BPBreakAtNextStmtInto)
-            {
-                bpHit = true;
-            }
-            else
-            {
-                bpHit = this->m_callStack.Count() <= this->BPBreakAtNextStmtDepth;
-            }
-        }
-
-        if(!bpHit)
-        {
-            ULONG srcLine = 0;
-            LONG srcColumn = -1;
-            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-            cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-            bool lineMatch = (this->BPLine == (uint32)srcLine);
-            bool columnMatch = (this->BPColumn == (uint32)srcColumn);
-            bool srcMatch = (this->BPSourceContextId == cfinfo.Function->GetSourceContextId());
-
-            bool etimeMatch = (this->BPRootEventTime == this->m_topLevelCallbackEventTime);
-            bool ftimeMatch = (this->BPFunctionTime == cfinfo.FunctionTime);
-            bool ltimeMatch = (this->BPLoopTime == cfinfo.LoopTime);
-
-            bpHit = (lineMatch & columnMatch & srcMatch & etimeMatch & ftimeMatch & ltimeMatch);
-        }
-
-        int64 optAbortTime = 0;
-        wchar_t* optAbortMsg = nullptr;
-        bool continueExecution = true;
-
-        if(bpHit)
-        {
-            //if we hit a breakpoint then disable future hits -- unless we re-enable in this handler
-            this->BPIsSet = false; 
-            this->BPRootEventTime = -1;
-            this->ClearBreakpointOnNextStatement();
-
-            //print the call stack
-            int callStackPrint = min(this->m_callStack.Count(), 5);
-            if(this->m_callStack.Count() != callStackPrint)
-            {
-                wprintf(L"...\n");
-            }
-
-            for(int32 i = this->m_callStack.Count() - callStackPrint; i < this->m_callStack.Count() - 1; ++i)
-            {
-                wprintf(L"%ls\n", this->m_callStack.Item(i).Function->GetDisplayName());
-            }
-
-            //print the current line information
-            ULONG srcLine = 0;
-            LONG srcColumn = -1;
-            LPCUTF8 srcBegin = nullptr;
-            LPCUTF8 srcEnd = nullptr;
-            uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-            cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcBegin, &srcEnd, &srcLine, &srcColumn);
-
-            wprintf(L"----\n");
-            wprintf(L"%ls @ ", this->m_callStack.Last().Function->GetDisplayName());
-            if(Js::Configuration::Global.flags.TTDCmdsFromFile == nullptr)
-            {
-                wprintf(L"line: %u, column: %i, etime: %I64i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
-            }
-            else
-            {
-                wprintf(L"line: %u, column: %i, ftime: %I64u, ltime: %I64u\n\n", srcLine, srcColumn, cfinfo.FunctionTime, cfinfo.LoopTime);
-            }
-
-            while(srcBegin != srcEnd)
-            {
-                wprintf(L"%C", (wchar)*srcBegin);
-                srcBegin++;
-            }
-            wprintf(L"\n\n");
-
-            continueExecution = this->BPDbgCallback(&optAbortTime, &optAbortMsg);
-        }
-
-        if(!continueExecution)
-        {
-            throw TTDebuggerAbortException::CreateTopLevelAbortRequest(optAbortTime, optAbortMsg);
-        }
-    }
-#endif
 #endif
 
     void EventLog::ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime, int64 hostCallbackId)
@@ -1513,9 +1440,16 @@ namespace TTD
 #endif
     }
 
-    double EventLog::GetElapsedSnapshotTime()
+    bool EventLog::IsTimeForSnapshot() const
     {
-        return this->m_elapsedExecutionTimeSinceSnapshot;
+        return (this->m_elapsedExecutionTimeSinceSnapshot > this->m_snapInterval);
+    }
+
+    void EventLog::PruneLogLength()
+    {
+        //
+        //TODO: add code to see if we have more snapshots than the specified limit and if so unload them
+        //
     }
 
     void EventLog::IncrementElapsedSnapshotTime(double addtlTime)
@@ -1729,6 +1663,12 @@ namespace TTD
             this->AbortReplayReturnToHost();
         }
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        TTD_LOG_TAG diagnosticsCurrentTag = this->m_threadContext->TTDInfo->GetLogTagValueForDiagnostics();
+        const EventLogEntry* diagnosticsEntry = this->m_currentReplayEventIterator.Current();
+        AssertMsg(diagnosticsCurrentTag == diagnosticsEntry->DiagnosticEventTagValue, "Log Tag is out of sync!!!");
+#endif
+
         switch(this->m_currentReplayEventIterator.Current()->GetEventKind())
         {
             case EventLogEntry::EventKind::SnapshotTag:
@@ -1766,60 +1706,15 @@ namespace TTD
         this->AbortReplayReturnToHost();
     }
 
-    void EventLog::RecordJsRTAllocateInt(Js::ScriptContext* ctx, int32 ival)
-    {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        JsRTNumberAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, true, ival, 0.0);
-
-        this->InsertEventAtHead(allocEvent);
-    }
-
-    void EventLog::RecordJsRTAllocateDouble(Js::ScriptContext* ctx, double dval)
-    {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        JsRTNumberAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTNumberAllocateAction>(etime, ctxTag, false, 0, dval);
-
-        this->InsertEventAtHead(allocEvent);
-    }
-
-    void EventLog::RecordJsRTAllocateString(Js::ScriptContext* ctx, LPCWSTR stringValue, uint32 stringLength)
-    {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        TTString str;
-        this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue, stringLength, str);
-        JsRTStringAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTStringAllocateAction>(etime, ctxTag, str);
-
-        this->InsertEventAtHead(allocEvent);
-    }
-
-    void EventLog::RecordJsRTAllocateSymbol(Js::ScriptContext* ctx, Js::Var symbolDescription)
-    {
-        uint64 etime = this->GetCurrentEventTimeAndAdvance();
-        TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
-
-        NSLogValue::ArgRetValue symDescriptor;
-        NSLogValue::ExtractArgRetValueFromVar(symbolDescription, symDescriptor);
-
-        JsRTSymbolAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTSymbolAllocateAction>(etime, ctxTag, symDescriptor);
-
-        this->InsertEventAtHead(allocEvent);
-    }
-
-    void EventLog::RecordJsRTVarConversion(Js::ScriptContext* ctx, Js::Var var, bool toBool, bool toNumber, bool toString, bool toObject)
+    void EventLog::RecordJsRTVarToObjectConversion(Js::ScriptContext* ctx, Js::Var var)
     {
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue vval;
-        NSLogValue::ExtractArgRetValueFromVar(var, vval);
+        NSLogValue::ExtractArgRetValueFromVar(var, vval, this->m_eventSlabAllocator);
 
-        JsRTVarConvertAction* convertEvent = this->m_eventSlabAllocator.SlabNew<JsRTVarConvertAction>(etime, ctxTag, toBool, toNumber, toString, toObject, vval);
+        JsRTVarConvertToObjectAction* convertEvent = this->m_eventSlabAllocator.SlabNew<JsRTVarConvertToObjectAction>(etime, ctxTag, vval);
 
         this->InsertEventAtHead(convertEvent);
     }
@@ -1867,7 +1762,7 @@ namespace TTD
 
         if(isNamed)
         {
-            NSLogValue::ExtractArgRetValueFromVar(optName, name);
+            NSLogValue::ExtractArgRetValueFromVar(optName, name, this->m_eventSlabAllocator);
         }
 
         JsRTFunctionAllocateAction* allocEvent = this->m_eventSlabAllocator.SlabNew<JsRTFunctionAllocateAction>(etime, ctxTag, isNamed, name);
@@ -1891,7 +1786,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val);
+        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
 
         JsRTGetPropertyAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetPropertyAction>(etime, ctxTag, pid, val);
 
@@ -1904,10 +1799,10 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue aindex;
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex);
+        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(var, aval);
+        NSLogValue::ExtractArgRetValueFromVar(var, aval, this->m_eventSlabAllocator);
 
         JsRTGetIndexAction* getEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetIndexAction>(etime, ctxTag, aindex, aval);
 
@@ -1920,7 +1815,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val);
+        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
 
         JsRTGetOwnPropertyInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertyInfoAction>(etime, ctxTag, pid, val);
 
@@ -1933,7 +1828,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue val;
-        NSLogValue::ExtractArgRetValueFromVar(var, val);
+        NSLogValue::ExtractArgRetValueFromVar(var, val, this->m_eventSlabAllocator);
 
         JsRTGetOwnPropertiesInfoAction* getInfoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetOwnPropertiesInfoAction>(etime, ctxTag, isGetNames, val);
 
@@ -1946,10 +1841,10 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue pdval;
-        NSLogValue::ExtractArgRetValueFromVar(propertyDescriptor, pdval);
+        NSLogValue::ExtractArgRetValueFromVar(propertyDescriptor, pdval, this->m_eventSlabAllocator);
 
         JsRTDefinePropertyAction* defineEvent = this->m_eventSlabAllocator.SlabNew<JsRTDefinePropertyAction>(etime, ctxTag, avar, pid, pdval);
 
@@ -1962,7 +1857,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         JsRTDeletePropertyAction* deleteEvent = this->m_eventSlabAllocator.SlabNew<JsRTDeletePropertyAction>(etime, ctxTag, avar, pid, useStrictRules);
 
@@ -1975,10 +1870,10 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue aproto;
-        NSLogValue::ExtractArgRetValueFromVar(proto, aproto);
+        NSLogValue::ExtractArgRetValueFromVar(proto, aproto, this->m_eventSlabAllocator);
 
         JsRTSetPrototypeAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPrototypeAction>(etime, ctxTag, avar, aproto);
 
@@ -1991,10 +1886,10 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(val, aval);
+        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_eventSlabAllocator);
 
         JsRTSetPropertyAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetPropertyAction>(etime, ctxTag, avar, pid, aval, useStrictRules);
 
@@ -2007,13 +1902,13 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue aindex;
-        NSLogValue::ExtractArgRetValueFromVar(index, aindex);
+        NSLogValue::ExtractArgRetValueFromVar(index, aindex, this->m_eventSlabAllocator);
 
         NSLogValue::ArgRetValue aval;
-        NSLogValue::ExtractArgRetValueFromVar(val, aval);
+        NSLogValue::ExtractArgRetValueFromVar(val, aval, this->m_eventSlabAllocator);
 
         JsRTSetIndexAction* setEvent = this->m_eventSlabAllocator.SlabNew<JsRTSetIndexAction>(etime, ctxTag, avar, aindex, aval);
 
@@ -2026,7 +1921,7 @@ namespace TTD
         TTD_LOG_TAG ctxTag = TTD_EXTRACT_CTX_LOG_TAG(ctx);
 
         NSLogValue::ArgRetValue avar;
-        NSLogValue::ExtractArgRetValueFromVar(var, avar);
+        NSLogValue::ExtractArgRetValueFromVar(var, avar, this->m_eventSlabAllocator);
 
         JsRTGetTypedArrayInfoAction* infoEvent = this->m_eventSlabAllocator.SlabNew<JsRTGetTypedArrayInfoAction>(etime, ctxTag, returnsArrayBuff, avar);
 
@@ -2043,7 +1938,7 @@ namespace TTD
         for(uint32 i = 0; i < argCount; ++i)
         {
             Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i]);
+            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i], this->m_eventSlabAllocator);
         }
         Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
 
@@ -2073,7 +1968,7 @@ namespace TTD
         TTString optSrcUri;
         this->m_eventSlabAllocator.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, optSrcUri);
 
-        DWORD_PTR optDocumentID = fb->GetSourceContextId();
+        DWORD_PTR optDocumentID = fb->GetUtf8SourceInfo()->GetSourceInfoId();
 
         TTString sourceCode;
         this->m_eventSlabAllocator.CopyNullTermStringInto(srcCode, sourceCode);
@@ -2099,7 +1994,7 @@ namespace TTD
         for(uint32 i = 0; i < argCount; ++i)
         {
             Js::Var arg = args[i];
-            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i]);
+            NSLogValue::ExtractArgRetValueFromVar(arg, argArray[i], this->m_eventSlabAllocator);
         }
         Js::Var* execArgs = (argCount != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<Js::Var>(argCount) : nullptr;
 
@@ -2161,12 +2056,12 @@ namespace TTD
         } while(nextActionValid & !nextActionRootCall);
     }
 
-    void EventLog::EmitLogIfNeeded()
+    LPCWSTR EventLog::EmitLogIfNeeded()
     {
         //See if we have been running record mode (even if we are suspended for runtime execution) -- if we aren't then we don't want to emit anything
         if((this->m_currentMode & TTDMode::RecordEnabled) != TTDMode::RecordEnabled)
         {
-            return;
+            return L"Record Disabled -- No Log Written!";
         }
 
 #if TTD_WRITE_JSON_OUTPUT || TTD_WRITE_BINARY_OUTPUT
@@ -2270,6 +2165,7 @@ namespace TTD
 
         writer.FlushAndClose();
 
+        return this->m_logInfoRootDir.Contents;
 #endif
     }
 

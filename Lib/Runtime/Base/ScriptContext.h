@@ -128,6 +128,28 @@ private:
     Js::ScriptContext* scriptContext;
 };
 
+#if ENABLE_TTD
+//A class that we use to pass in a functor from the host when we need to inform it about something we are doing
+class HostScriptContextCallbackFunctor
+{
+public:
+    void* HostData;
+    void(*pfOnScriptLoadCallback)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+
+    HostScriptContextCallbackFunctor()
+        : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
+    {
+        ;
+    }
+
+    HostScriptContextCallbackFunctor(void* callbackData, void(*pfcallbackOnScriptLoad)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
+        : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
+    {
+        ;
+    }
+};
+#endif
+
 namespace Js
 {
 
@@ -1031,8 +1053,12 @@ private:
         }
 
 #if ENABLE_TTD
+        HostScriptContextCallbackFunctor m_ttdHostCallbackFunctor;
+        void SetCallbackFunctor_TTD(const HostScriptContextCallbackFunctor& functor);
+        const HostScriptContextCallbackFunctor& GetCallbackFunctor_TTD() const;
+
         //Keep track of roots, loaded script, and the current debugger state
-        TTD::ReferencePinSet* m_ttdRootSet;
+        TTD::ObjectPinSet* m_ttdRootSet;
 
         //The lists containing the top-level code that is loaded in this context
         JsUtil::List<TTD::NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelScriptLoad;
@@ -1040,7 +1066,7 @@ private:
         JsUtil::List<TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> m_ttdTopLevelEval;
 
         //need to add back pin set for functionBody to make sure they don't get collected on us
-        TTD::ReferencePinSet* m_ttdPinnedRootFunctionSet;
+        TTD::FunctionBodyPinSet* m_ttdPinnedRootFunctionSet;
         JsUtil::BaseDictionary<FunctionBody*, FunctionBody*, HeapAllocator> m_ttdFunctionBodyParentMap;
 
         //The TTDMode for this script context (the same as the Mode for the thread context but we put it here for fast lookup when identity tagging)
@@ -1091,6 +1117,12 @@ private:
 
         //Lookup the parent bofy for a function body (or null for global code)
         FunctionBody* ResolveParentBody(FunctionBody* body) const;
+
+        //
+        //TODO: we need to fix this later since filenames are not 100% always unique
+        //
+        //Find the body with the filename from our top-level function bodies
+        FunctionBody* FindFunctionBodyByFileName_TTD(LPCWSTR filename) const;
 
         //
         //TODO: this is currently called explicitly -- we need to fix up the core image computation and this will be eliminated then

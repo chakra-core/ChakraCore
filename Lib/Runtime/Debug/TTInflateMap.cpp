@@ -12,7 +12,7 @@ namespace TTD
         : m_typeMap(), m_handlerMap(),
         m_tagToGlobalObjectMap(), m_objectMap(),
         m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
-        m_inflatePinSet(nullptr), m_oldInflatePinSet(nullptr),
+        m_inflatePinSet(nullptr), m_environmentPinSet(nullptr), m_slotArrayPinSet(nullptr), m_oldInflatePinSet(nullptr),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
         ;
@@ -24,6 +24,18 @@ namespace TTD
         {
             this->m_inflatePinSet->GetAllocator()->RootRelease(this->m_inflatePinSet);
             this->m_inflatePinSet = nullptr;
+        }
+
+        if(this->m_environmentPinSet != nullptr)
+        {
+            this->m_environmentPinSet->GetAllocator()->RootRelease(this->m_environmentPinSet);
+            this->m_environmentPinSet = nullptr;
+        }
+
+        if(this->m_slotArrayPinSet != nullptr)
+        {
+            this->m_slotArrayPinSet->GetAllocator()->RootRelease(this->m_slotArrayPinSet);
+            this->m_slotArrayPinSet = nullptr;
         }
 
         if(this->m_oldInflatePinSet != nullptr)
@@ -44,8 +56,14 @@ namespace TTD
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
 
-        this->m_inflatePinSet = RecyclerNew(threadContext->GetRecycler(), ReferencePinSet, threadContext->GetRecycler(), objectCount);
+        this->m_inflatePinSet = RecyclerNew(threadContext->GetRecycler(), ObjectPinSet, threadContext->GetRecycler(), objectCount);
         threadContext->GetRecycler()->RootAddRef(this->m_inflatePinSet);
+
+        this->m_environmentPinSet = RecyclerNew(threadContext->GetRecycler(), EnvironmentPinSet, threadContext->GetRecycler(), objectCount);
+        threadContext->GetRecycler()->RootAddRef(this->m_environmentPinSet);
+
+        this->m_slotArrayPinSet = RecyclerNew(threadContext->GetRecycler(), SlotArrayPinSet, threadContext->GetRecycler(), objectCount);
+        threadContext->GetRecycler()->RootAddRef(this->m_slotArrayPinSet);
     }
 
     void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 envCount, uint32 slotCount)
@@ -68,14 +86,17 @@ namespace TTD
         //allocate the old pin set and fill it
         AssertMsg(this->m_oldInflatePinSet == nullptr, "Old pin set is not null.");
         Recycler* pinRecycler = this->m_inflatePinSet->GetAllocator();
-        this->m_oldInflatePinSet = RecyclerNew(pinRecycler, ReferencePinSet, pinRecycler, this->m_inflatePinSet->Count());
+        this->m_oldInflatePinSet = RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count());
         pinRecycler->RootAddRef(this->m_oldInflatePinSet);
 
         for(auto iter = this->m_inflatePinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             this->m_oldInflatePinSet->AddNew(iter.CurrentKey());
         }
+
         this->m_inflatePinSet->Clear();
+        this->m_environmentPinSet->Clear();
+        this->m_slotArrayPinSet->Clear();
     }
 
     void InflateMap::CleanupAfterInflate()
@@ -197,17 +218,19 @@ namespace TTD
     void InflateMap::AddInflationFunctionBody(TTD_PTR_ID functionId, Js::FunctionBody* value)
     {
         this->m_functionBodyMap.AddItem(functionId, value);
-        this->m_inflatePinSet->AddNew(value);
+        //Function bodies are either root (and kept live by our root pin set in the script context/info) or are reachable from it
     }
 
     void InflateMap::AddEnvironment(TTD_PTR_ID envId, Js::FrameDisplay* value)
     {
         this->m_environmentMap.AddItem(envId, value);
+        this->m_environmentPinSet->AddNew(value);
     }
 
     void InflateMap::AddSlotArray(TTD_PTR_ID slotId, Js::Var* value)
     {
         this->m_slotArrayMap.AddItem(slotId, value);
+        this->m_slotArrayPinSet->AddNew(value);
     }
 
     JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator>& InflateMap::GetPropertyResetSet()

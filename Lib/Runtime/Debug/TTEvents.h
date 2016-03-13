@@ -40,6 +40,49 @@ namespace TTD
         LPCWSTR GetStaticAbortMessage() const;
     };
 
+    //A class to represent a source location
+    class TTDebuggerSourceLocation
+    {
+    private:
+        //The time aware parts of this location
+        int64 m_etime;  //-1 indicates an INVALID location
+        int64 m_ftime;  //-1 indicates any ftime is OK
+        int64 m_ltime;  //-1 indicates any ltime is OK
+
+        //The document
+        wchar* m_sourceFile; //temp use until we make docid stable
+        uint32 m_docid; 
+
+        //The position of the function in the document
+        uint32 m_functionLine;
+        uint32 m_functionColumn;
+
+        //The location in the fnuction
+        uint32 m_line;
+        uint32 m_column;
+
+    public:
+        TTDebuggerSourceLocation();
+        TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
+        ~TTDebuggerSourceLocation();
+
+        bool HasValue() const;
+        void Clear();
+        void SetLocation(const TTDebuggerSourceLocation& other);
+        void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
+
+        int64 GetRootEventTime() const;
+        int64 GetFunctionTime() const;
+        int64 GetLoopTime() const;
+
+        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
+        uint32 GetLine() const;
+        uint32 GetColumn() const;
+
+        void Emit(FileWriter* writer, NSTokens::Separator separator = NSTokens::Separator::NoSeparator) const;
+        static void ParseInto(TTDebuggerSourceLocation& into, FileReader* reader, bool readSeperator = false);
+    };
+
     //////////////////
 
     //A base class for our event log entries
@@ -50,6 +93,7 @@ namespace TTD
         enum class EventKind
         {
             SnapshotTag,
+            TelemetryLogEntry,
             DoubleTag,
             StringTag,
             RandomSeedTag,
@@ -92,6 +136,11 @@ namespace TTD
         //de-serialize an Event calling the correct completion vased on the EventKind
         //IMPORTANT: Each subclass should implement a static "CompleteParse" method which this will call to complete the parse and create the event
         static EventLogEntry* Parse(bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        //A debug value that tells us what the global event tag counter should be before this event completes
+        TTD_LOG_TAG DiagnosticEventTagValue;
+#endif
     };
 
     //////////////////
@@ -129,6 +178,43 @@ namespace TTD
 
         virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
         static SnapshotEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
+    };
+
+    //////////////////
+
+    //A class that represents telemetry events from the user code
+    class TelemetryEventLogEntry : public EventLogEntry
+    {
+    private:
+        //A string that contains all of the info that is logged and if we should print it
+        const TTString m_infoString;
+        const bool m_shouldPrint;
+
+        //An id the user can provide for this event so we can vector clock with whatever is being logged in the code
+        const int64 m_optUserEventId;
+
+        //if we should break at this point during replay and the source line info
+        const bool m_shouldBreak;
+        TTDebuggerSourceLocation m_sourceLocation;
+
+    public:
+        TelemetryEventLogEntry(int64 eTime, const TTString& infoString, bool shouldPrint, int64 optUserEventId, bool shouldBreak, const TTDebuggerSourceLocation& sourceLocation);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
+
+        //Get the event as a snapshot event (and do tag checking for consistency)
+        static TelemetryEventLogEntry* As(EventLogEntry* e);
+
+        //Get the info about the event
+        const TTString& GetInfoString() const;
+        bool ShouldPrint() const;
+        int64 GetOptUserEventId() const;
+
+        //Get info about associated breakpoints
+        bool ShouldBreak() const;
+        void GetBreakSourceLocation(TTDebuggerSourceLocation& sourceLocation) const;
+
+        virtual void EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const override;
+        static TelemetryEventLogEntry* CompleteParse(bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime);
     };
 
     //////////////////
@@ -248,10 +334,15 @@ namespace TTD
             Invalid = 0x0,
 
             RawNull,
-            ChakraTaggedInteger,
-#if FLOATVAR
-            ChakraTaggedDouble,
-#endif
+            ChakraUndefined,
+            ChakraNull,
+            ChakraBool,
+            ChakraInteger,
+            ChakraInt64,
+            ChakraUInt64,
+            ChakraNumber,
+            ChakraString,
+            ChakraSymbol,
             ChakraLoggedObject
         };
 
@@ -262,17 +353,25 @@ namespace TTD
 
             union
             {
+                BOOL u_boolVal;
                 int64 u_int64Val;
+                uint64 u_uint64Val;
                 double u_doubleVal;
+                Js::PropertyId u_propertyId;
                 TTD_LOG_TAG u_objectTag;
             };
+
+            TTString* m_optStringContents;
         };
+
+        //Unload any data that is needed from this ArgRetValue
+        void UnloadData(const ArgRetValue& val, UnlinkableSlabAllocator& alloc);
 
         //Initialize as invalid
         void InitializeArgRetValueAsInvalid(ArgRetValue& val);
 
         //Extract a ArgRetValue 
-        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val);
+        void ExtractArgRetValueFromVar(Js::Var var, ArgRetValue& val, UnlinkableSlabAllocator& alloc);
 
         //Convert the ArgRetValue into the appropriate value
         Js::Var InflateArgRetValueIntoVar(const ArgRetValue& val, Js::ScriptContext* ctx);
@@ -281,7 +380,7 @@ namespace TTD
         void EmitArgRetValue(const ArgRetValue& val, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the SnapPrimitiveValue
-        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader);
+        void ParseArgRetValue(ArgRetValue& val, bool readSeperator, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 
     //////////////////
@@ -343,6 +442,7 @@ namespace TTD
 
     public:
         ExternalCallEventEndLogEntry(int64 eTime, int64 matchingBeginTime, int32 rootNestingDepth, bool hasScriptException, bool hasTerminatingException, double endTime, const NSLogValue::ArgRetValue& returnVal);
+        virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         //Get the event as a external call event (and do tag checking for consistency)
         static ExternalCallEventEndLogEntry* As(EventLogEntry* e);

@@ -270,22 +270,19 @@
 
 #if ENABLE_TTD
 //Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
-#define ENABLE_TTD_IDENTITY_TRACING 1
+#define ENABLE_TTD_IDENTITY_TRACING 0
 
-//A temp workaround with default recording actions for Node
-#define ENABLE_TTD_FORCE_RECORD_NODE 0
-
-//A temp workaround to support perf analysis -- we currently force into debug mode to force generation of all symbols in bytecode but this really slows us down temp turn it off for perf analysis
-#define ENABLE_TTD_FORCE_DEBUGMODE_IN_RECORD 1
-
-//Flags to control special features turned on for debugging
-#if ENABLE_TTD_FORCE_RECORD_NODE
-#define ENABLE_TTD_DEBUGGING 0
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 0
-#else
 #define ENABLE_TTD_DEBUGGING 1
-#define ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND 1
-#endif
+
+//A workaround for VSCode getting angry with timing (adds a Sleep before sending msgs)
+#define TTD_VSCODE_WORK_AROUND 1
+
+//Set to make step out behave the same as step back
+#define ENABLE_TTD_OUT_SAME_AS_BACK 1
+
+//We need to put the system in debug mode during record as well otherwise we get weird mismatches in how script is parsed 
+//This needs to be fixed later
+#define TTD_FORCE_DEBUG_MODE_IN_RECORD 1
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1

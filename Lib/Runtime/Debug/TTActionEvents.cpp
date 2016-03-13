@@ -67,17 +67,8 @@ namespace TTD
         JsRTActionLogEntry* res = nullptr;
         switch(actionTag)
         {
-        case JsRTActionType::AllocateNumber:
-            res = JsRTNumberAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
-            break;
-        case JsRTActionType::AllocateString:
-            res = JsRTStringAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
-            break;
-        case JsRTActionType::AllocateSymbol:
-            res = JsRTSymbolAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
-            break;
-        case JsRTActionType::VarConvert:
-            res = JsRTVarConvertAction::CompleteParse(reader, alloc, eTime, ctxTag);
+        case JsRTActionType::VarConvertToObject:
+            res = JsRTVarConvertToObjectAction::CompleteParse(reader, alloc, eTime, ctxTag);
             break;
         case JsRTActionType::AllocateObject:
             res = JsRTObjectAllocateAction::CompleteParse(reader, alloc, eTime, ctxTag);
@@ -146,203 +137,34 @@ namespace TTD
         return res;
     }
 
-    JsRTNumberAllocateAction::JsRTNumberAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool useIntRepresentation, int32 ival, double dval)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateNumber), m_useIntRepresentation(useIntRepresentation)
-    {
-        if(useIntRepresentation)
-        {
-            this->u_ival = ival;
-        }
-        else
-        {
-            this->u_dval = dval;
-        }
-    }
-
-    void JsRTNumberAllocateAction::ExecuteAction(ThreadContext* threadContext) const
-    {
-        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
-
-        Js::Var number = this->m_useIntRepresentation ? Js::JavascriptNumber::ToVar(this->u_ival, execContext) : Js::JavascriptNumber::ToVarNoCheck(this->u_dval, execContext);
-
-        //since we tag in JsRT we need to tag here too
-        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(number));
-    }
-
-    void JsRTNumberAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
-    {
-        this->BaseStdEmit(writer, separator);
-        this->JsRTBaseEmit(writer);
-
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_useIntRepresentation, NSTokens::Separator::CommaSeparator);
-        if(this->m_useIntRepresentation)
-        {
-            writer->WriteInt32(NSTokens::Key::i32Val, this->u_ival, NSTokens::Separator::CommaSeparator);
-        }
-        else
-        {
-            writer->WriteDouble(NSTokens::Key::doubleVal, this->u_dval, NSTokens::Separator::CommaSeparator);
-        }
-
-        writer->WriteRecordEnd();
-    }
-
-    JsRTNumberAllocateAction* JsRTNumberAllocateAction::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
-    {
-        bool useIntRepresentation = reader->ReadBool(NSTokens::Key::boolVal, true);
-
-        if(useIntRepresentation)
-        { 
-            int32 ival = reader->ReadInt32(NSTokens::Key::i32Val, true);
-            return alloc.SlabNew<JsRTNumberAllocateAction>(eTime, ctxTag, true, ival, 0.0);
-        }
-        else
-        {
-            double dval = reader->ReadDouble(NSTokens::Key::doubleVal, true);
-            return alloc.SlabNew<JsRTNumberAllocateAction>(eTime, ctxTag, false, 0, dval);
-        }
-    }
-
-    JsRTStringAllocateAction::JsRTStringAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const TTString& stringValue)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateString), m_stringValue(stringValue)
+    JsRTVarConvertToObjectAction::JsRTVarConvertToObjectAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& var)
+        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvertToObject), m_var(var)
     {
         ;
     }
 
-    void JsRTStringAllocateAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    void JsRTVarConvertToObjectAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
     {
-        if(!IsNullPtrTTString(this->m_stringValue))
-        {
-            alloc.UnlinkString(this->m_stringValue);
-        }
+        NSLogValue::UnloadData(this->m_var, alloc);
     }
 
-    void JsRTStringAllocateAction::ExecuteAction(ThreadContext* threadContext) const
-    {
-        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
-
-        Js::JavascriptString* str = Js::JavascriptString::NewCopyBuffer(this->m_stringValue.Contents, this->m_stringValue.Length, execContext);
-
-        //since we tag in JsRT we need to tag here too
-        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(str));
-    }
-
-    void JsRTStringAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
-    {
-        this->BaseStdEmit(writer, separator);
-        this->JsRTBaseEmit(writer);
-
-        writer->WriteString(NSTokens::Key::stringVal, this->m_stringValue, NSTokens::Separator::CommaSeparator);
-
-        writer->WriteRecordEnd();
-    }
-
-    JsRTStringAllocateAction* JsRTStringAllocateAction::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
-    {
-        TTString str;
-        reader->ReadString(NSTokens::Key::stringVal, alloc, str, true);
-
-        return alloc.SlabNew<JsRTStringAllocateAction>(eTime, ctxTag, str);
-    }
-
-    JsRTSymbolAllocateAction::JsRTSymbolAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, const NSLogValue::ArgRetValue& symbolDescription)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::AllocateSymbol), m_symbolDescription(symbolDescription)
-    {
-        ;
-    }
-
-    void JsRTSymbolAllocateAction::ExecuteAction(ThreadContext* threadContext) const
-    {
-        Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
-        Js::Var description = NSLogValue::InflateArgRetValueIntoVar(this->m_symbolDescription, execContext);
-
-        Js::JavascriptString* descriptionString = nullptr;
-        if(description != nullptr)
-        {
-            descriptionString = Js::JavascriptConversion::ToString(description, execContext);
-        }
-        else
-        {
-            descriptionString = execContext->GetLibrary()->GetEmptyString();
-        }
-
-        Js::RecyclableObject* sym = execContext->GetLibrary()->CreatePrimitveSymbol_TTD(descriptionString);
-
-        threadContext->TTDInfo->TrackTagObject(sym);
-    }
-
-    void JsRTSymbolAllocateAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
-    {
-        this->BaseStdEmit(writer, separator);
-        this->JsRTBaseEmit(writer);
-
-        writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
-        NSLogValue::EmitArgRetValue(this->m_symbolDescription, writer, NSTokens::Separator::NoSeparator);
-
-        writer->WriteRecordEnd();
-    }
-
-    JsRTSymbolAllocateAction* JsRTSymbolAllocateAction::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
-    {
-        NSLogValue::ArgRetValue symDescription;
-        reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(symDescription, false, reader);
-
-        return alloc.SlabNew<JsRTSymbolAllocateAction>(eTime, ctxTag, symDescription);
-    }
-
-    JsRTVarConvertAction::JsRTVarConvertAction(int64 eTime, TTD_LOG_TAG ctxTag, bool toBool, bool toNumber, bool toString, bool toObject, const NSLogValue::ArgRetValue& var)
-        : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::VarConvert), m_toBool(toBool), m_toNumber(toNumber), m_toString(toString), m_toObject(toObject), m_var(var)
-    {
-        ;
-    }
-
-    void JsRTVarConvertAction::ExecuteAction(ThreadContext* threadContext) const
+    void JsRTVarConvertToObjectAction::ExecuteAction(ThreadContext* threadContext) const
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
         Js::Var value = NSLogValue::InflateArgRetValueIntoVar(this->m_var, execContext);
 
-        if(this->m_toBool)
-        {
-            ; //we always tag the known bools so we don't need to allocate or tag anything here
-        }
-        else if(this->m_toNumber)
-        {
-            Js::Var numVal = Js::JavascriptOperators::ToNumber(value, execContext);
-            if(TTD::JsSupport::IsVarPtrValued(numVal))
-            {
-                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(numVal));
-            }
-        }
-        else if(this->m_toString)
-        {
-            Js::JavascriptString* strVal = Js::JavascriptConversion::ToString(value, execContext);
-            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(strVal));
-        }
-        else if(this->m_toObject)
-        {
-            Js::Var objVal = Js::JavascriptOperators::ToObject((Js::Var)value, execContext);
+        Js::Var objVal = Js::JavascriptOperators::ToObject((Js::Var)value, execContext);
 
-            if(TTD::JsSupport::IsVarPtrValued(objVal))
-            {
-                threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(objVal));
-            }
-        }
-        else
+        if(TTD::JsSupport::IsVarComplexKind(objVal))
         {
-            AssertMsg(false, "Unknown conversion!!!");
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(objVal));
         }
     }
 
-    void JsRTVarConvertAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
+    void JsRTVarConvertToObjectAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
     {
         this->BaseStdEmit(writer, separator);
         this->JsRTBaseEmit(writer);
-
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_toBool, NSTokens::Separator::CommaSeparator);
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_toNumber, NSTokens::Separator::CommaSeparator);
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_toString, NSTokens::Separator::CommaSeparator);
-        writer->WriteBool(NSTokens::Key::boolVal, this->m_toObject, NSTokens::Separator::CommaSeparator);
 
         writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
         NSLogValue::EmitArgRetValue(this->m_var, writer, NSTokens::Separator::NoSeparator);
@@ -350,18 +172,13 @@ namespace TTD
         writer->WriteRecordEnd();
     }
 
-    JsRTVarConvertAction* JsRTVarConvertAction::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
+    JsRTVarConvertToObjectAction* JsRTVarConvertToObjectAction::CompleteParse(FileReader* reader, UnlinkableSlabAllocator& alloc, int64 eTime, TTD_LOG_TAG ctxTag)
     {
-        bool toBool = reader->ReadBool(NSTokens::Key::boolVal, true);
-        bool toNumber = reader->ReadBool(NSTokens::Key::boolVal, true);
-        bool toString = reader->ReadBool(NSTokens::Key::boolVal, true);
-        bool toObject = reader->ReadBool(NSTokens::Key::boolVal, true);
-
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
-        return alloc.SlabNew<JsRTVarConvertAction>(eTime, ctxTag, toBool, toNumber, toString, toObject, var);
+        return alloc.SlabNew<JsRTVarConvertToObjectAction>(eTime, ctxTag, var);
     }
 
     JsRTObjectAllocateAction::JsRTObjectAllocateAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isRegularObject)
@@ -511,6 +328,14 @@ namespace TTD
         ;
     }
 
+    void JsRTFunctionAllocateAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        if(this->m_isNamed)
+        {
+            NSLogValue::UnloadData(this->m_name, alloc);
+        }
+    }
+
     void JsRTFunctionAllocateAction::ExecuteAction(ThreadContext* threadContext) const
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
@@ -528,7 +353,7 @@ namespace TTD
             Js::JavascriptString* name = nullptr;
             if(nameVar != nullptr)
             {
-                name = Js::JavascriptConversion::ToString(name, execContext);
+                name = Js::JavascriptConversion::ToString(nameVar, execContext);
             }
             else
             {
@@ -565,9 +390,8 @@ namespace TTD
 
         if(isNamed)
         {
-            NSLogValue::ArgRetValue name;
             reader->ReadKey(NSTokens::Key::entry, true);
-            NSLogValue::ParseArgRetValue(name, false, reader);
+            NSLogValue::ParseArgRetValue(name, false, reader, alloc);
         }
 
         return alloc.SlabNew<JsRTFunctionAllocateAction>(eTime, ctxTag, isNamed, name);
@@ -633,6 +457,11 @@ namespace TTD
         ;
     }
 
+    void JsRTGetPropertyAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+    }
+
     void JsRTGetPropertyAction::ExecuteAction(ThreadContext* threadContext) const
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
@@ -641,7 +470,7 @@ namespace TTD
         Js::Var value = Js::JavascriptOperators::OP_GetProperty(cvar, this->m_propertyId, execContext);
 
         //otherwise tag the return value in case we see it later
-        if(TTD::JsSupport::IsVarPtrValued(value))
+        if(TTD::JsSupport::IsVarComplexKind(value))
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
         }
@@ -666,7 +495,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetPropertyAction>(eTime, ctxTag, pid, var);
     }
@@ -675,6 +504,12 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetIndex), m_index(index), m_var(var)
     {
         ;
+    }
+
+    void JsRTGetIndexAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_index, alloc);
+        NSLogValue::UnloadData(this->m_var, alloc);
     }
 
     void JsRTGetIndexAction::ExecuteAction(ThreadContext* threadContext) const
@@ -687,7 +522,7 @@ namespace TTD
         Js::Var value = Js::JavascriptOperators::OP_GetElementI(cvar, index, execContext);
 
         //otherwise tag the return value in case we see it later
-        if(TTD::JsSupport::IsVarPtrValued(value))
+        if(TTD::JsSupport::IsVarComplexKind(value))
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
         }
@@ -713,10 +548,10 @@ namespace TTD
         NSLogValue::ArgRetValue var;
 
         reader->ReadKey(NSTokens::Key::index, true);
-        NSLogValue::ParseArgRetValue(index, false, reader);
+        NSLogValue::ParseArgRetValue(index, false, reader, alloc);
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetIndexAction>(eTime, ctxTag, index, var);
     }
@@ -725,6 +560,11 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetOwnPropertyInfo), m_propertyId(pid), m_var(var)
     {
         ;
+    }
+
+    void JsRTGetOwnPropertyInfoAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
     }
 
     void JsRTGetOwnPropertyInfoAction::ExecuteAction(ThreadContext* threadContext) const
@@ -737,13 +577,9 @@ namespace TTD
         if(Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(cvar), this->m_propertyId, execContext, &propertyDescriptorValue))
         {
             res = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, execContext);
-        }
-        else
-        {
-            res = execContext->GetLibrary()->GetUndefined();
-        }
 
-        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+        }
     }
 
     void JsRTGetOwnPropertyInfoAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
@@ -765,7 +601,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetOwnPropertyInfoAction>(eTime, ctxTag, pid, var);
     }
@@ -774,6 +610,11 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetOwnPropertiesInfo), m_isGetNames(isGetNames), m_var(var)
     {
         ;
+    }
+
+    void JsRTGetOwnPropertiesInfoAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
     }
 
     void JsRTGetOwnPropertiesInfoAction::ExecuteAction(ThreadContext* threadContext) const
@@ -791,7 +632,10 @@ namespace TTD
             res = Js::JavascriptOperators::GetOwnPropertySymbols(cvar, execContext);
         }
 
-        threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+        if(res != nullptr)
+        {
+            threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(res));
+        }
     }
 
     void JsRTGetOwnPropertiesInfoAction::EmitEvent(LPCWSTR logContainerUri, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator) const
@@ -813,7 +657,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetOwnPropertiesInfoAction>(eTime, ctxTag, isGetNames, var);
     }
@@ -822,6 +666,12 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::DefineProperty), m_propertyId(pid), m_var(var), m_propertyDescriptor(propertyDescriptor)
     {
         ;
+    }
+
+    void JsRTDefinePropertyAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+        NSLogValue::UnloadData(this->m_propertyDescriptor, alloc);
     }
 
     void JsRTDefinePropertyAction::ExecuteAction(ThreadContext* threadContext) const
@@ -858,12 +708,12 @@ namespace TTD
         NSLogValue::ArgRetValue value;
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(value, false, reader);
+        NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         return alloc.SlabNew<JsRTDefinePropertyAction>(eTime, ctxTag, var, pid, value);
     }
@@ -874,6 +724,11 @@ namespace TTD
         ;
     }
 
+    void JsRTDeletePropertyAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+    }
+
     void JsRTDeletePropertyAction::ExecuteAction(ThreadContext* threadContext) const
     {
         Js::ScriptContext* execContext = this->GetScriptContextForAction(threadContext);
@@ -882,7 +737,7 @@ namespace TTD
         Js::Var value = Js::JavascriptOperators::OP_DeleteProperty(var, this->m_propertyId, execContext, this->m_useStrictRules ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
 
         //otherwise tag the return value in case we see it later
-        if(TTD::JsSupport::IsVarPtrValued(value))
+        if(value != nullptr && TTD::JsSupport::IsVarComplexKind(value))
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
         }
@@ -906,7 +761,7 @@ namespace TTD
     {
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
 
@@ -919,6 +774,12 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::SetPrototype), m_var(var), m_proto(proto)
     {
         ;
+    }
+
+    void JsRTSetPrototypeAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+        NSLogValue::UnloadData(this->m_proto, alloc);
     }
 
     void JsRTSetPrototypeAction::ExecuteAction(ThreadContext* threadContext) const
@@ -950,10 +811,10 @@ namespace TTD
         NSLogValue::ArgRetValue proto;
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(proto, false, reader);
+        NSLogValue::ParseArgRetValue(proto, false, reader, alloc);
 
         return alloc.SlabNew<JsRTSetPrototypeAction>(eTime, ctxTag, var, proto);
     }
@@ -962,6 +823,12 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::SetProperty), m_propertyId(pid), m_var(var), m_value(value), m_useStrictRules(useStrictRules)
     {
         ;
+    }
+
+    void JsRTSetPropertyAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+        NSLogValue::UnloadData(this->m_value, alloc);
     }
 
     void JsRTSetPropertyAction::ExecuteAction(ThreadContext* threadContext) const
@@ -997,12 +864,12 @@ namespace TTD
         NSLogValue::ArgRetValue value;
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         Js::PropertyId pid = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::propertyId, true);
 
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(value, false, reader);
+        NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         bool useStrictRules = reader->ReadBool(NSTokens::Key::boolVal, true);
 
@@ -1013,6 +880,13 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::SetIndex), m_var(var), m_index(index), m_value(val)
     {
         ;
+    }
+
+    void JsRTSetIndexAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
+        NSLogValue::UnloadData(this->m_index, alloc);
+        NSLogValue::UnloadData(this->m_value, alloc);
     }
 
     void JsRTSetIndexAction::ExecuteAction(ThreadContext* threadContext) const
@@ -1049,13 +923,13 @@ namespace TTD
         NSLogValue::ArgRetValue value;
 
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         reader->ReadKey(NSTokens::Key::index, true);
-        NSLogValue::ParseArgRetValue(index, false, reader);
+        NSLogValue::ParseArgRetValue(index, false, reader, alloc);
 
         reader->ReadKey(NSTokens::Key::argRetVal, true);
-        NSLogValue::ParseArgRetValue(value, false, reader);
+        NSLogValue::ParseArgRetValue(value, false, reader, alloc);
 
         return alloc.SlabNew<JsRTSetIndexAction>(eTime, ctxTag, var, index, value);
     }
@@ -1064,6 +938,11 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::GetTypedArrayInfo), m_returnsArrayBuff(returnsArrayBuff), m_var(var)
     {
         ;
+    }
+
+    void JsRTGetTypedArrayInfoAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+        NSLogValue::UnloadData(this->m_var, alloc);
     }
 
     void JsRTGetTypedArrayInfoAction::ExecuteAction(ThreadContext* threadContext) const
@@ -1097,7 +976,7 @@ namespace TTD
 
         NSLogValue::ArgRetValue var;
         reader->ReadKey(NSTokens::Key::entry, true);
-        NSLogValue::ParseArgRetValue(var, false, reader);
+        NSLogValue::ParseArgRetValue(var, false, reader, alloc);
 
         return alloc.SlabNew<JsRTGetTypedArrayInfoAction>(eTime, ctxTag, returnsArrayBuff, var);
     }
@@ -1112,6 +991,11 @@ namespace TTD
     {
         if(this->m_argArray != nullptr)
         {
+            for(uint32 i = 0; i < this->m_argCount; ++i)
+            {
+                NSLogValue::UnloadData(this->m_argArray[i], alloc);
+            }
+
             alloc.UnlinkAllocation(this->m_argArray);
         }
 
@@ -1146,7 +1030,7 @@ namespace TTD
         Js::Var value = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, execContext);
 
         //otherwise tag the return value in case we see it later
-        if(value != nullptr && TTD::JsSupport::IsVarPtrValued(value))
+        if(value != nullptr && TTD::JsSupport::IsVarComplexKind(value))
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(value));
         }
@@ -1181,7 +1065,7 @@ namespace TTD
         reader->ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < argc; ++i)
         {
-            NSLogValue::ParseArgRetValue(args[i], i != 0, reader);
+            NSLogValue::ParseArgRetValue(args[i], i != 0, reader, alloc);
         }
         reader->ReadSequenceEnd();
 
@@ -1193,10 +1077,17 @@ namespace TTD
     JsRTCallbackAction::JsRTCallbackAction(int64 eTime, TTD_LOG_TAG ctxTag, bool isCancel, bool isRepeating, int64 currentCallbackId, TTD_LOG_TAG callbackFunctionTag, int64 createdCallbackId)
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallbackOp), m_isCancel(isCancel), m_isRepeating(isRepeating), m_currentCallbackId(currentCallbackId), m_callbackFunctionTag(callbackFunctionTag), m_createdCallbackId(createdCallbackId)
 #if ENABLE_TTD_DEBUGGING
-        , m_register_eventTime(-1), m_register_ftime(0), m_register_ltime(0), m_register_line(0), m_register_column(0), m_register_sourceId(0)
+        , m_registerLocation()
 #endif
     {
         ;
+    }
+
+    void JsRTCallbackAction::UnloadEventMemory(UnlinkableSlabAllocator& alloc)
+    {
+#if ENABLE_TTD_DEBUGGING
+        this->m_registerLocation.Clear();
+#endif
     }
 
     JsRTCallbackAction* JsRTCallbackAction::As(JsRTActionLogEntry* action)
@@ -1226,24 +1117,18 @@ namespace TTD
         return this->m_isCancel;
     }
 
-    bool JsRTCallbackAction::GetActionTimeInfoForDebugger(int64* rootEventTime, uint64* ftime, uint64* ltime, uint32* line, uint32* column, uint32* sourceId) const
+    bool JsRTCallbackAction::GetActionTimeInfoForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
 #if !ENABLE_TTD_DEBUGGING
         return false;
 #else
-        if(this->m_register_eventTime == -1)
+        if(!this->m_registerLocation.HasValue())
         {
+            sourceLocation.Clear();
             return false; //we haven't been re-executed in replay so we don't have our info yet
         }
 
-        *rootEventTime = this->m_register_eventTime;
-        *ftime = this->m_register_ftime;
-        *ltime = this->m_register_ltime;
-
-        *line = this->m_register_line;
-        *column = this->m_register_column;
-        *sourceId = this->m_register_sourceId;
-
+        sourceLocation.SetLocation(this->m_registerLocation);
         return true;
 #endif
     }
@@ -1253,9 +1138,9 @@ namespace TTD
 #if !ENABLE_TTD_DEBUGGING
         ; //we don't need to do anything
 #else
-        if(this->m_register_eventTime == -1)
+        if(!this->m_registerLocation.HasValue())
         {
-            threadContext->TTDLog->GetTimeAndPositionForDebugger(&this->m_register_eventTime, &this->m_register_ftime, &this->m_register_ltime, &this->m_register_line, &this->m_register_column, &this->m_register_sourceId);
+            threadContext->TTDLog->GetTimeAndPositionForDebugger(this->m_registerLocation);
         }
 #endif
     }
@@ -1361,6 +1246,12 @@ namespace TTD
 
         //walk global body to (1) add functions to pin set (2) build parent map
         execContext->ProcessFunctionBodyOnLoad(fb, nullptr);
+
+        const HostScriptContextCallbackFunctor& hostFunctor = execContext->GetCallbackFunctor_TTD();
+        if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+        {
+            hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, function, utf8SourceInfo, &se);
+        }
         ////
 
         //since we tag in JsRT we need to tag here too
@@ -1429,6 +1320,11 @@ namespace TTD
 
         if(this->m_argArray != nullptr)
         {
+            for(uint32 i = 0; i < this->m_argCount; ++i)
+            {
+                NSLogValue::UnloadData(this->m_argArray[i], alloc);
+            }
+
             alloc.UnlinkAllocation(this->m_argArray);
         }
 
@@ -1574,7 +1470,7 @@ namespace TTD
         }
 
         //since we tag in JsRT we need to tag here too
-        if(result != nullptr && JsSupport::IsVarPtrValued(result))
+        if(result != nullptr && JsSupport::IsVarComplexKind(result))
         {
             threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(result));
         }
@@ -1627,7 +1523,7 @@ namespace TTD
         reader->ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < argc; ++i)
         {
-            NSLogValue::ParseArgRetValue(args[i], i != 0, reader);
+            NSLogValue::ParseArgRetValue(args[i], i != 0, reader, alloc);
         }
         reader->ReadSequenceEnd();
 
@@ -1674,7 +1570,7 @@ namespace TTD
 
         this->m_lastExecuted_line = (uint32)srcLine;
         this->m_lastExecuted_column = (uint32)srcColumn;
-        this->m_lastExecuted_sourceId = lastFrame.CurrentStatementIndex;
+        this->m_lastExecuted_sourceId = lastFrame.Function->GetUtf8SourceInfo()->GetSourceInfoId();
 #endif
     }
 

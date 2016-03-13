@@ -1603,6 +1603,108 @@ LHexError:
     }
 
 #if ENABLE_TTD
+    //Log a string in the telemetry system (and print to the console)
+    Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog != nullptr)
+        {
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->ReplayTelemetryLogEvent(jsString);
+            }
+            else
+            {
+                //
+                //TODO: the host should give us a print callback which we can use here
+                //
+                wprintf(L"%ls\n", jsString->GetSz());
+
+                if(elog->ShouldPerformRecordAction())
+                {
+                    elog->RecordTelemetryLogEvent(jsString, true, -1, false);
+                }
+            }
+        }
+        else
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls\n", jsString->GetSz());
+        }
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    //Report an issue, take action with the TTD log, and optionally run a report handler?
+    Var GlobalObject::EntryTelemetryErrorRecord(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog != nullptr)
+        {
+            if(elog->ShouldPerformDebugAction())
+            {
+                elog->ReplayTelemetryLogEvent(jsString);
+            }
+            else
+            {
+                //
+                //TODO: the host should give us a print callback which we can use here
+                //
+                wprintf(L"%ls\n", jsString->GetSz());
+
+                if(elog->ShouldPerformRecordAction())
+                {
+                    elog->RecordTelemetryLogEvent(jsString, true, -1, true);
+                }
+            }
+        }
+        else
+        {
+            //
+            //TODO: the host should give us a print callback which we can use here
+            //
+            wprintf(L"%ls\n", jsString->GetSz());
+        }
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    Var GlobalObject::EntryTelemetryNotify(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        AssertMsg(args.Info.Count == 1, "Bad arguments!!!");
+
+        TTD::EventLog* elog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+        if(elog != nullptr)
+        {
+            if(elog->ShouldPerformRecordAction())
+            {
+                LPCWSTR logLocation = elog->EmitLogIfNeeded();
+                wprintf(L"Log written: %ls\n", logLocation);
+            }
+        }
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
     //Write a string to the console for TTD testing.
     Var GlobalObject::EntryTTDTestWrite(RecyclableObject* function, CallInfo callInfo, ...)
     {

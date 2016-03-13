@@ -277,29 +277,26 @@ namespace Js
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarPtrValued(arg))
+                if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
                     threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }
             }
         }
 
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
             if(elog->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                {
-                    elog->ReplayExternalCallEvent(scriptContext, &result);
-                }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+                elog->ReplayExternalCallEvent(scriptContext, &result);
+
                 scriptContext->TTDRootNestingCount--;
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else if(elog->ShouldPerformRecordAction())
             {
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
@@ -317,6 +314,26 @@ namespace Js
 
                 //no exception check below so I assume the external call cannot have an exception registered
                 logPopper.NormalReturn(false, result);
+            }
+            else
+            {
+                Var result = nullptr;
+                if(externalFunction->nativeMethod == nullptr)
+                {
+                    //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
+                    //We don't support this so it should be ok to return a Js string message.
+                    LPCWSTR msg = L"Non-Inspectable External Value";
+                    result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
+                }
+                else
+                {
+                    BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+                    {
+                        // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                        result = externalFunction->nativeMethod(function, callInfo, args.Values);
+                    }
+                    END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+                }
             }
         }
         else
@@ -378,29 +395,26 @@ namespace Js
             for(uint32 i = 0; i < args.Info.Count; ++i)
             {
                 Js::Var arg = args.Values[i];
-                if(TTD::JsSupport::IsVarPtrValued(arg))
+                if(TTD::JsSupport::IsVarComplexKind(arg))
                 {
                     threadContext->TTDInfo->TrackTagObject(Js::RecyclableObject::FromVar(arg));
                 }
             }
         }
 
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->IsTTDActive())
+        if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
 
             if(elog->ShouldPerformDebugAction())
             {
                 scriptContext->TTDRootNestingCount++;
-                BEGIN_LEAVE_SCRIPT(scriptContext)
-                {
-                    elog->ReplayExternalCallEvent(scriptContext, &result);
-                }
-                END_LEAVE_SCRIPT(scriptContext);
+
+                elog->ReplayExternalCallEvent(scriptContext, &result);
+
                 scriptContext->TTDRootNestingCount--;
             }
-
-            if(elog->ShouldPerformRecordAction())
+            else if(elog->ShouldPerformRecordAction())
             {
                 TTD::TTDRecordExternalFunctionCallActionPopper logPopper(elog, scriptContext);
 
@@ -416,6 +430,14 @@ namespace Js
 
                 //exception check is done explicitly below call can have an exception registered
                 logPopper.NormalReturn(true, result);
+            }
+            else
+            {
+                BEGIN_LEAVE_SCRIPT(scriptContext)
+                {
+                    result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+                }
+                END_LEAVE_SCRIPT(scriptContext);
             }
         }
         else

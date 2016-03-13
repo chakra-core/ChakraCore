@@ -184,6 +184,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , IsTTRecordRequested(false)
     , IsTTDebugRequested(false)
     , TTDUri(nullptr)
+    , TTSnapInterval(2000)
+    , TTSnapHistoryLength(UINT32_MAX)
     , TTDGeneralAllocator(L"TTDGeneralAllocator", &this->pageAllocator, nullptr)
     , TTDBulkAllocator(L"TTDBulkAllocator", &this->pageAllocator, nullptr)
     , TTDTaggingAllocator(L"TTDTaggingAllocator", &this->pageAllocator, nullptr)
@@ -928,14 +930,17 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
 #if ENABLE_TTD
     if(this->TTDLog != nullptr && this->TTDLog->ShouldPerformDebugAction())
     {
-        //We reload all properties that occour in the trace so they only way we get here in TTD mode is if the program is creating a new symbol (which always gets a fresh id)
-        AssertMsg(isSymbol, "Something went wrong.");
+        //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
+        //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+        //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
+        if(isSymbol)
+        {
+            Js::PropertyId propertyId = Js::Constants::NoProperty;
+            this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
 
-        Js::PropertyId propertyId = Js::Constants::NoProperty;
-        this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
-
-        //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
-        return this->GetPropertyName(propertyId);
+            //Don't recrate the symbol below, instead return the known symbol by looking up on the pid
+            return this->GetPropertyName(propertyId);
+        }
     }
 #endif
 
@@ -1868,13 +1873,13 @@ bool ThreadContext::IsTTDInitialized() const
     return (this->TTDInfo != nullptr) & (this->TTDLog != nullptr);
 }
 
-void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay)
+void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doReplay, uint32 snapInterval, uint32 snapHistoryLength)
 {
     AssertMsg(this->TTDLog == nullptr && this->TTDInfo == nullptr, "We should only init once.");
     AssertMsg((doRecord & !doReplay) || (!doRecord && doReplay), "Should be exactly 1 of record or replay.");
 
     this->TTDInfo = Anew(&this->TTDGeneralAllocator, TTD::RuntimeThreadInfo, this, &this->TTDGeneralAllocator, &this->TTDBulkAllocator, &this->TTDTaggingAllocator);
-    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory);
+    this->TTDLog = HeapNew(TTD::EventLog, this, ttdDirectory, snapInterval, snapHistoryLength);
 
     if(doRecord)
     {
@@ -1887,16 +1892,11 @@ void ThreadContext::InitTimeTravel(LPCWSTR ttdDirectory, bool doRecord, bool doR
     }
 }
 
-void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx)
+void ThreadContext::BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor)
 {
     AssertMsg(!this->TTDLog->IsTTDDetached(), "We don't want to run time travel on multiple contexts yet.");
 
-    //if we are tracing then we always need to disable native execution so we get our loop/call counting
-#if ENABLE_TTD_DEBUGGING
-    ctx->ForceNoNative();
-#endif
-
-    this->TTDLog->StartTimeTravelOnScript(ctx);
+    this->TTDLog->StartTimeTravelOnScript(ctx, callbackFunctor);
 }
 
 void ThreadContext::EndCtxTimeTravel(Js::ScriptContext* ctx)

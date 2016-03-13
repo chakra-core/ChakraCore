@@ -26,7 +26,6 @@
     <ClCompile Include="TTEvents.cpp" />
     <ClCompile Include="TTActionEvents.cpp" />
     <ClCompile Include="TTEventLog.cpp" />
-    <ClCompile Include="TTDefaultHostFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugContext.h" />
@@ -55,6 +54,5 @@
     <ClInclude Include="TTEvents.h" />
     <ClInclude Include="TTActionEvents.h" />
     <ClInclude Include="TTEventLog.h" />
-    <ClInclude Include="TTDefaultHostFunctions.h" />
   </ItemGroup>
 </Project>

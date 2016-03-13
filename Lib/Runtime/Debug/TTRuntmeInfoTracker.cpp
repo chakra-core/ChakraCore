@@ -56,11 +56,22 @@ namespace TTD
 
     void RuntimeThreadInfo::TrackTagObject(Js::RecyclableObject* obj)
     {
+        AssertMsg(obj->GetTypeId() >= Js::TypeIds_LastToPrimitiveType, "These shouldn't be tagged!!!");
+
         //
         //TODO: this is a bit rough as we never clean the root set so we grow without bound here. 
         //
 
         bool isTracked = obj->GetScriptContext()->IsRootTrackedObject_TTD(obj);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        if(isTracked)
+        {
+            TTD_LOG_TAG prevTag = this->m_loggedObjectToTagMap.LookupWithKey(obj, TTD_INVALID_LOG_TAG);
+            AssertMsg(prevTag != TTD_INITIAL_LOG_TAG, "Mismatch between tracked objects and logged objects!!!");
+        }
+#endif
+
         if(!isTracked)
         {
             TTD_LOG_TAG tag = this->m_logTagCtr;
@@ -118,7 +129,7 @@ namespace TTD
     void RuntimeThreadInfo::JsRTTagObject(ThreadContext* threadContext, Js::Var value)
     {
         //TTD is completely disabled so we aren't doing anything
-        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarPtrValued(value))
+        if(threadContext->TTDInfo == nullptr || !TTD::JsSupport::IsVarComplexKind(value))
         {
             return;
         }

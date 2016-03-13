@@ -1879,7 +1879,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
@@ -1920,7 +1920,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 exceptionFramePopper.PopInfo();
                 elog->PopCallEvent(executeFunction, aReturn);
@@ -2254,22 +2254,9 @@ namespace Js
 
 #if ENABLE_TTD_DEBUGGING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        if(threadContext->TTDLog != nullptr && (threadContext->TTDLog->ShouldPerformDebugAction() | threadContext->TTDLog->ShouldPerformRecordAction()))
         {
-            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-            if(newstmt & threadContext->TTDLog->BPIsSet)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
-            }
-
-            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
-            if(newstmt)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
-            }
-#endif
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 
@@ -2305,22 +2292,9 @@ namespace Js
 
 #if ENABLE_TTD_DEBUGGING
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
-        if(threadContext->TTDLog != nullptr && threadContext->TTDLog->ShouldPerformDebugAction())
+        if(threadContext->TTDLog != nullptr && (threadContext->TTDLog->ShouldPerformDebugAction() | threadContext->TTDLog->ShouldPerformRecordAction()))
         {
-            bool newstmt = this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
-
-#if ENABLE_TTD_DEBUGGING_TEMP_WORKAROUND
-            if(newstmt & threadContext->TTDLog->BPIsSet)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->BPCheckAndAction(this->scriptContext);
-            }
-
-            //This isn't strictly needed if we are ok with this info being a bit stale (e.g. we need to check previous statment info explicitly & update exception info at every throw point instead of just returns)
-            if(newstmt)
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->ClearReturnFrame();
-            }
-#endif
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 #endif
 
@@ -5567,7 +5541,7 @@ namespace Js
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
@@ -5645,7 +5619,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if(threadContext->TTDLog != nullptr)
         {
             TTD::EventLog* elog = threadContext->TTDLog;
-            if(elog->ShouldPerformDebugAction())
+            if(elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction())
             {
                 elog->UpdateLoopCountInfo();
             }
@@ -6407,7 +6381,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #if ENABLE_TTD_DEBUGGING
         //Clear any previous Exception Info
         TTD::EventLog* elog = this->function->GetScriptContext()->GetThreadContext()->TTDLog;
-        if(elog != nullptr && elog->ShouldPerformDebugAction())
+        if(elog != nullptr && (elog->ShouldPerformDebugAction() | elog->ShouldPerformRecordAction()))
         {
             elog->ClearExceptionFrame();
         }

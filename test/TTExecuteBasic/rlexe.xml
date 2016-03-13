@@ -11,7 +11,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!callbackSingleTest -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!callbackSingleTest</compile-flags>
       <baseline>callbackSingleReplay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -27,7 +27,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!callbackSpreadTest -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!callbackSpreadTest</compile-flags>
       <baseline>callbackSpreadReplay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -43,7 +43,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!callbackSequenceTest -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!callbackSequenceTest</compile-flags>
       <baseline>callbackSequenceReplay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -59,7 +59,7 @@
   <test>
     <default>
       <files>ttdSentinal.js</files>
-      <compile-flags>-TTDebug:!callbackClearTest -TTDFreeRun</compile-flags>
+      <compile-flags>-TTDebug:!callbackClearTest</compile-flags>
       <baseline>callbackClearReplay.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>

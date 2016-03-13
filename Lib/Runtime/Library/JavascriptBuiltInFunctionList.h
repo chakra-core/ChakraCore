@@ -22,6 +22,10 @@ BUILTIN(GlobalObject, UnEscape, EntryUnEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOnNew)
 
 #if ENABLE_TTD
+BUILTIN(GlobalObject, TelemetryLog, EntryTelemetryLog, FunctionInfo::ErrorOnNew)
+BUILTIN(GlobalObject, TelemetryErrorRecord, EntryTelemetryErrorRecord, FunctionInfo::ErrorOnNew)
+BUILTIN(GlobalObject, TelemetryNotify, EntryTelemetryNotify, FunctionInfo::ErrorOnNew)
+
 BUILTIN(GlobalObject, TTDTestWrite, EntryTTDTestWrite, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, TTDTestReport, EntryTTDTestReport, FunctionInfo::ErrorOnNew)
 #endif

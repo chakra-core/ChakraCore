@@ -1214,6 +1214,10 @@ namespace Js
         }
 
 #if ENABLE_TTD
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryLog", &GlobalObject::EntryInfo::TelemetryLog, 2);
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryErrorRecord", &GlobalObject::EntryInfo::TelemetryErrorRecord, 1);
+        AddFunctionToLibraryObjectWithPropertyName(globalObject, L"telemetryNotify", &GlobalObject::EntryInfo::TelemetryNotify, 2);
+
         AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestWrite", &GlobalObject::EntryInfo::TTDTestWrite, 2);
         AddFunctionToLibraryObjectWithPropertyName(globalObject, L"ttdTestReport", &GlobalObject::EntryInfo::TTDTestReport, 3);
 #endif

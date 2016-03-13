@@ -69,8 +69,11 @@ if (!(exp)) \
 #define _JSRT_
 #include "chakracommon.h"
 #include "TestHooksRt.h"
+#include "chakrartdebug.h"
 
 typedef void * Var;
+#define IfJsrtErrorRet(expr) do { if((expr) != JsNoError) { return JS_INVALID_REFERENCE; } } while(0)
+#define IfJsrtErrorRetErrorCode(expr) do { JsErrorCode errorCode = (expr); if (errorCode != JsNoError) { return errorCode; } } while (0)
 
 #include "TestHooks.h"
 #include "chakrartinterface.h"
@@ -78,3 +81,4 @@ typedef void * Var;
 #include "HostConfigFlags.h"
 #include "MessageQueue.h"
 #include "WScriptJsrt.h"
+#include "Debugger.h"
