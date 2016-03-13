@@ -135,6 +135,7 @@ namespace Wasm
             bool EndOfFunc();
             bool EndOfModule();
             void ThrowDecodingError(const char16* msg, ...);
+            Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
             ArenaAllocator      m_alloc;
             uint m_funcNumber;

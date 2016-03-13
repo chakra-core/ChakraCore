@@ -41,8 +41,10 @@ namespace Wasm
 
     class WasmCompilationException
     {
+        void PrintError(const char16* _msg, va_list arglist);
     public:
         WasmCompilationException(const char16* _msg, ...);
+        WasmCompilationException(const char16* _msg, va_list arglist);
     };
 
 

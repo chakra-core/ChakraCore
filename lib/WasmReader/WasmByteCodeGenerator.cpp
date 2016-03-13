@@ -174,10 +174,16 @@ WasmBytecodeGenerator::GenerateFunction()
 
     WasmOp op;
     EmitInfo exprInfo;
-    while ((op = m_reader->ReadExpr()) != wnLIMIT)
-    {
-        exprInfo = EmitExpr(op);
-        ReleaseLocation(&exprInfo);
+    try {
+        while ((op = m_reader->ReadExpr()) != wnLIMIT)
+        {
+            exprInfo = EmitExpr(op);
+            ReleaseLocation(&exprInfo);
+        }
+    }
+    catch (...) {
+        m_writer.Reset();
+        throw;
     }
 
     // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
@@ -521,11 +527,10 @@ WasmBytecodeGenerator::EmitLoop()
 {
     Js::ByteCodeLabel loopTailLabel = m_writer.DefineLabel();
     m_labels->Push(loopTailLabel);
-
+    
     Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
     m_labels->Push(loopHeaderLabel);
     m_writer.MarkAsmJsLabel(loopHeaderLabel);
-
 
     EmitInfo loopInfo;
     if (m_reader->IsBinaryReader())
@@ -1083,7 +1088,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
     }
     m_writer.AsmBr(m_funcInfo->GetExitLabel());
 
-    return EmitInfo();
+    return EmitInfo(0, WasmTypes::I32);
 }
 
 EmitInfo
@@ -1301,13 +1306,23 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type) const
     }
 }
 
+void WasmCompilationException::PrintError(const char16* _msg, va_list arglist)
+{
+    Output::VPrint(_msg, arglist);
+    Output::Print(_u("\r\n"));
+    Output::Flush();
+}
+
 WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
     va_list arglist;
     va_start(arglist, _msg);
-    Output::VPrint(_msg, arglist);
-    Output::Print(_u("\r\n"));
-    Output::Flush();
+    PrintError(_msg, arglist);
+}
+
+WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist)
+{
+    PrintError(_msg, arglist);
 }
 
 } // namespace Wasm

@@ -1837,9 +1837,43 @@ namespace Js
             Var* heap = moduleMemoryPtr + wasmModule->heapOffset;
 
             exportObj = JavascriptOperators::NewJavascriptObjectNoArg(this);
-            Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
 
+            Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
+
+            FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
+            frameDisplay->SetItem(0, moduleMemoryPtr);
+
+            // TODO, refactor this function into smaller functions
+            for (uint i = 0; i < wasmModule->functions->Count(); ++i)
+            {
+                AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
+                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
+                funcObj->SetModuleMemory(moduleMemoryPtr);
+                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entypointInfo->SetIsAsmJSFunction(true);
+                entypointInfo->address = AsmJsDefaultEntryThunk;
+                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
+                funcObj->SetEnvironment(frameDisplay);
+                localModuleFunctions[i] = funcObj;
+            }
+
+            Js::Var exportsNamespace = nullptr;
             PropertyRecord const * exportsPropertyRecord = nullptr;
+
+            // Default export
+            if (wasmModule->info->GetExportCount() == 1 && wasmModule->info->GetFunctionExport(0)->nameLength == 0)
+            {
+                const uint32 funcIndex = wasmModule->info->GetFunctionExport(0)->funcIndex;
+                if (funcIndex < wasmModule->info->GetFunctionCount())
+                {
+                    exportsNamespace = localModuleFunctions[funcIndex];
+                }
+            }
+            
+            if (exportsNamespace == nullptr)
+            {
+                exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
+            }
 
             GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
             JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
@@ -1878,25 +1912,6 @@ namespace Js
                 *heap = nullptr;
             }
 
-            Var* localModuleFunctions = moduleMemoryPtr + wasmModule->funcOffset;
-
-            FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
-            frameDisplay->SetItem(0, moduleMemoryPtr);
-
-            // TODO, refactor this function into smaller functions
-            for (uint i = 0; i < wasmModule->functions->Count(); ++i)
-            {
-                AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
-                funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
-                funcObj->SetModuleMemory(moduleMemoryPtr);
-                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-                entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->address = AsmJsDefaultEntryThunk;
-                entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
-                funcObj->SetEnvironment(frameDisplay);
-                localModuleFunctions[i] = funcObj;
-            }
-
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
             {
                 Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
@@ -1933,17 +1948,26 @@ namespace Js
                 char16* modName = wasmModule->info->GetFunctionImport(i)->modName;
                 uint32 modNameLen = wasmModule->info->GetFunctionImport(i)->modNameLen;
                 GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
+                Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
 
                 char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
                 uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
-                GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
-
-                Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), this);
-                if (!JavascriptObject::Is(modProp))
+                Var prop = nullptr;
+                if (nameLen > 0) 
                 {
-                    throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+                    GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+
+                    if (!JavascriptObject::Is(modProp))
+                    {
+                        throw Wasm::WasmCompilationException(_u("Import module %s is invalid"), modName);
+                    }
+                    prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
                 }
-                Var prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), this);
+                else
+                {
+                    // Use only first level if name is missing
+                    prop = modProp;
+                }
                 if (!JavascriptFunction::Is(prop))
                 {
                     throw Wasm::WasmCompilationException(_u("Import function %s.%s is invalid"), modName, name);

@@ -83,9 +83,7 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
     va_list argptr;
     va_start(argptr, msg);
     Output::Print(_u("Binary decoding failed: "));
-    Output::VPrint(msg, argptr);
-    Output::Flush();
-    Js::Throw::InternalError();
+    throw new WasmCompilationException(msg, argptr);
 }
 
 bool
@@ -235,13 +233,13 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
         {
             UINT32 count = LEB128(len);
             m_funcState.count += len;
-            UINT8 type = ReadConst<UINT8>();
-            m_funcState.count++;
-            if (type >= Wasm::WasmTypes::Limit || type == Wasm::WasmTypes::Void)
+            Wasm::WasmTypes::WasmType type = ReadWasmType(len);
+            if (type == Wasm::WasmTypes::Void)
             {
                 ThrowDecodingError(_u("Invalid local type"));
             }
-            m_funcInfo->AddLocal((Wasm::WasmTypes::WasmType)type, count);
+            m_funcState.count += len;
+            m_funcInfo->AddLocal(type, count);
             TRACE_WASM_DECODER(_u("Function body header: type = %u, count = %u"), type, count);
         }
         bool errorOccurred = !callback(callbackdata) || m_funcState.count != m_funcState.size;
@@ -470,6 +468,11 @@ void WasmBinaryReader::ConstNode()
 Wasm::WasmTypes::WasmType
 WasmBinaryReader::GetWasmType(WasmTypes::LocalType type)
 {
+    const uint32 binaryToWasmTypesLength = sizeof(WasmBinaryReader::binaryToWasmTypes) / sizeof(Wasm::WasmTypes::WasmType);
+    if ((uint32)type >= binaryToWasmTypesLength)
+    {
+        ThrowDecodingError(_u("Invalid local type %u"), type);
+    }
     return binaryToWasmTypes[type];
 }
 
@@ -517,11 +520,13 @@ WasmBinaryReader::ReadSignatures()
         // TODO: use param count to create fixed size array
         UINT32 paramCount = LEB128(len);
 
-        sig->SetResultType(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
+        Wasm::WasmTypes::WasmType type = ReadWasmType(len);
+        sig->SetResultType(type);
 
         for (UINT32 i = 0; i < paramCount; i++)
         {
-            sig->AddParam(GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>()));
+            type = ReadWasmType(len);
+            sig->AddParam(type);
         }
 
         m_moduleInfo->AddSignature(sig);
@@ -760,6 +765,22 @@ T WasmBinaryReader::ReadConst()
     m_pc += sizeof(T);
 
     return value;
+}
+
+Wasm::WasmTypes::WasmType
+WasmBinaryReader::ReadWasmType(uint32& length)
+{
+    length = 1;
+    Wasm::WasmTypes::WasmType type = GetWasmType((WasmTypes::LocalType)ReadConst<UINT8>());
+    if (type >= Wasm::WasmTypes::Limit)
+    {
+        ThrowDecodingError(_u("Invalid type"));
+    }
+    if (type == Wasm::WasmTypes::I64)
+    {
+        ThrowDecodingError(_u("Int64 Not supported yet"));
+    }
+    return type;
 }
 
 void
