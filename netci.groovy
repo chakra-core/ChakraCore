@@ -8,6 +8,7 @@ import jobs.generation.Utilities;
 
 // Grab the github project name passed in
 def project = GithubProject
+def branch = GithubBranchName
 
 def msbuildTypeMap = [
     'debug':'chk',
@@ -61,7 +62,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                     }
                 }
 
-                Utilities.setMachineAffinity(newJob, machine)
+                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
 
                 def msbuildType = msbuildTypeMap.get(buildType)
                 def msbuildFlavor = "build_${buildArch}${msbuildType}"
@@ -76,23 +77,19 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
 
                 if (nonDefaultTaskSetup == null)
                 {
-                    // This call performs remaining common job setup on the newly created job.
-                    // This is used most commonly for simple inner loop testing.
-                    // It does the following:
-                    //   1. Sets up source control for the project.
-                    //   2. Adds a push trigger if the job is a PR job
-                    //   3. Adds a github PR trigger if the job is a PR job.
-                    //      The optional context (label that you see on github in the PR checks) is added.
-                    //      If not provided the context defaults to the job name.
-                    //   4. Adds standard options for build retention and timeouts
-                    //   5. Adds standard parameters for PR and push jobs.
-                    //      These allow PR jobs to be used for simple private testing, for instance.
-                    // See the documentation for this function to see additional optional parameters.
-                    Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Windows ${config}")
+                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                    if (isPR) {
+                        // Set PR trigger.
+                        Utilities.addGithubPRTriggerForBranch(newJob, branch, "Windows ${config}")
+                    }
+                    else {
+                        // Set a push trigger
+                        Utilities.addGithubPushTrigger(newJob)
+                    }
                 }
                 else
                 {
-                    Utilities.standardJobSetup(newJob, project, isPR)
+                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
                     nonDefaultTaskSetup(newJob, isPR, config)
                 }
             }
@@ -104,7 +101,7 @@ def DailyBuildTaskSetup = { newJob, isPR, triggerName, groupRegex ->
     // The addition of triggers makes the job non-default in GitHub.
     if (isPR) {
         def triggerRegex = "(${dailyRegex}|${groupRegex}|${triggerName})"
-        Utilities.addGithubPRTrigger(newJob,
+        Utilities.addGithubPRTriggerForBranch(newJob, branch,
             triggerName, // GitHub task name
             "(?i).*test\\W+${triggerRegex}.*")
     } else {
@@ -122,7 +119,15 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
             }
         }
 
-        Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, checkName)
+        Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+        if (isPR) {
+            // Set PR trigger.
+            Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
+        }
+        else {
+            // Set a push trigger
+            Utilities.addGithubPushTrigger(newJob)
+        }
         Utilities.setMachineAffinity(newJob, 'Ubuntu14.04', 'latest-or-auto')
     }
 }
