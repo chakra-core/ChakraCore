@@ -337,8 +337,7 @@ WasmBytecodeGenerator::EnregisterLocals()
                 m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, m_locals[i].location, 0);
                 break;
             case WasmTypes::I64:
-                AssertMsg(UNREACHED, "Unimplemented");
-                break;
+                throw WasmCompilationException(_u("I64 locals NYI"));
             default:
                 Assume(UNREACHED);
             }
@@ -424,9 +423,8 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
 #include "WasmKeywords.h"
 
     default:
-        Assert(UNREACHED);
+        throw WasmCompilationException(_u("Unknown expression's op %u"), op);
     }
-    return EmitInfo();
 }
 
 EmitInfo
@@ -499,7 +497,7 @@ WasmBytecodeGenerator::EmitConst()
         m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, tmpReg, m_reader->m_currentNode.cnst.i32);
         break;
     default:
-        Assume(UNREACHED);
+        throw WasmCompilationException(_u("Unknown type %u"), type);
     }
 
     return EmitInfo(tmpReg, type);
@@ -702,7 +700,7 @@ WasmBytecodeGenerator::EmitCall()
             ++nextLoc;
             break;
         default:
-            Assume(UNREACHED);
+            throw WasmCompilationException(_u("Unknown argument type %u"), argOuts[i].type);
         }
 
         m_writer.AsmReg2(argOp, argLoc, argOuts[i].location);
@@ -778,10 +776,8 @@ WasmBytecodeGenerator::EmitCall()
             convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTI : Js::OpCodeAsmJs::I_Conv_VTI;
             break;
         case WasmTypes::I64:
-            Assert(UNREACHED);
-            break;
         default:
-            Assume(UNREACHED);
+            throw WasmCompilationException(_u("Unknown call return type %u"), retInfo.type);
         }
         m_writer.AsmReg2(convertOp, retInfo.location, 0);
     }
@@ -1107,7 +1103,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
             m_func->body->GetAsmJsFunctionInfo()->SetReturnType(Js::AsmJsRetType::Signed);
             break;
         default:
-            Assume(UNREACHED);
+            throw WasmCompilationException(_u("Unknown return type %u"), retExprInfo.type);
         }
 
         m_writer.Conv(retOp, 0, retExprInfo.location);
@@ -1118,7 +1114,7 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
     }
     m_writer.AsmBr(m_funcInfo->GetExitLabel());
 
-    return EmitInfo(0, WasmTypes::I32);
+    return EmitInfo();
 }
 
 EmitInfo
@@ -1214,7 +1210,7 @@ WasmBytecodeGenerator::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
         asmType = Js::AsmJsRetType::Void;
         break;
     default:
-        Assert(UNREACHED);
+        throw WasmCompilationException(_u("Unknown return type %u"), wasmType);
     }
     return asmType;
 }
@@ -1236,7 +1232,7 @@ WasmBytecodeGenerator::GetAsmJsVarType(WasmTypes::WasmType wasmType)
         asmType = Js::AsmJsVarType::Int;
         break;
     default:
-        Assert(UNREACHED);
+        throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
     return asmType;
 }
@@ -1254,8 +1250,7 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
     case WasmTypes::I32:
         return Js::OpCodeAsmJs::Ld_Int;
     default:
-        Assert(UNREACHED);
-        return Js::OpCodeAsmJs::Nop;
+        throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
     }
 }
 
@@ -1292,8 +1287,7 @@ WasmBytecodeGenerator::GetViewType(WasmOp op)
         return Js::ArrayBufferView::TYPE_INT32;
         break;
     default:
-        Assert(UNREACHED);
-        return Js::ArrayBufferView::ViewType::TYPE_INVALID;
+        throw WasmCompilationException(_u("Could not match typed array name"));
     }
 }
 

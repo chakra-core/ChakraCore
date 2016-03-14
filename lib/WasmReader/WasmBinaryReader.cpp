@@ -350,7 +350,7 @@ WasmBinaryReader::ASTNode()
 #include "WasmBinaryOpcodes.h"
 
     default:
-        Assert(UNREACHED);
+        ThrowDecodingError(_u("Unknown opcode %u"), op);
     }
 
     return op;
@@ -740,7 +740,7 @@ WasmBinaryReader::LEB128(UINT &length, bool sgn)
         ThrowDecodingError(_u("Invalid LEB128 format"));
     }
 
-    if (sgn && (shamt + 7 < sizeof(INT) * 8) && (0x40 & b))
+    if (sgn && (shamt < sizeof(INT) * 8) && (0x40 & b))
     {
         result |= -(1 << shamt);
     }
@@ -759,7 +759,7 @@ WasmBinaryReader::SLEB128(UINT &length)
 {
     INT result = LEB128(length, true);
 
-    TRACE_WASM_LEB128(_u("Binary decoder: LEB128 value = %d, length = %u"), result, length);
+    TRACE_WASM_LEB128(_u("Binary decoder: SLEB128 value = %d, length = %u"), result, length);
     return result;
 }
 

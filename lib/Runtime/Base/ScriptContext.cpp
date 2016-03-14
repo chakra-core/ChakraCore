@@ -1761,6 +1761,17 @@ namespace Js
     }
 
 #ifdef ENABLE_WASM
+    Var WasmLazyTrapCallback(RecyclableObject *callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(callee);
+        ScriptContext * scriptContext = externalFunction->GetScriptContext();
+        Assert(externalFunction);
+        Assert(scriptContext);
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        scriptContext->RecordException(((JavascriptError *)callbackState)->GetJavascriptExceptionObject());
+        return library->GetUndefined();
+    }
+
     Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi)
     {
         if (pSrcInfo == nullptr)
@@ -1842,14 +1853,22 @@ namespace Js
 
             FrameDisplay * frameDisplay = RecyclerNewPlus(GetRecycler(), sizeof(void*), FrameDisplay, 1);
             frameDisplay->SetItem(0, moduleMemoryPtr);
-
-            // TODO, refactor this function into smaller functions
+            bool hasAnyLazyTraps = false;
+            const auto createLazyTrap = [this, &exportObj]() {
+                JavascriptLibrary *library = this->GetLibrary();
+                JavascriptError *pError = library->CreateError();
+                JavascriptExceptionObject * exceptionObject =
+                    RecyclerNew(this->GetRecycler(), JavascriptExceptionObject, exportObj, this, NULL);
+                pError->SetJavascriptExceptionObject(exceptionObject);
+                return library->CreateStdCallExternalFunction((Js::StdCallJavascriptMethod)WasmLazyTrapCallback, 0, pError);
+            };
             for (uint i = 0; i < wasmModule->funcCount; ++i)
             {
                 if (functionArray[i] == nullptr) 
                 {
                     Assert(PHASE_ON1(WasmLazyTrapPhase));
-                    localModuleFunctions[i] = GetLibrary()->GetUndefined();
+                    hasAnyLazyTraps = true;
+                    localModuleFunctions[i] = createLazyTrap();
                     continue;
                 }
                 AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
@@ -1864,7 +1883,6 @@ namespace Js
             }
 
             Js::Var exportsNamespace = nullptr;
-            PropertyRecord const * exportsPropertyRecord = nullptr;
 
             // Check for Default export
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
@@ -1887,8 +1905,15 @@ namespace Js
                 exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
             }
 
+            PropertyRecord const * exportsPropertyRecord = nullptr;
             GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
             JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, this);
+            if (hasAnyLazyTraps)
+            {
+                PropertyRecord const * hasErrorsPropertyRecord = nullptr;
+                GetOrAddPropertyRecord(_u("hasErrors"), lstrlen(_u("hasErrors")), &hasErrorsPropertyRecord);
+                JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(this), this);
+            }
 
             if (wasmModule->info->GetMemory()->minSize != 0)
             {
