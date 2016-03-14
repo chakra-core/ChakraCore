@@ -61,6 +61,7 @@ namespace Wasm
         {
 #define WASM_OPCODE(opname, opcode, token, sig) wb##opname = opcode,
 #include "WasmBinaryOpcodes.h"
+            wbFuncEnd,
             wbLimit
         };
 
@@ -93,6 +94,7 @@ namespace Wasm
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
+            void PrintOps();
 
         private:
             struct ReaderState
@@ -107,6 +109,8 @@ namespace Wasm
 
             void ModuleHeader();
             void CallNode();
+            void CallIndirectNode();
+            void CallImportNode();
             void BlockNode();
             void BrNode();
             void BrTableNode();
@@ -144,7 +148,8 @@ namespace Wasm
             ReaderState m_funcState;   // func AST level
 
         private:
-
+            typedef JsUtil::BaseHashSet<WasmBinOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
+            OpSet * m_ops;
             static bool isInit;
             static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
             static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID

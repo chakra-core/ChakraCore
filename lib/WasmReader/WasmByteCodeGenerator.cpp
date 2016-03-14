@@ -118,6 +118,12 @@ WasmBytecodeGenerator::GenerateModule()
         }
     }
 
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::WasmReaderPhase, m_func->body))
+    {
+        ((Binary::WasmBinaryReader*)m_reader)->PrintOps();
+    }
+#endif
     // If we see a FunctionSignatures section we need to see a FunctionBodies section
     if (visitedSections->Test(bSectFunctionSignatures) && !visitedSections->Test(bSectFunctionBodies))
     {
@@ -176,7 +182,7 @@ WasmBytecodeGenerator::GenerateFunction()
     m_func->body->SetIsAsmjsMode(true);
     m_func->body->SetIsWasmFunction(true);
     m_func->body->GetAsmJsFunctionInfo()->SetIsHeapBufferConst(true);
-    m_funcInfo = m_reader->m_currentNode.func.info;
+    m_funcInfo = wasmInfo;
     m_func->wasmInfo = m_funcInfo;
     m_nestedIfLevel = 0;
     m_nestedCallDepth = 0;
@@ -458,8 +464,6 @@ WasmBytecodeGenerator::EmitSetLocal()
 
     WasmLocal local = m_locals[localNum];
 
-    Js::OpCodeAsmJs op = GetLoadOp(local.type);
-    WasmRegisterSpace * regSpace = GetRegisterSpace(local.type);
     EmitInfo info = EmitExpr(m_reader->ReadExpr());
 
     if (info.type != local.type)
@@ -467,14 +471,9 @@ WasmBytecodeGenerator::EmitSetLocal()
         throw WasmCompilationException(_u("TypeError in setlocal for %u"), localNum);
     }
 
-    m_writer.AsmReg2(op, local.location, info.location);
+    m_writer.AsmReg2(GetLoadOp(local.type), local.location, info.location);
 
-    regSpace->ReleaseLocation(&info);
-
-    Js::RegSlot tmp = regSpace->AcquireTmpRegister();
-    m_writer.AsmReg2(op, tmp, local.location);
-
-    return EmitInfo(tmp, local.type);
+    return info;
 }
 
 template<WasmTypes::WasmType type>
@@ -556,8 +555,8 @@ WasmBytecodeGenerator::EmitLoop()
     
     Js::ByteCodeLabel loopHeaderLabel = m_writer.DefineLabel();
     m_labels->Push(loopHeaderLabel);
-    m_writer.MarkAsmJsLabel(loopHeaderLabel);
 
+    m_writer.MarkAsmJsLabel(loopHeaderLabel);
     EmitInfo loopInfo;
     if (m_reader->IsBinaryReader())
     {
@@ -580,6 +579,7 @@ WasmBytecodeGenerator::EmitLoop()
     m_writer.MarkAsmJsLabel(loopTailLabel);
     m_labels->Pop();
     m_labels->Pop();
+
     return loopInfo;
 }
 
@@ -1043,7 +1043,10 @@ WasmBytecodeGenerator::EmitMemStore()
     m_i32RegSlots->ReleaseLocation(&exprInfo);
 
     Js::RegSlot retLoc = GetRegisterSpace(type)->AcquireTmpRegister();
-    m_writer.AsmReg2(GetLoadOp(type), retLoc, rhsInfo.location);
+    if (retLoc != rhsInfo.location)
+    {
+        m_writer.AsmReg2(GetLoadOp(type), retLoc, rhsInfo.location);
+    }
 
     return EmitInfo(retLoc, type);
 }
@@ -1092,15 +1095,12 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo *lastStmtExprInfo)
         {
         case WasmTypes::F32:
             retOp = Js::OpCodeAsmJs::Return_Flt;
-            m_func->body->GetAsmJsFunctionInfo()->SetReturnType(Js::AsmJsRetType::Float);
             break;
         case WasmTypes::F64:
             retOp = Js::OpCodeAsmJs::Return_Db;
-            m_func->body->GetAsmJsFunctionInfo()->SetReturnType(Js::AsmJsRetType::Double);
             break;
         case WasmTypes::I32:
             retOp = Js::OpCodeAsmJs::Return_Int;
-            m_func->body->GetAsmJsFunctionInfo()->SetReturnType(Js::AsmJsRetType::Signed);
             break;
         default:
             throw WasmCompilationException(_u("Unknown return type %u"), retExprInfo.type);
@@ -1194,25 +1194,19 @@ WasmBytecodeGenerator::EmitBr()
 Js::AsmJsRetType
 WasmBytecodeGenerator::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
 {
-    Js::AsmJsRetType asmType = Js::AsmJsRetType::Void;
     switch (wasmType)
     {
     case WasmTypes::F32:
-        asmType = Js::AsmJsRetType::Float;
-        break;
+        return Js::AsmJsRetType::Float;
     case WasmTypes::F64:
-        asmType = Js::AsmJsRetType::Double;
-        break;
+        return Js::AsmJsRetType::Double;
     case WasmTypes::I32:
-        asmType = Js::AsmJsRetType::Signed;
-        break;
+        return Js::AsmJsRetType::Signed;
     case WasmTypes::Void:
-        asmType = Js::AsmJsRetType::Void;
-        break;
+        return Js::AsmJsRetType::Void;
     default:
         throw WasmCompilationException(_u("Unknown return type %u"), wasmType);
     }
-    return asmType;
 }
 
 /* static */
@@ -1223,18 +1217,14 @@ WasmBytecodeGenerator::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     switch (wasmType)
     {
     case WasmTypes::F32:
-        asmType = Js::AsmJsVarType::Float;
-        break;
+        return Js::AsmJsVarType::Float;
     case WasmTypes::F64:
-        asmType = Js::AsmJsVarType::Double;
-        break;
+        return Js::AsmJsVarType::Double;
     case WasmTypes::I32:
-        asmType = Js::AsmJsVarType::Int;
-        break;
+        return Js::AsmJsVarType::Int;
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
-    return asmType;
 }
 
 /* static */
@@ -1339,6 +1329,7 @@ void WasmCompilationException::PrintError(const char16* _msg, va_list arglist)
 
 WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
+    Assert(UNREACHED);
     va_list arglist;
     va_start(arglist, _msg);
     PrintError(_msg, arglist);

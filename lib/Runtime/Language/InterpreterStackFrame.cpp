@@ -2745,7 +2745,6 @@ namespace Js
     {
         FunctionBody *const functionBody = GetFunctionBody();
         ScriptFunction* func = GetJavascriptFunction();
-
         //schedule for codegen here only if TJ is collected
         if (!functionBody->GetIsAsmJsFullJitScheduled() && !PHASE_OFF(BackEndPhase, functionBody)
             && !PHASE_OFF(FullJitPhase, functionBody) && !this->scriptContext->GetConfig()->IsNoNative())
@@ -3136,14 +3135,13 @@ namespace Js
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-
-                        Output::Print( _u(" = %d"), m_localIntSlots[0]);
+                        Output::Print( _u(" = %d"), m_localIntSlots[0] );
                         break;
                     case AsmJsRetType::Float:
-                        Output::Print(_u(" = %.4f"), (double)m_localFloatSlots[0]);
+                        Output::Print(_u(" = %.4f"), m_localFloatSlots[0]);
                         break;
                     case AsmJsRetType::Double:
-                        Output::Print( _u(" = %.4f"), (double)m_localDoubleSlots[0]);
+                        Output::Print( _u(" = %.4f"), m_localDoubleSlots[0]);
                         break;
                     default:
                         break;

@@ -14,9 +14,9 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_memory(),
     m_alloc(alloc),
     m_funcCount(0),
+    m_importCount(0),
     m_indirectFuncCount(0),
     m_exportCount(0),
-    m_importCount(0),
     m_datasegCount(0)
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);

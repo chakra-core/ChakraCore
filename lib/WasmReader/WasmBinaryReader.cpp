@@ -48,6 +48,7 @@ WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t l
     m_start = m_pc = source;
     m_end = source + length;
     m_currentSection.code = bSectInvalid;
+    m_ops = Anew(&m_alloc, OpSet, &m_alloc);
 }
 
 void WasmBinaryReader::InitializeReader()
@@ -204,6 +205,44 @@ WasmBinaryReader::ReadSectionHeader()
     return header;
 }
 
+void 
+WasmBinaryReader::PrintOps()
+{
+    WasmBinOp * ops = HeapNewArray(WasmBinOp, m_ops->Count());
+
+    auto iter = m_ops->GetIterator();
+    int i = 0;
+    while (iter.IsValid())
+    {
+        ops[i] = iter.CurrentKey();
+        iter.MoveNext();
+        ++i;
+    }
+    for (i = 0; i < m_ops->Count(); ++i)
+    {
+        int j = i;
+        while (j > 0 && ops[j-1] > ops[j])
+        {
+            WasmBinOp tmp = ops[j];
+            ops[j] = ops[j - 1];
+            ops[j - 1] = tmp;
+
+            --j;
+        }
+    }
+    for (i = 0; i < m_ops->Count(); ++i)
+    {
+        switch (ops[i])
+        {
+#define WASM_OPCODE(opname, opcode, token, sig) \
+    case opcode: \
+        Output::Print(_u(#token ## "\r\n")); \
+        break;
+#include "WasmBinaryOpcodes.h"
+        }
+    }
+}
+
 bool
 WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata)
 {
@@ -293,7 +332,7 @@ WasmBinaryReader::ASTNode()
     if (EndOfFunc())
     {
         // end of AST
-        return wbLimit;
+        return wbFuncEnd;
     }
 
     WasmBinOp op = (WasmBinOp)*m_pc++;
@@ -305,9 +344,13 @@ WasmBinaryReader::ASTNode()
         BlockNode();
         break;
     case wbCall:
-    case wbCallImport:
-    case wbCallIndirect:
         CallNode();
+        break;
+    case wbCallImport:
+        CallImportNode();
+        break;
+    case wbCallIndirect:
+        CallIndirectNode();
         break;
     case wbBr:
     case wbBrIf:
@@ -353,6 +396,8 @@ WasmBinaryReader::ASTNode()
         ThrowDecodingError(_u("Unknown opcode %u"), op);
     }
 
+    m_ops->AddNew(op);
+
     return op;
 }
 
@@ -380,6 +425,32 @@ WasmBinaryReader::CallNode()
     UINT32 funcNum = LEB128(length);
     m_funcState.count += length;
     if (funcNum >= m_moduleInfo->GetFunctionCount())
+    {
+        ThrowDecodingError(_u("Function is out of bound"));
+    }
+    m_currentNode.var.num = funcNum;
+}
+
+void
+WasmBinaryReader::CallImportNode()
+{
+    UINT length = 0;
+    UINT32 funcNum = LEB128(length);
+    m_funcState.count += length;
+    if (funcNum >= m_moduleInfo->GetImportCount())
+    {
+        ThrowDecodingError(_u("Function is out of bound"));
+    }
+    m_currentNode.var.num = funcNum;
+}
+
+void
+WasmBinaryReader::CallIndirectNode()
+{
+    UINT length = 0;
+    UINT32 funcNum = LEB128(length);
+    m_funcState.count += length;
+    if (funcNum >= m_moduleInfo->GetSignatureCount())
     {
         ThrowDecodingError(_u("Function is out of bound"));
     }
@@ -828,6 +899,7 @@ WasmBinaryReader::Init(Js::ScriptContext * scriptContext)
 #define WASM_OPCODE(opname, opcode, token, sig) \
     binWasmOpToWasmOp[WasmBinOp::wb##opname] = Wasm::WasmOp::wn##token;
 #include "WasmBinaryOpcodes.h"
+    binWasmOpToWasmOp[WasmBinOp::wbFuncEnd] = Wasm::WasmOp::wnFUNC_END;
     binWasmOpToWasmOp[WasmBinOp::wbLimit] = Wasm::WasmOp::wnLIMIT;
     }
 
