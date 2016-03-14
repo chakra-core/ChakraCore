@@ -199,9 +199,9 @@ WasmBytecodeGenerator::GenerateFunction()
         }
         // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
         Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
-        if (op != wnRETURN && returnType != Wasm::WasmTypes::Void)
+        if (op != wnRETURN)
         {
-            if (exprInfo.type != returnType)
+            if (exprInfo.type != returnType && returnType != Wasm::WasmTypes::Void)
             {
                 throw WasmCompilationException(_u("Last expression return type mismatch return type"));
             }
