@@ -23,6 +23,7 @@ namespace Wasm
     {
 #define WASM_KEYWORD(token, name) wn##token,
 #include "WasmKeywords.h"
+        wnFUNC_END,
         wnLIMIT
     };
 

@@ -2744,7 +2744,6 @@ namespace Js
     {
         FunctionBody *const functionBody = GetFunctionBody();
         ScriptFunction* func = GetJavascriptFunction();
-
         //schedule for codegen here only if TJ is collected
         if (!functionBody->GetIsAsmJsFullJitScheduled() && !PHASE_OFF(BackEndPhase, functionBody)
             && !PHASE_OFF(FullJitPhase, functionBody) && !this->scriptContext->GetConfig()->IsNoNative())
@@ -3134,11 +3133,13 @@ namespace Js
                     case AsmJsRetType::Void:
                         break;
                     case AsmJsRetType::Signed:
-                        Output::Print( _u(" = %d"), (int)(int64)returnVar );
+                        Output::Print( _u(" = %d"), m_localIntSlots[0] );
                         break;
                     case AsmJsRetType::Float:
+                        Output::Print(_u(" = %.4f"), m_localFloatSlots[0]);
+                        break;
                     case AsmJsRetType::Double:
-                        Output::Print( _u(" = %.4f"), (double)(int64)returnVar );
+                        Output::Print( _u(" = %.4f"), m_localDoubleSlots[0]);
                         break;
                     default:
                         break;
@@ -7821,7 +7822,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < 8);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*LdArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>
@@ -7835,7 +7836,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < 8);
-        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex) & TypedArrayViewMask[playout->ViewType];
+        const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         (this->*StArrFunc[playout->ViewType])(index, playout->Value);
     }
     template <class T>

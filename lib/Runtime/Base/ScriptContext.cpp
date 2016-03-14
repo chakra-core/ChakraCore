@@ -1895,6 +1895,18 @@ namespace Js
                 entypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
                 funcObj->SetEnvironment(frameDisplay);
                 localModuleFunctions[i] = funcObj;
+
+                // Do MTJRC/MAIC:0 check
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                if (CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
+                {
+                    if (funcObj->GetEntryPoint() == Js::AsmJsExternalEntryPoint)
+                    {
+                        GenerateFunction(GetNativeCodeGenerator(), funcObj->GetFunctionBody(), funcObj);
+                    }
+                }
+#endif
+
             }
 
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)

@@ -92,9 +92,9 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Shr_Int      , AsmJsMath::Shr                                     )
   DEF2_WMS( I2toI1Mem        , ShrU_Int     , AsmJsMath::ShrU                                    )
 
-  DEF2_WMS( I2toI1MemDConv   , Mul_UInt     , AsmJsMath::Mul<double>                             )
-  DEF2_WMS( I2toI1MemDConv   , Div_UInt     , AsmJsMath::Div<double>                             )
-  DEF2_WMS( I2toI1MemDConv   , Rem_UInt     , AsmJsMath::Rem<uint>                               )
+  DEF2_WMS( I2toI1Mem   , Mul_UInt     , AsmJsMath::Mul<uint>                             )
+  DEF2_WMS( I2toI1Mem   , Div_UInt     , AsmJsMath::Div<uint>                             )
+  DEF2_WMS( I2toI1Mem   , Rem_UInt     , AsmJsMath::Rem<uint>                               )
 
   DEF2_WMS( D1toD1Mem        , Neg_Db       , AsmJsMath::Neg<double>                             ) // double unary '-'
   DEF2_WMS( D2toD1Mem        , Add_Db       , AsmJsMath::Add<double>                             )
