@@ -405,9 +405,11 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
                 Assert(this->IsClosedNativeCodeGenerator());
 #endif
-                this->recycler->RootRelease(globalObject);
+                if (!GetThreadContext()->IsJSRT())
+                {
+                    this->recycler->RootRelease(globalObject);
+                }
             }
-
         }
 
 #if ENABLE_BACKGROUND_PARSING
@@ -734,7 +736,10 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             Assert(this->IsClosedNativeCodeGenerator());
 #endif
-            GetRecycler()->RootRelease(globalObject);
+            if (!GetThreadContext()->IsJSRT())
+            {
+                GetRecycler()->RootRelease(globalObject);
+            }
         }
 
         // A script context closing is a signal to the thread context that it
@@ -1231,7 +1236,10 @@ namespace Js
     void ScriptContext::InitializeGlobalObject()
     {
         GlobalObject * localGlobalObject = GlobalObject::New(this);
-        GetRecycler()->RootAddRef(localGlobalObject);
+        if (!GetThreadContext()->IsJSRT())
+        {
+            GetRecycler()->RootAddRef(localGlobalObject);
+        }
 
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
@@ -1347,7 +1355,7 @@ namespace Js
         }
         else
         {
-            Assert(!GetThreadContext()->GetIsThreadBound() || !GetHostScriptContext()->HasCaller());
+            Assert(GetThreadContext()->IsJSRT() || !GetHostScriptContext()->HasCaller());
             VerifyAlive(isJSFunction, NULL);
         }
     }
