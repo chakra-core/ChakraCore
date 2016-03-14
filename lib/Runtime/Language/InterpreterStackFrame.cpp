@@ -2283,6 +2283,7 @@ namespace Js
         if (PHASE_TRACE(Js::AsmjsInterpreterPhase, this->m_functionBody))
         {
             Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), this->m_functionBody->GetSourceContextId(), this->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName((Js::OpCodeAsmJs)(op+((int)isExtended<<8))), DEBUG_currentByteOffset);
+            Output::Flush();
         }
 #endif
         return op;

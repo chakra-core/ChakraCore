@@ -40,13 +40,13 @@ WasmBytecodeGenerator::GenerateModule()
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
 
     m_module = Anew(&m_alloc, WasmModule);
-    m_module->functions = Anew(&m_alloc, WasmFunctionArray, &m_alloc, 0);
     m_module->info = m_reader->m_moduleInfo;
     m_module->heapOffset = 0;
     m_module->importFuncOffset = m_module->heapOffset + 1;
     m_module->funcOffset = m_module->heapOffset + 1;
 
     m_reader->InitializeReader();
+    m_reader->m_module = m_module;
 
     BVFixed* visitedSections = BVFixed::New(bSectLimit + 1, &m_alloc);
 
@@ -69,9 +69,26 @@ WasmBytecodeGenerator::GenerateModule()
     };
 
     sectionProcess[bSectFunctionBodies] = [](WasmBytecodeGenerator* gen) {
-        return gen->m_reader->ReadFunctionBodies([](void* g) {
+        gen->m_module->funcCount = gen->m_module->info->GetFunctionCount();
+        gen->m_module->functions = AnewArrayZ(&gen->m_alloc, WasmFunction*, gen->m_module->funcCount);
+        return gen->m_reader->ReadFunctionBodies([](uint32 index, void* g) {
             WasmBytecodeGenerator* gen = (WasmBytecodeGenerator*)g;
-            gen->m_module->functions->Add(gen->GenerateFunction());
+            if (index >= gen->m_module->funcCount) {
+                return false;
+            }
+            WasmFunction* fn = nullptr;
+            try 
+            {
+                fn = gen->GenerateFunction();
+            }
+            catch (WasmCompilationException) 
+            {
+                if (!PHASE_ON1(Js::WasmLazyTrapPhase)) 
+                {
+                    throw;
+                }
+            }
+            gen->m_module->functions[index] = fn;
             return true;
         }, gen);
     };
@@ -135,8 +152,8 @@ WasmBytecodeGenerator::GenerateFunction()
     m_i32RegSlots = &i32Space;
 
     m_func = Anew(&m_alloc, WasmFunction);
-    char16* functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 16);
-    int nameLength = swprintf_s(functionName, 16, _u("Wasm%u"), wasmInfo->GetNumber());
+    char16* functionName = RecyclerNewArrayZ(m_scriptContext->GetRecycler(), char16, 32);
+    int nameLength = swprintf_s(functionName, 32, _u("wasm-function[%u]"), wasmInfo->GetNumber());
     m_func->body = Js::FunctionBody::NewFromRecycler(
         m_scriptContext,
         functionName,
@@ -168,28 +185,33 @@ WasmBytecodeGenerator::GenerateFunction()
 
     // TODO: fix these bools
     m_writer.Begin(m_func->body, &m_alloc, false, true, false);
-
-    m_funcInfo->SetExitLabel(m_writer.DefineLabel());
-    EnregisterLocals();
-
-    WasmOp op;
-    EmitInfo exprInfo;
     try {
-        while ((op = m_reader->ReadExpr()) != wnLIMIT)
+        m_funcInfo->SetExitLabel(m_writer.DefineLabel());
+        EnregisterLocals();
+
+        WasmOp op = wnLIMIT, newOp;
+        EmitInfo exprInfo;
+        while ((newOp = m_reader->ReadExpr()) != wnLIMIT)
         {
-            exprInfo = EmitExpr(op);
             ReleaseLocation(&exprInfo);
+            op = newOp;
+            exprInfo = EmitExpr(op);
         }
+        // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
+        Wasm::WasmTypes::WasmType returnType = m_funcInfo->GetSignature()->GetResultType();
+        if (op != wnRETURN && returnType != Wasm::WasmTypes::Void)
+        {
+            if (exprInfo.type != returnType)
+            {
+                throw WasmCompilationException(_u("Last expression return type mismatch return type"));
+            }
+            EmitReturnExpr(&exprInfo);
+        }
+        ReleaseLocation(&exprInfo);
     }
     catch (...) {
         m_writer.Reset();
         throw;
-    }
-
-    // Functions are like blocks. Emit implicit return of last stmt/expr, unless it is a return or end of file (sexpr).
-    if (op != wnRETURN && exprInfo.type == m_funcInfo->GetSignature()->GetResultType())
-    {
-        EmitReturnExpr(&exprInfo);
     }
     m_writer.MarkAsmJsLabel(m_funcInfo->GetExitLabel());
     m_writer.EmptyAsm(Js::OpCodeAsmJs::Ret);
@@ -295,7 +317,10 @@ WasmBytecodeGenerator::EnregisterLocals()
     {
         WasmTypes::WasmType type = m_funcInfo->GetLocal(i);
         WasmRegisterSpace * regSpace = GetRegisterSpace(type);
-
+        if (regSpace == nullptr) 
+        {
+            throw WasmCompilationException(_u("Unable to find local register space"));
+        }
         m_locals[i] = WasmLocal(regSpace->AcquireRegister(), type);
 
         // Zero only the locals not corresponding to formal parameters.
@@ -491,17 +516,20 @@ WasmBytecodeGenerator::EmitBlock()
     if (m_reader->IsBinaryReader())
     {
         UINT blockCount = m_reader->m_currentNode.block.count;
-        if (blockCount <= 0)
+        if (blockCount > 0)
         {
-            throw WasmCompilationException(_u("Invalid block node count"));
+            for (UINT i = 0; i < blockCount - 1; i++)
+            {
+                EmitInfo tmpInfo = EmitExpr(m_reader->ReadFromBlock());
+                ReleaseLocation(&tmpInfo);
+            }
+            // block yields last value
+            blockInfo = EmitExpr(m_reader->ReadFromBlock());
         }
-        for (UINT i = 0; i < blockCount - 1; i++)
+        else
         {
-            EmitInfo tmpInfo = EmitExpr(m_reader->ReadFromBlock());
-            ReleaseLocation(&tmpInfo);
+            blockInfo = EmitInfo(Wasm::WasmTypes::Void);
         }
-        // block yields last value
-        blockInfo = EmitExpr(m_reader->ReadFromBlock());
     }
     else
     {
@@ -536,17 +564,20 @@ WasmBytecodeGenerator::EmitLoop()
     if (m_reader->IsBinaryReader())
     {
         UINT blockCount = m_reader->m_currentNode.block.count;
-        if (blockCount <= 0)
+        if (blockCount > 0)
         {
-            throw WasmCompilationException(_u("Invalid block node count"));
+            for (UINT i = 0; i < blockCount - 1; i++)
+            {
+                EmitInfo info = EmitExpr(m_reader->ReadFromBlock());
+                ReleaseLocation(&info);
+            }
+            // loop yields last value
+            loopInfo = EmitExpr(m_reader->ReadFromBlock());
         }
-        for (UINT i = 0; i < blockCount - 1; i++)
+        else
         {
-            EmitInfo info = EmitExpr(m_reader->ReadFromBlock());
-            ReleaseLocation(&info);
+            loopInfo = EmitInfo(Wasm::WasmTypes::Void);
         }
-        // loop yields last value
-        loopInfo = EmitExpr(m_reader->ReadFromBlock());
     }
     m_writer.MarkAsmJsLabel(loopTailLabel);
     m_labels->Pop();
@@ -735,9 +766,8 @@ WasmBytecodeGenerator::EmitCall()
         switch (retInfo.type)
         {
         case WasmTypes::F32:
-            Assert(wasmOp != wnCALL_IMPORT);
             retInfo.location = m_f32RegSlots->AcquireTmpRegister();
-            convertOp = Js::OpCodeAsmJs::I_Conv_VTF;
+            convertOp = wasmOp == wnCALL_IMPORT ? Js::OpCodeAsmJs::Conv_VTF : Js::OpCodeAsmJs::I_Conv_VTF;
             break;
         case WasmTypes::F64:
             retInfo.location = m_f64RegSlots->AcquireTmpRegister();

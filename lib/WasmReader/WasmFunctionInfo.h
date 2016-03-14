@@ -54,4 +54,14 @@ namespace Wasm
         LPCUTF8 m_mod; // imported module
         UINT32 m_number;
     };
+
+    struct WasmFunction
+    {
+        WasmFunction() :
+            body(nullptr)
+        {
+        }
+        Js::FunctionBody * body;
+        WasmFunctionInfo * wasmInfo;
+    };
 } // namespace Wasm

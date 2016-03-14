@@ -83,7 +83,7 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
     va_list argptr;
     va_start(argptr, msg);
     Output::Print(_u("Binary decoding failed: "));
-    throw new WasmCompilationException(msg, argptr);
+    throw WasmCompilationException(msg, argptr);
 }
 
 bool
@@ -223,6 +223,7 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
         // Reset func state
         m_funcState.count = 0;
         m_funcState.size = LEB128(len); // function body size in bytes including AST
+        byte* end = m_pc + m_funcState.size;
         CheckBytesLeft(m_funcState.size);
 
         UINT32 entryCount = LEB128(len);
@@ -242,10 +243,15 @@ WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callba
             m_funcInfo->AddLocal(type, count);
             TRACE_WASM_DECODER(_u("Function body header: type = %u, count = %u"), type, count);
         }
-        bool errorOccurred = !callback(callbackdata) || m_funcState.count != m_funcState.size;
+        bool errorOccurred = !callback(i, callbackdata) || m_funcState.count != m_funcState.size;
         if (errorOccurred)
         {
-            ThrowDecodingError(_u("Error while processing function #%u"), i);
+            if (!PHASE_ON1(Js::WasmLazyTrapPhase))
+            {
+                ThrowDecodingError(_u("Error while processing function #%u"), i);
+            }
+            m_pc = end;
+            m_module->functions[i] = nullptr;
         }
     }
     return m_pc == m_currentSection.end;
@@ -775,10 +781,6 @@ WasmBinaryReader::ReadWasmType(uint32& length)
     if (type >= Wasm::WasmTypes::Limit)
     {
         ThrowDecodingError(_u("Invalid type"));
-    }
-    if (type == Wasm::WasmTypes::I64)
-    {
-        ThrowDecodingError(_u("Int64 Not supported yet"));
     }
     return type;
 }

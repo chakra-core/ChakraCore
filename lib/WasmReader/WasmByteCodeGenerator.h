@@ -47,40 +47,7 @@ namespace Wasm
         WasmCompilationException(const char16* _msg, va_list arglist);
     };
 
-
-    struct WasmFunction
-    {
-        WasmFunction() :
-            body(nullptr)
-        {
-        }
-        Js::FunctionBody * body;
-        WasmFunctionInfo * wasmInfo;
-    };
-
-    typedef JsUtil::GrowingArray<WasmFunction*, ArenaAllocator> WasmFunctionArray;
     typedef JsUtil::BaseDictionary<uint, LPCUTF8, ArenaAllocator> WasmExportDictionary;
-
-    struct WasmModule
-    {
-        WasmModule() :
-            functions(nullptr),
-            memSize(0),
-            indirFuncTableOffset(0),
-            heapOffset(0),
-            funcOffset(0),
-            importFuncOffset(0)
-        {
-        }
-        // TODO (michhol): use normal array, and get info from parser
-        WasmFunctionArray * functions;
-        ModuleInfo * info;
-        uint heapOffset;
-        uint funcOffset;
-        uint importFuncOffset;
-        uint indirFuncTableOffset;
-        uint memSize;
-    };
 
     class WasmBytecodeGenerator
     {

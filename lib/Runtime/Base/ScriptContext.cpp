@@ -1830,7 +1830,7 @@ namespace Js
             bytecodeGen = HeapNew(Wasm::WasmBytecodeGenerator, this, *ppSourceInfo, reader);
             wasmModule = bytecodeGen->GenerateModule();
 
-            Wasm::WasmFunction ** functionArray = wasmModule->functions->GetBuffer();
+            Wasm::WasmFunction ** functionArray = wasmModule->functions;
 
             Var* moduleMemoryPtr = RecyclerNewArrayZ(GetRecycler(), Var, wasmModule->memSize);
 
@@ -1844,8 +1844,14 @@ namespace Js
             frameDisplay->SetItem(0, moduleMemoryPtr);
 
             // TODO, refactor this function into smaller functions
-            for (uint i = 0; i < wasmModule->functions->Count(); ++i)
+            for (uint i = 0; i < wasmModule->funcCount; ++i)
             {
+                if (functionArray[i] == nullptr) 
+                {
+                    Assert(PHASE_ON1(WasmLazyTrapPhase));
+                    localModuleFunctions[i] = GetLibrary()->GetUndefined();
+                    continue;
+                }
                 AsmJsScriptFunction * funcObj = javascriptLibrary->CreateAsmJsScriptFunction(functionArray[i]->body);
                 funcObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                 funcObj->SetModuleMemory(moduleMemoryPtr);
@@ -1860,16 +1866,22 @@ namespace Js
             Js::Var exportsNamespace = nullptr;
             PropertyRecord const * exportsPropertyRecord = nullptr;
 
-            // Default export
-            if (wasmModule->info->GetExportCount() == 1 && wasmModule->info->GetFunctionExport(0)->nameLength == 0)
+            // Check for Default export
+            for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
             {
-                const uint32 funcIndex = wasmModule->info->GetFunctionExport(0)->funcIndex;
-                if (funcIndex < wasmModule->info->GetFunctionCount())
+                Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
+                if (funcExport && funcExport->nameLength == 0)
                 {
-                    exportsNamespace = localModuleFunctions[funcIndex];
+                    const uint32 funcIndex = funcExport->funcIndex;
+                    if (funcIndex < wasmModule->info->GetFunctionCount())
+                    {
+                        exportsNamespace = localModuleFunctions[funcIndex];
+                        break;
+                    }
                 }
             }
-            
+
+            // If no default export is present, create an empty object
             if (exportsNamespace == nullptr)
             {
                 exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(this);
@@ -1881,7 +1893,7 @@ namespace Js
             if (wasmModule->info->GetMemory()->minSize != 0)
             {
                 const uint64 maxSize = wasmModule->info->GetMemory()->maxSize;
-                if (maxSize > UINT_MAX)
+                if (maxSize > ArrayBuffer::MaxArrayBufferLength)
                 {
                     Js::Throw::OutOfMemory();
                 }
@@ -1894,11 +1906,15 @@ namespace Js
                     Assert(segment != nullptr);
                     const uint32 offset = segment->getDestAddr();
                     const uint32 size = segment->getSourceSize();
-                    if (offset > maxSize || UInt32Math::Add(offset, size) >= maxSize)
+                    if (offset > maxSize || UInt32Math::Add(offset, size) > maxSize)
                     {
                         throw Wasm::WasmCompilationException(_u("Data segment #%u is out of bound"), iSeg);
                     }
-                    js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
+
+                    if (size > 0) 
+                    {
+                        js_memcpy_s(buffer + offset, (uint32)maxSize - offset, segment->getData(), size);
+                    }
                 }
                 if (wasmModule->info->GetMemory()->exported)
                 {
@@ -1915,13 +1931,13 @@ namespace Js
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
             {
                 Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
-                if (funcExport)
+                if (funcExport && funcExport->nameLength > 0)
                 {
                     PropertyRecord const * propertyRecord = nullptr;
                     GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
                     Var funcObj;
                     // todo:: This should not happen, we need to add validation that the `function_bodies` section is present
-                    if (funcExport->funcIndex < wasmModule->functions->Count())
+                    if (funcExport->funcIndex < wasmModule->funcCount)
                     {
                         funcObj = localModuleFunctions[funcExport->funcIndex];
                     }

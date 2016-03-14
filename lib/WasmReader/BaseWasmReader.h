@@ -7,7 +7,7 @@
 
 namespace Wasm
 {
-    typedef bool(*FunctionBodyCallback)(void* data);
+    typedef bool(*FunctionBodyCallback)(uint32 index, void* data);
 
     class BaseWasmReader
     {
@@ -24,6 +24,7 @@ namespace Wasm
         virtual bool IsBinaryReader() = 0;
         WasmNode    m_currentNode;
         ModuleInfo * m_moduleInfo;
+        WasmModule * m_module;
 
     protected:
         WasmFunctionInfo *  m_funcInfo;
