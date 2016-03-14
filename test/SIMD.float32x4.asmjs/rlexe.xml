@@ -827,6 +827,7 @@
           <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
       </default>
   </test>
+  <!-- Disabled for now due to Asm.js link bug
   <test>
     <default>
       <files>testSIMDLink-1.js</files>
@@ -901,6 +902,7 @@
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
    </test>
+   -->
    <test>
     <default>
       <files>testMisc.js</files>
