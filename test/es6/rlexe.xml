@@ -677,7 +677,13 @@
   <test>
     <default>
       <files>default.js</files>
-      <compile-flags> -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>default.js</files>
+      <compile-flags>-off:deferparse -ES6DefaultArgs -ES6Generators -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

@@ -3378,7 +3378,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     }
                     else
                     {
-                        if (pToken->tk == tkID && pToken->pid == wellKnownPropertyPids.eval) // Detect eval
+                        if (pToken->tk == tkID && pToken->pid == wellKnownPropertyPids.eval && count > 0) // Detect eval
                         {
                             this->MarkEvalCaller();
                         }
@@ -3624,6 +3624,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
             Error(ERRnoMemory);
         // Allow spread in argument lists.
         pnodeArg = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */TRUE);
+        ++count;
 
         if (buildAST)
         {
@@ -3639,7 +3640,6 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
                 (*pSpreadArgCount)++;
             }
 
-            ++count;
             AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeArg);
         }
         if (m_token.tk != tkComma)
@@ -3658,9 +3658,9 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeatureCount, m_scriptContext);
     }
 
+    *pCount = static_cast<uint16>(count);
     if (buildAST)
     {
-        *pCount = (uint16)count;
         AssertMem(lastNodeRef);
         AssertNodeMem(*lastNodeRef);
         pnodeList->ichLim = (*lastNodeRef)->ichLim;
@@ -5095,14 +5095,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 Scope* paramScope = pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope;
                 Assert(paramScope != nullptr);
 
-                if (pnodeFnc->sxFnc.CallsEval() || pnodeFnc->sxFnc.ChildCallsEval())
-                {
-                    if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
-                    {
-                        Error(ERREvalNotSupportedInParamScope);
-                    }
-                }
-                else
+                if (paramScope->GetCanMergeWithBodyScope())
                 {
                     paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
                         if (sym->GetPid()->GetTopRef()->sym == nullptr)
@@ -6221,6 +6214,12 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
         if (m_token.tk != tkRParen)
         {
             Error(ERRnoRparen);
+        }
+
+        if ((this->GetCurrentFunctionNode()->sxFnc.CallsEval() || this->GetCurrentFunctionNode()->sxFnc.ChildCallsEval())
+            && !m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
+        {
+            Error(ERREvalNotSupportedInParamScope);
         }
     }
     Assert(m_token.tk == tkRParen);
