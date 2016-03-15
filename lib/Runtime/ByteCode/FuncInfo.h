@@ -794,8 +794,8 @@ public:
 
     void OnStartVisitFunction(ParseNode *pnodeFnc);
     void OnEndVisitFunction(ParseNode *pnodeFnc);
-    void OnStartVisitScope(Scope *scope);
-    void OnEndVisitScope(Scope *scope);
+    void OnStartVisitScope(Scope *scope, bool *pisMergedScope);
+    void OnEndVisitScope(Scope *scope, bool isMergedScope = false);
     void AddCapturedSym(Symbol *sym);
     CapturedSymMap *EnsureCapturedSymMap();
 

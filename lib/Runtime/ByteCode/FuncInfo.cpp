@@ -427,8 +427,10 @@ void FuncInfo::OnEndVisitFunction(ParseNode *pnodeFnc)
     this->SetCurrentChildFunction(nullptr);
 }
 
-void FuncInfo::OnStartVisitScope(Scope *scope)
+void FuncInfo::OnStartVisitScope(Scope *scope, bool *pisMergedScope)
 {
+    *pisMergedScope = false;
+
     if (scope == nullptr)
     {
         return;
@@ -446,6 +448,7 @@ void FuncInfo::OnStartVisitScope(Scope *scope)
                  && scope->GetScopeType() == ScopeType_Block)
         {
             // If param and body are merged then the class declaration in param scope will have body as the parent
+            *pisMergedScope = true;
             Assert(childScope == scope->GetEnclosingScope()->GetEnclosingScope());
         }
         else
@@ -455,9 +458,10 @@ void FuncInfo::OnStartVisitScope(Scope *scope)
     }
 
     this->SetCurrentChildScope(scope);
+    return;
 }
 
-void FuncInfo::OnEndVisitScope(Scope *scope)
+void FuncInfo::OnEndVisitScope(Scope *scope, bool isMergedScope)
 {
     if (scope == nullptr)
     {
@@ -465,7 +469,7 @@ void FuncInfo::OnEndVisitScope(Scope *scope)
     }
     Assert(this->GetCurrentChildScope() == scope || (scope->GetScopeType() == ScopeType_Parameter && this->GetParamScope() == scope));
 
-    this->SetCurrentChildScope(scope->GetEnclosingScope());
+    this->SetCurrentChildScope(isMergedScope ? scope->GetEnclosingScope()->GetEnclosingScope() : scope->GetEnclosingScope());
 }
 
 CapturedSymMap *FuncInfo::EnsureCapturedSymMap()
