@@ -10127,6 +10127,11 @@ LNeedTerminator:
         break;
     }
 
+    if (m_hasDeferredShorthandInitError)
+    {
+        Error(ERRnoColon);
+    }
+
     if (buildAST)
     {
         // All non expression statements excluded from the "this.x" optimization
