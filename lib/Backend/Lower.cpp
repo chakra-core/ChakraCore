@@ -8350,7 +8350,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     IR::Opnd * src2 = instr->GetSrc2();
 
     IR::Instr * done;
-    if (indexOpnd || (uint32)src1->AsIndirOpnd()->GetOffset() >= 0x1000000)
+    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfo()->AccessNeedsBoundCheck((uint32)src1->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -8368,7 +8368,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
     }
     else
     {
-        // any access below 0x1000000 is safe
+        // any access below 0x10000 is safe
         instr->UnlinkDst();
         instr->UnlinkSrc1();
         if (src2)
@@ -8563,7 +8563,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     Assert(!dst->IsFloat64() || src1->IsFloat64());
 
     IR::Instr * done;
-    if (indexOpnd || (uint32)dst->AsIndirOpnd()->GetOffset() >= 0x1000000)
+    if (indexOpnd || m_func->GetJnFunction()->GetAsmJsFunctionInfo()->AccessNeedsBoundCheck((uint32)dst->AsIndirOpnd()->GetOffset()))
     {
         // CMP indexOpnd, src2(arrSize)
         // JA $helper
@@ -8578,7 +8578,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
     }
     else
     {
-        // any constant access below 0x1000000 is safe, as that is the min heap size
+        // any constant access below 0x10000 is safe, as that is the min heap size
         instr->UnlinkDst();
         instr->UnlinkSrc1();
         done = instr;

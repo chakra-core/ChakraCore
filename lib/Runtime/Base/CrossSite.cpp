@@ -300,7 +300,17 @@ namespace Js
 
         if (funcInfo->HasBody())
         {
-            entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+#ifdef ASMJS_PLAT
+            if (funcInfo->GetFunctionProxy()->IsFunctionBody() &&
+                funcInfo->GetFunctionBody()->GetIsAsmJsFunction())
+            {
+                entryPoint = Js::AsmJsExternalEntryPoint;
+            }
+            else
+#endif
+            {
+                entryPoint = (JavascriptMethod)ScriptFunction::FromVar(function)->GetEntryPointInfo()->address;
+            }
         }
         else
         {
