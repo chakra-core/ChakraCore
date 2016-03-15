@@ -52,7 +52,7 @@ var thrown = false;
             {
             shouldThrow = true;
             }
-        
+
             var thrown = false;
             try {
                 res = dataView[getFuncs[methodId]](offset, isLittleEndian);
@@ -90,14 +90,14 @@ function testOneOffset(dataView, offSet, value)
         else
             {
             print("set little endian value offset " + offSet + " value " + value + " method " + setFuncs[i]);
-            print("results of little endian reads are: ");
+            print("results of little endian reads are:");
             dataView[setFuncs[i]](offSet, value, true);
             for (var j = 0; j < getFuncs.length; j++)
                 {
                 var result = GetResult(dataView, j, offSet, true);
                 print(getFuncs[j] + " = " + result);
                 }
-            print("results of big endian reads are: ");
+            print("results of big endian reads are:");
             for (var j = 0; j < getFuncs.length; j++)
                 {
                 var result = GetResult(dataView, j, offSet, false);
@@ -105,14 +105,14 @@ function testOneOffset(dataView, offSet, value)
                 }
 
             print("set little endian value offset " + offSet + " value " + value + " method " + setFuncs[i]);
-            print("results of little endian reads are: ");
+            print("results of little endian reads are:");
             dataView[setFuncs[i]](offSet, value, false);
             for (var j = 0; j < getFuncs.length; j++)
                 {
                 var result = GetResult(dataView, j, offSet, true);
                 print(getFuncs[j] + " = " +  result);
                 }
-            print("results of big endian reads are: ");
+            print("results of big endian reads are:");
             for (var j = 0; j < getFuncs.length; j++)
                 {
                 var result = GetResult(dataView, j, offSet, false);
@@ -130,7 +130,7 @@ function testOneValue(dataView, value)
     {
         testOneOffset(dataView, i, value);
     }
-    for (var i = 0; i < dataView.byteLength; i++) 
+    for (var i = 0; i < dataView.byteLength; i++)
         dataView.setInt8(i, 0);
 }
 
@@ -152,4 +152,4 @@ WScript.Echo(DataView.prototype[10]);
 WScript.Echo(DataView.prototype[-1]);
 WScript.Echo(DataView.prototype[2]);
 DataView.prototype[2] = 10;
-WScript.Echo(DataView.prototype[2]); 
+WScript.Echo(DataView.prototype[2]);

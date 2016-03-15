@@ -42,14 +42,20 @@ namespace Js
         return aLeft + aRight;
     }
 
-    template<typename T>
-    __inline T AsmJsMath::Div( T aLeft, T aRight )
+    template<>
+    __inline int32 AsmJsMath::Div<int32>( int32 aLeft, int32 aRight )
     {
         return aRight == 0 ? 0 : ( aLeft == (1<<31) && aRight == -1) ? aLeft : aLeft / aRight;
     }
 
     template<>
-    __inline double AsmJsMath::Div<double>( double aLeft, double aRight )
+    __inline uint32 AsmJsMath::Div<uint32>(uint32 aLeft, uint32 aRight)
+    {
+        return aRight == 0 ? 0 : aLeft / aRight;
+    }
+
+    template<typename T>
+    __inline T AsmJsMath::Div( T aLeft, T aRight )
     {
         return aLeft / aRight;
     }
@@ -58,12 +64,6 @@ namespace Js
     __inline T AsmJsMath::Mul( T aLeft, T aRight )
     {
         return aLeft * aRight;
-    }
-
-    template<>
-    __inline int AsmJsMath::Mul( int aLeft, int aRight )
-    {
-        return (int)((int64)aLeft * (int64)aRight);
     }
 
     template<typename T>

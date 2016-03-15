@@ -1,8 +1,12 @@
 WScript
 print
+read
+readbuffer
 10
 20
 10
 WScript
 print
+read
+readbuffer
 a

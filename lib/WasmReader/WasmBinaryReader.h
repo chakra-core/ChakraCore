@@ -140,7 +140,7 @@ namespace Wasm
             void CheckBytesLeft(UINT bytesNeeded);
             bool EndOfFunc();
             bool EndOfModule();
-            void ThrowDecodingError(const char16* msg, ...);
+            DECLSPEC_NORETURN void ThrowDecodingError(const char16* msg, ...);
             Wasm::WasmTypes::WasmType ReadWasmType(uint32& length);
 
             ArenaAllocator      m_alloc;

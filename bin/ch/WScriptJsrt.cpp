@@ -434,7 +434,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
 
     if (argumentCount < 2)
     {
-        fwprintf(stderr, L"Too too few arguments.\n");
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
     }
     else
     {
@@ -478,7 +478,7 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee, bool
 
     if (argumentCount < 2)
     {
-        fwprintf(stderr, L"Too too few arguments.\n");
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
     }
     else
     {
