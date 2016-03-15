@@ -603,7 +603,6 @@ namespace Js
         FunctionBody * funcBody;
         ParseNodePtr parseTree;
 
-        Assert(!deferParseFunction->GetIsStrictMode());
         CompileScriptException se;
         funcBody = deferParseFunction->ParseAsmJs(&ps, &se, &parseTree);
 
