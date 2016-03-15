@@ -252,7 +252,7 @@ Error:
         CloseHandle(bcFileHandle);
     }
 
-    if (hr != S_OK && bcBuffer != nullptr)
+    if (hr == S_OK && bcBuffer != nullptr)
     {
         delete[] bcBuffer;
     }
@@ -336,7 +336,7 @@ HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, cha
     IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
 
 Error:
-    if (hr != S_OK && bcBuffer != nullptr)
+    if (hr == S_OK && bcBuffer != nullptr)
     {
         delete[] bcBuffer;
     }
