@@ -35,9 +35,7 @@ struct DeferredFunctionStub
     uint fncFlags;
     uint nestedCount;
     DeferredFunctionStub *deferredStubs;
-#if DEBUG
     charcount_t ichMin;
-#endif
 };
 
 struct StmtNest
@@ -100,6 +98,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_currentNodeNonLambdaDeferredFunc = nullptr;
     m_currentNodeProg = nullptr;
     m_currDeferredStub = nullptr;
+    m_prevSiblingDeferredStub = nullptr;
     m_pstmtCur = nullptr;
     m_currentBlockInfo = nullptr;
     m_currentScope = nullptr;
@@ -5155,7 +5154,31 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 }
                 else if (pnodeFncParent && m_currDeferredStub)
                 {
-                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1))->deferredStubs;
+                    // the Deferred stub will not match for the function which are defined on lambda formals.
+                    // Since this is not determined upfront that the current function is a part of outer function or part of lambda formal until we have seen the Arrow token.
+                    // Due to that the current function may be fetching stubs from the outer function (outer of the lambda) - rather then the lambda function. The way to fix is to match
+                    // the function start with the stub. Because they should match. We need to have previous sibling concept as the lambda formals can have more than one
+                    // functions and we want to avoid getting wrong stub.
+
+                    if (pnodeFncParent->sxFnc.nestedCount == 1)
+                    {
+                        m_prevSiblingDeferredStub = nullptr;
+                    }
+
+                    if (m_prevSiblingDeferredStub == nullptr)
+                    {
+                        m_prevSiblingDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1));
+                    }
+
+                    if (m_prevSiblingDeferredStub->ichMin == pnodeFnc->ichMin)
+                    {
+                        m_currDeferredStub = m_prevSiblingDeferredStub->deferredStubs;
+                        m_prevSiblingDeferredStub = nullptr;
+                    }
+                    else
+                    {
+                        m_currDeferredStub = nullptr;
+                    }
                 }
 
                 if (m_token.tk != tkLCurly && fLambda)
@@ -13246,9 +13269,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
         deferredStubs[i].nestedCount = pnodeChild->sxFnc.nestedCount;
         deferredStubs[i].restorePoint = *pnodeChild->sxFnc.pRestorePoint;
         deferredStubs[i].deferredStubs = BuildDeferredStubTree(pnodeChild, recycler);
-#if DEBUG
         deferredStubs[i].ichMin = pnodeChild->ichMin;
-#endif
         ++i;
         pnodeChild = pnodeChild->sxFnc.pnodeNext;
     }
