@@ -1208,6 +1208,64 @@ var tests = [
             verifySymbolSplitResult(assertResult, re, input, limit);
         }
     },
+    {
+        name: "RegExp constructor should use the internal slots of a RegExp instead of the properties",
+        body: function () {
+            var pattern = "pattern";
+            var flags = "g";
+            var re = new RegExp(pattern, flags);
+            Object.defineProperty(re, "source", {value: "overridden source"});
+            Object.defineProperty(re, "flags", {value: "i"});
+
+            var newRe = new RegExp(re);
+
+            assert.areEqual(pattern, newRe.source, "source");
+            assert.areEqual(flags, newRe.flags, "flags");
+        }
+    },
+    {
+        name: "RegExp constructor should use 'source' and 'flags' properties of a RegExp-like object",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                source: "a(b)+((c))?|123",
+                flags: "gi",
+            };
+
+            var newRe = new RegExp(re);
+
+            assert.areEqual(re.source, newRe.source, "source");
+            assert.areEqual(re.flags, newRe.flags, "flags");
+        }
+    },
+    {
+        name: "RegExp constructor should use the 'flags' property of a RegExp-like Object when the 'flags' argument is undefined",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                flags: "gi",
+            };
+            var flagsArg = undefined;
+
+            var newRe = new RegExp(re, flagsArg);
+
+            assert.areEqual(re.flags, newRe.flags);
+        }
+    },
+    {
+        name: "RegExp constructor should ignore the 'flags' property of a RegExp-like Object when the 'flags' argument isn't undefined",
+        body: function () {
+            var re = {
+                [Symbol.match]: true,
+                flags: "g",
+            };
+            var flagsArg = "i";
+
+            var newRe = new RegExp(re, flagsArg);
+
+            assert.areEqual(flagsArg, newRe.flags);
+        }
+    },
 ];
 tests = tests.concat(
     // match

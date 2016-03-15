@@ -258,7 +258,7 @@ namespace Js
         {
             pattern = scriptContext->GetLibrary()->GetEmptyRegexPattern();
         }
-        else if (JavascriptRegExp::Is(args[1]))
+        else if (JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
         {
             if (!(callInfo.Flags & CallFlags_New) &&
                 (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext)) &&
@@ -270,36 +270,49 @@ namespace Js
                 return args[1];
             }
 
-            JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
-
-            if (callInfo.Count > 2 )
+            if (JavascriptRegExp::Is(args[1]))
             {
-                // As per ES 2015 21.2.3.1: If 1st argument is RegExp and 2nd argument is flag then return regexp with same pattern as 1st
-                // argument and flags supplied by the 2nd argument.
-                if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
-                {
-                    InternalString str = source->GetSource();
-                    pattern = CreatePattern(JavascriptString::NewCopyBuffer(str.GetBuffer(), str.GetLength(), scriptContext),
-                        args[2], scriptContext);
+                JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
 
-                    // "splitPattern" is a version of "pattern" without the sticky flag. If other flags are the same, we can safely
-                    // reuse "splitPattern".
-                    UnifiedRegex::RegexFlags currentSplitFlags =
-                        static_cast<UnifiedRegex::RegexFlags>(source->GetPattern()->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
-                    UnifiedRegex::RegexFlags newSplitFlags =
-                        static_cast<UnifiedRegex::RegexFlags>(pattern->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
-                    if (newSplitFlags == currentSplitFlags)
+                if (callInfo.Count > 2)
+                {
+                    // As per ES 2015 21.2.3.1: If 1st argument is RegExp and 2nd argument is flag then return regexp with same pattern as 1st
+                    // argument and flags supplied by the 2nd argument.
+                    if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
                     {
-                        splitPattern = source->GetSplitPattern();
+                        InternalString str = source->GetSource();
+                        pattern = CreatePattern(JavascriptString::NewCopyBuffer(str.GetBuffer(), str.GetLength(), scriptContext),
+                            args[2], scriptContext);
+
+                        // "splitPattern" is a version of "pattern" without the sticky flag. If other flags are the same, we can safely
+                        // reuse "splitPattern".
+                        UnifiedRegex::RegexFlags currentSplitFlags =
+                            static_cast<UnifiedRegex::RegexFlags>(source->GetPattern()->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
+                        UnifiedRegex::RegexFlags newSplitFlags =
+                            static_cast<UnifiedRegex::RegexFlags>(pattern->GetFlags() & ~UnifiedRegex::StickyRegexFlag);
+                        if (newSplitFlags == currentSplitFlags)
+                        {
+                            splitPattern = source->GetSplitPattern();
+                        }
                     }
                 }
+                if (!pattern)
+                {
+                    pattern = source->GetPattern();
+                    splitPattern = source->GetSplitPattern();
+                }
             }
-            if (!pattern)
+            else // RegExp-like
             {
-                pattern = source->GetPattern();
-                splitPattern = source->GetSplitPattern();
-            }
+                // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
+                RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
 
+                Var source = JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::source, scriptContext);
+                Var flags = args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2])
+                    ? JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::flags, scriptContext)
+                    : args[2];
+                pattern = CreatePattern(source, flags, scriptContext);
+            }
         }
         else
         {
