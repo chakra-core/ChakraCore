@@ -209,6 +209,7 @@ public:
     bool            ShouldCheckForNon32BitOverflow() const;
     bool            HasAnyImplicitCalls() const;
     bool            HasAnySideEffects() const;
+    bool            CouldBeProtectedByNegZeroBailout() const;
 
     IRKind          GetKind() const;
     Opnd *          GetDst() const;

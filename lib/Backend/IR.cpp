@@ -3262,6 +3262,15 @@ bool Instr::HasAnySideEffects() const
     return false;
 }
 
+bool Instr::CouldBeProtectedByNegZeroBailout() const
+{
+    return
+        this->m_opcode == Js::OpCode::Neg_I4 ||
+        this->m_opcode == Js::OpCode::Mul_I4 ||
+        this->m_opcode == Js::OpCode::Div_I4 ||
+        this->m_opcode == Js::OpCode::Rem_I4;
+}
+
 Js::JavascriptFunction* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
