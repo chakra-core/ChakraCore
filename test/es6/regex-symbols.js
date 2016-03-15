@@ -1266,6 +1266,56 @@ var tests = [
             assert.areEqual(flagsArg, newRe.flags);
         }
     },
+    {
+        name: "RegExp constructor should return a RegExp object as is when it is called as a function and no 'flags' is passed and 'constructor' is the RegExp constructor",
+        body: function () {
+            var re = /./;
+            re.constructor = RegExp;
+
+            var newRe = RegExp(re);
+
+            assert.areEqual(re, newRe);
+        }
+    },
+    {
+        name: "RegExp constructor should create a new RegExp object from a RegExp object when it is called as a function and no 'flags' is passed and 'constructor' isn't the RegExp constructor",
+        body: function () {
+            var re = /./;
+            re.constructor = Object;
+
+            var newRe = RegExp(re);
+
+            assert.areNotEqual(re, newRe, "new object");
+            assert.isTrue(newRe instanceof RegExp, "RegExp instance");
+        }
+    },
+    {
+        name: "RegExp constructor should return a RegExp-like object as is when it is called as a function and no 'flags' is passed and 'constructor' is the RegExp constructor",
+        body: function () {
+            var re = {
+                [Symbol.match]: true
+            };
+            re.constructor = RegExp;
+
+            var newRe = RegExp(re);
+
+            assert.areEqual(re, newRe);
+        }
+    },
+    {
+        name: "RegExp constructor should create a new RegExp object from a RegExp-like object when it is called as a function and no 'flags' is passed and 'constructor' isn't the RegExp constructor",
+        body: function () {
+            var re = {
+                [Symbol.match]: true
+            };
+            re.constructor = Object;
+
+            var newRe = RegExp(re);
+
+            assert.areNotEqual(re, newRe, "new object");
+            assert.isTrue(newRe instanceof RegExp, "RegExp instance");
+        }
+    },
 ];
 tests = tests.concat(
     // match

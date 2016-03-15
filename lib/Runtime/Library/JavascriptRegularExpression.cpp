@@ -245,7 +245,7 @@ namespace Js
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
-        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
+        Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : function;
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && RecyclableObject::Is(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr
             || JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch);
@@ -260,19 +260,22 @@ namespace Js
         }
         else if (JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
         {
+            // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
+            RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
+
             if (!(callInfo.Flags & CallFlags_New) &&
                 (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext)) &&
-                regex == nullptr)
+                newTarget == JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::constructor, scriptContext))
             {
                 // ES5 15.10.3.1 Called as a function: If pattern R is a regexp object and flags is undefined, then return R unchanged.
                 // As per ES6 21.2.3.1: We should only return pattern when the this argument is not an uninitialized RegExp object.
                 //                      If regex is null, we can be sure the this argument is not initialized.
-                return args[1];
+                return regexLikeObj;
             }
 
-            if (JavascriptRegExp::Is(args[1]))
+            if (JavascriptRegExp::Is(regexLikeObj))
             {
-                JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
+                JavascriptRegExp* source = JavascriptRegExp::FromVar(regexLikeObj);
 
                 if (callInfo.Count > 2)
                 {
@@ -304,9 +307,6 @@ namespace Js
             }
             else // RegExp-like
             {
-                // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
-                RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
-
                 Var source = JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::source, scriptContext);
                 Var flags = args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2])
                     ? JavascriptOperators::GetProperty(regexLikeObj, PropertyIds::flags, scriptContext)
