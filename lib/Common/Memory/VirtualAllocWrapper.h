@@ -40,7 +40,7 @@ public:
 #endif
 public:
     PreReservedVirtualAllocWrapper();
-    void        Shutdown();
+    ~PreReservedVirtualAllocWrapper();
     LPVOID      Alloc(LPVOID lpAddress, size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation = false);
     BOOL        Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
 
