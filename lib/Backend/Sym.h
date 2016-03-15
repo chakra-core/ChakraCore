@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 
@@ -128,22 +129,27 @@ public:
     StackSym *      GetSimd128EquivSym(IRType type, Func *func);
     StackSym *      GetSimd128F4EquivSym(Func *func);
     StackSym *      GetSimd128I4EquivSym(Func *func);
+    StackSym *      GetSimd128I16EquivSym(Func *func);
     StackSym *      GetSimd128D2EquivSym(Func *func);
     bool            IsSimd128() const { return IRType_IsSimd128(this->GetType()); }
 
-    bool            IsSimd128F4() const { return this->GetType() == TySimd128F4; }
-    bool            IsSimd128I4() const { return this->GetType() == TySimd128I4; }
-    bool            IsSimd128D2() const { return this->GetType() == TySimd128D2; }
-
-
+    bool            IsSimd128F4()  const { return this->GetType() == TySimd128F4;  }
+    bool            IsSimd128I4()  const { return this->GetType() == TySimd128I4;  }
+    bool            IsSimd128I8()  const { return this->GetType() == TySimd128I8;  }
+    bool            IsSimd128I16() const { return this->GetType() == TySimd128I16; }
+    bool            IsSimd128U4()  const { return this->GetType() == TySimd128U4;  }
+    bool            IsSimd128U8()  const { return this->GetType() == TySimd128U8;  }
+    bool            IsSimd128U16() const { return this->GetType() == TySimd128U16; }
+    bool            IsSimd128B4()  const { return this->GetType() == TySimd128B4;  }
+    bool            IsSimd128B8()  const { return this->GetType() == TySimd128B8;  }
+    bool            IsSimd128B16() const { return this->GetType() == TySimd128B16; }
+    bool            IsSimd128D2()  const { return this->GetType() == TySimd128D2;  }
 
     StackSym *      GetFloat64EquivSym(Func *func);
     bool            IsFloat64() const { return this->GetType() == TyFloat64; }
     StackSym *      GetInt32EquivSym(Func *func);
     bool            IsInt32() const { return this->GetType() == TyInt32; }
     bool            IsUInt32() const { return this->GetType() == TyUint32; }
-
-
 
     StackSym *      GetVarEquivSym(Func *func);
     bool            IsVar() const { return this->GetType() == TyVar; }

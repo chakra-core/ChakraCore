@@ -752,12 +752,12 @@ void ByteCodeGenerator::SetRootFuncInfo(FuncInfo* func)
 {
     Assert(pRootFunc == nullptr || pRootFunc == func->byteCodeFunction || !IsInNonDebugMode());
 
-    if (this->flags & (fscrImplicitThis | fscrImplicitParents))
+    if ((this->flags & (fscrImplicitThis | fscrImplicitParents)) && !this->HasParentScopeInfo())
     {
         // Mark a top-level event handler, since it will need to construct the "this" pointer's
         // namespace hierarchy to access globals.
         Assert(!func->IsGlobalFunction());
-        func->SetIsEventHandler(true);
+        func->SetIsTopLevelEventHandler(true);
     }
 
     if (pRootFunc)
@@ -2623,7 +2623,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrImplicitParents | fscrEval))))))
         {
             byteCodeGenerator->SetNeedEnvRegister();
-            if (top->GetIsEventHandler())
+            if (top->GetIsTopLevelEventHandler())
             {
                 byteCodeGenerator->AssignThisRegister();
             }
@@ -2669,7 +2669,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
                     byteCodeGenerator->AssignFrameDisplayRegister();
 
-                    if (top->GetIsEventHandler())
+                    if (top->GetIsTopLevelEventHandler())
                     {
                         byteCodeGenerator->AssignThisRegister();
                     }

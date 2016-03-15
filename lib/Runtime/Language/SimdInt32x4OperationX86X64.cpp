@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLanguagePch.h"
 
 #if _M_IX86 || _M_AMD64
@@ -27,40 +28,7 @@ namespace Js
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 
-    SIMDValue SIMDInt32x4Operation::OpBool(int x, int y, int z, int w)
-    {
-        X86SIMDValue x86Result;
-        x86Result.m128i_value = _mm_set_epi32(w, z, y, x); // Sets the 4 signed 32-bit int value
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    SIMDValue SIMDInt32x4Operation::OpBool(const SIMDValue& v)
-    {
-        X86SIMDValue x86Result;
-        // Sets the 4 signed 32-bit integer value
-        x86Result.m128i_value = _mm_set_epi32(v.i32[SIMD_W], v.i32[SIMD_Z], v.i32[SIMD_Y], v.i32[SIMD_X]);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     // Conversions
-    SIMDValue SIMDInt32x4Operation::OpFromBool(const SIMDValue& value)
-    {
-        X86SIMDValue x86Result;
-
-        // assuming incoming value is any number, construct a new instance of SIMD.int32x4 with
-        // 0xFFFFFFFF or 0x0 in each lane
-        int x = value.i32[SIMD_X] ? 0xFFFFFFFF : 0x0;
-        int y = value.i32[SIMD_Y] ? 0xFFFFFFFF : 0x0;
-        int z = value.i32[SIMD_Z] ? 0xFFFFFFFF : 0x0;
-        int w = value.i32[SIMD_W] ? 0xFFFFFFFF : 0x0;
-        // Sets the 4 signed 32-bit integer value, starts with W
-        x86Result.m128i_value = _mm_set_epi32(w, z, y, x);
-
-        return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
     SIMDValue SIMDInt32x4Operation::OpFromFloat32x4(const SIMDValue& value, bool &throws)
     {
         X86SIMDValue x86Result = { 0 };
@@ -356,17 +324,6 @@ namespace Js
         x86Result.m128i_value = _mm_or_si128(tempTrue.m128i_value, tempFalse.m128i_value);  // tempT | temp F
 
         return X86SIMDValue::ToSIMDValue(x86Result);
-    }
-
-    // Get SignMask
-    int SIMDInt32x4Operation::OpGetSignMask(const SIMDValue& value)
-    {
-        X86SIMDValue v = X86SIMDValue::ToX86SIMDValue(value);
-
-        // Creates a 4-bit mask from the most significant bits of
-        // the 4 single-precision, floating-point values
-        // SIMD review: no suitable integer intrinsics, the float version seems working fine
-        return _mm_movemask_ps(v.m128_value);
     }
 }
 #endif

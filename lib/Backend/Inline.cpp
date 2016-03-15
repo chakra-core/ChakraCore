@@ -2246,7 +2246,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, Js::FunctionInfo *funcInfo,
     IR::Instr * returnInstr = nullptr;
     if (!PHASE_OFF(Js::InlineApplyTargetPhase, this->topFunc))
     {
-        if (isArrayOpndArgumentsObject && InlineApplyTarget(callInstr, inlinerData, &inlineeData, funcInfo, symCallerThis, &returnInstr, recursiveInlineDepth))
+        if (InlineApplyTarget(callInstr, inlinerData, &inlineeData, funcInfo, symCallerThis, &returnInstr, recursiveInlineDepth, isArrayOpndArgumentsObject))
         {
             *pIsInlined = true;
             Assert(returnInstr);
@@ -2471,7 +2471,7 @@ IR::Instr * Inline::InlineApplyWithArray(IR::Instr * callInstr, Js::FunctionInfo
 }
 
 bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJitTimeData* inlinerData, const Js::FunctionCodeGenJitTimeData** pInlineeData, Js::FunctionInfo *applyFuncInfo,
-                            const StackSym *symCallerThis, IR::Instr ** returnInstr, uint recursiveInlineDepth)
+                            const StackSym *symCallerThis, IR::Instr ** returnInstr, uint recursiveInlineDepth, bool isArrayOpndArgumentsObject)
 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -2511,7 +2511,7 @@ bool Inline::InlineApplyTarget(IR::Instr *callInstr, const Js::FunctionCodeGenJi
     const auto inlineCacheIndex = applyTargetLdOpnd->AsPropertySymOpnd()->m_inlineCacheIndex;
     const auto inlineeData = inlinerData->GetLdFldInlinee(inlineCacheIndex);
 
-    if (SkipCallApplyTargetInlining_Shared(callInstr, inlinerData, inlineeData, /*isApplyTarget*/ true, /*isCallTarget*/ false))
+    if (!isArrayOpndArgumentsObject || SkipCallApplyTargetInlining_Shared(callInstr, inlinerData, inlineeData, /*isApplyTarget*/ true, /*isCallTarget*/ false))
     {
         *pInlineeData = inlineeData;
         return false;

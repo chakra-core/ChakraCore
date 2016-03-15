@@ -1,13 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 class Value;
 
 namespace IR {
-
 
 class IntConstOpnd;
 class FloatConstOpnd;
@@ -189,9 +189,17 @@ public:
     bool                IsFloat64() const { return this->m_type == TyFloat64; }
     bool                IsFloat() const { return this->IsFloat32() || this->IsFloat64(); }
     bool                IsSimd128() const { return IRType_IsSimd128(this->m_type);  }
-    bool                IsSimd128F4() const { return this->m_type == TySimd128F4; }
-    bool                IsSimd128I4() const { return this->m_type == TySimd128I4; }
-    bool                IsSimd128D2() const { return this->m_type == TySimd128D2; }
+    bool                IsSimd128F4()  const { return this->m_type == TySimd128F4;  }
+    bool                IsSimd128I4()  const { return this->m_type == TySimd128I4;  }
+    bool                IsSimd128I8()  const { return this->m_type == TySimd128I8;  }
+    bool                IsSimd128I16() const { return this->m_type == TySimd128I16; }
+    bool                IsSimd128U4()  const { return this->m_type == TySimd128U4;  }
+    bool                IsSimd128U8()  const { return this->m_type == TySimd128U8;  }
+    bool                IsSimd128U16() const { return this->m_type == TySimd128U16; }
+    bool                IsSimd128B4()  const { return this->m_type == TySimd128B4;  }
+    bool                IsSimd128B8()  const { return this->m_type == TySimd128B8;  }
+    bool                IsSimd128B16() const { return this->m_type == TySimd128B16; }
+    bool                IsSimd128D2()  const { return this->m_type == TySimd128D2;  }
     bool                IsVar() const { return this->m_type == TyVar; }
     bool                IsTaggedInt() const;
     bool                IsTaggedValue() const;

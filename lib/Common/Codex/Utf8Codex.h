@@ -5,7 +5,17 @@
 #pragma once
 #include <windows.h>
 #include <wtypes.h>
-#include "../Core/CommonTypedefs.h"
+
+// Utf8Codex.h needs to be self contained, so these type defs are duplicated from CommonTypeDefs.h
+#ifdef _WIN32
+typedef WCHAR char16;
+#define _u(s) L##s
+#else
+typedef char16_t char16;
+#define _u(s) u##s
+#endif
+
+typedef char16 wchar;
 
 typedef unsigned __int32 uint32;
 

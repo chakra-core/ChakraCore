@@ -38,10 +38,10 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                 def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
                 def analysisConfig = buildType in ['release']
 
-                def buildScript = "call jenkins.buildone.cmd ${buildArch} ${buildType}"
+                def buildScript = "call .\\jenkins\\buildone.cmd ${buildArch} ${buildType}"
                 buildScript += buildExtra ?: ''
                 buildScript += analysisConfig ? ' "/p:runcodeanalysis=true"' : ''
-                def testScript = "call jenkins.testone.cmd ${buildArch} ${buildType}"
+                def testScript = "call .\\jenkins\\testone.cmd ${buildArch} ${buildType}"
                 testScript += testExtra ?: ''
                 def analysisScript = ".\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err"
 
@@ -163,5 +163,5 @@ CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -di
 // CODE STYLE TASKS
 // ----------------
 
-CreateStyleCheckTasks('./jenkins.check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
-CreateStyleCheckTasks('./jenkins.check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
+CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
+CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')

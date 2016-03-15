@@ -398,6 +398,14 @@ var tests = [
             assert.areEqual(1, cCount, "for executes once");
         }
     },
+    {
+        name: "expect AssignmentExpression after 'of'",
+        body: function () {
+            assert.throws(() => eval("for (let x of [], []);"), SyntaxError, "'for ( ForDeclaration of Expression )' is invalid", "Expected ')'")
+            assert.throws(() => eval("for (var x of [], []);"), SyntaxError, "'for ( var ForBinding of Expression )' is invalid", "Expected ')'")
+            assert.throws(() => eval("let x; for (x of [], []);"), SyntaxError, "'for ( LeftHandSideExpression of Expression )' is invalid", "Expected ')'")
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
