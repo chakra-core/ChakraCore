@@ -94,7 +94,9 @@ namespace Wasm
             virtual WasmOp ReadFromBlock() override;
             virtual WasmOp ReadFromCall() override;
             virtual WasmOp ReadExpr() override;
+#if DBG_DUMP
             void PrintOps();
+#endif
 
         private:
             struct ReaderState
@@ -148,8 +150,6 @@ namespace Wasm
             ReaderState m_funcState;   // func AST level
 
         private:
-            typedef JsUtil::BaseHashSet<WasmBinOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
-            OpSet * m_ops;
             static bool isInit;
             static WasmTypes::Signature opSignatureTable[WasmTypes::OpSignatureId::bSigLimit]; // table of opcode signatures
             static WasmTypes::OpSignatureId opSignature[WasmBinOp::wbLimit];                   // opcode -> opcode signature ID
@@ -158,8 +158,10 @@ namespace Wasm
             static const Wasm::WasmTypes::WasmType binaryToWasmTypes[];
             // opcodes
             static Wasm::WasmOp binWasmOpToWasmOp[];
-
-
+#if DBG_DUMP
+            typedef JsUtil::BaseHashSet<WasmBinOp, ArenaAllocator, PowerOf2SizePolicy> OpSet;
+            OpSet * m_ops;
+#endif
         }; // WasmBinaryReader
 
     }

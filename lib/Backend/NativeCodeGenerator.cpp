@@ -1458,7 +1458,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
 
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
-    Assert(IS_PREJIT_ON() || functionBody->IsAsmJSModule());
+    Assert(IS_PREJIT_ON() || functionBody->GetIsAsmjsMode());
     Assert(functionBody->DoSimpleJit() || functionBody->DoFullJit());
 
     // Prefer full JIT for prejitting unless it's off or simple JIT is forced

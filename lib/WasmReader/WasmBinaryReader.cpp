@@ -48,13 +48,15 @@ WasmBinaryReader::WasmBinaryReader(PageAllocator * alloc, byte* source, size_t l
     m_start = m_pc = source;
     m_end = source + length;
     m_currentSection.code = bSectInvalid;
+#if DBG_DUMP
     m_ops = Anew(&m_alloc, OpSet, &m_alloc);
+#endif
 }
 
 void WasmBinaryReader::InitializeReader()
 {
     ModuleHeader();
-#if DBG
+#if DBG_DUMP
     if (DO_WASM_TRACE_SECTION)
     {
         byte* startModule = m_pc;
@@ -205,7 +207,8 @@ WasmBinaryReader::ReadSectionHeader()
     return header;
 }
 
-void 
+#if DBG_DUMP
+void
 WasmBinaryReader::PrintOps()
 {
     WasmBinOp * ops = HeapNewArray(WasmBinOp, m_ops->Count());
@@ -242,6 +245,7 @@ WasmBinaryReader::PrintOps()
         }
     }
 }
+#endif
 
 bool
 WasmBinaryReader::ReadFunctionBodies(FunctionBodyCallback callback, void* callbackdata)
@@ -396,8 +400,9 @@ WasmBinaryReader::ASTNode()
         ThrowDecodingError(_u("Unknown opcode %u"), op);
     }
 
+#if DBG_DUMP
     m_ops->AddNew(op);
-
+#endif
     return op;
 }
 
