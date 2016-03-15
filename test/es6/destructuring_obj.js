@@ -206,6 +206,9 @@ var tests = [
             ({x:{a1 = 2}} = {x:{}});
             assert.areEqual(a1, 2);
         }
+        
+        assert.throws(function () { eval("var a = 1; switch(true) {  case {a = 1} : break; };"); }, SyntaxError, "Object literal on case has initializer is not valid syntax", "Expected ':'");
+       
     }
   },
   {
