@@ -34,12 +34,21 @@ BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
 #endif
 }
 
-bool
-BackwardPass::DoSetDead() const
+void
+BackwardPass::DoSetDead(IR::Opnd * opnd, bool isDead) const
 {
     // Note: Dead bit on the Opnd records flow-based liveness.
     // This is distinct from isLastUse, which records lexical last-ness.
-    return this->tag == Js::BackwardPhase && !this->IsPrePass();
+    if (isDead && this->tag == Js::BackwardPhase && !this->IsPrePass())
+    {
+        opnd->SetIsDead();
+    }
+    else if (this->tag == Js::DeadStorePhase)
+    {
+        // Set or reset in DeadStorePhase.
+        // CSE could make previous dead operand not the last use, so reset it.
+        opnd->SetIsDead(isDead);
+    }
 }
 
 bool
@@ -4563,10 +4572,7 @@ BackwardPass::ProcessUse(IR::Opnd * opnd)
                 this->CollectCloneStrCandidate(opnd);
             }
 
-            if (!this->ProcessSymUse(sym, true, regOpnd->GetIsJITOptimizedReg()) && this->DoSetDead())
-            {
-                regOpnd->SetIsDead();
-            }
+            this->DoSetDead(regOpnd, !this->ProcessSymUse(sym, true, regOpnd->GetIsJITOptimizedReg()));
 
             if (IsCollectionPass())
             {
@@ -4611,10 +4617,8 @@ BackwardPass::ProcessUse(IR::Opnd * opnd)
         {
             IR::SymOpnd *symOpnd = opnd->AsSymOpnd();
             Sym * sym = symOpnd->m_sym;
-            if (!this->ProcessSymUse(sym, false, opnd->GetIsJITOptimizedReg()) && this->DoSetDead())
-            {
-                symOpnd->SetIsDead();
-            }
+
+            this->DoSetDead(symOpnd, !this->ProcessSymUse(sym, false, opnd->GetIsJITOptimizedReg()));
 
             if (IsCollectionPass())
             {
@@ -4650,18 +4654,12 @@ BackwardPass::ProcessUse(IR::Opnd * opnd)
             IR::IndirOpnd * indirOpnd = opnd->AsIndirOpnd();
             IR::RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
 
-            if (!this->ProcessSymUse(baseOpnd->m_sym, false, baseOpnd->GetIsJITOptimizedReg()) && this->DoSetDead())
-            {
-                baseOpnd->SetIsDead();
-            }
+            this->DoSetDead(baseOpnd, !this->ProcessSymUse(baseOpnd->m_sym, false, baseOpnd->GetIsJITOptimizedReg()));
 
             IR::RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
             if (indexOpnd)
             {
-                if (!this->ProcessSymUse(indexOpnd->m_sym, false, indexOpnd->GetIsJITOptimizedReg()) && this->DoSetDead())
-                {
-                    indexOpnd->SetIsDead();
-                }
+                this->DoSetDead(indexOpnd, !this->ProcessSymUse(indexOpnd->m_sym, false, indexOpnd->GetIsJITOptimizedReg()));
             }
 
             if(IsCollectionPass())
@@ -6005,10 +6003,8 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             }
         }
 
-        if (!block->upwardExposedFields->TestAndClear(propertySym->m_id) && this->DoSetDead())
-        {
-            opnd->SetIsDead();
-        }
+        this->DoSetDead(opnd, !block->upwardExposedFields->TestAndClear(propertySym->m_id));
+
         ProcessStackSymUse(propertySym->m_stackSym, isJITOptimizedReg);
         if (tag == Js::BackwardPhase)
         {

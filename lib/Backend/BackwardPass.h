@@ -96,7 +96,7 @@ private:
     bool ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block);
 
     bool DoByteCodeUpwardExposedUsed() const;
-    bool DoSetDead() const;
+    void DoSetDead(IR::Opnd * opnd, bool isDead) const;
     bool DoFieldHoistCandidates() const;
     bool DoFieldHoistCandidates(Loop * loop) const;
     bool DoMarkTempObjects() const;
