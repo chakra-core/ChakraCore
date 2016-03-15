@@ -372,10 +372,6 @@ public:
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
     };
 
-#if ENABLE_NATIVE_CODEGEN
-    void ReleasePreReservedSegment();
-#endif
-
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
     DWORD GetCurrentThreadId() const { return this->currentThreadId; }
     void SetIsThreadBound()
