@@ -190,14 +190,14 @@ WasmBytecodeGenerator::GenerateFunction()
     m_argOutDepth = 0;
 
     // TODO: fix these bools
-    m_writer.Begin(m_func->body, &m_alloc, false, true, false);
+    m_writer.Begin(m_func->body, &m_alloc, true, true, false);
     try {
         m_funcInfo->SetExitLabel(m_writer.DefineLabel());
         EnregisterLocals();
 
         WasmOp op = wnLIMIT, newOp;
         EmitInfo exprInfo;
-        while ((newOp = m_reader->ReadExpr()) != wnLIMIT)
+        while ((newOp = m_reader->ReadExpr()) != wnFUNC_END)
         {
             ReleaseLocation(&exprInfo);
             op = newOp;
@@ -1329,7 +1329,6 @@ void WasmCompilationException::PrintError(const char16* _msg, va_list arglist)
 
 WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
 {
-    Assert(UNREACHED);
     va_list arglist;
     va_start(arglist, _msg);
     PrintError(_msg, arglist);
