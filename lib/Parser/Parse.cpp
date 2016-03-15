@@ -4539,6 +4539,8 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         pnodeFncSave = m_currentNodeFunc;
         m_currentNodeFunc = pnodeFnc;
 
+        Assert(m_currentNodeDeferredFunc == nullptr);
+
         if (!fLambda)
         {
             pnodeFncSaveNonLambda = m_currentNodeNonLambdaFunc;
@@ -7412,8 +7414,6 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
 
     pnodeFncGenerator = CreateAsyncSpawnGenerator();
 
-    m_currentNodeDeferredFunc = pnodeFncGenerator;
-    m_inDeferredNestedFunc = true;
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
