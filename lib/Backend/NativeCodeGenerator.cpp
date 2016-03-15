@@ -527,6 +527,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
         entryPointInfo = fn->GetDefaultFunctionEntryPointInfo();
         Assert(fn->IsInterpreterThunk() || fn->IsSimpleJitOriginalEntryPoint());
     }
+    bool doPreJit = IS_PREJIT_ON();
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmjsMode())
     {
@@ -549,6 +550,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
             Output::Print(_u("New Entrypoint is CheckAsmJsCodeGenThunk for function: %s\n"), fn->GetDisplayName());
+        doPreJit |= CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0;
     }
     else
 #endif
@@ -566,7 +568,7 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
     entryPointInfo->SetCodeGenPending(workitem);
     InterlockedIncrement(&pendingCodeGenWorkItems);
 
-    if(!IS_PREJIT_ON())
+    if(!doPreJit)
     {
         workItems.LinkToEnd(workitem);
         return true;
@@ -1456,7 +1458,7 @@ NativeCodeGenerator::Prioritize(JsUtil::Job *const job, const bool forceAddJobTo
 
 ExecutionMode NativeCodeGenerator::PrejitJitMode(Js::FunctionBody *const functionBody)
 {
-    Assert(IS_PREJIT_ON());
+    Assert(IS_PREJIT_ON() || functionBody->IsAsmJSModule());
     Assert(functionBody->DoSimpleJit() || functionBody->DoFullJit());
 
     // Prefer full JIT for prejitting unless it's off or simple JIT is forced
