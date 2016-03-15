@@ -47,6 +47,7 @@ private:
     bool ProcessInlineeStart(IR::Instr* instr);
     void ProcessInlineeEnd(IR::Instr* instr);
     void MarkTempProcessInstr(IR::Instr * instr);
+    IR::Instr * GetInstrDef(StackSym * stackSym, IR::Instr * currentInstr);
 
     void RemoveEmptyLoopAfterMemOp(Loop *loop);
     void RemoveEmptyLoops();

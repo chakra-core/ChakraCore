@@ -5098,39 +5098,83 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                 break;
 
             case Js::OpCode::Add_I4:
+            {
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
                 Assert(instr->GetSrc1()->IsRegOpnd() || instr->GetSrc1()->IsIntConstOpnd());
                 Assert(instr->GetSrc2());
                 Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
 
-                if(instr->ignoreNegativeZero ||
-                    !(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout) ||
-                    !(instr->GetSrc2()->IsRegOpnd() && instr->GetSrc2()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout))
+                if (instr->ignoreNegativeZero ||
+                    (instr->GetSrc1()->IsConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
+                    (instr->GetSrc2()->IsConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
                 {
-                    // -0 does not matter for dst, or this instruction does not generate -0 since one of the srcs is not -0
-                    // (regardless of -0 bailout checks)
+                    // -0 does not matter for dst, 
+                    // or this instruction does not generate -0 since one of the srcs is not -0
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
                     break;
                 }
 
-                // -0 + -0 == -0. As long as one src is guaranteed to not be -0, -0 does not matter for the other src. Pick a
-                // src for which to ignore negative zero, based on which sym is last-use. If both syms are last-use, src2 is
-                // picked arbitrarily.
-                if(instr->GetSrc2()->IsRegOpnd() &&
-                    !currentBlock->upwardExposedUses->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))
+                bool canSrc1BeNegativeZero = true;
+                bool canSrc2BeNegativeZero = true;
+                if (instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout)
                 {
+                    IR::Opnd * src1 = instr->GetSrc1();
+                    IR::Instr * src1DefInstr = this->GetInstrDef(src1->GetStackSym(), instr);
+                    if (src1DefInstr->CouldBeProtectedByNegZeroBailout())
+                    {
+                        canSrc1BeNegativeZero = false;
+                    }
+                }
+
+                if (canSrc1BeNegativeZero && (instr->GetSrc2()->IsRegOpnd() && !instr->GetSrc2()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout))
+                {
+                    IR::Opnd * src2 = instr->GetSrc2();
+                    IR::Instr * src2DefInstr = this->GetInstrDef(src2->GetStackSym(), instr);;
+                    if (src2DefInstr->CouldBeProtectedByNegZeroBailout())
+                    {
+                        canSrc2BeNegativeZero = false;
+                    }
+                }
+
+                if (!canSrc1BeNegativeZero || !canSrc2BeNegativeZero)
+                {
+                    // This instruction does not generate -0 since one of the srcs cannot be -0
+                    SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                    break;
+                }
+
+                if ((instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout) ||
+                    (instr->GetSrc2()->IsRegOpnd() && !instr->GetSrc2()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout))
+                {
+                    // If we reach here, m_wasNegativeZeroPreventedByBailout being false means that the instruction which
+                    // produced the operand wasn't type-specialized. In this case, we can't ignore -0 for the other operand.
+                    // Since, -0 tracking is only used to get rid of some -0 bailouts, we are fine not ignoring -0 for the operand that
+                    // didn't have m_wasNegativeZeroPreventedByBailout set as it wouldn't have been protected by a -0 bailout anyway.
                     SetNegativeZeroMatters(instr->GetSrc1());
+                    SetNegativeZeroMatters(instr->GetSrc2());
                 }
                 else
                 {
-                    SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
-                    SetNegativeZeroMatters(instr->GetSrc2());
+                    // -0 + -0 == -0. As long as one src is guaranteed to not be -0, -0 does not matter for the other src. Pick a
+                    // src for which to ignore negative zero, based on which sym is last-use. If both syms are last-use, src2 is
+                    // picked arbitrarily.
+                    if (instr->GetSrc2()->IsRegOpnd() &&
+                        !currentBlock->upwardExposedUses->Test(instr->GetSrc2()->AsRegOpnd()->m_sym->m_id))
+                    {
+                        SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                        SetNegativeZeroMatters(instr->GetSrc1());
+                    }
+                    else
+                    {
+                        SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
+                        SetNegativeZeroMatters(instr->GetSrc2());
+                    }
                 }
                 break;
-
+            }
             case Js::OpCode::Add_A:
                 Assert(dstSym);
                 Assert(instr->GetSrc1());
@@ -5158,15 +5202,34 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                 Assert(instr->GetSrc2()->IsRegOpnd() || instr->GetSrc2()->IsIntConstOpnd());
 
                 if(instr->ignoreNegativeZero ||
-                    !(instr->GetSrc1()->IsRegOpnd() && instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout) ||
                     instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0)
                 {
                     // At least one of the following is true:
                     //     - -0 does not matter for dst
-                    //     - Src1 is not -0 (regardless of -0 bailout checks), and so this instruction cannot generate -0
                     //     - Src2 is a nonzero int constant, and so this instruction cannot generate -0
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                    break;
+                }
+                if (instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->AsRegOpnd()->m_wasNegativeZeroPreventedByBailout)
+                {
+                    // m_wasNegativeZeroPreventedByBailout can only be relied on if src1 was the result of an operation that 
+                    // was int type spec'ed and could have produced negative zero.
+                    // It could be also be the case that src1 was just type spec'ed using a FromVar whose src1 was produced by
+                    // an operation that didn't get int type spec'ed at all. So, m_wasNegativeZeroPreventedByBailout would be false.
+                    // In that case, since we can't say for sure that src1 wouldn't be -0, we can't ignore -0 for src2.
+                    IR::Opnd * src1 = instr->GetSrc1();
+                    IR::Instr * src1DefInstr = this->GetInstrDef(src1->GetStackSym(), instr);
+                    if (src1DefInstr->CouldBeProtectedByNegZeroBailout())
+                    {
+                        SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
+                        SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                    }
+                    else
+                    {
+                        SetNegativeZeroMatters(instr->GetSrc1());
+                        SetNegativeZeroMatters(instr->GetSrc2());
+                    }
                     break;
                 }
                 goto NegativeZero_Sub_Default;
@@ -5198,8 +5261,16 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
 
             NegativeZero_Sub_Default:
                 // -0 - 0 == -0. As long as src1 is guaranteed to not be -0, -0 does not matter for src2.
+                // But in the Backward Pass, we can't make that guarantee for src1.
                 SetNegativeZeroMatters(instr->GetSrc1());
-                SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                if (this->tag == Js::BackwardPhase)
+                {
+                    SetNegativeZeroMatters(instr->GetSrc2());
+                }
+                else 
+                {
+                    SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
+                }
                 break;
 
             case Js::OpCode::BrEq_I4:
@@ -7284,6 +7355,28 @@ BackwardPass::RemoveEmptyLoopAfterMemOp(Loop *loop)
     {
         this->func->m_fg->RemoveBlock(tail, nullptr);
     }
+}
+
+IR::Instr*
+BackwardPass::GetInstrDef(StackSym * stackSym, IR::Instr * currentInstr)
+{
+    IR::Instr * instrDef = nullptr;
+    if (stackSym->IsSingleDef())
+    {
+        instrDef = stackSym->GetInstrDef();
+    }
+    else
+    {
+        FOREACH_INSTR_BACKWARD(tmpInstr, currentInstr->m_prev)
+        {
+            if (tmpInstr->GetDst() && stackSym == tmpInstr->GetDst()->GetStackSym())
+            {
+                instrDef = tmpInstr;
+            }
+        }
+        NEXT_INSTR_BACKWARD
+    }
+    return instrDef;
 }
 
 #if DBG_DUMP
