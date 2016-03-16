@@ -103,6 +103,19 @@ void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody
             {
                 this->record->losslessInt32Args.Set(i);
             }
+            else if (value.sym->IsSimd128F4())
+            {
+                this->record->simd128F4Args.Set(i);
+            }
+            /*
+#define SIMD_SET_BV(_TAG_)\
+            else if (value.sym->IsSimd128##_TAG_##())\
+            {\
+                this->record->simd128##_TAG_##Args.Set(i);\
+            }
+            SIMD_EXPAND_W_TAG(SIMD_SET_BV)
+#undef SIMD_SET_BV
+*/
         }
         else
         {
@@ -182,7 +195,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
     Assert(inlineeStartOffset != 0);
 
     BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore function object: "));
-    Js::Var varFunction =  this->Restore(this->functionOffset, /*isFloat64*/ false, /*isInt32*/ false, layout, functionBody);
+    Js::Var varFunction =  this->Restore(0, this->functionOffset, /*isFloat64*/ false, /*isInt32*/ false, layout, functionBody);
     Assert(Js::ScriptFunction::Is(varFunction));
 
     Js::ScriptFunction* function = Js::ScriptFunction::FromVar(varFunction);
@@ -196,7 +209,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
         bool isInt32 = losslessInt32Args.Test(i) != 0;
         BAILOUT_VERBOSE_TRACE(functionBody, _u("Restore argument %d: "), i);
 
-        Js::Var var = this->Restore(this->argOffsets[i], isFloat64, isInt32, layout, functionBody);
+        Js::Var var = this->Restore(i, this->argOffsets[i], isFloat64, isInt32, layout, functionBody);
 #if DBG
         if (!Js::TaggedNumber::Is(var))
         {
@@ -257,11 +270,15 @@ void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFr
     currentFrame->callInfo.Count = 0;
 }
 
-Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const
+
+Js::Var InlineeFrameRecord::Restore(uint symId, int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const
 {
     Js::Var value;
     bool boxStackInstance = true;
     double dblValue;
+    SIMDValue simdValue;
+
+    bool isSimd = false;
     if (offset >= 0)
     {
         Assert(static_cast<uint>(offset) < constantCount);
@@ -281,6 +298,16 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
         {
             value = (Js::Var)layout->GetInt32AtOffset(offset);
         }
+        // SIMD_JS
+#define SIMD_CHECK_BV(_NAME_,_TAG_)\
+        else if (simd128##_TAG_##Args.Test(symId))\
+        {\
+            isSimd = true;\
+            simdValue = layout->GetSimdValueAtOffset(offset);\
+            value = Js::JavascriptSIMD##_NAME_##::New(&simdValue, functionBody->GetScriptContext()); \
+        }
+        SIMD_EXPAND_W_NAME(SIMD_CHECK_BV)
+#undef SIMD_CHECK_BV
         else
         {
             value = layout->GetOffset(offset);
@@ -293,7 +320,7 @@ Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js
         value = Js::JavascriptNumber::ToVar(int32Value, functionBody->GetScriptContext());
         BAILOUT_VERBOSE_TRACE(functionBody, _u(", value: %10d (ToVar: 0x%p)"), int32Value, value);
     }
-    else
+    else if (!isSimd)
     {
         BAILOUT_VERBOSE_TRACE(functionBody, _u(", value: 0x%p"), value);
         if (boxStackInstance)

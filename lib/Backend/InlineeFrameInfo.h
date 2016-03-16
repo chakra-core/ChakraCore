@@ -71,6 +71,17 @@ struct InlineeFrameRecord
     uint argCount;
     BVUnit floatArgs;
     BVUnit losslessInt32Args;
+    // SIMD_JS
+    BVUnit simd128F4Args;
+    BVUnit simd128I4Args;
+    BVUnit simd128I8Args;
+    BVUnit simd128I16Args;
+    BVUnit simd128U4Args;
+    BVUnit simd128U8Args;
+    BVUnit simd128U16Args;
+    BVUnit simd128B4Args;
+    BVUnit simd128B8Args;
+    BVUnit simd128B16Args;
 
     template<class Fnc>
     void MapOffsets(Fnc callback)
@@ -116,7 +127,7 @@ struct InlineeFrameRecord
 
 private:
     void Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *outerMostFrame, Js::JavascriptCallStackLayout * layout) const;
-    Js::Var Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const;
+    Js::Var Restore(uint symId, int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const;
     InlineeFrameRecord* Reverse();
 };
 
@@ -142,6 +153,9 @@ struct InlineeFrameInfo
     BVSparse<JitArenaAllocator>* simd128U4Syms;
     BVSparse<JitArenaAllocator>* simd128U8Syms;
     BVSparse<JitArenaAllocator>* simd128U16Syms;
+    BVSparse<JitArenaAllocator>* simd128B4Syms;
+    BVSparse<JitArenaAllocator>* simd128B8Syms;
+    BVSparse<JitArenaAllocator>* simd128B16Syms;
     bool isRecorded;
 
     static InlineeFrameInfo* New(JitArenaAllocator* alloc)

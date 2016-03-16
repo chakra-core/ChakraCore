@@ -574,36 +574,35 @@ equalSimd([4, 8, 12, 16, 20, 24, 28, 32], ret, SIMD.Uint16x8, "Test Load Store")
 
 
 ret = m.func1();
-//print("func1");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
-
+ret = m.func1();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
 ret = m.func2();
-//print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
-
+ret = m.func2();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
 ret = m.func3();
-//print("func3");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
-
+ret = m.func3();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
 ret = m.func4();
-//print("func4");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
-
+ret = m.func4();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
 ret = m.func5();
-//print("func5");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
-
+ret = m.func5();
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
 ret = m.func6();
-//print("func6");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
+ret = m.func6();
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], ret, SIMD.Uint16x8, "Test Load Store");
 
-
-//
 
 var funcOOB1 = [m.func1OOB_1, m.func2OOB_1 ,m.func3OOB_1, m.func4OOB_1, m.func5OOB_1, m.func6OOB_1];
 var RESULTS = [SIMD.Uint16x8(10, 20, 30, 40, 50, 60, 70, 80),
@@ -619,21 +618,19 @@ for (var i = 0; i < funcOOB1.length; i ++)
     try
     {
         ret = funcOOB1[i]();
-        //print("func" + (i+1) + "OOB_1");
         equalSimd(RESULTS[i], ret, SIMD.Uint16x8, "Test Load Store");
-
+        ret = funcOOB1[i]();
+        equalSimd(RESULTS[i], ret, SIMD.Uint16x8, "Test Load Store");
     } catch(e)
     {
         print("Wrong");
     }
 }
 
-//
 var funcOOB2 = [m.func1OOB_2, m.func2OOB_2 ,m.func3OOB_2, m.func4OOB_2, m.func5OOB_2, m.func6OOB_2];
 
 for (var i = 0; i < funcOOB2.length; i ++)
 {
-    //print("func" + (i+1) + "OOB_2");
     try
     {
         ret = funcOOB2[i]();
@@ -642,7 +639,19 @@ for (var i = 0; i < funcOOB2.length; i ++)
     } catch(e)
     {
         if (e instanceof RangeError) {
-         //   print("Correct");
+        }
+        else
+            print("Wrong");
+        
+    }
+    try
+    {
+        ret = funcOOB2[i]();
+        print("Wrong");
+        
+    } catch(e)
+    {
+        if (e instanceof RangeError) {
         }
         else
             print("Wrong");

@@ -270,14 +270,13 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   EXDEF2_WMS( SIMD_B8_2toB8_1, Simd128_Xor_B8              , Js::SIMDInt32x4Operation::OpXor             )
   DEF2_WMS( SIMD_B16_2toB16_1, Simd128_Xor_B16           , Js::SIMDInt32x4Operation::OpXor             )
   // ternary ops
-  DEF2_WMS( SIMD_F4_3toF4_1      , Simd128_Clamp_F4        , Js::SIMDFloat32x4Operation::OpClamp         )
   DEF2_WMS( SIMD_B4_1F4_2toF4_1  , Simd128_Select_F4       , Js::SIMDFloat32x4Operation::OpSelect        )
   DEF2_WMS( SIMD_B4_1I4_2toI4_1  , Simd128_Select_I4       , Js::SIMDInt32x4Operation::OpSelect          )
-  EXDEF2_WMS( SIMD_B8_1I8_2toI8_1  , Simd128_Select_I8       , Js::SIMDInt32x4Operation::OpSelect          )
+  EXDEF2_WMS( SIMD_B8_1I8_2toI8_1  , Simd128_Select_I8       , Js::SIMDInt32x4Operation::OpSelect        )
   DEF2_WMS( SIMD_B16_1I16_2toI16_1  , Simd128_Select_I16   , Js::SIMDInt32x4Operation::OpSelect          )
-  EXDEF2_WMS( SIMD_B4_1U4_2toU4_1      , Simd128_Select_U4   , Js::SIMDInt32x4Operation::OpSelect         )
+  EXDEF2_WMS( SIMD_B4_1U4_2toU4_1      , Simd128_Select_U4   , Js::SIMDInt32x4Operation::OpSelect        )
   EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Operation::OpSelect         )
-  EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
+  EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect        )
 
   // args out, copy value to outParams
   DEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
@@ -636,7 +635,6 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
       DEF2_WMS(SIMD_D2_2toD2_1, Simd128_GtEq_D2, Js::SIMDFloat64x2Operation::OpGreaterThanOrEqual)
       DEF2_WMS(SIMD_D2_2toD2_1, Simd128_Gt_D2, Js::SIMDFloat64x2Operation::OpGreaterThan)
       DEF2_WMS(SIMD_I4_1D2_2toD2_1, Simd128_Select_D2, Js::SIMDFloat64x2Operation::OpSelect)
-      DEF2_WMS(SIMD_D2_3toD2_1, Simd128_Clamp_D2, Js::SIMDFloat64x2Operation::OpClamp)
       DEF2_WMS(SIMD_D2_1toI1, Simd128_LdSignMask_D2, Js::SIMDFloat64x2Operation::OpGetSignMask)
       DEF2_WMS(SIMD_D2_1toR1Mem, Simd128_I_ArgOut_D2, OP_I_SetOutAsmSimd)
       DEF2_WMS(SIMD_D2_1toD2_1, Simd128_I_Conv_VTD2, (AsmJsSIMDValue))

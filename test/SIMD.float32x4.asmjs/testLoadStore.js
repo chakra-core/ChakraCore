@@ -719,6 +719,10 @@ for (var i = 0; i < funcOOB1.length; i ++)
         ret = funcOOB1[i]();
         
         equalSimd(RESULT[i], ret, SIMD.Float32x4, "Load Store Out of bounds test");
+        
+        ret = funcOOB1[i]();
+        
+        equalSimd(RESULT[i], ret, SIMD.Float32x4, "Load Store Out of bounds test");
     } catch(e)
     {
         print("Wrong");
@@ -733,6 +737,21 @@ for (var i = 0; i < funcOOB2.length; i ++)
 {
     
     try
+    {
+        ret = funcOOB2[i]();
+        print("Wrong");
+        
+    } catch(e)
+    {
+        if (e instanceof RangeError)
+        {
+        }
+        else
+            print("Wrong");
+        
+    }
+    
+        try
     {
         ret = funcOOB2[i]();
         print("Wrong");

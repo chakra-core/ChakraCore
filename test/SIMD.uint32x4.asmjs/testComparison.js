@@ -247,22 +247,57 @@ var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.
 
 
 equalSimd([true, false, true, false], m.func1(0), SIMD.Bool32x4, "Func1")
+equalSimd([true, false, true, false], m.func1(0), SIMD.Bool32x4, "Func1")
+
 equalSimd([false, true, true, false], m.func2(0), SIMD.Bool32x4, "Func2")
+equalSimd([false, true, true, false], m.func2(0), SIMD.Bool32x4, "Func2")
+
 equalSimd([false, true, true, false], m.func3(0), SIMD.Bool32x4, "Func3")
+equalSimd([false, true, true, false], m.func3(0), SIMD.Bool32x4, "Func3")
+
 equalSimd([false, false, false, false], m.func1(1), SIMD.Bool32x4, "Func1")
+equalSimd([false, false, false, false], m.func1(1), SIMD.Bool32x4, "Func1")
+
 equalSimd([false, false, false, false], m.func2(1), SIMD.Bool32x4, "Func2")
+equalSimd([false, false, false, false], m.func2(1), SIMD.Bool32x4, "Func2")
+
 equalSimd([false, false, false, false], m.func3(1), SIMD.Bool32x4, "Func3")
+equalSimd([false, false, false, false], m.func3(1), SIMD.Bool32x4, "Func3")
+
 equalSimd([false, true, false, true], m.func1(2), SIMD.Bool32x4, "Func1")
+equalSimd([false, true, false, true], m.func1(2), SIMD.Bool32x4, "Func1")
+
 equalSimd([true, false, false, true], m.func2(2), SIMD.Bool32x4, "Func2")
+equalSimd([true, false, false, true], m.func2(2), SIMD.Bool32x4, "Func2")
+
 equalSimd([true, false, false, true], m.func3(2), SIMD.Bool32x4, "Func3")
+equalSimd([true, false, false, true], m.func3(2), SIMD.Bool32x4, "Func3")
+
 equalSimd([true, false, true, false], m.func1(3), SIMD.Bool32x4, "Func1")
+equalSimd([true, false, true, false], m.func1(3), SIMD.Bool32x4, "Func1")
+
 equalSimd([false, true, true, false], m.func2(3), SIMD.Bool32x4, "Func2")
+equalSimd([false, true, true, false], m.func2(3), SIMD.Bool32x4, "Func2")
+
 equalSimd([false, true, true, false], m.func3(3), SIMD.Bool32x4, "Func3")
+equalSimd([false, true, true, false], m.func3(3), SIMD.Bool32x4, "Func3")
+
 equalSimd([false, true, false, true], m.func1(4), SIMD.Bool32x4, "Func1")
+equalSimd([false, true, false, true], m.func1(4), SIMD.Bool32x4, "Func1")
+
 equalSimd([true, false, false, true], m.func2(4), SIMD.Bool32x4, "Func2")
+equalSimd([true, false, false, true], m.func2(4), SIMD.Bool32x4, "Func2")
+
 equalSimd([true, false, false, true], m.func3(4), SIMD.Bool32x4, "Func3")
+equalSimd([true, false, false, true], m.func3(4), SIMD.Bool32x4, "Func3")
+
 equalSimd([true, true, true, true], m.func1(5), SIMD.Bool32x4, "Func1")
+equalSimd([true, true, true, true], m.func1(5), SIMD.Bool32x4, "Func1")
+
 equalSimd([true, true, true, true], m.func2(5), SIMD.Bool32x4, "Func2")
+equalSimd([true, true, true, true], m.func2(5), SIMD.Bool32x4, "Func2")
+
+equalSimd([true, true, true, true], m.func3(5), SIMD.Bool32x4, "Func3")
 equalSimd([true, true, true, true], m.func3(5), SIMD.Bool32x4, "Func3")
 
 /*

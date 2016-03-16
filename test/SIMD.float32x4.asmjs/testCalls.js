@@ -185,13 +185,21 @@ var s8 = SIMD.Float32x4(1.0, 2.0, 3.0, 4.0);
 var c;
 c = m.func1(s1, 1, s2, 3);
 equalSimd([2.000000,4.000000,6.000000,8.000000], c, SIMD.Float32x4, "func1");
+c = m.func1(s1, 1, s2, 3);
+equalSimd([2.000000,4.000000,6.000000,8.000000], c, SIMD.Float32x4, "func1");
 
+c = m.func2(s1, 3, s2, s3, s4, 1);
+equalSimd([4.000000,8.000000,12.000000,16.000000], c, SIMD.Float32x4, "func1");
 c = m.func2(s1, 3, s2, s3, s4, 1);
 equalSimd([4.000000,8.000000,12.000000,16.000000], c, SIMD.Float32x4, "func1");
 
 c = m.func3(s1, 33.2, s2, s3, 35.1, s4, 1, s5, s6, 1.0, s7, s8, 5.3);
 equalSimd([8.000000,16.000000,24.000000,32.000000], c, SIMD.Float32x4, "func1");
+c = m.func3(s1, 33.2, s2, s3, 35.1, s4, 1, s5, s6, 1.0, s7, s8, 5.3);
+equalSimd([8.000000,16.000000,24.000000,32.000000], c, SIMD.Float32x4, "func1");
 
+c = m.func4();
+equalSimd([301.000000,301.000000,301.000000,301.000000], c, SIMD.Float32x4, "func1");
 c = m.func4();
 equalSimd([301.000000,301.000000,301.000000,301.000000], c, SIMD.Float32x4, "func1");
 WScript.Echo("PASS");

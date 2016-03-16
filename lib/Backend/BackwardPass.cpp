@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 class JitArenaAllocator;
@@ -1653,14 +1653,13 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
                 Assert(float64StackSym);
             }
             // SIMD_JS
-            else if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128F4EquivSym(nullptr);
+#define SIMD_GET_SYM(_TAG_) \
+            else if (bailOutInfo->liveSimd128##_TAG_##Syms->Test(symId))\
+            {\
+                simd128StackSym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr);\
             }
-            else if (bailOutInfo->liveSimd128I4Syms->Test(symId))
-            {
-                simd128StackSym = stackSym->GetSimd128I4EquivSym(nullptr);
-            }
+            SIMD_EXPAND_W_TAG(SIMD_GET_SYM)
+#undef SIMD_GET_SYM
             else
             {
                 Assert(bailOutInfo->liveVarSyms->Test(symId));
@@ -2216,6 +2215,14 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         // SIMD_JS
         // Simd128 syms should be live in at most one form
         tempBv->And(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
+        tempBv->And(bailOutInfo->liveSimd128I8Syms);
+        tempBv->And(bailOutInfo->liveSimd128I16Syms);
+        tempBv->And(bailOutInfo->liveSimd128U4Syms);
+        tempBv->And(bailOutInfo->liveSimd128U8Syms);
+        tempBv->And(bailOutInfo->liveSimd128U16Syms);
+        tempBv->And(bailOutInfo->liveSimd128B4Syms);
+        tempBv->And(bailOutInfo->liveSimd128B8Syms);
+        tempBv->And(bailOutInfo->liveSimd128B16Syms);
         Assert(tempBv->IsEmpty());
 
         // Verify that all syms to restore are live in some fashion
@@ -2224,6 +2231,14 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
         tempBv->Minus(bailOutInfo->liveFloat64Syms);
         tempBv->Minus(bailOutInfo->liveSimd128F4Syms);
         tempBv->Minus(bailOutInfo->liveSimd128I4Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128I8Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128I16Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128U4Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128U8Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128U16Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128B4Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128B8Syms);
+        tempBv->Minus(bailOutInfo->liveSimd128B16Syms);
         Assert(tempBv->IsEmpty());
 #endif
 
@@ -2295,29 +2310,23 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             NEXT_BITSET_IN_SPARSEBV;
 
             // SIMD_JS
-            tempBv->Or(bailOutInfo->liveSimd128F4Syms, bailOutInfo->liveSimd128I4Syms);
-            tempBv->And(byteCodeUpwardExposedUsed);
-            byteCodeUpwardExposedUsed->Minus(tempBv);
-            FOREACH_BITSET_IN_SPARSEBV(symId, tempBv)
-            {
-                StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
-                Assert(stackSym->GetType() == TyVar);
-                StackSym * simd128Sym = nullptr;
-                if (bailOutInfo->liveSimd128F4Syms->Test(symId))
-                {
-                    simd128Sym = stackSym->GetSimd128F4EquivSym(nullptr);
-                }
-                else
-                {
-                    Assert(bailOutInfo->liveSimd128I4Syms->Test(symId));
-                    simd128Sym = stackSym->GetSimd128I4EquivSym(nullptr);
-                }
-                byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);
-            }
+#define SIMD_CAPTURE_VALS(_TAG_) \
+            tempBv->And(byteCodeUpwardExposedUsed, bailOutInfo->liveSimd128##_TAG_##Syms); \
+            byteCodeUpwardExposedUsed->Minus(tempBv); \
+            FOREACH_BITSET_IN_SPARSEBV(symId, tempBv) \
+            {\
+                StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);\
+                Assert(stackSym->GetType() == TyVar);\
+                StackSym * simd128Sym = stackSym->GetSimd128##_TAG_##EquivSym(nullptr);\
+                byteCodeUpwardExposedUsed->Set(simd128Sym->m_id);\
+            }\
             NEXT_BITSET_IN_SPARSEBV;
-        }
+
+            SIMD_EXPAND_W_TAG(SIMD_CAPTURE_VALS)
+#undef SIMD_CAPTURE_VALS
         // Var
         // Any remaining syms to restore will be restored from their var versions
+        }
     }
     else
     {
@@ -2331,7 +2340,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
     // BailOnNoProfile. This is specifically bad for an inlinee's argout syms as they are set as upward exposed
     // when we see the InlineeEnd, but may not look so to some blocks and may get overwritten.
     // Set the argout syms as upward exposed here.
-    if (instr->m_opcode == Js::OpCode::BailOnNoProfile && instr->m_func->IsInlinee() &&
+    if ((instr->m_opcode == Js::OpCode::BailOnNoProfile  || instr->m_opcode == Js::OpCode::BailOnNoSimdTypeSpec) && instr->m_func->IsInlinee() &&
         instr->m_func->m_hasInlineArgsOpt && instr->m_func->frameInfo->isRecorded)
     {
         instr->m_func->frameInfo->IterateSyms([=](StackSym* argSym)

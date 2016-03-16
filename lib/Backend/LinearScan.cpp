@@ -1473,46 +1473,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             funcBailOutData[index].float64Syms->Set(i);
         }
         // SIMD_JS
-        else if (copyStackSym->IsSimd128F4())
-        {
-            funcBailOutData[index].simd128F4Syms->Set(i);
+#define SIMD_BV(_TAG_)\
+        else if (copyStackSym->IsSimd128##_TAG_##())\
+        {\
+            funcBailOutData[index].simd128##_TAG_##Syms->Set(i);\
         }
-        else if (copyStackSym->IsSimd128I4())
-        {
-            funcBailOutData[index].simd128I4Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128I8())
-        {
-            funcBailOutData[index].simd128I8Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128I16())
-        {
-            funcBailOutData[index].simd128I16Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128U4())
-        {
-            funcBailOutData[index].simd128U4Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128U8())
-        {
-            funcBailOutData[index].simd128U8Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128U16())
-        {
-            funcBailOutData[index].simd128U16Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128B4())
-        {
-            funcBailOutData[index].simd128B4Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128B8())
-        {
-            funcBailOutData[index].simd128B8Syms->Set(i);
-        }
-        else if (copyStackSym->IsSimd128B16())
-        {
-            funcBailOutData[index].simd128B16Syms->Set(i);
-        }
+        SIMD_EXPAND_W_TAG(SIMD_BV)
+#undef SIMD_BV
+        
         iter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1545,46 +1513,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             funcBailOutData[index].float64Syms->Set(i);
         }
         // SIMD_JS
-        else if (stackSym->IsSimd128F4())
-        {
-            funcBailOutData[index].simd128F4Syms->Set(i);
+#define SIMD_BV(_TAG_)\
+        else if (stackSym->IsSimd128##_TAG_##())\
+        {\
+            funcBailOutData[index].simd128##_TAG_##Syms->Set(i);\
         }
-        else if (stackSym->IsSimd128I4())
-        {
-            funcBailOutData[index].simd128I4Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128I8())
-        {
-            funcBailOutData[index].simd128I8Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128I16())
-        {
-            funcBailOutData[index].simd128I16Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128U4())
-        {
-            funcBailOutData[index].simd128U4Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128U8())
-        {
-            funcBailOutData[index].simd128U8Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128U16())
-        {
-            funcBailOutData[index].simd128U16Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128B4())
-        {
-            funcBailOutData[index].simd128B4Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128B8())
-        {
-            funcBailOutData[index].simd128B8Syms->Set(i);
-        }
-        else if (stackSym->IsSimd128B16())
-        {
-            funcBailOutData[index].simd128B16Syms->Set(i);
-        }
+        SIMD_EXPAND_W_TAG(SIMD_BV)
+#undef SIMD_BV
+
     }
     NEXT_BITSET_IN_SPARSEBV;
 
@@ -1778,18 +1714,10 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = argOutFloat64Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = argOutLosslessInt32Syms;
                 // SIMD_JS
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms  = argOutSimd128F4Syms;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms  = argOutSimd128I4Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms  = argOutSimd128I8Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = argOutSimd128I16Syms ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms  = argOutSimd128U4Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms  = argOutSimd128U8Syms  ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = argOutSimd128U16Syms ;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = argOutSimd128U4Syms;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = argOutSimd128U8Syms;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = argOutSimd128U16Syms;
-
-
+#define SIMD_ARGOUT(_TAG_)\
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128##_TAG_##Syms  = argOutSimd128##_TAG_##Syms;
+                SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+#undef SIMD_ARGOUT
             }
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -1861,46 +1789,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                     argOutFloat64Syms->Set(outParamOffsetIndex);
                                 }
                                 // SIMD_JS
-                                else if (copyStackSym->IsSimd128F4())
-                                {
-                                    argOutSimd128F4Syms->Set(outParamOffsetIndex);
+#define SIMD_ARGOUT(_TAG_)\
+                                else if (copyStackSym->IsSimd128##_TAG_##())\
+                                {\
+                                    argOutSimd128##_TAG_##Syms->Set(outParamOffsetIndex);\
                                 }
-                                else if (copyStackSym->IsSimd128I4())
-                                {
-                                    argOutSimd128I4Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128I8())
-                                {
-                                    argOutSimd128I8Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128I16())
-                                {
-                                    argOutSimd128I16Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128U4())
-                                {
-                                    argOutSimd128U4Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128U8())
-                                {
-                                    argOutSimd128U8Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128U16())
-                                {
-                                    argOutSimd128U16Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128B4())
-                                {
-                                    argOutSimd128B4Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128B8())
-                                {
-                                    argOutSimd128B8Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsSimd128B16())
-                                {
-                                    argOutSimd128B16Syms->Set(outParamOffsetIndex);
-                                }
+
+                                SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+#undef SIMD_ARGOUT
                             }
 #if DBG_DUMP
                             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -2022,46 +1918,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         argOutLosslessInt32Syms->Set(outParamOffsetIndex);
                     }
                     // SIMD_JS
-                    else if (sym->IsSimd128F4())
-                    {
-                        argOutSimd128F4Syms->Set(outParamOffsetIndex);
+#define SIMD_ARGOUT(_TAG_)\
+                    else if (sym->IsSimd128##_TAG_##())\
+                    {\
+                        argOutSimd128##_TAG_##Syms->Set(outParamOffsetIndex);\
                     }
-                    else if (sym->IsSimd128I4())
-                    {
-                        argOutSimd128I4Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128I8())
-                    {
-                        argOutSimd128I8Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128I16())
-                    {
-                        argOutSimd128I16Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128U4())
-                    {
-                        argOutSimd128U4Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128U8())
-                    {
-                        argOutSimd128U8Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128U16())
-                    {
-                        argOutSimd128U16Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128B4())
-                    {
-                        argOutSimd128B4Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128B8())
-                    {
-                        argOutSimd128B8Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsSimd128B16())
-                    {
-                        argOutSimd128B16Syms->Set(outParamOffsetIndex);
-                    }
+                    SIMD_EXPAND_W_TAG(SIMD_ARGOUT)
+#undef SIMD_ARGOUT
+
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
                     {
@@ -2655,50 +2519,14 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
         {
             type = TyFloat64;
         }
-        else if (newLifetime->isSimd128F4)
-        {
-            type = TySimd128F4;
+#define SIMD_TYPE(_TAG_)\
+        else if (newLifetime->isSimd128##_TAG_##)\
+        {\
+            type = TySimd128##_TAG_##;\
         }
-        else if (newLifetime->isSimd128I4)
-        {
-            type = TySimd128I4;
-        }
-        else if (newLifetime->isSimd128I8)
-        {
-            type = TySimd128I8;
-        }
-        else if (newLifetime->isSimd128I16)
-        {
-            type = TySimd128I16;
-        }
-        else if (newLifetime->isSimd128U4)
-        {
-            type = TySimd128U4;
-        }
-        else if (newLifetime->isSimd128U8)
-        {
-            type = TySimd128U8;
-        }
-        else if (newLifetime->isSimd128U16)
-        {
-            type = TySimd128U16;
-        }
-        else if (newLifetime->isSimd128B4)
-        {
-            type = TySimd128B4;
-        }
-        else if (newLifetime->isSimd128B8)
-        {
-            type = TySimd128B8;
-        }
-        else if (newLifetime->isSimd128B16)
-        {
-            type = TySimd128B16;
-        }
-        else if (newLifetime->isSimd128D2)
-        {
-            type = TySimd128D2;
-        }
+        SIMD_EXPAND_W_TAG(SIMD_TYPE)
+#undef SIMD_TYPE
+
         else
         {
             type = TyMachReg;

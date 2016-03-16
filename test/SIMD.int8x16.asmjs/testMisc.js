@@ -370,48 +370,49 @@ var i4 = stdlib.SIMD.Int32x4;
 var buffer = new ArrayBuffer(0x10000);
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)}, buffer);
 
-
-
 var v1 = SIMD.Int8x16(1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8);
 var v2 = SIMD.Int8x16(134, 211, -333, 422, -165, 999996, 0xffff, 0xf0f0, 134, 211, -333, 422, -165, 999996, 0xffff, 0xf0f0);
 var v3 = SIMD.Int8x16(0xcccc, -211, 189, 422, -165, -999996, 0xffff, 0xf0f0, 0xcccc, -211, 189, 422, -165, -999996, 0xffff, 0xf0f0);
-var ret1 = m.func1();
-// print (ret1);
-var ret2 = m.func2(v1);
-// printSimdBaseline(ret2, "SIMD.Int8x16", "ret2", "func2");
 
+// 
+var ret1 = m.func1();
+equal(-1410, ret1);
+var ret1 = m.func1();
+equal(-1410, ret1);
+
+var ret2 = m.func2(v1);
+equalSimd([1, 2, 3, 4, 3, 4, 5, 6, 1, 6, 0, 4, 6, 1, 4, 0], ret2, SIMD.Int8x16, "func2")
+var ret2 = m.func2(v1);
+equalSimd([1, 2, 3, 4, 3, 4, 5, 6, 1, 6, 0, 4, 6, 1, 4, 0], ret2, SIMD.Int8x16, "func2")
 
 var ret3 = m.func3(v1);
-// printSimdBaseline(ret3, "SIMD.Int8x16", "ret3", "func3");
-
+equalSimd([0, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1, 1, 0, 0, 0, 0], ret3, SIMD.Int8x16, "func3")
+var ret3 = m.func3(v1);
+equalSimd([0, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1, 1, 0, 0, 0, 0], ret3, SIMD.Int8x16, "func3")
 
 var ret4 = m.func4(v1, v2, v3, v1, v2);
-// printSimdBaseline(ret4, "SIMD.Int8x16", "ret4", "func4");
-
+equalSimd([120, 46, 79, 93, -95, -59, 7, 7, 120, 46, 79, 93, -95, -59, 7, 7], ret4, SIMD.Int8x16, "func4")
+var ret4 = m.func4(v1, v2, v3, v1, v2);
+equalSimd([120, 46, 79, 93, -95, -59, 7, 7, 120, 46, 79, 93, -95, -59, 7, 7], ret4, SIMD.Int8x16, "func4")
 
 var ret5 = m.func5(v1, v2, v3, v1, v2);
-// printSimdBaseline(ret5, "SIMD.Int8x16", "ret5", "func5");
-
-
+equalSimd([36, -23, 41, -92, 89, 16, 1, 0, 36, -23, 41, -92, 89, 16, 1, 0], ret5, SIMD.Int8x16, "func5")
+var ret5 = m.func5(v1, v2, v3, v1, v2);
+equalSimd([36, -23, 41, -92, 89, 16, 1, 0, 36, -23, 41, -92, 89, 16, 1, 0], ret5, SIMD.Int8x16, "func5")
 
 var ret6 = m.func6(v1, v2, v3, v1, v2);
-// printSimdBaseline(ret6, "SIMD.Int8x16", "ret6", "func6");
-
+equalSimd([47, -128, -107, -128, -5, -6, -23, -128, 47, -128, -107, -128, -5, -6, -23, -128], ret6, SIMD.Int8x16, "func6")
+var ret6 = m.func6(v1, v2, v3, v1, v2);
+equalSimd([47, -128, -107, -128, -5, -6, -23, -128, 47, -128, -107, -128, -5, -6, -23, -128], ret6, SIMD.Int8x16, "func6")
 
 var ret7 = m.func7(v1, v2, v3, v1, v2);
-// printSimdBaseline(ret7, "SIMD.Int8x16", "ret7", "func7");
-
+equalSimd([10, 20, 30, -10, -10, -20, -30, -40, -96, -16, 64, -102, 76, -14, -118, -10], ret7, SIMD.Int8x16, "func7")
+var ret7 = m.func7(v1, v2, v3, v1, v2);
+equalSimd([10, 20, 30, -10, -10, -20, -30, -40, -96, -16, 64, -102, 76, -14, -118, -10], ret7, SIMD.Int8x16, "func7")
 
 var ret8 = m.func8(v1, v2, v3, v1, v2);
-// printSimdBaseline(ret8, "SIMD.Int8x16", "ret8", "func8");
-// 
-equal(-1410, ret1);
-equalSimd([1, 2, 3, 4, 3, 4, 5, 6, 1, 6, 0, 4, 6, 1, 4, 0], ret2, SIMD.Int8x16, "func2")
-equalSimd([0, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1, 1, 0, 0, 0, 0], ret3, SIMD.Int8x16, "func3")
-equalSimd([120, 46, 79, 93, -95, -59, 7, 7, 120, 46, 79, 93, -95, -59, 7, 7], ret4, SIMD.Int8x16, "func4")
-equalSimd([36, -23, 41, -92, 89, 16, 1, 0, 36, -23, 41, -92, 89, 16, 1, 0], ret5, SIMD.Int8x16, "func5")
-equalSimd([47, -128, -107, -128, -5, -6, -23, -128, 47, -128, -107, -128, -5, -6, -23, -128], ret6, SIMD.Int8x16, "func6")
-equalSimd([10, 20, 30, -10, -10, -20, -30, -40, -96, -16, 64, -102, 76, -14, -118, -10], ret7, SIMD.Int8x16, "func7")
+equalSimd([121, -38, -37, 77, 17, -12, 29, -102, -30, -40, -112, -99, 86, -17, -57, -79], ret8, SIMD.Int8x16, "func8")
+var ret8 = m.func8(v1, v2, v3, v1, v2);
 equalSimd([121, -38, -37, 77, 17, -12, 29, -102, -30, -40, -112, -99, 86, -17, -57, -79], ret8, SIMD.Int8x16, "func8")
 
 print("PASS");

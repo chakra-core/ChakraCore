@@ -77,8 +77,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint16x8(50, 1000, 3092, 3393, Infinity, 39238, NaN, 838) });
 
 equalSimd([5033, 3401, 948, 2834, 3483, 3234, 665, 7748], m.testShuffleLocal(), SIMD.Uint16x8, "");
+equalSimd([5033, 3401, 948, 2834, 3483, 3234, 665, 7748], m.testShuffleLocal(), SIMD.Uint16x8, "");
+equalSimd([10, 1073, 10402, 12332, 35316, 1082, 107, 311], m.testShuffleGlobal(), SIMD.Uint16x8, "");
 equalSimd([10, 1073, 10402, 12332, 35316, 1082, 107, 311], m.testShuffleGlobal(), SIMD.Uint16x8, "");
 equalSimd([5033, 3401, 948, 2834, 50, 3234, 665, 7748], m.testShuffleGlobalImport(), SIMD.Uint16x8, "");
+equalSimd([5033, 3401, 948, 2834, 50, 3234, 665, 7748], m.testShuffleGlobalImport(), SIMD.Uint16x8, "");
+equalSimd([5043, 4474, 11350, 15166, 50330, 4316, 772, 8059], m.testShuffleFunc(), SIMD.Uint16x8, "");
 equalSimd([5043, 4474, 11350, 15166, 50330, 4316, 772, 8059], m.testShuffleFunc(), SIMD.Uint16x8, "");
 
 print("PASS");

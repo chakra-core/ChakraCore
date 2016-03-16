@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -19,6 +19,10 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_SIMDUint8x16);
     }
 
+    JavascriptSIMDUint8x16* JavascriptSIMDUint8x16::AllocUninitialized(ScriptContext* requestContext)
+    {
+        return (JavascriptSIMDUint8x16 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDUint8x16, requestContext->GetLibrary()->GetSIMDUint8x16TypeStatic());
+    }
     JavascriptSIMDUint8x16* JavascriptSIMDUint8x16::New(SIMDValue *val, ScriptContext* requestContext)
     {
         return (JavascriptSIMDUint8x16 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDUint8x16, val, requestContext->GetLibrary()->GetSIMDUint8x16TypeStatic());

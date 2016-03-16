@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -16,6 +16,11 @@ namespace Js
     JavascriptSIMDInt8x16::JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDInt8x16);
+    }
+
+    JavascriptSIMDInt8x16* JavascriptSIMDInt8x16::AllocUninitialized(ScriptContext* requestContext)
+    {
+        return (JavascriptSIMDInt8x16 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDInt8x16, requestContext->GetLibrary()->GetSIMDInt8x16TypeStatic());
     }
 
     JavascriptSIMDInt8x16* JavascriptSIMDInt8x16::New(SIMDValue *val, ScriptContext* requestContext)

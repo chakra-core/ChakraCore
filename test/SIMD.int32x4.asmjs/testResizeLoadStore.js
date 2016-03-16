@@ -43,10 +43,16 @@ var o = m(this,{},buf1);
 o.store(SIMD.Int32x4(-5,6,17,8000),4);
 var ret = o.load(4);
 equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
+var ret = o.load(4);
+equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
 
 o.store(SIMD.Int32x4(-5,6,17,8000), i32.length-4);
 var ret = o.load(i32.length-4);
 equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
+var ret = o.load(i32.length-4);
+equalSimd([-5, 6, 17, 8000],ret, SIMD.Int32x4, "");
+
+try {o.store(SIMD.Int32x4(11, 304, -22239, 34010), f32.length); print("Wrong")} catch(err) { }
 try {o.store(SIMD.Int32x4(11, 304, -22239, 34010), f32.length); print("Wrong")} catch(err) { }
 
 var buf2 = new ArrayBuffer(0x2000000);
@@ -56,5 +62,9 @@ o.changeHeap(buf2);
 o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length);
 var ret = o.load(i32.length);
 equalSimd([511, 304, -22239, 34010],ret, SIMD.Int32x4, "");
+var ret = o.load(i32.length);
+equalSimd([511, 304, -22239, 34010],ret, SIMD.Int32x4, "");
+
+o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length * 2 - 4);
 o.store(SIMD.Int32x4(511, 304, -22239, 34010), i32.length * 2 - 4);
 print("PASS");

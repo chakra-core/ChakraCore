@@ -6008,6 +6008,54 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     insertionPointInstr->InsertBefore(branchToAllocDoneInstr);
 }
 
+#if FLOATVAR
+void
+LowererMD::CanonicalizeNaN(IR::Instr* instrInsert, IR::RegOpnd * s1, bool isHelper)
+{
+    //CanonicalizeNaN expects a f64 in a GPR; Use movq/movd to get it there
+
+    // tmp = NOT s1
+    // tmp = AND tmp, 0x7FF0000000000000ull
+    // test tmp, tmp
+    // je helper
+    // jmp done
+    // helper:
+    // tmp2 = AND s1, 0x000FFFFFFFFFFFFFull
+    // test tmp2, tmp2
+    // je done
+    // s1 = JavascriptNumber::k_Nan
+    // done:
+
+    IR::RegOpnd *tmp = IR::RegOpnd::New(TyMachReg, m_func);
+    IR::Instr * newInstr = IR::Instr::New(Js::OpCode::NOT, tmp, s1, m_func);
+    instrInsert->InsertBefore(newInstr);
+    LowererMD::MakeDstEquSrc1(newInstr);
+
+    newInstr = IR::Instr::New(Js::OpCode::AND, tmp, tmp, IR::AddrOpnd::New((Js::Var)0x7FF0000000000000, IR::AddrOpndKindConstantVar, m_func, true), m_func);
+    instrInsert->InsertBefore(newInstr);
+    LowererMD::Legalize(newInstr);
+
+    IR::LabelInstr* helper = Lowerer::InsertLabel(true, instrInsert);
+
+    Lowerer::InsertTestBranch(tmp, tmp, Js::OpCode::BrEq_A, helper, helper);
+
+    IR::LabelInstr* done = Lowerer::InsertLabel(isHelper, instrInsert);
+
+    Lowerer::InsertBranch(Js::OpCode::Br, done, helper);
+
+    IR::RegOpnd *tmp2 = IR::RegOpnd::New(TyMachReg, m_func);
+
+    newInstr = IR::Instr::New(Js::OpCode::AND, tmp2, s1, IR::AddrOpnd::New((Js::Var)0x000FFFFFFFFFFFFFull, IR::AddrOpndKindConstantVar, m_func, true), m_func);
+    done->InsertBefore(newInstr);
+    LowererMD::Legalize(newInstr);
+
+    Lowerer::InsertTestBranch(tmp2, tmp2, Js::OpCode::BrEq_A, done, done);
+
+    IR::Opnd * opndNaN = IR::AddrOpnd::New((Js::Var)Js::JavascriptNumber::k_Nan, IR::AddrOpndKindConstantVar, m_func, true);
+    Lowerer::InsertMove(s1, opndNaN, done);
+}
+#endif
+
 void
 LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper)
 {
@@ -6086,46 +6134,7 @@ LowererMD::SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::In
 
     if (m_func->GetJnFunction()->GetIsAsmjsMode())
     {
-        // s1 = MOVD src
-        // tmp = NOT s1
-        // tmp = AND tmp, 0x7FF0000000000000ull
-        // test tmp, tmp
-        // je helper
-        // jmp done
-        // helper:
-        // tmp2 = AND s1, 0x000FFFFFFFFFFFFFull
-        // test tmp2, tmp2
-        // je done
-        // s1 = JavascriptNumber::k_Nan
-        // done:
-
-        IR::RegOpnd *tmp = IR::RegOpnd::New(TyMachReg, m_func);
-        IR::Instr * newInstr = IR::Instr::New(Js::OpCode::NOT, tmp, s1, m_func);
-        instrInsert->InsertBefore(newInstr);
-        LowererMD::MakeDstEquSrc1(newInstr);
-
-        newInstr = IR::Instr::New(Js::OpCode::AND, tmp, tmp, IR::AddrOpnd::New((Js::Var)0x7FF0000000000000, IR::AddrOpndKindConstantVar, m_func, true), m_func);
-        instrInsert->InsertBefore(newInstr);
-        LowererMD::Legalize(newInstr);
-
-        IR::LabelInstr* helper = Lowerer::InsertLabel(true, instrInsert);
-
-        Lowerer::InsertTestBranch(tmp, tmp, Js::OpCode::BrEq_A, helper, helper);
-
-        IR::LabelInstr* done = Lowerer::InsertLabel(isHelper, instrInsert);
-
-        Lowerer::InsertBranch(Js::OpCode::Br, done, helper);
-
-        IR::RegOpnd *tmp2 = IR::RegOpnd::New(TyMachReg, m_func);
-
-        newInstr = IR::Instr::New(Js::OpCode::AND, tmp2, s1, IR::AddrOpnd::New((Js::Var)0x000FFFFFFFFFFFFFull, IR::AddrOpndKindConstantVar, m_func, true), m_func);
-        done->InsertBefore(newInstr);
-        LowererMD::Legalize(newInstr);
-
-        Lowerer::InsertTestBranch(tmp2, tmp2, Js::OpCode::BrEq_A, done, done);
-
-        IR::Opnd * opndNaN = IR::AddrOpnd::New((Js::Var)Js::JavascriptNumber::k_Nan, IR::AddrOpndKindConstantVar, m_func, true);
-        Lowerer::InsertMove(s1, opndNaN, done);
+        CanonicalizeNaN(instrInsert, s1, isHelper);
     }
 
     // s1 = XOR s1, FloatTag_Value

@@ -154,16 +154,31 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(100, -1073741824, -1028, -102, 3883, -38, -92929, 1442, 52, 127, -127, -129, 129, 0, 88, 100234) });
 
 equalSimd([-128, -128, -128, -128, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarLocal(), SIMD.Int8x16, "testMinLocal");
+equalSimd([-128, -128, -128, -128, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarLocal(), SIMD.Int8x16, "testMinLocal");
 equalSimd([-3, 2, -3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal(), SIMD.Int8x16, "testMaxLocal");
+equalSimd([-3, 2, -3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal(), SIMD.Int8x16, "testMaxLocal");
+
 equalSimd([16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarGlobal(), SIMD.Int8x16, "testMinGlobal");
 equalSimd([1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1, 0], m.testShiftRightScalarGlobal(), SIMD.Int8x16, "testMaxGlobal");
+
+equalSimd([16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarGlobal(), SIMD.Int8x16, "testMinGlobal");
+equalSimd([1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1, 0], m.testShiftRightScalarGlobal(), SIMD.Int8x16, "testMaxGlobal");
+
+equalSimd([64, 0, -64, -96, -80, -96, -16, 32, 64, -16, 16, -16, 16, 0, -128, -96], m.testShiftLeftScalarGlobalImport(), SIMD.Int8x16, "testMinGlobalImport");
+equalSimd([4, 0, -4, -6, -5, -6, -1, 2, 4, -1, 1, -1, 1, 0, -8, -6], m.testShiftRightScalarGlobalImport(), SIMD.Int8x16, "testMaxGlobalImport");
 equalSimd([64, 0, -64, -96, -80, -96, -16, 32, 64, -16, 16, -16, 16, 0, -128, -96], m.testShiftLeftScalarGlobalImport(), SIMD.Int8x16, "testMinGlobalImport");
 equalSimd([4, 0, -4, -6, -5, -6, -1, 2, 4, -1, 1, -1, 1, 0, -8, -6], m.testShiftRightScalarGlobalImport(), SIMD.Int8x16, "testMaxGlobalImport");
 
 equalSimd([-128, -128, -128, -128, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarLocal1(), SIMD.Int8x16, "testMinLocal1");
+equalSimd([-128, -128, -128, -128, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarLocal1(), SIMD.Int8x16, "testMinLocal1");
+equalSimd([-3, 2, -3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal1(), SIMD.Int8x16, "testMaxLocal1");
 equalSimd([-3, 2, -3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal1(), SIMD.Int8x16, "testMaxLocal1");
 equalSimd([16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarGlobal1(), SIMD.Int8x16, "testMinGlobal1");
 equalSimd([1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1, 0], m.testShiftRightScalarGlobal1(), SIMD.Int8x16, "testMaxGlobal1");
+equalSimd([16, 32, 48, 64, 80, 96, 112, -128, -112, -96, -80, -64, -48, -32, -16, 0], m.testShiftLeftScalarGlobal1(), SIMD.Int8x16, "testMinGlobal1");
+equalSimd([1, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -1, 0], m.testShiftRightScalarGlobal1(), SIMD.Int8x16, "testMaxGlobal1");
+equalSimd([64, 0, -64, -96, -80, -96, -16, 32, 64, -16, 16, -16, 16, 0, -128, -96], m.testShiftLeftScalarGlobalImport1(), SIMD.Int8x16, "testMinGlobalImport1");
+equalSimd([4, 0, -4, -6, -5, -6, -1, 2, 4, -1, 1, -1, 1, 0, -8, -6], m.testShiftRightScalarGlobalImport1(), SIMD.Int8x16, "testMaxGlobalImport1");
 equalSimd([64, 0, -64, -96, -80, -96, -16, 32, 64, -16, 16, -16, 16, 0, -128, -96], m.testShiftLeftScalarGlobalImport1(), SIMD.Int8x16, "testMinGlobalImport1");
 equalSimd([4, 0, -4, -6, -5, -6, -1, 2, 4, -1, 1, -1, 1, 0, -8, -6], m.testShiftRightScalarGlobalImport1(), SIMD.Int8x16, "testMaxGlobalImport1");
 

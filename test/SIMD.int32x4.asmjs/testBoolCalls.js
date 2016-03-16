@@ -100,9 +100,6 @@ var b4 = SIMD.Bool32x4;
 var b8 = SIMD.Bool16x8;
 var b16 = SIMD.Bool8x16;
 
-var ret1 = m.func1(b4(0,1,2,3));
-var ret2 = m.func2(b8(0,1,2,3,0,-1,0,-1));
-var ret3 = m.func3(b16(0,1,2,3,0,-1,0,-1,0,1,2,3,0,-1,0,-1));
 
 /*
 printSimdBaseline(ret1, "SIMD.Bool32x4", "ret1", "func1");
@@ -110,8 +107,11 @@ printSimdBaseline(ret2, "SIMD.Bool16x8", "ret2", "func2");
 printSimdBaseline(ret3, "SIMD.Bool8x16", "ret3", "func3");
 */
 
-equalSimd([false, true, true, true], ret1, SIMD.Bool32x4, "func1")
-equalSimd([false, true, true, true, false, true, false, true], ret2, SIMD.Bool16x8, "func2")
-equalSimd([false, true, true, true, false, true, false, true, false, true, true, true, false, true, false, true], ret3, SIMD.Bool8x16, "func3")
+equalSimd([false, true, true, true], m.func1(b4(0,1,2,3)), SIMD.Bool32x4, "func1")
+equalSimd([false, true, true, true], m.func1(b4(0,1,2,3)), SIMD.Bool32x4, "func1")
+equalSimd([false, true, true, true, false, true, false, true], m.func2(b8(0,1,2,3,0,-1,0,-1)), SIMD.Bool16x8, "func2")
+equalSimd([false, true, true, true, false, true, false, true], m.func2(b8(0,1,2,3,0,-1,0,-1)), SIMD.Bool16x8, "func2")
+equalSimd([false, true, true, true, false, true, false, true, false, true, true, true, false, true, false, true], m.func3(b16(0,1,2,3,0,-1,0,-1,0,1,2,3,0,-1,0,-1)), SIMD.Bool8x16, "func3")
+equalSimd([false, true, true, true, false, true, false, true, false, true, true, true, false, true, false, true], m.func3(b16(0,1,2,3,0,-1,0,-1,0,1,2,3,0,-1,0,-1)), SIMD.Bool8x16, "func3")
 
 print("PASS");

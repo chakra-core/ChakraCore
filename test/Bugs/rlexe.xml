@@ -299,4 +299,53 @@
       <compile-flags> -bgjit- -simdjs -simd128typespec -asmjs- -mic:1 -lic:1 -off:simplejit</compile-flags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>SIMDbug2.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:2 -werexceptionsupport  -MaxLinearStringCaseCount:2 -MaxLinearIntCaseCount:2 -bgjit- -loopinterpretcount:1 -MinSwitchJumpTableSize:3 -force:rejit -force:ScriptFunctionWithInlineCache -force:fixdataprops -force:atom -off:lossyinttypespec -off:ParallelParse -off:fefixedmethods -off:checkthis -off:DelayCapture -off:ArrayLengthHoist -off:ArrayCheckHoist -ForceArrayBTree -off:trackintusage -off:bailonnoprofile</compile-flags>
+      <baseline>SIMDbug2.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug3.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:5 -maxsimplejitruncount:6 -werexceptionsupport  -forcejitloopbody -force:rejit -force:atom</compile-flags>
+      <baseline>SIMDbug3.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug4.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:1 -werexceptionsupport  -MaxLinearStringCaseCount:2 -MaxLinearIntCaseCount:2 -force:fieldcopyprop -bgjit- -loopinterpretcount:1 -force:rejit -off:ArrayCheckHoist -ForceArrayBTree -force:fixdataprops -off:fefixedmethods -off:lossyinttypespec -off:aggressiveinttypespec -off:BoundCheckElimination -off:NativeArray  -off:LoopCountBasedBoundCheckHoist -off:ArrayLengthHoist -off:bailonnoprofile -off:JsArraySegmentHoist -off:BoundCheckHoist -off:objtypespec  -stress:BailOnNoProfile -off:EliminateArrayAccessHelperCall</compile-flags>
+      <baseline>SIMDbug4.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug5.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:6 -maxsimplejitruncount:4 -werexceptionsupport  -forcedeferparse -bgjit- -loopinterpretcount:1 -force:atom -force:fixdataprops -off:lossyinttypespec -force:rejit -ForceArrayBTree -force:ScriptFunctionWithInlineCache -off:ArrayCheckHoist -off:BoundCheckHoist -off:checkthis -off:trackintusage -off:aggressiveinttypespec -off:fefixedmethods -off:DelayCapture -off:ParallelParse -off:bailonnoprofile -off:BoundCheckElimination -ValidateInlineStack -off:LoopCountBasedBoundCheckHoist -off:floattypespec -off:ArrayMissingValueCheckHoist -off:JsArraySegmentHoist</compile-flags>
+      <baseline>SIMDbug5.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug6.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:2 -werexceptionsupport  -force:ScriptFunctionWithInlineCache -force:rejit -force:fixdataprops -force:atom -off:aggressiveinttypespec -off:DelayCapture -off:BoundCheckElimination -off:lossyinttypespec -off:ArrayCheckHoist -off:fefixedmethods -off:trackintusage -off:ParallelParse -off:BoundCheckHoist -ForceArrayBTree</compile-flags>
+      <baseline>SIMDbug6.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug7.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:2 -werexceptionsupport  -MaxLinearStringCaseCount:2 -MaxLinearIntCaseCount:2 -bgjit- -loopinterpretcount:1 -MinSwitchJumpTableSize:3 -force:rejit -force:ScriptFunctionWithInlineCache -force:fixdataprops -force:atom -off:lossyinttypespec -off:ParallelParse -off:fefixedmethods -off:checkthis -off:DelayCapture -off:ArrayLengthHoist -off:ArrayCheckHoist -ForceArrayBTree -off:trackintusage -off:bailonnoprofile</compile-flags>
+      <baseline>SIMDbug7.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>SIMDbug8.js</files>
+      <compile-flags>-simd128typespec -asmjs-  -PrintSystemException  -simdjs  -maxinterpretcount:1 -maxsimplejitruncount:2 -werexceptionsupport  -force:polymorphicinlinecache -bgjit- -loopinterpretcount:1 -force:fieldcopyprop -force:fieldhoist -forceserialized -sse:3 -force:rejit -force:ScriptFunctionWithInlineCache -off:trackintusage -force:fixdataprops -off:aggressiveinttypespec -off:fefixedmethods -off:ArrayCheckHoist -off:lossyinttypespec -off:LoopCountBasedBoundCheckHoist -ValidateInlineStack -off:ArrayLengthHoist -off:BoundCheckHoist -off:BoundCheckElimination -off:bailonnoprofile -off:LdLenIntSpec -off:objtypespec  -off:ArrayLiteralFastPath -off:TypedArrayTypeSpec -off:ArrayMissingValueCheckHoist</compile-flags>
+      <baseline>SIMDbug8.baseline</baseline>
+    </default>
+  </test>  
 </regress-exe>

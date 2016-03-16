@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -997,10 +997,11 @@ namespace Js
 #if DBG
         static void CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext)
         {
-            byte count = BuiltinFunction::Count;
-            for(byte index = 0; index < count; index++)
+            auto count = BuiltinFunction::Count;
+            for(auto index = 0; index < count; index++)
             {
                 Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo(builtInFuncs[index]->GetFunctionInfo(), scriptContext)));
+                Assert(index + 1 != 0);
             }
 
         }

@@ -139,10 +139,17 @@ var m = asmModule(this, null, buffer);
 
 m.new2DMatrix(0, 4, 8);
 m.new2DMatrix(200, 8, 12);
-m.new2DMatrix(400, 4, 4);
-m.new2DMatrix(600, 4, 4);
+m.matrixMultiplication(0, 200, 800);
+m.new2DMatrix(0, 4, 8);
+m.new2DMatrix(200, 8, 12);
 m.matrixMultiplication(0, 200, 800);
 
+m.new2DMatrix(400, 4, 4);
+m.new2DMatrix(600, 4, 4);
+m.matrixMultiplication(400, 600, 1000);
+
+m.new2DMatrix(400, 4, 4);
+m.new2DMatrix(600, 4, 4);
 m.matrixMultiplication(400, 600, 1000);
 
 exp_results1 = [

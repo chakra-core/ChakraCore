@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -538,3 +538,32 @@
 #ifndef PROFILE_DICTIONARY
 #define PROFILE_DICTIONARY 0
 #endif
+
+// SIMD_JS
+#define SIMD_EXPAND_W_TAG(MACRO) \
+    MACRO(F4) \
+    MACRO(I4) \
+    MACRO(I8) \
+    MACRO(I16) \
+    MACRO(U4) \
+    MACRO(U8) \
+    MACRO(U16) \
+    MACRO(B4) \
+    MACRO(B8) \
+    MACRO(B16)
+
+#define SIMD_EXPAND_W_NAME(MACRO) \
+    SIMD_EXPAND_W_NAME_NUM_ONLY(MACRO) \
+    MACRO(Bool32x4, B4) \
+    MACRO(Bool16x8, B8) \
+    MACRO(Bool8x16, B16)
+
+#define SIMD_EXPAND_W_NAME_NUM_ONLY(MACRO)\
+    MACRO(Float32x4, F4) \
+    MACRO(Int32x4, I4) \
+    MACRO(Int16x8, I8) \
+    MACRO(Int8x16, I16) \
+    MACRO(Uint32x4, U4) \
+    MACRO(Uint16x8, U8) \
+    MACRO(Uint8x16, U16)
+

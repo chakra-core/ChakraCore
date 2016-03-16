@@ -215,20 +215,32 @@ var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.
 var c;
 c = m.func1();
 equalSimd([-205103.390625, 1274064.75, -3416622, 393209.9375], c, SIMD.Float32x4, "func1");
+c = m.func1();
+equalSimd([-205103.390625, 1274064.75, -3416622, 393209.9375], c, SIMD.Float32x4, "func1");
 
+c = m.func2();
+equalSimd([1102095.125000,619028.875000,-1643743.375000,132471.562500], c, SIMD.Float32x4, "func2");
 c = m.func2();
 equalSimd([1102095.125000,619028.875000,-1643743.375000,132471.562500], c, SIMD.Float32x4, "func2");
 
 c = m.func3();
 equalSimd([3569690.25, 165135.625, -377064.84375, -62397.0078125], c, SIMD.Float32x4, "func3");
+c = m.func3();
+equalSimd([7168530.5, 121328.125, -185358, -158094.90625], c, SIMD.Float32x4, "func3");
 
+c = m.func4();
+equalSimd([0.000000,0.000000,0.000000,0.000000], c, SIMD.Float32x4, "func4");
 c = m.func4();
 equalSimd([0.000000,0.000000,0.000000,0.000000], c, SIMD.Float32x4, "func4");
 
 c = m.func5();
 equalSimd([-1160396.500000,-201142.625000,506200.031250,-65869.781250], c, SIMD.Float32x4, "func5");
+c = m.func5();
+equalSimd([-1160396.500000,-201142.625000,506200.031250,-65869.781250], c, SIMD.Float32x4, "func5");
 
 c = m.func6();
 equalSimd([-3559623.75, -171937.625, 378395.46875, -2071.177734375], c, SIMD.Float32x4, "func6");
+c = m.func6();
+equalSimd([-7158464, -128130.125, 186688.625, 93626.71875], c, SIMD.Float32x4, "func6");
 
 WScript.Echo("PASS");

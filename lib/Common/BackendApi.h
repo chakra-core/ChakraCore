@@ -276,6 +276,9 @@ enum VTableValue {
     VtableSimd128U4,
     VtableSimd128U8,
     VtableSimd128U16,
+    VtableSimd128B4,
+    VtableSimd128B8,
+    VtableSimd128B16,
     Count
 };
 

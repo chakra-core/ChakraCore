@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -26,6 +26,7 @@ namespace Js
         };
         JavascriptSIMDInt8x16(StaticType *type);
         JavascriptSIMDInt8x16(SIMDValue *val, StaticType *type);
+        static JavascriptSIMDInt8x16* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDInt8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDInt8x16* FromVar(Var aValue);
@@ -41,7 +42,6 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         static const char16* GetTypeName();
-        __inline SIMDValue GetValue() { return value; }
         Var  Copy(ScriptContext* requestContext);
     };
 }

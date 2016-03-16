@@ -71,8 +71,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(100, -10, -128, -102, 83, -38, -9, 12, 52, 127, -127, -129, 129, 0, 88, 100234) });
 
 equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleLocal(), SIMD.Int8x16, "");
+equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleLocal(), SIMD.Int8x16, "");
+equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleGlobal(), SIMD.Int8x16, "");
 equalSimd([1, 2, 5, 6, 9, 11, 12, 13, 5, 3, 2, 7, 3, 9, 15, 1], m.testswizzleGlobal(), SIMD.Int8x16, "");
 equalSimd([100, -10, 83, -38, 52, -127, 127, -127, 83, -128, -10, -9, -128, 52, 88, 100], m.testswizzleGlobalImport(), SIMD.Int8x16, "");
+equalSimd([100, -10, 83, -38, 52, -127, 127, -127, 83, -128, -10, -9, -128, 52, 88, 100], m.testswizzleGlobalImport(), SIMD.Int8x16, "");
+equalSimd([2, 4, 10, 12, 18, 22, 24, 26, 10, 6, 4, 14, 6, 18, 30, 2], m.testswizzleFunc(), SIMD.Int8x16, "");
 equalSimd([2, 4, 10, 12, 18, 22, 24, 26, 10, 6, 4, 14, 6, 18, 30, 2], m.testswizzleFunc(), SIMD.Int8x16, "");
 
 print("PASS");

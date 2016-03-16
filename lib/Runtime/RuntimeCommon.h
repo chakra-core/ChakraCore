@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -114,13 +114,13 @@ namespace Js
         WritableData = Data | Writable // Data descriptor is writable
     };
 
-    BEGIN_ENUM_BYTE(BuiltinFunction)
+    BEGIN_ENUM_USHORT(BuiltinFunction)
 #define LIBRARY_FUNCTION(obj, name, argc, flags, entry) obj##_##name,
 #include "LibraryFunction.h"
 #undef LIBRARY_FUNCTION
         Count,
         None,
-    END_ENUM_BYTE()
+     END_ENUM_USHORT()
 
     typedef void * Var;
     typedef WriteBarrierPtr<void> WriteBarrierVar;

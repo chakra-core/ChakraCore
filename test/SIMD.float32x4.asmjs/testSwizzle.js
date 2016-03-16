@@ -207,13 +207,13 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Float32x4(9, 9, 9, 9), g2: SIMD.Int32x4(1, 2, 3, 4)});
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
+equalSimd([3.1622776985168457, 4.242640495300293, 2, 3.1622776985168457], m.func1(), SIMD.Float32x4, "Test Swizzle");
+equalSimd([3.1622776985168457, 4.242640495300293, 2, 3.1622776985168457], m.func1(), SIMD.Float32x4, "Test Swizzle");
 
+equalSimd([320.22991943359375, 3130438, 40, 151.6680450439453], m.func2(), SIMD.Float32x4, "Test Swizzle");
+equalSimd([320.22991943359375, 3130438, 40, 151.6680450439453], m.func2(), SIMD.Float32x4, "Test Swizzle");
 
-equalSimd([3.1622776985168457, 4.242640495300293, 2, 3.1622776985168457], ret1, SIMD.Float32x4, "Test Swizzle");
-equalSimd([320.22991943359375, 3130438, 40, 151.6680450439453], ret2, SIMD.Float32x4, "Test Swizzle");
-equalSimd([165.03871154785156, 107538.6328125, 254.60000610351562, 7.49533224105835], ret3, SIMD.Float32x4, "Test Swizzle");
+equalSimd([165.03871154785156, 107538.6328125, 254.60000610351562, 7.49533224105835], m.func3(), SIMD.Float32x4, "Test Swizzle");
+equalSimd([165.03871154785156, 107538.6328125, 254.60000610351562, 7.49533224105835], m.func3(), SIMD.Float32x4, "Test Swizzle");
 
 print("PASS");

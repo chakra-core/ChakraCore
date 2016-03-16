@@ -68,11 +68,12 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Uint16x8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)});
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
+equalSimd([65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535], m.func1(), SIMD.Uint16x8, "");
+equalSimd([65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535], m.func1(), SIMD.Uint16x8, "");
 
-equalSimd([65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535], ret1, SIMD.Uint16x8, "");
-equalSimd([4951, 4951, 4951, 4951, 4951, 4951, 4951, 4951], ret2, SIMD.Uint16x8, "");
-equalSimd([20, 20, 20, 20, 20, 20, 20, 20], ret3, SIMD.Uint16x8, "");
+equalSimd([4951, 4951, 4951, 4951, 4951, 4951, 4951, 4951], m.func2(), SIMD.Uint16x8, "");
+equalSimd([4951, 4951, 4951, 4951, 4951, 4951, 4951, 4951], m.func2(), SIMD.Uint16x8, "");
+
+equalSimd([20, 20, 20, 20, 20, 20, 20, 20], m.func3(), SIMD.Uint16x8, "");
+equalSimd([20, 20, 20, 20, 20, 20, 20, 20], m.func3(), SIMD.Uint16x8, "");
 print("PASS");

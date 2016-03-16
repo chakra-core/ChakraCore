@@ -165,9 +165,19 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
 equalSimd([2250506240, 4241489920, 1703084032, 3715104768], m.testShiftLeftScalarLocal(), SIMD.Uint32x4, "testShift1");
+equalSimd([2250506240, 4241489920, 1703084032, 3715104768], m.testShiftLeftScalarLocal(), SIMD.Uint32x4, "testShift1");
 equalSimd([129, 73, 457, 144], m.testShiftRightScalarLocal(), SIMD.Uint32x4, "testShift2");
+equalSimd([129, 73, 457, 144], m.testShiftRightScalarLocal(), SIMD.Uint32x4, "testShift2");
+
 equalSimd([520093696, 0, 0, 0], m.testShiftLeftScalarGlobal(), SIMD.Uint32x4, "testShift3");
 equalSimd([7936, 0, 0, 0], m.testShiftRightScalarGlobal(), SIMD.Uint32x4, "testShift4");
+
+equalSimd([520093696, 0, 0, 0], m.testShiftLeftScalarGlobal(), SIMD.Uint32x4, "testShift3");
+equalSimd([7936, 0, 0, 0], m.testShiftRightScalarGlobal(), SIMD.Uint32x4, "testShift4");
+
+equalSimd([6553600, 0, 67371008, 6684672], m.testShiftLeftScalarGlobalImport(), SIMD.Uint32x4, "testShift5");
+equalSimd([100, 0, 1028, 102], m.testShiftRightScalarGlobalImport(), SIMD.Uint32x4, "testShift6");
+
 equalSimd([6553600, 0, 67371008, 6684672], m.testShiftLeftScalarGlobalImport(), SIMD.Uint32x4, "testShift5");
 equalSimd([100, 0, 1028, 102], m.testShiftRightScalarGlobalImport(), SIMD.Uint32x4, "testShift6");
 

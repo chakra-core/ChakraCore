@@ -185,6 +185,8 @@ public:
             void            SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper = false);
 #if !FLOATVAR
             void            GenerateNumberAllocation(IR::RegOpnd * opndDst, IR::Instr * instrInsert, bool isHelper);
+#else
+            void            CanonicalizeNaN(IR::Instr * instrInsert, IR::RegOpnd * s1, bool isHelper);
 #endif
             void            GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, IR::LabelInstr* allocHelperLabel, IR::LabelInstr* allocDoneLabel);
 #ifdef _CONTROL_FLOW_GUARD

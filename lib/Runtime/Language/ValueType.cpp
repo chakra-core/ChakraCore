@@ -734,107 +734,45 @@ bool ValueType::IsSimd128(IRType type) const
 {
     switch (type)
     {
-    case TySimd128F4:
-        return IsSimd128Float32x4();
-    case TySimd128I4:
-        return IsSimd128Int32x4();
-    case TySimd128I8:
-        return IsSimd128Int16x8();
-    case TySimd128I16:
-        return IsSimd128Int8x16();
-    case TySimd128U4:
-        return IsSimd128Uint32x4();
-    case TySimd128U8:
-        return IsSimd128Uint16x8();
-    case TySimd128U16:
-        return IsSimd128Uint8x16();
-    case TySimd128D2:
-        return IsSimd128Float64x2();
+
+#define SIMD_TYPE(_NAME_,_TAG_)\
+    case TySimd128##_TAG_##:\
+        return IsSimd128##_NAME_##();
+    SIMD_EXPAND_W_NAME(SIMD_TYPE)
+#undef SIMD_TYPE
+
     default:
         Assert(UNREACHED);
         return false;
     }
 }
 
-bool ValueType::IsSimd128Float32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Float32x4;
+#define SIMD_IS(_NAME_,_TAG_)\
+bool ValueType::IsSimd128##_NAME_##() const\
+{\
+    return IsObject() && GetObjectType() == ObjectType::Simd128##_NAME_##;\
 }
-
-bool ValueType::IsSimd128Int32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int32x4;
-}
-
-bool ValueType::IsSimd128Int16x8() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int16x8;
-}
-
-bool ValueType::IsSimd128Int8x16() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Int8x16;
-}
-
-bool ValueType::IsSimd128Uint32x4() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint32x4;
-}
-
-bool ValueType::IsSimd128Uint16x8() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint16x8;
-}
-
-bool ValueType::IsSimd128Uint8x16() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
-}
-
-bool ValueType::IsSimd128Float64x2() const
-{
-    return IsObject() && GetObjectType() == ObjectType::Simd128Float64x2;
-}
+SIMD_EXPAND_W_NAME(SIMD_IS)
+#undef SIMD_IS
 
 bool ValueType::IsLikelySimd128() const
 {
     return IsLikelyObject() && (GetObjectType() >= ObjectType::Simd128Float32x4 && GetObjectType() <= ObjectType::Simd128Float64x2);
 }
 
-bool ValueType::IsLikelySimd128Float32x4() const
+bool ValueType::IsLikelySimd128(ObjectType const simdType) const
 {
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Float32x4;
+    return IsLikelyObject() && (GetObjectType() == simdType);
 }
 
-bool ValueType::IsLikelySimd128Int32x4() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int32x4;
+#define SIMD_ISLIKELY(_NAME_,_TAG_)\
+bool ValueType::IsLikelySimd128##_NAME_##() const\
+{\
+    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128##_NAME_##;\
 }
+SIMD_EXPAND_W_NAME(SIMD_ISLIKELY)
+#undef SIMD_ISLIKELY
 
-bool ValueType::IsLikelySimd128Int16x8() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int16x8;
-}
-
-bool ValueType::IsLikelySimd128Int8x16() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int8x16;
-}
-
-bool ValueType::IsLikelySimd128Uint16x8() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint16x8;
-}
-
-bool ValueType::IsLikelySimd128Uint8x16() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
-}
-
-bool ValueType::IsLikelySimd128Float64x2() const
-{
-    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Float64x2;
-}
 #endif
 
 ObjectType ValueType::GetObjectType() const
@@ -1272,14 +1210,11 @@ void ValueType::InitializeTypeIdToBitsMap()
     TypeIdToBits[TypeIds_CharArray         ] = GetObject(ObjectType::CharArray).bits;
     TypeIdToBits[TypeIds_BoolArray         ] = GetObject(ObjectType::BoolArray).bits;
 
-    TypeIdToBits[TypeIds_SIMDFloat32x4     ] = GetObject(ObjectType::Simd128Float32x4).bits;
-    TypeIdToBits[TypeIds_SIMDInt32x4       ] = GetObject(ObjectType::Simd128Int32x4).bits;
-    TypeIdToBits[TypeIds_SIMDInt16x8       ] = GetObject(ObjectType::Simd128Int16x8).bits;
-    TypeIdToBits[TypeIds_SIMDInt8x16       ] = GetObject(ObjectType::Simd128Uint8x16).bits;
-    TypeIdToBits[TypeIds_SIMDUint16x8      ] = GetObject(ObjectType::Simd128Uint16x8).bits;
-    TypeIdToBits[TypeIds_SIMDUint8x16      ] = GetObject(ObjectType::Simd128Int8x16).bits;
-    TypeIdToBits[TypeIds_SIMDFloat64x2     ] = GetObject(ObjectType::Simd128Float64x2).bits;
-
+    // SIMD_JS
+#define SIMD_TYPEID(_NAME_,_TAG_)\
+    TypeIdToBits[TypeIds_SIMD##_NAME_##    ] = GetObject(ObjectType::Simd128##_NAME_##).bits;
+    SIMD_EXPAND_W_NAME(SIMD_TYPEID)
+#undef SIMD_TYPEID
 
     VirtualTypeIdToBits[TypeIds_Int8Array] = GetObject(ObjectType::Int8VirtualArray).bits;
     VirtualTypeIdToBits[TypeIds_Uint8Array] = GetObject(ObjectType::Uint8VirtualArray).bits;

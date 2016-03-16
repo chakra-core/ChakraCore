@@ -189,15 +189,14 @@ var s6 = SIMD.Int32x4(1.0, 2.0, 3.0, 4.0);
 var s7 = SIMD.Int32x4(1.0, 2.0, 3.0, 4.0);
 var s8 = SIMD.Int32x4(1.0, 2.0, 3.0, 4.0);
 
-var ret1 = m.func1(s1, s2);
-var ret2 = m.func2(s1, s2, s3, s4);
-var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
-var ret4 = m.func4();
 
-
-equalSimd([2, 4, 6, 8], ret1, SIMD.Int32x4, "TestCalls");
-equalSimd([4, 8, 12, 16], ret2, SIMD.Int32x4, "TestCalls");
-equalSimd([8, 16, 24, 32], ret3, SIMD.Int32x4, "TestCalls");
-equalSimd([301, 301, 301, 301], ret4, SIMD.Int32x4, "TestCalls");
+equalSimd([2, 4, 6, 8], m.func1(s1, s2), SIMD.Int32x4, "TestCalls");
+equalSimd([2, 4, 6, 8], m.func1(s1, s2), SIMD.Int32x4, "TestCalls");
+equalSimd([4, 8, 12, 16], m.func2(s1, s2, s3, s4), SIMD.Int32x4, "TestCalls");
+equalSimd([4, 8, 12, 16], m.func2(s1, s2, s3, s4), SIMD.Int32x4, "TestCalls");
+equalSimd([8, 16, 24, 32], m.func3(s1, s2, s3, s4, s5, s6, s7, s8), SIMD.Int32x4, "TestCalls");
+equalSimd([8, 16, 24, 32], m.func3(s1, s2, s3, s4, s5, s6, s7, s8), SIMD.Int32x4, "TestCalls");
+equalSimd([301, 301, 301, 301], m.func4(), SIMD.Int32x4, "TestCalls");
+equalSimd([301, 301, 301, 301], m.func4(), SIMD.Int32x4, "TestCalls");
 print("PASS");
 

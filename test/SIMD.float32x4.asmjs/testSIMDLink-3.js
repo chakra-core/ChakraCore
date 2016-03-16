@@ -205,14 +205,22 @@ try {
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
 var ret1 = m.func1();
+ret1 = m.func1();
 
 var ret2 = m.func2();
-var ret3 = m.func3();
+ret2 = m.func2();
 
+var ret3 = m.func3();
+ret3 = m.func3();
 
 var ret4 = m.func4();
+ret4 = m.func4();
+
 var ret5 = m.func5();
+ret5 = m.func5();
+
 var ret6 = m.func6();
+ret6 = m.func6();
 } catch (e)
 {
 print("PASS");    

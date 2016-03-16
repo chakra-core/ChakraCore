@@ -232,40 +232,91 @@ var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.
     var ret;
     ret = m.func1(0);
     equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func1(0);
+    equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func1(1);
     equalSimd([false, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func1(1);
+    equalSimd([false, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func1(2);
     equalSimd([false, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func1(2);
+    equalSimd([false, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func1(3);
     equalSimd([true, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func1(3);
+    equalSimd([true, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func1(4);
     equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func1(4);
+    equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
+    ret = m.func1(5);
+    equalSimd([true, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
     ret = m.func1(5);
     equalSimd([true, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
 
     
     ret = m.func2(0);
     equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func2(0);
+    equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func2(1);
     equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func2(1);
+    equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func2(2);
     equalSimd([false, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func2(2);
+    equalSimd([false, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func2(3);
     equalSimd([true, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func2(3);
+    equalSimd([true, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func2(4);
+    equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func2(4);
+    equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    
+    ret = m.func2(5);
     equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
     ret = m.func2(5);
     equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
     
     ret = m.func3(0);
     equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func3(0);
+    equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func3(1);
     equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func3(1);
+    equalSimd([true, false, true, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func3(2);
     equalSimd([false, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func3(2);
+    equalSimd([false, false, false, false], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func3(3);
     equalSimd([true, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func3(3);
+    equalSimd([true, true, true, true], ret, SIMD.Bool32x4, "Test comparison");
+    
     ret = m.func3(4);
+    equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    ret = m.func3(4);
+    equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
+    
+    ret = m.func3(5);
     equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");
     ret = m.func3(5);
     equalSimd([false, true, false, true], ret, SIMD.Bool32x4, "Test comparison");

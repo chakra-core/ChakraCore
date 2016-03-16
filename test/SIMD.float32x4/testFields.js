@@ -42,6 +42,8 @@ testScalarGetters();
 testScalarGetters();
 
 testExtractLane();
+testExtractLane();
 
+testReplaceLane();
 testReplaceLane();
 print("PASS");

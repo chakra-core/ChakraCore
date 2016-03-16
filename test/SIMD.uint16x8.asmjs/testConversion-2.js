@@ -156,11 +156,21 @@ printSimdBaseline(m.func5(), "SIMD.Uint16x8", "m.func5()", "Func5");
 printSimdBaseline(m.func6(), "SIMD.Uint16x8", "m.func6()", "Func6");*/
 
 equalSimd([18842, 17821, 36864, 17748, 21955, 17446, 54323, 18171], m.func1(), SIMD.Uint16x8, "Func1");
-equalSimd([0, 49280, 0, 49152, 0, 49088, 0, 49024], m.func2(), SIMD.Uint16x8, "Func2");
-equalSimd([1, 0, 2, 0, 3, 0, 4, 0], m.func3(), SIMD.Uint16x8, "Func3");
-equalSimd([1, 2, 3, 4, 5, 6, 7, 8], m.func4(), SIMD.Uint16x8, "Func4");
-equalSimd([43690, 43690, 43690, 43690, 43690, 43690, 43690, 43690], m.func5(), SIMD.Uint16x8, "Func5");
-equalSimd([21845, 21845, 21845, 21845, 21845, 21845, 21845, 21845], m.func6(), SIMD.Uint16x8, "Func6");
+equalSimd([18842, 17821, 36864, 17748, 21955, 17446, 54323, 18171], m.func1(), SIMD.Uint16x8, "Func1");
 
+equalSimd([0, 49280, 0, 49152, 0, 49088, 0, 49024], m.func2(), SIMD.Uint16x8, "Func2");
+equalSimd([0, 49280, 0, 49152, 0, 49088, 0, 49024], m.func2(), SIMD.Uint16x8, "Func2");
+
+equalSimd([1, 0, 2, 0, 3, 0, 4, 0], m.func3(), SIMD.Uint16x8, "Func3");
+equalSimd([1, 0, 2, 0, 3, 0, 4, 0], m.func3(), SIMD.Uint16x8, "Func3");
+
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8], m.func4(), SIMD.Uint16x8, "Func4");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8], m.func4(), SIMD.Uint16x8, "Func4");
+
+equalSimd([43690, 43690, 43690, 43690, 43690, 43690, 43690, 43690], m.func5(), SIMD.Uint16x8, "Func5");
+equalSimd([43690, 43690, 43690, 43690, 43690, 43690, 43690, 43690], m.func5(), SIMD.Uint16x8, "Func5");
+
+equalSimd([21845, 21845, 21845, 21845, 21845, 21845, 21845, 21845], m.func6(), SIMD.Uint16x8, "Func6");
+equalSimd([21845, 21845, 21845, 21845, 21845, 21845, 21845, 21845], m.func6(), SIMD.Uint16x8, "Func6");
 
 print("PASS");

@@ -99,23 +99,24 @@ function verify_results(type, results_ex, buffer, count)
 
 var buffer = new ArrayBuffer(16 * 1024 * 1024);
 var m = asmModule(this, null, buffer);
-
-m.new2DMatrix(0, 13, 17);
-m.new2DMatrix(500, 13, 17);
-m.matrixSubtraction(0, 500, 1000);
-
-
-
 var values = new Float32Array(buffer);
+
 exp_result1 = [];
 for (var i = 0; i < 13*17; i ++)
 {
     exp_result1[i] = SIMD.Float32x4(0,0,0,0);
 }
 
+m.new2DMatrix(0, 13, 17);
+m.new2DMatrix(500, 13, 17);
+m.matrixSubtraction(0, 500, 1000);
 verify_results(SIMD.Float32x4, exp_result1, values.subarray(1000 + 2), 13*17 - 4);
 
-m.matrixSubtraction(1000, 0, 1500);
+m.new2DMatrix(0, 13, 17);
+m.new2DMatrix(500, 13, 17);
+m.matrixSubtraction(0, 500, 1000);
+verify_results(SIMD.Float32x4, exp_result1, values.subarray(1000 + 2), 13*17 - 4);
+
 
 exp_result2 = [
 SIMD.Float32x4(-1,-2,-3,-4),
@@ -176,6 +177,10 @@ SIMD.Float32x4(-217,-218,-219,-220),
 SIMD.Float32x4(-221,0,0,0)
 ];
 
+m.matrixSubtraction(1000, 0, 1500);
+verify_results(SIMD.Float32x4, exp_result2, values.subarray(1500 + 2), 13*17 -4);
+
+m.matrixSubtraction(1000, 0, 1500);
 verify_results(SIMD.Float32x4, exp_result2, values.subarray(1500 + 2), 13*17 -4);
 
 print("PASS");

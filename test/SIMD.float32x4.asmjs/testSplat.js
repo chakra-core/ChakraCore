@@ -147,13 +147,13 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)});
 
-var ret1 = m.func1(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4));
-var ret2 = m.func2(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4));
-var ret3 = m.func3(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4));
+equalSimd([100, 100, 100, 100], m.func1(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
+equalSimd([100, 100, 100, 100], m.func1(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
 
+equalSimd([14851, 14851, 14851, 14851], m.func2(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
+equalSimd([14851, 14851, 14851, 14851], m.func2(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
 
-equalSimd([100, 100, 100, 100], ret1, SIMD.Float32x4, "Test Splat");
-equalSimd([14851, 14851, 14851, 14851], ret2, SIMD.Float32x4, "Test Splat");
-equalSimd([1234, 1234, 1234, 1234], ret3, SIMD.Float32x4, "Test Splat");
+equalSimd([1234, 1234, 1234, 1234], m.func3(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
+equalSimd([1234, 1234, 1234, 1234], m.func3(SIMD.Int32x4(1,2,3,4), SIMD.Float32x4(1,2,3,4), SIMD.Float64x2(1,2,3,4)), SIMD.Float32x4, "Test Splat");
 
 print("PASS");

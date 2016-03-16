@@ -393,7 +393,7 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432), g3:SIMD.Uint32x4(-1065353216, 1073741824, 0, -1082)});
 
-var c;
+
 /*
 c = m.func1();
 equalSimd([5033.200195,3401.000000,665.340027,32234.099609], c, SIMD.Float32x4, "func1");
@@ -413,36 +413,37 @@ equalSimd([-107374184.000000,3.430469,0.000000,7.399765], c, SIMD.Float32x4, "fu
 c = m.func6();
 equalSimd([-0.000000,1.496880,8026220.000000,1.957225], c, SIMD.Float32x4, "func6");
 */
-c = m.func7();
-equalSimd([1034.000000,22342.000000,1233.000000,40443.000000], c, SIMD.Float32x4, "func7");
 
-c = m.func8();
-equalSimd([-1065353216.000000,-1073741824.000000,-1077936128.000000,-1082130432.000000], c, SIMD.Float32x4, "func8");
+equalSimd([1034.000000,22342.000000,1233.000000,40443.000000], m.func7(), SIMD.Float32x4, "func7");
+equalSimd([1034.000000,22342.000000,1233.000000,40443.000000], m.func7(), SIMD.Float32x4, "func7");
 
-c = m.func9();
-equalSimd([1065353216.000000,1073741824.000000,1077936128.000000,1082130432.000000], c, SIMD.Float32x4, "func9");
+equalSimd([-1065353216.000000,-1073741824.000000,-1077936128.000000,-1082130432.000000], m.func8(), SIMD.Float32x4, "func8");
+equalSimd([-1065353216.000000,-1073741824.000000,-1077936128.000000,-1082130432.000000], m.func8(), SIMD.Float32x4, "func8");
 
-c = m.func10();
-equalSimd([1.0,2.0,3.0,4.0], c, SIMD.Float32x4, "func10");
+equalSimd([1065353216.000000,1073741824.000000,1077936128.000000,1082130432.000000], m.func9(), SIMD.Float32x4, "func9");
+equalSimd([1065353216.000000,1073741824.000000,1077936128.000000,1082130432.000000], m.func9(), SIMD.Float32x4, "func9");
 
-c = m.func11();
-equalSimd([-4.0,-2.0,-1.5,-1.0], c, SIMD.Float32x4, "func11");
+equalSimd([1.0,2.0,3.0,4.0], m.func10(), SIMD.Float32x4, "func10");
+equalSimd([1.0,2.0,3.0,4.0], m.func10(), SIMD.Float32x4, "func10");
 
-c = m.func12();
-equalSimd([1.0,2.0,3.0,4.0], c, SIMD.Float32x4, "func12");
+equalSimd([-4.0,-2.0,-1.5,-1.0], m.func11(), SIMD.Float32x4, "func11");
+equalSimd([-4.0,-2.0,-1.5,-1.0], m.func11(), SIMD.Float32x4, "func11");
 
-c = m.func13();
-equalSimd([-2.9831537062818825e-7, 3.91155481338501e-8, -5.048728450860812e-29, 1.4110812091639615e-38], c, SIMD.Float32x4, "func13");
+equalSimd([1.0,2.0,3.0,4.0], m.func12(), SIMD.Float32x4, "func12");
+equalSimd([1.0,2.0,3.0,4.0], m.func12(), SIMD.Float32x4, "func12");
 
-c = m.func14();
-equalSimd([-2.9831537062818825e-7, 1.5117207833136126e-38, 7.105444298259947e-15, 1.4110812091639615e-38], c, SIMD.Float32x4, "func14");
+equalSimd([-2.9831537062818825e-7, 3.91155481338501e-8, -5.048728450860812e-29, 1.4110812091639615e-38], m.func13(), SIMD.Float32x4, "func13");
+equalSimd([-2.9831537062818825e-7, 3.91155481338501e-8, -5.048728450860812e-29, 1.4110812091639615e-38], m.func13(), SIMD.Float32x4, "func13");
 
-c = m.func15();
-equalSimd([1034, 4294945024, 1233, 4294967296], c, SIMD.Float32x4, "func15");
+equalSimd([-2.9831537062818825e-7, 1.5117207833136126e-38, 7.105444298259947e-15, 1.4110812091639615e-38], m.func14(), SIMD.Float32x4, "func13");
+equalSimd([-2.9831537062818825e-7, 1.5117207833136126e-38, 7.105444298259947e-15, 1.4110812091639615e-38], m.func14(), SIMD.Float32x4, "func13");
 
-c = m.func16();
-equalSimd([3229614080, 1073741824, 0, 4294966272], c, SIMD.Float32x4, "func16");
+equalSimd([1034, 4294945024, 1233, 4294967296], m.func15(), SIMD.Float32x4, "func15");
+equalSimd([1034, 4294945024, 1233, 4294967296], m.func15(), SIMD.Float32x4, "func15");
 
-c = m.func17();
-equalSimd([3216, 4294967296, 0, 3212836864], c, SIMD.Float32x4, "func17");
+equalSimd([3229614080, 1073741824, 0, 4294966272], m.func16(), SIMD.Float32x4, "func16");
+equalSimd([3229614080, 1073741824, 0, 4294966272], m.func16(), SIMD.Float32x4, "func16");
+
+equalSimd([3216, 4294967296, 0, 3212836864], m.func17(), SIMD.Float32x4, "func17");
+equalSimd([3216, 4294967296, 0, 3212836864], m.func17(), SIMD.Float32x4, "func17");
 WScript.Echo("PASS");

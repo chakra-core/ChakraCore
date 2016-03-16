@@ -160,6 +160,9 @@ var m = asmModule(this, null, buffer);
 m.new2DMatrix(0, 18, 12);
 m.new2DMatrix(500, 18, 12);
 m.matrixAddition(0, 500, 1000);
+m.new2DMatrix(0, 18, 12);
+m.new2DMatrix(500, 18, 12);
+m.matrixAddition(0, 500, 1000);
 
 var values = new Float32Array(buffer).subarray(1000 + 2);
 

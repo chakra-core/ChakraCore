@@ -81,7 +81,10 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Bool32x4(1, 0, 1, 1)});
 
 equalSimd([true, false, false, false], m.testConstructor(), SIMD.Bool32x4, "testConstructor");
+equalSimd([true, false, false, false], m.testConstructor(), SIMD.Bool32x4, "testConstructor");
 equalSimd([true, true, true, true], m.testSplat(), SIMD.Bool32x4, "testSplat");
+equalSimd([true, true, true, true], m.testSplat(), SIMD.Bool32x4, "testSplat");
+equalSimd([false, true, false, true], m.testLaneAccess(), SIMD.Bool32x4, "testLaneAccess");
 equalSimd([false, true, false, true], m.testLaneAccess(), SIMD.Bool32x4, "testLaneAccess");
 
 // WScript.Echo((m.testConstructor().toString()));

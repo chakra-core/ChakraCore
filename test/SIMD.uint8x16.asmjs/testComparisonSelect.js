@@ -137,10 +137,21 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint8x16(100, -1073741824, -1028, -102, 127, -38, -92929, -128, 52, 127, -127, -129, 129, 0, 88, 100234) });
 
 equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThan(), SIMD.Uint8x16, "Func1");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThan(), SIMD.Uint8x16, "Func1");
+
 equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThanOrEqual(), SIMD.Uint8x16, "Func2");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 8, 7, 6, 5, 4, 3, 2, 1], m.testLessThanOrEqual(), SIMD.Uint8x16, "Func2");
+
 equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThan(), SIMD.Uint8x16, "Func3");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThan(), SIMD.Uint8x16, "Func3");
+
 equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThanOrEqual(), SIMD.Uint8x16, "Func4");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 9, 10, 11, 12, 13, 14, 15, 16], m.testGreaterThanOrEqual(), SIMD.Uint8x16, "Func4");
+
 equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1], m.testEqual(), SIMD.Uint8x16, "Func5");
+equalSimd([16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1], m.testEqual(), SIMD.Uint8x16, "Func5");
+
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], m.testNotEqual(), SIMD.Uint8x16, "Func6");
 equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], m.testNotEqual(), SIMD.Uint8x16, "Func6");
 
 print("PASS");

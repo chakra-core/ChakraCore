@@ -107,9 +107,21 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Uint8x16(100, 255, 255, 255, 0, 38, 255, 1442, 52, 127, 254, 256, 129, 0, 88, 100234)});
 
 equalSimd([255, 255, 255, 250, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 255], m.testAddSaturateLocal(), SIMD.Uint8x16, "Func1");
+equalSimd([255, 255, 255, 250, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 255], m.testAddSaturateLocal(), SIMD.Uint8x16, "Func1");
+
 equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 7, 9, 11, 13, 0], m.testSubSaturateLocal(), SIMD.Uint8x16, "Func2");
+equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 7, 9, 11, 13, 0], m.testSubSaturateLocal(), SIMD.Uint8x16, "Func2");
+
 equalSimd([1, 255, 131, 131, 5, 6, 239, 240, 14, 25, 14, 155, 56, 35, 60, 38], m.testAddSaturateGlobal(), SIMD.Uint8x16, "Func3");
+equalSimd([1, 255, 131, 131, 5, 6, 239, 240, 14, 25, 14, 155, 56, 35, 60, 38], m.testAddSaturateGlobal(), SIMD.Uint8x16, "Func3");
+
 equalSimd([1, 0, 0, 0, 5, 6, 0, 0, 4, 0, 8, 0, 0, 0, 0, 0], m.testSubSaturateGlobal(), SIMD.Uint8x16, "Func4");
+equalSimd([1, 0, 0, 0, 5, 6, 0, 0, 4, 0, 8, 0, 0, 0, 0, 0], m.testSubSaturateGlobal(), SIMD.Uint8x16, "Func4");
+
 equalSimd([101, 255, 255, 255, 5, 44, 255, 170, 61, 137, 255, 12, 142, 14, 103, 154], m.testAddSaturateGlobalImport(), SIMD.Uint8x16, "Func5");
+equalSimd([101, 255, 255, 255, 5, 44, 255, 170, 61, 137, 255, 12, 142, 14, 103, 154], m.testAddSaturateGlobalImport(), SIMD.Uint8x16, "Func5");
+
 equalSimd([99, 253, 252, 251, 0, 32, 248, 154, 43, 117, 243, 0, 116, 0, 73, 122], m.testSubSaturateGlobalImport(), SIMD.Uint8x16, "Func6");
+equalSimd([99, 253, 252, 251, 0, 32, 248, 154, 43, 117, 243, 0, 116, 0, 73, 122], m.testSubSaturateGlobalImport(), SIMD.Uint8x16, "Func6");
+
 print("PASS");
