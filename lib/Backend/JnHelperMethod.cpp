@@ -184,9 +184,6 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
     case HelperDirectMath_Atan:
         return (double(*)(double))__libm_sse2_atan;
 
-    case HelperDirectMath_Atan2:
-        return (double(*)(double, double))__libm_sse2_atan2;
-
     case HelperDirectMath_Cos:
         return (double(*)(double))__libm_sse2_cos;
 
@@ -207,6 +204,9 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
     case HelperGuardCheckCall:
         return __guard_check_icall_fptr;
 #endif
+
+    case HelperDirectMath_Atan2:
+        return (double(*)(double, double))Js::Math::Atan2;
 
     case HelperDirectMath_FloorDb:
         return (double(*)(double))floor;
@@ -239,9 +239,6 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
     case HelperDirectMath_Atan:
         return (double(*)(double))atan;
 
-    case HelperDirectMath_Atan2:
-        return (double(*)(double, double))atan2;
-
     case HelperDirectMath_Cos:
         return (double(*)(double))cos;
 
@@ -266,9 +263,6 @@ DECLSPEC_GUARDIGNORE __declspec(noinline) void * const GetNonTableMethodAddress(
 
     case HelperDirectMath_Atan:
         return (double(*)(double))atan;
-
-    case HelperDirectMath_Atan2:
-        return (double(*)(double, double))atan2;
 
     case HelperDirectMath_Cos:
         return (double(*)(double))cos;
