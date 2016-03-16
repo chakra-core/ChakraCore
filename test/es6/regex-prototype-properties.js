@@ -79,5 +79,20 @@ tests = tests.concat(nonGenericPropertyNames.map(function (name) {
         }
     };
 }));
+tests = tests.concat([
+    {
+        name: "RegExp.prototype.toString should be generic",
+        body: function () {
+            var re = {
+                source: "source",
+                flags: "gi"
+            };
+
+            var string = RegExp.prototype.toString.call(re);
+
+            assert.areEqual("/source/gi", string);
+        }
+    }
+]);
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != 'summary' });
