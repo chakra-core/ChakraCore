@@ -92,6 +92,8 @@ EXDEF2    (NOPASMJS          , NopEx        , Empty                             
   DEF2_WMS( I2toI1Mem        , Shl_Int      , AsmJsMath::Shl                                     )
   DEF2_WMS( I2toI1Mem        , Shr_Int      , AsmJsMath::Shr                                     )
   DEF2_WMS( I2toI1Mem        , ShrU_Int     , AsmJsMath::ShrU                                    )
+  DEF2_WMS( I2toI1Mem        , Rol_Int      , AsmJsMath::Rol                                     )
+  DEF2_WMS( I2toI1Mem        , Ror_Int      , AsmJsMath::Ror                                     )
 
   DEF2_WMS( I2toI1Mem   , Mul_UInt     , AsmJsMath::Mul<uint>                             )
   DEF2_WMS( I2toI1Mem   , Div_UInt     , AsmJsMath::Div<uint>                             )

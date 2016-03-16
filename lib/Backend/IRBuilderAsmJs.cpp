@@ -2674,7 +2674,12 @@ IRBuilderAsmJs::BuildInt3(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCodeAsmJs::Imul_Int:
         instr = IR::Instr::New(Js::OpCode::InlineMathImul, dstOpnd, src1Opnd, src2Opnd, m_func);
         break;
-
+    case Js::OpCodeAsmJs::Rol_Int:
+        instr = IR::Instr::New(Js::OpCode::Rol_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
+    case Js::OpCodeAsmJs::Ror_Int:
+        instr = IR::Instr::New(Js::OpCode::Ror_I4, dstOpnd, src1Opnd, src2Opnd, m_func);
+        break;
     default:
         Assume(UNREACHED);
     }

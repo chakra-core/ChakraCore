@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // Default all macro to nothing
@@ -126,6 +126,8 @@ MACRO_WMS   ( Xor_Int                   , Int3         , None            ) // in
 MACRO_WMS   ( Shl_Int                   , Int3         , None            ) // int32 Shift '<<' (signed, truncate)
 MACRO_WMS   ( Shr_Int                   , Int3         , None            ) // int32 Shift '>>' (signed, truncate)
 MACRO_WMS   ( ShrU_Int                  , Int3         , None            ) // int32 Shift '>>>'(unsigned, truncate)
+MACRO_WMS   ( Rol_Int                   , Int3         , None            ) // int32 Rotate left
+MACRO_WMS   ( Ror_Int                   , Int3         , None            ) // int32 Rotate right
 
 // Unsigned int math
 MACRO_WMS   ( Mul_UInt                  , Int3         , None            ) // unsigned int32 Arithmetic '*'

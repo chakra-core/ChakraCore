@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -23,6 +23,8 @@ namespace Js
         static int Shl( int aLeft, int aRight );
         static int Shr( int aLeft, int aRight );
         static int ShrU( int aLeft, int aRight );
+        static int Rol( int aLeft, int aRight );
+        static int Ror( int aLeft, int aRight );
         template<typename T> static T Neg( T aLeft);
         static int Not( int aLeft);
         static int LogNot( int aLeft);

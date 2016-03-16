@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -105,6 +105,8 @@ WASM_KEYWORD_BIN_MATH_I(SHRS, shr_s, Shr_Int)
 WASM_KEYWORD_BIN_MATH_I(SHRU, shr_u, ShrU_Int)
 WASM_KEYWORD_BIN_MATH_I(DIVU, divu, Div_UInt)
 WASM_KEYWORD_BIN_MATH_I(MODU, modu, Rem_UInt)
+WASM_KEYWORD_BIN_MATH_I(ROR, rotr, Ror_Int)
+WASM_KEYWORD_BIN_MATH_I(ROL, rotl, Rol_Int)
 
 WASM_KEYWORD_BIN_MATH_FD(DIV, div, Div)
 

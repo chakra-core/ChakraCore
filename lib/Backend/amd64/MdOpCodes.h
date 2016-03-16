@@ -222,6 +222,8 @@ MACRO(PXOR,     Reg2,   None,           RNON,   f(MODRM),   o(PXOR),    DNO16|DO
 
 
 MACRO(RET,      Empty,  OpSideEffect,  RNON,   f(SPECIAL), o(RET),     DSETCC,                      OLB_NONE)
+MACRO(ROL,      Reg2,   None /* XXX */,R000,   f(SHIFT),   o(ROL),     DOPEQ | DSETCC,              OLB_NONE)
+MACRO(ROR,      Reg2,   None /* XXX */,R001,   f(SHIFT),   o(ROR),     DOPEQ | DSETCC,              OLB_NONE)
 MACRO(ROUNDSD,  Reg3,   None,          RNON,   f(MODRM),   o(ROUNDSD), DDST|DNO16|DSSE|D66,         OLB_0F3A)
 MACRO(ROUNDSS,  Reg3,   None,          RNON,   f(MODRM),   o(ROUNDSS), DDST|DNO16|DSSE|D66,         OLB_0F3A)
 MACRO(SAR,      Reg2,   OpSideEffect,  R111,   f(SHIFT),   o(SAR),     DOPEQ|DSETCC,                OLB_NONE)

@@ -1189,6 +1189,14 @@ void LowererMD::ChangeToShift(IR::Instr *const instr, const bool needFlags)
             instr->m_opcode = Js::OpCode::SHR;
             break;
 
+        case Js::OpCode::Rol_I4:
+            instr->m_opcode = Js::OpCode::ROL;
+            break;
+
+        case Js::OpCode::Ror_I4:
+            instr->m_opcode = Js::OpCode::ROR;
+            break;
+
         default:
             Assert(false);
             __assume(false);
@@ -1634,6 +1642,8 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::SHL:
         case Js::OpCode::SHR:
         case Js::OpCode::SAR:
+        case Js::OpCode::ROL:
+        case Js::OpCode::ROR:
             if (verify)
             {
                 Assert(instr->GetSrc2()->IsIntConstOpnd()

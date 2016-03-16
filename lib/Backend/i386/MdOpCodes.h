@@ -224,6 +224,8 @@ MACRO(SETB,     Reg1,       None,           RNON,   f(MODRM),   o(SETB),    DOPE
 MACRO(SETBE,    Reg1,       None,           RNON,   f(MODRM),   o(SETBE),   DOPEQ|DUSECC|DZEROF|DDST,   OLB_NONE)
 MACRO(SHL,      Reg2,       None,           R100,   f(SHIFT),   o(SHL),     DOPEQ|DSETCC,               OLB_NONE)
 MACRO(SHR,      Reg2,       None,           R101,   f(SHIFT),   o(SHR),     DOPEQ|DSETCC,               OLB_NONE)
+MACRO(ROL,      Reg2,       None /* XXX */, R000,   f(SHIFT),   o(ROL),     DOPEQ|DSETCC,               OLB_NONE)
+MACRO(ROR,      Reg2,       None /* XXX */, R001,   f(SHIFT),   o(ROR),     DOPEQ|DSETCC,               OLB_NONE)
 
 MACRO(SHUFPD,   Reg2,       None,           RNON,   f(MODRM),   o(SHUFPD),  DDST|DNO16|D66|DSSE,        OLB_NONE)
 MACRO(SHUFPS,   Reg2,       None,           RNON,   f(MODRM),   o(SHUFPS),  DDST|DNO16|DZEROF|DSSE,     OLB_NONE)
