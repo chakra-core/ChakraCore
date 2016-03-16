@@ -143,7 +143,11 @@ namespace Js
             {
                 if (JavascriptOperators::IsObject(firstArgument))
                 {
-                    if (JavascriptOperators::IsIterable(RecyclableObject::FromVar(firstArgument), scriptContext))
+                    Var iterator = JavascriptOperators::GetProperty(RecyclableObject::FromVar(firstArgument), PropertyIds::_symbolIterator, scriptContext);
+
+                    if (!JavascriptOperators::IsUndefinedObject(iterator) &&
+                        (iterator != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
+                        !JavascriptArray::Is(firstArgument)))
                     {
                         return CreateNewInstanceFromIterableObj(RecyclableObject::FromVar(firstArgument), scriptContext, elementSize, pfnCreateTypedArray);
                     }
