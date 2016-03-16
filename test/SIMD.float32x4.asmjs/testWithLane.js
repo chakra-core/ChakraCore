@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports) {
     "use asm";
@@ -9,8 +10,7 @@ function asmModule(stdlib, imports) {
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    var i4fromFloat64x2 = i4.fromFloat64x2;
-    var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
+    
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -35,8 +35,7 @@ function asmModule(stdlib, imports) {
     var f4 = stdlib.SIMD.Float32x4;  
     var f4check = f4.check;
     var f4splat = f4.splat;
-    var f4fromFloat64x2 = f4.fromFloat64x2;
-    var f4fromFloat64x2Bits = f4.fromFloat64x2Bits;
+        
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -45,7 +44,7 @@ function asmModule(stdlib, imports) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
     

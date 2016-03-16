@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js {
@@ -14,11 +15,8 @@ namespace Js {
         public:
             static FunctionInfo Int32x4;
             static FunctionInfo Check;
-            static FunctionInfo Zero;
             static FunctionInfo Splat;
-            static FunctionInfo Bool;
             // Conversions
-            static FunctionInfo FromBool;
             static FunctionInfo FromFloat64x2;
             static FunctionInfo FromFloat64x2Bits;
             static FunctionInfo FromFloat32x4;
@@ -49,12 +47,6 @@ namespace Js {
             static FunctionInfo GreaterThan;
             static FunctionInfo GreaterThanOrEqual;
 
-
-            // WithFlagX/Y/Z/W
-            static FunctionInfo WithFlagX;
-            static FunctionInfo WithFlagY;
-            static FunctionInfo WithFlagZ;
-            static FunctionInfo WithFlagW;
             //Lane access
             static FunctionInfo ExtractLane;
             static FunctionInfo ReplaceLane;
@@ -78,14 +70,9 @@ namespace Js {
         };
 
         // Entry points to library
-        // constructor
         static Var EntryInt32x4(RecyclableObject* function, CallInfo callInfo, ...);
-        // type-check
         static Var EntryCheck(RecyclableObject* function, CallInfo callInfo, ...);
-
         static Var EntrySplat(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryBool(RecyclableObject* function, CallInfo callInfo, ...);
-
         static Var EntryFromFloat64x2(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFromFloat64x2Bits(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFromFloat32x4(RecyclableObject* function, CallInfo callInfo, ...);
@@ -116,11 +103,6 @@ namespace Js {
         static Var EntryNotEqual(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGreaterThan(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGreaterThanOrEqual(RecyclableObject* function, CallInfo callInfo, ...);
-        // WithFlagX/Y/Z/W
-        static Var EntryWithFlagX(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryWithFlagY(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryWithFlagZ(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryWithFlagW(RecyclableObject* function, CallInfo callInfo, ...);
         // Lane Access
         static Var EntryExtractLane(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryReplaceLane(RecyclableObject* function, CallInfo callInfo, ...);
@@ -142,8 +124,6 @@ namespace Js {
         static Var EntryStore2(RecyclableObject* function, CallInfo callInfo, ...); // store XY
         static Var EntryStore3(RecyclableObject* function, CallInfo callInfo, ...); // store XYZ
         // End entry points
-
     };
-
 } // namespace Js
 

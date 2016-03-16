@@ -42,7 +42,7 @@ namespace Js
 
         JavascriptString* description;
 
-        if (args.Info.Count > 1)
+        if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
         {
             description = JavascriptConversion::ToString(args[1], scriptContext);
         }

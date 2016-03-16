@@ -2809,6 +2809,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
         case Js::OpCode::BrOnNotEmpty:
         case Js::OpCode::BrNotNull_A:
         case Js::OpCode::BrOnObject_A:
+        case Js::OpCode::BrOnClassConstructor:
             Assert(!opndSrc1->IsFloat64());
             AssertMsg(opndSrc1->IsRegOpnd(),"NYI for other operands");
             AssertMsg(instr->GetSrc2() == nullptr, "Expected 1 src on boolean branch");

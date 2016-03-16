@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 BUILTIN(JavascriptExceptionOperators, StackTraceAccessor, StackTraceAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorAccessor, ThrowTypeErrorAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCallerAccessor, ThrowTypeErrorCallerAccessor, FunctionInfo::DoNotProfile)
@@ -294,7 +295,6 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 // SIMDFloat32x4Lib entry points
 BUILTIN(SIMDFloat32x4Lib, Float32x4, EntryFloat32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDFloat32x4Lib, Check, EntryCheck, FunctionInfo::None)
-BUILTIN(SIMDFloat32x4Lib, Zero, EntryZero, FunctionInfo::None)
 BUILTIN(SIMDFloat32x4Lib, Splat, EntrySplat, FunctionInfo::None)
 // Conversions
 BUILTIN(SIMDFloat32x4Lib, FromFloat64x2, EntryFromFloat64x2, FunctionInfo::None)
@@ -357,7 +357,6 @@ BUILTIN(SIMDFloat32x4Lib, Store3, EntryStore3, FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, Int32x4, EntryInt32x4, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDInt32x4Lib, Check,   EntryCheck,   FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, Splat,   EntrySplat,   FunctionInfo::None)
-BUILTIN(SIMDInt32x4Lib, Bool,    EntryBool,    FunctionInfo::None)
 
 BUILTIN(SIMDInt32x4Lib, FromFloat64x2,     EntryFromFloat64x2,     FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, FromFloat64x2Bits, EntryFromFloat64x2Bits, FunctionInfo::None)
@@ -368,11 +367,7 @@ BUILTIN(SIMDInt32x4Lib, FromUint8x16Bits,  EntryFromUint8x16Bits,  FunctionInfo:
 BUILTIN(SIMDInt32x4Lib, FromUint16x8Bits,  EntryFromUint16x8Bits,  FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, FromInt8x16Bits,   EntryFromInt8x16Bits,   FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, FromInt16x8Bits,   EntryFromInt16x8Bits,   FunctionInfo::None)
-// EntryWithFlagX/Y/Z/W
-BUILTIN(SIMDInt32x4Lib, WithFlagX, EntryWithFlagX, FunctionInfo::None)
-BUILTIN(SIMDInt32x4Lib, WithFlagY, EntryWithFlagY, FunctionInfo::None)
-BUILTIN(SIMDInt32x4Lib, WithFlagZ, EntryWithFlagZ, FunctionInfo::None)
-BUILTIN(SIMDInt32x4Lib, WithFlagW, EntryWithFlagW, FunctionInfo::None)
+
 // Lane Access
 BUILTIN(SIMDInt32x4Lib, ExtractLane, EntryExtractLane, FunctionInfo::None)
 BUILTIN(SIMDInt32x4Lib, ReplaceLane, EntryReplaceLane, FunctionInfo::None)
@@ -469,7 +464,6 @@ BUILTIN(SIMDInt8x16Lib, ReplaceLane, EntryReplaceLane, FunctionInfo::None)
 // SIMDFloat64x2Lib entry points
 BUILTIN(SIMDFloat64x2Lib, Float64x2, EntryFloat64x2, FunctionInfo::ErrorOnNew)
 BUILTIN(SIMDFloat64x2Lib, Check,     EntryCheck,     FunctionInfo::None)
-BUILTIN(SIMDFloat64x2Lib, Zero, EntryZero, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Splat, EntrySplat, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, FromFloat32x4, EntryFromFloat32x4, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, FromFloat32x4Bits, EntryFromFloat32x4Bits, FunctionInfo::None)
@@ -504,7 +498,6 @@ BUILTIN(SIMDFloat64x2Lib, GreaterThanOrEqual, EntryGreaterThanOrEqual, FunctionI
 // Others
 BUILTIN(SIMDFloat64x2Lib, Swizzle,  EntrySwizzle, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Shuffle,  EntryShuffle, FunctionInfo::None)
-BUILTIN(SIMDFloat64x2Lib, Clamp,    EntryClamp, FunctionInfo::None)
 BUILTIN(SIMDFloat64x2Lib, Select,   EntrySelect, FunctionInfo::None)
 
 // SIMDInt16x8Lib entry points
@@ -627,6 +620,7 @@ BUILTIN(SIMDUint8x16Lib, FromUint32x4Bits, EntryFromUint32x4Bits, FunctionInfo::
 BUILTIN(SIMDUint8x16Lib, FromUint16x8Bits, EntryFromUint16x8Bits, FunctionInfo::None)
 // UnaryOps
 BUILTIN(SIMDUint8x16Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint8x16Lib, Neg, EntryNeg, FunctionInfo::None)
 // BinaryOps
 BUILTIN(SIMDUint8x16Lib, Add, EntryAdd, FunctionInfo::None)
 BUILTIN(SIMDUint8x16Lib, Sub, EntrySub, FunctionInfo::None)
@@ -673,6 +667,7 @@ BUILTIN(SIMDUint16x8Lib, FromUint8x16Bits, EntryFromUint8x16Bits, FunctionInfo::
 
 // UnaryOps
 BUILTIN(SIMDUint16x8Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint16x8Lib, Neg, EntryNeg, FunctionInfo::None)
 // BinaryOps
 BUILTIN(SIMDUint16x8Lib, Add, EntryAdd, FunctionInfo::None)
 BUILTIN(SIMDUint16x8Lib, Sub, EntrySub, FunctionInfo::None)
@@ -725,6 +720,7 @@ BUILTIN(SIMDUint32x4Lib, ReplaceLane, EntryReplaceLane, FunctionInfo::None)
 
 // UnaryOps
 BUILTIN(SIMDUint32x4Lib, Not, EntryNot, FunctionInfo::None)
+BUILTIN(SIMDUint32x4Lib, Neg, EntryNeg, FunctionInfo::None)
 
 // BinaryOps
 BUILTIN(SIMDUint32x4Lib, Add, EntryAdd, FunctionInfo::None)

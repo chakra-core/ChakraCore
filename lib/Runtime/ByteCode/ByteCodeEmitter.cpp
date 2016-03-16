@@ -21,6 +21,18 @@ bool CallTargetIsArray(ParseNode *pnode)
     return pnode->nop == knopName && pnode->sxPid.PropertyIdFromNameNode() == Js::PropertyIds::Array;
 }
 
+#define STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode) \
+if ((isTopLevel)) \
+{ \
+    byteCodeGenerator->StartStatement(pnode); \
+}
+
+#define ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode) \
+if ((isTopLevel)) \
+{ \
+    byteCodeGenerator->EndStatement(pnode); \
+}
+
 BOOL MayHaveSideEffectOnNode(ParseNode *pnode, ParseNode *pnodeSE)
 {
     // Try to determine whether pnodeSE may kill the named var represented by pnode.
@@ -208,7 +220,7 @@ bool IsArguments(ParseNode *pnode)
 }
 
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator);
-void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall = false, ParseNode *bindPnode = nullptr);
+void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall = false, ParseNode *bindPnode = nullptr, bool isTopLevel = false);
 void EmitComputedFunctionNameVar(ParseNode *nameNode, ParseNode *exprNode, ByteCodeGenerator *byteCodeGenerator);
 void EmitBinaryOpnds(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scriptContext);
@@ -625,7 +637,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
                 this->m_writer.ElementRootU(op, funcInfo->FindOrAddReferencedPropertyId(propertyId));
             }
         }
-        else if (sym->IsInSlot(funcInfo))
+        else if (sym->IsInSlot(funcInfo) || (scope->GetIsObject() && sym->NeedsSlotAlloc(funcInfo)))
         {
             if (scope->GetIsObject())
             {
@@ -952,7 +964,7 @@ void ByteCodeGenerator::EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInf
         EndStatement(stmt);
     }
 
-    Emit(stmt, this, funcInfo, fReturnValue);
+    Emit(stmt, this, funcInfo, fReturnValue, false/*isConstructorCall*/, nullptr/*bindPnode*/, true/*isTopLevel*/);
     if (funcInfo->IsTmpReg(stmt->location))
     {
         if (!stmt->isUsed && !fReturnValue)
@@ -1702,7 +1714,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody 
 {
     if (funcInfo->NeedEnvRegister())
     {
-        bool constReg = !funcInfo->GetIsEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
+        bool constReg = !funcInfo->GetIsTopLevelEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
         funcInfo->AssignEnvRegister(constReg);
     }
 
@@ -1902,7 +1914,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
     if (funcInfo->NeedEnvRegister())
     {
         byteCodeFunction->MapAndSetEnvRegister(funcInfo->GetEnvRegister());
-        if (funcInfo->GetIsEventHandler())
+        if (funcInfo->GetIsTopLevelEventHandler())
         {
             byteCodeFunction->MapAndSetThisRegisterForEventHandler(funcInfo->thisPointerRegister);
             // The environment is the namespace hierarchy starting with "this".
@@ -2694,6 +2706,12 @@ void ByteCodeGenerator::EmitProgram(ParseNode *pnodeProg)
 #endif
 
     Assert(pnodeProg && pnodeProg->nop == knopProg);
+
+    if (IsModuleCode())
+    {
+        EnsureImportBindingScopeSlots(pnodeProg, pnodeProg->sxFnc.funcInfo);
+    }
+
     if (this->parentScopeInfo)
     {
         // Scope stack is already set up the way we want it, so don't visit the global scope.
@@ -2735,8 +2753,35 @@ void ByteCodeGenerator::EmitInitCapturedNewTarget(FuncInfo* funcInfo, Scope* sco
 void EmitDestructuredObject(ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode, Js::RegSlot rhsLocation, ParseNodePtr initializer, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 
+void ByteCodeGenerator::PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNode *pnode)
+{
+    Js::DebuggerScope *debuggerScope = nullptr;
+    auto processArg = [&](ParseNode *pnodeArg) {
+        if (pnodeArg->IsVarLetOrConst())
+        {
+            if (debuggerScope == nullptr)
+            {
+                debuggerScope = RecordStartScopeObject(pnode, Js::DiagParamScope);
+                debuggerScope->SetBegin(beginOffset);
+            }
+
+            debuggerScope->AddProperty(pnodeArg->sxVar.sym->GetLocation(), pnodeArg->sxVar.sym->EnsurePosition(funcInfo), Js::DebuggerScopePropertyFlags_None);
+        }
+    };
+
+    MapFormals(pnode, processArg);
+    MapFormalsFromPattern(pnode, processArg);
+
+    if (debuggerScope != nullptr)
+    {
+        RecordEndScopeObject(pnode);
+    }
+}
+
 void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
 {
+    uint beginOffset = m_writer.GetCurrentOffset();
+
     auto emitDefaultArg = [&](ParseNode *pnodeArg)
     {
         if (pnodeArg->nop == knopParamPattern)
@@ -2861,6 +2906,11 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNode *pnode)
     {
         // Rest cannot have a default argument, so we ignore it.
         MapFormalsWithoutRest(pnode, emitDefaultArg);
+    }
+
+    if (ShouldTrackDebuggerMetadata() && m_writer.GetCurrentOffset() > beginOffset)
+    {
+        PopulateFormalsScope(beginOffset, funcInfo, pnode);
     }
 }
 
@@ -3136,11 +3186,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         if (funcInfo->IsGlobalFunction())
         {
             EnsureNoRedeclarations(pnode->sxFnc.pnodeScopes, funcInfo);
-        }
-
-        if (IsModuleCode() && funcInfo->IsGlobalFunction() && pnode->nop == knopProg)
-        {
-            EnsureImportBindingScopeSlots(pnode, funcInfo);
         }
 
         ::BeginEmitBlock(pnode->sxFnc.pnodeScopes, this, funcInfo);
@@ -3968,7 +4013,7 @@ void ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo,
         Js::SourceTextModuleRecord* childModuleRecord = moduleRecord->GetChildModuleRecord(moduleSpecifier->Psz());
 
         AssertMsg(childModuleRecord != nullptr, "We somehow tried to resolve an import from a module we didn't resolve.");
-        
+
         Js::ModuleNameRecord* moduleNameRecord = nullptr;
         if (!childModuleRecord->ResolveExport(exportNameId, nullptr, nullptr, &moduleNameRecord) ||
             moduleNameRecord == nullptr)
@@ -4018,7 +4063,7 @@ void ByteCodeGenerator::EnsureImportBindingScopeSlots(ParseNode* pnode, FuncInfo
 
     pnode->sxModule.importEntries->Map([this, funcInfo](ModuleImportEntry& importEntry) {
         Symbol* sym = importEntry.varDecl->sxVar.sym;
-        
+
         Assert(sym->GetIsModuleExportStorage());
         Assert(importEntry.moduleRequest != nullptr);
 
@@ -6992,7 +7037,7 @@ void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId
     bool isRoot = pnode->nop == knopName && (pnode->sxPid.sym == nullptr || pnode->sxPid.sym->GetIsGlobal());
     bool isScoped = (byteCodeGenerator->GetFlags() & fscrEval) != 0 ||
         (isRoot && callObjLocation != ByteCodeGenerator::RootObjectRegister);
-    
+
     EmitMethodFld(isRoot, isScoped, pnode->location, callObjLocation, propertyId, byteCodeGenerator, funcInfo, registerCacheIdForCall);
 }
 
@@ -9149,14 +9194,14 @@ void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerato
 
     EmitGetIterator(iteratorLocation, yieldStarNode->sxUni.pnode1->location, byteCodeGenerator, funcInfo);
 
+    // Get a temporary to hold the input for the next() calls.  Initialize it to undefined for the first call.
+    Js::RegSlot nextInputLocation = funcInfo->AcquireTmpRegister();
+    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, nextInputLocation, funcInfo->undefinedConstantRegister);
+
     uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
     // since a yield* doesn't have a user defined body, we cannot return from this loop
     // which means we don't need to support EmitJumpCleanup() and there do not need to
     // remember the loopId like the loop statements do.
-
-    // Get a temporary to hold the input for the next() calls.  Initialize it to undefined for the first call.
-    Js::RegSlot nextInputLocation = funcInfo->AcquireTmpRegister();
-    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, nextInputLocation, funcInfo->undefinedConstantRegister);
 
     // Call the iterator's next()
     EmitIteratorNext(yieldStarNode->location, iteratorLocation, nextInputLocation, byteCodeGenerator, funcInfo);
@@ -9322,7 +9367,7 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
     }
 }
 
-void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall, ParseNode * bindPnode)
+void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall, ParseNode * bindPnode, bool isTopLevel)
 {
     if (pnode == nullptr)
     {
@@ -9430,29 +9475,36 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         // Unary operators.
     // PTNODE(knopNot        , "~"            ,BitNot  ,Uni  ,fnopUni)
     case knopNot:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Emit(pnode->sxUni.pnode1, byteCodeGenerator, funcInfo, false);
         funcInfo->ReleaseLoc(pnode->sxUni.pnode1);
         byteCodeGenerator->Writer()->Reg2(
             Js::OpCode::Not_A, funcInfo->AcquireLoc(pnode), pnode->sxUni.pnode1->location);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     // PTNODE(knopNeg        , "unary -"    ,Neg     ,Uni  ,fnopUni)
     case knopNeg:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Emit(pnode->sxUni.pnode1, byteCodeGenerator, funcInfo, false);
         funcInfo->ReleaseLoc(pnode->sxUni.pnode1);
         funcInfo->AcquireLoc(pnode);
         byteCodeGenerator->Writer()->Reg2(
             Js::OpCode::Neg_A, pnode->location, pnode->sxUni.pnode1->location);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     // PTNODE(knopPos        , "unary +"    ,Pos     ,Uni  ,fnopUni)
     case knopPos:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Emit(pnode->sxUni.pnode1, byteCodeGenerator, funcInfo, false);
         funcInfo->ReleaseLoc(pnode->sxUni.pnode1);
         byteCodeGenerator->Writer()->Reg2(
             Js::OpCode::Conv_Num, funcInfo->AcquireLoc(pnode), pnode->sxUni.pnode1->location);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     // PTNODE(knopLogNot     , "!"            ,LogNot  ,Uni  ,fnopUni)
     case knopLogNot:
     {
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
         // For boolean expressions that compute a result, we have to burn a register for the result
         // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
@@ -9473,6 +9525,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         }
         funcInfo->ReleaseLoc(pnode->sxUni.pnode1);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // PTNODE(knopEllipsis     , "..."       ,Spread  ,Uni         , fnopUni)
@@ -9588,6 +9641,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     // PTNODE(knopTypeof     , "typeof"    ,None    ,Uni  ,fnopUni)
     case knopTypeof:
     {
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         ParseNode* pnodeOpnd = pnode->sxUni.pnode1;
         switch (pnodeOpnd->nop)
         {
@@ -9626,6 +9680,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
                 Js::OpCode::Typeof, funcInfo->AcquireLoc(pnode), pnodeOpnd->location);
             break;
         }
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // PTNODE(knopVoid       , "void"        ,Void    ,Uni  ,fnopUni)
@@ -9636,12 +9691,16 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     // PTNODE(knopArray      , "arr cnst"    ,None    ,Uni  ,fnopUni)
     case knopArray:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         EmitArrayLiteral(pnode, byteCodeGenerator, funcInfo);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     // PTNODE(knopObject     , "obj cnst"    ,None    ,Uni  ,fnopUni)
     case knopObject:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         funcInfo->AcquireLoc(pnode);
         EmitObjectInitializers(pnode->sxUni.pnode1, pnode->location, byteCodeGenerator, funcInfo);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     // PTNODE(knopComputedName, "[name]"      ,None    ,Uni  ,fnopUni)
     case knopComputedName:
@@ -9677,7 +9736,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     case knopInstOf:
     {
-        byteCodeGenerator->StartStatement(pnode);
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         EmitBinaryOpnds(pnode->sxBin.pnode1, pnode->sxBin.pnode2, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode1);
@@ -9685,7 +9744,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         uint cacheId = funcInfo->NewIsInstInlineCache();
         byteCodeGenerator->Writer()->Reg3C(nopToOp[pnode->nop], pnode->location, pnode->sxBin.pnode1->location,
             pnode->sxBin.pnode2->location, cacheId);
-        byteCodeGenerator->EndStatement(pnode);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
     }
     break;
     case knopEq:
@@ -9696,14 +9755,14 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     case knopLe:
     case knopGe:
     case knopGt:
-        byteCodeGenerator->StartStatement(pnode);
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         EmitBinaryOpnds(pnode->sxBin.pnode1, pnode->sxBin.pnode2, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode1);
         funcInfo->AcquireLoc(pnode);
         byteCodeGenerator->Writer()->Reg3(nopToCMOp[pnode->nop], pnode->location, pnode->sxBin.pnode1->location,
             pnode->sxBin.pnode2->location);
-        byteCodeGenerator->EndStatement(pnode);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     case knopNew:
     {
@@ -9882,7 +9941,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     }
     case knopIndex:
     {
-        byteCodeGenerator->StartStatement(pnode);
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         EmitBinaryOpnds(pnode->sxBin.pnode1, pnode->sxBin.pnode2, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode1);
@@ -9893,7 +9952,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->sxBin.pnode2->location);
-        byteCodeGenerator->EndStatement(pnode);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // this is MemberExpression as rvalue
@@ -9970,7 +10029,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
     case knopComma:
     {
-        byteCodeGenerator->StartStatement(pnode);
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         // The parser marks binary opnd pnodes as used, but value of the first opnd of a comma is not used.
         // Easier to correct this here than to check every binary op in the parser.
         ParseNode *pnode1 = pnode->sxBin.pnode1;
@@ -10026,7 +10085,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         {
             byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode2->location);
         }
-        byteCodeGenerator->EndStatement(pnode);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
     }
     break;
 
@@ -10036,6 +10095,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     // PTNODE(knopLogOr      , "||"        ,None    ,Bin  ,fnopBin)
     case knopLogOr:
     {
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
         // For boolean expressions that compute a result, we have to burn a register for the result
         // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
@@ -10051,11 +10111,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode2->location);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // PTNODE(knopLogAnd     , "&&"        ,None    ,Bin  ,fnopBin)
     case knopLogAnd:
     {
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
         // For boolean expressions that compute a result, we have to burn a register for the result
         // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
@@ -10071,6 +10133,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode2->location);
         funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
@@ -10275,7 +10338,9 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         // Extends
         if (pnode->sxClass.pnodeExtends)
         {
+            byteCodeGenerator->StartStatement(pnode->sxClass.pnodeExtends);
             Emit(pnode->sxClass.pnodeExtends, byteCodeGenerator, funcInfo, false);
+            byteCodeGenerator->EndStatement(pnode->sxClass.pnodeExtends);
         }
 
         Assert(pnode->sxClass.pnodeConstructor);
@@ -10337,7 +10402,9 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     }
     case knopStrTemplate:
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         EmitStringTemplate(pnode, byteCodeGenerator, funcInfo);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     case knopEndCode:
         byteCodeGenerator->Writer()->RecordStatementAdjustment(Js::FunctionBody::SAT_All);

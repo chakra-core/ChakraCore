@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Value type bits
 
@@ -112,8 +113,8 @@ OBJECT_TYPE(CharArray)
 // Only Simd128 sub-types. Currently no need to track top Simd128 type
 OBJECT_TYPE(Simd128Float32x4    )
 OBJECT_TYPE(Simd128Int32x4      )
-OBJECT_TYPE(Simd128Int8x16      )
 OBJECT_TYPE(Simd128Int16x8      )
+OBJECT_TYPE(Simd128Int8x16      )
 OBJECT_TYPE(Simd128Uint32x4     )
 OBJECT_TYPE(Simd128Uint16x8     )
 OBJECT_TYPE(Simd128Uint8x16     )

@@ -6411,6 +6411,48 @@ CommonNumber:
         return propertyId;
     }
 
+    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    {
+        Js::SourceTextModuleRecord* moduleRecord = scriptContext->GetLibrary()->GetModuleRecord(moduleIndex);
+        Assert(moduleRecord != nullptr);
+
+        // Require caller to also provide the intended access slot so we can do bounds check now.
+        if (moduleRecord->GetLocalExportCount() <= slotIndex)
+        {
+            Js::Throw::FatalInternalError();
+        }
+
+        return moduleRecord->GetLocalExportSlots();
+    }
+
+    Var* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    {
+        Var* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, slotIndex, scriptContext);
+        Assert(moduleRecordSlots != nullptr);
+
+        return &moduleRecordSlots[slotIndex];
+    }
+
+    Var JavascriptOperators::OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    {
+        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+
+        Assert(addr != nullptr);
+
+        return *addr;
+    }
+
+    void JavascriptOperators::OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext)
+    {
+        Assert(value != nullptr);
+
+        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+
+        Assert(addr != nullptr);
+
+        *addr = value;
+    }
+
     void JavascriptOperators::OP_InitClassMemberSetComputedName(Var object, Var elementName, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags)
     {
         Js::PropertyId propertyId = JavascriptOperators::OP_InitElemSetter(object, elementName, value, scriptContext);
@@ -8139,18 +8181,16 @@ CommonNumber:
         __analysis_assume(index < EQUIVALENT_TYPE_CACHE_SIZE);
         equivTypes[index] = type;
 
-        if (cache->HasFixedValue())
+        // Fixed field checks allow us to assume a specific type ID, but the assumption is only
+        // valid if we lock the type. Otherwise, the type ID may change out from under us without
+        // evolving the type.
+        // We also need to lock the type in case of, for instance, adding a property to a dictionary type handler.
+        if (DynamicType::Is(type->GetTypeId()))
         {
-            // Fixed field checks allow us to assume a specific type ID, but the assumption is only
-            // valid if we lock the type. Otherwise, the type ID may change out from under us without
-            // evolving the type.
-            if (DynamicType::Is(type->GetTypeId()))
+            DynamicType *dynamicType = static_cast<DynamicType*>(type);
+            if (!dynamicType->GetIsLocked())
             {
-                DynamicType *dynamicType = static_cast<DynamicType*>(type);
-                if (!dynamicType->GetIsLocked())
-                {
-                    dynamicType->LockType();
-                }
+                dynamicType->LockType();
             }
         }
 

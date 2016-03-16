@@ -373,4 +373,10 @@
       <baseline>loopinit.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>letlet.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

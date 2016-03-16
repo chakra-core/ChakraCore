@@ -752,12 +752,12 @@ void ByteCodeGenerator::SetRootFuncInfo(FuncInfo* func)
 {
     Assert(pRootFunc == nullptr || pRootFunc == func->byteCodeFunction || !IsInNonDebugMode());
 
-    if (this->flags & (fscrImplicitThis | fscrImplicitParents))
+    if ((this->flags & (fscrImplicitThis | fscrImplicitParents)) && !this->HasParentScopeInfo())
     {
         // Mark a top-level event handler, since it will need to construct the "this" pointer's
         // namespace hierarchy to access globals.
         Assert(!func->IsGlobalFunction());
-        func->SetIsEventHandler(true);
+        func->SetIsTopLevelEventHandler(true);
     }
 
     if (pRootFunc)
@@ -2214,8 +2214,6 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
     MapFormalsWithoutRest(pnode, addArgToScope);
     byteCodeGenerator->SetNumberOfInArgs(pos);
 
-    MapFormalsFromPattern(pnode, addArgToScope);
-
     if (pnode->sxFnc.pnodeRest != nullptr)
     {
         // The rest parameter will always be in a register, regardless of whether it is in a scope slot.
@@ -2227,6 +2225,8 @@ void AddArgsToScope(ParseNodePtr pnode, ByteCodeGenerator *byteCodeGenerator, bo
 
         assignLocation = assignLocationSave;
     }
+
+    MapFormalsFromPattern(pnode, addArgToScope);
 
     Assert(!assignLocation || byteCodeGenerator->TopFuncInfo()->varRegsCount + 1 == pos);
 }
@@ -2623,7 +2623,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrImplicitParents | fscrEval))))))
         {
             byteCodeGenerator->SetNeedEnvRegister();
-            if (top->GetIsEventHandler())
+            if (top->GetIsTopLevelEventHandler())
             {
                 byteCodeGenerator->AssignThisRegister();
             }
@@ -2669,7 +2669,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->SetNeedEnvRegister(); // This to ensure that Env should be there when the FrameDisplay register is there.
                     byteCodeGenerator->AssignFrameDisplayRegister();
 
-                    if (top->GetIsEventHandler())
+                    if (top->GetIsTopLevelEventHandler())
                     {
                         byteCodeGenerator->AssignThisRegister();
                     }
@@ -3162,16 +3162,20 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             break;
 
         case knopBlock:
+        {
             PreVisitBlock(pnodeScope, byteCodeGenerator);
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxBlock.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
             PostVisitBlock(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxBlock.pnodeNext;
             break;
+        }
 
         case knopCatch:
+        {
             PreVisitCatch(pnodeScope, byteCodeGenerator);
 
             Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
@@ -3182,23 +3186,28 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                     pnodeScope->sxCatch.pnodeParam->sxParamPattern.location = byteCodeGenerator->NextVarRegister();
                 }
             }
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
             PostVisitCatch(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxCatch.pnodeNext;
             break;
+        }
 
         case knopWith:
+        {
             PreVisitWith(pnodeScope, byteCodeGenerator);
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxWith.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
             PostVisitWith(pnodeScope, byteCodeGenerator);
             pnodeScope = pnodeScope->sxWith.pnodeNext;
             break;
+        }
 
         default:
             AssertMsg(false, "Unexpected opcode in tree of scopes");

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 class Lifetime
@@ -12,7 +13,8 @@ public:
         : sym(sym), reg(reg), start(start), end(end), previousDefBlockNumber(0), defList(alloc),
         useList(alloc), lastUseLabel(NULL), region(NULL), isSpilled(false), useCount(0), useCountAdjust(0), allDefsCost(0), isLiveAcrossCalls(false),
         isLiveAcrossUserCalls(false), isDeadStore(true), isOpHelperSpilled(false), cantOpHelperSpill(false), isOpHelperSpillAsArg(false),
-        isFloat(false), isSimd128F4(false), isSimd128I4(false), isSimd128D2(false), cantSpill(false), dontAllocate(false), isSecondChanceAllocated(false), isCheapSpill(false), spillStackSlot(NULL),
+        isFloat(false), isSimd128F4(false), isSimd128I4(false), isSimd128I8(false), isSimd128I16(false), isSimd128U4(false), isSimd128U8(false), isSimd128U16(false),
+        isSimd128D2(false), isSimd128B4(false), isSimd128B8(false), isSimd128B16(false), cantSpill(false), dontAllocate(false), isSecondChanceAllocated(false), isCheapSpill(false), spillStackSlot(NULL),
           totalOpHelperLengthByEnd(0), needsStoreCompensation(false), alloc(alloc), regionUseCount(NULL), regionUseCountAdjust(NULL),
           cantStackPack(false)
     {
@@ -51,6 +53,14 @@ public:
     uint8               isFloat:1;
     uint8               isSimd128F4 : 1;
     uint8               isSimd128I4 : 1;
+    uint8               isSimd128I8 : 1;
+    uint8               isSimd128I16 : 1;
+    uint8               isSimd128B4 : 1;
+    uint8               isSimd128B8 : 1;
+    uint8               isSimd128B16 : 1;
+    uint8               isSimd128U4 : 1;
+    uint8               isSimd128U8 : 1;
+    uint8               isSimd128U16 : 1;
     uint8               isSimd128D2 : 1;
     uint8               cantSpill:1;
     uint8               dontAllocate:1;
@@ -61,7 +71,19 @@ public:
 
     bool isSimd128()
     {
-        return (isSimd128F4 | isSimd128I4 | isSimd128D2) != 0;
+        bool result = isSimd128F4;
+        result |= isSimd128I4;
+        result |= isSimd128I8;
+        result |= isSimd128I16;
+        result |= isSimd128U4;
+        result |= isSimd128U8;
+        result |= isSimd128U16;
+        result |= isSimd128D2;
+        result |= isSimd128B4;
+        result |= isSimd128B8;
+        result |= isSimd128B16;
+
+        return result;
     }
 
     void AddToUseCount(uint32 newUseValue, Loop *loop, Func *func)

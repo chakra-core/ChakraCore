@@ -2495,7 +2495,12 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 opnd->SetCheckedTypeSetIndex(checkedTypeSetIndex);
             }
         }
-        else if (opnd->IsMono() || (valueInfo->GetJsTypeSet() && IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet())))
+        else if (valueInfo->GetJsTypeSet() &&
+                 (opnd->IsMono() ? 
+                      valueInfo->GetJsTypeSet()->Contains(opnd->GetFirstEquivalentType()) : 
+                      IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet())
+                 )
+            )
         {
             // We have an equivalent type check upstream, but we require a tighter type check at this point.
             // We can't treat the operand as "checked", but check for equivalence with the tighter set and update the

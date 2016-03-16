@@ -35,9 +35,7 @@ struct DeferredFunctionStub
     uint fncFlags;
     uint nestedCount;
     DeferredFunctionStub *deferredStubs;
-#if DEBUG
     charcount_t ichMin;
-#endif
 };
 
 struct StmtNest
@@ -100,6 +98,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_currentNodeNonLambdaDeferredFunc = nullptr;
     m_currentNodeProg = nullptr;
     m_currDeferredStub = nullptr;
+    m_prevSiblingDeferredStub = nullptr;
     m_pstmtCur = nullptr;
     m_currentBlockInfo = nullptr;
     m_currentScope = nullptr;
@@ -2125,77 +2124,81 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportEntryList* importEntryLi
     Assert(importEntryList == nullptr || exportEntryList == nullptr);
     Assert((isExportClause && exportEntryList != nullptr) || (!isExportClause && importEntryList != nullptr));
 
-    bool finished = false;
-
     m_pscan->Scan();
 
-    while (!finished)
+    while (m_token.tk != tkRCurly && m_token.tk != tkEOF)
     {
-        switch (m_token.tk)
-        {
-        case tkRCurly:
-            finished = true;
-            break;
+        tokens firstToken = m_token.tk;
 
-        case tkComma:
-            // It is only legal for a comma in an import\export list to follow an identifier token.
-            if (m_pscan->m_tkPrevious != tkID)
+        if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+        {
+            Error(ERRsyntax);
+        }
+
+        IdentPtr identifierName = m_token.GetIdentifier(m_phtbl);
+        IdentPtr identifierAs = identifierName;
+
+        m_pscan->Scan();
+
+        if (m_token.tk == tkID)
+        {
+            // We have the pattern "IdentifierName as"
+            if (wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
             {
                 Error(ERRsyntax);
             }
-             
+
             m_pscan->Scan();
-            break;
 
-        case tkID:
+            // If we are parsing an import statement, the token after 'as' must be a BindingIdentifier.
+            if (!isExportClause)
             {
-                // First identifier name is the name of the export\import.
-                IdentPtr identifierName = m_token.GetIdentifier(m_phtbl);
-                IdentPtr identifierAs = identifierName;
-
-                // If the next token is an identifier but not 'as' this is a syntax error.
-                m_pscan->Scan();
-                if (m_token.tk == tkID)
-                {
-                    if (wellKnownPropertyPids.as != m_token.GetIdentifier(m_phtbl))
-                    {
-                        Error(ERRsyntax);
-                    }
-                    
-                    m_pscan->Scan();
-                    ChkCurTokNoScan(tkID, ERRsyntax);
-
-                    // We have the pattern "IdentifierName as IdentifierName"
-                    identifierAs = m_token.GetIdentifier(m_phtbl);
-
-                    // Scan to the next token.
-                    m_pscan->Scan();
-                }
-
-                if (buildAST)
-                {
-                    // The name we will use 'as' this import/export is a binding identifier in import statements.
-                    if (!isExportClause)
-                    {
-                        ParseNodePtr declNode = CreateModuleImportDeclNode(identifierAs);
-
-                        AddModuleImportEntry(importEntryList, identifierName, identifierAs, nullptr, declNode);
-                    }
-                    else
-                    {
-                        MarkIdentifierReferenceIsModuleExport(identifierName);
-
-                        AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
-                    }
-                }
+                ChkCurTokNoScan(tkID, ERRsyntax);
             }
-            break;
 
-        default:
+            if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+            {
+                Error(ERRsyntax);
+            }
+
+            identifierAs = m_token.GetIdentifier(m_phtbl);
+
+            // Scan to the next token.
+            m_pscan->Scan();
+        }
+        else if (!isExportClause && firstToken != tkID)
+        {
+            // If we are parsing an import statement and this ImportSpecifier clause did not have 
+            // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
             Error(ERRsyntax);
-            break;
+        }
+        
+        if (m_token.tk == tkComma)
+        {
+            // Consume a trailing comma
+            m_pscan->Scan();
+        }
+
+        if (buildAST)
+        {
+            // The name we will use 'as' this import/export is a binding identifier in import statements.
+            if (!isExportClause)
+            {
+                ParseNodePtr declNode = CreateModuleImportDeclNode(identifierAs);
+
+                AddModuleImportEntry(importEntryList, identifierName, identifierAs, nullptr, declNode);
+            }
+            else
+            {
+                MarkIdentifierReferenceIsModuleExport(identifierName);
+
+                AddModuleExportEntry(exportEntryList, nullptr, identifierName, identifierAs, nullptr);
+            }
         }
     }
+
+    // Final token in a named import or export clause must be a '}'
+    ChkCurTokNoScan(tkRCurly, ERRsyntax);
 }
 
 IdentPtrList* Parser::GetRequestedModulesList()
@@ -3856,7 +3859,7 @@ Parser::MemberNameToTypeMap* Parser::CreateMemberNameMap(ArenaAllocator* pAlloca
 template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint, ulong *pNameLength, ulong *pShortNameOffset)
 {
     m_pscan->Scan();
-    ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
+    ParseNodePtr pnodeNameExpr = ParseExpr<buildAST>(koplCma, nullptr, TRUE, FALSE, *ppNameHint, pNameLength, pShortNameOffset);
     if (buildAST)
     {
         *ppnodeName = CreateNodeT<knopComputedName>(pnodeNameExpr->ichMin, pnodeNameExpr->ichLim);
@@ -3868,7 +3871,7 @@ template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName,
         *ppFullNameHint = FormatPropertyString(*ppNameHint, pnodeNameExpr, pNameLength, pShortNameOffset);
     }
 
-    ChkCurTokNoScan(tkRBrack, ERRsyntax);
+    ChkCurTokNoScan(tkRBrack, ERRnoRbrack);
 }
 
 /***************************************************************************
@@ -4535,6 +4538,8 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
         pnodeFncSave = m_currentNodeFunc;
         m_currentNodeFunc = pnodeFnc;
 
+        Assert(m_currentNodeDeferredFunc == nullptr);
+
         if (!fLambda)
         {
             pnodeFncSaveNonLambda = m_currentNodeNonLambdaFunc;
@@ -5149,7 +5154,31 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncPare
                 }
                 else if (pnodeFncParent && m_currDeferredStub)
                 {
-                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1))->deferredStubs;
+                    // the Deferred stub will not match for the function which are defined on lambda formals.
+                    // Since this is not determined upfront that the current function is a part of outer function or part of lambda formal until we have seen the Arrow token.
+                    // Due to that the current function may be fetching stubs from the outer function (outer of the lambda) - rather then the lambda function. The way to fix is to match
+                    // the function start with the stub. Because they should match. We need to have previous sibling concept as the lambda formals can have more than one
+                    // functions and we want to avoid getting wrong stub.
+
+                    if (pnodeFncParent->sxFnc.nestedCount == 1)
+                    {
+                        m_prevSiblingDeferredStub = nullptr;
+                    }
+
+                    if (m_prevSiblingDeferredStub == nullptr)
+                    {
+                        m_prevSiblingDeferredStub = (m_currDeferredStub + (pnodeFncParent->sxFnc.nestedCount - 1));
+                    }
+
+                    if (m_prevSiblingDeferredStub->ichMin == pnodeFnc->ichMin)
+                    {
+                        m_currDeferredStub = m_prevSiblingDeferredStub->deferredStubs;
+                        m_prevSiblingDeferredStub = nullptr;
+                    }
+                    else
+                    {
+                        m_currDeferredStub = nullptr;
+                    }
                 }
 
                 if (m_token.tk != tkLCurly && fLambda)
@@ -7408,8 +7437,6 @@ void Parser::TransformAsyncFncDeclAST(ParseNodePtr *pnodeBody, bool fLambda)
 
     pnodeFncGenerator = CreateAsyncSpawnGenerator();
 
-    m_currentNodeDeferredFunc = pnodeFncGenerator;
-    m_inDeferredNestedFunc = true;
     pstmtSave = m_pstmtCur;
     SetCurrentStatement(nullptr);
 
@@ -8651,6 +8678,11 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             nameHintLength = pid->Cch();
             nameHintOffset = 0;
 
+            if (pid == wellKnownPropertyPids.let && (declarationType == tkCONST || declarationType == tkLET))
+            {
+                Error(ERRLetIDInLexicalDecl, pnodeThis);
+            }
+
             if (declarationType == tkVAR)
             {
                 pnodeThis = CreateVarDeclNode(pid, STVariable);
@@ -9388,7 +9420,7 @@ LDefaultTokenFor:
             }
 
             m_pscan->Scan();
-            ParseNodePtr pnodeObj = ParseExpr<buildAST>();
+            ParseNodePtr pnodeObj = ParseExpr<buildAST>(isForOf ? koplCma : koplNo);
             charcount_t ichLim = m_pscan->IchLimTok();
             ChkCurTok(tkRParen, ERRnoRparen);
 
@@ -10116,6 +10148,11 @@ LNeedTerminator:
             break;
         }
         break;
+    }
+
+    if (m_hasDeferredShorthandInitError)
+    {
+        Error(ERRnoColon);
     }
 
     if (buildAST)
@@ -13232,9 +13269,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
         deferredStubs[i].nestedCount = pnodeChild->sxFnc.nestedCount;
         deferredStubs[i].restorePoint = *pnodeChild->sxFnc.pRestorePoint;
         deferredStubs[i].deferredStubs = BuildDeferredStubTree(pnodeChild, recycler);
-#if DEBUG
         deferredStubs[i].ichMin = pnodeChild->ichMin;
-#endif
         ++i;
         pnodeChild = pnodeChild->sxFnc.pnodeNext;
     }

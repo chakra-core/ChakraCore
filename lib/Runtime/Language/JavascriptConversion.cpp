@@ -666,6 +666,10 @@ CommonNumber:
 
             case TypeIds_Symbol:
                 return JavascriptSymbol::FromVar(aValue)->ToString(scriptContext);
+
+            case TypeIds_SymbolObject:
+                return JavascriptSymbol::ToString(JavascriptSymbolObject::FromVar(aValue)->GetValue(), scriptContext);
+
             case TypeIds_SIMDBool8x16:
             case TypeIds_SIMDBool16x8:
             case TypeIds_SIMDBool32x4:

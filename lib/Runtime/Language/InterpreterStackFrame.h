@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 extern "C" PVOID _ReturnAddress(VOID);
@@ -190,6 +191,16 @@ namespace Js
         template <class T> void OP_SimdStArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdStArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdInt32x4FromFloat32x4(const unaligned T* playout);
+        template <class T> void OP_SimdUint32x4FromFloat32x4(const unaligned T* playout);
+
+        template <class T> void OP_SimdInt16x8(const unaligned T* playout);
+        template <class T> void OP_SimdInt8x16(const unaligned T* playout);
+        template <class T> void OP_SimdUint32x4(const unaligned T* playout);
+        template <class T> void OP_SimdUint16x8(const unaligned T* playout);
+        template <class T> void OP_SimdUint8x16(const unaligned T* playout);
+        template <class T> void OP_SimdBool32x4(const unaligned T* playout);
+        template <class T> void OP_SimdBool16x8(const unaligned T* playout);
+        template <class T> void OP_SimdBool8x16(const unaligned T* playout);
 
         template <typename RegSlotType>
         Var GetRegAllowStackVarEnableOnly(RegSlotType localRegisterID) const;

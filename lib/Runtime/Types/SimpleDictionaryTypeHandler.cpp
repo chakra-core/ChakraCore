@@ -1638,7 +1638,7 @@ namespace Js
             // Check for a numeric propertyRecord only if objectArray available
             if (instance->HasObjectArray() && propertyRecord->IsNumeric())
             {
-                return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteItem(instance, propertyRecord->IsNumeric(), propertyOperationFlags);
+                return SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteItem(instance, propertyRecord->GetNumericValue(), propertyOperationFlags);
             }
         }
         else

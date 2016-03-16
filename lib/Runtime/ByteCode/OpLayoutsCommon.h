@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js {
@@ -20,7 +21,7 @@ namespace Js {
     typedef int32 JumpOffset;
 #endif
     // This is used to estimate when we need to emit long branches
-    uint const MaxLayoutSize = 28; // Increase this when we see larger layout
+    uint const MaxLayoutSize = 76; // Increase this when we see larger layout
 
     uint const MaxOpCodeSize = 2;
 

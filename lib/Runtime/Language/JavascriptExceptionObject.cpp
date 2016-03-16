@@ -50,7 +50,7 @@ namespace Js
 
             if (this->thrownObject == NULL)
             {
-                AssertMsg(!threadContext->GetIsThreadBound(), "ThrownObject could be NULL for Jsrt scenarios because it is cleared in ~EnterScriptEnd. For non-jsrt cases, we should always have an allocated thrown object.");
+                AssertMsg(threadContext->IsJSRT(), "ThrownObject could be NULL for Jsrt scenarios because it is cleared in ~EnterScriptEnd. For non-jsrt cases, we should always have an allocated thrown object.");
                 thrownObject = scriptContext->GetLibrary()->CreateStackOverflowError();
             }
             else
@@ -84,7 +84,7 @@ namespace Js
             Var rethrownObject = CrossSite::MarshalVar(requestingScriptContext, thrownObject);
             // For now, there is no known host for which we need to support cross-domain
             // scenario for JSRT. So skip the cross domain check for now.
-            if (!(scriptContext->GetThreadContext()->GetIsThreadBound()))
+            if (scriptContext->GetThreadContext()->IsJSRT())
             {
                 return rethrownObject;
             }
