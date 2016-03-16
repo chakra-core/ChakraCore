@@ -197,6 +197,9 @@ public:
     bool            IsCloned() const { return isCloned; }
     void            SetIsCloned(bool isCloned) { this->isCloned = isCloned; }
     bool            HasBailOutInfo() const { return hasBailOutInfo; }
+    bool            HasSimd128BailOutKind() const;
+
+
     bool            HasAuxBailOut() const { return hasAuxBailOut; }
     bool            HasTypeCheckBailOut() const;
     bool            HasEquivalentTypeCheckBailOut() const;

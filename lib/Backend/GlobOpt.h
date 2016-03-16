@@ -174,10 +174,27 @@ public:
     using ValueType::IsSimd128;
     using ValueType::IsSimd128Float32x4;
     using ValueType::IsSimd128Int32x4;
+    using ValueType::IsSimd128Int16x8;
+    using ValueType::IsSimd128Int8x16;
+    using ValueType::IsSimd128Uint32x4;
+    using ValueType::IsSimd128Uint16x8;
+    using ValueType::IsSimd128Uint8x16;
+    using ValueType::IsSimd128Bool32x4;
+    using ValueType::IsSimd128Bool16x8;
+    using ValueType::IsSimd128Bool8x16;
     using ValueType::IsSimd128Float64x2;
+
     using ValueType::IsLikelySimd128;
     using ValueType::IsLikelySimd128Float32x4;
     using ValueType::IsLikelySimd128Int32x4;
+    using ValueType::IsLikelySimd128Int16x8;
+    using ValueType::IsLikelySimd128Int8x16;
+    using ValueType::IsLikelySimd128Uint32x4;
+    using ValueType::IsLikelySimd128Uint16x8;
+    using ValueType::IsLikelySimd128Uint8x16;
+    using ValueType::IsLikelySimd128Bool32x4;
+    using ValueType::IsLikelySimd128Bool16x8;
+    using ValueType::IsLikelySimd128Bool8x16;
     using ValueType::IsLikelySimd128Float64x2;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,6 +266,14 @@ public:
     ValueInfo *SpecializeToSimd128(IRType type, JitArenaAllocator *const allocator);
     ValueInfo *SpecializeToSimd128F4(JitArenaAllocator *const allocator);
     ValueInfo *SpecializeToSimd128I4(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128I8(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128I16(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128U4(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128U8(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128U16(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128B4(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128B8(JitArenaAllocator *const allocator);
+    ValueInfo *SpecializeToSimd128B16(JitArenaAllocator *const allocator);
 
 
 
@@ -309,7 +334,7 @@ public:
     Value *     Copy(JitArenaAllocator * allocator, ValueNumber newValueNumber) { return Value::New(allocator, newValueNumber, this->ShareValueInfo()); }
 
 #if DBG_DUMP
-    __declspec(noinline) void Dump() const { Output::Print(_u("0x%X  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
+    __declspec(noinline) void Dump() const { Output::Print(_u("0x%016llX  ValueNumber: %3d,  -> "), this, this->valueNumber);  this->valueInfo->Dump(); }
 #endif
 };
 
@@ -946,6 +971,14 @@ public:
         liveFloat64Syms(nullptr),
         liveSimd128F4Syms(nullptr),
         liveSimd128I4Syms(nullptr),
+        liveSimd128I8Syms(nullptr),
+        liveSimd128I16Syms(nullptr),
+        liveSimd128U4Syms(nullptr),
+        liveSimd128U8Syms(nullptr),
+        liveSimd128U16Syms(nullptr),
+        liveSimd128B4Syms(nullptr),
+        liveSimd128B8Syms(nullptr),
+        liveSimd128B16Syms(nullptr),
         hoistableFields(nullptr),
         argObjSyms(nullptr),
         maybeTempObjectSyms(nullptr),
@@ -986,6 +1019,14 @@ public:
     // SIMD_JS
     BVSparse<JitArenaAllocator> *           liveSimd128F4Syms;
     BVSparse<JitArenaAllocator> *           liveSimd128I4Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128I8Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128I16Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128U4Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128U8Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128U16Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128B4Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128B8Syms;
+    BVSparse<JitArenaAllocator> *           liveSimd128B16Syms;
 
     BVSparse<JitArenaAllocator> *           hoistableFields;
     BVSparse<JitArenaAllocator> *           argObjSyms;
@@ -1061,6 +1102,22 @@ public:
             return liveSimd128F4Syms;
         case TySimd128I4:
             return liveSimd128I4Syms;
+        case TySimd128I8:
+            return liveSimd128I8Syms;
+        case TySimd128I16:
+            return liveSimd128I16Syms;
+        case TySimd128U4:
+            return liveSimd128U4Syms;
+        case TySimd128U8:
+            return liveSimd128U8Syms;
+        case TySimd128U16:
+            return liveSimd128U16Syms;
+        case TySimd128B4:
+            return liveSimd128B4Syms;
+        case TySimd128B8:
+            return liveSimd128B8Syms;
+        case TySimd128B16:
+            return liveSimd128B16Syms;
         default:
             Assert(UNREACHED);
             return nullptr;
@@ -1456,6 +1513,18 @@ private:
     bool                    DoMemOp(Loop * loop);
 
 private:
+    // SIMD_JS
+    void                    AdjustSimd128LivenessOnLoopHeader(BVSparse<JitArenaAllocator> * loopTailLiveSimd128Syms, BVSparse<JitArenaAllocator> * loopHeaderLiveSimd128Syms, BVSparse<JitArenaAllocator> * forceSimd128SymsOnEntry, BVSparse<JitArenaAllocator> * likelySimd128SymsUsedBeforeDefined);
+    void                    MergeSimd128Liveness(GlobOptBlockData * fromData, GlobOptBlockData * toData, BVSparse<JitArenaAllocator> * fromLiveSimd128Syms, BVSparse<JitArenaAllocator> * toLiveSimd128Syms, BVSparse<JitArenaAllocator> * simdSymsToVar, ObjectType simdType, bool isLoopBackEdge);
+    void                    AdjustSimd128LivenessOnBackEdge(BasicBlock * block, BVSparse<JitArenaAllocator> * loopSimd128SymsOnEntry, BVSparse<JitArenaAllocator> * liveSimd128Syms, BVSparse<JitArenaAllocator> * liveOnBackEdge, IR::BailOutKind bailOutKind, IRType type);
+    void                    AdjustSimd128LivenessOnLandingPad(BasicBlock * header, BVSparse<JitArenaAllocator> * loopSimd128SymsOnEntry, BVSparse<JitArenaAllocator> * landingPadLiveSimd128Syms, BVSparse<JitArenaAllocator> * headerLiveSimd128Syms, BVSparse<JitArenaAllocator> * liveOnBackEdge, IR::BailOutKind bailOutKind, IRType type);
+    void                    SetSimd128Values(BasicBlock * loopHeader, SymTable *const symTable, GlobHashTable *const symToValueMap);
+    void                    Simd128TypeSpecSymsOnPredBlock(BVSparse<JitArenaAllocator> * simd128F4SymsToUnbox, BVSparse<JitArenaAllocator> * simd128I4SymsToUnbox, BVSparse<JitArenaAllocator> * simd128I8SymsToUnbox, BVSparse<JitArenaAllocator> * simd128I16SymsToUnbox,
+                                                           BVSparse<JitArenaAllocator> * simd128U4SymsToUnbox, BVSparse<JitArenaAllocator> * simd128U8SymsToUnbox, BVSparse<JitArenaAllocator> * simd128U16SymsToUnbox, BVSparse<JitArenaAllocator> * simd128B4SymsToUnbox,
+                                                           BVSparse<JitArenaAllocator> * simd128B8SymsToUnbox, BVSparse<JitArenaAllocator> * simd128B16SymsToUnbox, BasicBlock * pred);
+
+    StackSym*               GetSimd128EquivSym(BasicBlock * block, StackSym * sym, IRType &type);
+    IRType                  GetSimd128LiveType(StackSym *varSym, GlobOptBlockData * blockData);
     void                    ChangeValueType(BasicBlock *const block, Value *const value, const ValueType newValueType, const bool preserveSubclassInfo, const bool allowIncompatibleType = false) const;
     void                    ChangeValueInfo(BasicBlock *const block, Value *const value, ValueInfo *const newValueInfo, const bool allowIncompatibleType = false, const bool compensated = false) const;
     bool                    AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *const v1) const;
@@ -1550,17 +1619,16 @@ private:
     static BOOL             IsFloat64TypeSpecialized(Sym *sym, BasicBlock *block);
     static BOOL             IsFloat64TypeSpecialized(Sym *sym, GlobOptBlockData *data);
     // SIMD_JS
+    
     static BOOL             IsSimd128TypeSpecialized(Sym *sym, BasicBlock *block);
     static BOOL             IsSimd128TypeSpecialized(Sym *sym, GlobOptBlockData *data);
     static BOOL             IsSimd128TypeSpecialized(IRType type, Sym *sym, BasicBlock *block);
     static BOOL             IsSimd128TypeSpecialized(IRType type, Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128F4TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym *sym, BasicBlock *block);
-    static BOOL             IsSimd128I4TypeSpecialized(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128F4(Sym *sym, GlobOptBlockData *data);
-    static BOOL             IsLiveAsSimd128I4(Sym *sym, GlobOptBlockData *data);
+
+    template <IRType type>
+    static BOOL             IsSimd128TypeSpecialized(Sym *sym, BasicBlock *block);
+    template <IRType type>
+    static BOOL             IsSimd128TypeSpecialized(Sym *sym, GlobOptBlockData *data);
 
     static BOOL             IsTypeSpecialized(Sym *sym, BasicBlock *block);
     static BOOL             IsTypeSpecialized(Sym *sym, GlobOptBlockData *data);

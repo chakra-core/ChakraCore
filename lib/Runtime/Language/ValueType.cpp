@@ -748,6 +748,12 @@ bool ValueType::IsSimd128(IRType type) const
         return IsSimd128Uint16x8();
     case TySimd128U16:
         return IsSimd128Uint8x16();
+    case TySimd128B4:
+        return IsSimd128Bool32x4();
+    case TySimd128B8:
+        return IsSimd128Bool16x8();
+    case TySimd128B16:
+        return IsSimd128Bool8x16();
     case TySimd128D2:
         return IsSimd128Float64x2();
     default:
@@ -791,6 +797,21 @@ bool ValueType::IsSimd128Uint8x16() const
     return IsObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
 }
 
+bool ValueType::IsSimd128Bool32x4() const
+{
+    return IsObject() && GetObjectType() == ObjectType::Simd128Bool32x4;
+}
+
+bool ValueType::IsSimd128Bool16x8() const
+{
+    return IsObject() && GetObjectType() == ObjectType::Simd128Bool16x8;
+}
+
+bool ValueType::IsSimd128Bool8x16() const
+{
+    return IsObject() && GetObjectType() == ObjectType::Simd128Bool8x16;
+}
+
 bool ValueType::IsSimd128Float64x2() const
 {
     return IsObject() && GetObjectType() == ObjectType::Simd128Float64x2;
@@ -799,6 +820,11 @@ bool ValueType::IsSimd128Float64x2() const
 bool ValueType::IsLikelySimd128() const
 {
     return IsLikelyObject() && (GetObjectType() >= ObjectType::Simd128Float32x4 && GetObjectType() <= ObjectType::Simd128Float64x2);
+}
+
+bool ValueType::IsLikelySimd128(ObjectType const simdType) const
+{
+    return IsLikelyObject() && (GetObjectType() == simdType);
 }
 
 bool ValueType::IsLikelySimd128Float32x4() const
@@ -821,6 +847,11 @@ bool ValueType::IsLikelySimd128Int8x16() const
     return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Int8x16;
 }
 
+bool ValueType::IsLikelySimd128Uint32x4() const
+{
+    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint32x4;
+}
+
 bool ValueType::IsLikelySimd128Uint16x8() const
 {
     return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint16x8;
@@ -829,6 +860,21 @@ bool ValueType::IsLikelySimd128Uint16x8() const
 bool ValueType::IsLikelySimd128Uint8x16() const
 {
     return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Uint8x16;
+}
+
+bool ValueType::IsLikelySimd128Bool32x4() const
+{
+    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Bool32x4;
+}
+
+bool ValueType::IsLikelySimd128Bool16x8() const
+{
+    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Bool16x8;
+}
+
+bool ValueType::IsLikelySimd128Bool8x16() const
+{
+    return IsLikelyObject() && GetObjectType() == ObjectType::Simd128Bool8x16;
 }
 
 bool ValueType::IsLikelySimd128Float64x2() const

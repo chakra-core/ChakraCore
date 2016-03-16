@@ -2689,43 +2689,44 @@ namespace Js
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2,     &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2,     2);
         library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromFloat64x2Bits, &SIMDFloat32x4Lib::EntryInfo::FromFloat64x2Bits, 2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4,       &SIMDFloat32x4Lib::EntryInfo::FromInt32x4,       2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4,      &SIMDFloat32x4Lib::EntryInfo::FromUint32x4,      2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt16x8Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt16x8Bits,   2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt8x16Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt8x16Bits,   2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromUint32x4] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4,      &SIMDFloat32x4Lib::EntryInfo::FromUint32x4,      2);
+        
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt32x4Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromInt32x4Bits, 2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint32x4Bits, 2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint16x8Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint16x8Bits, 2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint8x16Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint8x16Bits, 2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt16x8Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt16x8Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt16x8Bits,   2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromInt8x16Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromInt8x16Bits,   &SIMDFloat32x4Lib::EntryInfo::FromInt8x16Bits,   2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromUint32x4Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint32x4Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint32x4Bits, 2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromUint16x8Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint16x8Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint16x8Bits, 2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_FromUint8x16Bits] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::fromUint8x16Bits, &SIMDFloat32x4Lib::EntryInfo::FromUint8x16Bits, 2);
         // binary ops
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Add] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::add, &SIMDFloat32x4Lib::EntryInfo::Add, 3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Sub] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sub,    &SIMDFloat32x4Lib::EntryInfo::Sub,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Mul] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::mul,    &SIMDFloat32x4Lib::EntryInfo::Mul,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Div] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::div,    &SIMDFloat32x4Lib::EntryInfo::Div,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::and,    &SIMDFloat32x4Lib::EntryInfo::And,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::or,     &SIMDFloat32x4Lib::EntryInfo::Or,    3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::xor,    &SIMDFloat32x4Lib::EntryInfo::Xor,   3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_And] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::and,    &SIMDFloat32x4Lib::EntryInfo::And,   3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Or] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::or,     &SIMDFloat32x4Lib::EntryInfo::Or,    3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Xor] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::xor,    &SIMDFloat32x4Lib::EntryInfo::Xor,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Min] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::min,    &SIMDFloat32x4Lib::EntryInfo::Min,   3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Max] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::max,    &SIMDFloat32x4Lib::EntryInfo::Max,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::minNum, &SIMDFloat32x4Lib::EntryInfo::MinNum, 3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::maxNum, &SIMDFloat32x4Lib::EntryInfo::MaxNum, 3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_MinNum] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::minNum, &SIMDFloat32x4Lib::EntryInfo::MinNum, 3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_MaxNum] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::maxNum, &SIMDFloat32x4Lib::EntryInfo::MaxNum, 3);
         // unary ops
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Abs] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::abs,            &SIMDFloat32x4Lib::EntryInfo::Abs,            2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Neg] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::neg,            &SIMDFloat32x4Lib::EntryInfo::Neg,            2);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::not,            &SIMDFloat32x4Lib::EntryInfo::Not,            2);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Not] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::not,            &SIMDFloat32x4Lib::EntryInfo::Not,            2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Sqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::sqrt,           &SIMDFloat32x4Lib::EntryInfo::Sqrt,           2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Reciprocal] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalApproximation,     &SIMDFloat32x4Lib::EntryInfo::Reciprocal,     2);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_ReciprocalSqrt] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::reciprocalSqrtApproximation, &SIMDFloat32x4Lib::EntryInfo::ReciprocalSqrt, 2);
         // compare ops
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThan,           &SIMDFloat32x4Lib::EntryInfo::LessThan,          3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThanOrEqual,    &SIMDFloat32x4Lib::EntryInfo::LessThanOrEqual,   3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::equal,              &SIMDFloat32x4Lib::EntryInfo::Equal,             3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::notEqual,           &SIMDFloat32x4Lib::EntryInfo::NotEqual,          3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThan,        &SIMDFloat32x4Lib::EntryInfo::GreaterThan,       3);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThanOrEqual, &SIMDFloat32x4Lib::EntryInfo::GreaterThanOrEqual,3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_LessThan]          = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThan,           &SIMDFloat32x4Lib::EntryInfo::LessThan,          3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_LessThanOrEqual]   = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::lessThanOrEqual,    &SIMDFloat32x4Lib::EntryInfo::LessThanOrEqual,   3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Equal]             = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::equal,              &SIMDFloat32x4Lib::EntryInfo::Equal,             3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_NotEqual]          =  library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::notEqual,           &SIMDFloat32x4Lib::EntryInfo::NotEqual,          3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_GreaterThan]       = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThan,        &SIMDFloat32x4Lib::EntryInfo::GreaterThan,       3);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_GreaterThanOrEqual]= library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::greaterThanOrEqual, &SIMDFloat32x4Lib::EntryInfo::GreaterThanOrEqual,3);
         // others
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Swizzle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::swizzle,            &SIMDFloat32x4Lib::EntryInfo::Swizzle, 6);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Shuffle] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::shuffle,            &SIMDFloat32x4Lib::EntryInfo::Shuffle, 7);
-        library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::select,             &SIMDFloat32x4Lib::EntryInfo::Select,  4);
+        builtinFuncs[BuiltinFunction::SIMD_Float32x4_Select] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::select,             &SIMDFloat32x4Lib::EntryInfo::Select,  4);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load,  &SIMDFloat32x4Lib::EntryInfo::Load,  3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load1] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load1, &SIMDFloat32x4Lib::EntryInfo::Load1, 3);
         builtinFuncs[BuiltinFunction::SIMD_Float32x4_Load2] = library->AddFunctionToLibraryObject(float32x4Function, PropertyIds::load2, &SIMDFloat32x4Lib::EntryInfo::Load2, 3);

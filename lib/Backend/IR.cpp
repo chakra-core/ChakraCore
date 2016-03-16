@@ -178,6 +178,24 @@ Instr::IsEqual(IR::Instr *compareInstr) const
     }
 }
 
+bool
+Instr::HasSimd128BailOutKind() const
+{
+    Assert(HasBailOutInfo());
+    BailOutKind bailOutKind = GetBailOutKind();
+    return
+        bailOutKind == IR::BailOutSimd128F4Only ||
+        bailOutKind == IR::BailOutSimd128I4Only ||
+        bailOutKind == IR::BailOutSimd128I8Only ||
+        bailOutKind == IR::BailOutSimd128I16Only ||
+        bailOutKind == IR::BailOutSimd128U4Only ||
+        bailOutKind == IR::BailOutSimd128U8Only ||
+        bailOutKind == IR::BailOutSimd128U16Only ||
+        bailOutKind == IR::BailOutSimd128B4Only ||
+        bailOutKind == IR::BailOutSimd128B8Only ||
+        bailOutKind == IR::BailOutSimd128B16Only;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Instr::InsertBefore

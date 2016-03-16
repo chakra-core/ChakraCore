@@ -41,7 +41,6 @@ namespace Js
         JavascriptSIMDBool32x4(SIMDValue *val, StaticType *type);
 
         Var Copy(ScriptContext* requestContext);
-        __inline SIMDValue GetValue() { return value; }
         virtual RecyclableObject* CloneToScriptContext(ScriptContext* requestContext) override;
 
     };

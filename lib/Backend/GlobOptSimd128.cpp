@@ -46,18 +46,18 @@ Value **pDstVal
         {
             StackSym *sym = instr->GetSrc1()->AsRegOpnd()->m_sym;
             IRType type = TyIllegal;
-            if (IsSimd128F4TypeSpecialized(sym, this->currentBlock))
-            {
-                type = TySimd128F4;
-            }
-            else if (IsSimd128I4TypeSpecialized(sym, this->currentBlock))
-            {
-                type = TySimd128I4;
-            }
-            else
+
+#define SIMD_TYPE(_TAG_) \
+            if (IsSimd128TypeSpecialized<TySimd128##_TAG_##>(sym, this->currentBlock))\
+            {\
+                type = TySimd128##_TAG_##;\
+            } else
+            SIMD_EXPAND_W_TAG(SIMD_TYPE)
             {
                 return false;
             }
+#undef SIMD_TYPE
+
             ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, type, IR::BailOutSimd128F4Only /*not used for Ld_A*/);
             TypeSpecializeSimd128Dst(type, instr, *pSrc1Val, *pSrc1Val, pDstVal);
             return true;
@@ -215,24 +215,19 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                 StackSym * sym = opnd->GetStackSym();
 
                 // In Forward Prepass: Check liveness through liveness bits, not IR type, since in prepass no actual type-spec happens.
-                // In the Forward Pass: Check IRType since Sym can be null, because of const prop.
-                if (expectedType.IsSimd128Float32x4())
-                {
-                    if (sym && !IsSimd128F4TypeSpecialized(sym, &currentBlock->globOptData) ||
-                        !sym && opnd->GetType() != TySimd128F4)
-                    {
-                        return false;
-                    }
-                }
-                else if (expectedType.IsSimd128Int32x4())
-                {
-                    if (sym && !IsSimd128I4TypeSpecialized(sym, &currentBlock->globOptData) ||
-                        !sym && opnd->GetType() != TySimd128I4)
-                    {
-                        return false;
-                    }
-                }
-                else if (expectedType.IsFloat())
+                // In Forward Pass: Check IRType since Sym can be null, because of const prop.
+#define SIMD_DO_TYPESPEC(_NAME_,_TAG_)\
+                if (expectedType.IsSimd128##_NAME_##())\
+                {\
+                if (sym && !IsSimd128TypeSpecialized<TySimd128##_TAG_##>(sym, &currentBlock->globOptData) ||\
+                        !sym && opnd->GetType() != TySimd128##_TAG_##)\
+                    {\
+                        return false;\
+                    }\
+                } else
+                SIMD_EXPAND_W_NAME(SIMD_DO_TYPESPEC)
+#undef SIMD_DO_TYPESPEC
+                if (expectedType.IsFloat())
                 {
                     if (sym && !IsFloat64TypeSpecialized(sym, &currentBlock->globOptData) ||
                         !sym&& opnd->GetType() != TyFloat64)
@@ -387,20 +382,64 @@ bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opn
     {
     case Js::OpCode::Simd128_Swizzle_F4:
     case Js::OpCode::Simd128_Swizzle_I4:
+    case Js::OpCode::Simd128_Swizzle_U4:
         argPosLo = 1; argPosHi = 4;
         laneIndexLo = 0; laneIndexHi = 3;
         break;
+    case Js::OpCode::Simd128_Swizzle_I8:
+    case Js::OpCode::Simd128_Swizzle_U8:
+        argPosLo = 1; argPosHi = 8;
+        laneIndexLo = 0; laneIndexHi = 7;
+        break;
+    case Js::OpCode::Simd128_Swizzle_I16:
+    case Js::OpCode::Simd128_Swizzle_U16:
+        argPosLo = 1; argPosHi = 16;
+        laneIndexLo = 0; laneIndexHi = 15;
+        break;
     case Js::OpCode::Simd128_Shuffle_F4:
     case Js::OpCode::Simd128_Shuffle_I4:
+    case Js::OpCode::Simd128_Shuffle_U4:
         argPosLo = 2; argPosHi = 5;
         laneIndexLo = 0; laneIndexHi = 7;
         break;
+    case Js::OpCode::Simd128_Shuffle_I8:
+    case Js::OpCode::Simd128_Shuffle_U8:
+        argPosLo = 2; argPosHi = 9;
+        laneIndexLo = 0; laneIndexHi = 15;
+        break;
+    case Js::OpCode::Simd128_Shuffle_I16:
+    case Js::OpCode::Simd128_Shuffle_U16:
+        argPosLo = 2; argPosHi = 17;
+        laneIndexLo = 0; laneIndexHi = 15;
+        break;
     case Js::OpCode::Simd128_ReplaceLane_F4:
     case Js::OpCode::Simd128_ReplaceLane_I4:
+    case Js::OpCode::Simd128_ReplaceLane_U4:
+    case Js::OpCode::Simd128_ReplaceLane_B4:
     case Js::OpCode::Simd128_ExtractLane_F4:
     case Js::OpCode::Simd128_ExtractLane_I4:
+    case Js::OpCode::Simd128_ExtractLane_U4:
+    case Js::OpCode::Simd128_ExtractLane_B4:
         argPosLo = argPosHi = 1;
         laneIndexLo = 0;  laneIndexHi = 3;
+        break;
+    case Js::OpCode::Simd128_ReplaceLane_I8:
+    case Js::OpCode::Simd128_ReplaceLane_U8:
+    case Js::OpCode::Simd128_ReplaceLane_B8:
+    case Js::OpCode::Simd128_ExtractLane_I8:
+    case Js::OpCode::Simd128_ExtractLane_U8:
+    case Js::OpCode::Simd128_ExtractLane_B8:
+        argPosLo = argPosHi = 1;
+        laneIndexLo = 0; laneIndexHi = 7;
+        break;
+    case Js::OpCode::Simd128_ReplaceLane_I16:
+    case Js::OpCode::Simd128_ReplaceLane_U16:
+    case Js::OpCode::Simd128_ReplaceLane_B16:
+    case Js::OpCode::Simd128_ExtractLane_I16:
+    case Js::OpCode::Simd128_ExtractLane_U16:
+    case Js::OpCode::Simd128_ExtractLane_B16:
+        argPosLo = argPosHi = 1;
+        laneIndexLo = 0; laneIndexHi = 15;
         break;
     default:
         return true; // not a lane index
@@ -412,7 +451,7 @@ bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opn
         return true; // not a lane index
     }
 
-    // It is a lane index ...
+    // It is a lane index
 
     // Arg is Int constant (literal or const prop'd) ?
     if (!opnd->IsIntConstOpnd())
@@ -471,14 +510,17 @@ IRType GlobOpt::GetIRTypeFromValueType(const ValueType &valueType)
     {
         return TyInt32;
     }
-    else if (valueType.IsSimd128Float32x4())
-    {
-        return TySimd128F4;
+#define SIMD_GET_TYPE(_NAME_,_TAG_)\
+    else if (valueType.IsSimd128##_NAME_##())\
+    {\
+        return TySimd128##_TAG_##;\
     }
+    SIMD_EXPAND_W_NAME(SIMD_GET_TYPE)
+#undef SIMD_GET_TYPE
     else
     {
-        Assert(valueType.IsSimd128Int32x4());
-        return TySimd128I4;
+        Assert(UNREACHED);
+        return TyVar;
     }
 }
 
@@ -490,10 +532,12 @@ ValueType GlobOpt::GetValueTypeFromIRType(const IRType &type)
         return ValueType::GetInt(false);
     case TyFloat64:
         return ValueType::Float;
-    case TySimd128F4:
-        return ValueType::GetSimd128(ObjectType::Simd128Float32x4);
-    case TySimd128I4:
-        return ValueType::GetSimd128(ObjectType::Simd128Int32x4);
+
+#define SIMD_GET_TYPE(_NAME_,_TAG_) \
+    case TySimd128##_TAG_##: \
+        return ValueType::GetSimd128(ObjectType::Simd128##_NAME_##);
+    SIMD_EXPAND_W_NAME(SIMD_GET_TYPE)
+#undef SIMD_GET_TYPE
     default:
         Assert(UNREACHED);
 
@@ -513,14 +557,17 @@ IR::BailOutKind GlobOpt::GetBailOutKindFromValueType(const ValueType &valueType)
     {
         return IR::BailOutIntOnly;
     }
-    else if (valueType.IsSimd128Float32x4())
-    {
-        return IR::BailOutSimd128F4Only;
+#define SIMD_GET_BAILOUT(_NAME_,_TAG_)\
+    else if (valueType.IsSimd128##_NAME_##())\
+    {\
+        return IR::BailOutSimd128##_TAG_##Only;\
     }
+    SIMD_EXPAND_W_NAME(SIMD_GET_BAILOUT)
+#undef SIMD_GET_BAILOUT
     else
     {
-        Assert(valueType.IsSimd128Int32x4());
-        return IR::BailOutSimd128I4Only;
+        Assert(UNREACHED);
+        return IR::BailOutInvalid;
     }
 }
 
@@ -570,19 +617,16 @@ GlobOpt::Simd128SetIndirOpndType(IR::IndirOpnd *indirOpnd, Js::OpCode opcode)
 {
     switch (opcode)
     {
-    case Js::OpCode::Simd128_LdArr_F4:
-    case Js::OpCode::Simd128_StArr_F4:
-        indirOpnd->SetType(TySimd128F4);
-        indirOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Float32x4));
+#define SIMD_TYPE(_NAME_,_TAG_)\
+    case Js::OpCode::Simd128_LdArr_##_TAG_##:\
+    case Js::OpCode::Simd128_StArr_##_TAG_##:\
+        indirOpnd->SetType(TySimd128##_TAG_##);\
+        indirOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128##_NAME_##));\
         break;
-    case Js::OpCode::Simd128_LdArr_I4:
-    case Js::OpCode::Simd128_StArr_I4:
-        indirOpnd->SetType(TySimd128I4);
-        indirOpnd->SetValueType(ValueType::GetSimd128(ObjectType::Simd128Int32x4));
-        break;
+        SIMD_EXPAND_W_NAME_NUM_ONLY(SIMD_TYPE)
+#undef SIMD_TYPE
+    
     default:
         Assert(UNREACHED);
     }
-
 }
-

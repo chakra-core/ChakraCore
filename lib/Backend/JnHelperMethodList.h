@@ -338,8 +338,18 @@ HELPERCALL(AllocUninitializedNumber, Js::JavascriptOperators::AllocUninitialized
 #endif
 
 // SIMD_JS
-HELPERCALL(AllocUninitializedSimdF4, Js::JavascriptSIMDFloat32x4::AllocUninitialized, 0)
-HELPERCALL(AllocUninitializedSimdI4, Js::JavascriptSIMDInt32x4::AllocUninitialized, 0)
+#define SIMD_HELPER(_NAME_,_TAG_) HELPERCALL(AllocUninitializedSimd##_TAG_##, Js::JavascriptSIMD##_NAME_##::AllocUninitialized, 0)
+SIMD_HELPER(Float32x4,      F4)
+SIMD_HELPER(Int32x4,        I4)
+SIMD_HELPER(Int16x8,        I8)
+SIMD_HELPER(Int8x16,        I16)
+SIMD_HELPER(Uint32x4,       U4)
+SIMD_HELPER(Uint16x8,       U8)
+SIMD_HELPER(Uint8x16,       U16)
+SIMD_HELPER(Bool32x4,       B4)
+SIMD_HELPER(Bool16x8,       B8)
+SIMD_HELPER(Bool8x16,       B16)
+#undef SIMD_HELPER
 
 HELPERCALL(Op_TryCatch, nullptr, 0)
 HELPERCALL(Op_TryFinally, nullptr, AttrCanThrow)

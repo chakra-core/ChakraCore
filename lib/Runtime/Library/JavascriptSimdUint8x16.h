@@ -22,6 +22,8 @@ namespace Js
         };
 
         JavascriptSIMDUint8x16(SIMDValue *val, StaticType *type);
+        JavascriptSIMDUint8x16(StaticType *type);
+        static JavascriptSIMDUint8x16* AllocUninitialized(ScriptContext* requestContext);
         static JavascriptSIMDUint8x16* New(SIMDValue *val, ScriptContext* requestContext);
         static bool Is(Var instance);
         static JavascriptSIMDUint8x16* FromVar(Var aValue);
@@ -36,8 +38,6 @@ namespace Js
         }
 
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
-
-        __inline SIMDValue GetValue() { return value; }
         Var  Copy(ScriptContext* requestContext);
     };
 }

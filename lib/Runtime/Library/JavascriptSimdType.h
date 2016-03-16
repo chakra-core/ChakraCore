@@ -34,7 +34,8 @@ namespace Js
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-
+        static size_t GetOffsetOfValue() { return offsetof(JavascriptSIMDType, value); }
+        __inline SIMDValue GetValue() { return value; }
     private:
         virtual bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext);
     };

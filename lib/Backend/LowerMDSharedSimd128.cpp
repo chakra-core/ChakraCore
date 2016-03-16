@@ -2817,11 +2817,15 @@ LowererMD::Simd128ConvertToLoad(IR::Opnd *dst, IR::Opnd *src, uint8 dataWidth, I
     // Type-specialized.
     Assert(dst && dst->IsSimd128());
     Assert(src->IsIndirOpnd());
-    if (scaleFactor > 0)
+    IR::IndirOpnd *indirOpnd = src->AsIndirOpnd();
+    if (indirOpnd->GetIndexOpnd() != nullptr)
     {
-        // needed only for non-Asmjs code
-        Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
-        src->AsIndirOpnd()->SetScale(scaleFactor);
+        indirOpnd->SetScale(scaleFactor);
+    }
+    else
+    {
+        int32 offset = indirOpnd->GetOffset() << scaleFactor;
+        indirOpnd->SetOffset(offset);
     }
 
     switch (dataWidth)
@@ -2978,11 +2982,15 @@ LowererMD::Simd128ConvertToStore(IR::Opnd *dst, IR::Opnd *src1, uint8 dataWidth,
     Assert(src1 && src1->IsSimd128());
     Assert(dst->IsIndirOpnd());
 
-    if (scaleFactor > 0)
+    IR::IndirOpnd *indirOpnd = dst->AsIndirOpnd();
+    if (indirOpnd->GetIndexOpnd() != nullptr)
     {
-        // needed only for non-Asmjs code
-        Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
-        dst->AsIndirOpnd()->SetScale(scaleFactor);
+        indirOpnd->SetScale(scaleFactor);
+    }
+    else
+    {
+        int32 offset = indirOpnd->GetOffset() << scaleFactor;
+        indirOpnd->SetOffset(offset);
     }
 
     switch (dataWidth)
@@ -3371,7 +3379,7 @@ LowererMD::GenerateCheckedSimdLoad(IR::Instr * instr)
     IR::LabelInstr * labelHelper = nullptr, * labelDone = nullptr;
     IR::Instr * insertInstr = instr, * newInstr;
     IR::RegOpnd * src = instr->GetSrc1()->AsRegOpnd(), * dst = instr->GetDst()->AsRegOpnd();
-    Assert(!checkRequired || instr->GetBailOutKind() == IR::BailOutSimd128F4Only || instr->GetBailOutKind() == IR::BailOutSimd128I4Only);
+    Assert(!checkRequired || instr->HasSimd128BailOutKind());
 
     if (checkRequired)
     {
@@ -3385,7 +3393,19 @@ LowererMD::GenerateCheckedSimdLoad(IR::Instr * instr)
 
         newInstr = IR::Instr::New(Js::OpCode::CMP, instr->m_func);
         newInstr->SetSrc1(IR::IndirOpnd::New(instr->GetSrc1()->AsRegOpnd(), 0, TyMachPtr, instr->m_func));
-        newInstr->SetSrc2(m_lowerer->LoadVTableValueOpnd(instr, dst->GetType() == TySimd128F4 ? VTableValue::VtableSimd128F4 : VTableValue::VtableSimd128I4));
+        VTableValue vtable = VTableValue::VtableSimd128F4;
+        switch (dst->GetType())
+        {
+#define SIMD_VTABLE(_TAG_)\
+        case TySimd128##_TAG_##:\
+            vtable = VTableValue::VtableSimd128##_TAG_##;\
+            break;
+        SIMD_EXPAND_W_TAG(SIMD_VTABLE)
+#undef SIMD_VTABLE
+        default:
+            Assert(UNREACHED);
+        }
+        newInstr->SetSrc2(m_lowerer->LoadVTableValueOpnd(instr, vtable));
         insertInstr->InsertBefore(newInstr);
         Legalize(newInstr);
         insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, labelHelper, this->m_func));
@@ -3394,7 +3414,8 @@ LowererMD::GenerateCheckedSimdLoad(IR::Instr * instr)
         this->m_lowerer->GenerateBailOut(instr);
 
     }
-    size_t valueOffset = dst->GetType() == TySimd128F4 ? Js::JavascriptSIMDFloat32x4::GetOffsetOfValue() : Js::JavascriptSIMDInt32x4::GetOffsetOfValue();
+    // offset of value should be same for all SIMD types
+    size_t valueOffset = Js::JavascriptSIMDType::GetOffsetOfValue();
     Assert(valueOffset < INT_MAX);
     newInstr = IR::Instr::New(Js::OpCode::MOVUPS, dst, IR::IndirOpnd::New(src, static_cast<int>(valueOffset), dst->GetType(), this->m_func), this->m_func);
     insertInstr->InsertBefore(newInstr);
@@ -3408,24 +3429,40 @@ void LowererMD::GenerateSimdStore(IR::Instr * instr)
 {
     IR::RegOpnd *dst, *src;
     IRType type;
+    IR::HelperCallOpnd *helperOpnd = nullptr;
+
     dst = instr->GetDst()->AsRegOpnd();
     src = instr->GetSrc1()->AsRegOpnd();
     type = src->GetType();
 
+    switch (type)
+    {
+#define SIMD_HELPER(_TAG_)\
+    case TySimd128##_TAG_##:\
+        helperOpnd = IR::HelperCallOpnd::New(IR::HelperAllocUninitializedSimd##_TAG_##, this->m_func);\
+        break;
+        SIMD_EXPAND_W_TAG(SIMD_HELPER)
+#undef SIMD_HELPER
+    default:
+        Assert(UNREACHED);
+    }
+
     this->m_lowerer->LoadScriptContext(instr);
-    IR::Instr * instrCall = IR::Instr::New(Js::OpCode::CALL, instr->GetDst(),
-        IR::HelperCallOpnd::New(type == TySimd128F4 ? IR::HelperAllocUninitializedSimdF4 : IR::HelperAllocUninitializedSimdI4, this->m_func), this->m_func);
+    IR::Instr * instrCall = IR::Instr::New(Js::OpCode::CALL, instr->GetDst(), helperOpnd, this->m_func);
     instr->InsertBefore(instrCall);
     this->lowererMDArch.LowerCall(instrCall, 0);
 
-    IR::Opnd * valDst;
-    if (type == TySimd128F4)
-    {
-        valDst = IR::IndirOpnd::New(dst, (int32)Js::JavascriptSIMDFloat32x4::GetOffsetOfValue(), TySimd128F4, this->m_func);
-    }
+    IR::Opnd * valDst = nullptr;
+#define SIMD_STORE(_NAME_,_TAG_)\
+    if (type == TySimd128##_TAG_##)\
+    {\
+        valDst = IR::IndirOpnd::New(dst, (int32)Js::JavascriptSIMDType::GetOffsetOfValue(), TySimd128##_TAG_##, this->m_func);\
+    }\
     else
+    SIMD_EXPAND_W_NAME(SIMD_STORE)
+#undef SIMD_STORE
     {
-        valDst = IR::IndirOpnd::New(dst, (int32)Js::JavascriptSIMDInt32x4::GetOffsetOfValue(), TySimd128I4, this->m_func);
+        Assert(UNREACHED);
     }
 
     instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVUPS, valDst, src, this->m_func));

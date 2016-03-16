@@ -173,16 +173,24 @@ public:
     bool IsSimd128Uint32x4() const;
     bool IsSimd128Uint16x8() const;
     bool IsSimd128Uint8x16() const;
+    bool IsSimd128Bool32x4() const;
+    bool IsSimd128Bool16x8() const;
+    bool IsSimd128Bool8x16() const;
     bool IsSimd128Float64x2() const;
 
 
     bool IsLikelySimd128() const;
+    bool IsLikelySimd128(ObjectType const simdType) const;
     bool IsLikelySimd128Float32x4() const;
     bool IsLikelySimd128Int32x4() const;
     bool IsLikelySimd128Int16x8() const;
     bool IsLikelySimd128Int8x16() const;
+    bool IsLikelySimd128Uint32x4() const;
     bool IsLikelySimd128Uint16x8() const;
     bool IsLikelySimd128Uint8x16() const;
+    bool IsLikelySimd128Bool32x4() const;
+    bool IsLikelySimd128Bool16x8() const;
+    bool IsLikelySimd128Bool8x16() const;
     bool IsLikelySimd128Float64x2() const;
 #endif
 

@@ -52,6 +52,14 @@ SIMD.js opcodes
 // helper macros
 #define T_F4    ValueType::GetSimd128(ObjectType::Simd128Float32x4)
 #define T_I4    ValueType::GetSimd128(ObjectType::Simd128Int32x4)
+#define T_I8    ValueType::GetSimd128(ObjectType::Simd128Int16x8)
+#define T_I16   ValueType::GetSimd128(ObjectType::Simd128Int8x16)
+#define T_U4    ValueType::GetSimd128(ObjectType::Simd128Uint32x4)
+#define T_U8    ValueType::GetSimd128(ObjectType::Simd128Uint16x8)
+#define T_U16   ValueType::GetSimd128(ObjectType::Simd128Uint8x16)
+#define T_B4    ValueType::GetSimd128(ObjectType::Simd128Bool32x4)
+#define T_B8    ValueType::GetSimd128(ObjectType::Simd128Bool16x8)
+#define T_B16   ValueType::GetSimd128(ObjectType::Simd128Bool8x16)
 #define T_INT   ValueType::GetInt(false)
 #define T_FLT   ValueType::Float
 
@@ -105,7 +113,6 @@ MACRO_SIMD_WMS              ( Simd128_Add_F4                    , Float32x4_3   
 MACRO_SIMD_WMS              ( Simd128_Sub_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Sub,   T_F4, T_F4, T_F4)
 MACRO_SIMD_WMS              ( Simd128_Mul_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Mul,   T_F4, T_F4, T_F4)
 MACRO_SIMD_WMS              ( Simd128_Div_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Div,   T_F4, T_F4, T_F4)
-MACRO_SIMD_WMS              ( Simd128_Clamp_F4                  , Float32x4_4                       , None           ,        OpCanCSE          ,      0)
 MACRO_SIMD_WMS              ( Simd128_Min_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Min,   T_F4, T_F4, T_F4)
 MACRO_SIMD_WMS              ( Simd128_Max_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Max,   T_F4, T_F4, T_F4)
 MACRO_SIMD_WMS              ( Simd128_Rcp_F4                    , Float32x4_2                       , None           ,        OpCanCSE          ,      3,   &Js::SIMDFloat32x4Lib::EntryInfo::Reciprocal,     T_F4, T_F4)
@@ -113,17 +120,17 @@ MACRO_SIMD_WMS              ( Simd128_RcpSqrt_F4                , Float32x4_2   
 MACRO_SIMD_WMS              ( Simd128_Sqrt_F4                   , Float32x4_2                       , None           ,        OpCanCSE          ,      3,   &Js::SIMDFloat32x4Lib::EntryInfo::Sqrt,   T_F4, T_F4)
 MACRO_SIMD_WMS              ( Simd128_Swizzle_F4                , Float32x4_2Int4                   , None           ,        OpCanCSE          ,      7,   &Js::SIMDFloat32x4Lib::EntryInfo::Swizzle,   T_F4, T_F4, T_INT, T_INT, T_INT, T_INT)
 MACRO_SIMD_WMS              ( Simd128_Shuffle_F4                , Float32x4_3Int4                   , None           ,        OpCanCSE          ,      8,   &Js::SIMDFloat32x4Lib::EntryInfo::Shuffle,   T_F4, T_F4, T_F4, T_INT, T_INT, T_INT, T_INT)
-MACRO_SIMD_WMS              ( Simd128_Lt_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_LtEq_F4                   , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Eq_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Neq_F4                    , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Gt_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_GtEq_F4                   , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Select_F4                 , Float32x4_1Bool32x4_1Float32x4_2  , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_And_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Or_F4                     , Float32x4_3                       , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Xor_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      0)
-MACRO_SIMD_WMS              ( Simd128_Not_F4                    , Float32x4_2                       , None           ,        OpCanCSE          ,      0)
+MACRO_SIMD_WMS              ( Simd128_Lt_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::LessThan,  T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_LtEq_F4                   , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::LessThanOrEqual, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Eq_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Equal, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Neq_F4                    , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::NotEqual, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Gt_F4                     , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::GreaterThan, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_GtEq_F4                   , Bool32x4_1Float32x4_2             , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::GreaterThanOrEqual, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Select_F4                 , Float32x4_1Bool32x4_1Float32x4_2  , None           ,        OpCanCSE          ,      5,   &Js::SIMDFloat32x4Lib::EntryInfo::Select, T_F4, T_B4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_And_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::And, T_F4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Or_F4                     , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Or, T_F4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Xor_F4                    , Float32x4_3                       , None           ,        OpCanCSE          ,      4,   &Js::SIMDFloat32x4Lib::EntryInfo::Xor, T_F4, T_F4, T_F4)
+MACRO_SIMD_WMS              ( Simd128_Not_F4                    , Float32x4_2                       , None           ,        OpCanCSE          ,      3,   &Js::SIMDFloat32x4Lib::EntryInfo::Not, T_F4, T_F4)
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_Ld_F4                     , Float32x4_2                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_LdSlot_F4                 , ElementSlot                       , None           ,        None                      )
 MACRO_SIMD_ASMJS_ONLY_WMS   ( Simd128_StSlot_F4                 , ElementSlot                       , None           ,        None                      )
@@ -519,8 +526,17 @@ MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_LdSlot_B16            , ElementSlot   
 MACRO_SIMD_ASMJS_ONLY_EXTEND_WMS( Simd128_StSlot_B16            , ElementSlot                        , None           ,        None                     )
 
 MACRO_SIMD_EXTEND         ( Simd128_End_Extend                  , Empty                            , None           ,        None               ,      0)   // Just a marker to indicate SIMD opcodes region
+
 #undef T_F4
 #undef T_I4
+#undef T_I8
+#undef T_I16
+#undef T_U4
+#undef T_U8
+#undef T_U16
+#undef T_B4
+#undef T_B8
+#undef T_B16
 #undef T_INT
 #undef T_FLT
 

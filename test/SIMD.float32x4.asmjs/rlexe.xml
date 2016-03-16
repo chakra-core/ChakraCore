@@ -610,24 +610,24 @@
   </test>
   -->
   
-  <!-- currently too slow. Enable with globOpt support.
+  
   <test>
   <default>
           <files>testLoadStore-2.js</files>
-          <baseline>testLoadStore-2.baseline</baseline>
+          <baseline>testLoadStore-2-noAsmJs.baseline</baseline>
           <tags>exclude_dynapogo,exclude_ship</tags>
-          <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
+          <compile-flags>-bgjit- -asmjs- -simdjs -simd128typespec -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
       </default>
   </test>
   <test>
   <default>
           <files>testLoadStore-2.js</files>
-          <baseline>testLoadStore-2.baseline</baseline>
+          <baseline>testLoadStore-2-noAsmJs.baseline</baseline>
           <tags>exclude_dynapogo,exclude_ship</tags>
-          <compile-flags>-bgjit- -on:asmjs -simdjs -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
+          <compile-flags>-bgjit- -asmjs- -simdjs -simd128typespec -testtrace:asmjs -AsmJsStopOnError -maic:0</compile-flags>
       </default>
   </test>
-  -->
+  
   <test>
       <default>
           <files>testLoadStore.js</files>
@@ -702,7 +702,7 @@
               <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -on:simplejit -mic:1 -lic:1</compile-flags>
           </default>
   </test>
-  <!-- Disabled due to bug in TypeSpec
+  
   <test>
           <default>
               <files>testResizeLoadStore-2.js</files>
@@ -711,7 +711,7 @@
               <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
           </default>
   </test>
-  -->
+  
   <test>
       <default>
           <files>testResizeLoadStore.js</files>

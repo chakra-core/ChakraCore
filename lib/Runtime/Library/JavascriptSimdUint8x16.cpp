@@ -7,11 +7,21 @@
 
 namespace Js
 {
+
+    JavascriptSIMDUint8x16::JavascriptSIMDUint8x16(StaticType *type) : JavascriptSIMDType(type)
+    {
+        Assert(type->GetTypeId() == TypeIds_SIMDUint8x16);
+    }
+
     JavascriptSIMDUint8x16::JavascriptSIMDUint8x16(SIMDValue *val, StaticType *type) : JavascriptSIMDType(val, type)
     {
         Assert(type->GetTypeId() == TypeIds_SIMDUint8x16);
     }
 
+    JavascriptSIMDUint8x16* JavascriptSIMDUint8x16::AllocUninitialized(ScriptContext* requestContext)
+    {
+        return (JavascriptSIMDUint8x16 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDUint8x16, requestContext->GetLibrary()->GetSIMDUint8x16TypeStatic());
+    }
     JavascriptSIMDUint8x16* JavascriptSIMDUint8x16::New(SIMDValue *val, ScriptContext* requestContext)
     {
         return (JavascriptSIMDUint8x16 *)AllocatorNew(Recycler, requestContext->GetRecycler(), JavascriptSIMDUint8x16, val, requestContext->GetLibrary()->GetSIMDUint8x16TypeStatic());
