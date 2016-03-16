@@ -6793,7 +6793,9 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
 
     if (pClassName)
     {
-        pFinalName = AppendNameHints(pClassName, pFinalName, &fullNameHintLength, &shortNameOffset);
+        ulong classNameOffset = 0;
+        pFinalName = AppendNameHints(pClassName, pFinalName, &fullNameHintLength, &classNameOffset);
+        shortNameOffset += classNameOffset;
     }
 
     if (pGetSet)
