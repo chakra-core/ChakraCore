@@ -655,10 +655,9 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptRegExp* pRegEx = GetJavascriptRegExp(args, _u("RegExp.prototype.test"), scriptContext);
-        JavascriptString * pStr = GetFirstStringArg(args, scriptContext);
-        BOOL result = RegexHelper::RegexTest(scriptContext, pRegEx, pStr);
-        return JavascriptBoolean::ToVar(result, scriptContext);
+        RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype.test"), scriptContext);
+        JavascriptString* string = GetFirstStringArg(args, scriptContext);
+        return RegexHelper::RegexTest(scriptContext, thisObj, string);
     }
 
     Var JavascriptRegExp::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
