@@ -1346,7 +1346,7 @@ namespace Js
         Assert(IsObjectHeaderInlinedTypeHandler());
 
         // Clone the type Path here to evolve separately
-        uint16 pathLength = typePath->pathLength;
+        uint16 pathLength = typePath->GetPathLength();
         TypePath * clonedPath = TypePath::New(library->GetRecycler(), pathLength);
 
         for (PropertyIndex i = 0; i < pathLength; i++)
