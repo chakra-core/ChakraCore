@@ -17,14 +17,12 @@ Abstract:
 
 --*/
 
-#ifdef _CRT_RAND_S
-
-#include "pal/palinternal.h"
+#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <mutex>
 
-
+typedef int errno_t;
 #define RANDOM_CACHE_SIZE 8
 constexpr int rand_byte_len = sizeof(unsigned int) * RANDOM_CACHE_SIZE;
 static union {
@@ -61,6 +59,7 @@ static bool GetRandom(unsigned int *result) noexcept
     return len == rand_byte_len;
 }
 
+extern "C"
 errno_t __cdecl rand_s(unsigned int* randomValue) noexcept
 {
     if (randomValue == nullptr) return 1;
@@ -76,4 +75,3 @@ errno_t __cdecl rand_s(unsigned int* randomValue) noexcept
     }
 }
 
-#endif // _CRT_RAND_S
