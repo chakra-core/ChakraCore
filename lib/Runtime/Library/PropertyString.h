@@ -38,12 +38,11 @@ namespace Js
     {
     protected:
         PropertyCache* propCache;
-        bool registerScriptContext;
         const Js::PropertyRecord* m_propertyRecord;
         DEFINE_VTABLE_CTOR(PropertyString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
 
-        PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord, bool registerScriptContext);
+        PropertyString(StaticType* type, const Js::PropertyRecord* propertyRecord);
     public:
         PropertyCache const * GetPropertyCache() const;
         void ClearPropertyCache();
