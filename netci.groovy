@@ -16,6 +16,12 @@ def msbuildTypeMap = [
     'release':'fre'
 ]
 
+// convert `machine` parameter to OS component of PR task name
+def machineTypeToOSTagMap = [
+    'Windows 7': 'Windows 7',
+    'Windows_NT': 'Windows'
+]
+
 def dailyRegex = 'dailies'
 
 // ---------------
@@ -80,7 +86,8 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
                     if (isPR) {
                         // Set PR trigger.
-                        Utilities.addGithubPRTriggerForBranch(newJob, branch, "Windows ${config}")
+                        def osTag = machineTypeToOSTagMap.get(machine)
+                        Utilities.addGithubPRTrigger(newJob, "${osTag} ${config}")
                     }
                     else {
                         // Set a push trigger
@@ -101,7 +108,7 @@ def DailyBuildTaskSetup = { newJob, isPR, triggerName, groupRegex ->
     // The addition of triggers makes the job non-default in GitHub.
     if (isPR) {
         def triggerRegex = "(${dailyRegex}|${groupRegex}|${triggerName})"
-        Utilities.addGithubPRTriggerForBranch(newJob, branch,
+        Utilities.addGithubPRTrigger(newJob,
             triggerName, // GitHub task name
             "(?i).*test\\W+${triggerRegex}.*")
     } else {
@@ -122,12 +129,13 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
         Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
         if (isPR) {
             // Set PR trigger.
-            Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
+            Utilities.addGithubPRTrigger(newJob, checkName)
         }
         else {
             // Set a push trigger
             Utilities.addGithubPushTrigger(newJob)
         }
+
         Utilities.setMachineAffinity(newJob, 'Ubuntu14.04', 'latest-or-auto')
     }
 }
