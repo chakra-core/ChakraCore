@@ -155,6 +155,17 @@ var tests = [
                     ReferenceError,
                     "Named function expression does not leak name into subsequent default expressions",
                     "'bar' is undefined");
+      function foo6(a = b1) {
+          {
+              function b1() {
+                  return 2;
+              }
+          }
+          assert.areEqual(1, a, "First argument should get the initial value from outer variable");
+          assert.areEqual(2, b1(), "Block scoped function should be visible in the body also");
+      }
+      var b1 = 1;
+      foo6();
     }
   },
   {
