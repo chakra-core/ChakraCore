@@ -474,6 +474,8 @@ namespace Js
             CodeGenFailedOOM,
             CodeGenFailedStackOverflow,
             CodeGenFailedAborted,
+            CodeGenFailedExceedJITLimit,
+            CodeGenFailedUnknown,
             NativeCodeInstallFailure,
             CleanUpForFinalize
         };

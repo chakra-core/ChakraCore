@@ -9208,7 +9208,9 @@ namespace Js
                 }
                 else
                 {
-                    Assert((DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
+                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());                    
+                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp() 
+                        || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }
             });
 
