@@ -60,17 +60,6 @@ FALSE otherwise
 BOOL TIMEInitialize( void );
 
 /*++
-Function:
-RANDOMInitialize
-
-Return value:
-TRUE if initialize succeeded
-FALSE otherwise
-
---*/
-BOOL RANDOMInitialize( void );
-    
-/*++
 Function :
     MsgBoxInitialize
 

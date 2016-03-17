@@ -17,35 +17,63 @@ Abstract:
 
 --*/
 
+#ifdef _CRT_RAND_S
+
 #include "pal/palinternal.h"
-#include <sodium.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <mutex>
 
-/*++
-Function :
-RANDOMInitialize
 
-Initialize libsodium
+#define RANDOM_CACHE_SIZE 8
+constexpr int rand_byte_len = sizeof(unsigned int) * RANDOM_CACHE_SIZE;
+static union {
+    char rstack[rand_byte_len];
+    unsigned int result[RANDOM_CACHE_SIZE];
+} random_cache;
+static unsigned cache_index(RANDOM_CACHE_SIZE);
+static std::mutex random_generator_mutex;
 
-(no parameters)
-
-Return value :
-TRUE  if libsodium initialization succeeded
-FALSE otherwise
---*/
-BOOL RANDOMInitialize(void)
+static bool GetRandom(unsigned int *result) noexcept
 {
-    if (sodium_init() == -1)
-    {
-        return FALSE;
+    std::lock_guard<std::mutex> guard(random_generator_mutex);
+    if (cache_index < RANDOM_CACHE_SIZE) {
+        *result = random_cache.result[cache_index++];
+        return true;
     }
-    
-    return TRUE;
+
+    const int rdev = open("/dev/urandom", O_RDONLY);
+    unsigned len = 0;
+
+    do
+    {
+        int added = read(rdev, random_cache.rstack + len, rand_byte_len - len);
+        if (added < 0) {
+            close(rdev);
+            return false;
+        }
+        len += added;
+    } while (len < rand_byte_len);
+
+    close(rdev);
+    *result = random_cache.result[0];
+    cache_index = 1;
+    return len == rand_byte_len;
 }
 
-
-// Implemented in stdlib in the universal CRT
-errno_t __cdecl rand_s(unsigned int* randomValue)
+errno_t __cdecl rand_s(unsigned int* randomValue) noexcept
 {
-    *randomValue = randombytes_random();
-    return 1;
+    if (randomValue == nullptr) return 1;
+    
+    if (GetRandom(randomValue)) 
+    {
+        return 0;
+    }
+    else
+    {
+        *randomValue = 0;
+        return 1;
+    }
 }
+
+#endif // _CRT_RAND_S
