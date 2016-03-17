@@ -465,8 +465,6 @@ namespace Js
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, ulong grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 
         typedef void (*EventHandler)(ScriptContext *);
-        ScriptContext ** entryInScriptContextWithInlineCachesRegistry;
-        ScriptContext ** entryInScriptContextWithIsInstInlineCachesRegistry;
         ScriptContext ** registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
         ArenaAllocator generalAllocator;
@@ -757,8 +755,8 @@ private:
         bool isCloningGlobal;
 #endif
         bool fastDOMenabled;
-        bool hasRegisteredInlineCache;
-        bool hasRegisteredIsInstInlineCache;
+        bool hasInlineCache;
+        bool hasIsInstInlineCache;
         bool deferredBody;
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
@@ -1272,15 +1270,10 @@ private:
         }
 
     public:
-        void RegisterAsScriptContextWithInlineCaches();
-        void RegisterAsScriptContextWithIsInstInlineCaches();
-        bool IsRegisteredAsScriptContextWithIsInstInlineCaches();
         void FreeLoopBody(void* codeAddress);
         void FreeFunctionEntryPoint(Js::JavascriptMethod method);
 
     private:
-        void DoRegisterAsScriptContextWithInlineCaches();
-        void DoRegisterAsScriptContextWithIsInstInlineCaches();
         uint CloneSource(Utf8SourceInfo* info);
     public:
         void RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId);

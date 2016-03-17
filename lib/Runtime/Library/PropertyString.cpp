@@ -53,10 +53,6 @@ namespace Js
     void PropertyString::UpdateCache(Type * type, uint16 dataSlotIndex, bool isInlineSlot, bool isStoreFieldEnabled)
     {
         Assert(type && type->GetScriptContext() == this->GetScriptContext());
-        if (registerScriptContext)
-        {
-            this->GetScriptContext()->RegisterAsScriptContextWithInlineCaches();
-        }
 
         this->propCache->type = type;
         this->propCache->preventdataSlotIndexFalseRef = 1;
