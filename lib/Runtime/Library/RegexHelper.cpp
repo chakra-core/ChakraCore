@@ -629,8 +629,38 @@ namespace Js
         return result;
     }
 
+    Var RegexHelper::RegexTest(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString *input)
+    {
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+            && IsRegexTestObservable(thisObj, scriptContext))
+        {
+            return RegexEs6TestImpl(scriptContext, thisObj, input);
+        }
+        else
+        {
+            JavascriptRegExp* regularExpression =
+                JavascriptRegExp::ToRegExp(thisObj, _u("RegExp.prototype.test"), scriptContext);
+            return RegexEs5TestImpl(scriptContext, regularExpression, input);
+        }
+    }
+
+    bool RegexHelper::IsRegexTestObservable(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
+        return !JavascriptRegExp::HasOriginalRegExType(instance)
+            || JavascriptRegExp::HasObservableExec(regexPrototype)
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+    }
+
+    Var RegexHelper::RegexEs6TestImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString *input)
+    {
+        Var match = JavascriptRegExp::CallExec(thisObj, input, _u("RegExp.prototype.test"), scriptContext);
+        return JavascriptBoolean::ToVar(!JavascriptOperators::IsNull(match), scriptContext);
+    }
+
     // RegExp.prototype.test (ES5 15.10.6.3)
-    BOOL RegexHelper::RegexTest(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input)
+    Var RegexHelper::RegexEs5TestImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
         const char16* inputStr = input->GetString();
@@ -654,7 +684,7 @@ namespace Js
         // else: match remains undefined
         PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, match, match, true, true);
 
-        return !match.IsUndefined();
+        return JavascriptBoolean::ToVar(!match.IsUndefined(), scriptContext);
     }
 
     template<typename GroupFn>
