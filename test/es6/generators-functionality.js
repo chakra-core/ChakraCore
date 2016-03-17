@@ -1050,7 +1050,7 @@ var tests = [
             var gf = function* () { yield* simpleIterator; }
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.throw(new ExpectedException()); }, ExpectedException, "Throw the exception out ignoring the result from the iterator's throw method");
+            assert.areEqual({value:undefined, done: true}, g.throw(new ExpectedException()), "Returns the value from inner iterator");
             assert.areEqual(1, x, "Make sure that iterator's throw is executed");
         }
     },
@@ -1119,10 +1119,11 @@ var tests = [
             var gf3 = function* () { yield* g2; }
             var g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Yield 1 from the inner generator");
-            assert.throws(function () { g3.throw(2); }, 2, "Even though the inner generator handles the throw the result from it is ignored");
-            assert.areEqual({value: 3, done: false}, g1.next(), "First generator handled the exception so it is not in complete state yet");
-            assert.areEqual({value: undefined, done: true}, g2.next(), "Second generator does not handle the exception so it is in complete state");
-            assert.areEqual({value: undefined, done: true}, g3.next(), "Third generator also does not handle the exception so it is in complete state");
+            assert.areEqual({value: 100, done: false}, g3.throw(2), "The exception is caught by the inner generator");
+            assert.areEqual({value: 3, done: false}, g3.next(), "The generator is not in complete state yet");
+            assert.areEqual({value: undefined, done: true}, g1.next(), "First generator is in complete state");
+            assert.areEqual({value: undefined, done: true}, g2.next(), "Second generator is in complete state");
+            assert.areEqual({value: undefined, done: true}, g3.next(), "Third generator is in complete state");
 
             gf1 = function* () { yield 1; assert.fail("Control should never reach here"); }
             g1 = gf1();
@@ -1138,10 +1139,11 @@ var tests = [
             g2 = gf2();
             g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Yield 1 from the inner generator");
-            assert.throws(function () { g3.throw(2); }, 2, "Even though the inner generator handles the throw the result from it is ignored");
+            assert.areEqual({value: 100, done: false}, g3.throw(2), "The exception is caught by the second generator");
             assert.areEqual({value: undefined, done: true}, g1.next(), "First generator does not handle the exception so it is in complete state");
-            assert.areEqual({value: 3, done: false}, g2.next(), "Second generator handles the exception so it is not in complete state yet");
-            assert.areEqual({value: undefined, done: true}, g3.next(), "Third generator also does not handle the exception so it is in complete state");
+            assert.areEqual({value: 3, done: false}, g3.next(), "Third generator is not in complete state yet");
+            assert.areEqual({value: undefined, done: true}, g2.next(), "Second generator is in complete state");
+            assert.areEqual({value: undefined, done: true}, g3.next(), "Third generator is in complete state");
         }
     },
     {
@@ -1204,10 +1206,24 @@ var tests = [
             }
             x = 0;
             g1 = gf1();
+            gf2 = function* () {
+                try {
+                    yield* g1;
+                } finally {
+                    x += 3;
+                }
+            }
             g2 = gf2();
+            gf3 = function* () {
+                try {
+                    yield* g2;
+                } finally {
+                    x += 5;
+                }
+            }
             g3 = gf3();
             assert.areEqual({value: 1, done: false}, g3.next(), "Yield 1 from the first generator");
-            assert.throws(function () { g3.throw(new ExpectedException()); }, ExpectedException, "The exception thrown comes out as the outer generator ignoring the return value from the inner generator");
+            assert.areEqual({value: undefined, done: true}, g3.throw(new ExpectedException()), "The exception thrown is replaced with a return completion in the finally block, but it isn't propagated to the outer generator");
             assert.areEqual(9, x, "All finally blocks must be executed");
             assert.areEqual({value: undefined, done: true}, g1.next(), "First generator should be in complete state");
             assert.areEqual({value: undefined, done: true}, g2.next(), "Second generator should be in complete state");
@@ -1355,16 +1371,30 @@ var tests = [
             assert.areEqual({value: 2, done: true}, g.return(2), "As the return property is missing the yield* just returns as is");
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.throw(new ExpectedException()); }, ExpectedException, "As the throw property is missing the yield* just throws as is");
+            assert.throws(function () { g.throw(new ExpectedException()); }, TypeError, "As the throw property is missing a TypeError is thrown", "The value of the property 'throw' is not a Function object");
+
+            var iteratorWithNullAsReturn = CreateIterable(simpleNextFunc, null);
+            gf = function* () { yield* iteratorWithNullAsReturn; };
+            g = gf();
+            assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
+            assert.areEqual({value: 2, done: true}, g.return(2), "As the return property is null the yield* just returns as is");
+
+            var returnCalled = false;
+            var iteratorWithNullAsThrow = CreateIterable(simpleNextFunc, () => { returnCalled = true; return { done: true }; }, null);
+            gf = function* () { yield* iteratorWithNullAsThrow; };
+            g = gf();
+            assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
+            assert.throws(() => g.throw(), TypeError, "As the throw property is null a TypeError is thrown", "The value of the property 'throw' is not a Function object");
+            assert.isTrue(returnCalled, "As the throw property is null, .return() is called");
 
             var iteratorWithBadReturnAndThrow = CreateIterable(simpleNextFunc, {}, {});
             gf = function* () { yield* iteratorWithBadReturnAndThrow; }
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.return(100); }, TypeError, "Trying to invoke the return method which is an object not method causes a TypeError", "Function expected");
+            assert.throws(function () { g.return(100); }, TypeError, "Trying to invoke the return method which is an object not method causes a TypeError", "The value of the property 'return' is not a Function object");
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.throw(100); }, TypeError, "Trying to invoke the throw method which is an object not method causes a TypeError", "Function expected");
+            assert.throws(function () { g.throw(100); }, TypeError, "Trying to invoke the throw method which is an object not method causes a TypeError", "The value of the property 'throw' is not a Function object");
 
             var iteratorReturningNonObj = CreateIterable(simpleNextFunc, () => { return this.i; }, () => { return this.i; });
             gf = function* () { yield* iteratorReturningNonObj; }
@@ -1373,7 +1403,7 @@ var tests = [
             assert.throws(function () { g.return(100); }, TypeError, "Result of the return method from iterator should be an object", "Object expected");
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Yield 1 from the iterator");
-            assert.throws(function () { g.throw(new ExpectedException()); }, ExpectedException, "Result of the throw is ignored even if it is not an object, so TypeError won't be thrown out");
+            assert.throws(function () { g.throw(new ExpectedException()); }, TypeError, "Result of the throw method from iterator should be an object", "Object expected");
 
             var iteratorReturningWithoutValue = CreateIterable(() => { return {done: false}; }, () => { return {done: true}; }, () => { return {done: true}; });
             gf = function* () { yield* iteratorReturningWithoutValue; }
@@ -1449,6 +1479,152 @@ var tests = [
             var it = outer();
             it.next();
             it.next("a");
+        }
+    },
+    {
+        name: ".throw() forwarded by yield* is intercepted by the catch and finally blocks",
+        body: function () {
+            const error = new ExpectedException();
+            let yieldStarResult;
+
+            let innerGeneratorThrew = false;
+            function* gen() {
+                try {
+                    yield 1;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    innerGeneratorThrew = true;
+                }
+            }
+
+            function* genWhichYieldsInsideCatch() {
+                try {
+                    yield 2;
+                    assert.fail("Control should never reach here");
+                } catch (e) {
+                    assert.areEqual(e, error);
+                    yield 3;
+                }
+            }
+
+            function* genWhichYieldsInsideFinally() {
+                try {
+                    yield 4;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    yield 5;
+                }
+            }
+
+            function* genWhichReturnsInsideCatch() {
+                try {
+                    yield 6;
+                    assert.fail("Control should never reach here");
+                } catch (e) {
+                    return 101;
+                }
+            }
+
+            function* genWhichReturnsInsideFinally() {
+                try {
+                    yield 7;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    return 102;
+                }
+            }
+
+            function* wrap(gen) {
+                yieldStarResult = yield* gen();
+                yield 10;
+            }
+
+            let it = wrap(gen);
+            assert.areEqual({ value: 1, done: false }, it.next(), "yield 1 from gen");
+            assert.throws(() => it.throw(error), ExpectedException, ".throw() isn't caught");
+            assert.isTrue(innerGeneratorThrew, ".throw() is forwarded to gen");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
+            it = wrap(genWhichYieldsInsideCatch);
+            assert.areEqual({ value: 2, done: false }, it.next(), "yield 2 from genWhichYieldsInsideCatch");
+            assert.areEqual({ value: 3, done: false }, it.throw(error), "yield 3 from genWhichYieldsInsideCatch (.throw() is caught)");
+            assert.areEqual({ value: 10, done: false }, it.next(), "yield 10 from wrap");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
+            it = wrap(genWhichYieldsInsideFinally);
+            assert.areEqual({ value: 4, done: false }, it.next(), "yield 4 from genWhichYieldsInsideFinally");
+            assert.areEqual({ value: 5, done: false }, it.throw(error), "yield 5 from genWhichYieldsInsideFinally (.throw() is 'paused' by the finally block)");
+            assert.throws(() => it.next(), ExpectedException, "The exception is thrown after the resumption of the finally block");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
+            it = wrap(genWhichReturnsInsideCatch);
+            assert.areEqual({ value: 6, done: false }, it.next(), "yield 6 from genWhichReturnsInsideCatch");
+            assert.areEqual({ value: 10, done: false }, it.throw(new ExpectedException()), "The exception is overwritten inside the catch block");
+            assert.areEqual(yieldStarResult, 101, "The value returned from the catch block is used as the yield*'s value");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
+            it = wrap(genWhichReturnsInsideFinally);
+            assert.areEqual({ value: 7, done: false }, it.next(), "yield 7 from genWhichReturnsInsideFinally");
+            assert.areEqual({ value: 10, done: false }, it.throw(new ExpectedException()), "The exception is overwritten inside the finally block");
+            assert.areEqual(yieldStarResult, 102, "The value returned from the catch block is used as the yield*'s value");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+        }
+    },
+    {
+        name: ".return() forwarded by yield* is intercepted by the finally block",
+        body: function () {
+            let yieldStarResult;
+
+            let innerGeneratorReturned = false;
+            function* gen() {
+                try {
+                    yield 1;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    innerGeneratorReturned = true;
+                }
+            }
+
+            function* genWhichYieldsInsideFinally() {
+                try {
+                    yield 4;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    yield 5;
+                }
+            }
+
+            function* genWhichReturnsInsideFinally() {
+                try {
+                    yield 6;
+                    assert.fail("Control should never reach here");
+                } finally {
+                    return 101;
+                }
+            }
+
+            function* wrap(gen) {
+                yieldStartResult = yield* gen();
+                yield 10;
+            }
+
+            let it = wrap(gen);
+            assert.areEqual({ value: 1, done: false }, it.next(), "yield 1 from gen");
+            assert.areEqual({ value: 100, done: true }, it.return(100), ".return() sets the generator's state to completed")
+            assert.isTrue(innerGeneratorReturned, ".return() is forwarded to gen");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "The generator is in complete state");
+
+            it = wrap(genWhichYieldsInsideFinally);
+            assert.areEqual({ value: 4, done: false }, it.next(), "yield 4 from genWhichYieldsInsideFinally");
+            assert.areEqual({ value: 5, done: false }, it.return(100), "yield 5 from genWhichYieldsInsideFinally (.return() is overwritten by the yield inside the finally block)");
+            assert.areEqual({ value: 10, done: false }, it.next(), "yield 10 from wrap");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
+            it = wrap(genWhichReturnsInsideFinally);
+            assert.areEqual({ value: 6, done: false }, it.next(), "yield 6 from genWhichReturnsInsideFinally");
+            assert.areEqual({ value: 101, done: true }, it.return(100), "The returned value is overwritten inside the finally block");
+            assert.areEqual({ value: undefined, done: true }, it.next(), "Generator is in complete state");
+
         }
     },
     {
@@ -1530,7 +1706,7 @@ var tests = [
             g1.return = function() { closed = true; return {done: true}; }
             g2 = gf2();
             g2.next();
-            assert.throws(function() { g2['throw'](new ExpectedException()) }, ExpectedException, "Throw is propagated back to the caller");
+            assert.throws(function() { g2['throw'](new ExpectedException()) }, TypeError, "As the throw property is missing a TypeError is thrown", "The value of the property 'throw' is not a Function object");
             assert.isTrue(closed, "When throw method is not defined on the iterator IteratorClose is called");
 
             g1 = gf1();
