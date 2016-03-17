@@ -1264,7 +1264,12 @@ namespace Js
         AddFunctionToLibraryObject(globalObject, PropertyIds::escape, &GlobalObject::EntryInfo::Escape, 1);
         AddFunctionToLibraryObject(globalObject, PropertyIds::unescape, &GlobalObject::EntryInfo::UnEscape, 1);
 
-        if (scriptContext->GetConfig()->SupportsCollectGarbage())
+        if (scriptContext->GetConfig()->SupportsCollectGarbage()
+#ifdef ENABLE_PROJECTION
+            || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeApplication
+            || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeWebview
+#endif
+            )
         {
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
