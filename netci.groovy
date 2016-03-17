@@ -156,7 +156,7 @@ CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows 7 ${config}",
-            'legacy\\s+tests')})
+            '(dev12|legacy)\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with -includeSlow
 CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', null,
