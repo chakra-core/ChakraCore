@@ -423,7 +423,7 @@ namespace Js
         }
     }
 
-    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly, bool useFlagsProperty)
+    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly)
     {
         Js::InternalString str = pattern->GetSource();
         CompoundString *const builder = CompoundString::NewWithCharCapacity(str.GetLength() + 5, GetLibrary());
@@ -514,37 +514,27 @@ namespace Js
         {
             builder->AppendChars(_u('/'));
 
-            if (!useFlagsProperty)
+            // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
+            if (pattern->IsGlobal())
             {
-                // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
-                // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
-                if (pattern->IsGlobal())
-                {
-                    builder->AppendChars(_u('g'));
-                }
-                if (pattern->IsIgnoreCase())
-                {
-                    builder->AppendChars(_u('i'));
-                }
-                if (pattern->IsMultiline())
-                {
-                    builder->AppendChars(_u('m'));
-                }
-                if (pattern->IsUnicode())
-                {
-                    builder->AppendChars(_u('u'));
-                }
-                if (pattern->IsSticky())
-                {
-                    builder->AppendChars(_u('y'));
-                }
+                builder->AppendChars(_u('g'));
             }
-            else
+            if (pattern->IsIgnoreCase())
             {
-                ScriptContext* scriptContext = GetScriptContext();
-                Var flags = JavascriptOperators::GetProperty(this, PropertyIds::flags, scriptContext);
-                JavascriptString* flagsString = JavascriptConversion::ToString(flags, scriptContext);
-                builder->AppendCharsSz(flagsString->GetString());
+                builder->AppendChars(_u('i'));
+            }
+            if (pattern->IsMultiline())
+            {
+                builder->AppendChars(_u('m'));
+            }
+            if (pattern->IsUnicode())
+            {
+                builder->AppendChars(_u('u'));
+            }
+            if (pattern->IsSticky())
+            {
+                builder->AppendChars(_u('y'));
             }
         }
 
@@ -670,11 +660,35 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         Assert(args.Info.Count > 0);
 
-        JavascriptRegExp* obj = GetJavascriptRegExp(args, _u("RegExp.prototype.toString"), scriptContext);
+        PCWSTR const varName = _u("RegExp.prototype.toString");
 
-        bool sourceOnly = false;
-        bool useFlagsProperty = scriptContext->GetConfig()->IsES6RegExPrototypePropertiesEnabled();
-        return obj->ToString(sourceOnly, useFlagsProperty);
+        const ScriptConfiguration* scriptConfig = scriptContext->GetConfig();
+
+        if (scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        {
+            RecyclableObject *thisObj = GetThisObject(args, varName, scriptContext);
+            JavascriptString* source = JavascriptConversion::ToString(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::source, scriptContext),
+                scriptContext);
+            JavascriptString* flags = JavascriptConversion::ToString(
+                JavascriptOperators::GetProperty(thisObj, PropertyIds::flags, scriptContext),
+                scriptContext);
+
+            CharCount length = source->GetLength() + flags->GetLength() + 2; // 2 for the two '/'s
+            CompoundString *const builder =
+                CompoundString::NewWithCharCapacity(length, scriptContext->GetLibrary());
+            builder->Append(_u('/'));
+            builder->Append(source);
+            builder->Append(_u('/'));
+            builder->Append(flags);
+            return builder;
+        }
+        else
+        {
+            JavascriptRegExp* obj = GetJavascriptRegExp(args, varName, scriptContext);
+            bool sourceOnly = false;
+            return obj->ToString(sourceOnly);
+        }
     }
 
     Var JavascriptRegExp::EntrySymbolMatch(RecyclableObject* function, CallInfo callInfo, ...)
