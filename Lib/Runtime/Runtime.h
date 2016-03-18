@@ -94,6 +94,7 @@ typedef int64 TTD_IDENTITY_TAG;
 //The representation of an identifier (currently access path) for a well known object/primitive/function body/etc. in the JS engine or HOST
 typedef LPCWSTR TTD_WELLKNOWN_TOKEN;
 #define TTD_INVALID_WELLKNOWN_TOKEN nullptr
+#define TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(T1, T2) ((T1 == T2) || ((T1 != TTD_INVALID_WELLKNOWN_TOKEN) && (T2 != TTD_INVALID_WELLKNOWN_TOKEN) && wcscmp(T1, T2) == 0))
 
 #include "Debug\TTSupport.h"
 
@@ -101,6 +102,7 @@ class HostScriptContextCallbackFunctor;
 
 namespace TTD
 {
+    class TraceLogger;
     class RuntimeThreadInfo;
     class RuntimeContextInfo;
 
@@ -140,6 +142,9 @@ namespace TTD
         struct TopLevelScriptLoadFunctionBodyResolveInfo;
         struct TopLevelNewFunctionBodyResolveInfo;
         struct TopLevelEvalFunctionBodyResolveInfo;
+
+        struct FunctionBodyResolveInfo;
+        struct SnapContext;
     }
 
     namespace NSSnapObjects
@@ -588,9 +593,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #if ENABLE_TTD
 #include "screrror.h"
 
+#include "Debug\TTSerialize.h"
 #include "Debug\TTRuntimeInfoTracker.h"
 #include "Debug\TTInflateMap.h"
-#include "Debug\TTSerialize.h"
 #include "Debug\TTSnapTypes.h"
 #include "Debug\TTSnapValues.h"
 #include "Debug\TTSnapObjects.h"

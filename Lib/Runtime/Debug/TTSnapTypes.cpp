@@ -181,6 +181,50 @@ namespace TTD
             reader->ReadRecordEnd();
         }
 
+#if ENABLE_SNAPSHOT_COMPARE
+        int64 ComputeLocationTagForAssertCompare(const SnapHandlerPropertyEntry& handlerEntry)
+        {
+            return (((int64)handlerEntry.PropertyRecordId) << 8) | ((int64)handlerEntry.DataKind);
+        }
+
+        void AssertSnapEquiv(const SnapHandler* h1, const SnapHandler* h2, TTDCompareMap& compareMap)
+        {
+            TTD_DIAGNOSTIC_ASSERT(h1->IsExtensibleFlag == h2->IsExtensibleFlag);
+
+            JsUtil::BaseDictionary<int64, uint32, HeapAllocator> h1Dict(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < h1->MaxPropertyIndex; ++i)
+            {
+                if(h1->PropertyInfoArray[i].DataKind != SnapEntryDataKindTag::Clear)
+                {
+                    int64 locationTag = ComputeLocationTagForAssertCompare(h1->PropertyInfoArray[i]);
+                    h1Dict.AddNew(locationTag, i);
+                }
+            }
+
+            JsUtil::BaseDictionary<int64, uint32, HeapAllocator> h2Dict(&HeapAllocator::Instance);
+            for(uint32 i = 0; i < h2->MaxPropertyIndex; ++i)
+            {
+                if(h2->PropertyInfoArray[i].DataKind != SnapEntryDataKindTag::Clear)
+                {
+                    int64 locationTag = ComputeLocationTagForAssertCompare(h2->PropertyInfoArray[i]);
+                    h2Dict.AddNew(locationTag, i);
+                }
+            }
+
+            TTD_DIAGNOSTIC_ASSERT(h1Dict.Count() == h2Dict.Count());
+
+            for(auto iter = h1Dict.GetIterator(); iter.IsValid(); iter.MoveNext())
+            {
+                int64 locationTag = iter.CurrentKey();
+                TTD_DIAGNOSTIC_ASSERT(h2Dict.ContainsKey(locationTag));
+
+                uint32 h1Idx = h1Dict.LookupWithKey(locationTag, 0);
+                uint32 h2Idx = h2Dict.LookupWithKey(locationTag, 0);
+                TTD_DIAGNOSTIC_ASSERT(h1->PropertyInfoArray[h1Idx].AttributeInfo == h2->PropertyInfoArray[h2Idx].AttributeInfo);
+            }
+        }
+#endif
+
         //////////////////
 
         void EmitSnapType(const SnapType* sType, FileWriter* writer, NSTokens::Separator separator)
@@ -225,6 +269,26 @@ namespace TTD
 
             reader->ReadRecordEnd();
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap)
+        {
+            TTD_DIAGNOSTIC_ASSERT(t1->JsTypeId == t2->JsTypeId);
+            compareMap.CheckConsistentAndAddPtrIdMapping(t1->PrototypeId, t2->PrototypeId);
+            TTD_DIAGNOSTIC_ASSERT(t1->ScriptContextTag == t2->ScriptContextTag);
+
+            if(t1->TypeHandlerInfo == nullptr || t2->TypeHandlerInfo == nullptr)
+            {
+                TTD_DIAGNOSTIC_ASSERT(t1->TypeHandlerInfo == nullptr && t2->TypeHandlerInfo == nullptr);
+            }
+            else
+            {
+                AssertSnapEquiv(t1->TypeHandlerInfo, t2->TypeHandlerInfo, compareMap);
+            }
+
+            TTD_DIAGNOSTIC_ASSERT(t1->HasNoEnumerableProperties == t2->HasNoEnumerableProperties);
+        }
+#endif
     }
 }
 

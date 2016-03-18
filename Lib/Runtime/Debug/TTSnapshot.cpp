@@ -488,6 +488,223 @@ namespace TTD
 
         return snap;
     }
+
+#if ENABLE_SNAPSHOT_COMPARE
+    void SnapShot::InitializeForSnapshotCompare(const SnapShot* snap1, const SnapShot* snap2, TTDCompareMap& compareMap)
+    {
+        ////
+        //Initialize all of the maps
+
+        //top-level functions
+        for(auto iter = snap1->m_ctxList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            const NSSnapValues::SnapContext* ctx = iter.Current();
+
+            for(uint32 i = 0; i < ctx->m_loadedScriptCount; ++i)
+            {
+                compareMap.H1FunctionTopLevelLoadMap.AddNew(ctx->m_loadedScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_loadedScriptArray[i]));
+            }
+
+            for(uint32 i = 0; i < ctx->m_newScriptCount; ++i)
+            {
+                compareMap.H1FunctionTopLevelNewMap.AddNew(ctx->m_newScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_newScriptArray[i]));
+            }
+
+            for(uint32 i = 0; i < ctx->m_evalScriptCount; ++i)
+            {
+                compareMap.H1FunctionTopLevelEvalMap.AddNew(ctx->m_evalScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_evalScriptArray[i]));
+            }
+        }
+
+        for(auto iter = snap2->m_ctxList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            const NSSnapValues::SnapContext* ctx = iter.Current();
+
+            for(uint32 i = 0; i < ctx->m_loadedScriptCount; ++i)
+            {
+                compareMap.H2FunctionTopLevelLoadMap.AddNew(ctx->m_loadedScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_loadedScriptArray[i]));
+            }
+
+            for(uint32 i = 0; i < ctx->m_newScriptCount; ++i)
+            {
+                compareMap.H2FunctionTopLevelNewMap.AddNew(ctx->m_newScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_newScriptArray[i]));
+            }
+
+            for(uint32 i = 0; i < ctx->m_evalScriptCount; ++i)
+            {
+                compareMap.H2FunctionTopLevelEvalMap.AddNew(ctx->m_evalScriptArray[i].TopLevelBase.FunctionBodyId, &(ctx->m_evalScriptArray[i]));
+            }
+        }
+
+        //Values and things
+        for(auto iter = snap1->m_primitiveObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H1ValueMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current());
+
+            //do log tag check
+            if(iter.Current()->ValueLogTag != TTD_INVALID_LOG_TAG)
+            {
+                compareMap.H1TagMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current()->ValueLogTag);
+            }
+        }
+
+        for(auto iter = snap2->m_primitiveObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H2ValueMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current());
+
+            //do log tag check
+            if(iter.Current()->ValueLogTag != TTD_INVALID_LOG_TAG)
+            {
+                compareMap.H2TagMap.AddNew(iter.Current()->PrimitiveValueId, iter.Current()->ValueLogTag);
+            }
+        }
+
+        for(auto iter = snap1->m_slotArrayEntries.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H1SlotArrayMap.AddNew(iter.Current()->SlotId, iter.Current());
+        }
+
+        for(auto iter = snap2->m_slotArrayEntries.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H2SlotArrayMap.AddNew(iter.Current()->SlotId, iter.Current());
+        }
+
+        for(auto iter = snap1->m_scopeEntries.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H1FunctionScopeInfoMap.AddNew(iter.Current()->ScopeId, iter.Current());
+        }
+
+        for(auto iter = snap2->m_scopeEntries.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H2FunctionScopeInfoMap.AddNew(iter.Current()->ScopeId, iter.Current());
+        }
+
+        //Bodies and objects
+        for(auto iter = snap1->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H1FunctionBodyMap.AddNew(iter.Current()->FunctionBodyId, iter.Current());
+        }
+
+        for(auto iter = snap2->m_functionBodyList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H2FunctionBodyMap.AddNew(iter.Current()->FunctionBodyId, iter.Current());
+        }
+
+        for(auto iter = snap1->m_compoundObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H1ObjectMap.AddNew(iter.Current()->ObjectPtrId, iter.Current());
+
+            //do log tag check
+            if(iter.Current()->ObjectLogTag != TTD_INVALID_LOG_TAG)
+            {
+                compareMap.H1TagMap.AddNew(iter.Current()->ObjectPtrId, iter.Current()->ObjectLogTag);
+            }
+        }
+
+        for(auto iter = snap2->m_compoundObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            compareMap.H2ObjectMap.AddNew(iter.Current()->ObjectPtrId, iter.Current());
+
+            //do log tag check
+            if(iter.Current()->ObjectLogTag != TTD_INVALID_LOG_TAG)
+            {
+                compareMap.H2TagMap.AddNew(iter.Current()->ObjectPtrId, iter.Current()->ObjectLogTag);
+            }
+        }
+    }
+
+    void SnapShot::DoSnapshotCompare(const SnapShot* snap1, const SnapShot* snap2, TTDCompareMap& compareMap)
+    {
+        //compare the script contexts to kick things off -- assume single context
+        const NSSnapValues::SnapContext* ctx1 = snap1->m_ctxList.GetIterator().Current();
+        const NSSnapValues::SnapContext* ctx2 = snap2->m_ctxList.GetIterator().Current();
+        NSSnapValues::AssertSnapEquiv(ctx1, ctx2, compareMap);
+
+        //Iterate on the worklist until we are done
+        TTDCompareTag ctag = TTDCompareTag::Done;
+        TTD_PTR_ID ptrId1 = TTD_INVALID_PTR_ID;
+        TTD_PTR_ID ptrId2 = TTD_INVALID_PTR_ID;
+
+        uint32 comparedSlotArrays = 0;
+        uint32 comparedScopes = 0;
+        uint32 comparedObjects = 0;
+
+        compareMap.GetNextCompareInfo(&ctag, &ptrId1, &ptrId2);
+        while(ctag != TTDCompareTag::Done)
+        {
+            if(ctag == TTDCompareTag::SlotArray)
+            {
+                const NSSnapValues::SlotArrayInfo* sai1 = nullptr;
+                const NSSnapValues::SlotArrayInfo* sai2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &sai1, ptrId2, &sai2);
+                NSSnapValues::AssertSnapEquiv(sai1, sai2, compareMap);
+
+                comparedSlotArrays++;
+            }
+            else if(ctag == TTDCompareTag::FunctionScopeInfo)
+            {
+                const NSSnapValues::ScriptFunctionScopeInfo* scope1 = nullptr;
+                const NSSnapValues::ScriptFunctionScopeInfo* scope2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &scope1, ptrId2, &scope2);
+                NSSnapValues::AssertSnapEquiv(scope1, scope2, compareMap);
+
+                comparedScopes++;
+            }
+            else if(ctag == TTDCompareTag::TopLevelLoadFunction)
+            {
+                const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fload1 = nullptr;
+                const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fload2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &fload1, ptrId2, &fload2);
+                NSSnapValues::AssertSnapEquiv(fload1, fload2, compareMap);
+            }
+            else if(ctag == TTDCompareTag::TopLevelNewFunction)
+            {
+                const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* fnew1 = nullptr;
+                const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* fnew2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &fnew1, ptrId2, &fnew2);
+                NSSnapValues::AssertSnapEquiv(fnew1, fnew2, compareMap);
+            }
+            else if(ctag == TTDCompareTag::TopLevelEvalFunction)
+            {
+                const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* feval1 = nullptr;
+                const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* feval2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &feval1, ptrId2, &feval2);
+                NSSnapValues::AssertSnapEquiv(feval1, feval2, compareMap);
+            }
+            else if(ctag == TTDCompareTag::FunctionBody)
+            {
+                const NSSnapValues::FunctionBodyResolveInfo* fb1 = nullptr;
+                const NSSnapValues::FunctionBodyResolveInfo* fb2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &fb1, ptrId2, &fb2);
+                NSSnapValues::AssertSnapEquiv(fb1, fb2, compareMap);
+            }
+            else if(ctag == TTDCompareTag::SnapObject)
+            {
+                const NSSnapObjects::SnapObject* obj1 = nullptr;
+                const NSSnapObjects::SnapObject* obj2 = nullptr;
+                compareMap.GetCompareValues(ctag, ptrId1, &obj1, ptrId2, &obj2);
+                NSSnapObjects::AssertSnapEquiv(obj1, obj2, compareMap);
+
+                comparedObjects++;
+            }
+            else
+            {
+                AssertMsg(false, "Missing tag in case list!!!");
+            }
+
+            compareMap.GetNextCompareInfo(&ctag, &ptrId1, &ptrId2);
+        }
+
+        //Make sure all objects/values have been matched
+        TTD_DIAGNOSTIC_ASSERT(comparedSlotArrays == snap1->m_slotArrayEntries.Count() && comparedSlotArrays == snap2->m_slotArrayEntries.Count());
+        TTD_DIAGNOSTIC_ASSERT(comparedScopes == snap1->m_scopeEntries.Count() && comparedScopes == snap2->m_scopeEntries.Count());
+        TTD_DIAGNOSTIC_ASSERT(comparedObjects == snap1->m_compoundObjectList.Count() && comparedObjects == snap2->m_compoundObjectList.Count());
+
+        //
+        //TODO: if we missed something we may want to put code here to identify it
+        //
+    }
+#endif
 }
 
 #endif

@@ -98,6 +98,11 @@ namespace TTD
         //de-serialize the data
         void ParseSnapHandler(SnapHandler* snapHandler, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
 
+#if ENABLE_SNAPSHOT_COMPARE 
+        int64 ComputeLocationTagForAssertCompare(const SnapHandlerPropertyEntry& handlerEntry);
+        void AssertSnapEquiv(const SnapHandler* h1, const SnapHandler* h2, TTDCompareMap& compareMap);
+#endif
+
         //////////////////
 
         //A class that represents a single snapshot type entry
@@ -127,6 +132,10 @@ namespace TTD
 
         //de-serialize the data
         void ParseSnapType(SnapType* sType, bool readSeperator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, SnapHandler*>& typeHandlerMap);
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapType* t1, const SnapType* t2, TTDCompareMap& compareMap);
+#endif
     }
 }
 

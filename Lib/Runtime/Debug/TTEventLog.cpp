@@ -475,6 +475,33 @@ namespace TTD
         this->m_threadContext->TTDInfo->GetTagsForSnapshot(logTag, identityTag);
     }
 
+    void EventLog::ReplaySnapshotEvent()
+    {
+#if ENABLE_SNAPSHOT_COMPARE
+        SnapShot* snap = nullptr;
+        TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
+        TTD_IDENTITY_TAG idTag = TTD_INVALID_IDENTITY_TAG;
+
+        BEGIN_ENTER_SCRIPT(this->m_ttdContext, true, true, true);
+        {
+            this->DoSnapshotExtract_Helper(false, &snap, &logTag, &idTag);
+
+            const SnapshotEventLogEntry* recordedSnapEntry = SnapshotEventLogEntry::As(this->m_currentReplayEventIterator.Current());
+            recordedSnapEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
+            const SnapShot* recordedSnap = recordedSnapEntry->GetSnapshot();
+
+            TTDCompareMap compareMap;
+            SnapShot::InitializeForSnapshotCompare(recordedSnap, snap, compareMap);
+            SnapShot::DoSnapshotCompare(recordedSnap, snap, compareMap);
+
+            HeapDelete(snap);
+        }
+        END_ENTER_SCRIPT;
+#endif
+
+        this->AdvanceTimeAndPositionForReplay(); //move along
+    }
+
     EventLog::EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength)
         : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL), m_snapInterval(snapInterval), m_snapHistoryLength(snapHistoryLength),
         m_eventTimeCtr(0), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
@@ -1672,7 +1699,7 @@ namespace TTD
         switch(this->m_currentReplayEventIterator.Current()->GetEventKind())
         {
             case EventLogEntry::EventKind::SnapshotTag:
-                this->AdvanceTimeAndPositionForReplay(); //nothing to replay so we just move along
+                this->ReplaySnapshotEvent();
                 break;
             case EventLogEntry::EventKind::JsRTActionTag:
                 this->ReplayActionLoopStep(); 

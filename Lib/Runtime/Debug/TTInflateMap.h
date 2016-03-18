@@ -106,6 +106,86 @@ namespace TTD
             return (T*)this->m_promiseDataMap.LookupWithKey(ptrId, nullptr);
         }
     };
+
+    //////////////////
+
+#if ENABLE_SNAPSHOT_COMPARE
+    enum class TTDCompareTag
+    {
+        Done,
+        //Values should not be matched by ptr -- should be immediately matched by value
+        SlotArray,
+        FunctionScopeInfo,
+
+        TopLevelLoadFunction,
+        TopLevelNewFunction,
+        TopLevelEvalFunction,
+        FunctionBody,
+        SnapObject
+    };
+
+    class TTDCompareMap;
+    typedef void(*fPtr_AssertSnapEquivAddtlInfo)(const NSSnapObjects::SnapObject* v1, const NSSnapObjects::SnapObject* v2, TTDCompareMap& compareMap);
+
+    //A class that we use to manage all the dictionaries we need when comparing 2 snapshots
+    class TTDCompareMap
+    {
+    public:
+        JsUtil::Queue<TTD_PTR_ID, HeapAllocator> H1PtrIdWorklist;
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD_PTR_ID, HeapAllocator> H1PtrToH2PtrMap;
+
+        fPtr_AssertSnapEquivAddtlInfo* SnapObjCmpVTable;
+
+        ////
+        //H1 Maps
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD_LOG_TAG, HeapAllocator> H1TagMap;
+
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H1ValueMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SlotArrayInfo*, HeapAllocator> H1SlotArrayMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::ScriptFunctionScopeInfo*, HeapAllocator> H1FunctionScopeInfoMap;
+
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> H1FunctionTopLevelLoadMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> H1FunctionTopLevelNewMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> H1FunctionTopLevelEvalMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H1FunctionBodyMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H1ObjectMap;
+
+        ////
+        //H2 Maps
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTD_LOG_TAG, HeapAllocator> H2TagMap;
+
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SnapPrimitiveValue*, HeapAllocator> H2ValueMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::SlotArrayInfo*, HeapAllocator> H2SlotArrayMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::ScriptFunctionScopeInfo*, HeapAllocator> H2FunctionScopeInfoMap;
+
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo*, HeapAllocator> H2FunctionTopLevelLoadMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo*, HeapAllocator> H2FunctionTopLevelNewMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo*, HeapAllocator> H2FunctionTopLevelEvalMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapValues::FunctionBodyResolveInfo*, HeapAllocator> H2FunctionBodyMap;
+        JsUtil::BaseDictionary<TTD_PTR_ID, const NSSnapObjects::SnapObject*, HeapAllocator> H2ObjectMap;
+
+        ////
+        //Code
+
+        TTDCompareMap();
+        ~TTDCompareMap();
+
+        //Check that the given mapping either (1) does not exist or (2) is consistent -- if needed add the mapping and to worklist as well
+        //A mapping is consistent
+        void CheckConsistentAndAddPtrIdMapping(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
+
+        void GetNextCompareInfo(TTDCompareTag* tag, TTD_PTR_ID* h1PtrId, TTD_PTR_ID* h2PtrId);
+
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::SlotArrayInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::SlotArrayInfo** val2);
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val2);
+
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo** val2);
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo** val2);
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo** val2);
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::FunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::FunctionBodyResolveInfo** val2);
+        void GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapObjects::SnapObject** val1, TTD_PTR_ID h2PtrId, const NSSnapObjects::SnapObject** val2);
+    };
+#endif
 }
 
 #endif

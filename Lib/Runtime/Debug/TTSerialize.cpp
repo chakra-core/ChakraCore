@@ -461,6 +461,10 @@ namespace TTD
         {
             this->WriteString_InternalNoEscape(L"#lb", 3);
         }
+        else if(Js::Math::EPSILON == val)
+        {
+            this->WriteString_InternalNoEscape(L"#ep", 3);
+        }
         else
         {
             if(floor(val) == val)
@@ -956,6 +960,17 @@ namespace TTD
 
             return NSTokens::ParseTokenKind::Number;
         }
+        else if(ok && b == 'e')
+        {
+            ok = this->ReadByte(&b);
+            if(!ok || b != 'p')
+            {
+                return NSTokens::ParseTokenKind::Error;
+            }
+            charList.Add((wchar)b);
+
+            return NSTokens::ParseTokenKind::Number;
+        }
         else
         {
             return NSTokens::ParseTokenKind::Error;
@@ -1348,6 +1363,10 @@ namespace TTD
             {
                 res = Js::JavascriptNumber::MIN_VALUE;
             }
+            else if(this->m_charListOpt.Item(1) == L'e')
+            {
+                res = Js::Math::EPSILON;
+            }
             else
             {
                 FileReader::FileReadAssert(false);
@@ -1485,6 +1504,211 @@ namespace TTD
 
         return res;
     }
+
+    //////////////////
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+    void TraceLogger::AppendText(char* text, uint32 length)
+    {
+        this->EnsureSpace(length);
+        this->Append(text, length);
+    }
+
+    void TraceLogger::AppendIndent()
+    {
+        this->EnsureSpace(this->m_indentSize);
+        this->Append(this->m_indentBuffer, this->m_indentSize);
+    }
+
+    void TraceLogger::AppendString(char* text)
+    {
+        uint32 length = (uint32)strlen(text);
+        this->AppendText(text, length);
+    }
+
+    void TraceLogger::AppendBool(bool bval)
+    {
+        if(bval)
+        {
+            this->AppendLiteral("true");
+        }
+        else
+        {
+            this->AppendLiteral("false");
+        }
+    }
+
+    void TraceLogger::AppendInteger(int64 ival)
+    {
+        this->EnsureSpace(64);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64i", ival);
+    }
+
+    void TraceLogger::AppendUnsignedInteger(uint64 ival)
+    {
+        this->EnsureSpace(64);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64u", ival);
+    }
+
+    void TraceLogger::AppendIntegerHex(int64 ival)
+    {
+        this->EnsureSpace(64);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "0x%I64x", ival);
+    }
+
+    void TraceLogger::AppendDouble(double dval)
+    {
+        this->EnsureSpace(64);
+
+        if(floor(dval) == dval)
+        {
+            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%I64i", (int64)dval);
+        }
+        else
+        {
+            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "%.22f", dval);
+        }
+    }
+
+    TraceLogger::TraceLogger(FILE* outfile)
+        : m_currLength(0), m_indentSize(0), m_outfile(outfile)
+    {
+        this->m_buffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_BUFFER_SIZE);
+        this->m_indentBuffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_INDENT_BUFFER_SIZE);
+
+        memset(this->m_outfile, 0, TRACE_LOGGER_BUFFER_SIZE);
+        memset(this->m_indentBuffer, 0, TRACE_LOGGER_INDENT_BUFFER_SIZE);
+    }
+
+    TraceLogger::~TraceLogger()
+    {
+        if(this->m_currLength != 0)
+        {
+            fwrite(this->m_buffer, sizeof(char), this->m_currLength, this->m_outfile);
+        }
+
+        fflush(this->m_outfile);
+        if(this->m_outfile != stdout)
+        {
+            fclose(this->m_outfile);
+        }
+
+        CoTaskMemFree(this->m_buffer);
+        CoTaskMemFree(this->m_indentBuffer);
+    }
+
+    void TraceLogger::WriteVar(Js::Var var)
+    {
+        if(var == nullptr)
+        {
+            this->AppendLiteral("nullptr");
+        }
+        else
+        {
+            Js::TypeId tid = Js::JavascriptOperators::GetTypeId(var);
+            switch(tid)
+            {
+            case Js::TypeIds_Undefined:
+                this->AppendLiteral("undefined");
+                break;
+            case Js::TypeIds_Null:
+                this->AppendLiteral("null");
+                break;
+            case Js::TypeIds_Boolean:
+                this->AppendBool(Js::JavascriptBoolean::FromVar(var)->GetValue() ? true : false);
+                break;
+            case Js::TypeIds_Integer:
+                this->AppendInteger(Js::TaggedInt::ToInt64(var));
+                break;
+            case Js::TypeIds_Number:
+                this->AppendDouble(Js::JavascriptNumber::GetValue(var));
+                break;
+            case Js::TypeIds_Int64Number:
+                this->AppendInteger(Js::JavascriptInt64Number::FromVar(var)->GetValue());
+                break;
+            case Js::TypeIds_UInt64Number:
+                this->AppendUnsignedInteger(Js::JavascriptUInt64Number::FromVar(var)->GetValue());
+                break;
+            case Js::TypeIds_String:
+                this->Append(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                break;
+            default:
+            {
+                if(Js::StaticType::Is(tid))
+                {
+                    this->AppendLiteral("T:");
+                    this->AppendInteger((uint64)tid);
+                }
+                else
+                {
+                    Js::DynamicObject* obj = Js::DynamicObject::FromVar(var);
+#if ENABLE_TTD_IDENTITY_TRACING
+                    this->AppendLiteral("#");
+                    this->AppendInteger(obj->TTDObjectIdentityTag);
+#else
+                    this->AppendLiteral("T:");
+                    this->AppendInteger((uint64)tid);
+#endif
+                }
+                break;
+            }
+            }
+        }
+    }
+
+    void TraceLogger::WriteCall(Js::FunctionBody* body, bool isExternal, uint32 argc, Js::Var* argv)
+    {
+        LPCWSTR displayName = body->GetDisplayName();
+
+        this->AppendBuffer();
+        this->Append(displayName, (uint32)wcslen(displayName));
+
+        if(isExternal)
+        {
+            this->AppendLiteral("^(");
+        }
+        else
+        {
+            this->AppendLiteral("(");
+        }
+
+        for(uint32 i = 0; i < argc; ++i)
+        {
+            if(i != 0)
+            {
+                this->AppendLiteral(", ");
+            }
+
+            this->WriteVar(argv[i]);
+        }
+
+        this->AppendLiteral(")\n");
+
+        this->m_indentSize++;
+    }
+
+    void TraceLogger::WriteReturn(Js::FunctionBody* body, Js::Var res)
+    {
+        this->m_indentSize--;
+
+        LPCWSTR displayName = body->GetDisplayName();
+
+        this->AppendBuffer();
+        this->AppendLiteral("return(");
+        this->Append(displayName, (uint32)wcslen(displayName));
+        this->AppendLiteral(")->");
+        this->WriteVar(res);
+        this->AppendLiteral("\n");
+    }
+
+    void TraceLogger::WriteStmtIndex(uint32 line, uint32 column)
+    {
+        this->AppendIndent();
+
+        this->EnsureSpace(128);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "(l:%I32u, c:%I32u)\n", line, column);
+    }
+#endif
 }
 
 #endif

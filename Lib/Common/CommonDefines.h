@@ -270,7 +270,7 @@
 
 #if ENABLE_TTD
 //Set if we want to tag each recyclable object with a unique id on allocation -- used for debugging and for origin analysis
-#define ENABLE_TTD_IDENTITY_TRACING 0
+#define ENABLE_TTD_IDENTITY_TRACING 1
 
 #define ENABLE_TTD_DEBUGGING 1
 
@@ -286,6 +286,16 @@
 
 //Enable various sanity checking features and asserts
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+#define ENABLE_SNAPSHOT_COMPARE 1
+#define ENABLE_BASIC_TRACE 1
+#define ENABLE_FULL_BC_TRACE 1
+#else
+#define ENABLE_SNAPSHOT_COMPARE 0
+#define ENABLE_BASIC_TRACE 0
+#define ENABLE_FULL_BC_TRACE 0
+#endif
 
 #define TTD_WRITE_JSON_OUTPUT TRUE
 #define TTD_WRITE_BINARY_OUTPUT FALSE

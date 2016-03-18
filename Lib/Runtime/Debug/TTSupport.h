@@ -4,7 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-
 //This file contains definitions for general-ish purpose structures/algorithms that we use in the TTD system 
 //We may want to replace them with other versions (e.g. that are already in the codebase) at some later time
 
@@ -45,6 +44,12 @@
 #define TTD_TABLE_FACTORLOAD_BASE(C, P1, P2) if(targetSize < C) { *powerOf2 = C; *closePrime = P1; *midPrime = P2; }
 #define TTD_TABLE_FACTORLOAD(C, P1, P2) else TTD_TABLE_FACTORLOAD_BASE(C, P1, P2)
 #define TTD_TABLE_FACTORLOAD_FINAL(C, P1, P2) else { *powerOf2 = C; *closePrime = P1; *midPrime = P2; }
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+//An assert that we use in internal diagnostics that we can customize more if needed
+#define TTD_DIAGNOSTIC_ASSERT(X) AssertMsg(X, "Failed Diagnostic Assert!!!")
+#endif
+
 
 namespace TTD
 {
@@ -127,6 +132,11 @@ namespace TTD
     //initialize and return true if the given string should map to a nullptr wchar* representaiton
     void InitializeAsNullPtrTTString(TTString& str);
     bool IsNullPtrTTString(const TTString& str);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+    //This is for diagnostic purposes only
+    bool TTStringEQForDiagnostics(const TTString& str1, const TTString& str2);
+#endif
 
     //A class that implements a simple slab memory allocator
     template <int32 canUnlink>

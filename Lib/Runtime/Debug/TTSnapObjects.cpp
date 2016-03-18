@@ -461,6 +461,65 @@ namespace TTD
             reader->ReadRecordEnd();
         }
 
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            TTD_DIAGNOSTIC_ASSERT(sobj1->SnapObjectTag == sobj2->SnapObjectTag);
+            TTD_DIAGNOSTIC_ASSERT(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(sobj1->OptWellKnownToken, sobj2->OptWellKnownToken));
+
+            NSSnapType::AssertSnapEquiv(sobj1->SnapType, sobj2->SnapType, compareMap);
+
+            //Depends on info is a function of the rest of the properties so we don't need to explicitly check it.
+            //But for sanity assert same counts.
+            TTD_DIAGNOSTIC_ASSERT((sobj1->OptDependsOnInfo == nullptr && sobj2->OptDependsOnInfo == nullptr) || (sobj1->OptDependsOnInfo->DepOnCount == sobj2->OptDependsOnInfo->DepOnCount));
+
+            TTD_DIAGNOSTIC_ASSERT(sobj1->ObjectLogTag == sobj2->ObjectLogTag);
+            TTD_DIAGNOSTIC_ASSERT(sobj1->ObjectIdentityTag == sobj2->ObjectIdentityTag);
+
+            TTD_DIAGNOSTIC_ASSERT(Js::DynamicType::Is(sobj1->SnapType->JsTypeId) == Js::DynamicType::Is(sobj2->SnapType->JsTypeId));
+            if(Js::DynamicType::Is(sobj1->SnapType->JsTypeId))
+            {
+                compareMap.CheckConsistentAndAddPtrIdMapping(sobj1->OptIndexedObjectArray, sobj2->OptIndexedObjectArray);
+
+                const NSSnapType::SnapHandler* handler1 = sobj1->SnapType->TypeHandlerInfo;
+                JsUtil::BaseDictionary<int64, int32, HeapAllocator> sobj1PidMap(&HeapAllocator::Instance);
+                for(uint32 i = 0; i < handler1->MaxPropertyIndex; ++i)
+                {
+                    const NSSnapType::SnapHandlerPropertyEntry spe = handler1->PropertyInfoArray[i];
+                    if(spe.DataKind != NSSnapType::SnapEntryDataKindTag::Clear)
+                    {
+                        int64 locationTag = ComputeLocationTagForAssertCompare(spe);
+                        sobj1PidMap.AddNew(locationTag, (int32)i);
+                    }
+                }
+
+                const NSSnapType::SnapHandler* handler2 = sobj2->SnapType->TypeHandlerInfo;
+                for(uint32 i = 0; i < handler2->MaxPropertyIndex; ++i)
+                {
+                    const NSSnapType::SnapHandlerPropertyEntry spe = handler2->PropertyInfoArray[i];
+                    if(spe.DataKind != NSSnapType::SnapEntryDataKindTag::Clear)
+                    {
+                        int64 locationTag = ComputeLocationTagForAssertCompare(spe);
+
+                        int32 idx1 = sobj1PidMap.LookupWithKey(locationTag, -1);
+                        TTD_DIAGNOSTIC_ASSERT(idx1 != -1);
+
+                        TTDVar var1 = sobj1->VarArray[idx1];
+                        TTDVar var2 = sobj2->VarArray[i];
+
+                        NSSnapValues::AssertSnapEquivTTDVar(var1, var2, compareMap);
+                    }
+                }
+            }
+
+            fPtr_AssertSnapEquivAddtlInfo equivCheck = compareMap.SnapObjCmpVTable[(int32)sobj1->SnapObjectTag];
+            if(equivCheck != nullptr)
+            {
+                equivCheck(sobj1, sobj2, compareMap);
+            }
+        }
+#endif
+
         Js::RecyclableObject* DoObjectInflation_SnapDynamicObject(const SnapObject* snpObject, InflateMap* inflator)
         {
             Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
@@ -471,26 +530,6 @@ namespace TTD
             else
             {
                 Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
-                return ctx->GetLibrary()->CreateObject();
-            }
-        }
-
-        //////////////////
-
-        Js::RecyclableObject* DoObjectInflation_SnapJSRTExternalInfo(const SnapObject* snpObject, InflateMap* inflator)
-        {
-            Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
-            if(rcObj != nullptr)
-            {
-                return rcObj;
-            }
-            else
-            {
-                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
-
-                //
-                //TODO: we just pretend they are dynamic objects for now until we sort out what we want to do
-                //
                 return ctx->GetLibrary()->CreateObject();
             }
         }
@@ -593,12 +632,32 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject, snapFuncInfo);
         }
 
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapScriptFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapScriptFunctionInfo* snapFuncInfo1 = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(sobj1);
+            const SnapScriptFunctionInfo* snapFuncInfo2 = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(snapFuncInfo1->DebugFunctionName, snapFuncInfo2->DebugFunctionName));
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(snapFuncInfo1->BodyRefId, snapFuncInfo2->BodyRefId);
+            compareMap.CheckConsistentAndAddPtrIdMapping(snapFuncInfo1->ScopeId, snapFuncInfo2->ScopeId);
+            compareMap.CheckConsistentAndAddPtrIdMapping(snapFuncInfo1->HomeObjId, snapFuncInfo2->HomeObjId);
+
+            NSSnapValues::AssertSnapEquivTTDVar(snapFuncInfo1->ComputedNameInfo, snapFuncInfo2->ComputedNameInfo, compareMap);
+
+            TTD_DIAGNOSTIC_ASSERT(snapFuncInfo1->HasInlineCaches == snapFuncInfo2->HasInlineCaches);
+            TTD_DIAGNOSTIC_ASSERT(snapFuncInfo1->HasSuperReference == snapFuncInfo2->HasSuperReference);
+            TTD_DIAGNOSTIC_ASSERT(snapFuncInfo1->IsActiveScript == snapFuncInfo2->IsActiveScript);
+        }
+#endif
+
         Js::RecyclableObject* DoObjectInflation_SnapExternalFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextTag);
-            LPCWSTR snapName = SnapObjectGetAddtlInfoAs<LPCWSTR, SnapObjectType::SnapExternalFunctionObject>(snpObject);
+            TTString* snapName = SnapObjectGetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(snpObject);
 
-            Js::JavascriptString* fname = Js::JavascriptString::NewCopyBuffer(snapName, (charcount_t)wcslen(snapName), ctx);
+            Js::JavascriptString* fname = Js::JavascriptString::NewCopyBuffer(snapName->Contents, (charcount_t)snapName->Length, ctx);
             return ctx->GetLibrary()->CreateExternalFunction_TTD(fname);
         }
 
@@ -616,6 +675,17 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(snpObject, snapName);
         }
+
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapExternalFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            TTString* snapName1 = SnapObjectGetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(sobj1);
+            TTString* snapName2 = SnapObjectGetAddtlInfoAs<TTString*, SnapObjectType::SnapExternalFunctionObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(*snapName1, *snapName2));
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapRevokerFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -649,6 +719,16 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(snpObject, revokerId);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapRevokerFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            TTD_PTR_ID* revokeTrgt1 = SnapObjectGetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(sobj1);
+            TTD_PTR_ID* revokeTrgt2 = SnapObjectGetAddtlInfoAs<TTD_PTR_ID*, SnapObjectType::SnapRuntimeRevokerFunctionObject>(sobj2);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(*revokeTrgt1, *revokeTrgt2);
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapBoundFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -719,6 +799,23 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<SnapBoundFunctionInfo*, SnapObjectType::SnapBoundFunctionObject>(snpObject, snapBoundInfo);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapBoundFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            SnapBoundFunctionInfo* snapBoundInfo1 = SnapObjectGetAddtlInfoAs<SnapBoundFunctionInfo*, SnapObjectType::SnapBoundFunctionObject>(sobj1);
+            SnapBoundFunctionInfo* snapBoundInfo2 = SnapObjectGetAddtlInfoAs<SnapBoundFunctionInfo*, SnapObjectType::SnapBoundFunctionObject>(sobj2);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(snapBoundInfo1->TargetFunction, snapBoundInfo2->TargetFunction);
+            compareMap.CheckConsistentAndAddPtrIdMapping(snapBoundInfo1->BoundThis, snapBoundInfo2->BoundThis);
+
+            TTD_DIAGNOSTIC_ASSERT(snapBoundInfo1->ArgCount == snapBoundInfo2->ArgCount);
+            for(uint32 i = 0; i < snapBoundInfo1->ArgCount; ++i)
+            {
+                NSSnapValues::AssertSnapEquivTTDVar(snapBoundInfo1->ArgArray[i], snapBoundInfo2->ArgArray[i], compareMap);
+            }
+        }
+#endif
 
         //////////////////
 
@@ -841,6 +938,26 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(snpObject, argsInfo);
         }
 
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapHeapArgumentsInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            SnapHeapArgumentsInfo* argsInfo1 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(sobj1);
+            SnapHeapArgumentsInfo* argsInfo2 = SnapObjectGetAddtlInfoAs<SnapHeapArgumentsInfo*, SnapObjectType::SnapHeapArgumentsObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(argsInfo1->NumOfArguments == argsInfo2->NumOfArguments);
+
+            TTD_DIAGNOSTIC_ASSERT(argsInfo1->IsFrameNullPtr == argsInfo2->IsFrameNullPtr);
+            TTD_DIAGNOSTIC_ASSERT(argsInfo1->IsFrameJsNull == argsInfo2->IsFrameJsNull);
+            compareMap.CheckConsistentAndAddPtrIdMapping(argsInfo1->FrameObject, argsInfo2->FrameObject);
+
+            TTD_DIAGNOSTIC_ASSERT(argsInfo1->FormalCount == argsInfo2->FormalCount);
+            for(uint32 i = 0; i < argsInfo1->FormalCount; ++i)
+            {
+                TTD_DIAGNOSTIC_ASSERT(argsInfo1->DeletedArgFlags[i] == argsInfo2->DeletedArgFlags[i]);
+            }
+        }
+#endif
+
         //////////////////
 
         ////
@@ -940,6 +1057,18 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(snpObject, promiseInfo);
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapPromiseInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            //
+            //TODO: not implemented yet
+            //
+
+            AssertMsg(false, "Not implemented yet!!!");
+        }
+#endif
+
         ////
         //PromiseResolveOrRejectFunction Info
 
@@ -984,6 +1113,18 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(snpObject, rrfInfo);
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            //
+            //TODO: not implemented yet
+            //
+
+            AssertMsg(false, "Not implemented yet!!!");
+        }
+#endif
+
         ////
         //ReactionTaskFunction Info
         Js::RecyclableObject* DoObjectInflation_SnapPromiseReactionTaskFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -1020,6 +1161,18 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(snpObject, rInfo);
         }
+
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            //
+            //TODO: not implemented yet
+            //
+
+            AssertMsg(false, "Not implemented yet!!!");
+        }
+#endif
 
         //////////////////
 
@@ -1085,6 +1238,17 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<TTDVar, SnapObjectType::SnapBoxedValueObject>(snpObject, snapVar);
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapBoxedValue(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            TTDVar snapBoxedVar1 = SnapObjectGetAddtlInfoAs<TTDVar, SnapObjectType::SnapBoxedValueObject>(sobj1);
+            TTDVar snapBoxedVar2 = SnapObjectGetAddtlInfoAs<TTDVar, SnapObjectType::SnapBoxedValueObject>(sobj2);
+
+            NSSnapValues::AssertSnapEquivTTDVar(snapBoxedVar1, snapBoxedVar2, compareMap);
+        }
+#endif
+
         Js::RecyclableObject* DoObjectInflation_SnapDate(const SnapObject* snpObject, InflateMap* inflator)
         {
             //Dates are not too common and have some mutable state so it seems easiest to always re-create them.
@@ -1109,6 +1273,16 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(snpObject, dateInfo);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapDate(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const double* dateInfo1 = SnapObjectGetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(sobj1);
+            const double* dateInfo2 = SnapObjectGetAddtlInfoAs<double*, SnapObjectType::SnapDateObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(*dateInfo1 == *dateInfo2);
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapRegexInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -1142,6 +1316,18 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(snpObject, regexInfo);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapRegexInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapRegexInfo* regexInfo1 = SnapObjectGetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(sobj1);
+            const SnapRegexInfo* regexInfo2 = SnapObjectGetAddtlInfoAs<SnapRegexInfo*, SnapObjectType::SnapRegexObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(regexInfo1->RegexStr, regexInfo2->RegexStr));
+            TTD_DIAGNOSTIC_ASSERT(regexInfo1->Flags == regexInfo2->Flags);
+            TTD_DIAGNOSTIC_ASSERT(regexInfo1->LastIndexOrFlag == regexInfo2->LastIndexOrFlag);
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapError(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -1179,6 +1365,23 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::ptrIdVal, true);
             *into = NSSnapValues::ParseTTDVar(false, reader);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void SnapArrayInfo_EquivValue(int32 val1, int32 val2, TTDCompareMap& compareMap)
+        {
+            TTD_DIAGNOSTIC_ASSERT(val1 == val2);
+        }
+
+        void SnapArrayInfo_EquivValue(double val1, double val2, TTDCompareMap& compareMap)
+        {
+            TTD_DIAGNOSTIC_ASSERT(val1 == val2);
+        }
+
+        void SnapArrayInfo_EquivValue(TTDVar val1, TTDVar val2, TTDCompareMap& compareMap)
+        {
+            NSSnapValues::AssertSnapEquivTTDVar(val1, val2, compareMap);
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapArrayInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -1266,6 +1469,20 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapArrayBufferInfo*, SnapObjectType::SnapArrayBufferObject>(snpObject, buffInfo);
         }
 
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapArrayBufferInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapArrayBufferInfo* buffInfo1 = SnapObjectGetAddtlInfoAs<SnapArrayBufferInfo*, SnapObjectType::SnapArrayBufferObject>(sobj1);
+            const SnapArrayBufferInfo* buffInfo2 = SnapObjectGetAddtlInfoAs<SnapArrayBufferInfo*, SnapObjectType::SnapArrayBufferObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(buffInfo1->Length == buffInfo2->Length);
+            for(uint32 i = 0; i < buffInfo1->Length; ++i)
+            {
+                TTD_DIAGNOSTIC_ASSERT(buffInfo1->Buff[i] == buffInfo2->Buff[i]);
+            }
+        }
+#endif
+
         Js::RecyclableObject* DoObjectInflation_SnapTypedArrayInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
             //I am lazy and always re-create typed arrays.
@@ -1347,6 +1564,20 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(snpObject, typedArrayInfo);
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapTypedArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapTypedArrayInfo* typedArrayInfo1 = SnapObjectGetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(sobj1);
+            const SnapTypedArrayInfo* typedArrayInfo2 = SnapObjectGetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(typedArrayInfo1->ByteOffset == typedArrayInfo2->ByteOffset);
+            TTD_DIAGNOSTIC_ASSERT(typedArrayInfo1->Length == typedArrayInfo2->Length);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(typedArrayInfo1->ArrayBufferAddr, typedArrayInfo2->ArrayBufferAddr);
+        }
+#endif
+
         //////////////////
 
         Js::RecyclableObject* DoObjectInflation_SnapSetInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -1427,6 +1658,21 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<SnapSetInfo*, SnapObjectType::SnapSetObject>(snpObject, setInfo);
         }
+
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapSetInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapSetInfo* setInfo1 = SnapObjectGetAddtlInfoAs<SnapSetInfo*, SnapObjectType::SnapSetObject>(sobj1);
+            const SnapSetInfo* setInfo2 = SnapObjectGetAddtlInfoAs<SnapSetInfo*, SnapObjectType::SnapSetObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(setInfo1->SetSize == setInfo2->SetSize);
+            for(uint32 i = 0; i < setInfo1->SetSize; ++i)
+            {
+                NSSnapValues::AssertSnapEquivTTDVar(setInfo1->SetValueArray[i], setInfo2->SetValueArray[i], compareMap);
+            }
+        }
+#endif
 
         Js::RecyclableObject* DoObjectInflation_SnapMapInfo(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -1515,6 +1761,22 @@ namespace TTD
             SnapObjectSetAddtlInfoAs<SnapMapInfo*, SnapObjectType::SnapMapObject>(snpObject, mapInfo);
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapMapInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapMapInfo* mapInfo1 = SnapObjectGetAddtlInfoAs<SnapMapInfo*, SnapObjectType::SnapMapObject>(sobj1);
+            const SnapMapInfo* mapInfo2 = SnapObjectGetAddtlInfoAs<SnapMapInfo*, SnapObjectType::SnapMapObject>(sobj2);
+
+            TTD_DIAGNOSTIC_ASSERT(mapInfo1->MapSize == mapInfo2->MapSize);
+            for(uint32 i = 0; i < mapInfo1->MapSize; i+=2)
+            {
+                NSSnapValues::AssertSnapEquivTTDVar(mapInfo1->MapKeyValueArray[i], mapInfo2->MapKeyValueArray[i], compareMap);
+                NSSnapValues::AssertSnapEquivTTDVar(mapInfo1->MapKeyValueArray[i + 1], mapInfo2->MapKeyValueArray[i + 1], compareMap);
+            }
+        }
+#endif
+
         //////////////////
 
         Js::RecyclableObject* DoObjectInflation_SnapProxyInfo(const SnapObject* snpObject, InflateMap* inflator)
@@ -1546,6 +1808,17 @@ namespace TTD
 
             SnapObjectSetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(snpObject, proxyInfo);
         }
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapProxyInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            const SnapProxyInfo* proxyInfo1 = SnapObjectGetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(sobj1);
+            const SnapProxyInfo* proxyInfo2 = SnapObjectGetAddtlInfoAs<SnapProxyInfo*, SnapObjectType::SnapProxyObject>(sobj2);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(proxyInfo1->HandlerId, proxyInfo2->HandlerId);
+            compareMap.CheckConsistentAndAddPtrIdMapping(proxyInfo1->TargetId, proxyInfo2->TargetId);
+        }
+#endif
     }
 }
 

@@ -265,6 +265,9 @@ namespace TTD
         //A helper for extracting snapshots
         void DoSnapshotExtract_Helper(bool firstSnap, SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag);
 
+        //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
+        void ReplaySnapshotEvent();
+
     public:
         EventLog(ThreadContext* threadContext, LPCWSTR logDir, uint32 snapInterval, uint32 snapHistoryLength);
         ~EventLog();

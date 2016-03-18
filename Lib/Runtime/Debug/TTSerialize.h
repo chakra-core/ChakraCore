@@ -401,6 +401,89 @@ namespace TTD
 
         virtual LPCWSTR ReadFileNameForSourceLocation(bool readSeparator = false) override;
     };
+
+    //////////////////
+
+#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
+#define TRACE_LOGGER_BUFFER_SIZE 4096
+#define TRACE_LOGGER_INDENT_BUFFER_SIZE 64
+
+    class TraceLogger
+    {
+    private:
+        char* m_buffer;
+        char* m_indentBuffer;
+
+        int32 m_currLength;
+        int32 m_indentSize;
+        FILE* m_outfile;
+
+        void EnsureSpace(uint32 length)
+        {
+            if(this->m_currLength + length >= TRACE_LOGGER_BUFFER_SIZE)
+            {
+                fwrite(this->m_buffer, sizeof(char), this->m_currLength, this->m_outfile);
+                fflush(this->m_outfile);
+
+                this->m_currLength = 0;
+            }
+        }
+
+        void Append(const char* str, uint32 length)
+        {
+            memcpy(this->m_buffer + this->m_currLength, str, length);
+            this->m_currLength += length;
+        }
+
+        void Append(const wchar* str, uint32 length)
+        {
+            char* currs = (this->m_buffer + this->m_currLength);
+            const wchar* currw = str;
+
+            for(uint32 i = 0; i < length; ++i)
+            {
+                *currs = (char)(*currw);
+                ++currs;
+                ++currw;
+            }
+
+            this->m_currLength += length;
+        }
+
+        template<size_t N>
+        void AppendLiteral(const char(&str)[N])
+        {
+            this->EnsureSpace(N);
+            this->Append(str, N);
+        }
+
+        void AppendBuffer()
+        {
+            this->EnsureSpace(this->m_indentSize);
+            this->Append(this->m_indentBuffer, this->m_indentSize);
+        }
+
+        void AppendText(char* text, uint32 length);
+        void AppendIndent();
+        void AppendString(char* text);
+        void AppendBool(bool bval);
+        void AppendInteger(int64 ival);
+        void AppendUnsignedInteger(uint64 ival);
+        void AppendIntegerHex(int64 ival);
+        void AppendDouble(double dval);
+
+    public:
+        TraceLogger(FILE* outfile = stdout);
+        ~TraceLogger();
+
+        void WriteVar(Js::Var var);
+
+        void WriteCall(Js::FunctionBody* body, bool isExternal, uint32 argc, Js::Var* argv);
+        void WriteReturn(Js::FunctionBody* body, Js::Var res);
+
+        void WriteStmtIndex(uint32 line, uint32 column);
+    };
+#endif
 }
 
 #endif

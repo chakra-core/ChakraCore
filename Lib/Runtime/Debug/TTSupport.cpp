@@ -241,6 +241,31 @@ namespace TTD
         return str.Contents == nullptr;
     }
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+    bool TTStringEQForDiagnostics(const TTString& str1, const TTString& str2)
+    {
+        if(IsNullPtrTTString(str1) || IsNullPtrTTString(str2))
+        {
+            return IsNullPtrTTString(str1) && IsNullPtrTTString(str2);
+        }
+
+        if(str1.Length != str2.Length)
+        {
+            return false;
+        }
+
+        for(uint32 i = 0; i < str1.Length; ++i)
+        {
+            if(str1.Contents[i] != str2.Contents[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+#endif
+
     //////////////////
 
     MarkTable::MarkTable()

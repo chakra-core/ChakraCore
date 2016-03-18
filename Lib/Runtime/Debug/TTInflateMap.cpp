@@ -249,6 +249,182 @@ namespace TTD
             return this->LookupObject(TTD_CONVERT_VAR_TO_PTR_ID(var));
         }
     }
+
+    //////////////////
+#if ENABLE_SNAPSHOT_COMPARE
+    TTDCompareMap::TTDCompareMap()
+        : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr),
+        //
+        H1TagMap(&HeapAllocator::Instance), 
+        H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
+        H1FunctionTopLevelLoadMap(&HeapAllocator::Instance), H1FunctionTopLevelNewMap(&HeapAllocator::Instance), H1FunctionTopLevelEvalMap(&HeapAllocator::Instance),
+        H1FunctionBodyMap(&HeapAllocator::Instance), H1ObjectMap(&HeapAllocator::Instance),
+        //
+        H2TagMap(&HeapAllocator::Instance), 
+        H2ValueMap(&HeapAllocator::Instance), H2SlotArrayMap(&HeapAllocator::Instance), H2FunctionScopeInfoMap(&HeapAllocator::Instance),
+        H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
+        H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance)
+    {
+        this->SnapObjCmpVTable = HeapNewArrayZ(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
+
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapScriptFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapScriptFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapExternalFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapExternalFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapRuntimeRevokerFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapRevokerFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapBoundFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapBoundFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapHeapArgumentsObject] = &NSSnapObjects::AssertSnapEquiv_SnapHeapArgumentsInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapBoxedValueObject] = &NSSnapObjects::AssertSnapEquiv_SnapBoxedValue;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapDateObject] = &NSSnapObjects::AssertSnapEquiv_SnapDate;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapRegexObject] = &NSSnapObjects::AssertSnapEquiv_SnapRegexInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapArrayObject] = &NSSnapObjects::AssertSnapEquiv_SnapArrayInfo<TTDVar, NSSnapObjects::SnapObjectType::SnapArrayObject>;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject] = &NSSnapObjects::AssertSnapEquiv_SnapArrayInfo<int, NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject] = &NSSnapObjects::AssertSnapEquiv_SnapArrayInfo<double, NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapArrayBufferObject] = &NSSnapObjects::AssertSnapEquiv_SnapArrayBufferInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapTypedArrayObject] = &NSSnapObjects::AssertSnapEquiv_SnapTypedArrayInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapSetObject] = &NSSnapObjects::AssertSnapEquiv_SnapSetInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapMapObject] = &NSSnapObjects::AssertSnapEquiv_SnapMapInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapProxyObject] = &NSSnapObjects::AssertSnapEquiv_SnapProxyInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseResolveOrRejectFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo;
+    }
+
+    TTDCompareMap::~TTDCompareMap()
+    {
+        HeapDeleteArray((int32)NSSnapObjects::SnapObjectType::Limit, this->SnapObjCmpVTable);
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
+    {
+        if(h1PtrId == TTD_INVALID_PTR_ID || h2PtrId == TTD_INVALID_PTR_ID)
+        {
+            TTD_DIAGNOSTIC_ASSERT(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
+        }
+        else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
+        {
+            TTD_DIAGNOSTIC_ASSERT(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+        }
+        else if(this->H1ValueMap.ContainsKey(h1PtrId))
+        {
+            TTD_DIAGNOSTIC_ASSERT(this->H2ValueMap.ContainsKey(h2PtrId));
+
+            const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Lookup(h1PtrId, nullptr);
+            const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Lookup(h2PtrId, nullptr);
+            NSSnapValues::AssertSnapEquiv(v1, v2, *this);
+        }
+        else
+        {
+            this->H1PtrIdWorklist.Enqueue(h1PtrId);
+            this->H1PtrToH2PtrMap.AddNew(h1PtrId, h2PtrId);
+        }
+    }
+
+    void TTDCompareMap::GetNextCompareInfo(TTDCompareTag* tag, TTD_PTR_ID* h1PtrId, TTD_PTR_ID* h2PtrId)
+    {
+        if(this->H1PtrIdWorklist.Empty())
+        {
+            *tag = TTDCompareTag::Done;
+            *h1PtrId = TTD_INVALID_PTR_ID;
+            *h2PtrId = TTD_INVALID_PTR_ID;
+        }
+        else
+        {
+            *h1PtrId = this->H1PtrIdWorklist.Dequeue();
+            *h2PtrId = this->H1PtrToH2PtrMap.Lookup(*h1PtrId, TTD_INVALID_PTR_ID);
+            AssertMsg(*h2PtrId != TTD_INVALID_PTR_ID, "Id not mapped!!!");
+
+            if(this->H1SlotArrayMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2SlotArrayMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::SlotArray;
+            }
+            else if(this->H1FunctionScopeInfoMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionScopeInfoMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::FunctionScopeInfo;
+            }
+            else if(this->H1FunctionTopLevelLoadMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelLoadMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::TopLevelLoadFunction;
+            }
+            else if(this->H1FunctionTopLevelNewMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelNewMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::TopLevelNewFunction;
+            }
+            else if(this->H1FunctionTopLevelEvalMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelEvalMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::TopLevelEvalFunction;
+            }
+            else if(this->H1FunctionBodyMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionBodyMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::FunctionBody;
+            }
+            else if(this->H1ObjectMap.ContainsKey(*h1PtrId))
+            {
+                TTD_DIAGNOSTIC_ASSERT(this->H2ObjectMap.ContainsKey(*h2PtrId));
+                *tag = TTDCompareTag::SnapObject;
+            }
+            else
+            {
+                AssertMsg(!this->H1ValueMap.ContainsKey(*h1PtrId), "Should be comparing by value!!!");
+                AssertMsg(false, "Id not found in any of the maps!!!");
+                *tag = TTDCompareTag::Done;
+            }
+        }
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::SlotArrayInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::SlotArrayInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::SlotArray, "Should be a type");
+        *val1 = this->H1SlotArrayMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2SlotArrayMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::FunctionScopeInfo, "Should be a type");
+        *val1 = this->H1FunctionScopeInfoMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2FunctionScopeInfoMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::TopLevelLoadFunction, "Should be a type");
+        *val1 = this->H1FunctionTopLevelLoadMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2FunctionTopLevelLoadMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelNewFunctionBodyResolveInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::TopLevelNewFunction, "Should be a type");
+        *val1 = this->H1FunctionTopLevelNewMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2FunctionTopLevelNewMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::TopLevelEvalFunction, "Should be a type");
+        *val1 = this->H1FunctionTopLevelEvalMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2FunctionTopLevelEvalMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::FunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::FunctionBodyResolveInfo** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::FunctionBody, "Should be a type");
+        *val1 = this->H1FunctionBodyMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2FunctionBodyMap.Lookup(h2PtrId, nullptr);
+    }
+
+    void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapObjects::SnapObject** val1, TTD_PTR_ID h2PtrId, const NSSnapObjects::SnapObject** val2)
+    {
+        AssertMsg(compareTag == TTDCompareTag::SnapObject, "Should be a type");
+        *val1 = this->H1ObjectMap.Lookup(h1PtrId, nullptr);
+        *val2 = this->H2ObjectMap.Lookup(h2PtrId, nullptr);
+    }
+#endif
 }
 
 #endif

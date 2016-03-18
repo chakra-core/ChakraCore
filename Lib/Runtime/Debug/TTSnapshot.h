@@ -159,6 +159,12 @@ namespace TTD
 
         //de-serialize the snapshot data
         static SnapShot* Parse(LPCWSTR sourceDir, DWORD snapId, ThreadContext* threadContext, bool json, bool binary);
+
+#if ENABLE_SNAPSHOT_COMPARE
+        static void InitializeForSnapshotCompare(const SnapShot* snap1, const SnapShot* snap2, TTDCompareMap& compareMap);
+
+        static void DoSnapshotCompare(const SnapShot* snap1, const SnapShot* snap2, TTDCompareMap& compareMap);
+#endif
     };
 }
 
