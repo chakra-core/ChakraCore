@@ -82,10 +82,82 @@ function asmModule(stdlib, imports) {
         }
         return ui16check(globImportui16);
     }
+
+    function testShiftLeftScalarLocal1()
+    {
+        var a = ui16(40, 40, 80, 80, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0)
+        {
+            a = ui16shiftLeftByScalar(a, 1);
+        }
+
+        return ui16check(a);
+    }
     
+    function testShiftRightScalarLocal1()
+    {
+        var a = ui16(40, 40, 80, 80, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0) {
+            a = ui16shiftRightByScalar(a, 8);
+            a = ui16shiftRightByScalar(a, 9);
+        }
+
+        return ui16check(a);
+    }
+
+    function testShiftLeftScalarGlobal1()
+    {
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0) {
+            ui16g1 = ui16shiftLeftByScalar(ui16g1, 8);
+            ui16g1 = ui16shiftLeftByScalar(ui16g1, 9);
+        }
+        return ui16check(ui16g1);
+    }
+
+    function testShiftRightScalarGlobal1()
+    {
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0) {
+            ui16g1 = ui16shiftRightByScalar(ui16g1, 8);
+            ui16g1 = ui16shiftRightByScalar(ui16g1, 9);
+        }
+        return ui16check(ui16g1);
+    }
+
+    function testShiftLeftScalarGlobalImport1()
+    {
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0) {
+            globImportui16 = ui16shiftLeftByScalar(globImportui16, 8);
+            globImportui16 = ui16shiftLeftByScalar(globImportui16, 9);
+        }
+        return ui16check(globImportui16);
+    }
+
+    function testShiftRightScalarGlobalImport1()
+    {
+        var loopIndex = 0;
+
+        for (loopIndex = 0; (loopIndex | 0) < (loopCOUNT | 0) ; loopIndex = (loopIndex + 1) | 0) {
+            globImportui16 = ui16shiftRightByScalar(globImportui16, 8);
+            globImportui16 = ui16shiftRightByScalar(globImportui16, 9);
+        }
+        return ui16check(globImportui16);
+    }
+
     return {
         testShiftLeftScalarLocal: testShiftLeftScalarLocal, testShiftRightScalarLocal: testShiftRightScalarLocal, testShiftLeftScalarGlobal: testShiftLeftScalarGlobal,
-        testShiftRightScalarGlobal: testShiftRightScalarGlobal, testShiftLeftScalarGlobalImport: testShiftLeftScalarGlobalImport, testShiftRightScalarGlobalImport: testShiftRightScalarGlobalImport
+        testShiftRightScalarGlobal: testShiftRightScalarGlobal, testShiftLeftScalarGlobalImport: testShiftLeftScalarGlobalImport, testShiftRightScalarGlobalImport: testShiftRightScalarGlobalImport,
+        testShiftLeftScalarLocal1: testShiftLeftScalarLocal1, testShiftRightScalarLocal1: testShiftRightScalarLocal1, testShiftLeftScalarGlobal1: testShiftLeftScalarGlobal1,
+        testShiftRightScalarGlobal1: testShiftRightScalarGlobal1, testShiftLeftScalarGlobalImport1: testShiftLeftScalarGlobalImport1, testShiftRightScalarGlobalImport1: testShiftRightScalarGlobalImport1
     };
 }
 
@@ -97,4 +169,12 @@ equalSimd([16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 
 equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], m.testShiftRightScalarGlobal(), SIMD.Uint8x16, "func4");
 equalSimd([64, 128, 64, 32, 176, 128, 16, 32, 64, 240, 0, 16, 16, 0, 128, 160], m.testShiftLeftScalarGlobalImport(), SIMD.Uint8x16, "func5");
 equalSimd([4, 8, 4, 2, 11, 8, 1, 2, 4, 15, 0, 1, 1, 0, 8, 10], m.testShiftRightScalarGlobalImport(), SIMD.Uint8x16, "func6");
+
+
+equalSimd([128, 128, 0, 0, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarLocal1(), SIMD.Uint8x16, "func1_1");
+equalSimd([2, 2, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], m.testShiftRightScalarLocal1(), SIMD.Uint8x16, "func2_1");
+equalSimd([16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 0], m.testShiftLeftScalarGlobal1(), SIMD.Uint8x16, "func3_1");
+equalSimd([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0], m.testShiftRightScalarGlobal1(), SIMD.Uint8x16, "func4_1");
+equalSimd([64, 128, 64, 32, 176, 128, 16, 32, 64, 240, 0, 16, 16, 0, 128, 160], m.testShiftLeftScalarGlobalImport1(), SIMD.Uint8x16, "func5_1");
+equalSimd([4, 8, 4, 2, 11, 8, 1, 2, 4, 15, 0, 1, 1, 0, 8, 10], m.testShiftRightScalarGlobalImport1(), SIMD.Uint8x16, "func6_1");
 print("PASS");

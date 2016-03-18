@@ -302,6 +302,8 @@ namespace Js
     {
         SIMDValue result;
 
+        count = count & SIMDGetShiftAmountMask(4);
+
         result.i32[SIMD_X] = value.i32[SIMD_X] << count;
         result.i32[SIMD_Y] = value.i32[SIMD_Y] << count;
         result.i32[SIMD_Z] = value.i32[SIMD_Z] << count;
@@ -313,6 +315,8 @@ namespace Js
     SIMDValue SIMDInt32x4Operation::OpShiftRightByScalar(const SIMDValue& value, int count)
     {
         SIMDValue result;
+
+        count = count & SIMDGetShiftAmountMask(4);
 
         result.i32[SIMD_X] = value.i32[SIMD_X] >> count;
         result.i32[SIMD_Y] = value.i32[SIMD_Y] >> count;
