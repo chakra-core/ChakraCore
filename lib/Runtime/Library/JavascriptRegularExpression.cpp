@@ -423,7 +423,7 @@ namespace Js
         }
     }
 
-    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly, bool useFlagsProperty)
+    JavascriptString *JavascriptRegExp::ToString(bool sourceOnly)
     {
         Js::InternalString str = pattern->GetSource();
         CompoundString *const builder = CompoundString::NewWithCharCapacity(str.GetLength() + 5, GetLibrary());
@@ -514,37 +514,27 @@ namespace Js
         {
             builder->AppendChars(_u('/'));
 
-            if (!useFlagsProperty)
+            // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
+            // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
+            if (pattern->IsGlobal())
             {
-                // Cross-browser compatibility - flags are listed in alphabetical order in the spec and by other browsers
-                // If you change the order of the flags, don't forget to change it in EntryGetterFlags() and GetOptions() too.
-                if (pattern->IsGlobal())
-                {
-                    builder->AppendChars(_u('g'));
-                }
-                if (pattern->IsIgnoreCase())
-                {
-                    builder->AppendChars(_u('i'));
-                }
-                if (pattern->IsMultiline())
-                {
-                    builder->AppendChars(_u('m'));
-                }
-                if (pattern->IsUnicode())
-                {
-                    builder->AppendChars(_u('u'));
-                }
-                if (pattern->IsSticky())
-                {
-                    builder->AppendChars(_u('y'));
-                }
+                builder->AppendChars(_u('g'));
             }
-            else
+            if (pattern->IsIgnoreCase())
             {
-                ScriptContext* scriptContext = GetScriptContext();
-                Var flags = JavascriptOperators::GetProperty(this, PropertyIds::flags, scriptContext);
-                JavascriptString* flagsString = JavascriptConversion::ToString(flags, scriptContext);
-                builder->AppendCharsSz(flagsString->GetString());
+                builder->AppendChars(_u('i'));
+            }
+            if (pattern->IsMultiline())
+            {
+                builder->AppendChars(_u('m'));
+            }
+            if (pattern->IsUnicode())
+            {
+                builder->AppendChars(_u('u'));
+            }
+            if (pattern->IsSticky())
+            {
+                builder->AppendChars(_u('y'));
             }
         }
 
@@ -697,10 +687,8 @@ namespace Js
         else
         {
             JavascriptRegExp* obj = GetJavascriptRegExp(args, varName, scriptContext);
-
             bool sourceOnly = false;
-            bool useFlagsProperty = scriptConfig->IsES6RegExPrototypePropertiesEnabled();
-            return obj->ToString(sourceOnly, useFlagsProperty);
+            return obj->ToString(sourceOnly);
         }
     }
 
