@@ -132,7 +132,13 @@ void __stdcall PrintUsage()
 
 // On success the param byteCodeBuffer will be allocated in the function.
 // The caller of this function should de-allocate the memory.
-HRESULT GetSerializedBuffer(LPCOLESTR fileContents, __out BYTE **byteCodeBuffer, __out DWORD *byteCodeBufferSize)
+HRESULT GetSerializedBuffer(LPCOLESTR fileContents,
+    _Post_satisfies_(
+        (return == S_OK || *byteCodeBuffer == nullptr) ||
+        (return == S_OK && *byteCodeBuffer != nullptr)
+        )
+    __out BYTE **byteCodeBuffer,
+    __out DWORD *byteCodeBufferSize)
 {
     HRESULT hr = S_OK;
     *byteCodeBuffer = nullptr;
@@ -252,7 +258,7 @@ Error:
         CloseHandle(bcFileHandle);
     }
 
-    if (hr == S_OK && bcBuffer != nullptr)
+    if (bcBuffer != nullptr)
     {
         delete[] bcBuffer;
     }
@@ -336,7 +342,7 @@ HRESULT CreateAndRunSerializedScript(LPCWSTR fileName, LPCWSTR fileContents, cha
     IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
 
 Error:
-    if (hr == S_OK && bcBuffer != nullptr)
+    if (bcBuffer != nullptr)
     {
         delete[] bcBuffer;
     }
