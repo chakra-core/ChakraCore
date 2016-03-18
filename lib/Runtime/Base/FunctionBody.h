@@ -1480,7 +1480,7 @@ namespace Js
         void SetDeferredParsingEntryPoint();
 
         void SetEntryPoint(ProxyEntryPointInfo* entryPoint, Js::JavascriptMethod address) {
-            entryPoint->address = address;
+            entryPoint->address = (void*)address;
         }
 
         bool IsDynamicScript() const;
