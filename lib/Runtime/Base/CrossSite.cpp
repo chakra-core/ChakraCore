@@ -247,6 +247,7 @@ namespace Js
         return (thunk == CrossSite::ProfileThunk || thunk == CrossSite::DefaultThunk);
     }
 
+#ifdef ENABLE_SCRIPT_PROFILING
     Var CrossSite::ProfileThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
@@ -272,7 +273,6 @@ namespace Js
                 // if the current entrypoint is deferred parse we need to update it appropriately for the profiler mode.
                 entryPoint = Js::ScriptContext::GetProfileModeThunk(entryPoint);
             }
-
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("CrossSite::ProfileThunk FunctionNumber : %s, Entrypoint : 0x%08X\n"), funcInfo->GetFunctionProxy()->GetDebugNumberSet(debugStringBuffer), entryPoint);
         }
         else
@@ -283,6 +283,7 @@ namespace Js
 
         return CommonThunk(function, entryPoint, args);
     }
+#endif
 
     Var CrossSite::DefaultThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
@@ -380,7 +381,8 @@ namespace Js
         HRESULT hr = NOERROR;
         Var result = nullptr;
         BOOL wasDispatchExCallerPushed = FALSE, wasCallerSet = FALSE;
-        __try
+
+        TryFinally([&]()
         {
             hr = callerHostScriptContext->GetDispatchExCaller((void**)&sourceCaller);
 
@@ -404,8 +406,8 @@ namespace Js
             result = JavascriptFunction::CallFunction<true>(function, entryPoint, args);
             ScriptContext* callerScriptContext = callerHostScriptContext->GetScriptContext();
             result = CrossSite::MarshalVar(callerScriptContext, result);
-        }
-        __finally
+        },
+        [&](bool hasException)
         {
             if (sourceCaller != nullptr)
             {
@@ -428,7 +430,7 @@ namespace Js
                     originalCaller->Release();
                 }
             }
-        }
+        });
         Assert(result != nullptr);
         return result;
     }

@@ -120,7 +120,7 @@ protected:
     FreeObject* disposedObjectList;
     FreeObject* disposedObjectListTail;
 
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #ifdef RECYCLER_MEMORY_VERIFY
     friend void SmallHeapBlockT<TBlockAttributes>::Verify(bool pendingDispose);
 #endif

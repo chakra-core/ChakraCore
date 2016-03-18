@@ -130,7 +130,7 @@ private:
 
     friend class HeapInfo;
     friend class Recycler;
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 };
 }
 

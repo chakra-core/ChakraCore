@@ -6,6 +6,8 @@
 
 namespace Js
 {
+    class SimplePathTypeHandler;
+
     class PathTypeHandlerBase : public DynamicTypeHandler
     {
         friend class DynamicObject;

@@ -1581,7 +1581,7 @@ namespace JsUtil
 #ifdef DBG
         void Dump()
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             __super::Dump();
         }
@@ -1589,7 +1589,7 @@ namespace JsUtil
 
         TAllocator *GetAllocator() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetAllocator();
         }
@@ -1603,56 +1603,56 @@ namespace JsUtil
 
         inline int Capacity() const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Capacity();
         }
 
         TValue Item(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Item(key);
         }
 
         bool IsInAdd()
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::IsInAdd();
         }
 
         int Add(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Add(key, value);
         }
 
         int AddNew(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::AddNew(key, value);
         }
 
         int Item(const TKey& key, const TValue& value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Item(key, value);
         }
 
         bool Contains(KeyValuePair<TKey, TValue> keyValuePair)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Contains(keyValuePair);
         }
 
         bool Remove(KeyValuePair<TKey, TValue> keyValuePair)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Remove(keyValuePair);
         }
@@ -1666,14 +1666,14 @@ namespace JsUtil
 
         void Reset()
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::Reset();
         }
 
         bool ContainsKey(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::ContainsKey(key);
         }
@@ -1681,14 +1681,14 @@ namespace JsUtil
         template <typename TLookup>
         inline const TValue& LookupWithKey(const TLookup& key, const TValue& defaultValue)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::LookupWithKey(key, defaultValue);
         }
 
         inline const TValue& Lookup(const TKey& key, const TValue& defaultValue)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Lookup(key, defaultValue);
         }
@@ -1696,14 +1696,14 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetValue(const TLookup& key, TValue* value)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetValue(key, value);
         }
 
         bool TryGetValueAndRemove(const TKey& key, TValue* value)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::TryGetValueAndRemove(key, value);
         }
@@ -1711,7 +1711,7 @@ namespace JsUtil
         template <typename TLookup>
         __inline bool TryGetReference(const TLookup& key, TValue** value)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetReference(key, value);
         }
@@ -1719,35 +1719,35 @@ namespace JsUtil
         template <typename TLookup>
         __inline bool TryGetReference(const TLookup& key, TValue** value, int* index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::TryGetReference(key, value, index);
         }
 
         const TValue& GetValueAt(const int& index) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetValueAt(index);
         }
 
         TValue* GetReferenceAt(const int& index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetReferenceAt(index);
         }
 
         TKey const& GetKeyAt(const int& index)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::GetKeyAt(index);
         }
 
         bool Remove(const TKey& key)
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Remove(key);
         }
@@ -1756,7 +1756,7 @@ namespace JsUtil
         void MapReference(Fn fn)
         {
             // TODO: Verify that Map doesn't actually modify the list
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapReference(fn);
         }
@@ -1764,7 +1764,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntilReference(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntilReference(fn);
         }
@@ -1772,7 +1772,7 @@ namespace JsUtil
         template<class Fn>
         void MapAddress(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapAddress(fn);
         }
@@ -1780,7 +1780,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntilAddress(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntilAddress(fn);
         }
@@ -1788,7 +1788,7 @@ namespace JsUtil
         template<class Fn>
         void Map(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::Map(fn);
         }
@@ -1796,7 +1796,7 @@ namespace JsUtil
         template<class Fn>
         bool MapUntil(Fn fn) const
         {
-            LockPolicy::ReadLock autoLock(syncObj);
+            typename LockPolicy::ReadLock autoLock(syncObj);
 
             return __super::MapUntil(fn);
         }
@@ -1804,7 +1804,7 @@ namespace JsUtil
         template<class Fn>
         void MapAndRemoveIf(Fn fn)
         {
-            LockPolicy::AddRemoveLock autoLock(syncObj);
+            typename LockPolicy::AddRemoveLock autoLock(syncObj);
 
             return __super::MapAndRemoveIf(fn);
         }

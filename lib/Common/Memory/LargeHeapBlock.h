@@ -269,7 +269,7 @@ private:
     bool hadTrimmed;
 #endif
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
     friend class HeapInfo;
     HeapInfo * heapInfo;

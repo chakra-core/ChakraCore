@@ -127,7 +127,7 @@ void ScriptMemoryDumper::DumpSmallHeapBlock(SmallHeapBlockT<TBlockAttributes>* h
     current.activeObjectCount += heapBlock->objectCount - heapBlock->freeCount;
     if (heapBlock->IsAnyFinalizableBlock())
     {
-        current.finalizeCount += heapBlock->AsFinalizableBlock<TBlockAttributes>()->finalizeCount;
+        current.finalizeCount += heapBlock->template AsFinalizableBlock<TBlockAttributes>()->finalizeCount;
     }
     current.pageCount += heapBlock->GetPageCount();
     current.totalByteCount += heapBlock->GetPageCount() * AutoSystemInfo::PageSize;
@@ -152,7 +152,7 @@ void ScriptMemoryDumper::DumpLargeBucket(LargeHeapBucket* heapBucket)
     DumpLargeHeapBlockList(heapBucket->pendingDisposeLargeBlockList);
 #if ENABLE_CONCURRENT_GC
     DumpLargeHeapBlockList(heapBucket->pendingSweepLargeBlockList);
-#if ENABLE_PARTIAL_GC 
+#if ENABLE_PARTIAL_GC
     DumpLargeHeapBlockList(heapBucket->partialSweptLargeBlockList);
 #endif
 #endif

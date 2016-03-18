@@ -117,7 +117,7 @@ inline void DebugBreak()
 #define CO_E_APPDIDNTREG                 _HRESULT_TYPEDEF_(0x800401FEL)
 #define GetScode(hr) ((SCODE) (hr))
 // activscp.h
-#define SCRIPT_E_RECORDED   0x86664004L
+#define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
 
 // _countof
 #if defined _M_X64 || defined _M_ARM || defined _M_ARM64
@@ -223,32 +223,34 @@ PALIMPORT PSLIST_ENTRY PALAPI InterlockedPushEntrySList(IN OUT PSLIST_HEADER Lis
 PALIMPORT PSLIST_ENTRY PALAPI InterlockedPopEntrySList(IN OUT PSLIST_HEADER ListHead);
 
 
-// Use overloaded versions of InterlockedExchangeAdd
-#define InterlockedExchangeAdd __InterlockedExchangeAdd
-inline long InterlockedExchangeAdd(
-    IN OUT long volatile *Addend,
-    IN long Value)
-{
-    return __sync_fetch_and_add(Addend, Value);
-}
-inline unsigned long InterlockedExchangeAdd(
-    IN OUT unsigned long volatile *Addend,
-    IN unsigned long Value)
+template <class T>
+inline T InterlockedExchangeAdd(
+    IN OUT T volatile *Addend,
+    IN T Value)
 {
     return __sync_fetch_and_add(Addend, Value);
 }
 
-inline long InterlockedExchangeSubtract(
-    IN OUT long volatile *Addend,
-    IN long Value)
+template <class T>
+inline T InterlockedExchangeSubtract(
+    IN OUT T volatile *Addend,
+    IN T Value)
 {
     return __sync_fetch_and_sub(Addend, Value);
 }
-inline unsigned long InterlockedExchangeSubtract(
-    IN OUT unsigned long volatile *Addend,
-    IN unsigned long Value)
+
+template <class T>
+inline T InterlockedIncrement(
+    IN OUT T volatile *Addend)
 {
-    return __sync_fetch_and_sub(Addend, Value);
+    return __sync_add_and_fetch(Addend, T(1));
+}
+
+template <class T>
+inline T InterlockedDecrement(
+    IN OUT T volatile *Addend)
+{
+    return __sync_sub_and_fetch(Addend, T(1));
 }
 
 
@@ -277,6 +279,11 @@ errno_t rand_s(unsigned int* randomValue);
 
 #define MAXUINT32   ((uint32_t)~((uint32_t)0))
 #define MAXINT32    ((int32_t)(MAXUINT32 >> 1))
+
+#ifdef UNICODE
+#define StringCchPrintf  StringCchPrintfW
+#endif
+
 #endif // _WIN32
 
 
@@ -302,9 +309,9 @@ errno_t rand_s(unsigned int* randomValue);
 
 #if (defined(_MSC_VER) && _MSC_VER < 1900) || defined(NTBUILD)
 // "noexcept" not supported before VS 2015
-#define _NOEXCEPT
+#define _NOEXCEPT_ throw()
 #else
-#define _NOEXCEPT noexcept
+#define _NOEXCEPT_ noexcept
 #endif
 
 // xplat-todo: can we get rid of this for clang?
@@ -336,3 +343,21 @@ errno_t rand_s(unsigned int* randomValue);
 #endif
 
 STRSAFEAPI StringCchPrintfW(WCHAR* pszDest, size_t cchDest, const WCHAR* pszFormat, ...);
+
+template <class TryFunc, class FinallyFunc>
+void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
+{
+    bool hasException = true;
+    try
+    {
+        tryFunc();
+        hasException = false;
+    }
+    catch(...)
+    {
+        finallyFunc(hasException);
+        throw;
+    }
+
+    finallyFunc(hasException);
+}

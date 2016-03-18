@@ -97,6 +97,9 @@ if(CLR_CMAKE_PLATFORM_UNIX)
         -Wno-tautological-undefined-compare
         -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
+        -Wno-return-type # switch unreachable code
+        -Wno-switch # switch values not handled
+        -Wno-int-to-pointer-cast
     )
 endif(CLR_CMAKE_PLATFORM_UNIX)
 
