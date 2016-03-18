@@ -4140,6 +4140,7 @@ void ScriptContext::ClearInlineCaches()
     {
         GetInlineCacheAllocator()->ZeroAll();
         this->hasUsedInlineCache = false;
+        this->hasProtoOrStoreFieldInlineCache = false;
     }
 
     Assert(GetInlineCacheAllocator()->IsAllZero());
