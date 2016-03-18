@@ -62,32 +62,25 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
-    PidRefStack(int id) : isAsg(false), isDynamic(false), id(id), span(), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack() : isDynamic(false), id(0), sym(nullptr), prev(nullptr), isModuleExport(false) {}
+    PidRefStack(int id) : isDynamic(false), id(id), sym(nullptr), prev(nullptr), isModuleExport(false) {}
 
-    charcount_t GetIchMin()   { return span.GetIchMin(); }
-    charcount_t GetIchLim()   { return span.GetIchLim(); }
     int GetScopeId() const    { return id; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
-    bool IsAssignment() const { return isAsg; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
     bool IsModuleExport() const { return isModuleExport; }
     void SetModuleExport()    { isModuleExport = true; }
-
-    void TrackAssignment(charcount_t ichMin, charcount_t ichLim);
 
     Symbol **GetSymRef()
     {
         return &sym;
     }
 
-    bool           isAsg;
     bool           isDynamic;
     bool           isModuleExport;
     int            id;
-    Span           span;
     Symbol        *sym;
     PidRefStack   *prev;
 };
@@ -169,18 +162,6 @@ public:
             }
         }
         return nullptr;
-    }
-
-    charcount_t GetTopIchMin() const
-    {
-        Assert(m_pidRefStack);
-        return m_pidRefStack->GetIchMin();
-    }
-
-    charcount_t GetTopIchLim() const
-    {
-        Assert(m_pidRefStack);
-        return m_pidRefStack->GetIchLim();
     }
 
     void PushPidRef(int blockId, PidRefStack *newRef)

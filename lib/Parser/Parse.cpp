@@ -302,11 +302,6 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
         pnodeFnc->sxFnc.cbLim = m_pscan->IecpLimTok();
         pnodeFnc->sxFnc.pnodeVars = nullptr;
 
-        if (m_asgToConst)
-        {
-            Error(ERRAssignmentToConst, m_asgToConst.GetIchMin(), m_asgToConst.GetIchLim());
-        }
-
         // there should be nothing after successful parsing for a given construct
         if (m_token.tk != tkEOF)
             Error(ERRsyntax);
@@ -1753,19 +1748,8 @@ void Parser::BindPidRefsInScopeImpl(IdentPtr pid, Symbol *sym, int blockId, uint
             continue;
         }
         ref->SetSym(sym);
-        if (isConstBinding && ref->IsAssignment() && !ref->IsDynamicBinding())
-        {
-            if (pid->GetTopIchMin() < this->m_asgToConst.GetIchMin())
-            {
-                this->m_asgToConst.Set(pid->GetTopIchMin(), pid->GetTopIchLim());
-            }
-        }
         this->RemovePrevPidRef(pid, lastRef);
 
-        if (ref->IsAssignment())
-        {
-            sym->PromoteAssignmentState();
-        }
         if (ref->IsModuleExport())
         {
             Assert(sym->GetIsGlobal());
@@ -8056,7 +8040,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 {
                     Error(JSERR_CantAssignTo);
                 }
-                TrackAssignment<buildAST>(pnodeT, &operandToken, ichMin, m_pscan->IchLimTok());
+
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnodeT->nop == knopName)
@@ -8211,7 +8195,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 Error(JSERR_CantAssignTo);
             }
-            TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
             fCanAssign = FALSE;
             if (buildAST)
             {
@@ -8259,7 +8242,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binary operators. We also need to special case the left
                 // operand - it should only be a LeftHandSideExpression.
                 Assert(ParseNode::Grfnop(nop) & fnopAsg || nop == knopFncDecl);
-                TrackAssignment<buildAST>(pnode, &term, ichMin, m_pscan->IchLimTok());
+
                 if (buildAST)
                 {
                     if (IsStrictMode() && pnode->nop == knopName)
@@ -8479,46 +8462,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     }
 
     return pnode;
-}
-
-template<bool buildAST>
-void Parser::TrackAssignment(ParseNodePtr pnodeT, IdentToken* pToken, charcount_t ichMin, charcount_t ichLim)
-{
-    if (buildAST)
-    {
-        Assert(pnodeT != NULL);
-        if (pnodeT->nop == knopName)
-        {
-            PidRefStack *ref = pnodeT->sxPid.pid->GetTopRef();
-            Assert(ref);
-            ref->TrackAssignment(pnodeT->ichMin, pnodeT->ichLim);
-        }
-    }
-    else
-    {
-        Assert(pToken != NULL);
-        if (pToken->tk == tkID)
-        {
-            PidRefStack *ref = pToken->pid->GetTopRef();
-            Assert(ref);
-            ref->TrackAssignment(ichMin, ichLim);
-        }
-    }
-}
-
-void PidRefStack::TrackAssignment(charcount_t ichMin, charcount_t ichLim)
-{
-    if (this->isAsg)
-    {
-        if (this->GetIchMin() <= ichMin)
-        {
-            return;
-        }
-        Assert(ichMin <= this->GetIchMin() && this->GetIchLim() <= ichLim);
-    }
-
-    this->isAsg = true;
-    this->span.Set(ichMin, ichLim);
 }
 
 void PnPid::SetSymRef(PidRefStack *ref)
@@ -10925,11 +10868,6 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     m_scriptContext->AddSourceSize(m_length);
 
-    if (m_asgToConst)
-    {
-        Error(ERRAssignmentToConst, m_asgToConst.GetIchMin(), m_asgToConst.GetIchLim());
-    }
-
     if(!m_parseType != ParseType_Deferred)
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->sxFnc.functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
@@ -11189,11 +11127,8 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
         // Append block as body of pnodeProg
         FinishParseBlock(pnodeBlock);
 
-        if (m_asgToConst)
-        {
-            Error(ERRAssignmentToConst, m_asgToConst.GetIchMin(), m_asgToConst.GetIchLim());
-        }
     }
+
     catch(ParseExceptionObject& e)
     {
         m_err.m_hr = e.GetError();
