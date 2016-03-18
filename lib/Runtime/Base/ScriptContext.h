@@ -755,7 +755,8 @@ private:
         bool isCloningGlobal;
 #endif
         bool fastDOMenabled;
-        bool hasInlineCache;
+        bool hasUsedInlineCache;
+        bool hasProtoOrStoreFieldInlineCache;
         bool hasIsInstInlineCache;
         bool deferredBody;
         bool isPerformingNonreentrantWork;
@@ -854,6 +855,8 @@ private:
             return !nativeCodeGen || ::IsClosedNativeCodeGenerator(nativeCodeGen);
         }
 #endif
+
+        void SetHasUsedInlineCache(bool value) { hasUsedInlineCache = value; }
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }

@@ -118,7 +118,8 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        hasInlineCache(false),
+        hasUsedInlineCache(false),
+        hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
         cache(nullptr),
@@ -367,7 +368,7 @@ namespace Js
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
 
-        if (this->hasInlineCache)
+        if (this->hasProtoOrStoreFieldInlineCache)
         {
             // TODO (PersistentInlineCaches): It really isn't necessary to clear inline caches in all script contexts.
             // Since this script context is being destroyed, the inline cache arena will also go away and release its
@@ -379,7 +380,7 @@ namespace Js
             // clear out all inline caches to remove our proto inline caches from the thread context
             threadContext->ClearInlineCaches();
 
-            Assert(!this->hasInlineCache);
+            Assert(!this->hasProtoOrStoreFieldInlineCache);
         }
 
         if (this->hasIsInstInlineCache)
@@ -3970,7 +3971,7 @@ namespace Js
 
     void ScriptContext::RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterProtoInlineCache(pCache, propId);
     }
 
@@ -4000,7 +4001,7 @@ namespace Js
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterStoreFieldInlineCache(pCache, propId);
     }
 
@@ -4070,7 +4071,7 @@ namespace Js
     {
         // Prevent reentrancy for the following work, which is not required to be done on every call to this function including
         // reentrant calls
-        if (this->isPerformingNonreentrantWork || !this->hasInlineCache)
+        if (this->isPerformingNonreentrantWork || !this->hasUsedInlineCache)
         {
             return;
         }
@@ -4135,11 +4136,13 @@ namespace Js
 
 void ScriptContext::ClearInlineCaches()
 {
-    if (this->hasInlineCache)
+    if (this->hasUsedInlineCache)
     {
         GetInlineCacheAllocator()->ZeroAll();
-        this->hasInlineCache = false;
+        this->hasUsedInlineCache = false;
     }
+
+    Assert(GetInlineCacheAllocator()->IsAllZero());
 }
 
 void ScriptContext::ClearIsInstInlineCaches()
@@ -4149,13 +4152,15 @@ void ScriptContext::ClearIsInstInlineCaches()
         GetIsInstInlineCacheAllocator()->ZeroAll();
         this->hasIsInstInlineCache = false;
     }
+
+    Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
 }
 
 
 #ifdef PERSISTENT_INLINE_CACHES
 void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 {
-    if (this->hasInlineCache)
+    if (this->hasUsedInlineCache)
     {
         GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
         Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
