@@ -230,7 +230,7 @@ public:
 
         for (uint i = 0; i < size; i++)
         {
-#pragma warning(suppress:28182) // Not a useful error: "Dereferencing NULL pointer. 'buckets' contains the same NULL value as 'current' did."
+#pragma warning(suppress:28182) // Not a useful warning: "Dereferencing NULL pointer. 'buckets' contains the same NULL value as 'current' did."
             RecyclerWeakReferenceBase ** pprev = &buckets[i];
             RecyclerWeakReferenceBase *current = *pprev;
             while (current)
