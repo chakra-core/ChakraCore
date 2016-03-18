@@ -83,6 +83,14 @@ var tests = [
     }
   },
   {
+    name: "Destructuring bug fix - assign to const",
+    body: function () {
+      assert.throws(function () { const c = 10; ({c} = {c:11}); }, TypeError, "Cannot assign to const", "Assignment to const");
+      assert.throws(function () { eval("const c = 10; ({c} = {c:11});"); }, TypeError, "Cannot assign to const in eval", "Assignment to const");
+      assert.throws(function () { const c = 10; eval("({c} = {c:11});"); }, TypeError, "Cannot assign to const in eval, where const is defined outsdie of eval", "Assignment to const");
+    }
+  },
+  {
     name: "Destructuring bug fix - pattern with rest parameter",
     body: function () {
       assert.doesNotThrow(function () { eval("function foo({a}, ...b) { if (b) { } }; foo({});"); } );

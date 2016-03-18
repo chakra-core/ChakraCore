@@ -4734,7 +4734,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     {
         if (!isConstDecl && sym->GetDecl() && sym->GetDecl()->nop == knopConstDecl)
         {
-            this->m_writer.W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(ERRAssignmentToConst));
+            this->m_writer.W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(ERRAssignmentToConst));
         }
 
         EnsureSymbolModuleSlots(sym, funcInfo);
@@ -4898,7 +4898,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             // This is a case where const reassignment can't be proven statically (e.g., eval, with) so
             // we have to catch it at runtime.
             this->m_writer.W1(
-                Js::OpCode::RuntimeReferenceError, SCODE_CODE(ERRAssignmentToConst));
+                Js::OpCode::RuntimeTypeError, SCODE_CODE(ERRAssignmentToConst));
         }
         // Make sure the property has a slot. This will bump up the size of the slot array if necessary.
         Js::PropertyId slot = sym->EnsureScopeSlot(funcInfo);
@@ -4947,7 +4947,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         {
             // This is a case where const reassignment can't be proven statically (e.g., eval, with) so
             // we have to catch it at runtime.
-            this->m_writer.W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(ERRAssignmentToConst));
+            this->m_writer.W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(ERRAssignmentToConst));
         }
         if (rhsLocation != sym->GetLocation())
         {
