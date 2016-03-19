@@ -28,7 +28,7 @@ def dailyRegex = 'dailies'
 // HELPER CLOSURES
 // ---------------
 
-def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfigIf, nonDefaultTaskSetup ->
+def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
         ['x86', 'x64', 'arm'].each { buildArch ->
             ['debug', 'test', 'release'].each { buildType ->
@@ -43,7 +43,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                 def jobName = Utilities.getFullJobName(project, config, isPR)
 
                 def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
-                def analysisConfig = buildType in ['release']
+                def analysisConfig = buildType in ['release'] && runCodeAnalysis
 
                 def buildScript = "call .\\jenkins\\buildone.cmd ${buildArch} ${buildType}"
                 buildScript += buildExtra ?: ''
@@ -144,14 +144,14 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks('Windows_NT', null, null, null, null, null)
+CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
+CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7', false,
     /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
@@ -159,14 +159,16 @@ CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
             '(dev12|legacy)\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with -includeSlow
-CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', null,
+CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', false,
+    /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",
             'slow\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with JIT disabled
-CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', null,
+CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', true,
+    /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",
