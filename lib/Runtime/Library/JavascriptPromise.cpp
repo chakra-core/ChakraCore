@@ -41,7 +41,7 @@ namespace Js
         // 1. If NewTarget is undefined, throw a TypeError exception.
         if ((callInfo.Flags & CallFlags_New) != CallFlags_New || (newTarget != nullptr && JavascriptOperators::IsUndefined(newTarget)))
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_UndefVariable, _u("new.target"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("Promise"));
         }
 
         // 2. If IsCallable(executor) is false, throw a TypeError exception.
@@ -166,7 +166,6 @@ namespace Js
         }
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        Var undefinedVar = library->GetUndefined();
         Var iterable;
 
         if (args.Info.Count > 1)
@@ -175,7 +174,7 @@ namespace Js
         }
         else
         {
-            iterable = undefinedVar;
+            iterable = library->GetUndefined();
         }
 
         // 3. Let promiseCapability be NewPromiseCapability(C).
@@ -782,18 +781,16 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        Var arg;
-
-        if (args.Info.Count > 1 && args[1] != nullptr)
+        if (args.Info.Count > 1)
         {
-            arg = args[1];
+            Assert(args[1] != nullptr);
+
+            return args[1];
         }
         else
         {
-            arg = function->GetScriptContext()->GetLibrary()->GetUndefined();
+            return function->GetScriptContext()->GetLibrary()->GetUndefined();
         }
-
-        return arg;
     }
 
     // Promise Thrower Function as described in ES 2015Section 25.4.5.3.3
@@ -806,8 +803,10 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         Var arg;
 
-        if (args.Info.Count > 1 && args[1] != nullptr)
+        if (args.Info.Count > 1)
         {
+            Assert(args[1] != nullptr);
+
             arg = args[1];
         }
         else

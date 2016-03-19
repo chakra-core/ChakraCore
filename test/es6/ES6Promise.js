@@ -91,10 +91,10 @@ var tests = [
     {
         name: "Promise constructor throwing behavior",
         body: function () {
-            assert.throws(function() { Promise.call(); }, TypeError, "Promise throws when not called as a new expression with no this parameter", "'new.target' is undefined");
-            assert.throws(function() { Promise.call(undefined); }, TypeError, "Promise throws when not called as a new expression if the this parameter is undefined", "'new.target' is undefined");
-            assert.throws(function() { Promise.call(null); }, TypeError, "Promise throws when not called as a new expression if the this parameter is null", "'new.target' is undefined");
-            assert.throws(function() { Promise.call({}); }, TypeError, "Promise throws when not called as a new expression if the this parameter is not a promise", "'new.target' is undefined");
+            assert.throws(function() { Promise.call(); }, TypeError, "Promise throws when not called as a new expression with no this parameter", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(undefined); }, TypeError, "Promise throws when not called as a new expression if the this parameter is undefined", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(null); }, TypeError, "Promise throws when not called as a new expression if the this parameter is null", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call({}); }, TypeError, "Promise throws when not called as a new expression if the this parameter is not a promise", "Promise: cannot be called without the new keyword");
 
             assert.throws(function() { new Promise(); }, TypeError, "new Promise throws when called with no parameter", "Promise: argument is not a Function object");
             assert.throws(function() { new Promise(undefined); }, TypeError, "new Promise throws when called with an undefined parameter", "Promise: argument is not a Function object");
@@ -103,12 +103,12 @@ var tests = [
 
             var promise = new Promise(function() { } );
 
-            assert.throws(function() { Promise.call(promise); }, TypeError, "Promise throws when not called as a new expression if the executor argument is not passed", "'new.target' is undefined");
-            assert.throws(function() { Promise.call(promise, undefined); }, TypeError, "Promise throws when not called as a new expression if the executor argument is undefined", "'new.target' is undefined");
-            assert.throws(function() { Promise.call(promise, null); }, TypeError, "Promise throws when not called as a new expression if the executor argument is null", "'new.target' is undefined");
-            assert.throws(function() { Promise.call(promise, {}); }, TypeError, "Promise throws when not called as a new expression if the executor argument is non-callable", "'new.target' is undefined");
+            assert.throws(function() { Promise.call(promise); }, TypeError, "Promise throws when not called as a new expression if the executor argument is not passed", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, undefined); }, TypeError, "Promise throws when not called as a new expression if the executor argument is undefined", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, null); }, TypeError, "Promise throws when not called as a new expression if the executor argument is null", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, {}); }, TypeError, "Promise throws when not called as a new expression if the executor argument is non-callable", "Promise: cannot be called without the new keyword");
 
-            assert.throws(function() { Promise.call(promise, function() { }); }, TypeError, "Promise throws when not called as a new expression if the this parameter is an initialized promise object", "'new.target' is undefined");
+            assert.throws(function() { Promise.call(promise, function() { }); }, TypeError, "Promise throws when not called as a new expression if the this parameter is an initialized promise object", "Promise: cannot be called without the new keyword");
         }
     },
     {
