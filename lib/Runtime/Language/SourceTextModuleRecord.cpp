@@ -93,7 +93,7 @@ namespace Js
             Assert(sourceLength == 0);
             hr = E_FAIL;
             JavascriptError *pError = scriptContext->GetLibrary()->CreateError();
-            JavascriptError::SetErrorMessageProperties(pError, hr, _u("empty module"), scriptContext);
+            JavascriptError::SetErrorMessageProperties(pError, hr, _u("host failed to download module"), scriptContext);
             *exceptionVar = pError;
         }
         else
