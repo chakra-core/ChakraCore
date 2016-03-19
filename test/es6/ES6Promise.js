@@ -91,10 +91,10 @@ var tests = [
     {
         name: "Promise constructor throwing behavior",
         body: function () {
-            assert.throws(function() { Promise.call(); }, TypeError, "Promise throws when not called as a new expression with no this parameter", "Promise: 'this' is not a Promise object");
-            assert.throws(function() { Promise.call(undefined); }, TypeError, "Promise throws when not called as a new expression if the this parameter is undefined", "Promise: 'this' is not a Promise object");
-            assert.throws(function() { Promise.call(null); }, TypeError, "Promise throws when not called as a new expression if the this parameter is null", "Promise: 'this' is not a Promise object");
-            assert.throws(function() { Promise.call({}); }, TypeError, "Promise throws when not called as a new expression if the this parameter is not a promise", "Promise: 'this' is not a Promise object");
+            assert.throws(function() { Promise.call(); }, TypeError, "Promise throws when not called as a new expression with no this parameter", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(undefined); }, TypeError, "Promise throws when not called as a new expression if the this parameter is undefined", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(null); }, TypeError, "Promise throws when not called as a new expression if the this parameter is null", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call({}); }, TypeError, "Promise throws when not called as a new expression if the this parameter is not a promise", "Promise: cannot be called without the new keyword");
 
             assert.throws(function() { new Promise(); }, TypeError, "new Promise throws when called with no parameter", "Promise: argument is not a Function object");
             assert.throws(function() { new Promise(undefined); }, TypeError, "new Promise throws when called with an undefined parameter", "Promise: argument is not a Function object");
@@ -103,12 +103,12 @@ var tests = [
 
             var promise = new Promise(function() { } );
 
-            assert.throws(function() { Promise.call(promise); }, TypeError, "Promise throws when not called as a new expression if the executor argument is not passed", "Promise: argument is not a Function object");
-            assert.throws(function() { Promise.call(promise, undefined); }, TypeError, "Promise throws when not called as a new expression if the executor argument is undefined", "Promise: argument is not a Function object");
-            assert.throws(function() { Promise.call(promise, null); }, TypeError, "Promise throws when not called as a new expression if the executor argument is null", "Promise: argument is not a Function object");
-            assert.throws(function() { Promise.call(promise, {}); }, TypeError, "Promise throws when not called as a new expression if the executor argument is non-callable", "Promise: argument is not a Function object");
+            assert.throws(function() { Promise.call(promise); }, TypeError, "Promise throws when not called as a new expression if the executor argument is not passed", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, undefined); }, TypeError, "Promise throws when not called as a new expression if the executor argument is undefined", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, null); }, TypeError, "Promise throws when not called as a new expression if the executor argument is null", "Promise: cannot be called without the new keyword");
+            assert.throws(function() { Promise.call(promise, {}); }, TypeError, "Promise throws when not called as a new expression if the executor argument is non-callable", "Promise: cannot be called without the new keyword");
 
-            assert.throws(function() { Promise.call(promise, function() { }); }, TypeError, "Promise throws when not called as a new expression if the this parameter is an initialized promise object", "Cannot initialize 'Promise' object: 'this' is already initialized as 'Promise' object");
+            assert.throws(function() { Promise.call(promise, function() { }); }, TypeError, "Promise throws when not called as a new expression if the this parameter is an initialized promise object", "Promise: cannot be called without the new keyword");
         }
     },
     {
@@ -185,23 +185,6 @@ var tests = [
         }
     },
     {
-        name: "Promise methods to access 'this' through [@@species]",
-        body: function () {
-            function VerifyPromiseMethodUsingSpecies(func, name)
-            {
-                Object.defineProperty(Promise, Symbol.species, {writable: true});
-                var tmp=Promise[Symbol.species];
-                Promise[Symbol.species] = {};
-
-                assert.throws(func, TypeError, name+" is expected to access 'this' through customized [@@species]", "Function expected");
-                Promise[Symbol.species] = tmp;
-                assert.doesNotThrow(func, name+" is expected to access 'this' through built-in [@@species]");
-                Object.defineProperty(Promise, Symbol.species, {writable: false});
-            }
-            VerifyPromiseMethodUsingSpecies(function() { Promise.all.call(Promise, []); }, "Promise.all");
-            VerifyPromiseMethodUsingSpecies(function() { Promise.race.call(Promise, []); }, "Promise.race");        }
-    },
-    {
         name: "Promise.resolve checks the 'constructor' property of the argument if it's a promise",
         body: function () {
             let x = new Promise(function(resolve, reject) { });
@@ -219,16 +202,30 @@ var tests = [
     {
         name: "Promise resolve / reject functions handed to the executor function",
         body: function () {
-            let isCalled = false;
-            new Promise(function(resolve, reject) {
-                assert.areEqual(1, resolve.length, "Resolve function should have length 1");
-                assert.areEqual('function', typeof resolve, "Resolve function is a function type");
-                assert.areEqual(1, reject.length, "Reject function should have length 1");
-                assert.areEqual('function', typeof reject, "Reject function is a function type");
-                isCalled = true;
-            });
+            var resolveFunction = undefined;
+            var rejectFunction = undefined;  
+            new Promise(function(resolve, reject) {  
+                resolveFunction = resolve;
+                rejectFunction = reject;  
+            });  
+            assert.isFalse(resolveFunction === undefined, "new Promise should provide a resolve function");
+            assert.isFalse(rejectFunction === undefined, "new Promise should provide a reject function");
 
-            assert.isTrue(isCalled, "The executor function was actually called");
+            assert.areEqual(1, resolveFunction.length, "Resolve function should have length 1");
+            assert.areEqual('function', typeof resolveFunction, "Resolve function is a function type");
+            assert.isTrue(Object.isExtensible(resolveFunction), "Resolve function is an extensible object");
+            assert.areEqual(Object.getPrototypeOf(resolveFunction), Function.prototype, "Resolve function has __proto__ set to Function.prototype");
+            assert.throws(() => { new resolveFunction(); }, TypeError, "Resolve function is an anonymous built-in but not a constructor", "Function is not a constructor");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(resolveFunction, "prototype"), "Resolve function does not have 'prototype' own property");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(resolveFunction, "name"), "Resolve function does not have 'name' own property");
+            
+            assert.areEqual(1, rejectFunction.length, "Reject function should have length 1");
+            assert.areEqual('function', typeof rejectFunction, "Reject function is a function type");
+            assert.isTrue(Object.isExtensible(rejectFunction), "Reject function is an extensible object");
+            assert.areEqual(Object.getPrototypeOf(rejectFunction), Function.prototype, "Reject function has __proto__ set to Function.prototype");
+            assert.throws(() => { new rejectFunction(); }, TypeError, "Reject function is an anonymous built-in but not a constructor", "Function is not a constructor");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(rejectFunction, "prototype"), "Reject function does not have 'prototype' own property");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(rejectFunction, "name"), "Reject function does not have 'name' own property");
         }
     },
     {
@@ -255,7 +252,7 @@ var tests = [
             let isCalled = false;
             let p = new Promise(function(resolve, reject) { resolve(); });
             let test_ctor = function(executor) {
-                assert.isTrue(this instanceof Promise, "The 'this' argument is a promise object");
+                assert.isTrue(this instanceof test_ctor, "The 'this' argument is an instance of the ctor function");
                 assert.areEqual(2, executor.length, "Executor function should have length 2");
                 assert.areEqual('function', typeof executor, "Executor function is a function type");
                 isCalled = true;
@@ -265,6 +262,135 @@ var tests = [
             Promise.resolve.call(test_ctor, p);
 
             assert.isTrue(isCalled, "The constructor function was actually called");
+        }
+    },
+    {
+        name: "Promise.all calls thenable.then with correct resolve / reject handlers",
+        body: function () {
+            var resolveElementFunction = undefined;
+            var rejectElementFunction = undefined;
+            var thenable = {  
+                then: function(fulfill, reject) {  
+                    resolveElementFunction = fulfill;
+                    rejectElementFunction = reject;
+                }
+            };
+            function myResolveFunction() {
+                throw 'should not call this function';
+            }
+            function myRejectFunction() {
+                throw 'should not call this function';
+            }
+            function NotPromise(executor) {  
+                executor(myResolveFunction, myRejectFunction);  
+            }
+            NotPromise.resolve = function(v) { return v; };  
+            Promise.all.call(NotPromise, [thenable]);
+            assert.isFalse(resolveElementFunction === undefined, "Promise.all should have called thenable.then with a resolve callback");
+            assert.isFalse(rejectElementFunction === undefined, "Promise.all should have called thenable.then with a reject callback");
+            
+            assert.isFalse(myResolveFunction === resolveElementFunction, "Resolve function should not be the one we passed to the promise executor");
+            assert.areEqual(myRejectFunction, rejectElementFunction, "Promise.all should call thenable.then with a PromiseAllResolve function and the reject handler we initialized the promise with");
+            
+            assert.areEqual(1, resolveElementFunction.length, "Resolve function should have length 1");
+            assert.areEqual('function', typeof resolveElementFunction, "Resolve function is a function type");
+            assert.isTrue(Object.isExtensible(resolveElementFunction), "Resolve function is an extensible object");
+            assert.areEqual(Object.getPrototypeOf(resolveElementFunction), Function.prototype, "Resolve function has __proto__ set to Function.prototype");
+            assert.throws(() => { new resolveElementFunction(); }, TypeError, "Resolve function is an anonymous built-in but not a constructor", "Function is not a constructor");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(resolveElementFunction, "prototype"), "Resolve function does not have 'prototype' own property");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(resolveElementFunction, "name"), "Resolve function does not have 'name' own property");
+        }
+    },
+    {
+        name: "Shape of executor function passed to Promise constructor",
+        body: function () {
+            var executorFunction = undefined;
+            function NotPromise2(executor) {
+                executorFunction = executor;
+                executor(() => {}, () => {});
+                
+            }
+            Promise.resolve.call(NotPromise2);
+            assert.isFalse(executorFunction === undefined, "Promise.resolve should have tried to new NotPromise2");
+
+            assert.areEqual(2, executorFunction.length, "Executor function should have length 1");
+            assert.areEqual('function', typeof executorFunction, "Executor function is a function type");
+            assert.isTrue(Object.isExtensible(executorFunction), "Executor function is an extensible object");
+            assert.areEqual(Object.getPrototypeOf(executorFunction), Function.prototype, "Executor function has __proto__ set to Function.prototype");
+            assert.throws(() => { new executorFunction(); }, TypeError, "Executor function is an anonymous built-in but not a constructor", "Function is not a constructor");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(executorFunction, "prototype"), "Executor function does not have 'prototype' own property");
+            assert.isFalse(Object.prototype.hasOwnProperty.call(executorFunction, "name"), "Executor function does not have 'name' own property");
+        }
+    },
+    {
+        name: "Test calling capabilities executor function with different arguments",
+        body: function () {
+            assert.throws(() => {
+                Promise.resolve.call(function(executor) {
+                });
+            }, TypeError, "We didn't set the resolve callback, Promise.resolve tried to call it which should throw", "'Promise' is not a function");
+            assert.throws(() => {
+                Promise.resolve.call(function(executor) {
+                    assert.doesNotThrow(() => { executor(); }, "Calling executor with no arguments will set the promise capability resolve and reject callbacks to undefined");
+                    assert.doesNotThrow(() => { executor(); }, "Calling executor with no arguments again works because the promise capability resolve and reject callbacks are still undefined");
+                });
+            }, TypeError, "We set the resolve callback to undefined, Promise.resolve tried to call it which should throw", "'Promise' is not a function");
+            assert.throws(() => {
+                Promise.resolve.call(function(executor) {
+                    assert.doesNotThrow(() => { executor('string', 12345); }, "Calling executor with non-function arguments will set the promise capability resolve and reject callbacks");
+                    assert.throws(() => { executor(); }, TypeError, "Callbacks of promise capability are already set. Calling executor again throws", "Promise: an unexpected failure occurred while trying to obtain metadata information");
+                });
+            }, TypeError, "We set the resolve and reject callbacks to non-functions, Promise.resolve tried to call resolve which should throw", "'Promise' is not a function");
+            assert.throws(() => {
+                Promise.resolve.call(function(executor) {
+                    assert.doesNotThrow(() => { executor(undefined, () => {}); }, "Calling executor with only a reject callback function works but Promise.resolve will throw");
+                    assert.throws(() => { executor(); }, TypeError, "Reject handler of promise capability is already set. Calling executor again throws", "Promise: an unexpected failure occurred while trying to obtain metadata information");
+                });
+            }, TypeError, "We set the reject callback to a real function but didn't set the resolve callback which Promise.resolve tries to call", "'Promise' is not a function");
+            assert.throws(() => {
+                Promise.resolve.call(function(executor) {
+                    assert.doesNotThrow(() => { executor(() => {}, undefined); }, "Calling executor with only a resolve callback function works but Promise.resolve will throw");
+                    assert.throws(() => { executor(); }, TypeError, "Resolve handler of promise capability is already set. Calling executor again throws", "Promise: an unexpected failure occurred while trying to obtain metadata information");
+                });
+            }, TypeError, "We set the resolve callback to a real function but didn't set the reject callback which NewPromiseCapability checks to see if callable", "'Promise' is not a function");
+            assert.doesNotThrow(() => {
+                var isCalled = false;
+                Promise.resolve.call(function(executor) {
+                    assert.doesNotThrow(() => { executor(() => { isCalled = true; },() => { throw 'not called'; }); }, "Calling executor with callback functions works");
+                    assert.throws(() => { executor(); }, TypeError, "Callbacks of promise capability are already set. Calling executor again throws", "Promise: an unexpected failure occurred while trying to obtain metadata information");
+                });
+                assert.isTrue(isCalled, "We actually called the resolve callback handler");
+            }, "We set the resolve callback to a real function which is called by Promise.resolve");
+        }
+    },
+    {
+        name: "Promise.prototype.then constructs return value via this.constructor[@@species]",
+        body: function () {
+            var promise = new Promise(function(resolve) { resolve(42); });
+            var FakePromise1 = function(exec) { exec(function(){}, function(){}); };
+            promise.constructor = FakePromise1;
+            var FakePromise2 = function(exec) { exec(function(){}, function(){}); };
+
+            Object.defineProperty(FakePromise1, Symbol.species, { value: FakePromise2 });
+
+            assert.isTrue(promise.then(function(){}) instanceof FakePromise2, "Promise.prototype.then uses this.constructor[Symbol.species] to construct the object it returns");
+        }
+    },
+    {
+        name: "Subclass of Promise should return instances of the subclass from Promise methods",
+        body: function () {
+            class MyPromise extends Promise { }
+            
+            var myPromise = new MyPromise(function(resolve, reject) { resolve(42); });
+            var thenPromise = myPromise.then(function() {});
+            var catchPromise = myPromise.catch(function() {});
+            
+            assert.isTrue(thenPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.then called with subclass of Promise object as this");
+            assert.isTrue(catchPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.catch called with subclass of Promise object as this");
+            assert.isTrue(MyPromise.race([]) instanceof MyPromise, "Subclass of Promise inherits Promise.race which uses 'this' argument as constructor for return object");
+            assert.isTrue(MyPromise.all([]) instanceof MyPromise, "Subclass of Promise inherits Promise.all which uses 'this' argument as constructor for return object");
+            assert.isTrue(MyPromise.resolve(42) instanceof MyPromise, "Subclass of Promise inherits Promise.resolve which uses 'this' argument as constructor for return object");
+            assert.isTrue(MyPromise.reject(42) instanceof MyPromise, "Subclass of Promise inherits Promise.reject which uses 'this' argument as constructor for return object");
         }
     },
 ];
