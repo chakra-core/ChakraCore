@@ -23,16 +23,6 @@ namespace Js
         {
             Assert(type->GetTypeHandler()->GetInlineSlotCapacity() == type->GetTypeHandler()->GetSlotCapacity());
         }
-
-#if ENABLE_TTD_IDENTITY_TRACING
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
-#endif
-        if(type->GetScriptContext()->DoObjectIdenityTagging_TTD())
-        {
-            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
-        }
-#endif
     }
 
     DynamicObject::DynamicObject(DynamicType * type, ScriptContext * scriptContext) :
@@ -46,16 +36,6 @@ namespace Js
     {
         Assert(!UsesObjectArrayOrFlagsAsFlags());
         InitSlots(this, scriptContext);
-
-#if ENABLE_TTD_IDENTITY_TRACING
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
-#endif
-        if(scriptContext->DoObjectIdenityTagging_TTD())
-        {
-            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
-        }
-#endif
     }
 
     DynamicObject::DynamicObject(DynamicObject * instance) :
@@ -100,16 +80,6 @@ namespace Js
 #endif
             }
         }
-
-#if ENABLE_TTD_IDENTITY_TRACING
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        this->TTDObjectIdentityTag = (int64)0xdeadbeef;
-#endif
-        if(type->GetScriptContext()->DoObjectIdenityTagging_TTD())
-        {
-            this->TTDObjectIdentityTag = type->GetScriptContext()->GetThreadContext()->TTDInfo->GenNextObjectIdentityTag();
-        }
-#endif
     }
 
     DynamicObject * DynamicObject::New(Recycler * recycler, DynamicType * type)
@@ -1037,13 +1007,6 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-
-#if ENABLE_TTD_IDENTITY_TRACING
-    void DynamicObject::SetIdentity_TTD(TTD_IDENTITY_TAG identityTag)
-    {
-        this->TTDObjectIdentityTag = identityTag;
-    }
-#endif
 
     TTD::NSSnapObjects::SnapObjectType DynamicObject::GetSnapTag_TTD() const
     {

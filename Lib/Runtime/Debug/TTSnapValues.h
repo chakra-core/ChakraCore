@@ -190,6 +190,10 @@ namespace TTD
         void EmitPromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
 
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapPromiseCapabilityInfo* capabilityInfo1, const SnapPromiseCapabilityInfo* capabilityInfo2, TTDCompareMap& compareMap);
+#endif
+
         //A struct to represent a PromiseReaction
         struct SnapPromiseReactionInfo
         {
@@ -204,6 +208,10 @@ namespace TTD
 
         void EmitPromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapPromiseReactionInfo* reactionInfo1, const SnapPromiseReactionInfo* reactionInfo2, TTDCompareMap& compareMap);
+#endif
 
         //////////////////
 

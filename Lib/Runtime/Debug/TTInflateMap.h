@@ -171,8 +171,10 @@ namespace TTD
         ~TTDCompareMap();
 
         //Check that the given mapping either (1) does not exist or (2) is consistent -- if needed add the mapping and to worklist as well
-        //A mapping is consistent
         void CheckConsistentAndAddPtrIdMapping(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
+
+        //Check if the given mapping is consistent but do not enqueue or try to lookup ptr id in any of the maps (used mainly for heap allocated promise info that may be shared)
+        void CheckConsistentAndAddPtrIdMapping_NoEnqueue(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
 
         void GetNextCompareInfo(TTDCompareTag* tag, TTD_PTR_ID* h1PtrId, TTD_PTR_ID* h2PtrId);
 

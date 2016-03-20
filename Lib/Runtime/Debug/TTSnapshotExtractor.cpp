@@ -353,7 +353,7 @@ namespace TTD
         }
     }
 
-    void SnapshotExtractor::DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext, bool firstSnap)
+    void SnapshotExtractor::DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext)
     {
         Js::HiResTimer timer;
         double startTime = timer.Now();
@@ -368,17 +368,6 @@ namespace TTD
         {
             Js::RecyclableObject* nobj = this->m_worklist.Dequeue();
             AssertMsg(JsSupport::IsVarComplexKind(nobj), "Should only be these two options");
-
-#if ENABLE_TTD_IDENTITY_TRACING
-            if(firstSnap)
-            {
-                if(Js::DynamicType::Is(nobj->GetTypeId()))
-                {
-                    Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(nobj);
-                    dynObj->TTDObjectIdentityTag = threadContext->TTDInfo->GenNextObjectIdentityTag_InitialSnapshot();
-                }
-            }
-#endif
 
             this->MarkVisitStandardProperties(nobj);
             nobj->MarkVisitKindSpecificPtrs(this);

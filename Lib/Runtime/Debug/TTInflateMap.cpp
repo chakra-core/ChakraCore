@@ -318,6 +318,22 @@ namespace TTD
         }
     }
 
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_NoEnqueue(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
+    {
+        if(h1PtrId == TTD_INVALID_PTR_ID || h2PtrId == TTD_INVALID_PTR_ID)
+        {
+            TTD_DIAGNOSTIC_ASSERT(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
+        }
+        else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
+        {
+            TTD_DIAGNOSTIC_ASSERT(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+        }
+        else
+        {
+            this->H1PtrToH2PtrMap.AddNew(h1PtrId, h2PtrId);
+        }
+    }
+
     void TTDCompareMap::GetNextCompareInfo(TTDCompareTag* tag, TTD_PTR_ID* h1PtrId, TTD_PTR_ID* h2PtrId)
     {
         if(this->H1PtrIdWorklist.Empty())

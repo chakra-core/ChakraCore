@@ -360,7 +360,7 @@ namespace TTD
 
             Js::RecyclableObject* resObj = Js::RecyclableObject::FromVar(res);
 
-            ctx->GetThreadContext()->TTDInfo->SetObjectTrackingTagSnapAndInflate_TTD(snapValue->ValueLogTag, TTD_INVALID_IDENTITY_TAG, resObj);
+            ctx->GetThreadContext()->TTDInfo->SetObjectTrackingTagSnapAndInflate_TTD(snapValue->ValueLogTag, resObj);
 
             inflator->AddObject(snapValue->PrimitiveValueId, resObj);
         }
@@ -810,6 +810,18 @@ namespace TTD
             reader->ReadRecordEnd();
         }
 
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapPromiseCapabilityInfo* capabilityInfo1, const SnapPromiseCapabilityInfo* capabilityInfo2, TTDCompareMap& compareMap)
+        {
+            compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(capabilityInfo1->CapabilityId, capabilityInfo2->CapabilityId);
+
+            AssertSnapEquivTTDVar(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap);
+            compareMap.CheckConsistentAndAddPtrIdMapping(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId);
+            compareMap.CheckConsistentAndAddPtrIdMapping(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId);
+        }
+#endif
+
         Js::JavascriptPromiseReaction* InflatePromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, Js::ScriptContext* ctx, InflateMap* inflator)
         {
             if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseReaction>(reactionInfo->PromiseReactionId))
@@ -849,6 +861,16 @@ namespace TTD
 
             reader->ReadRecordEnd();
         }
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv(const SnapPromiseReactionInfo* reactionInfo1, const SnapPromiseReactionInfo* reactionInfo2, TTDCompareMap& compareMap)
+        {
+            compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(reactionInfo1->PromiseReactionId, reactionInfo2->PromiseReactionId);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping(reactionInfo1->HandlerObjId, reactionInfo2->HandlerObjId);
+            AssertSnapEquiv(&(reactionInfo1->Capabilities), &(reactionInfo2->Capabilities), compareMap);
+        }
+#endif
 
         //////////////////
 
@@ -1229,7 +1251,7 @@ namespace TTD
             fbInfo->FunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
             fbInfo->ScriptContextTag = TTD_EXTRACT_CTX_LOG_TAG(fb->GetScriptContext());
 
-            alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
+            alloc.CopyStringIntoWLength(fb->GetDisplayName(), fb->GetDisplayNameLength(), fbInfo->FunctionName);
             AssertMsg(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
 
             if(isWellKnown)
@@ -1320,6 +1342,27 @@ namespace TTD
                     AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
                     AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(L"get", resfb->GetDisplayName()) == 0 || wcscmp(L"set", resfb->GetDisplayName()) == 0), "We are missing something");
                 }
+            }
+
+            bool updateName = false;
+            if(fbInfo->FunctionName.Length != resfb->GetDisplayNameLength())
+            {
+                updateName = true;
+            }
+            else
+            {
+                LPCWSTR fname = resfb->GetDisplayName();
+                for(uint32 i = 0; i < fbInfo->FunctionName.Length; ++i)
+                {
+                    updateName |= (fbInfo->FunctionName.Contents[i] != fname[i]);
+                }
+            }
+
+            if(updateName)
+            {
+                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, L"get ") == 0 || wcsstr(fbInfo->FunctionName.Contents, L"set ") == 0, "Does not start with get or set");
+
+                resfb->SetDisplayName(fbInfo->FunctionName.Contents,fbInfo->FunctionName.Length, 3, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
             }
 
             inflator->AddInflationFunctionBody(fbInfo->FunctionBodyId, resfb);

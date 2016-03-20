@@ -389,7 +389,7 @@ JsErrorCode CallFunctionCore(_In_ INT64 hostCallbackId, _In_ JsValueRef function
             if(threadContext->TTDLog->IsTimeForSnapshot())
             {
                 threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                threadContext->TTDLog->DoSnapshotExtract(false);
+                threadContext->TTDLog->DoSnapshotExtract();
                 threadContext->TTDLog->PruneLogLength();
                 threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
             }
@@ -3132,7 +3132,7 @@ JsErrorCode RunScriptCore(INT64 hostCallbackId, const wchar_t *script, JsSourceC
                 if(threadContext->TTDLog->IsTimeForSnapshot())
                 {
                     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
-                    threadContext->TTDLog->DoSnapshotExtract(false);
+                    threadContext->TTDLog->DoSnapshotExtract();
                     threadContext->TTDLog->PruneLogLength();
                     threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
                 }
@@ -3507,7 +3507,7 @@ STDAPI_(JsErrorCode) JsTTDStartTimeTravelRecording()
     threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
     BEGIN_JS_RUNTIME_CALLROOT_EX(scriptContext, false)
     {
-        threadContext->TTDLog->DoSnapshotExtract(true);
+        threadContext->TTDLog->DoSnapshotExtract();
     }
     END_JS_RUNTIME_CALL(scriptContext);
     threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);

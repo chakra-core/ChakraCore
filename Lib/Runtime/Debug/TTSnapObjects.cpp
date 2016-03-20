@@ -42,12 +42,6 @@ namespace TTD
 
             snpObject->OptIndexedObjectArray = TTD_INVALID_PTR_ID;
 
-            //
-            //TODO: I am not sure if we want to track identities of certain static type objects (maybe enumerators?)
-            //      If so we need to add tags to them and extract here and add code to restore the special case tags in the SetObjectTrackingTagSnapAndInflate_TTD method.
-            //
-            snpObject->ObjectIdentityTag = TTD_INVALID_IDENTITY_TAG;
-
             snpObject->OptDependsOnInfo = nullptr;
             //AddtlSnapObjectInfo must be set later in type specific extract code
         }
@@ -91,12 +85,6 @@ namespace TTD
 
             Js::ArrayObject* parray = dynObj->GetObjectArray();
             snpObject->OptIndexedObjectArray = (parray == nullptr) ? TTD_INVALID_PTR_ID : TTD_CONVERT_VAR_TO_PTR_ID(parray);
-
-#if ENABLE_TTD_IDENTITY_TRACING
-            snpObject->ObjectIdentityTag = dynObj->TTDObjectIdentityTag;
-#else
-            snpObject->ObjectIdentityTag = TTD_INVALID_IDENTITY_TAG;
-#endif
 
             snpObject->OptDependsOnInfo = nullptr;
             //AddtlSnapObjectInfo must be set later in type specific extract code
@@ -314,7 +302,6 @@ namespace TTD
             }
 
             writer->WriteLogTag(NSTokens::Key::logTag, snpObject->ObjectLogTag, NSTokens::Separator::CommaSeparator);
-            writer->WriteIdentityTag(NSTokens::Key::identityTag, snpObject->ObjectIdentityTag, NSTokens::Separator::CommaSeparator);
 
             if(Js::DynamicType::Is(snpObject->SnapType->JsTypeId))
             {
@@ -405,7 +392,6 @@ namespace TTD
             }
 
             snpObject->ObjectLogTag = reader->ReadLogTag(NSTokens::Key::logTag, true);
-            snpObject->ObjectIdentityTag = reader->ReadIdentityTag(NSTokens::Key::identityTag, true);
 
             if(Js::DynamicType::Is(snpObject->SnapType->JsTypeId))
             {
@@ -474,7 +460,6 @@ namespace TTD
             TTD_DIAGNOSTIC_ASSERT((sobj1->OptDependsOnInfo == nullptr && sobj2->OptDependsOnInfo == nullptr) || (sobj1->OptDependsOnInfo->DepOnCount == sobj2->OptDependsOnInfo->DepOnCount));
 
             TTD_DIAGNOSTIC_ASSERT(sobj1->ObjectLogTag == sobj2->ObjectLogTag);
-            TTD_DIAGNOSTIC_ASSERT(sobj1->ObjectIdentityTag == sobj2->ObjectIdentityTag);
 
             TTD_DIAGNOSTIC_ASSERT(Js::DynamicType::Is(sobj1->SnapType->JsTypeId) == Js::DynamicType::Is(sobj2->SnapType->JsTypeId));
             if(Js::DynamicType::Is(sobj1->SnapType->JsTypeId))
@@ -1061,11 +1046,22 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv_SnapPromiseInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         {
-            //
-            //TODO: not implemented yet
-            //
+            const SnapPromiseInfo* promiseInfo1 = SnapObjectGetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(sobj1);
+            const SnapPromiseInfo* promiseInfo2 = SnapObjectGetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(sobj2);
 
-            AssertMsg(false, "Not implemented yet!!!");
+            NSSnapValues::AssertSnapEquivTTDVar(promiseInfo1->Result, promiseInfo2->Result, compareMap);
+
+            TTD_DIAGNOSTIC_ASSERT(promiseInfo1->ResolveReactionCount == promiseInfo2->ResolveReactionCount);
+            for(uint32 i = 0; i < promiseInfo1->ResolveReactionCount; ++i)
+            {
+                NSSnapValues::AssertSnapEquiv(promiseInfo1->ResolveReactions + i, promiseInfo2->ResolveReactions + i, compareMap);
+            }
+
+            TTD_DIAGNOSTIC_ASSERT(promiseInfo1->RejectReactionCount == promiseInfo2->RejectReactionCount);
+            for(uint32 i = 0; i < promiseInfo1->RejectReactionCount; ++i)
+            {
+                NSSnapValues::AssertSnapEquiv(promiseInfo1->RejectReactions + i, promiseInfo2->RejectReactions + i, compareMap);
+            }
         }
 #endif
 
@@ -1117,11 +1113,15 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv_SnapPromiseResolveOrRejectFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         {
-            //
-            //TODO: not implemented yet
-            //
+            SnapPromiseResolveOrRejectFunctionInfo* rrfInfo1 = SnapObjectGetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(sobj1);
+            SnapPromiseResolveOrRejectFunctionInfo* rrfInfo2 = SnapObjectGetAddtlInfoAs<SnapPromiseResolveOrRejectFunctionInfo*, SnapObjectType::SnapPromiseResolveOrRejectFunctionObject>(sobj2);
 
-            AssertMsg(false, "Not implemented yet!!!");
+            compareMap.CheckConsistentAndAddPtrIdMapping(rrfInfo1->PromiseId, rrfInfo2->PromiseId);
+
+            TTD_DIAGNOSTIC_ASSERT(rrfInfo1->IsReject == rrfInfo2->IsReject);
+            TTD_DIAGNOSTIC_ASSERT(rrfInfo1->AlreadyResolvedValue == rrfInfo2->AlreadyResolvedValue);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(rrfInfo1->AlreadyResolvedWrapperId, rrfInfo2->AlreadyResolvedWrapperId);
         }
 #endif
 
@@ -1166,11 +1166,11 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         {
-            //
-            //TODO: not implemented yet
-            //
+            SnapPromiseReactionTaskFunctionInfo* rInfo1 = SnapObjectGetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(sobj1);
+            SnapPromiseReactionTaskFunctionInfo* rInfo2 = SnapObjectGetAddtlInfoAs<SnapPromiseReactionTaskFunctionInfo*, SnapObjectType::SnapPromiseReactionTaskFunctionObject>(sobj2);
 
-            AssertMsg(false, "Not implemented yet!!!");
+            NSSnapValues::AssertSnapEquivTTDVar(rInfo1->Argument, rInfo2->Argument, compareMap);
+            NSSnapValues::AssertSnapEquiv(&(rInfo1->Reaction), &(rInfo2->Reaction), compareMap);
         }
 #endif
 

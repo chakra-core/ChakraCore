@@ -477,7 +477,6 @@ namespace TTD
         //ready-to-run snapshot information -- null if not set and if we want to unload it we just throw it away
         mutable SnapShot* m_rtrSnap;
         mutable TTD_LOG_TAG m_rtrRestoreLogTag;
-        mutable TTD_IDENTITY_TAG m_rtrRestoreIdentityTag;
 #endif
 
     public:
@@ -494,8 +493,8 @@ namespace TTD
 
         //Get/Set/Clear the ready-to-run snapshot information (in debugging mode -- nops for replay mode)
         bool HasReadyToRunSnapshotInfo() const;
-        void GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const;
-        void SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag) const;
+        void GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag) const;
+        void SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag) const;
 
         //Get the call depth for this
         int32 GetCallDepth() const;

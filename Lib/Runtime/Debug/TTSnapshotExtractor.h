@@ -88,7 +88,7 @@ namespace TTD
         void BeginSnapshot(ThreadContext* threadContext, const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs);
 
         //Do the walk of all objects caller need to to call MarkWalk on roots to initialize the worklist
-        void DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext, bool firstSnap);
+        void DoMarkWalk(const JsUtil::List<Js::Var, HeapAllocator>& roots, const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs, ThreadContext* threadContext);
 
         //Evacuate all the marked javascript objects into the snapshot (can do lazily/incrementally if desired)
         //All of the external elements are evacuated during the mark phase while propertyRecords and primitiveObjects are evacuated during the complete phase

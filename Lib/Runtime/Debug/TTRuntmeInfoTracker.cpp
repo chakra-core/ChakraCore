@@ -10,8 +10,7 @@ namespace TTD
 {
     RuntimeThreadInfo::RuntimeThreadInfo(ThreadContext* threadContext, ArenaAllocator* generalAllocator, ArenaAllocator* bulkAllocator, ArenaAllocator* taggingAllocator)
         : m_generalAllocator(generalAllocator), m_bulkAllocator(bulkAllocator), m_taggingAllocator(taggingAllocator),
-        m_logTagCtr(TTD_INITIAL_LOG_TAG), m_identityTagCtr(TTD_INITIAL_IDENTITY_TAG),
-        m_loggedObjectToTagMap(taggingAllocator, TTD_TAG_MAP_DEFAULT_CAPACITY), m_tagToLoggedObjectMap(taggingAllocator, TTD_TAG_MAP_DEFAULT_CAPACITY)
+        m_logTagCtr(TTD_INITIAL_LOG_TAG), m_loggedObjectToTagMap(taggingAllocator, TTD_TAG_MAP_DEFAULT_CAPACITY), m_tagToLoggedObjectMap(taggingAllocator, TTD_TAG_MAP_DEFAULT_CAPACITY)
     {
         ;
     }
@@ -21,37 +20,26 @@ namespace TTD
         ;
     }
 
-    void RuntimeThreadInfo::GetTagsForSnapshot(TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const
+    void RuntimeThreadInfo::GetTagsForSnapshot(TTD_LOG_TAG* logTag) const
     {
         *logTag = this->m_logTagCtr;
-        *identityTag = this->m_identityTagCtr;
     }
 
-    void RuntimeThreadInfo::ResetTagsForRestore_TTD(TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag)
+    void RuntimeThreadInfo::ResetTagsForRestore_TTD(TTD_LOG_TAG logTag)
     {
         this->m_logTagCtr = logTag;
-        this->m_identityTagCtr = identityTag;
 
         this->m_loggedObjectToTagMap.Clear();
         this->m_tagToLoggedObjectMap.Clear();
     }
 
-    void RuntimeThreadInfo::SetObjectTrackingTagSnapAndInflate_TTD(TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag, Js::RecyclableObject* obj)
+    void RuntimeThreadInfo::SetObjectTrackingTagSnapAndInflate_TTD(TTD_LOG_TAG logTag, Js::RecyclableObject* obj)
     {
         if(logTag != TTD_INVALID_LOG_TAG)
         {
             this->m_loggedObjectToTagMap.AddNew(obj, logTag);
             this->m_tagToLoggedObjectMap.AddNew(logTag, obj);
         }
-
-#if ENABLE_TTD_IDENTITY_TRACING
-        if(Js::DynamicType::Is(obj->GetTypeId()))
-        {
-            Js::DynamicObject::FromVar(obj)->SetIdentity_TTD(identityTag);
-        }
-#else
-        AssertMsg(identityTag == TTD_INVALID_IDENTITY_TAG, "Tracing is off how is this not the invalid value?");
-#endif
     }
 
     void RuntimeThreadInfo::TrackTagObject(Js::RecyclableObject* obj)
@@ -140,25 +128,6 @@ namespace TTD
         }
     }
 
-#if ENABLE_TTD_IDENTITY_TRACING
-    TTD_IDENTITY_TAG RuntimeThreadInfo::GenNextObjectIdentityTag()
-    {
-        TTD_IDENTITY_TAG resTag = this->m_identityTagCtr;
-        TTD_INCREMENT_IDENTITY_TAG(this->m_identityTagCtr);
-
-        return resTag;
-    }
-
-    TTD_IDENTITY_TAG RuntimeThreadInfo::GenNextObjectIdentityTag_InitialSnapshot()
-    {
-        return this->GenNextObjectIdentityTag() * -1;
-    }
-
-    bool RuntimeThreadInfo::IsInitialSnapshotIdentityTag(TTD_IDENTITY_TAG identity)
-    {
-        return identity < 0;
-    }
-#endif
     //////////////////
 
     void RuntimeContextInfo::BuildPathString(UtilSupport::TTAutoString rootpath, LPCWSTR name, LPCWSTR optaccessortag, UtilSupport::TTAutoString& into)

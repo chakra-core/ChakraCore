@@ -445,7 +445,7 @@ namespace TTD
         }
     }
 
-    void EventLog::DoSnapshotExtract_Helper(bool firstSnap, SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag)
+    void EventLog::DoSnapshotExtract_Helper(SnapShot** snap, TTD_LOG_TAG* logTag)
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
 
@@ -456,7 +456,7 @@ namespace TTD
         this->m_ttdContext->ExtractSnapshotRoots_TTD(roots);
 
         this->m_snapExtractor.BeginSnapshot(this->m_threadContext, roots, ctxs);
-        this->m_snapExtractor.DoMarkWalk(roots, ctxs, this->m_threadContext, firstSnap);
+        this->m_snapExtractor.DoMarkWalk(roots, ctxs, this->m_threadContext);
 
         ///////////////////////////
         //Phase 2: Evacuate marked objects
@@ -472,7 +472,7 @@ namespace TTD
         ///////////////////////////
         //Get the tag information
 
-        this->m_threadContext->TTDInfo->GetTagsForSnapshot(logTag, identityTag);
+        this->m_threadContext->TTDInfo->GetTagsForSnapshot(logTag);
     }
 
     void EventLog::ReplaySnapshotEvent()
@@ -480,11 +480,12 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE
         SnapShot* snap = nullptr;
         TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-        TTD_IDENTITY_TAG idTag = TTD_INVALID_IDENTITY_TAG;
 
         BEGIN_ENTER_SCRIPT(this->m_ttdContext, true, true, true);
         {
-            this->DoSnapshotExtract_Helper(false, &snap, &logTag, &idTag);
+            //this->m_threadContext->TTDLog->PushMode(TTD::TTDMode::ExcludedExecution);
+
+            this->DoSnapshotExtract_Helper(&snap, &logTag);
 
             const SnapshotEventLogEntry* recordedSnapEntry = SnapshotEventLogEntry::As(this->m_currentReplayEventIterator.Current());
             recordedSnapEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
@@ -495,6 +496,8 @@ namespace TTD
             SnapShot::DoSnapshotCompare(recordedSnap, snap, compareMap);
 
             HeapDelete(snap);
+
+            //this->m_threadContext->TTDLog->PopMode(TTD::TTDMode::ExcludedExecution);
         }
         END_ENTER_SCRIPT;
 #endif
@@ -1489,27 +1492,21 @@ namespace TTD
         throw TTDebuggerAbortException::CreateAbortEndOfLog(L"End of log reached -- returning to top-level.");
     }
 
-    bool EventLog::HasDoneFirstSnapshot() const
-    {
-        return !this->m_eventList.IsEmpty();
-    }
-
-    void EventLog::DoSnapshotExtract(bool firstSnap)
+    void EventLog::DoSnapshotExtract()
     {
         AssertMsg(this->m_ttdContext != nullptr, "We aren't actually tracking anything!!!");
 
         SnapShot* snap = nullptr;
         TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-        TTD_IDENTITY_TAG idTag = TTD_INVALID_IDENTITY_TAG;
 
-        this->DoSnapshotExtract_Helper(firstSnap, &snap, &logTag, &idTag);
+        this->DoSnapshotExtract_Helper(&snap, &logTag);
 
         ///////////////////////////
         //Create the event object and addi it to the log
 
         uint64 etime = this->GetCurrentEventTimeAndAdvance();
 
-        SnapshotEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SnapshotEventLogEntry>(etime, snap, etime, logTag, idTag);
+        SnapshotEventLogEntry* sevent = this->m_eventSlabAllocator.SlabNew<SnapshotEventLogEntry>(etime, snap, etime, logTag);
         this->InsertEventAtHead(sevent);
 
         this->m_elapsedExecutionTimeSinceSnapshot = 0.0;
@@ -1527,10 +1524,9 @@ namespace TTD
         {
             SnapShot* snap = nullptr;
             TTD_LOG_TAG logTag = TTD_INVALID_LOG_TAG;
-            TTD_IDENTITY_TAG idTag = TTD_INVALID_IDENTITY_TAG;
-            this->DoSnapshotExtract_Helper(false, &snap, &logTag, &idTag);
+            this->DoSnapshotExtract_Helper(&snap, &logTag);
 
-            rootCall->SetReadyToRunSnapshotInfo(snap, logTag, idTag);
+            rootCall->SetReadyToRunSnapshotInfo(snap, logTag);
         }
     }
 
@@ -1590,7 +1586,6 @@ namespace TTD
         const SnapShot* snap = nullptr;
         int64 restoreEventTime = -1;
         TTD_LOG_TAG restoreLogTagCtr = TTD_INVALID_LOG_TAG;
-        TTD_IDENTITY_TAG restoreIdentityTagCtr = TTD_INVALID_IDENTITY_TAG;
 
         for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
@@ -1603,7 +1598,6 @@ namespace TTD
 
                     restoreEventTime = snpEntry->GetRestoreEventTime();
                     restoreLogTagCtr = snpEntry->GetRestoreLogTag();
-                    restoreIdentityTagCtr = snpEntry->GetRestoreIdentityTag();
 
                     snap = snpEntry->GetSnapshot();
                 }
@@ -1612,7 +1606,7 @@ namespace TTD
                     JsRTCallFunctionBeginAction* rootEntry = JsRTCallFunctionBeginAction::As(JsRTActionLogEntry::As(iter.Current()));
 
                     SnapShot* ncSnap = nullptr;
-                    rootEntry->GetReadyToRunSnapshotInfo(&ncSnap, &restoreLogTagCtr, &restoreIdentityTagCtr);
+                    rootEntry->GetReadyToRunSnapshotInfo(&ncSnap, &restoreLogTagCtr);
                     snap = ncSnap;
 
                     restoreEventTime = rootEntry->GetEventTime();
@@ -1655,7 +1649,7 @@ namespace TTD
         }
 
         //reset the tagged object maps before we do the inflate
-        this->m_threadContext->TTDInfo->ResetTagsForRestore_TTD(restoreLogTagCtr, restoreIdentityTagCtr);
+        this->m_threadContext->TTDInfo->ResetTagsForRestore_TTD(restoreLogTagCtr);
         this->m_eventTimeCtr = restoreEventTime;
 
         snap->Inflate(this->m_lastInflateMap, sCtx);

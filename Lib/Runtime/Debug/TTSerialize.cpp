@@ -176,13 +176,6 @@ namespace TTD
         this->WriteNakedLogTag(val);
     }
 
-    void FileWriter::WriteIdentityTag(NSTokens::Key key, TTD_IDENTITY_TAG val, NSTokens::Separator separator)
-    {
-        this->WriteKey(key, separator);
-        this->WriteNakedIdentityTag(val);
-    }
-
-
     ////
 
     void FileWriter::WriteString(NSTokens::Key key, const TTString& val, NSTokens::Separator separator)
@@ -501,14 +494,6 @@ namespace TTD
         this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
     }
 
-    void JSONWriter::WriteNakedIdentityTag(TTD_IDENTITY_TAG val, NSTokens::Separator separator)
-    {
-        this->WriteSeperator(separator);
-
-        swprintf_s(this->m_numberFormatBuff, L"\"@%I64i\"", val);
-        this->WriteString_InternalNoEscape(this->m_numberFormatBuff, wcslen(this->m_numberFormatBuff));
-    }
-
     void JSONWriter::WriteNakedTag(uint32 tagvalue, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
@@ -710,12 +695,6 @@ namespace TTD
     }
 
     TTD_LOG_TAG FileReader::ReadLogTag(NSTokens::Key keyCheck, bool readSeparator)
-    {
-        this->ReadKey(keyCheck, readSeparator);
-        return this->ReadNakedLogTag();
-    }
-
-    TTD_IDENTITY_TAG FileReader::ReadIdentityTag(NSTokens::Key keyCheck, bool readSeparator)
     {
         this->ReadKey(keyCheck, readSeparator);
         return this->ReadNakedLogTag();
@@ -1403,17 +1382,6 @@ namespace TTD
         return (TTD_LOG_TAG)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the first "!
     }
 
-    TTD_IDENTITY_TAG JSONReader::ReadNakedIdentityTag(bool readSeparator)
-    {
-        this->ReadSeperator(readSeparator);
-
-        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String); //Log tags are strings \"@...\" are always strings.
-
-        this->m_charListOpt.SetItem(this->m_charListOpt.Count() - 1, L'\0'); //remove last "
-        return (TTD_IDENTITY_TAG)this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer() + 2); //skip off the first "@
-    }
-
     uint32 JSONReader::ReadNakedTag(bool readSeparator)
     {
         this->ReadSeperator(readSeparator);
@@ -1634,22 +1602,8 @@ namespace TTD
                 break;
             default:
             {
-                if(Js::StaticType::Is(tid))
-                {
-                    this->AppendLiteral("T:");
-                    this->AppendInteger((uint64)tid);
-                }
-                else
-                {
-                    Js::DynamicObject* obj = Js::DynamicObject::FromVar(var);
-#if ENABLE_TTD_IDENTITY_TRACING
-                    this->AppendLiteral("#");
-                    this->AppendInteger(obj->TTDObjectIdentityTag);
-#else
-                    this->AppendLiteral("T:");
-                    this->AppendInteger((uint64)tid);
-#endif
-                }
+                this->AppendLiteral("T:");
+                this->AppendInteger((uint64)tid);
                 break;
             }
             }

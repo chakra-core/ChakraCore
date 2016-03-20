@@ -27,7 +27,6 @@ namespace TTD
     private:
         //The counter we use for the tagging (and the counter we use for identity tagging)
         TTD_LOG_TAG m_logTagCtr;
-        TTD_IDENTITY_TAG m_identityTagCtr;
 
         //Maps of objects that we log and track accross host/engine
         JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_TAG, ArenaAllocator> m_loggedObjectToTagMap;
@@ -51,11 +50,11 @@ namespace TTD
 #endif
 
         //When reset the object tagging
-        void GetTagsForSnapshot(TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const;
-        void ResetTagsForRestore_TTD(TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag);
+        void GetTagsForSnapshot(TTD_LOG_TAG* logTag) const;
+        void ResetTagsForRestore_TTD(TTD_LOG_TAG logTag);
 
         //Set a specific tag for an object (snapshot inflate) -- if log tag is invalid then we don't add it to any of the tracked maps
-        void SetObjectTrackingTagSnapAndInflate_TTD(TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag, Js::RecyclableObject* obj);
+        void SetObjectTrackingTagSnapAndInflate_TTD(TTD_LOG_TAG logTag, Js::RecyclableObject* obj);
 
         //Add/remove an object to the tracked tag map 
         void TrackTagObject(Js::RecyclableObject* obj);
@@ -74,17 +73,6 @@ namespace TTD
         //Enabled and in record/debug 
         //Detached
         static void JsRTTagObject(ThreadContext* threadContext, Js::Var value);
-
-#if ENABLE_TTD_IDENTITY_TRACING
-        //Generate the next identity tag for an object
-        TTD_IDENTITY_TAG GenNextObjectIdentityTag();
-
-        //Generate the next identity tag for an object -- as a special value that we associate with the initial snapshot
-        TTD_IDENTITY_TAG GenNextObjectIdentityTag_InitialSnapshot();
-
-        //Return true if the tag is for an object seen during the initial snapshot
-        static bool IsInitialSnapshotIdentityTag(TTD_IDENTITY_TAG identity);
-#endif
     };
 
     //////////////////

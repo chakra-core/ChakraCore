@@ -154,13 +154,12 @@ namespace TTD
 
         //The tag and identity we should restore to 
         const TTD_LOG_TAG m_restoreLogTag;
-        const TTD_IDENTITY_TAG m_restoreIdentityTag;
 
         //The snapshot (we many persist this to disk and inflate back in later)
         mutable SnapShot* m_snap;
 
     public:
-        SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag, TTD_IDENTITY_TAG restoreIdentityTag);
+        SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag);
         virtual void UnloadEventMemory(UnlinkableSlabAllocator& alloc) override;
 
         virtual void UnloadSnapshot() const override;
@@ -171,8 +170,6 @@ namespace TTD
         //Get the event time and tag to restore to
         int64 GetRestoreEventTime() const;
         TTD_LOG_TAG GetRestoreLogTag() const;
-        TTD_IDENTITY_TAG GetRestoreIdentityTag() const;
-
         void EnsureSnapshotDeserialized(LPCWSTR logContainerUri, ThreadContext* threadContext) const;
         const SnapShot* GetSnapshot() const;
 

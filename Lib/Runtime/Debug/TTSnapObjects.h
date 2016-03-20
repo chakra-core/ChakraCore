@@ -104,9 +104,6 @@ namespace TTD
             //The tag given to uniquely identify this object accross time (for logging and callback uses)
             TTD_LOG_TAG ObjectLogTag;
 
-            //The tag given to uniquely identify this object accross time (for identity and value origin uses -- not always set)
-            TTD_IDENTITY_TAG ObjectIdentityTag;
-
             //Objects this depends on when creating (or nullptr if no dependencies) 
             DependsOnInfo* OptDependsOnInfo;
 

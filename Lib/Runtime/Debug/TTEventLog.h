@@ -263,7 +263,7 @@ namespace TTD
         void UnloadRetainedData();
 
         //A helper for extracting snapshots
-        void DoSnapshotExtract_Helper(bool firstSnap, SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag);
+        void DoSnapshotExtract_Helper(SnapShot** snap, TTD_LOG_TAG* logTag);
 
         //Replay a snapshot event -- either just advance the event position or, if running diagnostics, take new snapshot and compare
         void ReplaySnapshotEvent();
@@ -456,11 +456,8 @@ namespace TTD
         //    (2) If we are at a breakpoint and we want to step back (in some form) then we need to terminate
         void AbortReplayReturnToHost();
 
-        //return true if we have taken the first snapshot and started recording
-        bool HasDoneFirstSnapshot() const;
-
         //Do the snapshot extraction 
-        void DoSnapshotExtract(bool firstSnap);
+        void DoSnapshotExtract();
 
         //Take a ready-to-run snapshot for the event if needed 
         void DoRtrSnapIfNeeded();

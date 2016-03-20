@@ -1306,7 +1306,7 @@ namespace TTD
         : JsRTActionLogEntry(eTime, ctxTag, JsRTActionType::CallExistingFunctionBegin), m_callbackDepth(callbackDepth), m_hostCallbackId(hostCallbackId), m_beginTime(beginTime),
         m_functionTagId(functionTagId), m_argCount(argCount), m_argArray(argArray), m_execArgs(execArgs)
 #if ENABLE_TTD_DEBUGGING
-        , m_rtrSnap(nullptr), m_rtrRestoreLogTag(TTD_INVALID_LOG_TAG), m_rtrRestoreIdentityTag(TTD_INITIAL_IDENTITY_TAG)
+        , m_rtrSnap(nullptr), m_rtrRestoreLogTag(TTD_INVALID_LOG_TAG)
 #endif
     {
         ;
@@ -1340,7 +1340,6 @@ namespace TTD
 
             this->m_rtrSnap = nullptr;
             this->m_rtrRestoreLogTag = TTD_INVALID_LOG_TAG;
-            this->m_rtrRestoreIdentityTag = TTD_INVALID_IDENTITY_TAG;
         }
 #endif
     }
@@ -1354,7 +1353,6 @@ namespace TTD
 
             this->m_rtrSnap = nullptr;
             this->m_rtrRestoreLogTag = TTD_INVALID_LOG_TAG;
-            this->m_rtrRestoreIdentityTag = TTD_INVALID_IDENTITY_TAG;
         }
 #endif
     }
@@ -1382,7 +1380,7 @@ namespace TTD
 #endif
     }
 
-    void JsRTCallFunctionBeginAction::GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag, TTD_IDENTITY_TAG* identityTag) const
+    void JsRTCallFunctionBeginAction::GetReadyToRunSnapshotInfo(SnapShot** snap, TTD_LOG_TAG* logTag) const
     {
 #if !ENABLE_TTD_DEBUGGING
         *snap = nullptr;
@@ -1393,18 +1391,16 @@ namespace TTD
 
         *snap = this->m_rtrSnap;
         *logTag = this->m_rtrRestoreLogTag;
-        *identityTag = this->m_rtrRestoreIdentityTag;
 #endif
     }
 
-    void JsRTCallFunctionBeginAction::SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag, TTD_IDENTITY_TAG identityTag) const
+    void JsRTCallFunctionBeginAction::SetReadyToRunSnapshotInfo(SnapShot* snap, TTD_LOG_TAG logTag) const
     {
 #if ENABLE_TTD_DEBUGGING
         AssertMsg(this->m_rtrSnap == nullptr, "We already have a rtr snapshot!!!");
 
         this->m_rtrSnap = snap;
         this->m_rtrRestoreLogTag = logTag;
-        this->m_rtrRestoreIdentityTag = identityTag;
 #endif
     }
 

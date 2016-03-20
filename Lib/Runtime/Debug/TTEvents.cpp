@@ -398,8 +398,8 @@ namespace TTD
 
     //////////////////
 
-    SnapshotEventLogEntry::SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag, TTD_IDENTITY_TAG restoreIdentityTag)
-        : EventLogEntry(EventLogEntry::EventKind::SnapshotTag, eTime), m_restoreTimestamp(restoreTimestamp), m_restoreLogTag(restoreLogTag), m_restoreIdentityTag(restoreIdentityTag), m_snap(snap)
+    SnapshotEventLogEntry::SnapshotEventLogEntry(int64 eTime, SnapShot* snap, int64 restoreTimestamp, TTD_LOG_TAG restoreLogTag)
+        : EventLogEntry(EventLogEntry::EventKind::SnapshotTag, eTime), m_restoreTimestamp(restoreTimestamp), m_restoreLogTag(restoreLogTag), m_snap(snap)
     {
         ;
     }
@@ -435,11 +435,6 @@ namespace TTD
         return this->m_restoreLogTag;
     }
 
-    TTD_IDENTITY_TAG SnapshotEventLogEntry::GetRestoreIdentityTag() const
-    {
-        return this->m_restoreIdentityTag;
-    }
-
     void SnapshotEventLogEntry::EnsureSnapshotDeserialized(LPCWSTR logContainerUri, ThreadContext* threadContext) const
     {
         if(this->m_snap == nullptr)
@@ -459,7 +454,6 @@ namespace TTD
 
         writer->WriteInt64(NSTokens::Key::restoreTime, this->m_restoreTimestamp, NSTokens::Separator::CommaSeparator);
         writer->WriteLogTag(NSTokens::Key::restoreLogTag, this->m_restoreLogTag, NSTokens::Separator::CommaSeparator);
-        writer->WriteIdentityTag(NSTokens::Key::restoreIdentityTag, this->m_restoreIdentityTag, NSTokens::Separator::CommaSeparator);
 
         if(this->m_snap != nullptr)
         {
@@ -473,9 +467,8 @@ namespace TTD
     {
         int64 restoreTime = reader->ReadInt64(NSTokens::Key::restoreTime, true);
         TTD_LOG_TAG restoreLogTag = reader->ReadLogTag(NSTokens::Key::restoreLogTag, true);
-        TTD_IDENTITY_TAG restoreIdentityTag = reader->ReadIdentityTag(NSTokens::Key::restoreIdentityTag, true);
 
-        return alloc.SlabNew<SnapshotEventLogEntry>(eTime, nullptr, restoreTime, restoreLogTag, restoreIdentityTag);
+        return alloc.SlabNew<SnapshotEventLogEntry>(eTime, nullptr, restoreTime, restoreLogTag);
     }
 
     //////////////////
