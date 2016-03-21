@@ -2859,6 +2859,7 @@ namespace Js
         return
             !this->m_isFromNativeCodeModule &&
             !this->m_isAsmJsFunction &&
+            !this->GetAsmJsModuleInfo() &&
             !this->HasExecutionDynamicProfileInfo() &&
             DynamicProfileInfo::IsEnabled(this);
     }
@@ -7089,7 +7090,7 @@ namespace Js
     {
 #if ENABLE_PROFILE_INFO
         // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction())
+        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
         {
             return false;
         }
