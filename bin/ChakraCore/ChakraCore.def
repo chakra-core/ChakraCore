@@ -11,11 +11,11 @@ JsDiagGetProperties
 JsDiagGetScripts
 JsDiagGetSource
 JsDiagGetStackProperties
-JsDiagGetStacktrace
+JsDiagGetStackTrace
 JsDiagGetObjectFromHandle
 JsDiagRemoveBreakpoint
 JsDiagRequestAsyncBreak
-JsDiagResume
 JsDiagSetBreakOnException
 JsDiagSetBreakpoint
+JsDiagSetStepType
 JsDiagStartDebugging

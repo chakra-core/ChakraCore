@@ -98,7 +98,7 @@ Js::DynamicObject * DebuggerObjectBase::GetChildrens(WeakArenaReference<Js::IDia
         walkerRef->ReleaseStrongReference();
     }
 
-    JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::propertiesCount, childrensCount, scriptContext);
+    JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::totalPropertiesOfObject, childrensCount, scriptContext);
     JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::properties, propertiesArray, scriptContext);
     JsrtDebugUtils::AddPropertyToObject(childrensObject, JsrtDebugPropertyId::debuggerOnlyProperties, debuggerOnlyPropertiesArray, scriptContext);
 

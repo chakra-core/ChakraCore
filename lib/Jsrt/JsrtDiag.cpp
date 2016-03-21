@@ -377,8 +377,8 @@ JsDiagGetBreakOnException(
 }
 
 STDAPI_(JsErrorCode)
-JsDiagResume(
-    _In_ JsDiagResumeType resumeType)
+JsDiagSetStepType(
+    _In_ JsDiagStepType stepType)
 {
     return ContextAPIWrapper<true>([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
 
@@ -391,15 +391,15 @@ JsDiagResume(
 
         VALIDATE_DEBUG_OBJECT(debugObject);
 
-        if (resumeType == JsDiagResumeTypeStepIn)
+        if (stepType == JsDiagStepTypeStepIn)
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_INTO);
         }
-        else if (resumeType == JsDiagResumeTypeStepOut)
+        else if (stepType == JsDiagStepTypeStepOut)
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OUT);
         }
-        else if (resumeType == JsDiagResumeTypeStepOver)
+        else if (stepType == JsDiagStepTypeStepOver)
         {
             debugObject->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
         }
@@ -465,7 +465,7 @@ JsDiagGetFunctionPosition(
 
 
 STDAPI_(JsErrorCode)
-JsDiagGetStacktrace(
+JsDiagGetStackTrace(
     _Out_ JsValueRef *stackTrace)
 {
     return ContextAPIWrapper<false>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {

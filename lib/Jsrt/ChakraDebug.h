@@ -204,36 +204,36 @@
     /// <summary>
     ///     Stepping types
     /// </summary>
-    typedef enum _JsDiagResumeType
+    typedef enum _JsDiagStepType
     {
         /// <summary>
         ///     Perform a step operation to next statement.
         /// </summary>
-        JsDiagResumeTypeStepIn = 0,
+        JsDiagStepTypeStepIn = 0,
         /// <summary>
         ///     Perform a step out from the current function.
         /// </summary>
-        JsDiagResumeTypeStepOut = 1,
+        JsDiagStepTypeStepOut = 1,
         /// <summary>
         ///     Perform a single step over after a debug break if the next statement is a function call, else behaves as a stepin.
         /// </summary>
-        JsDiagResumeTypeStepOver = 2
-    } JsDiagResumeType;
+        JsDiagStepTypeStepOver = 2
+    } JsDiagStepType;
 
     /// <summary>
-    ///     Resume execution in the VM after a debug break or exception
+    ///     Sets the step type in the VM after a debug break
     /// </summary>
     /// <remarks>
     ///     Requires to be at a debug break.
     /// </remarks>
-    /// <param name="resumeType">Type of JsDiagResumeType</param>
+    /// <param name="resumeType">Type of JsDiagStepType</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
 
     STDAPI_(JsErrorCode)
-        JsDiagResume(
-            _In_ JsDiagResumeType resumeType);
+        JsDiagSetStepType(
+            _In_ JsDiagStepType stepType);
 
 
     /// <summary>
@@ -333,14 +333,14 @@
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     STDAPI_(JsErrorCode)
-        JsDiagGetStacktrace(
+        JsDiagGetStackTrace(
             _Out_ JsValueRef *stackTrace);
 
 
     /// <summary>
     ///     Gets the list of properties corresponding to the frame
     /// </summary>
-    /// <param name="stackFrameIndex">Index of stack frame from JsDiagGetStacktrace</param>
+    /// <param name="stackFrameIndex">Index of stack frame from JsDiagGetStackTrace</param>
     /// <param name="properties">Object of properties array (properties, scopes and globals)</param>
     /// <remarks>
     ///     <para>
@@ -407,7 +407,7 @@
     /// <remarks>
     ///     <para>
     ///     {
-    ///         "propertiesCount": 2,
+    ///         "totalPropertiesOfObject": 2,
     ///         "properties" : [{
     ///                 "name" : "__proto__",
     ///                 "type" : "object",
