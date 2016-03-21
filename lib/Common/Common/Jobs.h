@@ -53,7 +53,9 @@ namespace JsUtil
             NotFailed,
             OOM,
             StackOverflow,
-            Aborted
+            Aborted,
+            ExceedJITLimit,
+            Unknown
         };
         FailureReason failureReason;
 #endif

@@ -1541,6 +1541,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
     Js::RegSlot localFrameDisplayReg = executeFunction->GetLocalFrameDisplayRegister();
     Js::RegSlot localClosureReg = executeFunction->GetLocalClosureRegister();
+    Js::RegSlot paramClosureReg = executeFunction->GetParamClosureRegister();
 
     if (!isInlinee)
     {
@@ -1603,6 +1604,16 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         {
             newInstance->SetLocalClosure(closure);
             newInstance->SetNonVarReg(localClosureReg, nullptr);
+        }
+    }
+
+    if (paramClosureReg != Js::Constants::NoRegister)
+    {
+        Js::Var closure = newInstance->GetNonVarReg(paramClosureReg);
+        if (closure)
+        {
+            newInstance->SetParamClosure(closure);
+            newInstance->SetNonVarReg(paramClosureReg, nullptr);
         }
     }
 

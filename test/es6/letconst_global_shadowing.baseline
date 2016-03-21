@@ -67,7 +67,7 @@ this.p
 
 ==== Global properties added after const should not destroy const-ness ====
 
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 const q
 this.q
 

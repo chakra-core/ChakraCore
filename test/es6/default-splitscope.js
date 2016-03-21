@@ -484,10 +484,42 @@ var tests = [
             } 
             return h(); // 9 
         } 
+
         // TODO(tcare): Re-enable when split scope support is implemented 
         //assert.areEqual(9, f(), "Paramater scope remains split"); 
     }
   },
+  {  
+    name: "Split parameter scope with eval in body",  
+    body: function () {  
+        function f1(a = 10, b = function () { return a; }) {   
+            assert.areEqual(10, a, "Initial value of parameter in the body scope should be the same as the one in param scope");  
+            assert.areEqual(10, eval('a'), "Initial value of parameter in the body scope in eval should be the same as the one in param scope");  
+            var a = 20;   
+            assert.areEqual(20, a, "New assignment in the body scope updates the variable's value in body scope");  
+            assert.areEqual(20, eval('a'), "New assignment in the body scope updates the variable's value when evaluated through eval in body scope");  
+            return b;   
+        }   
+        assert.areEqual(10, f1()(), "Function defined in the param scope captures the formals from the param scope not body scope with eval");  
+          
+        function f2(a = 10, b = function () { return a; }) {   
+            assert.areEqual(10, eval('b()'), "Eval of the function from param scope should return the right value for the formal");  
+            var a = 20;   
+            assert.areEqual(10, eval('b()'), "Eval of the function from param scope should return the right value for the formal even after assignment to the corresponding body symbol");  
+            return b;   
+        }   
+        assert.areEqual(10, f2()(), "Function defined in the param scope captures the formals from the param scope not body scope with eval");  
+          
+        function f3(a = 10, b = function () { return a; }) {   
+            assert.areEqual(100, eval('b()'), "Eval of the function from body scope should return the right value for the formal");  
+            var a = 20;   
+            function b () { return a * a; }  
+            assert.areEqual(400, eval('b()'), "Eval of the function from body scope should return the right value after assignment to the corresponding body symbol");  
+            return b;   
+        }   
+        assert.areEqual(400, f3()(), "Function defined in the body scope captures the symbol from the body scope with eval");
+    }  
+  }, 
   { 
     name: "Basic eval in parameter scope", 
     body: function () { 

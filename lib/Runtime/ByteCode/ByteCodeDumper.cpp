@@ -835,6 +835,7 @@ namespace Js
             case OpCode::LdParamSlot:
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
+            case OpCode::LdParamObjSlot:
                 Output::Print(_u(" R%d = [%d] "),data->Value, data->SlotIndex);
                 break;
             case OpCode::NewScFunc:

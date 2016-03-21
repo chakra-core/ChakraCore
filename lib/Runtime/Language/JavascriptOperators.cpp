@@ -2372,7 +2372,7 @@ CommonNumber:
                     Assert((flags & Data) == Data && (flags & Writable) == None);
                     if (flags & Const)
                     {
-                        JavascriptError::ThrowReferenceError(requestContext, ERRAssignmentToConst);
+                        JavascriptError::ThrowTypeError(requestContext, ERRAssignmentToConst);
                     }
 
                     JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId);
@@ -2782,7 +2782,7 @@ CommonNumber:
                     {
                         if (flags & Const)
                         {
-                            JavascriptError::ThrowReferenceError(scriptContext, ERRAssignmentToConst);
+                            JavascriptError::ThrowTypeError(scriptContext, ERRAssignmentToConst);
                         }
 
                         Assert(!isLexicalThisSlotSymbol);

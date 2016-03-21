@@ -742,6 +742,14 @@ var tests = [
             inst[b].toString();
             assert.areEqual("barzee",inst[b].name);
         }
+    },
+	{
+        name: "Issue 539 Fix: preserve the shortNameOffset per append",
+        body: function()
+        {
+            class C { foo(){} };
+            assert.areEqual("foo",(new C).foo.name);
+        }
     }
 
 ];

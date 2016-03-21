@@ -165,6 +165,8 @@
     <default>
       <files>bug934443.js</files>
       <compile-flags>-force:fieldcopyprop -off:dynamicprofile</compile-flags>
+      <!--Github issue is https://github.com/Microsoft/ChakraCore/issues/610-->
+      <tags>exclude_disable_jit</tags>
     </default>
   </test>
   <test>

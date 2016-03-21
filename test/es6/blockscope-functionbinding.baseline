@@ -166,10 +166,10 @@ function l(one) { }
 function l(two) { }
 function l(two) { }
 outer let l
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 const m
 const m
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 inner const m
 const m
 function m(three) { }
@@ -180,7 +180,7 @@ function n() { }
 function n() { }
 ReferenceError: Use before declaration
 let o
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 const p
 function q() { }
 var q
@@ -247,11 +247,11 @@ function glo_t19_l(two) { }
 function glo_t19_l(two) { }
 outer let glo_t19_l
 undefined
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 const glo_t19_m
 const glo_t19_m
 undefined
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 inner const m
 const glo_t19_m
 undefined
@@ -264,7 +264,7 @@ function glo_t19_n() { }
 function glo_t19_n() { }
 ReferenceError: Use before declaration
 let glo_t19_o
-ReferenceError: Assignment to const
+TypeError: Assignment to const
 const glo_t19_p
 function glo_t19_q() { }
 var glo_t19_q

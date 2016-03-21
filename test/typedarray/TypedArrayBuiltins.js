@@ -83,6 +83,35 @@ var tests = [
                 assert.areEqual(2, arr[1], "TypedArray " + t + " created from iterable has element #1 == 2");
                 assert.areEqual(3, arr[2], "TypedArray " + t + " created from iterable has element #2 == 3");
             }
+
+            for(var t of TypedArray) {
+                var a = [1,2,3,4];
+                a[Symbol.iterator] = getIterableObj([99,0])[Symbol.iterator];
+                var arr = new this[t](a);
+                assert.areEqual(1, arr.length, "TypedArray " + t + " created from array with user-defined iterator has length == 1");
+                assert.areEqual(99, arr[0], "TypedArray " + t + " created from array with user-defined iterator has element #0 == 99");
+            }
+
+            function testTypedArrayConstructorWithIterableArray(t) {
+                Array.prototype[Symbol.iterator] = getIterableObj([99,0])[Symbol.iterator];
+                var arr = new this[t](a);
+                assert.areEqual(1, arr.length, "TypedArray " + t + " created from array with Array.prototype overridden has length == 1");
+                assert.areEqual(99, arr[0], "TypedArray " + t + " created from array with Array.prototype overriden has element #0 == 99");
+            }
+
+            var builtinArrayPrototypeIteratorDesc = Object.getOwnPropertyDescriptor(Array.prototype, Symbol.iterator);
+            var a = [1,2,3,4];
+            Object.defineProperty(Array.prototype, Symbol.iterator, {enumerable: false, configurable: true, writable: true});
+            testTypedArrayConstructorWithIterableArray('Int8Array');
+            testTypedArrayConstructorWithIterableArray('Uint8Array');
+            testTypedArrayConstructorWithIterableArray('Uint8ClampedArray');
+            testTypedArrayConstructorWithIterableArray('Int16Array');
+            testTypedArrayConstructorWithIterableArray('Uint16Array');
+            testTypedArrayConstructorWithIterableArray('Int32Array');
+            testTypedArrayConstructorWithIterableArray('Uint32Array');
+            testTypedArrayConstructorWithIterableArray('Float32Array');
+            testTypedArrayConstructorWithIterableArray('Float64Array');
+            Object.defineProperty(Array.prototype, Symbol.iterator, builtinArrayPrototypeIteratorDesc);
         }
     }
 ];

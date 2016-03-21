@@ -1523,7 +1523,6 @@ LHexError:
         }
 #endif
 
-
 #if DBG
         // Clear 1K of stack to avoid false positive in debug build.
         // Because we don't debug build don't stack pack
@@ -1533,9 +1532,17 @@ LHexError:
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!scriptContext->GetConfig()->IsCollectGarbageEnabled())
+        if (!scriptContext->GetConfig()->IsCollectGarbageEnabled()
+#ifdef ENABLE_PROJECTION
+            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeApplication
+            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeWebview
+#endif
+            )
         {
-            //We expose the CollectGarbage API with flag for compat reasons. Though we don't trigger GC if CollectGarbage key is not present.
+            // We expose the CollectGarbage API with flag for compat reasons.
+            // If CollectGarbage key is not enabled, and if the HostType is neither
+            // HostType::HostTypeApplication nor HostType::HostTypeWebview,
+            // then we do not trigger collection.
             return scriptContext->GetLibrary()->GetUndefined();
         }
 

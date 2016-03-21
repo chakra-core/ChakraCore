@@ -6577,6 +6577,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // Save the current closure. We have to use this while copying the initial value of body symbols
         // from the corresponding symbols in the param.
         this->SetParamClosure(this->GetLocalClosure());
+        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), this->GetLocalClosure());
 
         this->SetIsParamScopeDone(true);
 

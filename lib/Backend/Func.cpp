@@ -966,10 +966,14 @@ void Func::InitLocalClosureSyms()
                                    this);
     }
 
-    if (!this->GetJnFunction()->IsParamAndBodyScopeMerged())
+    regSlot = this->GetJnFunction()->GetParamClosureRegister();
+    if (regSlot != Js::Constants::NoRegister)
     {
-        Assert(this->GetParamClosureSym() == nullptr);
-        this->m_paramClosureSym = StackSym::New(TyVar, this);
+        Assert(this->GetParamClosureSym() == nullptr && !this->GetJnFunction()->IsParamAndBodyScopeMerged());
+        this->m_paramClosureSym =
+            StackSym::FindOrCreate(static_cast<SymID>(regSlot),
+                                    this->DoStackFrameDisplay() ? (Js::RegSlot) - 1 : regSlot,
+                                    this);
     }
 
     regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
