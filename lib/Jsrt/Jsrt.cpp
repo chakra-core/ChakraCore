@@ -840,8 +840,10 @@ STDAPI_(JsErrorCode) JsPointerToString(_In_reads_(stringLength) const wchar_t *s
 }
 
 // TODO: The annotation of stringPtr is wrong.  Need to fix definition in chakrart.h
-// The warning is '*stringPtr' could be '0' : this does not adhere to the specification for the function 'JsStringToPointer'.
+// Warning 6387 is: "'*stringPtr' could be '0' : this does not adhere to the specification for the function 'JsStringToPointer'."
+// Warning 28196 is: "The requirement that '*_Param_(2)!=0' is not satisfied. (The expression does not evaluate to true.)"
 #pragma warning(suppress:6387)
+#pragma warning(suppress:28196)
 STDAPI_(JsErrorCode) JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) const wchar_t **stringPtr, _Out_ size_t *stringLength)
 {
     VALIDATE_JSREF(stringValue);

@@ -12,7 +12,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
     UINT lengthBytes = 0;
     bool isUtf8 = false;
     contents = nullptr;
-    FILE * file;
+    FILE * file = nullptr;
 
     //
     // Open the file as a binary file to prevent CRT from handling encoding, line-break conversions,
@@ -43,6 +43,13 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
         {
             return E_FAIL;
         }
+    }
+
+    // Satisfy static analysis, as the following usages of `file` will be skipped entirely if opening the file fails.
+    Assert(file != nullptr);
+    if (file == nullptr)
+    {
+        return E_FAIL;
     }
 
     //
@@ -93,7 +100,6 @@ HRESULT Helpers::LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* i
         // Assume UTF8
         isUtf8 = true;
     }
-
 
     if (isUtf8)
     {

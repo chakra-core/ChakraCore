@@ -575,16 +575,20 @@ namespace Js
     {
         for (int i = 0; i < maxPolymorphicInliningSize; i++)
         {
-            if (callSiteInfo[callSiteId].u.polymorphicCallSiteInfo->functionIds[i] == curFunctionId &&
-                callSiteInfo[callSiteId].u.polymorphicCallSiteInfo->sourceIds[i] == curSourceId)
+            PolymorphicCallSiteInfo *siteInfo = callSiteInfo[callSiteId].u.polymorphicCallSiteInfo;
+            Assert(siteInfo != nullptr);
+
+            if (siteInfo &&
+                siteInfo->functionIds[i] == curFunctionId &&
+                siteInfo->sourceIds[i] == curSourceId)
             {
                 // we have it already
                 return;
             }
-            else if (callSiteInfo[callSiteId].u.polymorphicCallSiteInfo->functionIds[i] == CallSiteNoInfo)
+            else if (siteInfo && siteInfo->functionIds[i] == CallSiteNoInfo)
             {
-                callSiteInfo[callSiteId].u.polymorphicCallSiteInfo->functionIds[i] = curFunctionId;
-                callSiteInfo[callSiteId].u.polymorphicCallSiteInfo->sourceIds[i] = curSourceId;
+                siteInfo->functionIds[i] = curFunctionId;
+                siteInfo->sourceIds[i] = curSourceId;
                 this->currentInlinerVersion++;
                 return;
             }

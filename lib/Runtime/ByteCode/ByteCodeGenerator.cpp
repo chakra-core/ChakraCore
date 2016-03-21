@@ -3753,8 +3753,12 @@ ParseNode* ConstructInvertedLoop(ParseNode* innerLoop, ParseNode* outerLoop, Byt
             }
             origStmt = origStmt->sxBin.pnode2;
         }
+
         Assert(invertedStmt != nullptr);
-        invertedStmt->sxBin.pnode2 = ConstructInvertedStatement(origStmt, byteCodeGenerator, funcInfo, &listNode);
+        if (invertedStmt)
+        {
+            invertedStmt->sxBin.pnode2 = ConstructInvertedStatement(origStmt, byteCodeGenerator, funcInfo, &listNode);
+        }
     }
     else
     {
