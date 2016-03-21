@@ -8,4 +8,5 @@ class Helpers
 {
 public :
     static HRESULT LoadScriptFromFile(LPCWSTR filename, LPCWSTR& contents, bool* isUtf8Out = nullptr, LPCWSTR* contentsRawOut = nullptr, UINT* lengthBytesOut = nullptr, bool printFileOpenError = true);
+    static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
 };

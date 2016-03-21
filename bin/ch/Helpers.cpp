@@ -132,3 +132,88 @@ Error:
 
     return hr;
 }
+
+LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
+{
+    bool hasException = false;
+    ChakraRTInterface::JsHasException(&hasException);
+    if (hasException)
+    {
+        WScriptJsrt::PrintException(_u(""), JsErrorScriptException);
+    }
+
+    switch (jsErrorCode)
+    {
+    case JsNoError:
+        return _u("JsNoError");
+        break;
+
+    case JsErrorInvalidArgument:
+        return _u("JsErrorInvalidArgument");
+        break;
+
+    case JsErrorNullArgument:
+        return _u("JsErrorNullArgument");
+        break;
+
+    case JsErrorNoCurrentContext:
+        return _u("JsErrorNoCurrentContext");
+        break;
+
+    case JsErrorInExceptionState:
+        return _u("JsErrorInExceptionState");
+        break;
+
+    case JsErrorNotImplemented:
+        return _u("JsErrorNotImplemented");
+        break;
+
+    case JsErrorWrongThread:
+        return _u("JsErrorWrongThread");
+        break;
+
+    case JsErrorRuntimeInUse:
+        return _u("JsErrorRuntimeInUse");
+        break;
+
+    case JsErrorBadSerializedScript:
+        return _u("JsErrorBadSerializedScript");
+        break;
+
+    case JsErrorInDisabledState:
+        return _u("JsErrorInDisabledState");
+        break;
+
+    case JsErrorCannotDisableExecution:
+        return _u("JsErrorCannotDisableExecution");
+        break;
+
+    case JsErrorHeapEnumInProgress:
+        return _u("JsErrorHeapEnumInProgress");
+        break;
+
+    case JsErrorOutOfMemory:
+        return _u("JsErrorOutOfMemory");
+        break;
+
+    case JsErrorScriptException:
+        return _u("JsErrorScriptException");
+        break;
+
+    case JsErrorScriptCompile:
+        return _u("JsErrorScriptCompile");
+        break;
+
+    case JsErrorScriptTerminated:
+        return _u("JsErrorScriptTerminated");
+        break;
+
+    case JsErrorFatal:
+        return _u("JsErrorFatal");
+        break;
+
+    default:
+        return _u("<unknown>");
+        break;
+    }
+}

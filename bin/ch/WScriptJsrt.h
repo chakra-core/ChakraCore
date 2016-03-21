@@ -20,9 +20,16 @@ public:
         ~CallbackMessage();
 
         HRESULT Call(LPCWSTR fileName);
+        HRESULT CallFunction(LPCWSTR fileName);
+        template <class Func>
+        static CallbackMessage* Create(JsValueRef function, const Func& func, unsigned int time = 0)
+        {
+            return new CustomMessage<Func, CallbackMessage>(time, function, func);
+        }
     };
 
     static void AddMessageQueue(MessageQueue *messageQueue);
+    static void PushMessage(MessageBase *message) { messageQueue->Push(message); }
 
     static LPCWSTR ConvertErrorCodeToMessage(JsErrorCode errorCode)
     {
@@ -42,6 +49,8 @@ public:
             return _u("SyntaxError");
         case (JsErrorCode::JsErrorFatal) :
             return _u("FatalError");
+        case (JsErrorCode::JsErrorInExceptionState) :
+            return _u("ErrorInExceptionState");
         default:
             AssertMsg(false, "Unexpected JsErrorCode");
             return nullptr;
@@ -53,7 +62,7 @@ public:
     static DWORD_PTR GetNextSourceContext();
     static JsValueRef LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule);
     static JsValueRef LoadScriptHelper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState, bool isSourceModule);
-
+    static bool InstallObjectsOnObject(JsValueRef object, const wchar_t *name, JsNativeFunction nativeFunction);
 private:
     static bool CreateArgumentsObject(JsValueRef *argsObject);
     static bool CreateNamedFunction(const char16*, JsNativeFunction callback, JsValueRef* functionVar);
@@ -65,6 +74,10 @@ private:
     static JsValueRef __stdcall LoadModuleCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall SetTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall ClearTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall AttachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
+    static JsValueRef __stdcall EmptyCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+
     static MessageQueue *messageQueue;
     static DWORD_PTR sourceContext;
 };
