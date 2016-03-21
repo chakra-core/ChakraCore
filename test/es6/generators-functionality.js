@@ -1378,7 +1378,7 @@ var tests = [
             var iteratorReturningWithoutValue = CreateIterable(() => { return {done: false}; }, () => { return {done: true}; }, () => { return {done: true}; });
             gf = function* () { yield* iteratorReturningWithoutValue; }
             g = gf();
-            assert.areEqual({value: undefined, done: false}, g.next(), "As the value property is missing undefined is returned");
+            g.next();
             assert.areEqual({value: undefined, done: true}, g.return(100), "As the value property is missing undefined is returned");
         }
     },
@@ -1391,6 +1391,18 @@ var tests = [
             assert.areEqual({value: 1, done: false}, g.next(), "Yield 1 from the iterator");
             assert.areEqual({value: 2, done: false}, g.next(), "Yield 2 from the iterator");
             assert.areEqual({value: 4, done: true}, g.next(), "Returned 4 from the generator");
+        }
+    },
+    {
+        name: "yield* doesn't unwrap and rewrap iterator result if the done property is falsy",
+        body: function () {
+            var obj = { prop: 7 };
+            var gf = function* () {
+                yield* CreateIterable(() => obj);
+            };
+            var g = gf();
+            assert.isTrue(g.next() === obj, "yield* doesn't unwrap and rewrap iterator results if the 'done' property is falsy");
+            assert.areEqual({ prop: 7 }, g.next(), "yield* doesn't modify the iterator result");
         }
     },
     {
