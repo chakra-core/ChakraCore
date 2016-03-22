@@ -17,6 +17,7 @@ Int64Math::Add(int64 left, int64 right, int64 *pResult)
     return ((left ^ *pResult) & (right ^ *pResult)) < 0;
 }
 
+// Returns true if we overflowed, false if we didn't
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
@@ -24,7 +25,7 @@ Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 #if defined(_M_X64) && defined(_MSC_VER)
     int64 high;
     *pResult = _mul128(left, right, &high);
-    return high != 0;
+    return ((*pResult > 0) && high != 0) || ((*pResult < 0) && (high != -1));
 #else
     *pResult = left * right;
     return (left != 0 && right != 0 && (*pResult / left) != right);

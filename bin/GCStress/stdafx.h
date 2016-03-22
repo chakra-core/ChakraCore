@@ -22,7 +22,6 @@
 #ifndef USING_PAL_STDLIB
 #include <wtypes.h>
 #include <stdio.h>
-#include <cstdlib>
 #endif
 
 // This is an intentionally lame name because we can't use Assert or Verify etc

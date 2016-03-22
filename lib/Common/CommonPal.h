@@ -300,7 +300,7 @@ errno_t rand_s(unsigned int* randomValue);
 #define _TYPENAME typename
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || defined(NTBUILD)
 // "noexcept" not supported before VS 2015
 #define _NOEXCEPT
 #else

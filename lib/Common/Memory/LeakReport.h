@@ -18,7 +18,11 @@ public:
         void * scriptEngine;
     private:
         char16 const * url;
+#if _MSC_VER
+        __time64_t time;
+#else
         time_t time;
+#endif
         DWORD tid;
         UrlRecord * next;
 
