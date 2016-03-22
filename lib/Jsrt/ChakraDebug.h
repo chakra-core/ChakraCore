@@ -118,7 +118,7 @@
     /// <summary>
     ///     Sets breakpoint in the specified script at a location
     /// </summary>
-    /// <param name="scriptId">Id of script from JsDiagGetScripts or JsDiagGetSource to but breakpoint</param>
+    /// <param name="scriptId">Id of script from JsDiagGetScripts or JsDiagGetSource to put breakpoint</param>
     /// <param name="lineNumber">0 based line number to put breakpoint</param>
     /// <param name="columnNumber">0 based column number to put breakpoint</param>
     /// <param name="breakPoint">Breakpoint object with id, line and column if success</param>
