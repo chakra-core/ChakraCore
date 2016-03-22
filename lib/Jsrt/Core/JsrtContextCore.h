@@ -156,10 +156,10 @@ public:
         return nullptr;
     }
 
-    Js::JavascriptFunction* InitializeHostPromiseContinuationFunction() override
+    HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
         AssertMsg(false, "jsrt should have set the promise callback");
-        return GetScriptContext()->GetLibrary()->GetThrowerFunction();
+        return E_NOTIMPL;
     }
 
     HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) override

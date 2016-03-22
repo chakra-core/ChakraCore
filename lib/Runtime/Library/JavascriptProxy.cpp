@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+
 namespace Js
 {
     __inline BOOL JavascriptProxy::Is(Var obj)
@@ -1926,12 +1927,12 @@ namespace Js
 
         if (nullptr == callMethod)
         {
-            // newCount is ushort.
+            // newCount is ushort. If args count is greater than or equal to 65535, an integer
+            // too many arguments
             if (args.Info.Count >= USHORT_MAX) //check against CallInfo::kMaxCountArgs if newCount is ever made int
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
-            ushort newCount = (ushort)(args.Info.Count + 1);
 
             // in [[construct]] case, we don't need to check if the function is a constructor: the function should throw there.
             Var newThisObject = nullptr;
@@ -1945,6 +1946,7 @@ namespace Js
                 args.Values[0] = newThisObject;
             }
 
+            ushort newCount = (ushort)(args.Info.Count + 1);
             Var* newValues;
             const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
             Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];

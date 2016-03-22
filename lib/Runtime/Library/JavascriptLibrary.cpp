@@ -4747,16 +4747,6 @@ namespace Js
     }
 #endif
 
-    JavascriptFunction* JavascriptLibrary::GetHostPromiseContinuationFunction()
-    {
-        if (this->hostPromiseContinuationFunction == nullptr)
-        {
-            this->hostPromiseContinuationFunction = scriptContext->GetHostScriptContext()->InitializeHostPromiseContinuationFunction();
-        }
-
-        return this->hostPromiseContinuationFunction;
-    }
-
     void JavascriptLibrary::SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state)
     {
         this->nativeHostPromiseContinuationFunction = function;
@@ -4798,14 +4788,11 @@ namespace Js
         }
         else
         {
-            JavascriptFunction* hostPromiseContinuationFunction = this->GetHostPromiseContinuationFunction();
-
-            hostPromiseContinuationFunction->GetEntryPoint()(
-                hostPromiseContinuationFunction,
-                Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
-                this->GetUndefined(),
-                taskVar,
-                JavascriptNumber::ToVar(0, scriptContext));
+            HRESULT hr = scriptContext->GetHostScriptContext()->EnqueuePromiseTask(taskVar);
+            if (hr != S_OK)
+            {
+                Js::JavascriptError::MapAndThrowError(scriptContext, hr);
+            }
         }
     }
 

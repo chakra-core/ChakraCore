@@ -370,7 +370,6 @@ namespace Js
         JavascriptFunction* arrayPrototypeToLocaleStringFunction;
         JavascriptFunction* identityFunction;
         JavascriptFunction* throwerFunction;
-        JavascriptFunction* hostPromiseContinuationFunction;
         JavascriptFunction* promiseResolveFunction;
 
         JavascriptFunction* objectValueOfFunction;
@@ -780,7 +779,6 @@ namespace Js
         JavascriptFunction* GetIdentityFunction() const { return identityFunction; }
         JavascriptFunction* GetThrowerFunction() const { return throwerFunction; }
 
-        JavascriptFunction* GetHostPromiseContinuationFunction();
         void SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state);
 
         void PinJsrtContextObject(FinalizableObject* jsrtContext);

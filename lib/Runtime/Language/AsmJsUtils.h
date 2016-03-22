@@ -33,6 +33,7 @@ namespace Js {
     static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Var)); // 4 in x86 and 2 in x64
 
     Var AsmJsChangeHeapBuffer(RecyclableObject * function, CallInfo callInfo, ...);
+
 #if _M_X64
     int GetStackSizeForAsmJsUnboxing(ScriptFunction* func);
     void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo);
