@@ -118,10 +118,9 @@ namespace Js
 #endif
         inlineCacheAllocator(_u("SC-InlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
         isInstInlineCacheAllocator(_u("SC-IsInstInlineCache"), threadContext->GetPageAllocator(), Throw::OutOfMemory),
-        hasRegisteredInlineCache(false),
-        hasRegisteredIsInstInlineCache(false),
-        entryInScriptContextWithInlineCachesRegistry(nullptr),
-        entryInScriptContextWithIsInstInlineCachesRegistry(nullptr),
+        hasUsedInlineCache(false),
+        hasProtoOrStoreFieldInlineCache(false),
+        hasIsInstInlineCache(false),
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
         cache(nullptr),
         bindRefChunkCurrent(nullptr),
@@ -369,6 +368,28 @@ namespace Js
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
 
+        if (this->hasProtoOrStoreFieldInlineCache)
+        {
+            // TODO (PersistentInlineCaches): It really isn't necessary to clear inline caches in all script contexts.
+            // Since this script context is being destroyed, the inline cache arena will also go away and release its
+            // memory back to the page allocator.  Thus, we cannot leave this script context's inline caches on the
+            // thread context's invalidation lists.  However, it should suffice to remove this script context's caches
+            // without touching other script contexts' caches.  We could call some form of RemoveInlineCachesFromInvalidationLists()
+            // on the inline cache allocator, which would walk all inline caches and zap values pointed to by strongRef.
+
+            // clear out all inline caches to remove our proto inline caches from the thread context
+            threadContext->ClearInlineCaches();
+
+            Assert(!this->hasProtoOrStoreFieldInlineCache);
+        }
+
+        if (this->hasIsInstInlineCache)
+        {
+            // clear out all inline caches to remove our proto inline caches from the thread context
+            threadContext->ClearIsInstInlineCaches();
+            Assert(!this->hasIsInstInlineCache);
+        }
+
         threadContext->UnregisterScriptContext(this);
 
         // Only call RemoveFromPendingClose if we are in a pending close state.
@@ -449,43 +470,6 @@ namespace Js
             this->asmJsCodeGenerator = NULL;
         }
 #endif
-
-        if (this->hasRegisteredInlineCache)
-        {
-            // TODO (PersistentInlineCaches): It really isn't necessary to clear inline caches in all script contexts.
-            // Since this script context is being destroyed, the inline cache arena will also go away and release its
-            // memory back to the page allocator.  Thus, we cannot leave this script context's inline caches on the
-            // thread context's invalidation lists.  However, it should suffice to remove this script context's caches
-            // without touching other script contexts' caches.  We could call some form of RemoveInlineCachesFromInvalidationLists()
-            // on the inline cache allocator, which would walk all inline caches and zap values pointed to by strongRef.
-
-            // clear out all inline caches to remove our proto inline caches from the thread context
-            threadContext->ClearInlineCaches();
-            Assert(!this->hasRegisteredInlineCache);
-            Assert(this->entryInScriptContextWithInlineCachesRegistry == nullptr);
-        }
-        else if (this->entryInScriptContextWithInlineCachesRegistry != nullptr)
-        {
-            // UnregisterInlineCacheScriptContext may throw, set up the correct state first
-            ScriptContext ** entry = this->entryInScriptContextWithInlineCachesRegistry;
-            this->entryInScriptContextWithInlineCachesRegistry = nullptr;
-            threadContext->UnregisterInlineCacheScriptContext(entry);
-        }
-
-        if (this->hasRegisteredIsInstInlineCache)
-        {
-            // clear out all inline caches to remove our proto inline caches from the thread context
-            threadContext->ClearIsInstInlineCaches();
-            Assert(!this->hasRegisteredIsInstInlineCache);
-            Assert(this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr);
-        }
-        else if (this->entryInScriptContextWithInlineCachesRegistry != nullptr)
-        {
-            // UnregisterInlineCacheScriptContext may throw, set up the correct state first
-            ScriptContext ** entry = this->entryInScriptContextWithInlineCachesRegistry;
-            this->entryInScriptContextWithInlineCachesRegistry = nullptr;
-            threadContext->UnregisterIsInstInlineCacheScriptContext(entry);
-        }
 
         // In case there is something added to the list between close and dtor, just reset the list again
         this->weakReferenceDictionaryList.Reset();
@@ -3985,44 +3969,9 @@ namespace Js
 #endif
     }
 
-    void ScriptContext::RegisterAsScriptContextWithInlineCaches()
-    {
-        if (this->entryInScriptContextWithInlineCachesRegistry == nullptr)
-        {
-            DoRegisterAsScriptContextWithInlineCaches();
-        }
-    }
-
-    void ScriptContext::DoRegisterAsScriptContextWithInlineCaches()
-    {
-        Assert(this->entryInScriptContextWithInlineCachesRegistry == nullptr);
-        // this call may throw OOM
-        this->entryInScriptContextWithInlineCachesRegistry = threadContext->RegisterInlineCacheScriptContext(this);
-    }
-
-    void ScriptContext::RegisterAsScriptContextWithIsInstInlineCaches()
-    {
-        if (this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr)
-        {
-            DoRegisterAsScriptContextWithIsInstInlineCaches();
-        }
-    }
-
-    bool ScriptContext::IsRegisteredAsScriptContextWithIsInstInlineCaches()
-    {
-        return this->entryInScriptContextWithIsInstInlineCachesRegistry != nullptr;
-    }
-
-    void ScriptContext::DoRegisterAsScriptContextWithIsInstInlineCaches()
-    {
-        Assert(this->entryInScriptContextWithIsInstInlineCachesRegistry == nullptr);
-        // this call may throw OOM
-        this->entryInScriptContextWithIsInstInlineCachesRegistry = threadContext->RegisterIsInstInlineCacheScriptContext(this);
-    }
-
     void ScriptContext::RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasRegisteredInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterProtoInlineCache(pCache, propId);
     }
 
@@ -4052,7 +4001,7 @@ namespace Js
 
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
-        hasRegisteredInlineCache = true;
+        hasProtoOrStoreFieldInlineCache = true;
         threadContext->RegisterStoreFieldInlineCache(pCache, propId);
     }
 
@@ -4072,7 +4021,7 @@ namespace Js
     void ScriptContext::RegisterIsInstInlineCache(Js::IsInstInlineCache * cache, Js::Var function)
     {
         Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
-        hasRegisteredIsInstInlineCache = true;
+        hasIsInstInlineCache = true;
         threadContext->RegisterIsInstInlineCache(cache, function);
     }
 
@@ -4122,10 +4071,11 @@ namespace Js
     {
         // Prevent reentrancy for the following work, which is not required to be done on every call to this function including
         // reentrant calls
-        if (this->isPerformingNonreentrantWork)
+        if (this->isPerformingNonreentrantWork || !this->hasUsedInlineCache)
         {
             return;
         }
+
         class AutoCleanup
         {
         private:
@@ -4186,36 +4136,36 @@ namespace Js
 
 void ScriptContext::ClearInlineCaches()
 {
-    Assert(this->entryInScriptContextWithInlineCachesRegistry != nullptr);
+    if (this->hasUsedInlineCache)
+    {
+        GetInlineCacheAllocator()->ZeroAll();
+        this->hasUsedInlineCache = false;
+        this->hasProtoOrStoreFieldInlineCache = false;
+    }
 
-    // For persistent inline caches, we assume here that all thread context's invalidation lists
-    // will be reset, such that all invalidationListSlotPtr will get zeroed.  We will not be zeroing
-    // this field here to preserve the free list, which uses the field to link caches together.
-    GetInlineCacheAllocator()->ZeroAll();
-
-    this->entryInScriptContextWithInlineCachesRegistry = nullptr; // caller will remove us from the thread context
-
-    this->hasRegisteredInlineCache = false;
+    Assert(GetInlineCacheAllocator()->IsAllZero());
 }
 
 void ScriptContext::ClearIsInstInlineCaches()
 {
-    Assert(entryInScriptContextWithIsInstInlineCachesRegistry != nullptr);
-    GetIsInstInlineCacheAllocator()->ZeroAll();
+    if (this->hasIsInstInlineCache)
+    {
+        GetIsInstInlineCacheAllocator()->ZeroAll();
+        this->hasIsInstInlineCache = false;
+    }
 
-    this->entryInScriptContextWithIsInstInlineCachesRegistry = nullptr; // caller will remove us from the thread context.
-
-    this->hasRegisteredIsInstInlineCache = false;
+    Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
 }
 
 
 #ifdef PERSISTENT_INLINE_CACHES
 void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 {
-    // Review: I should be able to assert this here just like in ClearInlineCaches.
-    Assert(this->entryInScriptContextWithInlineCachesRegistry != nullptr);
-    GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
-    Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+    if (this->hasUsedInlineCache)
+    {
+        GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
+        Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+    }
 }
 #endif
 

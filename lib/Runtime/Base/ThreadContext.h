@@ -668,8 +668,6 @@ private:
     ArenaAllocator inlineCacheThreadInfoAllocator;
     ArenaAllocator isInstInlineCacheThreadInfoAllocator;
     ArenaAllocator equivalentTypeCacheInfoAllocator;
-    DListBase<Js::ScriptContext *> inlineCacheScriptContexts;
-    DListBase<Js::ScriptContext *> isInstInlineCacheScriptContexts;
     DListBase<Js::EntryPointInfo *> equivalentTypeCacheEntryPoints;
 
     typedef SList<Js::InlineCache*> InlineCacheList;
@@ -1153,11 +1151,7 @@ public:
     void SetNoScriptScope(bool noScriptScope) { this->noScriptScope = noScriptScope; }
     bool IsNoScriptScope() { return this->noScriptScope; }
 
-    Js::ScriptContext ** RegisterInlineCacheScriptContext(Js::ScriptContext * scriptContext);
-    Js::ScriptContext ** RegisterIsInstInlineCacheScriptContext(Js::ScriptContext * scriptContext);
     Js::EntryPointInfo ** RegisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo * entryPoint);
-    void UnregisterInlineCacheScriptContext(Js::ScriptContext ** scriptContext);
-    void UnregisterIsInstInlineCacheScriptContext(Js::ScriptContext ** scriptContext);
     void UnregisterEquivalentTypeCacheEntryPoint(Js::EntryPointInfo ** entryPoint);
     void RegisterProtoInlineCache(Js::InlineCache * inlineCache, Js::PropertyId propertyId);
     void RegisterStoreFieldInlineCache(Js::InlineCache * inlineCache, Js::PropertyId propertyId);
