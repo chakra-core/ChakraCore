@@ -19,6 +19,12 @@ var tests = [
         // Failure: (i >= 0 && i < symbolCount)
     }
   },
+  {
+    name: "OS5427497: Parser mistakes 'new.target' as in global function under -forceundodefer",
+    body: function () {
+        new.target;  // bug repro: SyntaxError: Invalid use of the 'new.target' keyword
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
