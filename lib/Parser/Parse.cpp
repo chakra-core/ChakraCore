@@ -6107,15 +6107,6 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     Error(ERRRestLastArg);
                 }
 
-                if (flags & fFncOneArg)
-                {
-                    if (m_token.tk != tkRParen)
-                    {
-                        Error(ERRSetterMustHaveOneParameter);
-                    }
-                    break; //enforce only one arg
-                }
-
                 if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
                 {
                     if (seenRestParameter && m_scriptContext->GetConfig()->IsES6RestEnabled())
@@ -6175,6 +6166,15 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
             if (isNonSimpleParameterList && m_currentScope->GetHasDuplicateFormals())
             {
                 Error(ERRFormalSame);
+            }
+
+            if (flags & fFncOneArg)
+            {
+                if (m_token.tk != tkRParen)
+                {
+                    Error(ERRSetterMustHaveOneParameter);
+                }
+                break; //enforce only one arg
             }
 
             if (m_token.tk != tkComma)

@@ -30,6 +30,22 @@ var tests = [
 
       assert.doesNotThrow(function f() { "use strict"; function g(a, b = 10) { } },           "Default arguments are allowed for functions which are already in strict mode");
       assert.doesNotThrow(function f(a, b, a, c) { return a + b + c; },                       "In non-strict mode duplicate parameters are allowed");
+      
+      assert.doesNotThrow(function () { var obj = { set f(a = 1) {} }; }, "Default parameters can be used with setters inside an object literal");
+      assert.doesNotThrow(function () { class c { set f(a = 1) {} }; }, "Default parameters can be used with setters inside a class");
+      assert.doesNotThrow(function () { var obj = { set f({a}) {} }; }, "Setter can have destructured param list");
+      assert.doesNotThrow(function () { var obj = { set f({a, b}) {} }; }, "Setter can have destructured param list with more than one parameter");
+      assert.doesNotThrow(function () { var obj = { set f([a, b]) {} }; }, "Setter can have destructured array pattern with more than one parameter");
+      assert.doesNotThrow(function () { var obj = { set f([a, ...b]) {} }; }, "Setter can have destructured array pattern with rest");
+      assert.throws(function () { eval("var obj = { set f(...a) {} };"); }, SyntaxError, "Rest parameter cannot be used with setters inside an object literal", "Unexpected ... operator");
+      assert.throws(function () { eval("var obj = { set f(a, b = 1) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, b) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, ...b) {} };") }, SyntaxError, "Setters can have only one parameter even if one of them is rest parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f(a = 1, {b}) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is destructured parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { set f({a}, b = 1) {} };"); }, SyntaxError, "Setters can have only one parameter even if one of them is default parameter", "Setter functions must have exactly one parameter");
+      assert.throws(function () { eval("var obj = { get f(a = 1) {} };"); }, SyntaxError, "Getter cannnot have any parameter even if it is default parameter", "Getter functions must have no parameters");
+      assert.throws(function () { eval("var obj = { get f(...a) {} };"); }, SyntaxError, "Getter cannot have any parameter even if it is rest parameter", "Getter functions must have no parameters");
+      assert.throws(function () { eval("var obj = { get f({a}) {} };"); }, SyntaxError, "Getter cannot have any parameter even if it is destructured parameter", "Getter functions must have no parameters");
 
       assert.throws(function () { eval("function foo(a *= 5)"); },                          SyntaxError, "Other assignment operators do not work");
 
