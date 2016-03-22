@@ -491,7 +491,7 @@ namespace TTD
             recordedSnapEntry->EnsureSnapshotDeserialized(this->m_logInfoRootDir.Contents, this->m_threadContext);
             const SnapShot* recordedSnap = recordedSnapEntry->GetSnapshot();
 
-            TTDCompareMap compareMap;
+            TTDCompareMap compareMap(this->m_threadContext);
             SnapShot::InitializeForSnapshotCompare(recordedSnap, snap, compareMap);
             SnapShot::DoSnapshotCompare(recordedSnap, snap, compareMap);
 

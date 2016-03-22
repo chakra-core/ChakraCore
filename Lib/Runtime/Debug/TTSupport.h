@@ -45,12 +45,6 @@
 #define TTD_TABLE_FACTORLOAD(C, P1, P2) else TTD_TABLE_FACTORLOAD_BASE(C, P1, P2)
 #define TTD_TABLE_FACTORLOAD_FINAL(C, P1, P2) else { *powerOf2 = C; *closePrime = P1; *midPrime = P2; }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-//An assert that we use in internal diagnostics that we can customize more if needed
-#define TTD_DIAGNOSTIC_ASSERT(X) AssertMsg(X, "Failed Diagnostic Assert!!!")
-#endif
-
-
 namespace TTD
 {
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)

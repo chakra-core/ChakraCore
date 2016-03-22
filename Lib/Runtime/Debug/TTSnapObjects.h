@@ -550,9 +550,9 @@ namespace TTD
         void SnapArrayInfo_ParseValue(TTDVar* into, FileReader* reader, SlabAllocator& alloc);
 
 #if ENABLE_SNAPSHOT_COMPARE 
-        void SnapArrayInfo_EquivValue(int32 val1, int32 val2, TTDCompareMap& compareMap);
-        void SnapArrayInfo_EquivValue(double val1, double val2, TTDCompareMap& compareMap);
-        void SnapArrayInfo_EquivValue(TTDVar val1, TTDVar val2, TTDCompareMap& compareMap);
+        void SnapArrayInfo_EquivValue(int32 val1, int32 val2, TTDCompareMap& compareMap, int32 i);
+        void SnapArrayInfo_EquivValue(double val1, double val2, TTDCompareMap& compareMap, int32 i);
+        void SnapArrayInfo_EquivValue(TTDVar val1, TTDVar val2, TTDCompareMap& compareMap, int32 i);
 #endif
 
         ////
@@ -683,7 +683,7 @@ namespace TTD
 
             if(arrayInfo1 == nullptr || arrayInfo2 == nullptr)
             {
-                TTD_DIAGNOSTIC_ASSERT(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
+                compareMap.DiagnosticAssert(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
             }
             else
             {
@@ -701,7 +701,7 @@ namespace TTD
                     AssertMsg(index2 < arrayInfo2->LastIndex, "This is a little strange but I am asserting just in case it is possible.");
                 }
 
-                TTD_DIAGNOSTIC_ASSERT(index1 == index2);
+                compareMap.DiagnosticAssert(index1 == index2);
 
                 while(arrayInfo1 != nullptr && arrayInfo2 != nullptr)
                 {
@@ -709,10 +709,10 @@ namespace TTD
                     uint32 pos1 = index1 - arrayInfo1->FirstIndex;
                     uint32 pos2 = index2 - arrayInfo1->FirstIndex;
 
-                    TTD_DIAGNOSTIC_ASSERT(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
+                    compareMap.DiagnosticAssert(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
                     if(arrayInfo1->ArrayValidTags[pos1])
                     {
-                        SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap);
+                        SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap, index1);
                     }
 
                     //advance global index and update segments as needed
@@ -730,7 +730,7 @@ namespace TTD
                 }
 
                 //make sure we are at end of both array segment lists
-                TTD_DIAGNOSTIC_ASSERT(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
+                compareMap.DiagnosticAssert(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
             }
         }
 #endif

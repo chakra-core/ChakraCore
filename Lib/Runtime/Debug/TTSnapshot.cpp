@@ -696,9 +696,9 @@ namespace TTD
         }
 
         //Make sure all objects/values have been matched
-        TTD_DIAGNOSTIC_ASSERT(comparedSlotArrays == snap1->m_slotArrayEntries.Count() && comparedSlotArrays == snap2->m_slotArrayEntries.Count());
-        TTD_DIAGNOSTIC_ASSERT(comparedScopes == snap1->m_scopeEntries.Count() && comparedScopes == snap2->m_scopeEntries.Count());
-        TTD_DIAGNOSTIC_ASSERT(comparedObjects == snap1->m_compoundObjectList.Count() && comparedObjects == snap2->m_compoundObjectList.Count());
+        compareMap.DiagnosticAssert(comparedSlotArrays == snap1->m_slotArrayEntries.Count() && comparedSlotArrays == snap2->m_slotArrayEntries.Count());
+        compareMap.DiagnosticAssert(comparedScopes == snap1->m_scopeEntries.Count() && comparedScopes == snap2->m_scopeEntries.Count());
+        compareMap.DiagnosticAssert(comparedObjects == snap1->m_compoundObjectList.Count() && comparedObjects == snap2->m_compoundObjectList.Count());
 
         //
         //TODO: if we missed something we may want to put code here to identify it

@@ -127,12 +127,58 @@ namespace TTD
     class TTDCompareMap;
     typedef void(*fPtr_AssertSnapEquivAddtlInfo)(const NSSnapObjects::SnapObject* v1, const NSSnapObjects::SnapObject* v2, TTDCompareMap& compareMap);
 
+    class TTDComparePath
+    {
+    public:
+        enum class StepKind
+        {
+            Empty,
+            Root,
+            PropertyData,
+            PropertyGetter,
+            PropertySetter,
+            Array,
+            Scope,
+            SlotArray,
+            FunctionBody,
+            Special,
+            SpecialArray
+        };
+
+        struct PathEntry
+        {
+            int64 IndexOrPID;
+            LPCWSTR OptName;
+        };
+
+    private:
+        const StepKind m_stepKind;
+        const TTDComparePath* m_prefix;
+        const PathEntry m_step;
+
+    public:
+        TTDComparePath();
+        TTDComparePath(const TTDComparePath* prefix, StepKind stepKind, const PathEntry& nextStep);
+
+        ~TTDComparePath();
+
+        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, wchar* namebuff) const;
+    };
+
     //A class that we use to manage all the dictionaries we need when comparing 2 snapshots
     class TTDCompareMap
     {
     public:
+
         JsUtil::Queue<TTD_PTR_ID, HeapAllocator> H1PtrIdWorklist;
         JsUtil::BaseDictionary<TTD_PTR_ID, TTD_PTR_ID, HeapAllocator> H1PtrToH2PtrMap;
+
+        TTDComparePath* CurrentPath;
+        TTD_PTR_ID CurrentH1Ptr;
+        TTD_PTR_ID CurrentH2Ptr;
+        ThreadContext* Context;
+        wchar* PathBuffer;
+        JsUtil::BaseDictionary<TTD_PTR_ID, TTDComparePath*, HeapAllocator> H1PtrToPathMap;
 
         fPtr_AssertSnapEquivAddtlInfo* SnapObjCmpVTable;
 
@@ -167,11 +213,19 @@ namespace TTD
         ////
         //Code
 
-        TTDCompareMap();
+        TTDCompareMap(ThreadContext* threadContext);
         ~TTDCompareMap();
 
+        //Assert the condition must be true and report if not
+        void DiagnosticAssert(bool condition);
+
         //Check that the given mapping either (1) does not exist or (2) is consistent -- if needed add the mapping and to worklist as well
-        void CheckConsistentAndAddPtrIdMapping(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
+        void CheckConsistentAndAddPtrIdMapping_Helper(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next);
+
+        void CheckConsistentAndAddPtrIdMapping_Scope(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, uint32 index);
+        void CheckConsistentAndAddPtrIdMapping_FunctionBody(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);
+        void CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, LPCWSTR specialField);
+        void CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_TAG tag);
 
         //Check if the given mapping is consistent but do not enqueue or try to lookup ptr id in any of the maps (used mainly for heap allocated promise info that may be shared)
         void CheckConsistentAndAddPtrIdMapping_NoEnqueue(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId);

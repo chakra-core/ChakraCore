@@ -220,41 +220,83 @@ namespace TTD
             return res;
         }
 
-#if ENABLE_SNAPSHOT_COMPARE 
-        void AssertSnapEquivTTDVar(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap)
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquivTTDVar_Helper(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next)
         {
             if(v1 == nullptr || v2 == nullptr)
             {
-                TTD_DIAGNOSTIC_ASSERT(v1 == v2);
+                compareMap.DiagnosticAssert(v1 == v2);
             }
             else if(Js::TaggedNumber::Is(v1) || Js::TaggedNumber::Is(v2))
             {
-                TTD_DIAGNOSTIC_ASSERT(Js::TaggedNumber::Is(v1) && Js::TaggedNumber::Is(v2));
+                compareMap.DiagnosticAssert(Js::TaggedNumber::Is(v1) && Js::TaggedNumber::Is(v2));
 
 #if FLOATVAR
                 if(Js::TaggedInt::Is(v1))
                 {
 #endif
-                    TTD_DIAGNOSTIC_ASSERT(Js::TaggedInt::ToInt32(v1) == Js::TaggedInt::ToInt32(v2));
+                    compareMap.DiagnosticAssert(Js::TaggedInt::ToInt32(v1) == Js::TaggedInt::ToInt32(v2));
 #if FLOATVAR
                 }
                 else
                 {
                     if(Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v1)) || Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v2)))
                     {
-                        TTD_DIAGNOSTIC_ASSERT(Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v1)) && Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v2)));
+                        compareMap.DiagnosticAssert(Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v1)) && Js::JavascriptNumber::IsNan(Js::JavascriptNumber::GetValue(v2)));
                     }
                     else
                     {
-                        TTD_DIAGNOSTIC_ASSERT(Js::JavascriptNumber::GetValue(v1) == Js::JavascriptNumber::GetValue(v2));
+                        compareMap.DiagnosticAssert(Js::JavascriptNumber::GetValue(v1) == Js::JavascriptNumber::GetValue(v2));
                     }
                 }
 #endif
             }
             else
             {
-                compareMap.CheckConsistentAndAddPtrIdMapping(TTD_CONVERT_VAR_TO_PTR_ID(v1), TTD_CONVERT_VAR_TO_PTR_ID(v2));
+                compareMap.CheckConsistentAndAddPtrIdMapping_Helper(TTD_CONVERT_VAR_TO_PTR_ID(v1), TTD_CONVERT_VAR_TO_PTR_ID(v2), stepKind, next);
             }
+        }
+
+        void AssertSnapEquivTTDVar_Property(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, Js::PropertyId pid)
+        {
+            TTDComparePath::PathEntry next{ (uint32)pid, nullptr };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::PropertyData, next);
+        }
+
+        void AssertSnapEquivTTDVar_PropertyGetter(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, Js::PropertyId pid)
+        {
+            TTDComparePath::PathEntry next{ (uint32)pid, nullptr };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::PropertyGetter, next);
+        }
+
+        void AssertSnapEquivTTDVar_PropertySetter(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, Js::PropertyId pid)
+        {
+            TTDComparePath::PathEntry next{ (uint32)pid, nullptr };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::PropertySetter, next);
+        }
+
+        void AssertSnapEquivTTDVar_Array(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, uint32 index)
+        {
+            TTDComparePath::PathEntry next{ index, nullptr };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::Array, next);
+        }
+
+        void AssertSnapEquivTTDVar_SlotArray(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, uint32 index)
+        {
+            TTDComparePath::PathEntry next{ index, nullptr };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::SlotArray, next);
+        }
+
+        void AssertSnapEquivTTDVar_Special(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, LPCWSTR specialField)
+        {
+            TTDComparePath::PathEntry next{ -1, specialField };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::Special, next);
+        }
+
+        void AssertSnapEquivTTDVar_SpecialArray(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, LPCWSTR specialField, uint32 index)
+        {
+            TTDComparePath::PathEntry next{ index, specialField };
+            AssertSnapEquivTTDVar_Helper(v1, v2, compareMap, TTDComparePath::StepKind::SpecialArray, next);
         }
 #endif
 
@@ -468,15 +510,15 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SnapPrimitiveValue* v1, const SnapPrimitiveValue* v2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(v1->SnapType->JsTypeId == v2->SnapType->JsTypeId);
-            TTD_DIAGNOSTIC_ASSERT(v1->ValueLogTag == v2->ValueLogTag);
+            compareMap.DiagnosticAssert(v1->SnapType->JsTypeId == v2->SnapType->JsTypeId);
+            compareMap.DiagnosticAssert(v1->ValueLogTag == v2->ValueLogTag);
 
             NSSnapType::AssertSnapEquiv(v1->SnapType, v2->SnapType, compareMap);
 
             if(v1->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN || v2->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
             {
-                TTD_DIAGNOSTIC_ASSERT(v1->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN && v2->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN);
-                TTD_DIAGNOSTIC_ASSERT(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(v1->OptWellKnownToken, v2->OptWellKnownToken));
+                compareMap.DiagnosticAssert(v1->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN && v2->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN);
+                compareMap.DiagnosticAssert(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(v1->OptWellKnownToken, v2->OptWellKnownToken));
             }
             else
             {
@@ -486,22 +528,22 @@ namespace TTD
                 case Js::TypeIds_Null:
                     break;
                 case Js::TypeIds_Boolean:
-                    TTD_DIAGNOSTIC_ASSERT((v1->u_boolValue ? true : false) == (v2->u_boolValue ? true : false));
+                    compareMap.DiagnosticAssert((v1->u_boolValue ? true : false) == (v2->u_boolValue ? true : false));
                     break;
                 case Js::TypeIds_Number:
-                    TTD_DIAGNOSTIC_ASSERT(v1->u_doubleValue == v2->u_doubleValue); //This may be problematic wrt. precise FP values
+                    compareMap.DiagnosticAssert(v1->u_doubleValue == v2->u_doubleValue); //This may be problematic wrt. precise FP values
                     break;
                 case Js::TypeIds_Int64Number:
-                    TTD_DIAGNOSTIC_ASSERT(v1->u_int64Value == v2->u_int64Value);
+                    compareMap.DiagnosticAssert(v1->u_int64Value == v2->u_int64Value);
                     break;
                 case Js::TypeIds_UInt64Number:
-                    TTD_DIAGNOSTIC_ASSERT(v1->u_uint64Value == v2->u_uint64Value);
+                    compareMap.DiagnosticAssert(v1->u_uint64Value == v2->u_uint64Value);
                     break;
                 case Js::TypeIds_String:
-                    TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(*(v1->m_optStringValue), *(v2->m_optStringValue)));
+                    compareMap.DiagnosticAssert(TTStringEQForDiagnostics(*(v1->m_optStringValue), *(v2->m_optStringValue)));
                     break;
                 case Js::TypeIds_Symbol:
-                    TTD_DIAGNOSTIC_ASSERT(v1->u_propertyIdValue == v2->u_propertyIdValue);
+                    compareMap.DiagnosticAssert(v1->u_propertyIdValue == v2->u_propertyIdValue);
                     break;
                 default:
                     AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
@@ -640,26 +682,26 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SlotArrayInfo* sai1, const SlotArrayInfo* sai2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(sai1->ScriptContextTag == sai2->ScriptContextTag);
+            compareMap.DiagnosticAssert(sai1->ScriptContextTag == sai2->ScriptContextTag);
 
-            TTD_DIAGNOSTIC_ASSERT(sai1->isFunctionBodyMetaData == sai2->isFunctionBodyMetaData);
+            compareMap.DiagnosticAssert(sai1->isFunctionBodyMetaData == sai2->isFunctionBodyMetaData);
             if(sai1->isFunctionBodyMetaData)
             {
-                compareMap.CheckConsistentAndAddPtrIdMapping(sai1->OptFunctionBodyId, sai2->OptFunctionBodyId);
+                compareMap.CheckConsistentAndAddPtrIdMapping_FunctionBody(sai1->OptFunctionBodyId, sai2->OptFunctionBodyId);
             }
             else
             {
                 //TODO: emit debugger scope metadata
             }
 
-            TTD_DIAGNOSTIC_ASSERT(sai1->SlotCount == sai2->SlotCount);
+            compareMap.DiagnosticAssert(sai1->SlotCount == sai2->SlotCount);
             for(uint32 i = 0; i < sai1->SlotCount; ++i)
             {
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                TTD_DIAGNOSTIC_ASSERT(sai1->DebugPIDArray[i] == sai2->DebugPIDArray[i]);
+                compareMap.DiagnosticAssert(sai1->DebugPIDArray[i] == sai2->DebugPIDArray[i]);
 #endif
 
-                AssertSnapEquivTTDVar(sai1->Slots[i], sai2->Slots[i], compareMap);
+                AssertSnapEquivTTDVar_SlotArray(sai1->Slots[i], sai2->Slots[i], compareMap, i);
             }
         }
 #endif
@@ -752,13 +794,13 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const ScriptFunctionScopeInfo* funcScopeInfo1, const ScriptFunctionScopeInfo* funcScopeInfo2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(funcScopeInfo1->ScriptContextTag == funcScopeInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(funcScopeInfo1->ScriptContextTag == funcScopeInfo2->ScriptContextTag);
 
-            TTD_DIAGNOSTIC_ASSERT(funcScopeInfo1->ScopeCount == funcScopeInfo2->ScopeCount);
+            compareMap.DiagnosticAssert(funcScopeInfo1->ScopeCount == funcScopeInfo2->ScopeCount);
             for(uint32 i = 0; i < funcScopeInfo1->ScopeCount; ++i)
             {
-                TTD_DIAGNOSTIC_ASSERT(funcScopeInfo1->ScopeArray[i].Tag == funcScopeInfo2->ScopeArray[i].Tag);
-                compareMap.CheckConsistentAndAddPtrIdMapping(funcScopeInfo1->ScopeArray[i].IDValue, funcScopeInfo2->ScopeArray[i].IDValue);
+                compareMap.DiagnosticAssert(funcScopeInfo1->ScopeArray[i].Tag == funcScopeInfo2->ScopeArray[i].Tag);
+                compareMap.CheckConsistentAndAddPtrIdMapping_Scope(funcScopeInfo1->ScopeArray[i].IDValue, funcScopeInfo2->ScopeArray[i].IDValue, i);
             }
         }
 #endif
@@ -816,9 +858,9 @@ namespace TTD
         {
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(capabilityInfo1->CapabilityId, capabilityInfo2->CapabilityId);
 
-            AssertSnapEquivTTDVar(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap);
-            compareMap.CheckConsistentAndAddPtrIdMapping(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId);
-            compareMap.CheckConsistentAndAddPtrIdMapping(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId);
+            AssertSnapEquivTTDVar_Special(capabilityInfo1->PromiseVar, capabilityInfo2->PromiseVar, compareMap, L"promiseVar");
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->ResolveObjId, capabilityInfo2->ResolveObjId, L"resolveObjId");
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(capabilityInfo1->RejectObjId, capabilityInfo2->RejectObjId, L"rejectObjId");
         }
 #endif
 
@@ -867,7 +909,7 @@ namespace TTD
         {
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(reactionInfo1->PromiseReactionId, reactionInfo2->PromiseReactionId);
 
-            compareMap.CheckConsistentAndAddPtrIdMapping(reactionInfo1->HandlerObjId, reactionInfo2->HandlerObjId);
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(reactionInfo1->HandlerObjId, reactionInfo2->HandlerObjId, L"handlerObjId");
             AssertSnapEquiv(&(reactionInfo1->Capabilities), &(reactionInfo2->Capabilities), compareMap);
         }
 #endif
@@ -969,18 +1011,18 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelCommonBodyResolveInfo* fbInfo1, const TopLevelCommonBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
-            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
+            compareMap.DiagnosticAssert(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
             //
             //TODO: we don't force documentids to be the same accross re-inflate yet but when we do we should check this as well
             //
             //TTD_DIAGNOSTIC_ASSERT(fbInfo1->DocumentID, fbInfo2->DocumentID);
 
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->ModuleId == fbInfo2->ModuleId);
+            compareMap.DiagnosticAssert(fbInfo1->ModuleId == fbInfo2->ModuleId);
 
-            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(fbInfo1->SourceUri, fbInfo2->SourceUri));
-            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(fbInfo1->SourceCode, fbInfo2->SourceCode));
+            compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->SourceUri, fbInfo2->SourceUri));
+            compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->SourceCode, fbInfo2->SourceCode));
         }
 #endif
 
@@ -1079,7 +1121,7 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo1, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->LoadFlag == fbInfo2->LoadFlag);
+            compareMap.DiagnosticAssert(fbInfo1->LoadFlag == fbInfo2->LoadFlag);
 
             AssertSnapEquiv(&(fbInfo1->TopLevelBase), &(fbInfo2->TopLevelBase), compareMap);
         }
@@ -1237,10 +1279,10 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const TopLevelEvalFunctionBodyResolveInfo* fbInfo1, const TopLevelEvalFunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->EvalFlags == fbInfo2->EvalFlags);
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->RegisterDocument == fbInfo2->RegisterDocument);
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->IsIndirect == fbInfo2->IsIndirect);
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->IsStrictMode == fbInfo2->IsStrictMode);
+            compareMap.DiagnosticAssert(fbInfo1->EvalFlags == fbInfo2->EvalFlags);
+            compareMap.DiagnosticAssert(fbInfo1->RegisterDocument == fbInfo2->RegisterDocument);
+            compareMap.DiagnosticAssert(fbInfo1->IsIndirect == fbInfo2->IsIndirect);
+            compareMap.DiagnosticAssert(fbInfo1->IsStrictMode == fbInfo2->IsStrictMode);
 
             AssertSnapEquiv(&(fbInfo1->TopLevelBase), &(fbInfo2->TopLevelBase), compareMap);
         }
@@ -1422,16 +1464,16 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const FunctionBodyResolveInfo* fbInfo1, const FunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
-            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
+            compareMap.DiagnosticAssert(fbInfo1->ScriptContextTag == fbInfo2->ScriptContextTag);
+            compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
-            TTD_DIAGNOSTIC_ASSERT(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(fbInfo1->OptKnownPath, fbInfo2->OptKnownPath));
+            compareMap.DiagnosticAssert(TTD_DIAGNOSTIC_COMPARE_WELLKNOWN_TOKENS(fbInfo1->OptKnownPath, fbInfo2->OptKnownPath));
             if(fbInfo1->OptKnownPath == TTD_INVALID_WELLKNOWN_TOKEN)
             {
-                compareMap.CheckConsistentAndAddPtrIdMapping(fbInfo1->OptParentBodyId, fbInfo2->OptParentBodyId);
+                compareMap.CheckConsistentAndAddPtrIdMapping_FunctionBody(fbInfo1->OptParentBodyId, fbInfo2->OptParentBodyId);
 
-                TTD_DIAGNOSTIC_ASSERT(fbInfo1->OptLine == fbInfo2->OptLine);
-                TTD_DIAGNOSTIC_ASSERT(fbInfo1->OptColumn == fbInfo2->OptColumn);
+                compareMap.DiagnosticAssert(fbInfo1->OptLine == fbInfo2->OptLine);
+                compareMap.DiagnosticAssert(fbInfo1->OptColumn == fbInfo2->OptColumn);
             }
         }
 #endif
@@ -1641,28 +1683,28 @@ namespace TTD
 #if ENABLE_SNAPSHOT_COMPARE 
         void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, TTDCompareMap& compareMap)
         {
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_scriptContextTagId == snapCtx2->m_scriptContextTagId);
+            compareMap.DiagnosticAssert(snapCtx1->m_scriptContextTagId == snapCtx2->m_scriptContextTagId);
 
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_randomSeed0 == snapCtx2->m_randomSeed0);
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_randomSeed1 == snapCtx2->m_randomSeed1);
+            compareMap.DiagnosticAssert(snapCtx1->m_randomSeed0 == snapCtx2->m_randomSeed0);
+            compareMap.DiagnosticAssert(snapCtx1->m_randomSeed1 == snapCtx2->m_randomSeed1);
 
-            TTD_DIAGNOSTIC_ASSERT(TTStringEQForDiagnostics(snapCtx1->m_contextSRC, snapCtx2->m_contextSRC));
+            compareMap.DiagnosticAssert(TTStringEQForDiagnostics(snapCtx1->m_contextSRC, snapCtx2->m_contextSRC));
 
             //
             //TODO: Once loaded script has a unique identifier we can match (e.g. documentId) then we should match here.
             //      For now just sanity check the number of top-level functions and let the FunctionBody matching drive any matching.
             //
 
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_loadedScriptCount == snapCtx2->m_loadedScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_loadedScriptCount == snapCtx2->m_loadedScriptCount);
             //TopLevelScriptLoadFunctionBodyResolveInfo* m_loadedScriptArray;
 
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_newScriptCount == snapCtx2->m_newScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_newScriptCount == snapCtx2->m_newScriptCount);
             //TopLevelNewFunctionBodyResolveInfo* m_newScriptArray;
 
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_evalScriptCount == snapCtx2->m_evalScriptCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_evalScriptCount == snapCtx2->m_evalScriptCount);
             //TopLevelEvalFunctionBodyResolveInfo* m_evalScriptArray;
 
-            TTD_DIAGNOSTIC_ASSERT(snapCtx1->m_rootCount == snapCtx2->m_rootCount);
+            compareMap.DiagnosticAssert(snapCtx1->m_rootCount == snapCtx2->m_rootCount);
 
             JsUtil::BaseDictionary<TTD_LOG_TAG, TTD_PTR_ID, HeapAllocator> rootMap1(&HeapAllocator::Instance);
             for(uint32 i = 0; i < snapCtx1->m_rootCount; ++i)
@@ -1682,7 +1724,7 @@ namespace TTD
                 TTD_PTR_ID h1PtrId = rootMap1.Lookup(h2LogTag, TTD_INVALID_PTR_ID);
                 AssertMsg(h1PtrId != TTD_INVALID_PTR_ID, "Missing pointer id!!!");
 
-                compareMap.CheckConsistentAndAddPtrIdMapping(h1PtrId, h2PtrId);
+                compareMap.CheckConsistentAndAddPtrIdMapping_Root(h1PtrId, h2PtrId, h2LogTag);
             }
         }
 #endif

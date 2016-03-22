@@ -252,8 +252,86 @@ namespace TTD
 
     //////////////////
 #if ENABLE_SNAPSHOT_COMPARE
-    TTDCompareMap::TTDCompareMap()
-        : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr),
+    TTDComparePath::TTDComparePath()
+        : m_prefix(nullptr), m_stepKind(StepKind::Empty), m_step()
+    {
+        ;
+    }
+
+    TTDComparePath::TTDComparePath(const TTDComparePath* prefix, StepKind stepKind, const PathEntry& nextStep)
+        : m_prefix(prefix), m_stepKind(stepKind), m_step(nextStep)
+    {
+        ;
+    }
+
+    TTDComparePath::~TTDComparePath()
+    {
+        ;
+    }
+
+    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, wchar* namebuff) const
+    {
+        if(this->m_prefix != nullptr)
+        {
+            this->m_prefix->WritePathToConsole(threadContext, false, namebuff);
+        }
+
+        if(this->m_stepKind == StepKind::PropertyData || this->m_stepKind == StepKind::PropertyGetter || this->m_stepKind == StepKind::PropertySetter)
+        {
+            const Js::PropertyRecord* pRecord = threadContext->GetPropertyName((Js::PropertyId)this->m_step.IndexOrPID);
+            js_memcpy_s(namebuff, 256, pRecord->GetBuffer(), pRecord->GetLength());
+            namebuff[pRecord->GetLength()] = L'\0';
+        }
+
+        bool isFirst = (this->m_prefix == nullptr);
+        switch(this->m_stepKind)
+        {
+        case StepKind::Empty:
+            break;
+        case StepKind::Root:
+            wprintf(L"root#%I64i", this->m_step.IndexOrPID);
+            break;
+        case StepKind::PropertyData:
+            wprintf(L"%ls%ls", (isFirst ? L"" : L"."), namebuff);
+            break;
+        case StepKind::PropertyGetter:
+            wprintf(L"%ls<%ls", (isFirst ? L"" : L"."), namebuff);
+            break;
+        case StepKind::PropertySetter:
+            wprintf(L"%ls>%ls", (isFirst ? L"" : L"."), namebuff);
+            break;
+        case StepKind::Array:
+            wprintf(L"[%I64i]", this->m_step.IndexOrPID);
+            break;
+        case StepKind::Scope:
+            wprintf(L"%ls_scope[%I64i]", (isFirst ? L"" : L"."), this->m_step.IndexOrPID);
+            break;
+        case StepKind::SlotArray:
+            wprintf(L"%ls_slots[%I64i]", (isFirst ? L"" : L"."), this->m_step.IndexOrPID);
+            break;
+        case StepKind::FunctionBody:
+            wprintf(L"%ls%ls", (isFirst ? L"" : L"."), this->m_step.OptName);
+            break;
+        case StepKind::Special:
+            wprintf(L"%ls_%ls", (isFirst ? L"" : L"."), this->m_step.OptName);
+            break;
+        case StepKind::SpecialArray:
+            wprintf(L"%ls_%ls[%I64i]", (isFirst ? L"" : L"."), this->m_step.OptName, this->m_step.IndexOrPID);
+            break;
+        default:
+            AssertMsg(false, "Unknown tag in switch statement!!!");
+            break;
+        }
+
+        if(printNewline)
+        {
+            wprintf(L"\n");
+        }
+    }
+
+    TTDCompareMap::TTDCompareMap(ThreadContext* threadContext)
+        : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
+        CurrentPath(nullptr), CurrentH1Ptr(TTD_INVALID_PTR_ID), CurrentH2Ptr(TTD_INVALID_PTR_ID), Context(threadContext),
         //
         H1TagMap(&HeapAllocator::Instance), 
         H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
@@ -265,6 +343,8 @@ namespace TTD
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance)
     {
+        this->PathBuffer = HeapNewArrayZ(wchar, 256);
+
         this->SnapObjCmpVTable = HeapNewArrayZ(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
 
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapScriptFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapScriptFunctionInfo;
@@ -290,22 +370,45 @@ namespace TTD
 
     TTDCompareMap::~TTDCompareMap()
     {
+        HeapDeleteArray(256, this->PathBuffer);
+
         HeapDeleteArray((int32)NSSnapObjects::SnapObjectType::Limit, this->SnapObjCmpVTable);
+
+        //delete all the compare paths
+        for(auto iter = this->H1PtrToPathMap.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            HeapDelete(iter.CurrentValue());
+        }
     }
 
-    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
+    void TTDCompareMap::DiagnosticAssert(bool condition)
+    {
+        if(!condition)
+        {
+            if(this->CurrentPath != nullptr)
+            {
+                wprintf(L"Snap1 ptrid: *0x%I64x\n", this->CurrentH1Ptr);
+                wprintf(L"Snap2 ptrid: *0x%I64x\n", this->CurrentH2Ptr);
+                this->CurrentPath->WritePathToConsole(this->Context, true, this->PathBuffer);
+            }
+        }
+
+        AssertMsg(condition, "Diagnostic compare assertion failed!!!");
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Helper(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next)
     {
         if(h1PtrId == TTD_INVALID_PTR_ID || h2PtrId == TTD_INVALID_PTR_ID)
         {
-            TTD_DIAGNOSTIC_ASSERT(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
+            this->DiagnosticAssert(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            TTD_DIAGNOSTIC_ASSERT(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
         }
         else if(this->H1ValueMap.ContainsKey(h1PtrId))
         {
-            TTD_DIAGNOSTIC_ASSERT(this->H2ValueMap.ContainsKey(h2PtrId));
+            this->DiagnosticAssert(this->H2ValueMap.ContainsKey(h2PtrId));
 
             const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Lookup(h1PtrId, nullptr);
             const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Lookup(h2PtrId, nullptr);
@@ -314,19 +417,47 @@ namespace TTD
         else
         {
             this->H1PtrIdWorklist.Enqueue(h1PtrId);
+
+            TTDComparePath* objPath = HeapNew(TTDComparePath, this->CurrentPath, stepKind, next);
+            this->H1PtrToPathMap.AddNew(h1PtrId, objPath);
+
             this->H1PtrToH2PtrMap.AddNew(h1PtrId, h2PtrId);
         }
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Scope(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, uint32 index)
+    {
+        TTDComparePath::PathEntry next{ index, nullptr };
+        this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Scope, next);
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_FunctionBody(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
+    {
+        TTDComparePath::PathEntry next{ -1, L"!body" };
+        this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::FunctionBody, next);
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Special(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, LPCWSTR specialField)
+    {
+        TTDComparePath::PathEntry next{ -1, specialField };
+        this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Special, next);
+    }
+
+    void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Root(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTD_LOG_TAG tag)
+    {
+        TTDComparePath::PathEntry next{ (uint32)tag, nullptr };
+        this->CheckConsistentAndAddPtrIdMapping_Helper(h1PtrId, h2PtrId, TTDComparePath::StepKind::Root, next);
     }
 
     void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_NoEnqueue(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId)
     {
         if(h1PtrId == TTD_INVALID_PTR_ID || h2PtrId == TTD_INVALID_PTR_ID)
         {
-            TTD_DIAGNOSTIC_ASSERT(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
+            this->DiagnosticAssert(h1PtrId == TTD_INVALID_PTR_ID && h2PtrId == TTD_INVALID_PTR_ID);
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            TTD_DIAGNOSTIC_ASSERT(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
         }
         else
         {
@@ -348,39 +479,43 @@ namespace TTD
             *h2PtrId = this->H1PtrToH2PtrMap.Lookup(*h1PtrId, TTD_INVALID_PTR_ID);
             AssertMsg(*h2PtrId != TTD_INVALID_PTR_ID, "Id not mapped!!!");
 
+            this->CurrentPath = this->H1PtrToPathMap.Lookup(*h1PtrId, nullptr);
+            this->CurrentH1Ptr = *h1PtrId;
+            this->CurrentH2Ptr = *h2PtrId;
+
             if(this->H1SlotArrayMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2SlotArrayMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2SlotArrayMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::SlotArray;
             }
             else if(this->H1FunctionScopeInfoMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionScopeInfoMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2FunctionScopeInfoMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::FunctionScopeInfo;
             }
             else if(this->H1FunctionTopLevelLoadMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelLoadMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2FunctionTopLevelLoadMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::TopLevelLoadFunction;
             }
             else if(this->H1FunctionTopLevelNewMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelNewMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2FunctionTopLevelNewMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::TopLevelNewFunction;
             }
             else if(this->H1FunctionTopLevelEvalMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionTopLevelEvalMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2FunctionTopLevelEvalMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::TopLevelEvalFunction;
             }
             else if(this->H1FunctionBodyMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2FunctionBodyMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2FunctionBodyMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::FunctionBody;
             }
             else if(this->H1ObjectMap.ContainsKey(*h1PtrId))
             {
-                TTD_DIAGNOSTIC_ASSERT(this->H2ObjectMap.ContainsKey(*h2PtrId));
+                this->DiagnosticAssert(this->H2ObjectMap.ContainsKey(*h2PtrId));
                 *tag = TTDCompareTag::SnapObject;
             }
             else
