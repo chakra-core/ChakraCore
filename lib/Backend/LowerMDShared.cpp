@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "Backend.h"
 #include "Language/JavascriptFunctionArgIndex.h"
 
@@ -807,6 +808,38 @@ LowererMD::LowerRet(IR::Instr * retInstr)
         {
             regType = TySimd128I4;
         }
+        else if (asmType.which() == Js::AsmJsRetType::Int16x8)
+        {
+            regType = TySimd128I8;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Int8x16)
+        {
+            regType = TySimd128I16;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Uint32x4)
+        {
+            regType = TySimd128U4;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Uint16x8)
+        {
+            regType = TySimd128U8;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Uint8x16)
+        {
+            regType = TySimd128U16;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool32x4)
+        {
+            regType = TySimd128B4;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool16x8)
+        {
+            regType = TySimd128B8;
+        }
+        else if (asmType.which() == Js::AsmJsRetType::Bool8x16)
+        {
+            regType = TySimd128B16;
+        }
         else if (asmType.which() == Js::AsmJsRetType::Float64x2)
         {
             regType = TySimd128D2;
@@ -822,10 +855,6 @@ LowererMD::LowerRet(IR::Instr * retInstr)
     {
         retReg = IR::RegOpnd::New(nullptr, lowererMDArch.GetRegReturn(TyMachReg), TyMachReg, m_func);
     }
-
-
-
-
 
     retInstr->SetDst(retReg);
 
@@ -1550,13 +1579,35 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::MINPS:
         case Js::OpCode::MULPS:
         case Js::OpCode::ORPS:
+        case Js::OpCode::PADDB:
+        case Js::OpCode::PADDSB:
         case Js::OpCode::PADDD:
+        case Js::OpCode::PADDW:
+        case Js::OpCode::PADDSW:
+        case Js::OpCode::PADDUSB:
+        case Js::OpCode::PADDUSW:
         case Js::OpCode::PAND:
+        case Js::OpCode::PANDN:
+        case Js::OpCode::PCMPEQB:
         case Js::OpCode::PCMPEQD:
+        case Js::OpCode::PCMPEQW:
+        case Js::OpCode::PCMPGTB:
+        case Js::OpCode::PCMPGTW:
         case Js::OpCode::PCMPGTD:
+        case Js::OpCode::PMAXSW:
+        case Js::OpCode::PMAXUB:
+        case Js::OpCode::PMINSW:
+        case Js::OpCode::PMINUB:
+        case Js::OpCode::PMULLW:
         case Js::OpCode::PMULUDQ:
         case Js::OpCode::POR:
+        case Js::OpCode::PSUBB:
+        case Js::OpCode::PSUBSB:
         case Js::OpCode::PSUBD:
+        case Js::OpCode::PSUBW:
+        case Js::OpCode::PSUBSW:
+        case Js::OpCode::PSUBUSB:
+        case Js::OpCode::PSUBUSW:
         case Js::OpCode::PXOR:
         case Js::OpCode::SUBPS:
         case Js::OpCode::XORPS:
@@ -1568,7 +1619,9 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::CMPLEPD:
         case Js::OpCode::CMPEQPD:
         case Js::OpCode::CMPNEQPD:
+        case Js::OpCode::PUNPCKLBW:
         case Js::OpCode::PUNPCKLDQ:
+        case Js::OpCode::PUNPCKLWD:
 
             MakeDstEquSrc1<verify>(instr);
             LegalizeOpnds<verify>(
@@ -1628,17 +1681,22 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             Assert(instr->GetSrc1()->IsIndirOpnd() || instr->GetSrc1()->IsSymOpnd());
             Assert(!instr->GetSrc2());
             break;
-
-
         case Js::OpCode::PSRLDQ:
         case Js::OpCode::PSLLDQ:
+        case Js::OpCode::PSRLW:
+        case Js::OpCode::PSRLD:
+        case Js::OpCode::PSRAW:
+        case Js::OpCode::PSRAD:
+        case Js::OpCode::PSLLW:
+        case Js::OpCode::PSLLD:
+
             Assert(AutoSystemInfo::Data.SSE2Available());
             MakeDstEquSrc1<verify>(instr);
             LegalizeOpnds<verify>(
                 instr,
                 L_Reg,
                 L_Reg,
-                L_Imm32);
+                L_Reg | L_Imm32);
             break;
 
         case Js::OpCode::ROUNDSD:

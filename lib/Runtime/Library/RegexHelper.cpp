@@ -629,8 +629,38 @@ namespace Js
         return result;
     }
 
+    Var RegexHelper::RegexTest(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString *input)
+    {
+        if (scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+            && IsRegexTestObservable(thisObj, scriptContext))
+        {
+            return RegexEs6TestImpl(scriptContext, thisObj, input);
+        }
+        else
+        {
+            JavascriptRegExp* regularExpression =
+                JavascriptRegExp::ToRegExp(thisObj, _u("RegExp.prototype.test"), scriptContext);
+            return RegexEs5TestImpl(scriptContext, regularExpression, input);
+        }
+    }
+
+    bool RegexHelper::IsRegexTestObservable(RecyclableObject* instance, ScriptContext* scriptContext)
+    {
+        DynamicObject* regexPrototype = scriptContext->GetLibrary()->GetRegExpPrototype();
+        return !JavascriptRegExp::HasOriginalRegExType(instance)
+            || JavascriptRegExp::HasObservableExec(regexPrototype)
+            || JavascriptRegExp::HasObservableGlobalFlag(regexPrototype)
+            || JavascriptRegExp::HasObservableStickyFlag(regexPrototype);
+    }
+
+    Var RegexHelper::RegexEs6TestImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString *input)
+    {
+        Var match = JavascriptRegExp::CallExec(thisObj, input, _u("RegExp.prototype.test"), scriptContext);
+        return JavascriptBoolean::ToVar(!JavascriptOperators::IsNull(match), scriptContext);
+    }
+
     // RegExp.prototype.test (ES5 15.10.6.3)
-    BOOL RegexHelper::RegexTest(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input)
+    Var RegexHelper::RegexEs5TestImpl(ScriptContext* scriptContext, JavascriptRegExp *regularExpression, JavascriptString *input)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
         const char16* inputStr = input->GetString();
@@ -654,7 +684,7 @@ namespace Js
         // else: match remains undefined
         PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, match, match, true, true);
 
-        return !match.IsUndefined();
+        return JavascriptBoolean::ToVar(!match.IsUndefined(), scriptContext);
     }
 
     template<typename GroupFn>
@@ -905,40 +935,41 @@ namespace Js
 
         JavascriptString* accumulatedResult = nullptr;
 
-        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
+        Recycler* recycler = scriptContext->GetRecycler();
+
+        JsUtil::List<RecyclableObject*>* results = RecyclerNew(recycler, JsUtil::List<RecyclableObject*>, recycler);
+
+        while (true)
         {
-            JsUtil::List<RecyclableObject*, ArenaAllocator>* results =
-                JsUtil::List<RecyclableObject*, ArenaAllocator>::New(tempAlloc);
-
-            while (true)
+            PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
+            Var result = JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
+            if (JavascriptOperators::IsNull(result))
             {
-                PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
-                Var result = JavascriptRegExp::CallExec(thisObj, input, varName, scriptContext);
-                if (JavascriptOperators::IsNull(result))
-                {
-                    break;
-                }
-
-                RecyclableObject* resultObj = ExecResultToRecyclableObject(result);
-
-                results->Add(resultObj);
-
-                if (!global)
-                {
-                    break;
-                }
-
-                JavascriptString* matchStr = GetMatchStrFromResult(resultObj, scriptContext);
-                AdvanceLastIndex(thisObj, input, matchStr, unicode, scriptContext);
+                break;
             }
 
-            CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> accumulatedResultBuilder(scriptContext);
-            CharCount inputLength = input->GetLength();
-            CharCount nextSourcePosition = 0;
+            RecyclableObject* resultObj = ExecResultToRecyclableObject(result);
 
-            size_t previousNumberOfCapturesToKeep = 0;
-            Var* captures = nullptr;
+            results->Add(resultObj);
 
+            if (!global)
+            {
+                break;
+            }
+
+            JavascriptString* matchStr = GetMatchStrFromResult(resultObj, scriptContext);
+            AdvanceLastIndex(thisObj, input, matchStr, unicode, scriptContext);
+        }
+
+        CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)> accumulatedResultBuilder(scriptContext);
+        CharCount inputLength = input->GetLength();
+        CharCount nextSourcePosition = 0;
+
+        size_t previousNumberOfCapturesToKeep = 0;
+        Var* captures = nullptr;
+
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
+        {
             results->Map([&](int i, RecyclableObject* resultObj) {
                 int64 length = JavascriptConversion::ToLength(
                     JavascriptOperators::GetProperty(resultObj, PropertyIds::length, scriptContext),
@@ -959,13 +990,13 @@ namespace Js
                 size_t numberOfCapturesToKeep = (size_t) min(numberOfCaptures, maxNumberOfCaptures);
                 if (captures == nullptr)
                 {
-                    captures = AnewArray(tempAlloc, Var, numberOfCapturesToKeep + 1);
+                    captures = RecyclerNewArray(recycler, Var, numberOfCapturesToKeep + 1);
                 }
                 else if (numberOfCapturesToKeep != previousNumberOfCapturesToKeep)
                 {
                     size_t existingBytes = (previousNumberOfCapturesToKeep + 1) * sizeof(Var*);
                     size_t requestedBytes = (numberOfCapturesToKeep + 1) * sizeof(Var*);
-                    captures = (Var*) tempAlloc->Realloc(captures, existingBytes, requestedBytes);
+                    captures = (Var*) recycler->Realloc(captures, existingBytes, requestedBytes);
                 }
                 previousNumberOfCapturesToKeep = numberOfCapturesToKeep;
 
@@ -993,16 +1024,16 @@ namespace Js
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }
             });
-
-            if (nextSourcePosition < inputLength)
-            {
-                CharCount substringLength = inputLength - nextSourcePosition;
-                accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
-            }
-
-            accumulatedResult =  accumulatedResultBuilder.ToString();
         }
         END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+
+        if (nextSourcePosition < inputLength)
+        {
+            CharCount substringLength = inputLength - nextSourcePosition;
+            accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
+        }
+
+        accumulatedResult =  accumulatedResultBuilder.ToString();
 
         Assert(accumulatedResult != nullptr);
         return accumulatedResult;

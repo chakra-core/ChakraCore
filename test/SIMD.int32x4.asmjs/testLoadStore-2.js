@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
@@ -9,8 +10,7 @@ function asmModule(stdlib, imports, buffer) {
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
-    var i4fromFloat64x2 = i4.fromFloat64x2;
-    var i4fromFloat64x2Bits = i4.fromFloat64x2Bits;
+    
     var i4fromFloat32x4 = i4.fromFloat32x4;
     var i4fromFloat32x4Bits = i4.fromFloat32x4Bits;
     //var i4abs = i4.abs;
@@ -44,8 +44,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4 = stdlib.SIMD.Float32x4; 
     var f4check = f4.check;    
     var f4splat = f4.splat;
-    var f4fromFloat64x2 = f4.fromFloat64x2;
-    var f4fromFloat64x2Bits = f4.fromFloat64x2Bits;
+    
     var f4fromInt32x4 = f4.fromInt32x4;
     var f4fromInt32x4Bits = f4.fromInt32x4Bits;
     var f4abs = f4.abs;
@@ -54,7 +53,7 @@ function asmModule(stdlib, imports, buffer) {
     var f4sub = f4.sub;
     var f4mul = f4.mul;
     var f4div = f4.div;
-    var f4clamp = f4.clamp;
+    
     var f4min = f4.min;
     var f4max = f4.max;
 
@@ -85,49 +84,16 @@ function asmModule(stdlib, imports, buffer) {
     var f4store2 = f4.store2;
     var f4store3 = f4.store3;
     
-    var d2 = stdlib.SIMD.Float64x2;  
-    var d2check = d2.check;
-    var d2splat = d2.splat;
-    var d2fromFloat32x4 = d2.fromFloat32x4;
-    var d2fromFloat32x4Bits = d2.fromFloat32x4Bits;
-    var d2fromInt32x4 = d2.fromInt32x4;
-    var d2fromInt32x4Bits = d2.fromInt32x4Bits;
-    var d2abs = d2.abs;
-    var d2neg = d2.neg;
-    var d2add = d2.add;
-    var d2sub = d2.sub;
-    var d2mul = d2.mul;
-    var d2div = d2.div;
-    var d2clamp = d2.clamp;
-    var d2min = d2.min;
-    var d2max = d2.max;
-
-
-    var d2sqrt = d2.sqrt;
-    var d2swizzle = d2.swizzle;
-    var d2shuffle = d2.shuffle;
-    var d2lessThan = d2.lessThan;
-    var d2lessThanOrEqual = d2.lessThanOrEqual;
-    var d2equal = d2.equal;
-    var d2notEqual = d2.notEqual;
-    var d2greaterThan = d2.greaterThan;
-    var d2greaterThanOrEqual = d2.greaterThanOrEqual;
-    var d2select = d2.select;
     
-    var d2load  = d2.load;
-    var d2load1 = d2.load1;
-    
-    var d2store  = d2.store
-    var d2store1 = d2.store1;
     
     var fround = stdlib.Math.fround;
 
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
-    var globImportD2 = d2check(imports.g3);       // global var import
+    
     var g1 = f4(-5033.2,-3401.0,665.34,32234.1);          // global var initialized
     var g2 = i4(1065353216, -1073741824, -1077936128, 1082130432);          // global var initialized
-    var g3 = d2(0.12344,-1.6578);          // global var initialized
+    
     var gval = 1234;
     var gval2 = 1234.0;
 
@@ -702,7 +668,7 @@ function printResults(res)
 }
 
 inputLength = initF32(buffer);
-print(inputLength);
+
 //Enumerating SIMD loads to test. 
 SIMDLoad = 1;
 SIMDLoad1 = 2;
@@ -715,97 +681,67 @@ SIMDStore2 = 7;
 SIMDStore3 = 8;
 
 //Module initialization
-var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4), g3:SIMD.Float64x2(10, 10, 10, 10)}, buffer);
+var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)}, buffer);
 var values = new Float32Array(buffer);
 
 
-
-print("Stores:");
-
-print("Test1");
 var ret = m.store1(SIMDStore1);//Lane1 store
 equalSimd([5, 1092616192, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-
-print("Test2");;
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore2);//Lane 1,2 store
 equalSimd([5, -12, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-
-
-print("Test3");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
 equalSimd([5, -12, 3, 1106247680], ret, SIMD.Int32x4, "");
 
-
-
-print("Test4");
 inputLength = initF32(buffer); 
 //Should change the buffer to  0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
 var ret = m.store1(SIMDStore);//Generic Store
 equalSimd([5, -12, 3, 0], ret, SIMD.Int32x4, "");
 
-
-
-print("Test5");
 inputLength = initF32(buffer);  
 var ret = m.store2(SIMDStore);//Generic store 
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-
-
-print("Test6");
 inputLength = initF32(buffer); 
 var ret = m.store3(SIMDStore);//Generic store
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-
-
-print("Test7");
 inputLength = initF32(buffer); 
 var ret = m.store1Int8(inputLength);//Int8Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
-
-
-print("Test8");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint8(inputLength);//Uint8Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
-
-
-print("Test9");
 inputLength = initF32(buffer); 
 var ret = m.store1Int16(inputLength);//Int16Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
-
-
-print("Test10");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint16(inputLength);//Uint16Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
 
 
-print("Test12");
+
 inputLength = initF32(buffer); 
 var ret = m.store1Int32(inputLength);//Int32Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
 
 
-print("Test13");
+
 inputLength = initF32(buffer); 
 var ret = m.store1Uint32(inputLength);//Uint32Heap store
 equalSimd([0, 0, 1, 1], ret, SIMD.Int32x4, "");
 
 
 
-print("Test14");
+
 inputLength = initF32(buffer); 
 var ret = m.loadStoreIndex1();//Uint32Heap store
 equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
@@ -813,129 +749,128 @@ equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
 
 
 
-print("Loads");
-print("Test1");
+
+
 var ret = m.load1(SIMDLoad1);
 equalSimd([1126170624, 0, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test2");
+
 var ret = m.load1(SIMDLoad2);
 equalSimd([1126170624, 1126825984, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test3");
+
 var ret = m.load1(SIMDLoad3);
 equalSimd([1126170624, 1126825984, 1127481344, 0], ret, SIMD.Int32x4, "");
 
-print("Test4");
+
 var ret = m.load1(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test5");
+
 var ret = m.load2(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test6");
+
 var ret = m.load3(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test7");
+
 var ret = m.load1Int8(inputLength); //Int8Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("Test8");
+
 var ret = m.load1Uint8(inputLength); //Int8Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("Test9");
+
 var ret = m.load1Int16(inputLength); //Int16Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("Test10");
+
 var ret = m.load1Uint16(inputLength); //Int16Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("Test11");
+
 var ret = m.load1Int32(inputLength); //Int32Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("Test12");
+
 var ret = m.load1Uint32(inputLength); //Int32Heap load
 equalSimd([1210054144, 1210054784, 1210055424, 1210056064], ret, SIMD.Int32x4, "");
 
-print("BoundCheck");
+
 var value = SIMD.Int32x4(9,1,3,5);
 
-print("Test1");
-try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test2");
-try {m.loadF32(inputLength); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
 
-print("Test3");
-try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
 
-print("Test4");
-try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test5");
-try {m.storeF32(value, inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test6");
-try {var v = m.loadF32(inputLength-4);print("Correct");} catch(err) {print("Wrong");}
 
-print("Test7");
-try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test8");
-try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) { print("Correct"); }
 
-print("Test9");
-try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test10");
-try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test11");
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+
+
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+
+
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+
+
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+
+
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+
+
 try{
     m.storeI16(value, inputLength*2-8);
-    print("Correct");
+    
     m.storeUI16(value, inputLength*2-8);
-    print("Correct");
+    
     m.storeI8(value, inputLength*4-16);
-    print("Correct");
+    
     m.storeUI8(value, inputLength*4-16);
-    print("Correct");
+    
     m.loadI16(inputLength*2-8);
-    print("Correct");
+    
     m.loadUI16(inputLength*2-8);
-    print("Correct");
+    
     m.loadI8(inputLength*4-16);
-    print("Correct");
+    
     m.loadUI8(inputLength*4-16);
-    print("Correct");
+    
 } catch(err){ print("Wrong"); }
 
-print("Test12");
-try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test13");
-try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
 
-print("Test14");
-try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test15");
-try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test16");
-try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test17");
-try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test18");
-try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test19");
-try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+
+
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
 print("PASS");

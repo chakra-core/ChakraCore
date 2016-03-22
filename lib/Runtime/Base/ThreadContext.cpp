@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeBasePch.h"
 #include "BackendApi.h"
 #include "ThreadServiceWrapper.h"
@@ -318,13 +319,6 @@ void ThreadContext::GlobalInitialize()
     }
 }
 
-#if ENABLE_NATIVE_CODEGEN
-void ThreadContext::ReleasePreReservedSegment()
-{
-    preReservedVirtualAllocator.Shutdown();
-}
-#endif
-
 ThreadContext::~ThreadContext()
 {
     {
@@ -500,10 +494,6 @@ ThreadContext::~ThreadContext()
     }
 #endif
 #endif
-
-#if ENABLE_NATIVE_CODEGEN
-    ReleasePreReservedSegment();
-#endif
 }
 
 void
@@ -569,6 +559,7 @@ void ThreadContext::AddSimdFuncToMaps(Js::OpCode op, ...)
     va_start(arguments, op);
 
     int argumentsCount = va_arg(arguments, int);
+    AssertMsg(argumentsCount >= 0 && argumentsCount <= 20, "Invalid arguments count for SIMD opcode");
     if (argumentsCount == 0)
     {
         // no info to add

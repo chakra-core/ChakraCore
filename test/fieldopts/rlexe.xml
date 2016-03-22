@@ -865,4 +865,15 @@
       <compile-flags>-maxinterpretcount:2 -maxsimplejitruncount:6</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>fixedfieldmonocheck6.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>add-prop-to-dictionary.js</files>
+      <baseline>add-prop-to-dictionary.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

@@ -78,8 +78,7 @@ PreReservedVirtualAllocWrapper::PreReservedVirtualAllocWrapper() :
     freeSegments.SetAll();
 }
 
-void
-PreReservedVirtualAllocWrapper::Shutdown()
+PreReservedVirtualAllocWrapper::~PreReservedVirtualAllocWrapper()
 {
     Assert(this);
     if (IsPreReservedRegionPresent())

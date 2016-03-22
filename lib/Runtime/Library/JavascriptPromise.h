@@ -218,20 +218,20 @@ namespace Js
     class JavascriptPromiseCapability : FinalizableObject
     {
     private:
-        JavascriptPromiseCapability(Var promise, RecyclableObject* resolve, RecyclableObject* reject)
+        JavascriptPromiseCapability(Var promise, Var resolve, Var reject)
             : promise(promise), resolve(resolve), reject(reject)
         { }
 
     public:
-        static JavascriptPromiseCapability* New(Var promise, RecyclableObject* resolve, RecyclableObject* reject, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* New(Var promise, Var resolve, Var reject, ScriptContext* scriptContext);
 
-        RecyclableObject* GetResolve();
-        RecyclableObject* GetReject();
+        Var GetResolve();
+        Var GetReject();
         Var GetPromise();
         void SetPromise(Var);
 
-        void SetResolve(RecyclableObject* resolve);
-        void SetReject(RecyclableObject* reject);
+        void SetResolve(Var resolve);
+        void SetReject(Var reject);
 
     public:
         // Finalizable support
@@ -250,8 +250,8 @@ namespace Js
 
     private:
         Var promise;
-        RecyclableObject* resolve;
-        RecyclableObject* reject;
+        Var resolve;
+        Var reject;
     };
 
     typedef JsUtil::List<Js::JavascriptPromiseCapability*> JavascriptPromiseCapabilityList;
@@ -314,6 +314,7 @@ namespace Js
             static FunctionInfo Thrower;
 
             static FunctionInfo ResolveOrRejectFunction;
+            static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
 
             static FunctionInfo GetterSymbolSpecies;
@@ -354,12 +355,13 @@ namespace Js
         JavascriptPromiseReactionList* GetRejectReactions();
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
-        static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(Var promise, RecyclableObject* constructor, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
         static bool UpdatePromiseFromPotentialThenable(Var resolution, JavascriptPromiseCapability* promiseCapability, ScriptContext* scriptContext);
         static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
 
         static void InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext);
+        static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
 
     protected:
         enum PromiseStatus

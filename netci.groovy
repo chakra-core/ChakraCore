@@ -8,11 +8,18 @@ import jobs.generation.Utilities;
 
 // Grab the github project name passed in
 def project = GithubProject
+def branch = GithubBranchName
 
 def msbuildTypeMap = [
     'debug':'chk',
     'test':'test',
     'release':'fre'
+]
+
+// convert `machine` parameter to OS component of PR task name
+def machineTypeToOSTagMap = [
+    'Windows 7': 'Windows 7',
+    'Windows_NT': 'Windows'
 ]
 
 def dailyRegex = 'dailies'
@@ -21,7 +28,7 @@ def dailyRegex = 'dailies'
 // HELPER CLOSURES
 // ---------------
 
-def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfigIf, nonDefaultTaskSetup ->
+def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
         ['x86', 'x64', 'arm'].each { buildArch ->
             ['debug', 'test', 'release'].each { buildType ->
@@ -36,7 +43,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                 def jobName = Utilities.getFullJobName(project, config, isPR)
 
                 def testableConfig = buildType in ['debug', 'test'] && buildArch != 'arm'
-                def analysisConfig = buildType in ['release']
+                def analysisConfig = buildType in ['release'] && runCodeAnalysis
 
                 def buildScript = "call .\\jenkins\\buildone.cmd ${buildArch} ${buildType}"
                 buildScript += buildExtra ?: ''
@@ -61,7 +68,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
                     }
                 }
 
-                Utilities.setMachineAffinity(newJob, machine)
+                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
 
                 def msbuildType = msbuildTypeMap.get(buildType)
                 def msbuildFlavor = "build_${buildArch}${msbuildType}"
@@ -76,23 +83,20 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, excludeConfi
 
                 if (nonDefaultTaskSetup == null)
                 {
-                    // This call performs remaining common job setup on the newly created job.
-                    // This is used most commonly for simple inner loop testing.
-                    // It does the following:
-                    //   1. Sets up source control for the project.
-                    //   2. Adds a push trigger if the job is a PR job
-                    //   3. Adds a github PR trigger if the job is a PR job.
-                    //      The optional context (label that you see on github in the PR checks) is added.
-                    //      If not provided the context defaults to the job name.
-                    //   4. Adds standard options for build retention and timeouts
-                    //   5. Adds standard parameters for PR and push jobs.
-                    //      These allow PR jobs to be used for simple private testing, for instance.
-                    // See the documentation for this function to see additional optional parameters.
-                    Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, "Windows ${config}")
+                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+                    if (isPR) {
+                        // Set PR trigger.
+                        def osTag = machineTypeToOSTagMap.get(machine)
+                        Utilities.addGithubPRTrigger(newJob, "${osTag} ${config}")
+                    }
+                    else {
+                        // Set a push trigger
+                        Utilities.addGithubPushTrigger(newJob)
+                    }
                 }
                 else
                 {
-                    Utilities.standardJobSetup(newJob, project, isPR)
+                    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
                     nonDefaultTaskSetup(newJob, isPR, config)
                 }
             }
@@ -122,7 +126,16 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
             }
         }
 
-        Utilities.simpleInnerLoopJobSetup(newJob, project, isPR, checkName)
+        Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+        if (isPR) {
+            // Set PR trigger.
+            Utilities.addGithubPRTrigger(newJob, checkName)
+        }
+        else {
+            // Set a push trigger
+            Utilities.addGithubPushTrigger(newJob)
+        }
+
         Utilities.setMachineAffinity(newJob, 'Ubuntu14.04', 'latest-or-auto')
     }
 }
@@ -131,29 +144,31 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks('Windows_NT', null, null, null, null, null)
+CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
 
 // build and test on Windows 7 with VS 2013 (Dev12/MsBuild12)
-CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7',
+CreateBuildTasks('Windows 7', 'daily_dev12', ' msbuild12', ' -win7 -includeSlow', false,
     /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows 7 ${config}",
-            'legacy\\s+tests')})
+            '(dev12|legacy)\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with -includeSlow
-CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', null,
+CreateBuildTasks('Windows_NT', 'daily_slow', null, ' -includeSlow', false,
+    /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",
             'slow\\s+tests')})
 
 // build and test on the usual configuration (VS 2015) with JIT disabled
-CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', null,
+CreateBuildTasks('Windows_NT', 'daily_disablejit', ' "/p:BuildJIT=false"', ' -disablejit', true,
+    /* excludeConfigIf */ null,
     /* nonDefaultTaskSetup */ { newJob, isPR, config ->
         DailyBuildTaskSetup(newJob, isPR,
             "Windows ${config}",

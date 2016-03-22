@@ -8005,7 +8005,11 @@ Recycler::SetProfiler(Js::Profiler * profiler, Js::Profiler * backgroundProfiler
 }
 #endif
 
-void Recycler::SetObjectBeforeCollectCallback(void* object, ObjectBeforeCollectCallback callback, void* callbackState)
+void Recycler::SetObjectBeforeCollectCallback(void* object, 
+    ObjectBeforeCollectCallback callback, 
+    void* callbackState,
+    ObjectBeforeCollectCallbackWrapper callbackWrapper, 
+    void* threadContext)
 {
     if (objectBeforeCollectCallbackState == ObjectBeforeCollectCallback_Shutdown)
     {
@@ -8019,7 +8023,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object, ObjectBeforeCollectC
     }
 
     // only allow 1 callback per object
-    objectBeforeCollectCallbackMap->Item(object, ObjectBeforeCollectCallbackData(callback, callbackState));
+    objectBeforeCollectCallbackMap->Item(object, ObjectBeforeCollectCallbackData(callbackWrapper, callback, callbackState, threadContext));
 
     if (callback != nullptr && this->IsInObjectBeforeCollectCallback()) // revive
     {
@@ -8055,7 +8059,14 @@ bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
             void* object = entry.Key();
             if (atShutdown || !this->IsObjectMarked(object))
             {
-                data.callback(object, data.callbackState);
+                if (data.callbackWrapper != nullptr)
+                {
+                    data.callbackWrapper(data.callback, object, data.callbackState, data.threadContext);
+                }
+                else
+                {
+                    data.callback(object, data.callbackState);
+                }
             }
             else
             {

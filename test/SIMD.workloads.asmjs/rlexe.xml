@@ -116,7 +116,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-
   <test>
     <default>
       <files>testLinearSearch.js</files>
@@ -141,7 +140,7 @@
       <compile-flags>-on:asmjs -testtrace:asmjs -simdjs -AsmJsStopOnError -on:asmjs -testtrace:asmjsInterpreter -off:fulljit -off:backend</compile-flags>
     </default>
   </test>
-  <!--
+  
   <test>
     <default>
       <files>testLinearSearch.js</files>
@@ -158,8 +157,6 @@
       <compile-flags>-bgjit- -simdjs -asmjs- -simd128typespec  -off:simplejit -mic:1 -lic:1</compile-flags>
     </default>
   </test>
-  -->
-
   <test>
     <default>
       <files>test2DMatrixAddition.js</files>

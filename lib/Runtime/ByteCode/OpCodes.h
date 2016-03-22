@@ -386,6 +386,7 @@ MACRO_BACKEND_ONLY(     LdSlotArr,                  ElementSlot,    OpTempNumber
 MACRO_EXTEND_WMS_AND_PROFILED(LdInnerObjSlot,       ElementSlotI2,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdObjSlot,            ElementSlot,    None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdLocalObjSlot,       ElementSlotI1,  None)
+MACRO_EXTEND_WMS_AND_PROFILED(LdParamObjSlot,       ElementSlotI1,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdEnvObjSlot,         ElementSlotI2,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdModuleSlot,         ElementSlotI2,  None)
 MACRO_BACKEND_ONLY(     StSlot,                     ElementSlot,    None)

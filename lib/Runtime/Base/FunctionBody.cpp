@@ -466,6 +466,7 @@ namespace Js
         m_hasFunctionCompiledSent(false),
         byteCodeCache(nullptr),
         m_hasLocalClosureRegister(false),
+        m_hasParamClosureRegister(false),
         m_hasLocalFrameDisplayRegister(false),
         m_hasEnvRegister(false),
         m_hasThisRegisterForEventHandler(false),
@@ -2858,6 +2859,7 @@ namespace Js
         return
             !this->m_isFromNativeCodeModule &&
             !this->m_isAsmJsFunction &&
+            !this->GetAsmJsModuleInfo() &&
             !this->HasExecutionDynamicProfileInfo() &&
             DynamicProfileInfo::IsEnabled(this);
     }
@@ -4841,6 +4843,8 @@ namespace Js
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
+
+        this->counters.bgThreadCallStarted = false; // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
 
@@ -7086,7 +7090,7 @@ namespace Js
     {
 #if ENABLE_PROFILE_INFO
         // Switch off profiling is asmJsFunction
-        if (this->GetIsAsmJsFunction())
+        if (this->GetIsAsmJsFunction() || this->GetAsmJsModuleInfo())
         {
             return false;
         }
@@ -9205,7 +9209,9 @@ namespace Js
                 }
                 else
                 {
-                    Assert((DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
+                    Assert(functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo());                    
+                    Assert(((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp() 
+                        || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }
             });
 
@@ -9519,6 +9525,27 @@ namespace Js
     RegSlot FunctionBody::GetLocalClosureRegister() const
     {
         return m_hasLocalClosureRegister ? GetCountField(CounterFields::LocalClosureRegister) : Constants::NoRegister;
+    }
+    void FunctionBody::SetParamClosureRegister(RegSlot reg)
+    {
+        if (reg == Constants::NoRegister)
+        {
+            m_hasParamClosureRegister = false;
+        }
+        else
+        {
+            m_hasParamClosureRegister = true;
+            SetCountField(CounterFields::ParamClosureRegister, reg);
+        }
+    }
+    void FunctionBody::MapAndSetParamClosureRegister(RegSlot reg)
+    {
+        Assert(!m_hasParamClosureRegister);
+        SetParamClosureRegister(this->MapRegSlot(reg));
+    }
+    RegSlot FunctionBody::GetParamClosureRegister() const
+    {
+        return m_hasParamClosureRegister ? GetCountField(CounterFields::ParamClosureRegister) : Constants::NoRegister;
     }
     void FunctionBody::MapAndSetLocalFrameDisplayRegister(RegSlot reg)
     {

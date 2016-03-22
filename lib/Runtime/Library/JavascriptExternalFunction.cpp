@@ -323,7 +323,7 @@ namespace Js
             Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
 
             // For JSRT, we could get result marshalled in different context.
-            bool isJSRT = !(scriptContext->GetThreadContext()->GetIsThreadBound());
+            bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
             if (!isJSRT && obj->GetScriptContext() != scriptContext)
             {
                 Js::Throw::InternalError();

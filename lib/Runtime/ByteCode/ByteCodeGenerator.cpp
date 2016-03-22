@@ -888,6 +888,13 @@ void ByteCodeGenerator::AssignFrameSlotsRegister()
     }
 }
 
+void ByteCodeGenerator::AssignParamSlotsRegister()
+{
+    FuncInfo* top = funcInfoStack->Top();
+    Assert(top->paramSlotsRegister == Js::Constants::NoRegister);
+    top->paramSlotsRegister = NextVarRegister();
+}
+
 void ByteCodeGenerator::SetNumberOfInArgs(Js::ArgSlot argCount)
 {
     FuncInfo *top = funcInfoStack->Top();
@@ -1391,13 +1398,16 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
     if (pnode->sxFnc.CallsEval())
     {
         funcInfo->SetCallsEval(true);
+        
         bodyScope->SetIsDynamic(true);
         bodyScope->SetIsObject();
         bodyScope->SetCapturesAll(true);
         bodyScope->SetMustInstantiate(true);
+
+        // Do not mark param scope as dynamic as it does not leak declarations
         paramScope->SetIsObject();
-        paramScope->SetMustInstantiate(true);
         paramScope->SetCapturesAll(true);
+        paramScope->SetMustInstantiate(true);
     }
 
     PushFuncInfo(_u("StartBindFunction"), funcInfo);
@@ -2649,6 +2659,11 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->AssignFrameSlotsRegister();
                 }
 
+                if (top->GetParamScope() && !top->GetParamScope()->GetCanMergeWithBodyScope())
+                {
+                    byteCodeGenerator->AssignParamSlotsRegister();
+                }
+
                 if (byteCodeGenerator->NeedObjectAsFunctionScope(top, top->root)
                     || top->bodyScope->GetIsObject()
                     || top->paramScope->GetIsObject())
@@ -3069,6 +3084,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                     pnodeScope->sxFnc.funcInfo->SetCurrentChildScope(pnodeScope->sxFnc.funcInfo->GetParamScope());
                     Assert(containerScope->nop == knopBlock && containerScope->sxBlock.blockType == Parameter);
                     VisitNestedScopes(containerScope->sxBlock.pnodeScopes, pnodeScope, byteCodeGenerator, prefix, postfix, &i, true);
+                    MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
                 }
 
                 // Push the body scope
@@ -3081,9 +3097,8 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 if (!pnodeScope->sxFnc.HasNonSimpleParameterList() || pnodeScope->sxFnc.funcInfo->GetParamScope()->GetCanMergeWithBodyScope())
                 {
                     VisitNestedScopes(containerScope, pnodeScope, byteCodeGenerator, prefix, postfix, &i);
+                    MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
                 }
-
-                MapFormals(pnodeScope, [&](ParseNode *argNode) { Visit(argNode, byteCodeGenerator, prefix, postfix); });
 
                 if (pnodeScope->sxFnc.HasNonSimpleParameterList())
                 {
@@ -3162,16 +3177,20 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             break;
 
         case knopBlock:
+        {
             PreVisitBlock(pnodeScope, byteCodeGenerator);
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxBlock.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxBlock.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxBlock.scope, isMergedScope);
             PostVisitBlock(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxBlock.pnodeNext;
             break;
+        }
 
         case knopCatch:
+        {
             PreVisitCatch(pnodeScope, byteCodeGenerator);
 
             Visit(pnodeScope->sxCatch.pnodeParam, byteCodeGenerator, prefix, postfix);
@@ -3182,23 +3201,28 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                     pnodeScope->sxCatch.pnodeParam->sxParamPattern.location = byteCodeGenerator->NextVarRegister();
                 }
             }
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxCatch.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxCatch.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
 
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxCatch.scope, isMergedScope);
             PostVisitCatch(pnodeScope, byteCodeGenerator);
 
             pnodeScope = pnodeScope->sxCatch.pnodeNext;
             break;
+        }
 
         case knopWith:
+        {
             PreVisitWith(pnodeScope, byteCodeGenerator);
-            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope);
+            bool isMergedScope;
+            pnodeParent->sxFnc.funcInfo->OnStartVisitScope(pnodeScope->sxWith.scope, &isMergedScope);
             VisitNestedScopes(pnodeScope->sxWith.pnodeScopes, pnodeParent, byteCodeGenerator, prefix, postfix, pIndex);
-            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope);
+            pnodeParent->sxFnc.funcInfo->OnEndVisitScope(pnodeScope->sxWith.scope, isMergedScope);
             PostVisitWith(pnodeScope, byteCodeGenerator);
             pnodeScope = pnodeScope->sxWith.pnodeNext;
             break;
+        }
 
         default:
             AssertMsg(false, "Unexpected opcode in tree of scopes");

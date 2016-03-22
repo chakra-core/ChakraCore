@@ -372,10 +372,6 @@ public:
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
     };
 
-#if ENABLE_NATIVE_CODEGEN
-    void ReleasePreReservedSegment();
-#endif
-
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
     DWORD GetCurrentThreadId() const { return this->currentThreadId; }
     void SetIsThreadBound()
@@ -386,6 +382,7 @@ public:
         }
         this->isThreadBound = true;
     }
+    bool IsJSRT() const { return !this->isThreadBound; }
     bool GetIsThreadBound() const { return this->isThreadBound; }
     void SetStackProber(StackProber * stackProber);
     PBYTE GetScriptStackLimit() const;
@@ -436,6 +433,13 @@ public:
     void AddSimdFuncInfo(Js::OpCode op, Js::FunctionInfo *funcInfo);
     Js::OpCode GetSimdOpcodeFromFuncInfo(Js::FunctionInfo * funcInfo);
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
+
+#if _M_IX86 || _M_AMD64
+    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+    _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
+    _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
+#endif
+
 #endif
 
 private:

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 namespace Js
 {
     namespace AsmJsJitTemplate
@@ -1446,6 +1447,14 @@ namespace Js
         return 3;
     }
 
+    OpFuncSignature(PADDB) {
+        CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
+        *buffer++ = 0x66;
+        *buffer++ = 0x0F;
+        *buffer++ = 0xFC;
+    return 3;
+    }
+
     OpFuncSignature(SUBPS){
         CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
         *buffer++ = 0x0F;
@@ -1466,6 +1475,14 @@ namespace Js
         *buffer++ = 0x66;
         *buffer++ = 0x0F;
         *buffer++ = 0xFA;
+        return 3;
+    }
+
+    OpFuncSignature(PSUBB) {
+        CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
+        *buffer++ = 0x66;
+        *buffer++ = 0x0F;
+        *buffer++ = 0xF8;
         return 3;
     }
 
@@ -1561,11 +1578,28 @@ namespace Js
         return 3;
     }
 
+    OpFuncSignature(PCMPGTB) {
+        CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
+        *buffer++ = 0x66;
+        *buffer++ = 0x0F;
+        *buffer++ = 0x64;
+        return 3;
+    }
+
+
     OpFuncSignature(PCMPEQD){
         CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
         *buffer++ = 0x66;
         *buffer++ = 0x0F;
         *buffer++ = 0x76;
+        return 3;
+    }
+
+    OpFuncSignature(PCMPEQB) {
+        CompileAssert(instrSize == sizeof(AsmJsSIMDValue));
+        *buffer++ = 0x66;
+        *buffer++ = 0x0F;
+        *buffer++ = 0x74;
         return 3;
     }
 

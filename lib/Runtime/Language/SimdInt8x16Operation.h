@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #pragma once
 
 namespace Js {
@@ -10,7 +11,7 @@ namespace Js {
     {
         // following are operation wrappers for SIMDInt8x16 general implementation
         // input and output are typically SIMDValue
-        static SIMDValue OpInt8x16(int8 x0, int8 x1, int8 x2, int8 x3, int8 x4, int8 x5, int8 x6, int8 x7, int8 x8, int8 x9, int8 x10, int8 x11, int8 x12, int8 x13, int8 x14, int8 x15);
+        static SIMDValue OpInt8x16(int8 values[]);
 
         static SIMDValue OpSplat(int8 x);
 
@@ -36,8 +37,8 @@ namespace Js {
         static SIMDValue OpGreaterThan(const SIMDValue& aValue, const SIMDValue& bValue);
         static SIMDValue OpGreaterThanOrEqual(const SIMDValue& aValue, const SIMDValue& bValue);
 
-        static SIMDValue OpShiftLeftByScalar(const SIMDValue& value, int8 count);
-        static SIMDValue OpShiftRightByScalar(const SIMDValue& value, int8 count);
+        static SIMDValue OpShiftLeftByScalar(const SIMDValue& value, int count);
+        static SIMDValue OpShiftRightByScalar(const SIMDValue& value, int count);
 
         //Select
         static SIMDValue OpSelect(const SIMDValue& mV, const SIMDValue& tV, const SIMDValue& fV);

@@ -1971,7 +1971,13 @@ private:
 
 public:
     typedef void (CALLBACK *ObjectBeforeCollectCallback)(void* object, void* callbackState); // same as jsrt JsObjectBeforeCollectCallback
-    void SetObjectBeforeCollectCallback(void* object, ObjectBeforeCollectCallback callback, void* callbackState);
+    // same as jsrt JsObjectBeforeCollectCallbackWrapper
+    typedef void (CALLBACK *ObjectBeforeCollectCallbackWrapper)(ObjectBeforeCollectCallback callback, void* object, void* callbackState, void* threadContext); 
+    void SetObjectBeforeCollectCallback(void* object,
+        ObjectBeforeCollectCallback callback,
+        void* callbackState,
+        ObjectBeforeCollectCallbackWrapper callbackWrapper,
+        void* threadContext);
     void ClearObjectBeforeCollectCallbacks();
     bool IsInObjectBeforeCollectCallback() const { return objectBeforeCollectCallbackState != ObjectBeforeCollectCallback_None; }
 private:
@@ -1979,9 +1985,12 @@ private:
     {
         ObjectBeforeCollectCallback callback;
         void* callbackState;
+        void* threadContext;
+        ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallback callback, void* callbackState) : callback(callback), callbackState(callbackState) {}
+        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) : 
+            callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
     typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
         PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> ObjectBeforeCollectCallbackMap;

@@ -8,18 +8,28 @@ namespace Js {
 
     TypePath* TypePath::New(Recycler* recycler, uint size)
     {
+        Assert(size <= MaxPathTypeHandlerLength);
         size = max(size, InitialTypePathSize);
-        size = PowerOf2Policy::GetSize(size);
+        
 
         if (PHASE_OFF1(Js::TypePathDynamicSizePhase))
         {
             size = MaxPathTypeHandlerLength;
         }
+        else
+        {
+            size = PowerOf2Policy::GetSize(size - TYPE_PATH_ALLOC_GRANULARITY_GAP);
+            if (size < MaxPathTypeHandlerLength)
+            {
+                size += TYPE_PATH_ALLOC_GRANULARITY_GAP;
+            }
+        }
 
         Assert(size <= MaxPathTypeHandlerLength);
 
         TypePath * newTypePath = RecyclerNewPlusZ(recycler, sizeof(PropertyRecord *) * size, TypePath);
-        newTypePath->pathSize = (uint16)size;
+        // Allocate enough space for the "next" for the TinyDictionary;
+        newTypePath->data = RecyclerNewPlusLeafZ(recycler, size, TypePath::Data, (uint8)size);
 
         return newTypePath;
     }
@@ -35,7 +45,7 @@ namespace Js {
            return Constants::NoSlot;
         }
         PropertyIndex propIndex = Constants::NoSlot;
-        if (map.TryGetValue(propId, &propIndex, assignments)) {
+        if (this->GetData()->map.TryGetValue(propId, &propIndex, assignments)) {
            if (propIndex<typePathLength) {
                 return propIndex;
             }
@@ -45,7 +55,7 @@ namespace Js {
 
     TypePath * TypePath::Branch(Recycler * recycler, int pathLength, bool couldSeeProto)
     {
-        AssertMsg(pathLength < this->pathLength, "Why are we branching at the tip of the type path?");
+        AssertMsg(pathLength < this->GetPathLength(), "Why are we branching at the tip of the type path?");
 
         // Ensure there is at least one free entry in the new path, so we can extend it.
         // TypePath::New will take care of aligning this appropriately.
@@ -58,19 +68,19 @@ namespace Js {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             if (couldSeeProto)
             {
-                if (this->usedFixedFields.Test(i))
+                if (this->GetData()->usedFixedFields.Test(i))
                 {
                     // We must conservatively copy all used as fixed bits if some prototype instance could also take
                     // this transition.  See comment in PathTypeHandlerBase::ConvertToSimpleDictionaryType.
                     // Yes, we could devise a more efficient way of copying bits 1 through pathLength, if performance of this
                     // code path proves important enough.
-                    branchedPath->usedFixedFields.Set(i);
+                    branchedPath->GetData()->usedFixedFields.Set(i);
                 }
-                else if (this->fixedFields.Test(i))
+                else if (this->GetData()->fixedFields.Test(i))
                 {
                     // We must clear any fixed fields that are not also used as fixed if some prototype instance could also take
                     // this transition.  See comment in PathTypeHandlerBase::ConvertToSimpleDictionaryType.
-                    this->fixedFields.Clear(i);
+                    this->GetData()->fixedFields.Clear(i);
                 }
             }
 #endif
@@ -83,11 +93,11 @@ namespace Js {
         // different values, by two different instances (one on the old branch and one on the new branch).  If that happened
         // and the instance from the old branch later switched to the new branch, it would magically gain a different set
         // of fixed properties!
-        if (this->maxInitializedLength < pathLength)
+        if (this->GetMaxInitializedLength() < pathLength)
         {
-            this->maxInitializedLength = pathLength;
+            this->SetMaxInitializedLength(pathLength);
         }
-        branchedPath->maxInitializedLength = pathLength;
+        branchedPath->SetMaxInitializedLength(pathLength);
 #endif
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
@@ -113,23 +123,23 @@ namespace Js {
 
     TypePath * TypePath::Grow(Recycler * recycler)
     {
-        AssertMsg(this->pathSize == this->pathLength, "Why are we growing the type path?");
+        uint currentPathLength = this->GetPathLength();
+        AssertMsg(this->GetPathSize() == currentPathLength, "Why are we growing the type path?");
 
         // Ensure there is at least one free entry in the new path, so we can extend it.
         // TypePath::New will take care of aligning this appropriately.
-        TypePath * clonedPath = TypePath::New(recycler, this->pathLength + 1);
+        TypePath * clonedPath = TypePath::New(recycler, currentPathLength + 1);
 
-        for (PropertyIndex i = 0; i < pathLength; i++)
-        {
-            clonedPath->AddInternal(assignments[i]);
-        }
+        clonedPath->GetData()->pathLength = (uint8)currentPathLength;
+        memcpy(&clonedPath->GetData()->map, &this->GetData()->map, sizeof(TinyDictionary) + currentPathLength);
+        memcpy(clonedPath->assignments, this->assignments, sizeof(PropertyRecord *) * currentPathLength);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         // Copy fixed field info
-        clonedPath->maxInitializedLength = this->maxInitializedLength;
         clonedPath->singletonInstance = this->singletonInstance;
-        clonedPath->fixedFields = this->fixedFields;
-        clonedPath->usedFixedFields = this->usedFixedFields;
+        clonedPath->GetData()->maxInitializedLength = this->GetData()->maxInitializedLength;
+        clonedPath->GetData()->fixedFields = this->GetData()->fixedFields;
+        clonedPath->GetData()->usedFixedFields = this->GetData()->usedFixedFields;
 #endif
 
         return clonedPath;
@@ -149,9 +159,9 @@ namespace Js {
     Var TypePath::GetSingletonFixedFieldAt(PropertyIndex index, int typePathLength, ScriptContext * requestContext)
     {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        Assert(index < this->pathLength);
+        Assert(index < this->GetPathLength());
         Assert(index < typePathLength);
-        Assert(typePathLength <= this->pathLength);
+        Assert(typePathLength <= this->GetPathLength());
 
         if (!CanHaveFixedFields(typePathLength))
         {
@@ -160,29 +170,38 @@ namespace Js {
 
         DynamicObject* localSingletonInstance = this->singletonInstance->Get();
 
-        return localSingletonInstance != nullptr && localSingletonInstance->GetScriptContext() == requestContext && this->fixedFields.Test(index) ? localSingletonInstance->GetSlot(index) : nullptr;
+        return localSingletonInstance != nullptr && localSingletonInstance->GetScriptContext() == requestContext && this->GetData()->fixedFields.Test(index) ? localSingletonInstance->GetSlot(index) : nullptr;
 #else
         return nullptr;
 #endif
 
     }
 
-    int TypePath::AddInternal(const PropertyRecord* propId)
+    int TypePath::Data::Add(const PropertyRecord* propId, const PropertyRecord ** assignments)
     {
-        Assert(pathLength < this->pathSize);
-        if (pathLength >= this->pathSize)
+        uint currentPathLength = this->pathLength;
+        Assert(currentPathLength < this->pathSize);
+        if (currentPathLength >= this->pathSize)
         {
             Throw::InternalError();
         }
 
 #if DBG
         PropertyIndex temp;
-        if (map.TryGetValue(propId->GetPropertyId(), &temp, assignments))
+        if (this->map.TryGetValue(propId->GetPropertyId(), &temp, assignments))
         {
             AssertMsg(false, "Adding a duplicate to the type path");
         }
 #endif
-        map.Add((unsigned int)propId->GetPropertyId(), (byte)pathLength);
+        this->map.Add((unsigned int)propId->GetPropertyId(), (byte)currentPathLength);
+        assignments[currentPathLength] = propId;
+        this->pathLength++;
+        return currentPathLength;
+    }
+
+    int TypePath::AddInternal(const PropertyRecord * propId)
+    {
+        int propertyIndex = this->GetData()->Add(propId, assignments);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
@@ -203,15 +222,13 @@ namespace Js {
         }
 #endif
 
-        assignments[pathLength] = propId;
-        pathLength++;
-        return (pathLength - 1);
+        return propertyIndex;
     }
 
     void TypePath::AddBlankFieldAt(PropertyIndex index, int typePathLength)
     {
-        Assert(index >= this->maxInitializedLength);
-        this->maxInitializedLength = index + 1;
+        Assert(index >= this->GetMaxInitializedLength());
+        this->SetMaxInitializedLength(index + 1);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
@@ -235,24 +252,24 @@ namespace Js {
 
     void TypePath::AddSingletonInstanceFieldAt(DynamicObject* instance, PropertyIndex index, bool isFixed, int typePathLength)
     {
-        Assert(index < this->pathLength);
-        Assert(typePathLength >= this->maxInitializedLength);
-        Assert(index >= this->maxInitializedLength);
+        Assert(index < this->GetPathLength());
+        Assert(typePathLength >= this->GetMaxInitializedLength());
+        Assert(index >= this->GetMaxInitializedLength());
         // This invariant is predicated on the properties getting initialized in the order of indexes in the type handler.
         Assert(instance != nullptr);
         Assert(this->singletonInstance == nullptr || this->singletonInstance->Get() == instance);
-        Assert(!fixedFields.Test(index) && !usedFixedFields.Test(index));
+        Assert(!this->GetData()->fixedFields.Test(index) && !this->GetData()->usedFixedFields.Test(index));
 
         if (this->singletonInstance == nullptr)
         {
             this->singletonInstance = instance->CreateWeakReferenceToSelf();
         }
 
-        this->maxInitializedLength = index + 1;
+        this->SetMaxInitializedLength(index + 1);
 
         if (isFixed)
         {
-            this->fixedFields.Set(index);
+            this->GetData()->fixedFields.Set(index);
         }
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
@@ -277,12 +294,12 @@ namespace Js {
 
     void TypePath::AddSingletonInstanceFieldAt(PropertyIndex index, int typePathLength)
     {
-        Assert(index < this->pathLength);
-        Assert(typePathLength >= this->maxInitializedLength);
-        Assert(index >= this->maxInitializedLength);
-        Assert(!fixedFields.Test(index) && !usedFixedFields.Test(index));
+        Assert(index < this->GetPathLength());
+        Assert(typePathLength >= this->GetMaxInitializedLength());
+        Assert(index >= this->GetMaxInitializedLength());
+        Assert(!this->GetData()->fixedFields.Test(index) && !this->GetData()->usedFixedFields.Test(index));
 
-        this->maxInitializedLength = index + 1;
+        this->SetMaxInitializedLength(index + 1);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))

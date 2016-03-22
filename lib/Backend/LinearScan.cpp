@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "Backend.h"
 
 #include "SccLiveness.h"
@@ -1197,6 +1198,14 @@ struct FuncBailOutData
     // SIMD_JS
     BVFixed * simd128F4Syms;
     BVFixed * simd128I4Syms;
+    BVFixed * simd128I8Syms;
+    BVFixed * simd128I16Syms;
+    BVFixed * simd128U4Syms;
+    BVFixed * simd128U8Syms;
+    BVFixed * simd128U16Syms;
+    BVFixed * simd128B4Syms;
+    BVFixed * simd128B8Syms;
+    BVFixed * simd128B16Syms;
 
     void Initialize(Func * func, JitArenaAllocator * tempAllocator);
     void FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOutRecordDataTable *table, uint **lastUpdatedRowIndices);
@@ -1214,6 +1223,14 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
     // SIMD_JS
     this->simd128F4Syms = BVFixed::New(localsCount, tempAllocator);
     this->simd128I4Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128I8Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128I16Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128U4Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128U8Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128U16Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128B4Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128B8Syms = BVFixed::New(localsCount, tempAllocator);
+    this->simd128B16Syms = BVFixed::New(localsCount, tempAllocator);
 }
 
 void
@@ -1240,10 +1257,20 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
             bool isInt = losslessInt32Syms->Test(i) != 0;
 
             // SIMD_JS
-            bool isSimd128F4 = simd128F4Syms->Test(i) != 0;
-            bool isSimd128I4 = simd128I4Syms->Test(i) != 0;
+            bool isSimd128F4  = simd128F4Syms->Test(i) != 0;
+            bool isSimd128I4  = simd128I4Syms->Test(i) != 0;
+            bool isSimd128I8  = simd128I8Syms->Test(i) != 0;
+            bool isSimd128I16 = simd128I16Syms->Test(i) != 0;
+            bool isSimd128U4  = simd128U4Syms->Test(i) != 0;
+            bool isSimd128U8  = simd128U8Syms->Test(i) != 0;
+            bool isSimd128U16 = simd128U16Syms->Test(i) != 0;
+            bool isSimd128B4  = simd128B4Syms->Test(i) != 0;
+            bool isSimd128B8  = simd128B8Syms->Test(i) != 0;
+            bool isSimd128B16 = simd128B16Syms->Test(i) != 0;
 
-            globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt, isSimd128F4, isSimd128I4, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
+            globalBailOutRecordDataTable->AddOrUpdateRow(allocator, bailOutRecordId, i, isFloat, isInt, 
+                isSimd128F4, isSimd128I4, isSimd128I8, isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16,
+                isSimd128B4, isSimd128B8, isSimd128B16, localOffsets[i], &((*lastUpdatedRowIndices)[i]));
             Assert(globalBailOutRecordDataTable->globalBailOutRecordDataRows[(*lastUpdatedRowIndices)[i]].regSlot  == i);
             bailOutRecord->localOffsetsCount++;
         }
@@ -1260,6 +1287,14 @@ FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
     // SIMD_JS
     simd128F4Syms->Delete(tempAllocator);
     simd128I4Syms->Delete(tempAllocator);
+    simd128I8Syms->Delete(tempAllocator);
+    simd128I16Syms->Delete(tempAllocator);
+    simd128U4Syms->Delete(tempAllocator);
+    simd128U8Syms->Delete(tempAllocator);
+    simd128U16Syms->Delete(tempAllocator);
+    simd128B4Syms->Delete(tempAllocator);
+    simd128B8Syms->Delete(tempAllocator);
+    simd128B16Syms->Delete(tempAllocator);
 }
 
 GlobalBailOutRecordDataTable *
@@ -1446,6 +1481,38 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         {
             funcBailOutData[index].simd128I4Syms->Set(i);
         }
+        else if (copyStackSym->IsSimd128I8())
+        {
+            funcBailOutData[index].simd128I8Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128I16())
+        {
+            funcBailOutData[index].simd128I16Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128U4())
+        {
+            funcBailOutData[index].simd128U4Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128U8())
+        {
+            funcBailOutData[index].simd128U8Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128U16())
+        {
+            funcBailOutData[index].simd128U16Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128B4())
+        {
+            funcBailOutData[index].simd128B4Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128B8())
+        {
+            funcBailOutData[index].simd128B8Syms->Set(i);
+        }
+        else if (copyStackSym->IsSimd128B16())
+        {
+            funcBailOutData[index].simd128B16Syms->Set(i);
+        }
         iter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1485,6 +1552,38 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         else if (stackSym->IsSimd128I4())
         {
             funcBailOutData[index].simd128I4Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128I8())
+        {
+            funcBailOutData[index].simd128I8Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128I16())
+        {
+            funcBailOutData[index].simd128I16Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128U4())
+        {
+            funcBailOutData[index].simd128U4Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128U8())
+        {
+            funcBailOutData[index].simd128U8Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128U16())
+        {
+            funcBailOutData[index].simd128U16Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128B4())
+        {
+            funcBailOutData[index].simd128B4Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128B8())
+        {
+            funcBailOutData[index].simd128B8Syms->Set(i);
+        }
+        else if (stackSym->IsSimd128B16())
+        {
+            funcBailOutData[index].simd128B16Syms->Set(i);
         }
     }
     NEXT_BITSET_IN_SPARSEBV;
@@ -1584,6 +1683,14 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         // SIMD_JS
         BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
         BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
 
         int* outParamOffsets = bailOutInfo->outParamOffsets = NativeCodeDataNewArrayZ(allocator, int, bailOutInfo->totalOutParamCount);
 #ifdef _M_IX86
@@ -1635,6 +1742,15 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 // SIMD_JS
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = nullptr;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = nullptr;
+
                 currentBailOutRecord->argOutOffsetInfo->argOutSymStart = 0;
                 currentBailOutRecord->argOutOffsetInfo->outParamOffsets = nullptr;
                 currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts = nullptr;
@@ -1660,8 +1776,16 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 currentBailOutRecord->argOutOffsetInfo->argOutFloat64Syms = argOutFloat64Syms;
                 currentBailOutRecord->argOutOffsetInfo->argOutLosslessInt32Syms = argOutLosslessInt32Syms;
                 // SIMD_JS
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms = argOutSimd128F4Syms;
-                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms = argOutSimd128I4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128F4Syms  = argOutSimd128F4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I4Syms  = argOutSimd128I4Syms  ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I8Syms  = argOutSimd128I8Syms  ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128I16Syms = argOutSimd128I16Syms ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U4Syms  = argOutSimd128U4Syms  ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U8Syms  = argOutSimd128U8Syms  ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128U16Syms = argOutSimd128U16Syms ;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B4Syms = argOutSimd128U4Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B8Syms = argOutSimd128U8Syms;
+                currentBailOutRecord->argOutOffsetInfo->argOutSimd128B16Syms = argOutSimd128U16Syms;
 
 
             }
@@ -1742,6 +1866,38 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                 else if (copyStackSym->IsSimd128I4())
                                 {
                                     argOutSimd128I4Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128I8())
+                                {
+                                    argOutSimd128I8Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128I16())
+                                {
+                                    argOutSimd128I16Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128U4())
+                                {
+                                    argOutSimd128U4Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128U8())
+                                {
+                                    argOutSimd128U8Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128U16())
+                                {
+                                    argOutSimd128U16Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128B4())
+                                {
+                                    argOutSimd128B4Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128B8())
+                                {
+                                    argOutSimd128B8Syms->Set(outParamOffsetIndex);
+                                }
+                                else if (copyStackSym->IsSimd128B16())
+                                {
+                                    argOutSimd128B16Syms->Set(outParamOffsetIndex);
                                 }
                             }
 #if DBG_DUMP
@@ -1871,6 +2027,38 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     else if (sym->IsSimd128I4())
                     {
                         argOutSimd128I4Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128I8())
+                    {
+                        argOutSimd128I8Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128I16())
+                    {
+                        argOutSimd128I16Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128U4())
+                    {
+                        argOutSimd128U4Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128U8())
+                    {
+                        argOutSimd128U8Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128U16())
+                    {
+                        argOutSimd128U16Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128B4())
+                    {
+                        argOutSimd128B4Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128B8())
+                    {
+                        argOutSimd128B8Syms->Set(outParamOffsetIndex);
+                    }
+                    else if (sym->IsSimd128B16())
+                    {
+                        argOutSimd128B16Syms->Set(outParamOffsetIndex);
                     }
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -2472,6 +2660,38 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
         else if (newLifetime->isSimd128I4)
         {
             type = TySimd128I4;
+        }
+        else if (newLifetime->isSimd128I8)
+        {
+            type = TySimd128I8;
+        }
+        else if (newLifetime->isSimd128I16)
+        {
+            type = TySimd128I16;
+        }
+        else if (newLifetime->isSimd128U4)
+        {
+            type = TySimd128U4;
+        }
+        else if (newLifetime->isSimd128U8)
+        {
+            type = TySimd128U8;
+        }
+        else if (newLifetime->isSimd128U16)
+        {
+            type = TySimd128U16;
+        }
+        else if (newLifetime->isSimd128B4)
+        {
+            type = TySimd128B4;
+        }
+        else if (newLifetime->isSimd128B8)
+        {
+            type = TySimd128B8;
+        }
+        else if (newLifetime->isSimd128B16)
+        {
+            type = TySimd128B16;
         }
         else if (newLifetime->isSimd128D2)
         {

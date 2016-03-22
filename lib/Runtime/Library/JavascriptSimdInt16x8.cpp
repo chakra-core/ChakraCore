@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 
 #include "RuntimeLibraryPch.h"
 
@@ -71,13 +72,6 @@ namespace Js
         // convert value.i32[index] to TaggedInt
         AssertMsg(index < 8, "Out of range lane index");
         return JavascriptNumber::ToVar(value.i16[index], requestContext);
-    }
-
-    __inline Var  JavascriptSIMDInt16x8::GetLaneAsFlag(uint index, ScriptContext* requestContext)
-    {
-        // convert value.i32[index] to TaggedInt
-        AssertMsg(index < 8, "Out of range lane index");
-        return JavascriptNumber::ToVar(value.i16[index] != 0x0, requestContext);
     }
 }
 

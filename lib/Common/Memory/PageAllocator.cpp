@@ -83,7 +83,7 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
     this->segmentPageCount = totalPages - (leadingGuardPageCount + trailingGuardPageCount);
 
 #ifdef FAULT_INJECTION
-    if(Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.NoThrow))
+    if (Js::FaultInjection::Global.ShouldInjectFault(Js::FaultInjection::Global.NoThrow))
     {
         this->address = nullptr;
         return false;
@@ -95,58 +95,54 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return false;
     }
 
-    this->address = (char *) GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
-
-    originalAddress = this->address;
-
-    if (originalAddress != nullptr)
-    {
-        bool committed = (allocFlags & MEM_COMMIT) != 0;
-        if (addGuardPages)
-        {
-#if DBG_DUMP
-            GUARD_PAGE_TRACE(_u("Number of Leading Guard Pages: %d\n"), leadingGuardPageCount);
-            GUARD_PAGE_TRACE(_u("Starting address of Leading Guard Pages: 0x%p\n"), address);
-            GUARD_PAGE_TRACE(_u("Offset of Segment Start address: 0x%p\n"), this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize));
-            GUARD_PAGE_TRACE(_u("Starting address of Trailing Guard Pages: 0x%p\n"), address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize));
-#endif
-            if (committed)
-            {
-#pragma warning(suppress: 6250)
-                GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
-#pragma warning(suppress: 6250)
-                GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
-            }
-            this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount) * AutoSystemInfo::PageSize);
-
-            this->address = this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize);
-        }
-
-        if (!allocator->CreateSecondaryAllocator(this, committed, &this->secondaryAllocator))
-        {
-            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
-            this->allocator->ReportFree(totalPages * AutoSystemInfo::PageSize);
-            this->address = nullptr;
-        }
-#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
-        else if (!RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount))
-        {
-            GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
-            this->allocator->ReportFree(totalPages * AutoSystemInfo::PageSize);
-            this->address = nullptr;
-        }
-        else
-        {
-            this->isWriteBarrierAllowed = true;
-        }
-#endif
-    }
+    this->address = (char *)GetAllocator()->GetVirtualAllocator()->Alloc(NULL, totalPages * AutoSystemInfo::PageSize, MEM_RESERVE | allocFlags, PAGE_READWRITE, this->IsInCustomHeapAllocator());
 
     if (this->address == nullptr)
     {
         this->allocator->ReportFailure(totalPages * AutoSystemInfo::PageSize);
         return false;
     }
+
+    originalAddress = this->address;
+    bool committed = (allocFlags & MEM_COMMIT) != 0;
+    if (addGuardPages)
+    {
+#if DBG_DUMP
+        GUARD_PAGE_TRACE(_u("Number of Leading Guard Pages: %d\n"), leadingGuardPageCount);
+        GUARD_PAGE_TRACE(_u("Starting address of Leading Guard Pages: 0x%p\n"), address);
+        GUARD_PAGE_TRACE(_u("Offset of Segment Start address: 0x%p\n"), this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize));
+        GUARD_PAGE_TRACE(_u("Starting address of Trailing Guard Pages: 0x%p\n"), address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize));
+#endif
+        if (committed)
+        {
+            GetAllocator()->GetVirtualAllocator()->Free(address, leadingGuardPageCount * AutoSystemInfo::PageSize, MEM_DECOMMIT);
+            GetAllocator()->GetVirtualAllocator()->Free(address + ((leadingGuardPageCount + this->segmentPageCount)*AutoSystemInfo::PageSize), trailingGuardPageCount*AutoSystemInfo::PageSize, MEM_DECOMMIT);
+        }
+        this->allocator->ReportFree((leadingGuardPageCount + trailingGuardPageCount) * AutoSystemInfo::PageSize);
+
+        this->address = this->address + (leadingGuardPageCount*AutoSystemInfo::PageSize);
+    }
+
+    if (!allocator->CreateSecondaryAllocator(this, committed, &this->secondaryAllocator))
+    {
+        GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+        this->allocator->ReportFailure(GetPageCount() * AutoSystemInfo::PageSize);
+        this->address = nullptr;
+        return false;
+    }
+#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
+    else if (!RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount))
+    {
+        GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE);
+        this->allocator->ReportFailure(GetPageCount() * AutoSystemInfo::PageSize);
+        this->address = nullptr;
+        return false;
+    }
+    else
+    {
+        this->isWriteBarrierAllowed = true;
+    }
+#endif
 
     return true;
 }

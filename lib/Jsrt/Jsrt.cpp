@@ -6,6 +6,7 @@
 #include "JsrtInternal.h"
 #include "JsrtExternalObject.h"
 #include "JsrtExternalArrayBuffer.h"
+#include "JsrtHelper.h"
 
 #include "JsrtSourceHolder.h"
 #include "ByteCode/ByteCodeSerializer.h"
@@ -66,40 +67,6 @@ JsErrorCode CheckContext(JsrtContext *currentContext, bool verifyRuntimeState, b
     }
 
     return JsNoError;
-}
-
-template <class Fn, class T>
-T CallbackWrapper(Fn fn, T default)
-{
-    T result = default;
-    try
-    {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
-
-        result = fn();
-    }
-    catch (Js::OutOfMemoryException)
-    {
-    }
-    catch (Js::StackOverflowException)
-    {
-    }
-    catch (Js::ExceptionBase)
-    {
-        AssertMsg(false, "Unexpected engine exception.");
-    }
-    catch (...)
-    {
-        AssertMsg(false, "Unexpected non-engine exception.");
-    }
-
-    return result;
-}
-
-template <class Fn>
-bool CallbackWrapper(Fn fn)
-{
-    return CallbackWrapper(fn, false);
 }
 
 STDAPI_(JsErrorCode) JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
@@ -225,7 +192,6 @@ JsErrorCode JsCollectGarbageCommon(JsRuntimeHandle runtimeHandle)
         {
             recycler->CollectNow<flags>();
         }
-
         return JsNoError;
     });
 }
@@ -346,9 +312,14 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
     }
     else
     {
-        return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext) -> JsErrorCode
+        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+        if (threadContext == nullptr)
         {
-            Recycler * recycler = scriptContext->GetRecycler();
+            return JsErrorNoCurrentContext;
+        }
+        Recycler * recycler = threadContext->GetRecycler();
+        return GlobalAPIWrapper([&] () -> JsErrorCode
+        {
 
             // Note, some references may live in arena-allocated memory, so we need to do this check
             if (!recycler->IsValidObject(ref))
@@ -358,8 +329,7 @@ STDAPI_(JsErrorCode) JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 
             recycler->RootAddRef(ref, count);
             return JsNoError;
-        },
-        /*allowInObjectBeforeCollectCallback*/true);
+        });
     }
 }
 
@@ -392,10 +362,14 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
     }
     else
     {
-        return ContextAPINoScriptWrapper([&] (Js::ScriptContext *scriptContext) -> JsErrorCode
+        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+        if (threadContext == nullptr)
         {
-            Recycler * recycler = scriptContext->GetRecycler();
-
+            return JsErrorNoCurrentContext;
+        }
+        Recycler * recycler = threadContext->GetRecycler();
+        return GlobalAPIWrapper([&]() -> JsErrorCode
+        {
             // Note, some references may live in arena-allocated memory, so we need to do this check
             if (!recycler->IsValidObject(ref))
             {
@@ -403,10 +377,10 @@ STDAPI_(JsErrorCode) JsRelease(_In_ JsRef ref, _Out_opt_ unsigned int *count)
             }
             recycler->RootRelease(ref, count);
             return JsNoError;
-        },
-        /*allowInObjectBeforeCollectCallback*/true);
+        });
     }
 }
+
 
 STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ void *callbackState, _In_ JsObjectBeforeCollectCallback objectBeforeCollectCallback)
 {
@@ -421,25 +395,32 @@ STDAPI_(JsErrorCode) JsSetObjectBeforeCollectCallback(_In_ JsRef ref, _In_opt_ v
     {
         return GlobalAPIWrapper([&]() -> JsErrorCode
         {
-            Recycler * recycler = static_cast<JsrtContext *>(ref)->GetRuntime()->GetThreadContext()->GetRecycler();
-            recycler->SetObjectBeforeCollectCallback(ref, reinterpret_cast<Recycler::ObjectBeforeCollectCallback>(objectBeforeCollectCallback), callbackState);
+            ThreadContext* threadContext = static_cast<JsrtContext *>(ref)->GetRuntime()->GetThreadContext();
+            Recycler * recycler = threadContext->GetRecycler();
+            recycler->SetObjectBeforeCollectCallback(ref, reinterpret_cast<Recycler::ObjectBeforeCollectCallback>(objectBeforeCollectCallback), callbackState, 
+                reinterpret_cast<Recycler::ObjectBeforeCollectCallbackWrapper>(JsrtCallbackState::ObjectBeforeCallectCallbackWrapper), threadContext);
             return JsNoError;
         });
     }
     else
     {
-        return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext) -> JsErrorCode
+        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+        if (threadContext == nullptr)
         {
-            Recycler * recycler = scriptContext->GetRecycler();
+            return JsErrorNoCurrentContext;
+        }
+        Recycler * recycler = threadContext->GetRecycler();
+        return GlobalAPIWrapper([&]() -> JsErrorCode
+        {
             if (!recycler->IsValidObject(ref))
             {
                 return JsErrorInvalidArgument;
             }
 
-            recycler->SetObjectBeforeCollectCallback(ref, reinterpret_cast<Recycler::ObjectBeforeCollectCallback>(objectBeforeCollectCallback), callbackState);
+            recycler->SetObjectBeforeCollectCallback(ref, reinterpret_cast<Recycler::ObjectBeforeCollectCallback>(objectBeforeCollectCallback), callbackState, 
+                reinterpret_cast<Recycler::ObjectBeforeCollectCallbackWrapper>(JsrtCallbackState::ObjectBeforeCallectCallbackWrapper), threadContext);
             return JsNoError;
-        },
-        /*allowInObjectBeforeCollectCallback*/true);
+        });
     }
 }
 
@@ -490,8 +471,9 @@ STDAPI_(JsErrorCode) JsSetCurrentContext(_In_ JsContextRef newContext)
 {
     return GlobalAPIWrapper([&] () -> JsErrorCode {
         JsrtContext *currentContext = JsrtContext::GetCurrent();
+        Recycler* recycler = currentContext != nullptr ? currentContext->GetScriptContext()->GetRecycler() : nullptr;
 
-        if (currentContext && currentContext->GetScriptContext()->GetRecycler()->IsHeapEnumInProgress())
+        if (currentContext && recycler->IsHeapEnumInProgress())
         {
             return JsErrorHeapEnumInProgress;
         }

@@ -1,7 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #define b(x) (x * MachBits)
 
 //      Uppercase  Base      Size      Size        EnReg OK?  Brief name
@@ -20,10 +21,20 @@ IRTYPE(Uint64,    Uint,      8,        b(8),        1,        u64)
 IRTYPE(Float32,   Float,     4,        b(4),        1,        f32)
 IRTYPE(Float64,   Float,     8,        b(8),        1,        f64)
 
-// IRTYPE(Simd128, Simd, 16, b(16), 1, simd128)
-IRTYPE(Simd128F4,   Simd,     16,      b(16),       1,        simd128)
+// Keep these in order
+IRTYPE(Simd128F4,   Simd,     16,      b(16),       1,        simd128) // SIMD start
 IRTYPE(Simd128I4,   Simd,     16,      b(16),       1,        simd128)
-IRTYPE(Simd128D2,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128I8,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128I16,  Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128U4,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128U8,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128U16,  Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128B4,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128B8,   Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128B16,  Simd,     16,      b(16),       1,        simd128)
+IRTYPE(Simd128D2,   Simd,     16,      b(16),       1,        simd128) // SIMD end
+
+
 
 //
 // review: MachPtr->Align is incorrect on AMD64. We don't use this value today (6/29/09) so its fine
