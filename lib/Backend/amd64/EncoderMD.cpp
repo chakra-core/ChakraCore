@@ -1772,6 +1772,12 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
     IR::Opnd *src1 = instr->GetSrc1();
     IR::Opnd *src2 = instr->GetSrc2();
 
+    if (IRType_IsSimd128(regOpnd->GetType()))
+    {
+        // No folding for SIMD values. Alignment is not guaranteed.
+        return false;
+    }
+
     switch (GetInstrForm(instr))
     {
     case FORM_MOV:
