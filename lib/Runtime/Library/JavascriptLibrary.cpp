@@ -4190,22 +4190,19 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptString::EntryInfo::ValueOf.GetOriginalEntryPoint(),
                                                                   library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::valueOf,            &JavascriptString::EntryInfo::ValueOf,              0));
 
-        if (scriptContext->GetConfig()->SupportsES3Extensions())
-        {
-            /* No inlining                String_Anchor        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::anchor,             &JavascriptString::EntryInfo::Anchor,               1);
-            /* No inlining                String_Big           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::big,                &JavascriptString::EntryInfo::Big,                  0);
-            /* No inlining                String_Blink         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::blink,              &JavascriptString::EntryInfo::Blink,                0);
-            /* No inlining                String_Bold          */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::bold,               &JavascriptString::EntryInfo::Bold,                 0);
-            /* No inlining                String_Fixed         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fixed,              &JavascriptString::EntryInfo::Fixed,                0);
-            /* No inlining                String_FontColor     */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontcolor,          &JavascriptString::EntryInfo::FontColor,            1);
-            /* No inlining                String_FontSize      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontsize,           &JavascriptString::EntryInfo::FontSize,             1);
-            /* No inlining                String_Italics       */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::italics,            &JavascriptString::EntryInfo::Italics,              0);
-            builtinFuncs[BuiltinFunction::String_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
-            /* No inlining                String_Small         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::Small,              &JavascriptString::EntryInfo::Small,                0);
-            /* No inlining                String_Strike        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::strike,             &JavascriptString::EntryInfo::Strike,               0);
-            /* No inlining                String_Sub           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sub,                &JavascriptString::EntryInfo::Sub,                  0);
-            /* No inlining                String_Sup           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sup,                &JavascriptString::EntryInfo::Sup,                  0);
-        }
+        /* No inlining                String_Anchor        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::anchor,             &JavascriptString::EntryInfo::Anchor,               1);
+        /* No inlining                String_Big           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::big,                &JavascriptString::EntryInfo::Big,                  0);
+        /* No inlining                String_Blink         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::blink,              &JavascriptString::EntryInfo::Blink,                0);
+        /* No inlining                String_Bold          */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::bold,               &JavascriptString::EntryInfo::Bold,                 0);
+        /* No inlining                String_Fixed         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fixed,              &JavascriptString::EntryInfo::Fixed,                0);
+        /* No inlining                String_FontColor     */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontcolor,          &JavascriptString::EntryInfo::FontColor,            1);
+        /* No inlining                String_FontSize      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::fontsize,           &JavascriptString::EntryInfo::FontSize,             1);
+        /* No inlining                String_Italics       */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::italics,            &JavascriptString::EntryInfo::Italics,              0);
+        builtinFuncs[BuiltinFunction::String_Link]          = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::link,               &JavascriptString::EntryInfo::Link,                 1);
+        /* No inlining                String_Small         */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::Small,              &JavascriptString::EntryInfo::Small,                0);
+        /* No inlining                String_Strike        */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::strike,             &JavascriptString::EntryInfo::Strike,               0);
+        /* No inlining                String_Sub           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sub,                &JavascriptString::EntryInfo::Sub,                  0);
+        /* No inlining                String_Sup           */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::sup,                &JavascriptString::EntryInfo::Sup,                  0);
 
         if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled())
         {
@@ -6882,22 +6879,20 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toUpperCase, JavascriptString::EntryToUpperCase);
         REG_OBJECTS_LIB_FUNC(trim, JavascriptString::EntryTrim);
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptString::EntryValueOf);
-        if (config.SupportsES3Extensions())
-        {
-            REG_OBJECTS_LIB_FUNC(anchor, JavascriptString::EntryAnchor);
-            REG_OBJECTS_LIB_FUNC(big, JavascriptString::EntryBig);
-            REG_OBJECTS_LIB_FUNC(blink, JavascriptString::EntryBlink);
-            REG_OBJECTS_LIB_FUNC(bold, JavascriptString::EntryBold);
-            REG_OBJECTS_LIB_FUNC(fixed, JavascriptString::EntryFixed);
-            REG_OBJECTS_LIB_FUNC(fontcolor, JavascriptString::EntryFontColor);
-            REG_OBJECTS_LIB_FUNC(fontsize, JavascriptString::EntryFontSize);
-            REG_OBJECTS_LIB_FUNC(italics, JavascriptString::EntryItalics);
-            REG_OBJECTS_LIB_FUNC(link, JavascriptString::EntryLink);
-            REG_OBJECTS_DYNAMIC_LIB_FUNC(_u("small"), 5, JavascriptString::EntrySmall);
-            REG_OBJECTS_LIB_FUNC(strike, JavascriptString::EntryStrike);
-            REG_OBJECTS_LIB_FUNC(sub, JavascriptString::EntrySub);
-            REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
-        }
+
+        REG_OBJECTS_LIB_FUNC(anchor, JavascriptString::EntryAnchor);
+        REG_OBJECTS_LIB_FUNC(big, JavascriptString::EntryBig);
+        REG_OBJECTS_LIB_FUNC(blink, JavascriptString::EntryBlink);
+        REG_OBJECTS_LIB_FUNC(bold, JavascriptString::EntryBold);
+        REG_OBJECTS_LIB_FUNC(fixed, JavascriptString::EntryFixed);
+        REG_OBJECTS_LIB_FUNC(fontcolor, JavascriptString::EntryFontColor);
+        REG_OBJECTS_LIB_FUNC(fontsize, JavascriptString::EntryFontSize);
+        REG_OBJECTS_LIB_FUNC(italics, JavascriptString::EntryItalics);
+        REG_OBJECTS_LIB_FUNC(link, JavascriptString::EntryLink);
+        REG_OBJECTS_DYNAMIC_LIB_FUNC(_u("small"), 5, JavascriptString::EntrySmall);
+        REG_OBJECTS_LIB_FUNC(strike, JavascriptString::EntryStrike);
+        REG_OBJECTS_LIB_FUNC(sub, JavascriptString::EntrySub);
+        REG_OBJECTS_LIB_FUNC(sup, JavascriptString::EntrySup);
 
         if (config.IsES6StringExtensionsEnabled())
         {
