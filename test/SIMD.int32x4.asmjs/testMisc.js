@@ -115,6 +115,8 @@ var i4 = stdlib.SIMD.Int32x4;
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 var r = m.func1();
 equalSimd([-136732, 424688, -2277748, 131068], r, SIMD.Int32x4, "func1");
+var r = m.func1();
+equalSimd([-136732, 424688, -2277748, 131068], r, SIMD.Int32x4, "func1");
 //printSimdBaseline(r, "SIMD.Int32x4", "r", "func1");
 
 print("PASS");

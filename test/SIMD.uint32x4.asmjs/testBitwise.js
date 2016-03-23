@@ -104,6 +104,9 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
 equalSimd([1, 1, 1, 1], m.func1(), SIMD.Uint32x4, "Func1");
+equalSimd([1, 1, 1, 1], m.func1(), SIMD.Uint32x4, "Func1");
+equalSimd([8488513, 1078590673, 29974920, 9493783], m.func2(), SIMD.Uint32x4, "Func2");
 equalSimd([8488513, 1078590673, 29974920, 9493783], m.func2(), SIMD.Uint32x4, "Func2");
 equalSimd([91080810, 22439513, 893080502, 990522477], m.func3(), SIMD.Uint32x4, "Func3");
+equalSimd([84787308, 22307921, 285954454, 184560749], m.func3(), SIMD.Uint32x4, "Func3");
 print("PASS");

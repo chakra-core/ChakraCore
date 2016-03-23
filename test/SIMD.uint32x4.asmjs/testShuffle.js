@@ -77,8 +77,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint32x4(100, 1073741824, 1028, 102) });
 
 equalSimd([9493872, 8488484, 29975939, 4848848], m.testShuffleLocal(), SIMD.Uint32x4, "");
+equalSimd([9493872, 8488484, 29975939, 4848848], m.testShuffleLocal(), SIMD.Uint32x4, "");
+equalSimd([1082130432, 1065353216, 1077936128, 1073741824], m.testShuffleGlobal(), SIMD.Uint32x4, "");
 equalSimd([1082130432, 1065353216, 1077936128, 1073741824], m.testShuffleGlobal(), SIMD.Uint32x4, "");
 equalSimd([9493872, 8488484, 29975939, 4848848], m.testShuffleGlobalImport(), SIMD.Uint32x4, "");
+equalSimd([9493872, 8488484, 29975939, 4848848], m.testShuffleGlobalImport(), SIMD.Uint32x4, "");
+equalSimd([1091624304, 1073841700, 1107912067, 1078590672], m.testShuffleFunc(), SIMD.Uint32x4, "");
 equalSimd([1091624304, 1073841700, 1107912067, 1078590672], m.testShuffleFunc(), SIMD.Uint32x4, "");
 
 print("PASS");

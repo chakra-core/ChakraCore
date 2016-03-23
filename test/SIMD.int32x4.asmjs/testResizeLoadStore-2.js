@@ -703,7 +703,7 @@ function printResults(res)
 }
 
 inputLength = initF32(buffer);
-print(inputLength);
+
 //Enumerating SIMD loads to test. 
 SIMDLoad = 1;
 SIMDLoad1 = 2;
@@ -721,397 +721,461 @@ this['byteLength'] =
 var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)}, buffer);
 var values = new Float32Array(buffer);
 
-print("Stores:");
-
-print("Test1");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore1);//Lane1 store
 equalSimd([5, 1092616192, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore1);//Lane1 store
+equalSimd([5, 1092616192, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test2");;
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore2);//Lane 1,2 store
 equalSimd([5, -12, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore2);//Lane 1,2 store
+equalSimd([5, -12, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test3");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
 equalSimd([5, -12, 0, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
+equalSimd([5, -12, 0, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test4");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore);//Generic Store
 equalSimd([5, -12, 0, 2220], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore);//Generic Store
+equalSimd([5, -12, 0, 2220], ret, SIMD.Int32x4, "");
 
-print("Test5");
 inputLength = initF32(buffer);  
 var ret = m.store2(SIMDStore);//Generic store 
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
+var ret = m.store2(SIMDStore);//Generic store 
+equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-print("Test6");
 inputLength = initF32(buffer); 
 var ret = m.store3(SIMDStore);//Generic store
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
+var ret = m.store3(SIMDStore);//Generic store
+equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-print("Test7");
 inputLength = initF32(buffer); 
 var ret = m.store1Int8(inputLength);//Int8Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int8(inputLength);//Int8Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test8");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint8(inputLength);//Uint8Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint8(inputLength);//Uint8Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test9");
 inputLength = initF32(buffer); 
 var ret = m.store1Int16(inputLength);//Int16Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int16(inputLength);//Int16Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test10");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint16(inputLength);//Uint16Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint16(inputLength);//Uint16Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test12");
 inputLength = initF32(buffer); 
 var ret = m.store1Int32(inputLength);//Int32Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int32(inputLength);//Int32Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test13");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint32(inputLength);//Uint32Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint32(inputLength);//Uint32Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test14");
 inputLength = initF32(buffer); 
 var ret = m.loadStoreIndex1();//Uint32Heap store
 equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
+var ret = m.loadStoreIndex1();//Uint32Heap store
+equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
 
-print("Loads");
-print("Test1");
+var ret = m.load1(SIMDLoad1);
+equalSimd([1126170624, 0, 0, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad1);
 equalSimd([1126170624, 0, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test2");
+var ret = m.load1(SIMDLoad2);
+equalSimd([1126170624, 1126825984, 0, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad2);
 equalSimd([1126170624, 1126825984, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test3");
+var ret = m.load1(SIMDLoad3);
+equalSimd([1126170624, 1126825984, 1127481344, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad3);
 equalSimd([1126170624, 1126825984, 1127481344, 0], ret, SIMD.Int32x4, "");
 
-print("Test4");
+var ret = m.load1(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test5");
+var ret = m.load2(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load2(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test6");
+var ret = m.load3(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load3(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test7");
+var ret = m.load1Int8(inputLength); //Int8Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Int8(inputLength); //Int8Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("Test8");
+var ret = m.load1Uint8(inputLength); //Int8Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint8(inputLength); //Int8Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("Test9");
+var ret = m.load1Int16(inputLength); //Int16Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Int16(inputLength); //Int16Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("Test10");
+var ret = m.load1Uint16(inputLength); //Int16Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint16(inputLength); //Int16Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("Test11");
+var ret = m.load1Int32(inputLength); //Int32Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Int32(inputLength); //Int32Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("Test12");
+var ret = m.load1Uint32(inputLength); //Int32Heap load
+equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint32(inputLength); //Int32Heap load
 equalSimd([1277165558, 1277165560, 1277165563, 1277165566], ret, SIMD.Int32x4, "");
 
-print("BoundCheck");
+
 var value = SIMD.Int32x4(9.9,1.2,3.4,5.6);
 
-print("Test1");
-try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test2");
-try {m.loadF32(inputLength); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
 
-print("Test3");
-try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
 
-print("Test4");
-try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test5");
-try {m.storeF32(value, inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test6");
-try {var v = m.loadF32(inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test7");
-try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test8");
-try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) { print("Correct"); }
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
 
-print("Test9");
-try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {print("Correct");}
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
 
-print("Test10");
-try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
 
-print("Test11");
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+
+
 try{
     m.storeI16(value, inputLength*2-8);
-    print("Correct");
+    m.storeI16(value, inputLength*2-8);
+    
     m.storeUI16(value, inputLength*2-8);
-    print("Correct");
+    m.storeUI16(value, inputLength*2-8);
+    
     m.storeI8(value, inputLength*4-16);
-    print("Correct");
+    m.storeI8(value, inputLength*4-16);
+    
     m.storeUI8(value, inputLength*4-16);
-    print("Correct");
+    m.storeUI8(value, inputLength*4-16);
+    
     m.loadI16(inputLength*2-8);
-    print("Correct");
+    m.loadI16(inputLength*2-8);
+    
     m.loadUI16(inputLength*2-8);
-    print("Correct");
+    m.loadUI16(inputLength*2-8);
+    
     m.loadI8(inputLength*4-16);
-    print("Correct");
+    m.loadI8(inputLength*4-16);
+    
     m.loadUI8(inputLength*4-16);
-    print("Correct");
+    m.loadUI8(inputLength*4-16);
+    
 } catch(err){ print("Wrong"); }
 
-print("Test12");
-try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test13");
-try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
 
-print("Test14");
-try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test15");
-try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test16");
-try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test17");
-try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
 
-print("Test18");
-try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
 
-print("Test19");
-try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
 
 // change buffer
 var buffer = new ArrayBuffer(0x2000000);
-print(m.changeHeap(buffer));
+m.changeHeap(buffer);
 
-print(">>> ChangeHeap ");
-
-print("Stores:");
-
-print("Test1");
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore1);//Lane1 store
 equalSimd([5, 1092616192, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore1);//Lane1 store
+equalSimd([5, 1092616192, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test2");;
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore2);//Lane 1,2 store
 equalSimd([5, -12, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore2);//Lane 1,2 store
+equalSimd([5, -12, 1101004800, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test3");
+
 inputLength = initF32(buffer); 
 var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
 equalSimd([5, -12, 0, 1106247680], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore3);//Lane 1,2,3 store
+equalSimd([5, -12, 0, 1106247680], ret, SIMD.Int32x4, "");
 
-print("Test4");
+
 inputLength = initF32(buffer); 
 //Should change the buffer to  0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3...15,15,15,15,0,0,0,0...
 var ret = m.store1(SIMDStore);//Generic Store
 equalSimd([5, -12, 0, 2220], ret, SIMD.Int32x4, "");
+var ret = m.store1(SIMDStore);//Generic Store
+equalSimd([5, -12, 0, 2220], ret, SIMD.Int32x4, "");
 
-print("Test5");
 inputLength = initF32(buffer);  
 var ret = m.store2(SIMDStore);//Generic store 
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
+var ret = m.store2(SIMDStore);//Generic store 
+equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-print("Test6");
 inputLength = initF32(buffer); 
 var ret = m.store3(SIMDStore);//Generic store
 equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
+var ret = m.store3(SIMDStore);//Generic store
+equalSimd([2, 2, 2, 2], ret, SIMD.Int32x4, "");
 
-print("Test7");
 inputLength = initF32(buffer); 
 var ret = m.store1Int8(inputLength);//Int8Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int8(inputLength);//Int8Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test8");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint8(inputLength);//Uint8Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint8(inputLength);//Uint8Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test9");
 inputLength = initF32(buffer); 
 var ret = m.store1Int16(inputLength);//Int16Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int16(inputLength);//Int16Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test10");
+
 inputLength = initF32(buffer); 
 var ret = m.store1Uint16(inputLength);//Uint16Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint16(inputLength);//Uint16Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test12");
 inputLength = initF32(buffer); 
 var ret = m.store1Int32(inputLength);//Int32Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Int32(inputLength);//Int32Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test13");
 inputLength = initF32(buffer); 
 var ret = m.store1Uint32(inputLength);//Uint32Heap store
 equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
+var ret = m.store1Uint32(inputLength);//Uint32Heap store
+equalSimd([1101004800, 1106247680, 1109393408, 1112014848], ret, SIMD.Int32x4, "");
 
-print("Test14");
 inputLength = initF32(buffer); 
 var ret = m.loadStoreIndex1();//Uint32Heap store
 equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
+var ret = m.loadStoreIndex1();//Uint32Heap store
+equalSimd([-1, -2, 3, -4], ret, SIMD.Int32x4, "");
 
-
-print("Loads");
-print("Test1");
+var ret = m.load1(SIMDLoad1);
+equalSimd([1126170624, 0, 0, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad1);
 equalSimd([1126170624, 0, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test2");
+var ret = m.load1(SIMDLoad2);
+equalSimd([1126170624, 1126825984, 0, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad2);
 equalSimd([1126170624, 1126825984, 0, 0], ret, SIMD.Int32x4, "");
 
-print("Test3");
+var ret = m.load1(SIMDLoad3);
+equalSimd([1126170624, 1126825984, 1127481344, 0], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad3);
 equalSimd([1126170624, 1126825984, 1127481344, 0], ret, SIMD.Int32x4, "");
 
-print("Test4");
+var ret = m.load1(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load1(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test5");
+var ret = m.load2(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load2(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test6");
+var ret = m.load3(SIMDLoad);
+equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 var ret = m.load3(SIMDLoad);
 equalSimd([1126170624, 1126825984, 1127481344, 1128136704], ret, SIMD.Int32x4, "");
 
-print("Test7");
+var ret = m.load1Int8(inputLength); //Int8Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Int8(inputLength); //Int8Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("Test8");
+var ret = m.load1Uint8(inputLength); //Int8Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint8(inputLength); //Int8Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("Test9");
+var ret = m.load1Int16(inputLength); //Int16Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Int16(inputLength); //Int16Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("Test10");
+
+var ret = m.load1Uint16(inputLength); //Int16Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint16(inputLength); //Int16Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("Test11");
+var ret = m.load1Int32(inputLength); //Int32Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Int32(inputLength); //Int32Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("Test12");
+var ret = m.load1Uint32(inputLength); //Int32Heap load
+equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 var ret = m.load1Uint32(inputLength); //Int32Heap load
 equalSimd([1285554171, 1285554172, 1285554174, 1285554175], ret, SIMD.Int32x4, "");
 
-print("BoundCheck");
+
 var value = SIMD.Int32x4(9.9,1.2,3.4,5.6);
 
-print("Test1");
-try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {print("Correct");}
 
-print("Test2");
-try {m.loadF32(inputLength); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength); print("Wrong");} catch(err) {}
 
-print("Test3");
-try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength); print("Wrong");} catch(err) {}
 
-print("Test4");
-try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
+try {m.storeF32(value, inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test5");
-try {m.storeF32(value, inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
+try {m.loadF32(inputLength-1); print("Wrong");} catch(err) {}
 
-print("Test6");
-try {var v = m.loadF32(inputLength-4);print("Correct");} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
+try {m.storeF32(value, inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test7");
-try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
+try {var v = m.loadF32(inputLength-4);} catch(err) {print("Wrong");}
 
-print("Test8");
-try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) { print("Correct"); }
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
+try {m.storeUI32(value, inputLength+1);print("Wrong");} catch(err) {}
 
-print("Test9");
-try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {print("Correct");}
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
+try { m.loadUI32(inputLength+1); print("Wrong"); } catch(err) {  }
 
-print("Test10");
-try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
+try {m.storeI32(value, inputLength+1); print("Wrong");} catch(err) {}
 
-print("Test11");
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+try {m.loadI32(inputLength+1);print("Wrong");} catch(err) {}
+
 try{
     m.storeI16(value, inputLength*2-8);
-    print("Correct");
+    m.storeI16(value, inputLength*2-8);
+    
     m.storeUI16(value, inputLength*2-8);
-    print("Correct");
+    m.storeUI16(value, inputLength*2-8);
+    
     m.storeI8(value, inputLength*4-16);
-    print("Correct");
+    m.storeI8(value, inputLength*4-16);
+    
     m.storeUI8(value, inputLength*4-16);
-    print("Correct");
+    m.storeUI8(value, inputLength*4-16);
+    
     m.loadI16(inputLength*2-8);
-    print("Correct");
+    m.loadI16(inputLength*2-8);
+    
     m.loadUI16(inputLength*2-8);
-    print("Correct");
+    m.loadUI16(inputLength*2-8);
+    
     m.loadI8(inputLength*4-16);
-    print("Correct");
+    m.loadI8(inputLength*4-16);
+    
     m.loadUI8(inputLength*4-16);
-    print("Correct");
+    m.loadUI8(inputLength*4-16);
+    
 } catch(err){ print("Wrong"); }
 
-print("Test12");
-try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {print("Correct");}
 
-print("Test13");
-try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
+try {m.storeUI16(value, inputLength*2);print("Wrong");} catch(err) {}
 
-print("Test14");
-try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadUI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test15");
-try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.storeI16(value, inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test16");
-try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
+try {m.loadI16(inputLength*2-7); print("Wrong");} catch(err) {}
 
-print("Test17");
-try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeUI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
 
-print("Test18");
-try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {print("Correct");}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.loadUI8(inputLength*4-15); print("Wrong");} catch(err) {}
 
-print("Test19");
-try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {print("Correct");}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+try {m.storeI8(value, inputLength*4-15); print("Wrong");} catch(err) {}
+
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
+try {m.loadI8(inputLength*4+15); print("Wrong");} catch(err) {}
 print("PASS");

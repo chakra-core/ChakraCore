@@ -551,25 +551,31 @@ var m = asmModule(this, {g1: SIMD.Uint32x4(1065353216, 1073741824, 1077936128, 1
 var ret;
 
 ret = m.func1();
+ret = m.func1();
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store1");
 
 
+ret = m.func2();
 ret = m.func2();
 equalSimd([10, 20, 30, 0], ret, SIMD.Uint32x4, "Test Load Store2");
 
 
 ret = m.func3();
+ret = m.func3();
 equalSimd([10, 20, 0, 0], ret, SIMD.Uint32x4, "Test Load Store3");
 
 
+ret = m.func4();
 ret = m.func4();
 equalSimd([10, 0, 0, 0], ret, SIMD.Uint32x4, "Test Load Store4");
 
 
 ret = m.func5();
+ret = m.func5();
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store5");
 
 
+ret = m.func6();
 ret = m.func6();
 equalSimd([10, 20, 30, 40], ret, SIMD.Uint32x4, "Test Load Store6");
 

@@ -70,8 +70,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint16x8(50, 1000, 3092, 3393, 8838, 63838, NaN, 838) });
 
 equalSimd([1, 2, 5, 6, 8, 5, 3, 4], m.testswizzleLocal(), SIMD.Uint16x8, "");
+equalSimd([1, 2, 5, 6, 8, 5, 3, 4], m.testswizzleLocal(), SIMD.Uint16x8, "");
+equalSimd([1, 2, 5, 6, 8, 5, 3, 4], m.testswizzleGlobal(), SIMD.Uint16x8, "");
 equalSimd([1, 2, 5, 6, 8, 5, 3, 4], m.testswizzleGlobal(), SIMD.Uint16x8, "");
 equalSimd([50, 1000, 8838, 63838, 838, 8838, 3092, 3393], m.testswizzleGlobalImport(), SIMD.Uint16x8, "");
+equalSimd([50, 1000, 8838, 63838, 838, 8838, 3092, 3393], m.testswizzleGlobalImport(), SIMD.Uint16x8, "");
+equalSimd([2, 4, 10, 12, 16, 10, 6, 8], m.testswizzleFunc(), SIMD.Uint16x8, "");
 equalSimd([2, 4, 10, 12, 16, 10, 6, 8], m.testswizzleFunc(), SIMD.Uint16x8, "");
 print("PASS");
 

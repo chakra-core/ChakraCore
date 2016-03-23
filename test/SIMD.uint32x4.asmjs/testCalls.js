@@ -197,8 +197,12 @@ var s7 = SIMD.Uint32x4(1.0, 2.0, -3.0, 4.0);
 var s8 = SIMD.Uint32x4(1.0, 2.0, 3.0, -4.0);
 
 var ret1 = m.func1(s1, s2);
+var ret1 = m.func1(s1, s2);
+var ret2 = m.func2(s1, s2, s3, s4);
 var ret2 = m.func2(s1, s2, s3, s4);
 var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
+var ret3 = m.func3(s1, s2, s3, s4, s5, s6, s7, s8);
+var ret4 = m.func4();
 var ret4 = m.func4();
 
 /*

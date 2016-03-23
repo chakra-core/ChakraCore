@@ -168,6 +168,7 @@ print("Vector Rotate - Start");
 printBuffer(Int32Heap, 0, 32);
 
 m.rotate(4, 20, 8);
+m.rotate(4, 20, 8);
 print();
 
 printBuffer(Int32Heap, 0, 32);

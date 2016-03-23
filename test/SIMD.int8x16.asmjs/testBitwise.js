@@ -84,8 +84,12 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(100, -1073741824, -1028, -102, NaN, -38, -92929, Infinity, 52, 127, -127, -129, 129, 0, 88, 100234) });
 
 equalSimd([127, -128, 0, 127, -128, 127, -9, -1, -7, -5, -5, -1, -3, -1, -1, -1], m.testBitwiseOR(), SIMD.Int8x16, "testBitwiseOR");
+equalSimd([127, -128, 0, 127, -128, 127, -9, -1, -7, -5, -5, -1, -3, -1, -1, -1], m.testBitwiseOR(), SIMD.Int8x16, "testBitwiseOR");
+equalSimd([127, -128, 0, 0, 0, 0, 6, 0, 8, 8, 10, 8, 12, 12, 14, 16], m.testBitwiseAND(), SIMD.Int8x16, "testBitwiseAND");
 equalSimd([127, -128, 0, 0, 0, 0, 6, 0, 8, 8, 10, 8, 12, 12, 14, 16], m.testBitwiseAND(), SIMD.Int8x16, "testBitwiseAND");
 equalSimd([0, 0, 0, 127, -128, 127, -15, -1, -15, -13, -15, -9, -15, -13, -15, -17], m.testBitwiseXOR(), SIMD.Int8x16, "testBitwiseXOR");
+equalSimd([0, 0, 0, 127, -128, 127, -15, -1, -15, -13, -15, -9, -15, -13, -15, -17], m.testBitwiseXOR(), SIMD.Int8x16, "testBitwiseXOR");
+equalSimd([-128, 127, -1, -128, 127, -1, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17], m.testBitwiseNOT(), SIMD.Int8x16, "testBitwiseNOT");
 equalSimd([-128, 127, -1, -128, 127, -1, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17], m.testBitwiseNOT(), SIMD.Int8x16, "testBitwiseNOT");
 
 print("PASS");

@@ -103,7 +103,7 @@ Value **pDstVal
         }
         if (Js::IsSimd128Store(instr->m_opcode))
         {
-            ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, GetIRTypeFromValueType(simdFuncSignature.args[2]), GetBailOutKindFromValueType(simdFuncSignature.args[2]));
+            ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, GetIRTypeFromValueType(simdFuncSignature.args[2]), GetBailOutKindFromValueType(simdFuncSignature.args[2]), true /*lossy*/);
             Simd128SetIndirOpndType(instr->GetDst()->AsIndirOpnd(), instr->m_opcode);
             return true;
         }
@@ -112,16 +112,46 @@ Value **pDstVal
         if (simdFuncSignature.argCount <= 2)
         {
             Assert(instr->GetSrc1());
-            ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, GetIRTypeFromValueType(simdFuncSignature.args[0]), GetBailOutKindFromValueType(simdFuncSignature.args[0]));
+            ToTypeSpecUse(instr, instr->GetSrc1(), this->currentBlock, *pSrc1Val, nullptr, GetIRTypeFromValueType(simdFuncSignature.args[0]), GetBailOutKindFromValueType(simdFuncSignature.args[0]), true /*lossy*/);
 
             if (instr->GetSrc2())
             {
                 ToTypeSpecUse(instr, instr->GetSrc2(), this->currentBlock, *pSrc2Val, nullptr, GetIRTypeFromValueType(simdFuncSignature.args[1]), GetBailOutKindFromValueType(simdFuncSignature.args[1]));
             }
         }
+
         if (instr->GetDst())
         {
-            TypeSpecializeSimd128Dst(GetIRTypeFromValueType(simdFuncSignature.returnType), instr, nullptr, *pSrc1Val, pDstVal);
+            IRType dstType = GetIRTypeFromValueType(simdFuncSignature.returnType);
+            if (IRType_IsSimd128(dstType))
+            {
+                TypeSpecializeSimd128Dst(dstType, instr, nullptr, *pSrc1Val, pDstVal);
+            }
+            else if (IRType_IsFloat(dstType))
+            {
+                // ExtractLane
+                Assert(instr->m_opcode == Js::OpCode::Simd128_ExtractLane_F4);
+                TypeSpecializeFloatDst(instr, nullptr, *pSrc1Val, *pSrc2Val, pDstVal); // Float64, will be cast to Float32 in Lowerer. 
+            }
+            else if (IRType_IsNativeInt(dstType))
+            {
+                // ExtractLane
+                Assert(
+                    instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U4 ||
+                    instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U8 ||
+                    instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I16 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U16
+                    );
+                // ToDo: Refine Int range info based on which SIMD int type we are working on
+                TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, *pSrc1Val, *pSrc2Val, IR::BailOutKind::BailOutInvalid /*unused*/, ValueType::Int, INT32_MIN, INT32_MAX, pDstVal);
+            }
+            else
+            {
+                Assert(dstType == TyVar && simdFuncSignature.returnType == ValueType::Boolean);
+                // ExtractLane
+                Assert(instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16);
+                // no dst type-spec for bool return type, lowerer will make sure to box to Bool
+                ToVarRegOpnd(instr->GetDst()->AsRegOpnd(), this->currentBlock);
+            }
         }
         return true;
     }
@@ -190,11 +220,11 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
         {
         case 2:
             Assert(src2Val);
-            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src2Val->GetValueInfo()->Type(), simdFuncSignature.args[1]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc2(), 1);
+            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src2Val->GetValueInfo()->Type(), simdFuncSignature.args[1]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc2(), src2Val, 1);
             // fall-through
         case 1:
             Assert(src1Val);
-            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src1Val->GetValueInfo()->Type(), simdFuncSignature.args[0]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc1(), 0);
+            doTypeSpec = doTypeSpec && Simd128CanTypeSpecOpnd(src1Val->GetValueInfo()->Type(), simdFuncSignature.args[0]) && Simd128ValidateIfLaneIndex(instr, instr->GetSrc1(), src1Val, 0);
             break;
         default:
         {
@@ -243,8 +273,9 @@ GlobOpt::Simd128DoTypeSpec(IR::Instr *instr, const Value *src1Val, const Value *
                     {
                         return false;
                     }
+                    Value *srcVal = sym ? FindValue(sym) : nullptr;
                     // Extra check if arg is a lane index
-                    if (!Simd128ValidateIfLaneIndex(instr, opnd, arg))
+                    if (!Simd128ValidateIfLaneIndex(instr, opnd, srcVal, arg, true /*extendedOpnd*/))
                     {
                         return false;
                     }
@@ -343,7 +374,7 @@ GlobOpt::Simd128DoTypeSpecLoadStore(IR::Instr *instr, const Value *src1Val, cons
 
 bool GlobOpt::Simd128CanTypeSpecOpnd(const ValueType opndType, ValueType expectedType)
 {
-    if (!opndType.IsSimd128() && !expectedType.IsSimd128())
+    if (!opndType.IsSimd128() && !expectedType.IsSimd128() && opndType.IsPrimitive())
     {
         // Non-Simd types can be coerced or we bailout by a FromVar.
         return true;
@@ -368,12 +399,12 @@ bool GlobOpt::Simd128CanTypeSpecOpnd(const ValueType opndType, ValueType expecte
 /*
 Given an instr, opnd and the opnd position. Return true if opnd is a lane index and valid, or not a lane index all-together..
 */
-bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, uint argPos)
+bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opnd, const Value *srcVal, uint argPos, bool extendedOpnd /* = false */)
 {
     Assert(instr);
     Assert(opnd);
 
-    uint laneIndex;
+    uint laneIndex = (uint) -1;
     uint argPosLo, argPosHi;
     uint laneIndexLo, laneIndexHi;
 
@@ -454,11 +485,37 @@ bool GlobOpt::Simd128ValidateIfLaneIndex(const IR::Instr * instr, IR::Opnd * opn
     // It is a lane index
 
     // Arg is Int constant (literal or const prop'd) ?
-    if (!opnd->IsIntConstOpnd())
+    
+    if (IsLoopPrePass())
     {
-        return false;
+        // LoopPrepass: Check valueInfo since no actual const prop happened.
+        if (!(srcVal && srcVal->GetValueInfo()->TryGetIntConstantValue((int32*)&laneIndex)))
+        {
+            return false;
+        }
     }
-    laneIndex = (uint) opnd->AsIntConstOpnd()->GetValue();
+    else
+    {
+        // Actual pass: we must have a literal in some form at this point
+        if (extendedOpnd)
+        {
+            // If we are looking backwards at ExtendedArgs, then the opnd should have been type-specizlied already. Check if it is IntConstOpnd
+            if (!opnd->IsIntConstOpnd())
+            {
+                return false;
+            }
+            laneIndex = (uint)opnd->AsIntConstOpnd()->GetValue();
+        }
+        else
+        {
+            // If the opnd is inlined in the instruction, then it is not type-spec'ed yet. Check if it is AddrOpnd (Tagged Int value).
+            if (!opnd->IsAddrOpnd())
+            {
+                return false;
+            }
+            laneIndex = Js::TaggedInt::ToInt32((Js::Var)opnd->AsAddrOpnd()->GetImmediateValue());
+        }
+    }
 
     // In range ?
     if (laneIndex < laneIndexLo|| laneIndex > laneIndexHi)
@@ -509,6 +566,10 @@ IRType GlobOpt::GetIRTypeFromValueType(const ValueType &valueType)
     else if (valueType.IsInt())
     {
         return TyInt32;
+    }
+    else if (valueType.IsBoolean())
+    {
+        return TyVar; // no type-spec for bools
     }
 #define SIMD_GET_TYPE(_NAME_,_TAG_)\
     else if (valueType.IsSimd128##_NAME_##())\

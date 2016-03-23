@@ -95,7 +95,11 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Bool32x4(1, 0, 1, 0)});
 
 equalSimd([1, 1, 1, 1], m.testBitwiseAND(), SIMD.Bool32x4, "Func1");
+equalSimd([1, 1, 1, 1], m.testBitwiseAND(), SIMD.Bool32x4, "Func1");
+equalSimd([1, 1, 1, 1], m.testBitwiseOR(), SIMD.Bool32x4, "Func2");
 equalSimd([1, 1, 1, 1], m.testBitwiseOR(), SIMD.Bool32x4, "Func2");
 equalSimd([1, 1, 1, 0], m.testBitwiseXOR(), SIMD.Bool32x4, "Func3");
+equalSimd([1, 1, 1, 0], m.testBitwiseXOR(), SIMD.Bool32x4, "Func3");
+equalSimd([1, 0, 1, 0], m.testBitwiseNOT(), SIMD.Bool32x4, "Func4");
 equalSimd([1, 0, 1, 0], m.testBitwiseNOT(), SIMD.Bool32x4, "Func4");
 print("PASS");

@@ -260,24 +260,6 @@ function verify_results(type, results_ex, buffer, count)
 var m = asmModule(this, {g0:initI4(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)}, buffer);
 var values = new Float32Array(buffer);
 
-//Resetting the buffer.
-initI4(buffer);
-
-// print("Reversing - Start");
-// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
-var exp_results = [
-SIMD.Int32x4(0, 10, 20, 30),
-SIMD.Int32x4(40, 50, 60, 70),
-SIMD.Int32x4(80, 90, 100, 110),
-SIMD.Int32x4(120, 130, 140, 150),
-SIMD.Int32x4(160, 170, 180, 190),
-SIMD.Int32x4(200, 210, 220, 230),
-SIMD.Int32x4(240, 250, 260, 270),
-SIMD.Int32x4(280, 290, 300, 310),
-];
-verify_results(SIMD.Int32x4, exp_results, values, 8*4);
-
-m.reverseI4(3, 31);
 // print("Reversing - Start");
 // GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
 var exp_results = [
@@ -290,28 +272,16 @@ SIMD.Int32x4(130, 120, 110, 100),
 SIMD.Int32x4(90, 80, 70, 60),
 SIMD.Int32x4(50, 40, 30, 310),
 ];
-verify_results(SIMD.Int32x4, exp_results, values, 8*4);
 
 //Resetting the buffer.
-initF4(buffer);
+initI4(buffer);
+m.reverseI4(3, 31);
+verify_results(SIMD.Int32x4, exp_results, values, 8*4);
 
-// print("Reversing - Start");
-// GEN_BASELINE(SIMD.Float32x4.load, values, 8*4);
-var exp_results = [
-SIMD.Float32x4(0, 10, 20, 30),
-SIMD.Float32x4(40, 50, 60, 70),
-SIMD.Float32x4(80, 90, 100, 110),
-SIMD.Float32x4(120, 130, 140, 150),
-SIMD.Float32x4(160, 170, 180, 190),
-SIMD.Float32x4(200, 210, 220, 230),
-SIMD.Float32x4(240, 250, 260, 270),
-SIMD.Float32x4(280, 290, 300, 310),
-];
-verify_results(SIMD.Float32x4, exp_results, values, 8*4);
+initI4(buffer);
+m.reverseI4(3, 31);
+verify_results(SIMD.Int32x4, exp_results, values, 8*4);
 
-m.reverseF4(3, 31);
-// print("Reversing - Start");
-// GEN_BASELINE(SIMD.Float32x4.load, values, 8*4);
 var exp_results = [
 SIMD.Float32x4(0, 10, 20, 300),
 SIMD.Float32x4(290, 280, 270, 260),
@@ -322,14 +292,14 @@ SIMD.Float32x4(130, 120, 110, 100),
 SIMD.Float32x4(90, 80, 70, 60),
 SIMD.Float32x4(50, 40, 30, 310),
 ];
-verify_results(SIMD.Float32x4, exp_results, values, 8*4);
-//Resetting the buffer.
-// initD2(buffer);
 
-// print("Reversing - Start");
-// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
-// m.reverseD2(3, 8);
-// print("Reversing - Start");
-// GEN_BASELINE(SIMD.Int32x4.load, values, 8*4);
+//Resetting the buffer.
+initF4(buffer);
+m.reverseF4(3, 31);
+verify_results(SIMD.Float32x4, exp_results, values, 8*4);
+
+initF4(buffer);
+m.reverseF4(3, 31);
+verify_results(SIMD.Float32x4, exp_results, values, 8*4);
 
 print("PASS");

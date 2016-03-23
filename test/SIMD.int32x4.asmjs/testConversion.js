@@ -444,14 +444,6 @@ var ret5 = m.func5();
 var ret6 = m.func6();
 */
 
-var ret7 = m.func7();
-var ret8 = m.func8();
-var ret9 = m.func9();
-
-
-var ret10 = m.func10();
-var ret11 = m.func11();
-var ret12 = m.func12();
 
 /*
 equalSimd([21, 2, 0, 0], ret1, SIMD.Int32x4, "Test Conversion");
@@ -462,22 +454,31 @@ equalSimd([1889785610, 1077250621, 824633721, 1073916936], ret4, SIMD.Int32x4, "
 equalSimd([-858993459, 1079741644, 0, 1089260256], ret5, SIMD.Int32x4, "Test Conversion");
 equalSimd([-1962628256, 1069521347, 1257566424, 1073383001], ret6, SIMD.Int32x4, "Test Conversion");
 */
-equalSimd([1034, 22342, 1233, 40443], ret7, SIMD.Int32x4, "Test Conversion");
-equalSimd([90934, 123, 419, 449], ret8, SIMD.Int32x4, "Test Conversion");
-equalSimd([5033, 3401, 665, 32234], ret9, SIMD.Int32x4, "Test Conversion");
+equalSimd([1034, 22342, 1233, 40443], m.func7(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1034, 22342, 1233, 40443], m.func7(), SIMD.Int32x4, "Test Conversion");
+equalSimd([90934, 123, 419, 449], m.func8(), SIMD.Int32x4, "Test Conversion");
+equalSimd([90934, 123, 419, 449], m.func8(), SIMD.Int32x4, "Test Conversion");
+equalSimd([5033, 3401, 665, 32234], m.func9(), SIMD.Int32x4, "Test Conversion");
+equalSimd([5033, 3401, 665, 32234], m.func9(), SIMD.Int32x4, "Test Conversion");
 
-equalSimd([1316880384, 1317011456, 1317044224, 1317076992], ret10, SIMD.Int32x4, "Test Conversion");
-equalSimd([1202821914, 1123536077, 1137816044, 1138786304], ret11, SIMD.Int32x4, "Test Conversion");
-equalSimd([1167935898, 1163169792, 1143363011, 1190908979], ret12, SIMD.Int32x4, "Test Conversion");
+equalSimd([1316880384, 1317011456, 1317044224, 1317076992], m.func10(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1316880384, 1317011456, 1317044224, 1317076992], m.func10(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1202821914, 1123536077, 1137816044, 1138786304], m.func11(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1202821914, 1123536077, 1137816044, 1138786304], m.func11(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1167935898, 1163169792, 1143363011, 1190908979], m.func12(), SIMD.Int32x4, "Test Conversion");
+equalSimd([1167935898, 1163169792, 1143363011, 1190908979], m.func12(), SIMD.Int32x4, "Test Conversion");
 
+try{m.func13()}catch(e){print("Error13")};
 try{m.func13()}catch(e){print("Error13")};
 
 try{m.func14(); print("Error14");}catch(e){};
+try{m.func14(); print("Error14");}catch(e){};
+try{m.func15(); print("Error15");}catch(e){};
 try{m.func15(); print("Error15");}catch(e){};
 try{m.func16(); print("Error16");}catch(e){};
+try{m.func16(); print("Error16");}catch(e){};
 
-
-var ret17 = m.func17();
-equalSimd([-1659187366, 1727156384, -475712064, -19815228], ret17, SIMD.Int32x4, "func17")
+equalSimd([-1659187366, 1727156384, -475712064, -19815228], m.func17(), SIMD.Int32x4, "func17")
+equalSimd([-1659187366, 1727156384, -475712064, -19815228], m.func17(), SIMD.Int32x4, "func17")
 
 print("PASS");

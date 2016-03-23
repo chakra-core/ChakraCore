@@ -217,20 +217,22 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.Int32x4(-1065353216, -1073741824,-1077936128, -1082130432)});
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
 
+equalSimd([100, 3401, 200, 32234.099609375], m.func1(), SIMD.Float32x4, "TestWithLane");
+equalSimd([100, 3401, 200, 32234.099609375], m.func1(), SIMD.Float32x4, "TestWithLane");
 
-var ret4 = m.func4();
-var ret5 = m.func5();
-var ret6 = m.func6();
+equalSimd([100, -123.9000015258789, 200, -449], m.func2(), SIMD.Float32x4, "TestWithLane");
+equalSimd([100, -123.9000015258789, 200, -449], m.func2(), SIMD.Float32x4, "TestWithLane");
 
-equalSimd([100, 3401, 200, 32234.099609375], ret1, SIMD.Float32x4, "TestWithLane");
-equalSimd([100, -123.9000015258789, 200, -449], ret2, SIMD.Float32x4, "TestWithLane");
-equalSimd([100, -123.9000015258789, 200, -449], ret3, SIMD.Float32x4, "TestWithLane");
+equalSimd([100, -123.9000015258789, 200, -449], m.func3(), SIMD.Float32x4, "TestWithLane");
+equalSimd([100, -123.9000015258789, 200, -449], m.func3(), SIMD.Float32x4, "TestWithLane");
 
-equalSimd([5033.2001953125, 100, 665.3400268554687, 200], ret4, SIMD.Float32x4, "TestWithLane");
-equalSimd([90934.203125, 100, 419.3900146484375, 200], ret5, SIMD.Float32x4, "TestWithLane");
-equalSimd([5033.2001953125, 100, 665.3400268554687, 200], ret6, SIMD.Float32x4, "TestWithLane");
+equalSimd([5033.2001953125, 100, 665.3400268554687, 200], m.func4(), SIMD.Float32x4, "TestWithLane");
+equalSimd([5033.2001953125, 100, 665.3400268554687, 200], m.func4(), SIMD.Float32x4, "TestWithLane");
+
+equalSimd([90934.203125, 100, 419.3900146484375, 200], m.func5(), SIMD.Float32x4, "TestWithLane");
+equalSimd([90934.203125, 100, 419.3900146484375, 200], m.func5(), SIMD.Float32x4, "TestWithLane");
+
+equalSimd([5033.2001953125, 100, 665.3400268554687, 200], m.func6(), SIMD.Float32x4, "TestWithLane");
+equalSimd([5033.2001953125, 100, 665.3400268554687, 200], m.func6(), SIMD.Float32x4, "TestWithLane");
 print("PASS");

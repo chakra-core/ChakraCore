@@ -144,10 +144,16 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Int8x16(0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55), g2: SIMD.Int32x4(-1065353216, -1073741824, -1077936128, -1082130432) });
 
 equalSimd([-102, 73, -99, 69, 0, -112, 84, 69, -61, 85, 38, 68, 51, -44, -5, 70], m.func1(), SIMD.Int8x16, "Func1");
+equalSimd([-102, 73, -99, 69, 0, -112, 84, 69, -61, 85, 38, 68, 51, -44, -5, 70], m.func1(), SIMD.Int8x16, "Func1");
+equalSimd([0, 0, -128, -64, 0, 0, 0, -64, 0, 0, -64, -65, 0, 0, -128, -65], m.func2(), SIMD.Int8x16, "Func2");
 equalSimd([0, 0, -128, -64, 0, 0, 0, -64, 0, 0, -64, -65, 0, 0, -128, -65], m.func2(), SIMD.Int8x16, "Func2");
 equalSimd([1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0], m.func3(), SIMD.Int8x16, "Func3");
+equalSimd([1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0], m.func3(), SIMD.Int8x16, "Func3");
+equalSimd([1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0], m.func4(), SIMD.Int8x16, "Func4");
 equalSimd([1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0], m.func4(), SIMD.Int8x16, "Func4");
 equalSimd([-86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0], m.func5(), SIMD.Int8x16, "Func5");
+equalSimd([-86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0, -86, 0], m.func5(), SIMD.Int8x16, "Func5");
+equalSimd([85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85], m.func6(), SIMD.Int8x16, "Func6");
 equalSimd([85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85], m.func6(), SIMD.Int8x16, "Func6");
 
 print("PASS");

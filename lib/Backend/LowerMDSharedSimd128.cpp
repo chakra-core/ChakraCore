@@ -523,6 +523,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         // We don't have f32 type-spec, so we type-spec to f64 and convert to f32 before use.
         if (src1->IsFloat64())
         {
+            Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
             IR::RegOpnd *regOpnd32 = IR::RegOpnd::New(TyFloat32, this->m_func);
             // CVTSD2SS regOpnd32.f32, src.f64    -- Convert regOpnd from f64 to f32
             newInstr = IR::Instr::New(Js::OpCode::CVTSD2SS, regOpnd32, src1, this->m_func);
@@ -531,6 +532,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         }
         if (src2->IsFloat64())
         {
+            Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
             IR::RegOpnd *regOpnd32 = IR::RegOpnd::New(TyFloat32, this->m_func);
             // CVTSD2SS regOpnd32.f32, src.f64    -- Convert regOpnd from f64 to f32
             newInstr = IR::Instr::New(Js::OpCode::CVTSD2SS, regOpnd32, src2, this->m_func);
@@ -539,6 +541,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         }
         if (src3->IsFloat64())
         {
+            Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
             IR::RegOpnd *regOpnd32 = IR::RegOpnd::New(TyFloat32, this->m_func);
             // CVTSD2SS regOpnd32.f32, src.f64    -- Convert regOpnd from f64 to f32
             newInstr = IR::Instr::New(Js::OpCode::CVTSD2SS, regOpnd32, src3, this->m_func);
@@ -547,6 +550,7 @@ IR::Instr* LowererMD::Simd128LowerConstructor_4(IR::Instr *instr)
         }
         if (src4->IsFloat64())
         {
+            Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
             IR::RegOpnd *regOpnd32 = IR::RegOpnd::New(TyFloat32, this->m_func);
             // CVTSD2SS regOpnd32.f32, src.f64    -- Convert regOpnd from f64 to f32
             newInstr = IR::Instr::New(Js::OpCode::CVTSD2SS, regOpnd32, src4, this->m_func);
@@ -662,12 +666,14 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     IR::Opnd* dst, *src1, *src2;
     Js::OpCode movOpcode = Js::OpCode::MOVSS;
     uint laneWidth = 0, laneIndex = 0, shamt = 0, mask = 0;
-    IRType laneType = TyInt32;
+    IRType laneType = TyInt32, dstType = TyFloat32;
+    IR::Instr* prevInstr = instr->m_prev;
+
     dst = instr->GetDst();
     src1 = instr->GetSrc1();
     src2 = instr->GetSrc2();
 
-    Assert(dst && dst->IsRegOpnd() && (dst->GetType() == TyFloat32 || dst->GetType() == TyInt32 || dst->GetType() == TyUint32 || dst->GetType() == TyFloat64));
+    Assert(dst && dst->IsRegOpnd() && (dst->GetType() == TyVar || dst->GetType() == TyFloat32 || dst->GetType() == TyInt32 || dst->GetType() == TyUint32 || dst->GetType() == TyFloat64));
     Assert(src1 && src1->IsRegOpnd() && src1->IsSimd128());
     Assert(src2 && src2->IsIntConstOpnd());
 
@@ -677,6 +683,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     {
     case Js::OpCode::Simd128_ExtractLane_F4:
         movOpcode = Js::OpCode::MOVSS;
+        dstType = TyFloat32;
         Assert(laneIndex < 4);
         break;
     case Js::OpCode::Simd128_ExtractLane_I8:
@@ -686,6 +693,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         Assert(laneIndex < 8);
         shamt = (laneIndex % 2) * 16;
         laneIndex = laneIndex / 2;
+        dstType = TyInt32;
         laneType = TyInt16;
         mask = 0x0000ffff;
         break;
@@ -696,6 +704,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         Assert(laneIndex < 16);
         shamt = (laneIndex % 4) * 8;
         laneIndex = laneIndex / 4;
+        dstType = TyInt32;
         laneType = TyInt8;
         mask = 0x000000ff;
         break;
@@ -703,6 +712,8 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     case Js::OpCode::Simd128_ExtractLane_I4:
     case Js::OpCode::Simd128_ExtractLane_B4:
         movOpcode = Js::OpCode::MOVD;
+        dstType = TyInt32;
+        laneType = TyInt32;
         Assert(laneIndex < 4);
         break;
     default:
@@ -710,6 +721,10 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     }
 
     IR::Opnd* tmp = src1;
+    bool isAsmJs = m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode();
+
+    Assert(dstType == TyInt32 || dstType == TyFloat32);
+    
     if (laneIndex != 0)
     {
         // tmp = PSRLDQ src1, shamt
@@ -718,14 +733,15 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(shiftInstr);
         Legalize(shiftInstr);
     }
-    // MOVSS/MOVSD/MOVD dst, tmp
-    instr->InsertBefore(IR::Instr::New(movOpcode, dst, tmp, m_func));
+    // MOVSS/MOVD dst, tmp
+    instr->InsertBefore(IR::Instr::New(movOpcode, dst->UseWithNewType(dstType, m_func), tmp, m_func));
 
-    // dst has the 4-byte lane
+    
+    // Asm.js and type-spec : cast smaller int/bool types to int32. 
     if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
         instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U16|| instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I16|| instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
     {
-        // extract the 1/2 bytes sublane
+        // dst has the 4-byte lane. Extract the 1/2 bytes sublane
         IR::Instr *newInstr = nullptr;
         if (shamt != 0)
         {
@@ -765,9 +781,12 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         instr->InsertBefore(newInstr);
         Legalize(newInstr);
     }
-    if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
-        instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
+
+    // Asm.js only: coerce lane values to JS number 0 => 0, 0xff..f => 1
+    if (isAsmJs && 
+        instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
     {
+        
         IR::Instr* pInstr    = nullptr;
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
 #ifdef _M_IX86
@@ -777,7 +796,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
 #endif
         // cmp      dst, -1
         pInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
-        pInstr->SetSrc1(dst);
+        pInstr->SetSrc1(dst->UseWithNewType(dstType, m_func));
         pInstr->SetSrc2(IR::IntConstOpnd::New(-1, TyInt32, m_func, true));
         instr->InsertBefore(pInstr);
         Legalize(pInstr);
@@ -793,8 +812,26 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
         // movsx      dst, tmp(TyInt8)
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVSX, dst, tmp, m_func));
     }
+    // Type-spec only: Cast float32 lanes to float64 since we don't have float32 type-spec. Convert bool lane values to true/false vars.
+    // casting to Int32 from smaller Int types is already handled above.
+    if (!isAsmJs)
+    {
+        if (dst->GetType() == TyFloat64)
+        {
+            Assert(instr->m_opcode == Js::OpCode::Simd128_ExtractLane_F4);
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSS2SD, dst, dst->UseWithNewType(TyFloat32, m_func), m_func));
+        }
+        else if (dst->GetType() == TyVar)
+        {
+            Assert(instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 ||
+                instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
+                instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16);
+            IR::Instr * newInstr = IR::Instr::New(Js::OpCode::Conv_Bool, dst, dst->UseWithNewType(dstType, m_func), m_func);
+            instr->InsertBefore(newInstr);
+            GenerateConvBool(newInstr);
+        }
+    }
 
-    IR::Instr* prevInstr = instr->m_prev;
     instr->Remove();
     return prevInstr;
 }
@@ -1529,7 +1566,18 @@ IR::Instr* LowererMD::SIMD128LowerReplaceLane_4(IR::Instr* instr)
         instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tempReg, laneValue, m_func));
         laneValue = tempReg;
     }
-    Assert(laneValue->GetType() == TyFloat32);
+
+    if (laneValue->IsFloat64())
+    {
+        // only with type-spec
+        Assert(!m_func->m_workItem->GetFunctionBody()->GetIsAsmjsMode());
+        // cast to float32 from float64
+        IR::RegOpnd *regOpnd32 = IR::RegOpnd::New(TyFloat32, this->m_func);
+        // CVTSD2SS regOpnd32.f32, src.f64    -- Convert regOpnd from f64 to f32
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, regOpnd32, laneValue, this->m_func));
+        laneValue = regOpnd32;
+    }
+
     if (lane == 0)
     {
         // MOVSS for both TyFloat32 and TyInt32. MOVD zeroes upper bits.
@@ -2953,7 +3001,7 @@ LowererMD::Simd128LowerStoreElem(IR::Instr *instr)
     Assert(
            instr->m_opcode == Js::OpCode::Simd128_StArr_I4 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_I8 ||
-           /*instr->m_opcode == Js::OpCode::Simd128_StArr_I16 ||*/
+           instr->m_opcode == Js::OpCode::Simd128_StArr_I16 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U4 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U8 ||
            instr->m_opcode == Js::OpCode::Simd128_StArr_U16 ||
@@ -3419,9 +3467,13 @@ LowererMD::GenerateCheckedSimdLoad(IR::Instr * instr)
     Assert(valueOffset < INT_MAX);
     newInstr = IR::Instr::New(Js::OpCode::MOVUPS, dst, IR::IndirOpnd::New(src, static_cast<int>(valueOffset), dst->GetType(), this->m_func), this->m_func);
     insertInstr->InsertBefore(newInstr);
-
-    insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelDone, this->m_func));
-    // FromVar is converted to BailOut call. Don't remove.
+    if (checkRequired)
+    {
+        insertInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, labelDone, this->m_func));
+        return;
+        // FromVar is converted to BailOut call. Don't remove.
+    }
+    insertInstr->Remove();
 }
 
 // ToVar

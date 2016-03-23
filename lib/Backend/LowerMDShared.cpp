@@ -1619,6 +1619,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::CMPLEPD:
         case Js::OpCode::CMPEQPD:
         case Js::OpCode::CMPNEQPD:
+        case Js::OpCode::CMPUNORDPS:
         case Js::OpCode::PUNPCKLBW:
         case Js::OpCode::PUNPCKLDQ:
         case Js::OpCode::PUNPCKLWD:
@@ -2958,7 +2959,7 @@ IR::Instr * LowererMD::GenerateConvBool(IR::Instr *instr)
     IR::RegOpnd *dst = instr->GetDst()->AsRegOpnd();
     IR::RegOpnd *regFalse;
 
-    // TEST src1, src2
+    // TEST src1, src1
     instrFirst = instrNew = IR::Instr::New(Js::OpCode::TEST, this->m_func);
     instrNew->SetSrc1(instr->GetSrc1());
     instrNew->SetSrc2(instr->GetSrc1());

@@ -12380,6 +12380,7 @@ GlobOpt::TypeSpecializeSimd128Dst(IRType type, IR::Instr *instr, Value *valToTra
     Assert(dst);
 
     AssertMsg(dst->IsRegOpnd(), "What else?");
+
     this->ToSimd128Dst(type, instr, dst->AsRegOpnd(), this->currentBlock);
 
     if (valToTransfer)

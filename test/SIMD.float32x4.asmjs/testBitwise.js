@@ -148,10 +148,16 @@ var m = asmModule(this, {g1:SIMD.Float32x4(90934.2,123.9,419.39,449.0), g2:SIMD.
 var c;
 c = m.func1();
 equalSimd([NaN, NaN, NaN, NaN], c, SIMD.Float32x4, "func1");
+c = m.func1();
+equalSimd([NaN, NaN, NaN, NaN], c, SIMD.Float32x4, "func1");
 
+c = m.func2();
+equalSimd([0.0, -0.0, 0.0, -0.0], c, SIMD.Float32x4, "func2");
 c = m.func2();
 equalSimd([0.0, -0.0, 0.0, -0.0], c, SIMD.Float32x4, "func2");
 
 c = m.func3();
-equalSimd([293073058436145367398439507197952.0     , 9356964346772358541993744269312.0       , 8346179655603837667078148456448.0       , 85059502322783819315039358698301423616.0], c, SIMD.Float32x4, "func3");
+equalSimd([1.9243791775619676e+37, 4.932220515792681e+29, 1.3041601599805912e+30, 3.347431800109524e+38], c, SIMD.Float32x4, "func3");
+c = m.func3();
+equalSimd([2.9371616828655412e+32, 9.159203425496519e+30, 3.354317494744388e+31, 3.347431800109524e+38], c, SIMD.Float32x4, "func3");
 WScript.Echo("PASS");

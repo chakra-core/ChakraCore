@@ -8,8 +8,7 @@ this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 function asmModule(stdlib, imports, buffer) {
     "use asm";
     
-    var toF = stdlib.Math.fround;
-    
+   
     var i4 = stdlib.SIMD.Int32x4;
     var i4check = i4.check;
     var i4splat = i4.splat;
@@ -59,8 +58,8 @@ function asmModule(stdlib, imports, buffer) {
     
     var f4min = f4.min;
     var f4max = f4.max;
-    var f4reciprocal = f4.reciprocal;
-    var f4reciprocalSqrt = f4.reciprocalSqrt;
+    var f4reciprocal = f4.reciprocalApproximation;
+    var f4reciprocalSqrt = f4.reciprocalSqrtApproximation;
     var f4sqrt = f4.sqrt;
     var f4swizzle = f4.swizzle;
     var f4shuffle = f4.shuffle;
@@ -87,10 +86,6 @@ function asmModule(stdlib, imports, buffer) {
     var f4store2 = f4.store2;
     var f4store3 = f4.store3;
     
-    
-    
-    var fround = stdlib.Math.fround;
-
     var globImportF4 = f4check(imports.g1);       // global var import
     var globImportI4 = i4check(imports.g2);       // global var import
     
@@ -123,19 +118,19 @@ function asmModule(stdlib, imports, buffer) {
         var SIMD_SIZE = 4;
         var c = 0, tmp = f4(0.0, 0.0, 0.0, 0.0), v = 0, t = 0, tp = 0;
         
-        for(v = 0; c < n; v = v + 1) {
+        for(v = 0; (c | 0) < (n | 0); v = (v + 1) | 0) {
             t = v|0;
             tp = (v + k)|0;
             tmp = f4load(Float32Heap, start + v << 2 >> 2);
-            c = c + SIMD_SIZE;
-            while ( tp != v) {
+            c = (c + SIMD_SIZE) | 0;
+            while ( (tp|0) != (v|0)) {
                 f4store(Float32Heap, start + t << 2 >> 2, f4load(Float32Heap, start + tp << 2 >> 2));
                 t = tp|0;
                 tp = (tp + k)|0;
-                if(tp >= n) {
+                if((tp|0) >= (n|0)) {
                     tp = (tp - n)|0;
                 }
-                c = c + SIMD_SIZE;
+                c = (c + SIMD_SIZE) | 0;
             }
             f4store(Float32Heap, start + t << 2 >> 2, tmp);
         }
@@ -169,21 +164,24 @@ function verify_results(type, results_ex, buffer, count)
 var m = asmModule(this, {g0:initF32(buffer),g1:SIMD.Float32x4(9,9,9,9), g2:SIMD.Int32x4(1, 2, 3, 4)}, buffer);
 var Float32Heap = new Float32Array(buffer);
 
-//Resetting the buffer.
-initF32(buffer);
-
-m.rotate(4, 20, 8);
 
 var exp_results = [
 SIMD.Float32x4(0,10,20,30),
 SIMD.Float32x4(120,130,140,150),
 SIMD.Float32x4(160,170,180,190),
-SIMD.Float32x4(200,210,220,230,)
+SIMD.Float32x4(200,210,220,230),
 SIMD.Float32x4(40,50,60,70),
 SIMD.Float32x4(80,90,100,110),
 SIMD.Float32x4(240,250,260,270),
 SIMD.Float32x4(280,290,300,310)
 ];
 
+//Resetting the buffer.
+initF32(buffer);
+m.rotate(4, 20, 8);
+verify_results(SIMD.Float32x4, exp_results, Float32Heap, 8*4);
+
+initF32(buffer);
+m.rotate(4, 20, 8);
 verify_results(SIMD.Float32x4, exp_results, Float32Heap, 8*4);
 print("PASS");

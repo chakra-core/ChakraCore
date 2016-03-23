@@ -64,6 +64,11 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Uint16x8(5, 10, 15, 20, 25, 30, 35, 40) });
 
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulLocal(), SIMD.Uint16x8, "Test Mul");
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulLocal(), SIMD.Uint16x8, "Test Mul");
+
 equalSimd([65000, 24464, 30030, 12330, 10, 210, 3000, 45450], m.testMulGlobal(), SIMD.Uint16x8, "Test Mul");
+equalSimd([65000, 24464, 30030, 12330, 10, 210, 3000, 45450], m.testMulGlobal(), SIMD.Uint16x8, "Test Mul");
+
+equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulGlobalImport(), SIMD.Uint16x8, "Test Mul");
 equalSimd([10, 20, 30, 40, 50, 60, 70, 80], m.testMulGlobalImport(), SIMD.Uint16x8, "Test Mul");
 print("PASS");

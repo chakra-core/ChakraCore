@@ -204,7 +204,10 @@ equalSimd([11141290, 11141290, 11141290, 11141290], m.func8(), SIMD.Uint32x4, "F
 //printSimdBaseline(m.func7(SIMD.Float32x4(-0.0, -0.0, -0.0, -0.0)), "SIMD.Uint32x4", "m.func7(SIMD.Float32x4(-0.0, -0.0, -0.0, -0.0))", "Func7_3");
 
 equalSimd([0, 1, 2, 5], m.func7(SIMD.Float32x4(0.5,1.4,2.4,5.5)), SIMD.Uint32x4, "Func7_1")
+equalSimd([0, 1, 2, 5], m.func7(SIMD.Float32x4(0.5,1.4,2.4,5.5)), SIMD.Uint32x4, "Func7_1")
 equalSimd([0, 2147483648, 4294967040, 0], m.func7(SIMD.Float32x4(0.5,0x80000000,0x100000000 - 0x81 /*2^32 - (2^7 + 1) rounded to 2^32 - 2^8*/ ,0)), SIMD.Uint32x4, "Func7_2")
+equalSimd([0, 2147483648, 4294967040, 0], m.func7(SIMD.Float32x4(0.5,0x80000000,0x100000000 - 0x81 /*2^32 - (2^7 + 1) rounded to 2^32 - 2^8*/ ,0)), SIMD.Uint32x4, "Func7_2")
+equalSimd([0, 0, 0, 0], m.func7(SIMD.Float32x4(-0.0, -0.0, -0.0, -0.0)), SIMD.Uint32x4, "Func7_3")
 equalSimd([0, 0, 0, 0], m.func7(SIMD.Float32x4(-0.0, -0.0, -0.0, -0.0)), SIMD.Uint32x4, "Func7_3")
 
 // throwing

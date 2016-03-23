@@ -373,6 +373,7 @@ public:
     {
         FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
         {
+
             Output::Print(_u("%4d  =>  "), bucket.value);
             bucket.element->Dump();
             Output::Print(_u("\n"));

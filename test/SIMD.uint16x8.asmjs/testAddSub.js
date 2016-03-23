@@ -106,9 +106,20 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Uint16x8(100, 1073741824, 1028, 102, 3883, 38, 92929, 1442)});
 
 equalSimd([8516, 5545, 6362, 3299, 17908, 3818, 11182, 9901], m.testAddLocal(), SIMD.Uint16x8, "Func1");
+equalSimd([8516, 5545, 6362, 3299, 17908, 3818, 11182, 9901], m.testAddLocal(), SIMD.Uint16x8, "Func1");
+
 equalSimd([1550, 1257, 60504, 3169, 49524, 1850, 4314, 55685], m.testSubLocal(), SIMD.Uint16x8, "Func2");
+equalSimd([1550, 1257, 60504, 3169, 49524, 1850, 4314, 55685], m.testSubLocal(), SIMD.Uint16x8, "Func2");
+
 equalSimd([25546, 34850, 1235, 2167, 14094, 16269, 10066, 3288], m.testAddGlobal(), SIMD.Uint16x8, "Func3");
+equalSimd([25546, 34850, 1235, 2167, 14094, 16269, 10066, 3288], m.testAddGlobal(), SIMD.Uint16x8, "Func3");
+
 equalSimd([40010, 32832, 64515, 65533, 6710, 8395, 56092, 63548], m.testSubGlobal(), SIMD.Uint16x8, "Func4");
+equalSimd([40010, 32832, 64515, 65533, 6710, 8395, 56092, 63548], m.testSubGlobal(), SIMD.Uint16x8, "Func4");
+
 equalSimd([5133, 3401, 1693, 3336, 4831, 2872, 35141, 1467], m.testAddGlobalImport(), SIMD.Uint16x8, "Func5");
+equalSimd([5133, 3401, 1693, 3336, 4831, 2872, 35141, 1467], m.testAddGlobalImport(), SIMD.Uint16x8, "Func5");
+
+equalSimd([60603, 62135, 363, 62404, 2935, 62740, 19645, 1417], m.testSubGlobalImport(), SIMD.Uint16x8, "Func6");
 equalSimd([60603, 62135, 363, 62404, 2935, 62740, 19645, 1417], m.testSubGlobalImport(), SIMD.Uint16x8, "Func6");
 print("PASS");

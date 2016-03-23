@@ -5283,39 +5283,56 @@ Inline::Simd128FixLoadStoreInstr(Js::BuiltinFunction builtInId, IR::Instr * call
     {
         case Js::BuiltinFunction::SIMD_Float32x4_Store:
         case Js::BuiltinFunction::SIMD_Int32x4_Store:
+        case Js::BuiltinFunction::SIMD_Int16x8_Store:
+        case Js::BuiltinFunction::SIMD_Int8x16_Store:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Store:
+        case Js::BuiltinFunction::SIMD_Uint16x8_Store:
+        case Js::BuiltinFunction::SIMD_Uint8x16_Store:
             isStore = true;
             // fall through
         case Js::BuiltinFunction::SIMD_Float32x4_Load:
         case Js::BuiltinFunction::SIMD_Int32x4_Load:
+        case Js::BuiltinFunction::SIMD_Int16x8_Load:
+        case Js::BuiltinFunction::SIMD_Int8x16_Load:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Load:
+        case Js::BuiltinFunction::SIMD_Uint16x8_Load:
+        case Js::BuiltinFunction::SIMD_Uint8x16_Load:
             callInstr->dataWidth = 16;
             break;
 
         case Js::BuiltinFunction::SIMD_Float32x4_Store3:
         case Js::BuiltinFunction::SIMD_Int32x4_Store3:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Store3:
             isStore = true;
             // fall through
         case Js::BuiltinFunction::SIMD_Float32x4_Load3:
         case Js::BuiltinFunction::SIMD_Int32x4_Load3:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Load3:
             callInstr->dataWidth = 12;
             break;
 
         case Js::BuiltinFunction::SIMD_Float32x4_Store2:
         case Js::BuiltinFunction::SIMD_Int32x4_Store2:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Store2:
             isStore = true;
             // fall through
         case Js::BuiltinFunction::SIMD_Float32x4_Load2:
         case Js::BuiltinFunction::SIMD_Int32x4_Load2:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Load2:
             callInstr->dataWidth = 8;
             break;
 
         case Js::BuiltinFunction::SIMD_Float32x4_Store1:
         case Js::BuiltinFunction::SIMD_Int32x4_Store1:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Store1:
             isStore = true;
             // fall through
         case Js::BuiltinFunction::SIMD_Float32x4_Load1:
         case Js::BuiltinFunction::SIMD_Int32x4_Load1:
+        case Js::BuiltinFunction::SIMD_Uint32x4_Load1:
             callInstr->dataWidth = 4;
             break;
+
         default:
             // nothing to do
             return;

@@ -101,6 +101,11 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Uint16x8(1065353216, 1073741824, 1077936128, 1082130432, 383829393, 39283838, 92929, 109483922)});
 
 equalSimd([1, 1, 1, 1, 1, 1, 1, 1], m.func1(), SIMD.Uint16x8, "Func1");
+equalSimd([1, 1, 1, 1, 1, 1, 1, 1], m.func1(), SIMD.Uint16x8, "Func1");
+
 equalSimd([5034, 3402, 666, 32235, 49710, 25421, 21839, 40334], m.func2(), SIMD.Uint16x8, "Func2");
+equalSimd([5034, 3402, 666, 32235, 49710, 25421, 21839, 40334], m.func2(), SIMD.Uint16x8, "Func2");
+
 equalSimd([38447, 12338, 45765, 33301, 20955, 3307, 13096, 11408], m.func3(), SIMD.Uint16x8, "Func3");
+equalSimd([38447, 12290, 45701, 33282, 21915, 3244, 13093, 11914], m.func3(), SIMD.Uint16x8, "Func3");
 print("PASS");

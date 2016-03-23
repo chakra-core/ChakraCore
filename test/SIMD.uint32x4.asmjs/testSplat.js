@@ -68,11 +68,14 @@ function asmModule(stdlib, imports) {
 
 var m = asmModule(this, { g1: SIMD.Uint32x4(20, 20, 20, 20) });
 
-var ret1 = m.func1();
-var ret2 = m.func2();
-var ret3 = m.func3();
 
-equalSimd([4294967295, 4294967295, 4294967295, 4294967295], ret1, SIMD.Uint32x4, "");
-equalSimd([4951, 4951, 4951, 4951], ret2, SIMD.Uint32x4, "");
-equalSimd([20, 20, 20, 20], ret3, SIMD.Uint32x4, "");
+
+
+
+equalSimd([4294967295, 4294967295, 4294967295, 4294967295], m.func1(), SIMD.Uint32x4, "");
+equalSimd([4294967295, 4294967295, 4294967295, 4294967295], m.func1(), SIMD.Uint32x4, "");
+equalSimd([4951, 4951, 4951, 4951], m.func2(), SIMD.Uint32x4, "");
+equalSimd([4951, 4951, 4951, 4951], m.func2(), SIMD.Uint32x4, "");
+equalSimd([20, 20, 20, 20], m.func3(), SIMD.Uint32x4, "");
+equalSimd([20, 20, 20, 20], m.func3(), SIMD.Uint32x4, "");
 print("PASS");

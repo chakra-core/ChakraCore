@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+this.WScript.LoadScriptFile("..\\UnitTestFramework\\SimdJsHelpers.js");
 
 function InitBuffer1(buffer) {
     HEAP32 = new Int32Array(buffer);
@@ -118,16 +119,31 @@ var buffer = new ArrayBuffer(16 * 1024 * 1024);
 var m = asmModule(this, null, buffer);
 
 InitBuffer1(buffer);
-WScript.Echo("List 1");
-WScript.Echo(m.linearSearch(13654, 10));
-WScript.Echo(m.linearSearch(23, 10));
-WScript.Echo(m.linearSearch(145764, 10));
-WScript.Echo(m.linearSearch(53, 10));
-WScript.Echo(m.linearSearch(-53, 10));
+equal(0, m.linearSearch(13654, 10));
+equal(0, m.linearSearch(13654, 10));
+
+equal(1, m.linearSearch(23, 10));
+equal(1, m.linearSearch(23, 10));
+
+equal(8, m.linearSearch(145764, 10));
+equal(8, m.linearSearch(145764, 10));
+
+equal(9, m.linearSearch(53, 10));
+equal(9, m.linearSearch(53, 10));
+
+equal(-1, m.linearSearch(-53, 10));
+equal(-1, m.linearSearch(-53, 10));
 
 InitBuffer2(buffer);
-WScript.Echo("List 2");
-WScript.Echo(m.linearSearch(13654, 999999));
-WScript.Echo(m.linearSearch(23, 999999));
-WScript.Echo(m.linearSearch(145764, 999999));
-WScript.Echo(m.linearSearch(-53, 999999));
+equal(13653, m.linearSearch(13654, 999999));
+equal(13653, m.linearSearch(13654, 999999));
+
+equal(22, m.linearSearch(23, 999999));
+equal(22, m.linearSearch(23, 999999));
+
+equal(145763, m.linearSearch(145764, 999999));
+equal(145763, m.linearSearch(145764, 999999));
+
+equal(-1, m.linearSearch(-53, 999999));
+equal(-1, m.linearSearch(-53, 999999));
+print("PASS")

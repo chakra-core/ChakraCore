@@ -95,7 +95,11 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, { g1: SIMD.Bool8x16(0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1) });
 
 equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], m.testBitwiseAND(), SIMD.Bool8x16, "Func1");
+equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], m.testBitwiseAND(), SIMD.Bool8x16, "Func1");
+equalSimd([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], m.testBitwiseOR(), SIMD.Bool8x16, "Func2");
 equalSimd([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], m.testBitwiseOR(), SIMD.Bool8x16, "Func2");
 equalSimd([0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0], m.testBitwiseXOR(), SIMD.Bool8x16, "Func3");
+equalSimd([0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0], m.testBitwiseXOR(), SIMD.Bool8x16, "Func3");
+equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], m.testBitwiseNOT(), SIMD.Bool8x16, "Func4");
 equalSimd([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], m.testBitwiseNOT(), SIMD.Bool8x16, "Func4");
 print("PASS");

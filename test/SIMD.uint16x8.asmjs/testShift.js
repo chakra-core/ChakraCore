@@ -91,9 +91,20 @@ function asmModule(stdlib, imports) {
 var m = asmModule(this, {g1:SIMD.Uint16x8(50, 1000, 3092, 3393, 0, 39283838, 0, 838)});
 
 equalSimd([34816, 18688, 39168, 38912, 46080, 4608, 17408, 6400], m.testShiftLeftScalarLocal(), SIMD.Uint16x8, "testShift1");
+equalSimd([34816, 18688, 39168, 38912, 46080, 4608, 17408, 6400], m.testShiftLeftScalarLocal(), SIMD.Uint16x8, "testShift1");
+
 equalSimd([19, 13, 2, 12, 3, 11, 30, 0], m.testShiftRightScalarLocal(), SIMD.Uint16x8, "testShift2");
+equalSimd([19, 13, 2, 12, 3, 11, 30, 0], m.testShiftRightScalarLocal(), SIMD.Uint16x8, "testShift2");
+
 equalSimd([27136, 0, 65280, 14848, 30720, 8192, 4864, 1280], m.testShiftLeftScalarGlobal(), SIMD.Uint16x8, "testShift3");
 equalSimd([106, 0, 255, 58, 120, 32, 19, 5], m.testShiftRightScalarGlobal(), SIMD.Uint16x8, "testShift4");
+
+equalSimd([27136, 0, 65280, 14848, 30720, 8192, 4864, 1280], m.testShiftLeftScalarGlobal(), SIMD.Uint16x8, "testShift3");
+equalSimd([106, 0, 255, 58, 120, 32, 19, 5], m.testShiftRightScalarGlobal(), SIMD.Uint16x8, "testShift4");
+
+equalSimd([12800, 59392, 5120, 16640, 0, 32256, 0, 17920], m.testShiftLeftScalarGlobalImport(), SIMD.Uint16x8, "testShift5");
+equalSimd([50, 232, 20, 65, 0, 126, 0, 70], m.testShiftRightScalarGlobalImport(), SIMD.Uint16x8, "testShift");
+
 equalSimd([12800, 59392, 5120, 16640, 0, 32256, 0, 17920], m.testShiftLeftScalarGlobalImport(), SIMD.Uint16x8, "testShift5");
 equalSimd([50, 232, 20, 65, 0, 126, 0, 70], m.testShiftRightScalarGlobalImport(), SIMD.Uint16x8, "testShift");
 print("PASS");
