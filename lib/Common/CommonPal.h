@@ -279,6 +279,7 @@ errno_t rand_s(unsigned int* randomValue);
 
 #define MAXUINT32   ((uint32_t)~((uint32_t)0))
 #define MAXINT32    ((int32_t)(MAXUINT32 >> 1))
+#define BYTE_MAX    0xff
 
 #ifdef UNICODE
 #define StringCchPrintf  StringCchPrintfW

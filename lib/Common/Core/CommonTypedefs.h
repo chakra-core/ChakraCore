@@ -48,7 +48,7 @@ const CharCountOrFlag CharCountFlag = (CharCountOrFlag)-1;
 
 #define QUOTE(s) #s
 #define STRINGIZE(s) QUOTE(s)
-#define STRINGIZEW(s) TEXT(QUOTE(s))
+#define STRINGIZEW(s) _u(#s)
 
 namespace Js
 {

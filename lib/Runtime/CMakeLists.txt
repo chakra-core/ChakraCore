@@ -9,3 +9,4 @@ include_directories(
     )
 
 add_subdirectory (Base)
+add_subdirectory (ByteCode)

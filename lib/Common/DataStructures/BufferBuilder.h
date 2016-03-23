@@ -210,7 +210,7 @@ namespace Js
     struct ConstantSizedBufferBuilderOf : BufferBuilderOf<T, false>
     {
         ConstantSizedBufferBuilderOf(LPCWSTR clue, const T & value)
-        : BufferBuilderOf(clue, value)
+        : BufferBuilderOf<T, false>(clue, value)
         { }
     };
 
