@@ -3325,7 +3325,7 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Add_U8               , PADDW);
     SET_SIMDOPCODE(Simd128_Sub_U8               , PSUBW);
     SET_SIMDOPCODE(Simd128_Mul_U8               , PMULLW);
-    SET_SIMDOPCODE(Simd128_Eq_U8                , PCMPEQB); // same as int16X8.equal
+    SET_SIMDOPCODE(Simd128_Eq_U8                , PCMPEQW); // same as int16X8.equal
     SET_SIMDOPCODE(Simd128_AddSaturate_U8       , PADDUSW);
     SET_SIMDOPCODE(Simd128_SubSaturate_U8       , PSUBUSW);
 
@@ -3337,7 +3337,7 @@ void LowererMD::Simd128InitOpcodeMap()
     SET_SIMDOPCODE(Simd128_Sub_U16              , PSUBB);
     SET_SIMDOPCODE(Simd128_Min_U16              , PMINUB);
     SET_SIMDOPCODE(Simd128_Max_U16              , PMAXUB);
-    SET_SIMDOPCODE(Simd128_Eq_U16               , PCMPEQB); // same as int16x8.equal
+    SET_SIMDOPCODE(Simd128_Eq_U16               , PCMPEQB); // same as int8x16.equal
     SET_SIMDOPCODE(Simd128_AddSaturate_U16      , PADDUSB);
     SET_SIMDOPCODE(Simd128_SubSaturate_U16      , PSUBUSB);
 

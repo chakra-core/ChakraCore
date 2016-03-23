@@ -1619,6 +1619,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         case Js::OpCode::CMPLEPD:
         case Js::OpCode::CMPEQPD:
         case Js::OpCode::CMPNEQPD:
+        case Js::OpCode::CMPUNORDPS:
         case Js::OpCode::PUNPCKLBW:
         case Js::OpCode::PUNPCKLDQ:
         case Js::OpCode::PUNPCKLWD:

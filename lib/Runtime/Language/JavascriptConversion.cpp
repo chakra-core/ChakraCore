@@ -279,7 +279,7 @@ CommonNumber:
 
             default:
             {
-                if (IsSimdType(aValue))
+                if (SIMDUtils::IsSimdType(aValue))
                 {
                     *object = scriptContext->GetLibrary()->CreateSIMDObject(aValue, JavascriptOperators::GetTypeId(aValue));
                 }
@@ -428,7 +428,7 @@ CommonNumber:
             return JavascriptUInt64Number::FromVar(aValue)->ToJavascriptNumber();
 
         default:
-            if (IsSimdType(aValue))
+            if (SIMDUtils::IsSimdType(aValue))
             {
                 return aValue;
             }
