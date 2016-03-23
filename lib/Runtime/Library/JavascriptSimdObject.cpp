@@ -251,7 +251,7 @@ namespace Js
 
     Var JavascriptSIMDObject::GetValue() const
     {
-        Assert(IsSimdType(value));
+        Assert(SIMDUtils::IsSimdType(value));
         return value;
     }
 }
