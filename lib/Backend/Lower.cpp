@@ -3695,17 +3695,17 @@ Lowerer::GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(IR::Instr *instr, Js::
 template <typename ArrayType>
 static IR::JnHelperMethod GetArrayAllocMemHelper();
 template <>
-static IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptArray>()
+IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptArray>()
 {
     return IR::HelperAllocMemForJavascriptArray;
 }
 template <>
-static IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptNativeIntArray>()
+IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptNativeIntArray>()
 {
     return IR::HelperAllocMemForJavascriptNativeIntArray;
 }
 template <>
-static IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptNativeFloatArray>()
+IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptNativeFloatArray>()
 {
     return IR::HelperAllocMemForJavascriptNativeFloatArray;
 }
