@@ -605,7 +605,6 @@ namespace Js
         JavascriptFunction* GetStringConstructor() const {return stringConstructor; }
         JavascriptFunction* GetArrayBufferConstructor() const {return arrayBufferConstructor; }
         JavascriptFunction* GetErrorConstructor() const { return errorConstructor; }
-        JavascriptFunction* GetTypedArrayConstructor() const { return typedArrayConstructor; }
         JavascriptFunction* GetInt8ArrayConstructor() const {return Int8ArrayConstructor; }
         JavascriptFunction* GetUint8ArrayConstructor() const {return Uint8ArrayConstructor; }
         JavascriptFunction* GetInt16ArrayConstructor() const {return Int16ArrayConstructor; }
