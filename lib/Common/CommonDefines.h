@@ -101,7 +101,7 @@
 // ByteCode
 #define VARIABLE_INT_ENCODING 1                     // Byte code serialization variable size int field encoding
 #define BYTECODE_BRANCH_ISLAND                      // Byte code short branch and branch island
-
+#define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 // Language features
 // xplat-todo: revisit these features
 #ifdef _WIN32

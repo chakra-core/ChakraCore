@@ -132,8 +132,8 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
-#ifdef ENABLE_GLOBALIZATION
-        virtual char16* GetNormalizedString(NORM_FORM, ArenaAllocator*, charcount_t&);
+#if ENABLE_UNICODE_API
+        char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
 #endif
 
         static bool Is(Var aValue);

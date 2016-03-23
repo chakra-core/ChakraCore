@@ -1007,17 +1007,18 @@ namespace Js
         int compareResult = 0;
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("localeCompare"))
         {
+            using namespace PlatformAgnostic;
             char16 * aLeft = nullptr;
             char16 * aRight = nullptr;
             charcount_t size1 = 0;
             charcount_t size2 = 0;
-            _NORM_FORM canonicalEquivalentForm = NormalizationC;
-            if (!IsNormalizedString(canonicalEquivalentForm, str1->GetSz(), -1))
+            auto canonicalEquivalentForm = UnicodeText::NormalizationForm::C;
+            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str1->GetSz(), -1))
             {
                 aLeft = str1->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size1);
             }
 
-            if (!IsNormalizedString(canonicalEquivalentForm, str2->GetSz(), -1))
+            if (!UnicodeText::IsNormalizedString(canonicalEquivalentForm, str2->GetSz(), -1))
             {
                 aRight = str2->GetNormalizedString(canonicalEquivalentForm, tempAllocator, size2);
             }
@@ -1033,6 +1034,7 @@ namespace Js
                 size2 = str2->GetLength();
             }
 
+            // xplat-todo: Need to replace this with platform-agnostic API
             compareResult = CompareStringEx(givenLocale != nullptr ? givenLocale : defaultLocale, compareFlags, aLeft, size1, aRight, size2, NULL, NULL, 0);
         }
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);

@@ -312,6 +312,7 @@ namespace Js
     };
 }
 
+#include "PlatformAgnostic/ChakraPlatform.h"
 #include "DataStructures/EvalMapString.h"
 
 bool IsMathLibraryId(Js::PropertyId propertyId);
@@ -427,9 +428,14 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 
 #include "Base/HiResTimer.h"
-#ifdef ENABLE_GLOBALIZATION
+
+// xplat-todo: We should get rid of this altogether and move the functionality it 
+// encapsulates to the Platform Agnostic Interface
+#ifdef _WIN32
+#if defined(ENABLE_GLOBALIZATION) || ENABLE_UNICODE_API
 #include "Base/WindowsGlobalizationAdapter.h"
 #include "Base/WindowsFoundationAdapter.h"
+#endif
 #endif
 #include "Base/Debug.h"
 
