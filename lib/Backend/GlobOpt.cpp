@@ -4134,6 +4134,24 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
         return false;
     }
 
+    // The following is conservative and works around a bug in induction variable analysis.
+    if (baseOpnd->IsArrayRegOpnd())
+    {
+        IR::ArrayRegOpnd *baseArrayOp = baseOpnd->AsArrayRegOpnd();
+        bool hasBoundChecksRemoved = (
+            baseArrayOp->EliminatedLowerBoundCheck() &&
+            baseArrayOp->EliminatedUpperBoundCheck() &&
+            !instr->extractedUpperBoundCheckWithoutHoisting &&
+            !instr->loadedArrayHeadSegment &&
+            !instr->loadedArrayHeadSegmentLength
+            );
+        if (!hasBoundChecksRemoved)
+        {
+            TRACE_MEMOP_VERBOSE(loop, instr, L"Missing bounds check optimization");
+            return false;
+        }
+    }
+
     if (!baseValueType.IsTypedArray())
     {
         // Check if the instr can kill the value type of the array
