@@ -386,10 +386,12 @@ namespace Js
             Js::FunctionBody *pFunctionBody,
             IDebugDocumentContext **ppDebugDocumentContext);
         GetDocumentContextFunction GetDocumentContext;
+#endif // ENABLE_SCRIPT_DEBUGGING
 
+#ifdef ENABLE_SCRIPT_PROFILING
         typedef HRESULT (*CleanupDocumentContextFunction)(ScriptContext *pContext);
         CleanupDocumentContextFunction CleanupDocumentContext;
-#endif // ENABLE_SCRIPT_DEBUGGING
+#endif
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
@@ -1382,10 +1384,11 @@ private:
 
         SRCINFO *AddHostSrcInfo(SRCINFO const *pSrcInfo);
 
-#ifdef ENABLE_SCRIPT_PROFILING
         inline void CoreSetProfileEventMask(DWORD dwEventMask);
         typedef HRESULT (*RegisterExternalLibraryType)(Js::ScriptContext *pScriptContext);
+#ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterProfileProbe(IActiveScriptProfilerCallback *pProfileCallback, DWORD dwEventMask, DWORD dwContext, RegisterExternalLibraryType RegisterExternalLibrary, JavascriptMethod dispatchInvoke);
+#endif
         HRESULT SetProfileEventMask(DWORD dwEventMask);
         HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 
@@ -1393,28 +1396,26 @@ private:
 
         // Register static and dynamic scripts
         HRESULT RegisterAllScripts();
-        HRESULT RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint);
 
-        HRESULT RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary);
-
-        void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
-        static void SetEntryPointToProfileThunk(JavascriptFunction* function);
-        static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
-#endif
-
-#ifdef ENABLE_SCRIPT_DEBUGGING
         // Iterate through utf8sourceinfo and clear debug document if they are there.
         void EnsureClearDebugDocument();
+
         // To be called directly only when the thread context is shutting down
         void ShutdownClearSourceLists();
 
+        HRESULT RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint);
+
+        HRESULT RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary);
         void RegisterDebugThunk(bool calledDuringAttach = true);
         void UnRegisterDebugThunk();
 
+        void UpdateRecyclerFunctionEntryPointsForDebugger();
+        void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
+        static void SetEntryPointToProfileThunk(JavascriptFunction* function);
+        static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
+
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
-        void UpdateRecyclerFunctionEntryPointsForDebugger();
-#endif
 
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
 
@@ -1606,7 +1607,7 @@ private:
         // Remove eval map functions that haven't been recently used
         // TODO: Metric based on allocation size too? So don't clean if there hasn't been much allocated?
 
-        cacheType->Clean([this](const TCacheType::KeyType& key, TCacheType::ValueType value) {
+        cacheType->Clean([this](const typename TCacheType::KeyType& key, typename TCacheType::ValueType value) {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
             if (CONFIG_FLAG(DumpEvalStringOnRemoval))
             {

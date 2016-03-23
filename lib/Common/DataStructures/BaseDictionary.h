@@ -1574,7 +1574,7 @@ namespace JsUtil
 
     public:
         SynchronizedDictionary(AllocatorType * allocator, int capacity, SyncObject* syncObject):
-            BaseDictionary(allocator, capacity),
+            Base(allocator, capacity),
             syncObj(syncObject)
         {}
 

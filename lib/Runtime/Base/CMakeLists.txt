@@ -6,7 +6,7 @@ add_library (Chakra.Runtime.Base
     CharStringCache.cpp
     Constants.cpp
     CrossSite.cpp
-    # Debug.cpp
+    Debug.cpp
     # DelayLoadLibrary.cpp
     # Entropy.cpp
     EtwTrace.cpp
@@ -19,19 +19,19 @@ add_library (Chakra.Runtime.Base
     PerfHint.cpp
     PropertyRecord.cpp
     RuntimeBasePch.cpp
-    # ScriptContext.cpp
+    ScriptContext.cpp
     ScriptContextOptimizationOverrideInfo.cpp
     ScriptContextProfiler.cpp
     ScriptMemoryDumper.cpp
     SourceHolder.cpp
-    # StackProber.cpp
+    StackProber.cpp
     TempArenaAllocatorObject.cpp
     TestEtwEventSink.cpp
     ThreadBoundThreadContextManager.cpp
-    # ThreadContext.cpp
+    ThreadContext.cpp
     ThreadContextTlsEntry.cpp
     ThreadServiceWrapperBase.cpp
-    # Utf8SourceInfo.cpp
+    Utf8SourceInfo.cpp
     # WindowsFoundationAdapter.cpp
     # WindowsGlobalizationAdapter.cpp
     )

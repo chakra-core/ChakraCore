@@ -21,7 +21,7 @@ namespace Js
 {
     class PropertyRecord : FinalizableObject
     {
-        friend class ThreadContext;
+        friend class ::ThreadContext;
         template <int LEN>
         friend struct BuiltInPropertyRecord;
         friend class InternalPropertyRecords;

@@ -28,7 +28,7 @@ namespace Js {
             {
                 memset(&exceptionContext, 0, sizeof(exceptionContext));
             }
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             this->stackBackTrace = nullptr;
 #endif
         }
@@ -51,7 +51,7 @@ namespace Js {
         {
             return &exceptionContext;
         }
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         void FillStackBackTrace();
 #endif
 
@@ -179,7 +179,7 @@ namespace Js {
         HostWrapperCreateFuncType hostWrapperCreateFunc;
 
         JavascriptExceptionContext exceptionContext;
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace * stackBackTrace;
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 30;
