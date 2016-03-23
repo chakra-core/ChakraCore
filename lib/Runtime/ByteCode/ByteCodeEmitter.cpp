@@ -1717,6 +1717,12 @@ void ByteCodeGenerator::SetClosureRegisters(FuncInfo* funcInfo, Js::FunctionBody
 
 void ByteCodeGenerator::FinalizeRegisters(FuncInfo * funcInfo, Js::FunctionBody * byteCodeFunction)
 {
+    if (byteCodeFunction->IsGenerator())
+    {
+        // EmitYield uses 'false' to create the IteratorResult object
+        funcInfo->AssignFalseConstRegister();
+    }
+
     if (funcInfo->NeedEnvRegister())
     {
         bool constReg = !funcInfo->GetIsTopLevelEventHandler() && funcInfo->IsGlobalFunction() && !(this->flags & fscrEval);
@@ -9171,7 +9177,22 @@ void ByteCodeGenerator::EmitTryBlockHeadersAfterYield()
 void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo,
     Js::RegSlot yieldStarIterator = Js::Constants::NoRegister)
 {
-    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, funcInfo->yieldRegister, inputLocation);
+    // If the bytecode emitted by this function is part of 'yield*', inputLocation is the object
+    // returned by the iterable's next/return/throw method. Otherwise, it is the yielded value.
+    if (yieldStarIterator == Js::Constants::NoRegister)
+    {
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::NewScObjectSimple, funcInfo->yieldRegister);
+
+        uint cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->yieldRegister, Js::PropertyIds::value, false, true);
+        byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::StFld, inputLocation, funcInfo->yieldRegister, cacheId);
+
+        cacheId = funcInfo->FindOrAddInlineCacheId(funcInfo->yieldRegister, Js::PropertyIds::done, false, true);
+        byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::StFld, funcInfo->falseConstantRegister, funcInfo->yieldRegister, cacheId);
+    }
+    else
+    {
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, funcInfo->yieldRegister, inputLocation);
+    }
 
     byteCodeGenerator->EmitLeaveOpCodesBeforeYield();
     byteCodeGenerator->Writer()->Reg2(Js::OpCode::Yield, funcInfo->yieldRegister, funcInfo->yieldRegister);
@@ -9217,10 +9238,6 @@ void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerato
     Js::RegSlot doneLocation = funcInfo->AcquireTmpRegister();
     EmitIteratorComplete(doneLocation, yieldStarNode->location, byteCodeGenerator, funcInfo);
 
-    // Put the iterator result's value in yieldStarNode->location regardless of the done property value.  The value will
-    // be used as the result value of the yield* operator expression in the case when done is true.
-    EmitIteratorValue(yieldStarNode->location, yieldStarNode->location, byteCodeGenerator, funcInfo);
-
     // branch past the loop if the done property is truthy
     byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, continuePastLoop, doneLocation);
     funcInfo->ReleaseTmpRegister(doneLocation);
@@ -9233,6 +9250,10 @@ void EmitYieldStar(ParseNode* yieldStarNode, ByteCodeGenerator* byteCodeGenerato
     byteCodeGenerator->Writer()->Br(loopEntrance);
     byteCodeGenerator->Writer()->MarkLabel(continuePastLoop);
     byteCodeGenerator->Writer()->ExitLoop(loopId);
+
+    // Put the iterator result's value in yieldStarNode->location.
+    // It will be used as the result value of the yield* operator expression.
+    EmitIteratorValue(yieldStarNode->location, yieldStarNode->location, byteCodeGenerator, funcInfo);
 }
 
 void TrackIntConstantsOnGlobalUserObject(ByteCodeGenerator *byteCodeGenerator, bool isSymGlobalAndSingleAssignment, Js::PropertyId propertyId)
