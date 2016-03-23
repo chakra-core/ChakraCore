@@ -506,6 +506,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
     AllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("TryAlloc failed, forced collection on allocation [Collected: %d]\n"), collected);
     if (!collected)
     {
+#if ENABLE_CONCURRENT_GC
         // wait for background sweeping finish if there are too many pages allocated during background sweeping
         if (recycler->IsConcurrentSweepExecutingState() && this->heapInfo->uncollectedNewPageCount > (uint)CONFIG_FLAG(NewPagesCapDuringBGSweeping))
         {
@@ -516,7 +517,7 @@ HeapBucketT<TBlockType>::SnailAlloc(Recycler * recycler, TBlockAllocatorType * a
                 return memBlock;
             }
         }
-
+#endif
         // We didn't collect, try to add a new heap block
         memBlock = TryAllocFromNewHeapBlock(recycler, allocator, sizeCat, attributes);
         if (memBlock != nullptr)

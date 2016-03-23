@@ -7,7 +7,7 @@
 
 namespace Js
 {
-    // Use fixed size structure to save pointers 
+    // Use fixed size structure to save pointers
     // AuxPtrsFix(16 bytes or 32 bytes) layout:
     //                        max count  metadata(init'd type)        pointers array
     //     --------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ namespace Js
         bool Set(FieldsEnum e, void* p);
     };
 
-    // Use flexible size structure to save pointers. when pointer count exceeds AuxPtrsFix<FieldsEnum, 32>::MaxCount, 
+    // Use flexible size structure to save pointers. when pointer count exceeds AuxPtrsFix<FieldsEnum, 32>::MaxCount,
     // it will promote to this structure to save the pointers
     // Layout:
     //     count      array of positions       array of instantiated pointers
@@ -42,7 +42,7 @@ namespace Js
         typedef AuxPtrs<T, FieldsEnum> AuxPtrsT;
         uint8 count;                            // save instantiated pointers count
         uint8 capacity;                         // save number of pointers can be hold in current instance of AuxPtrs
-        uint8 offsets[FieldsEnum::Max];       // save position of each instantiated pointers, if not instantiate, it's invalid
+        uint8 offsets[static_cast<int>(FieldsEnum::Max)];       // save position of each instantiated pointers, if not instantiate, it's invalid
         WriteBarrierPtr<void> ptrs[1];          // instantiated pointer addresses
         AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);  // called when promoting from AuxPtrs32 to AuxPtrs
         AuxPtrs(uint8 capacity, AuxPtrs* ptr);      // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)

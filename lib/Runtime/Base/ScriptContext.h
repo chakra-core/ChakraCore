@@ -453,11 +453,9 @@ namespace Js
         AsmJsCodeGenerator* InitAsmJsCodeGenerator();
 #endif
 
-#ifdef ENABLE_SCRIPT_DEBUGGING
         bool IsExceptionWrapperForBuiltInsEnabled();
         static bool IsExceptionWrapperForBuiltInsEnabled(ScriptContext* scriptContext);
         static bool IsExceptionWrapperForHelpersEnabled(ScriptContext* scriptContext);
-#endif
 #ifdef ENABLE_SCRIPT_PROFILING
         bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
         bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
@@ -1338,17 +1336,23 @@ private:
             return sourceContextInfo == cache->noContextSourceContextInfo;
         }
 
-#ifdef ENABLE_SCRIPT_PROFILING
         BOOL IsProfiling()
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             return (m_pProfileCallback != nullptr);
+#else
+            return FALSE;
+#endif
         }
 
         BOOL IsInProfileCallback()
         {
+#ifdef ENABLE_SCRIPT_PROFILING
             return m_inProfileCallback;
+#else
+            return FALSE;
+#endif
         }
-#endif // ENABLE_SCRIPT_PROFILING
 
 #if DBG
         SourceContextInfo const * GetNoContextSourceContextInfo() const { return cache->noContextSourceContextInfo; }
@@ -1489,6 +1493,14 @@ private:
         void ReleaseDynamicAsmJsInterpreterThunk(BYTE* address, bool addtoFreeList);
 #endif
 
+        static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
+        static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
+        static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
+
+        // Thunks for deferred deserialization of function bodies from the byte code cache
+        static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
+        static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
+
 #ifdef ENABLE_SCRIPT_PROFILING
         void SetProfileMode(BOOL fSet);
         static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
@@ -1497,13 +1509,6 @@ private:
             JavascriptFunction* function,
             PROFILER_TOKEN &scriptId,
             PROFILER_TOKEN &functionId);
-        static Var DebugProfileProbeThunk(RecyclableObject* function, CallInfo callInfo, ...);
-        static JavascriptMethod ProfileModeDeferredParse(ScriptFunction **function);
-        static Var ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...);
-
-        // Thunks for deferred deserialization of function bodies from the byte code cache
-        static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
-        static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
         HRESULT OnScriptCompiled(PROFILER_TOKEN scriptId, PROFILER_SCRIPT_TYPE type, IUnknown *pIDebugDocumentContext);
         HRESULT OnFunctionCompiled(

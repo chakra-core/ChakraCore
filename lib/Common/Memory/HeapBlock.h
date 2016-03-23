@@ -290,7 +290,7 @@ protected:
     StackBackTrace* pageHeapAllocStack;
     StackBackTrace* pageHeapFreeStack;
 #endif
-    
+
 public:
     __inline bool InPageHeapMode() const { return pageHeapMode != PageHeapMode::PageHeapModeOff; }
 #ifdef STACK_BACK_TRACE
@@ -398,7 +398,7 @@ template <class TBlockAttributes>
 class SmallHeapBlockT : public HeapBlock
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 
     template <typename TBlockType>
@@ -626,7 +626,7 @@ public:
     template<bool pageheap>
     void BackgroundReleasePagesSweep(Recycler* recycler);
 #endif
-    
+
     void Reset();
 
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));

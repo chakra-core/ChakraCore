@@ -7,7 +7,7 @@ namespace Memory
 class HeapInfo
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    friend class ScriptMemoryDumper;
+    friend class ::ScriptMemoryDumper;
 #endif
 public:
     HeapInfo();
@@ -260,7 +260,7 @@ private:
         return heapBucket->heapBlockList;
     }
 #endif
- 
+
     template<bool pageheap>
     void SweepSmallNonFinalizable(RecyclerSweep& recyclerSweep);
     void SweepLargeNonFinalizable(RecyclerSweep& recyclerSweep);
@@ -277,14 +277,14 @@ private:
     template <typename TBlockAttributes>
     class ValidPointersMap
     {
-        // xplat-todo: fix up vpm.64b.h generation to generate correctly 
+        // xplat-todo: fix up vpm.64b.h generation to generate correctly
         // templatized code
 #ifdef _WIN32
 #define USE_STATIC_VPM 1 // Disable to force generation at runtime
 #else
 #define USE_STATIC_VPM 0
 #endif
-        
+
     private:
         static const uint rowSize = TBlockAttributes::MaxSmallObjectCount * 2;
         typedef ushort ValidPointersMapRow[rowSize];

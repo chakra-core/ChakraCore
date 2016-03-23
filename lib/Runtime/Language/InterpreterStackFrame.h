@@ -5,8 +5,13 @@
 
 #pragma once
 
+#ifdef _MSC_VER
 extern "C" PVOID _ReturnAddress(VOID);
 #pragma intrinsic(_ReturnAddress)
+#else
+#define _ReturnAddress() __builtin_return_address(0)
+#endif
+
 class BailOutRecord;
 
 extern "C" void __cdecl _alloca_probe_16();

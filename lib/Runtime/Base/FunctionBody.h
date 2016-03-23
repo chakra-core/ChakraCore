@@ -463,7 +463,7 @@ namespace Js
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
         InlineeFrameMap*  inlineeFrameMap;
 #endif
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
 
@@ -499,7 +499,7 @@ namespace Js
         uint32 pendingPolymorphicCacheState;
 #endif
         State state; // Single state member so users can query state w/o a lock
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         CleanupReason cleanupReason;
 #endif
         BYTE   pendingInlinerVersion;
@@ -525,8 +525,10 @@ namespace Js
             isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #endif
             library(library), codeSize(0), nativeAddress(nullptr), isAsmJsFunction(false), validationCookie(validationCookie)
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_STACK_BACK_TRACE
             , cleanupStack(nullptr)
+#endif
+#if ENABLE_DEBUG_CONFIG_OPTIONS
             , cleanupReason(NotCleanedUp)
 #endif
 #if DBG_DUMP | defined(VTUNE_PROFILING)
@@ -573,7 +575,7 @@ namespace Js
 
         void Cleanup(bool isShutdown, bool captureCleanupStack);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_STACK_BACK_TRACE
         void CaptureCleanupStackTrace();
 #endif
 
@@ -639,7 +641,7 @@ namespace Js
             this->state = PendingCleanup;
         }
 
-#ifdef STACK_BACK_TRACE
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         void SetCleanupReason(CleanupReason reason)
         {
             this->cleanupReason = reason;

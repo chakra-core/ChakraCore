@@ -346,15 +346,15 @@ namespace JsUtil
 
         void Item(int index, const T& item)
         {
-            Assert(index >= 0 && index < count);
-            buffer[index] = item;
+            Assert(index >= 0 && index < this->count);
+            this->buffer[index] = item;
         }
 
         void SetItem(int index, const T& item)
         {
             EnsureArray(index + 1);
-            buffer[index] = item;
-            count = max(count, index + 1);
+            this->buffer[index] = item;
+            this->count = max(this->count, index + 1);
         }
 
         void SetExistingItem(int index, const T& item)
@@ -429,15 +429,17 @@ namespace JsUtil
         template <bool weaklyRefItems>
         T CompactEnd()
         {
-            while (count != 0)
+            while (this->count != 0)
             {
-                AnalysisAssert(!weaklyRefItems || (buffer[count - 1] != nullptr));
-                if ((weaklyRefItems ? buffer[count - 1]->Get() != nullptr : buffer[count - 1] != nullptr))
+                AnalysisAssert(!weaklyRefItems || (this->buffer[this->count - 1] != nullptr));
+                if (weaklyRefItems ?
+                    this->buffer[this->count - 1]->Get() != nullptr :
+                    this->buffer[this->count - 1] != nullptr)
                 {
-                    return buffer[count - 1];
+                    return this->buffer[this->count - 1];
                 }
-                count--;
-                buffer[count] = nullptr;
+                this->count--;
+                this->buffer[this->count] = nullptr;
             }
 
             return nullptr;
@@ -450,9 +452,9 @@ namespace JsUtil
 
         T RemoveAtEnd()
         {
-            Assert(count >= 1);
-            T item = this->Item(count - 1);
-            RemoveAt(count - 1);
+            Assert(this->count >= 1);
+            T item = this->Item(this->count - 1);
+            RemoveAt(this->count - 1);
             return item;
         }
 
@@ -463,17 +465,17 @@ namespace JsUtil
 
         void Clear()
         {
-            count = 0;
+            this->count = 0;
         }
 
         void ClearAndZero()
         {
-            if(count == 0)
+            if(this->count == 0)
             {
                 return;
             }
 
-            memset(buffer, 0, count * sizeof(T));
+            memset(this->buffer, 0, this->count * sizeof(T));
             Clear();
         }
 
@@ -482,9 +484,9 @@ namespace JsUtil
             // We can call QSort only if the remove policy for this list is CopyRemovePolicy
             CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if(count)
+            if(this->count)
             {
-                JsUtil::QuickSort<T, TComparerType>::Sort(buffer, buffer + (count-1));
+                JsUtil::QuickSort<T, TComparerType>::Sort(this->buffer, this->buffer + (this->count - 1));
             }
         }
 
@@ -493,16 +495,16 @@ namespace JsUtil
             // We can call QSort only if the remove policy for this list is CopyRemovePolicy
             CompileAssert((IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, false> >::IsTrue) ||
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
-            if (count)
+            if (this->count)
             {
-                qsort_s(buffer, count, sizeof(T), _PtFuncCompare, _Context);
+                qsort_s(this->buffer, this->count, sizeof(T), _PtFuncCompare, _Context);
             }
         }
 
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
-            return Js::Map(site, this->buffer, count, map);
+            return Js::Map(site, this->buffer, this->count, map);
         }
 
         template<class TMapFunction>
@@ -514,7 +516,7 @@ namespace JsUtil
         template<class TMapFunction>
         bool MapUntilFrom(int start, TMapFunction map) const
         {
-            for (int i = start; i < count; i++)
+            for (int i = start; i < this->count; i++)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {
@@ -548,7 +550,7 @@ namespace JsUtil
         template<class TMapFunction>
         void MapFrom(int start, TMapFunction map) const
         {
-            for (int i = start; i < count; i++)
+            for (int i = start; i < this->count; i++)
             {
                 if (TRemovePolicyType::IsItemValid(this->buffer[i]))
                 {
@@ -844,6 +846,8 @@ namespace Js
     template <typename TListType, bool clearOldEntries = false>
     class WeakRefFreeListedRemovePolicy : public FreeListedRemovePolicy<TListType, clearOldEntries>
     {
+        typedef FreeListedRemovePolicy<TListType, clearOldEntries> Base;
+        typedef typename Base::TElementType TElementType;
     private:
         uint lastWeakReferenceCleanupId;
 
@@ -860,7 +864,7 @@ namespace Js
             this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
         }
     public:
-        WeakRefFreeListedRemovePolicy(TListType * list) : FreeListedRemovePolicy(list)
+        WeakRefFreeListedRemovePolicy(TListType * list) : Base(list)
         {
             this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
         }

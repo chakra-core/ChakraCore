@@ -3458,7 +3458,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
     {
         return TRUE;
     }
-    
+
     if (!this->IsAllJITCodeInPreReservedRegion())
     {
         CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
