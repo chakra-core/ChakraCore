@@ -127,6 +127,7 @@ namespace Wasm
             void ReadIndirectFunctionTable();
             void ReadDataSegments();
             void ReadImportEntries();
+            void ReadStartFunction();
 
             void ReadNamesSection();
 

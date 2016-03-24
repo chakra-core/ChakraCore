@@ -17,7 +17,8 @@ ModuleInfo::ModuleInfo(ArenaAllocator * alloc) :
     m_importCount(0),
     m_indirectFuncCount(0),
     m_exportCount(0),
-    m_datasegCount(0)
+    m_datasegCount(0),
+    m_startFunc(0) // XXX
 {
     m_signatures = Anew(m_alloc, WasmSignatureArray, m_alloc, 0);
     m_indirectfuncs = nullptr;
@@ -231,6 +232,22 @@ ModuleInfo::GetDataSeg(uint32 index) const
         return nullptr;
     }
     return m_datasegs[index];
+}
+
+void
+ModuleInfo::SetStartFunction(uint32 i)
+{
+    if (i >= m_funcCount) {
+        TRACE_WASM_DECODER(L"Invalid start function index");
+        return;
+    }
+    m_startFunc = i;
+}
+
+uint32
+ModuleInfo::GetStartFunction() const
+{
+    return m_startFunc;
 }
 
 } // namespace Wasm

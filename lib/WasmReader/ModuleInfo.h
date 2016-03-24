@@ -59,6 +59,8 @@ namespace Wasm
         WasmDataSegment * GetDataSeg(uint32 index) const;
         uint32 GetDataSegCount() const { return m_datasegCount; }
 
+        void SetStartFunction(uint32 i);
+        uint32 GetStartFunction() const;
 
     private:
         typedef JsUtil::GrowingArray<WasmSignature*, ArenaAllocator> WasmSignatureArray;
@@ -75,6 +77,8 @@ namespace Wasm
         uint m_exportCount;
         uint32 m_importCount;
         uint32 m_datasegCount;
+
+        uint32 m_startFunc;
 
         ArenaAllocator * m_alloc;
     };

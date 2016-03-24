@@ -42,6 +42,7 @@ namespace Js
 
         CompileScriptException se;
         Js::Var exportObject;
+        Js::Var start;
         Js::Utf8SourceInfo* utf8SourceInfo;
         BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext)
             exportObject = scriptContext->LoadWasmScript(
@@ -55,9 +56,18 @@ namespace Js
                 true, // isBinary
                 byteLength,
                 Js::Constants::GlobalCode,
-                ffi
+                ffi,
+                &start
             );
         END_LEAVE_SCRIPT_INTERNAL(scriptContext)
+
+        if (start)
+        {
+            Js::ScriptFunction* f = Js::AsmJsScriptFunction::FromVar(start);
+            Js::CallInfo info(Js::CallFlags_New, 1);
+            Js::Arguments startArg(info, &start);
+            Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
+        }
 
         HRESULT hr = se.ei.scode;
         if (FAILED(hr))

@@ -1780,7 +1780,7 @@ namespace Js
         return library->GetUndefined();
     }
 
-    Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi)
+    Var ScriptContext::LoadWasmScript(const char16* script, SRCINFO const * pSrcInfo, CompileScriptException * pse, bool isExpression, bool disableDeferredParse, bool isForNativeCode, Utf8SourceInfo** ppSourceInfo, const bool isBinary, const uint lengthBytes, const char16 *rootDisplayName, Js::Var ffi, Js::Var* start)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1827,7 +1827,7 @@ namespace Js
                     Output::Print(_u("Loading script.\n")
                         _u("  Unicode (in bytes)    %u\n")
                         _u("  UTF-8 size (in bytes) %u\n")
-                        _u("  Expected savings      %d\n"), length * sizeof(char16), cbNeeded, length * sizeof(char16)-cbNeeded);
+                        _u("  Expected savings      %d\n"), length * sizeof(char16), cbNeeded, length * sizeof(char16) - cbNeeded);
                 }
 #endif
 
@@ -1907,7 +1907,7 @@ namespace Js
 
             for (uint i = 0; i < wasmModule->funcCount; ++i)
             {
-                if (functionArray[i] == nullptr) 
+                if (functionArray[i] == nullptr)
                 {
                     Assert(PHASE_ON1(WasmLazyTrapPhase));
                     hasAnyLazyTraps = true;
@@ -1972,8 +1972,6 @@ namespace Js
                 JavascriptOperators::OP_SetProperty(exportsNamespace, hasErrorsPropertyRecord->GetPropertyId(), JavascriptBoolean::OP_LdTrue(this), this);
             }
 
-
-
             for (uint32 iExport = 0; iExport < wasmModule->info->GetExportCount(); ++iExport)
             {
                 Wasm::WasmExport* funcExport = wasmModule->info->GetFunctionExport(iExport);
@@ -2015,7 +2013,7 @@ namespace Js
                 char16* name = wasmModule->info->GetFunctionImport(i)->fnName;
                 uint32 nameLen = wasmModule->info->GetFunctionImport(i)->fnNameLen;
                 Var prop = nullptr;
-                if (nameLen > 0) 
+                if (nameLen > 0)
                 {
                     GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
 
@@ -2057,6 +2055,18 @@ namespace Js
                 indirectFunctionTables[sigId][i] = localModuleFunctions[funcIndex];
             }
 
+            uint32 startFuncIdx = wasmModule->info->GetStartFunction();
+            if (start)
+            {
+                if (startFuncIdx != -1)
+                {
+                    *start = localModuleFunctions[startFuncIdx];
+                }
+                else
+                {
+                    *start = nullptr;
+                }
+            }
         }
         catch (Js::OutOfMemoryException)
         {
