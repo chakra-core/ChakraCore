@@ -258,4 +258,10 @@
       <compile-flags>-on:prelowererpeeps</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_es5array.js</files>
+      <compile-flags>-off:NativeArray -ForceES5Array</compile-flags>
+    </default>
+  </test>
 </regress-exe>
