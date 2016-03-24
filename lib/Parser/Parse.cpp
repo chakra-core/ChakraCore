@@ -6058,6 +6058,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
 
                 if (seenRestParameter)
                 {
+                    this->GetCurrentFunctionNode()->sxFnc.SetHasNonSimpleParameterList();
                     if (flags & fFncOneArg)
                     {
                         // The parameter of a setter cannot be a rest parameter.
@@ -6069,7 +6070,6 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags)
                     {
                         // When only validating formals, we won't have a function node.
                         pnodeFnc->sxFnc.pnodeRest = pnodeT;
-                        pnodeFnc->sxFnc.SetHasNonSimpleParameterList();
                         if (!isNonSimpleParameterList)
                         {
                             // This is the first non-simple parameter we've seen. We need to go back
