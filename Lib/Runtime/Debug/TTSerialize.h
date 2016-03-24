@@ -449,12 +449,6 @@ namespace TTD
             this->Append(str, N - 1);
         }
 
-        void AppendBuffer()
-        {
-            this->EnsureSpace(this->m_indentSize);
-            this->Append(this->m_indentBuffer, this->m_indentSize);
-        }
-
         void AppendText(char* text, uint32 length);
         void AppendIndent();
         void AppendString(char* text);
@@ -467,6 +461,8 @@ namespace TTD
     public:
         TraceLogger(FILE* outfile = stdout);
         ~TraceLogger();
+
+        void ForceFlush();
 
         void WriteVar(Js::Var var);
 

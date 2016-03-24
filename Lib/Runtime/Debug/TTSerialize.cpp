@@ -1484,7 +1484,7 @@ namespace TTD
 
     void TraceLogger::AppendIndent()
     {
-        this->EnsureSpace(this->m_indentSize);
+        this->EnsureSpace(4 * this->m_indentSize);
         this->Append(this->m_indentBuffer, 4 * this->m_indentSize);
     }
 
@@ -1550,12 +1550,8 @@ namespace TTD
 
     TraceLogger::~TraceLogger()
     {
-        if(this->m_currLength != 0)
-        {
-            fwrite(this->m_buffer, sizeof(char), this->m_currLength, this->m_outfile);
-        }
+        this->ForceFlush();
 
-        fflush(this->m_outfile);
         if(this->m_outfile != stdout)
         {
             fclose(this->m_outfile);
@@ -1563,6 +1559,18 @@ namespace TTD
 
         CoTaskMemFree(this->m_buffer);
         CoTaskMemFree(this->m_indentBuffer);
+    }
+
+    void TraceLogger::ForceFlush()
+    {
+        if(this->m_currLength != 0)
+        {
+            fwrite(this->m_buffer, sizeof(char), this->m_currLength, this->m_outfile);
+
+            this->m_currLength = 0;
+        }
+
+        fflush(this->m_outfile);
     }
 
     void TraceLogger::WriteVar(Js::Var var)
@@ -1616,7 +1624,7 @@ namespace TTD
     {
         Js::JavascriptString* displayName = function->GetDisplayName();
 
-        this->AppendBuffer();
+        this->AppendIndent();
         this->Append(displayName->GetSz(), displayName->GetLength());
 
         if(isExternal)
@@ -1649,7 +1657,7 @@ namespace TTD
 
         Js::JavascriptString* displayName = function->GetDisplayName();
 
-        this->AppendBuffer();
+        this->AppendIndent();
         this->AppendLiteral("return(");
         this->Append(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> ");
@@ -1663,7 +1671,7 @@ namespace TTD
 
         Js::JavascriptString* displayName = function->GetDisplayName();
 
-        this->AppendBuffer();
+        this->AppendIndent();
         this->AppendLiteral("return(");
         this->Append(displayName->GetSz(), displayName->GetLength());
         this->AppendLiteral(") -> !!exception");

@@ -223,6 +223,13 @@ namespace TTD
 
                 if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Data)
                 {
+                    //
+                    //TODO: I don't like this much would much rather have
+                    //      -A fast case of !hasProperty or writable
+                    //      -A slower case of (the current property value is the same as the new one so no action needed)
+                    //      -A final slow nuke it from orbit case like we have with the ExternalFunction name workaround
+                    //
+
                     if(!obj->HasOwnProperty(pid) || obj->IsWritable(pid))
                     {
                         obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
@@ -240,6 +247,10 @@ namespace TTD
                 }
                 else
                 {
+                    //
+                    //TODO: we could have a problem if we set a getter (and make it not writable say) then what happens with the setter -- or maybe set accessors just ignores this?
+                    //
+
                     NSSnapType::SnapEntryDataKindTag ttag = handler->PropertyInfoArray[i].DataKind;
                     if(ttag == NSSnapType::SnapEntryDataKindTag::Getter)
                     {
