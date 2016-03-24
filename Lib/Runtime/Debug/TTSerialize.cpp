@@ -1484,8 +1484,17 @@ namespace TTD
 
     void TraceLogger::AppendIndent()
     {
-        this->EnsureSpace(4 * this->m_indentSize);
-        this->Append(this->m_indentBuffer, 4 * this->m_indentSize);
+        uint32 totalIndent = this->m_indentSize * 4;
+        while(totalIndent > TRACE_LOGGER_INDENT_BUFFER_SIZE)
+        {
+            this->EnsureSpace(TRACE_LOGGER_INDENT_BUFFER_SIZE);
+            this->Append(this->m_indentBuffer, TRACE_LOGGER_INDENT_BUFFER_SIZE);
+
+            totalIndent -= TRACE_LOGGER_INDENT_BUFFER_SIZE;
+        }
+
+        this->EnsureSpace(totalIndent);
+        this->Append(this->m_indentBuffer, totalIndent);
     }
 
     void TraceLogger::AppendString(char* text)

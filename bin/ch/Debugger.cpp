@@ -185,7 +185,7 @@ bool DebuggerCh::IsEmpty(bool blockUntilMsg)
 
             if(iResult > 0)
             {
-                AssertMsg(iResult + 1 < this->m_buflen, "Unexpectedly large message.");
+                AssertMsg(iResult + 1 < (int)this->m_buflen, "Unexpectedly large message.");
                 this->m_buf[iResult] = '\0';
 
                 char* cpos = strstr(this->m_buf, "Content-Length:");

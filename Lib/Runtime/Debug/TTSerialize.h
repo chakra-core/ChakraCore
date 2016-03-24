@@ -464,6 +464,15 @@ namespace TTD
 
         void ForceFlush();
 
+        template<size_t N>
+        void WriteLiteralMsg(const char(&str)[N])
+        {
+            this->AppendIndent();
+            this->AppendLiteral(str);
+
+            this->ForceFlush();
+        }
+
         void WriteVar(Js::Var var);
 
         void WriteCall(Js::JavascriptFunction* function, bool isExternal, uint32 argc, Js::Var* argv);

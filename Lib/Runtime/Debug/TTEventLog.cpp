@@ -507,6 +507,11 @@ namespace TTD
         END_ENTER_SCRIPT;
 #endif
 
+
+#if ENABLE_BASIC_TRACE
+        this->m_diagnosticLogger.WriteLiteralMsg("---SNAPSHOT EVENT---\n");
+#endif
+
         this->AdvanceTimeAndPositionForReplay(); //move along
     }
 
@@ -701,6 +706,10 @@ namespace TTD
         TelemetryEventLogEntry* tevent = this->m_eventSlabAllocator.SlabNew<TelemetryEventLogEntry>(this->GetCurrentEventTimeAndAdvance(), infoString, doPrint);
 
         this->InsertEventAtHead(tevent);
+
+#if ENABLE_BASIC_TRACE
+        this->m_diagnosticLogger.ForceFlush();
+#endif
     }
 
     void EventLog::ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs)
@@ -735,6 +744,10 @@ namespace TTD
 #endif
 
         this->AdvanceTimeAndPositionForReplay();
+
+#if ENABLE_BASIC_TRACE
+        this->m_diagnosticLogger.ForceFlush();
+#endif
     }
 
     void EventLog::RecordDateTimeEvent(double time)
@@ -1559,6 +1572,10 @@ namespace TTD
         this->InsertEventAtHead(sevent);
 
         this->m_elapsedExecutionTimeSinceSnapshot = 0.0;
+
+#if ENABLE_BASIC_TRACE
+        this->m_diagnosticLogger.WriteLiteralMsg("---SNAPSHOT EVENT---\n");
+#endif
     }
 
     void EventLog::DoRtrSnapIfNeeded()
@@ -1722,6 +1739,10 @@ namespace TTD
             //clear this out -- it shouldn't matter for most JsRT actions (alloc etc.) and should be reset by any call actions
             this->ResetCallStackForTopLevelCall(-1, -1);
         }
+
+#if ENABLE_BASIC_TRACE
+        this->m_diagnosticLogger.WriteLiteralMsg("---INFLATED SNAPSHOT---\n");
+#endif
     }
 
     void EventLog::ReplaySingleEntry()
