@@ -1485,7 +1485,7 @@ namespace TTD
     void TraceLogger::AppendIndent()
     {
         this->EnsureSpace(this->m_indentSize);
-        this->Append(this->m_indentBuffer, this->m_indentSize);
+        this->Append(this->m_indentBuffer, 4 * this->m_indentSize);
     }
 
     void TraceLogger::AppendString(char* text)
@@ -1544,7 +1544,7 @@ namespace TTD
         this->m_buffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_BUFFER_SIZE);
         this->m_indentBuffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_INDENT_BUFFER_SIZE);
 
-        memset(this->m_outfile, 0, TRACE_LOGGER_BUFFER_SIZE);
+        memset(this->m_buffer, 0, TRACE_LOGGER_BUFFER_SIZE);
         memset(this->m_indentBuffer, 0, TRACE_LOGGER_INDENT_BUFFER_SIZE);
     }
 
@@ -1598,11 +1598,13 @@ namespace TTD
                 this->AppendUnsignedInteger(Js::JavascriptUInt64Number::FromVar(var)->GetValue());
                 break;
             case Js::TypeIds_String:
+                this->AppendLiteral("'");
                 this->Append(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                this->AppendLiteral("'");
                 break;
             default:
             {
-                this->AppendLiteral("T:");
+                this->AppendLiteral("JsType:");
                 this->AppendInteger((uint64)tid);
                 break;
             }
@@ -1626,9 +1628,9 @@ namespace TTD
             this->AppendLiteral("(");
         }
 
-        for(uint32 i = 0; i < argc; ++i)
+        for(uint32 i = 1; i < argc; ++i)
         {
-            if(i != 0)
+            if(i != 1)
             {
                 this->AppendLiteral(", ");
             }
@@ -1650,7 +1652,7 @@ namespace TTD
         this->AppendBuffer();
         this->AppendLiteral("return(");
         this->Append(displayName->GetSz(), displayName->GetLength());
-        this->AppendLiteral(")->");
+        this->AppendLiteral(") -> ");
         this->WriteVar(res);
         this->AppendLiteral("\n");
     }
@@ -1664,7 +1666,7 @@ namespace TTD
         this->AppendBuffer();
         this->AppendLiteral("return(");
         this->Append(displayName->GetSz(), displayName->GetLength());
-        this->AppendLiteral(")->!!exception");
+        this->AppendLiteral(") -> !!exception");
         this->AppendLiteral("\n");
     }
 
@@ -1673,7 +1675,7 @@ namespace TTD
         this->AppendIndent();
 
         this->EnsureSpace(128);
-        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "(l:%I32u, c:%I32u)\n", line, column);
+        this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, (TRACE_LOGGER_BUFFER_SIZE - this->m_currLength), "(l:%I32u, c:%I32u)\n", line + 1, column);
     }
 #endif
 }

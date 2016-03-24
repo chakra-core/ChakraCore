@@ -227,6 +227,16 @@ namespace TTD
                     {
                         obj->SetProperty(pid, pVal, Js::PropertyOperationFlags::PropertyOperation_Force, nullptr);
                     }
+
+                    //
+                    //TODO: workaround because node can force set the name property on external function objects
+                    //
+                    if(snpObject->SnapObjectTag == SnapObjectType::SnapExternalFunctionObject && pid == Js::BuiltInPropertyRecords::name.propertyRecord.GetPropertyId())
+                    {
+                        AssertMsg(obj->HasOwnProperty(pid) && !obj->IsWritable(pid), "Something else is funny");
+
+                        obj->SetPropertyWithAttributes(pid, pVal, PropertyConfigurable, nullptr);
+                    }
                 }
                 else
                 {
@@ -1680,9 +1690,14 @@ namespace TTD
             const SnapSetInfo* setInfo2 = SnapObjectGetAddtlInfoAs<SnapSetInfo*, SnapObjectType::SnapSetObject>(sobj2);
 
             compareMap.DiagnosticAssert(setInfo1->SetSize == setInfo2->SetSize);
-            for(uint32 i = 0; i < setInfo1->SetSize; ++i)
+
+            //Treat weak set contents as ignorable
+            if(sobj1->SnapType->JsTypeId == Js::TypeIds_Set)
             {
-                NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(setInfo1->SetValueArray[i], setInfo2->SetValueArray[i], compareMap, L"setValues", i);
+                for(uint32 i = 0; i < setInfo1->SetSize; ++i)
+                {
+                    NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(setInfo1->SetValueArray[i], setInfo2->SetValueArray[i], compareMap, L"setValues", i);
+                }
             }
         }
 #endif
@@ -1782,10 +1797,15 @@ namespace TTD
             const SnapMapInfo* mapInfo2 = SnapObjectGetAddtlInfoAs<SnapMapInfo*, SnapObjectType::SnapMapObject>(sobj2);
 
             compareMap.DiagnosticAssert(mapInfo1->MapSize == mapInfo2->MapSize);
-            for(uint32 i = 0; i < mapInfo1->MapSize; i+=2)
+
+            //Treat weak map contents as ignorable
+            if(sobj1->SnapType->JsTypeId == Js::TypeIds_Map)
             {
-                NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(mapInfo1->MapKeyValueArray[i], mapInfo2->MapKeyValueArray[i], compareMap, L"mapKeys", i);
-                NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(mapInfo1->MapKeyValueArray[i + 1], mapInfo2->MapKeyValueArray[i + 1], compareMap, L"mapValues", i);
+                for(uint32 i = 0; i < mapInfo1->MapSize; i += 2)
+                {
+                    NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(mapInfo1->MapKeyValueArray[i], mapInfo2->MapKeyValueArray[i], compareMap, L"mapKeys", i);
+                    NSSnapValues::AssertSnapEquivTTDVar_SpecialArray(mapInfo1->MapKeyValueArray[i + 1], mapInfo2->MapKeyValueArray[i + 1], compareMap, L"mapValues", i);
+                }
             }
         }
 #endif

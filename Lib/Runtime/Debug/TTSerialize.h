@@ -445,8 +445,8 @@ namespace TTD
         template<size_t N>
         void AppendLiteral(const char(&str)[N])
         {
-            this->EnsureSpace(N);
-            this->Append(str, N);
+            this->EnsureSpace(N - 1);
+            this->Append(str, N - 1);
         }
 
         void AppendBuffer()

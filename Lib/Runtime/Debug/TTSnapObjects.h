@@ -675,6 +675,25 @@ namespace TTD
         }
 
 #if ENABLE_SNAPSHOT_COMPARE
+        template<typename T>
+        void AdvanceArrayIndex_SnapArrayInfoCompare(uint32* index, uint32* pos, const SnapArrayInfo<T>** segment)
+        {
+            *index = *index + 1;
+            if(*index >= (*segment)->LastIndex)
+            {
+                *segment = (*segment)->Next;
+            }
+
+            if(*segment == nullptr)
+            {
+                *pos = 0;
+            }
+            else
+            {
+                *pos = *index - (*segment)->FirstIndex;
+            }
+        }
+
         template<typename T, SnapObjectType snapArrayKind>
         void AssertSnapEquiv_SnapArrayInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         {
@@ -688,49 +707,48 @@ namespace TTD
             else
             {
                 uint32 index1 = arrayInfo1->FirstIndex;
-                while(!arrayInfo1->ArrayValidTags[index1])
-                {
-                    index1++;
-                    AssertMsg(index1 < arrayInfo1->LastIndex, "This is a little strange but I am asserting just in case it is possible.");
-                }
+                uint32 pos1 = 0;
 
                 uint32 index2 = arrayInfo2->FirstIndex;
-                while(!arrayInfo2->ArrayValidTags[index2])
-                {
-                    index2++;
-                    AssertMsg(index2 < arrayInfo2->LastIndex, "This is a little strange but I am asserting just in case it is possible.");
-                }
-
-                compareMap.DiagnosticAssert(index1 == index2);
+                uint32 pos2 = 0;
 
                 while(arrayInfo1 != nullptr && arrayInfo2 != nullptr)
                 {
-                    //convert overall array indecies into the local segment positions
-                    uint32 pos1 = index1 - arrayInfo1->FirstIndex;
-                    uint32 pos2 = index2 - arrayInfo1->FirstIndex;
-
-                    compareMap.DiagnosticAssert(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
-                    if(arrayInfo1->ArrayValidTags[pos1])
+                    if(index1 < index2)
                     {
-                        SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap, index1);
+                        compareMap.DiagnosticAssert(!arrayInfo1->ArrayValidTags[pos1]);
+                        AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
                     }
-
-                    //advance global index and update segments as needed
-                    index1++;
-                    if(index1 >= arrayInfo1->LastIndex)
+                    else if(index1 > index2)
                     {
-                        arrayInfo1 = arrayInfo1->Next;
+                        compareMap.DiagnosticAssert(!arrayInfo2->ArrayValidTags[pos2]);
+                        AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
                     }
-
-                    index2++;
-                    if(index2 >= arrayInfo2->LastIndex)
+                    else
                     {
-                        arrayInfo2 = arrayInfo2->Next;
+                        compareMap.DiagnosticAssert(arrayInfo1->ArrayValidTags[pos1] == arrayInfo2->ArrayValidTags[pos2]);
+                        if(arrayInfo1->ArrayValidTags[pos1])
+                        {
+                            SnapArrayInfo_EquivValue(arrayInfo1->ArrayRangeContents[pos1], arrayInfo2->ArrayRangeContents[pos2], compareMap, index1);
+                        }
+
+                        AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
+                        AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
                     }
                 }
 
-                //make sure we are at end of both array segment lists
-                compareMap.DiagnosticAssert(arrayInfo1 == nullptr && arrayInfo2 == nullptr);
+                //make sure any remaining entries an empty
+                while(arrayInfo1 != nullptr)
+                {
+                    compareMap.DiagnosticAssert(!arrayInfo1->ArrayValidTags[pos1]);
+                    AdvanceArrayIndex_SnapArrayInfoCompare(&index1, &pos1, &arrayInfo1);
+                }
+
+                while(arrayInfo1 != nullptr)
+                {
+                    compareMap.DiagnosticAssert(!arrayInfo2->ArrayValidTags[pos2]);
+                    AdvanceArrayIndex_SnapArrayInfoCompare(&index2, &pos2, &arrayInfo2);
+                }
             }
         }
 #endif
