@@ -1,37 +1,37 @@
 
-ttdTestWrite("Start Global Code");
+telemetryLog("Start Global Code", true);
 
 function foo1()
 {
-    ttdTestWrite("Start Foo1");
+    telemetryLog("Start Foo1", true);
     
     WScript.Echo("Hello World - CallBack 1");
     WScript.SetTimeout(foo2, 200);
     
-    ttdTestWrite("End Foo1");
+    telemetryLog("End Foo1", true);
 }
 
 function foo2()
 {
-    ttdTestWrite("Start Foo2");
+    telemetryLog("Start Foo2", true);
     
     WScript.Echo("Hello World - CallBack 2");
     WScript.SetTimeout(foo3, 200);
 
-    ttdTestWrite("End Foo2");
+    telemetryLog("End Foo2", true);
 }
 
 function foo3()
 {
-    ttdTestWrite("Start Foo3");
+    telemetryLog("Start Foo3", true);
     
     WScript.Echo("Hello World - CallBack 3");
     
-    ttdTestWrite("End Foo3");
+    telemetryLog("End Foo3", true);
 }
 
 WScript.SetTimeout(foo1, 200);
 WScript.Echo("Hello World - Global");
 
-ttdTestWrite("End Global Code");
+telemetryLog("End Global Code", true);
 

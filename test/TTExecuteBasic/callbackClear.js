@@ -2,32 +2,32 @@
 //In theory this test could be race-y -- in which case suppress the console printing but in general ch should be well behaved
 //
 
-ttdTestWrite("Start Global Code");
+telemetryLog("Start Global Code", true);
 
 var foo1id = undefined;
 
 function foo1()
 {
-    ttdTestWrite("Start Foo1");
+    telemetryLog("Start Foo1", true);
     
     WScript.Echo("Hello World - CallBack 1");
     
-    ttdTestWrite("End Foo1");
+    telemetryLog("End Foo1", true);
 }
 
 function foo2()
 {
-    ttdTestWrite("Start Foo2");
+    telemetryLog("Start Foo2", true);
     
     WScript.Echo("Cancel Callback 1 from CallBack 2");
     WScript.ClearTimeout(foo1id);
     
-    ttdTestWrite("End Foo2");
+    telemetryLog("End Foo2", true);
 }
 
 foo1id = WScript.SetTimeout(foo1, 500);
 WScript.SetTimeout(foo2, 100);
 WScript.Echo("Hello World - Global");
 
-ttdTestWrite("End Global Code");
+telemetryLog("End Global Code", true);
 

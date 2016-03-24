@@ -1,17 +1,17 @@
 
-ttdTestWrite("Start Global Code");
+telemetryLog("Start Global Code", true);
 
 function foo()
 {
-    ttdTestWrite("Start Foo");
+    telemetryLog("Start Foo", true);
     
     WScript.Echo("Hello World - CallBack");
     
-    ttdTestWrite("End Foo");
+    telemetryLog("End Foo", true);
 }
 
 WScript.SetTimeout(foo, 250);
 WScript.Echo("Hello World - Global");
 
-ttdTestWrite("End Global Code");
+telemetryLog("End Global Code", true);
 
