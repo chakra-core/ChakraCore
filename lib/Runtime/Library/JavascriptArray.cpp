@@ -8976,9 +8976,6 @@ Case0:
         }
         else
         {
-            // Source was not an array or TypedArray, return object is definitely a JavascriptArray
-            Assert(newArr);
-
             for (uint32 k = 0; k < length; k++)
             {
                 if (!JavascriptOperators::HasItem(obj, k))
@@ -8993,7 +8990,14 @@ Case0:
                     JavascriptNumber::ToVar(k, scriptContext),
                     obj);
 
-                newArr->DirectSetItemAt(k, mappedValue);
+                if (newArr)
+                {
+                    newArr->DirectSetItemAt(k, mappedValue);
+                }
+                else
+                {
+                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                }
             }
         }
 
