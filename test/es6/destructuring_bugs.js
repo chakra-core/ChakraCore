@@ -96,6 +96,15 @@ var tests = [
       assert.doesNotThrow(function () { eval("function foo({a}, ...b) { if (b) { } }; foo({});"); } );
       assert.doesNotThrow(function () { eval("function foo([], ...b) { if (b) { } }; foo([]);"); });
     }
+  },
+  {
+    name: "Object Destructuring with empty identifier/reference",
+    body: function () {
+      assert.throws(function () { eval("var {x :  } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , } = {};"); }, SyntaxError);
+      assert.throws(function () { eval("var {x :  , y} = {};"); }, SyntaxError);
+      assert.throws(function () { eval("({x : , y} = {});"); }, SyntaxError);
+    }
   }
 ];
 
