@@ -54,7 +54,16 @@ namespace Wasm
 
 namespace Wasm
 {
-    typedef JsUtil::GrowingArray<WasmTypes::WasmType, ArenaAllocator> WasmTypeArray;
+    struct Local
+    {
+        WasmTypes::WasmType t;
+        char16* name;
+
+        Local(WasmTypes::WasmType _t) : t(_t), name(nullptr) {}
+        Local() : t(WasmTypes::Limit), name(nullptr) {}
+    };
+
+    typedef JsUtil::GrowingArray<Local, ArenaAllocator> WasmTypeArray;
 }
 
 #include "WasmSignature.h"

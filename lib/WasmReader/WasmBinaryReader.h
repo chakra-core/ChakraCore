@@ -128,6 +128,8 @@ namespace Wasm
             void ReadDataSegments();
             void ReadImportEntries();
 
+            void ReadNamesSection();
+
             char16* ReadInlineName(uint32& length, uint32& nameLength);
 
             const char* Name(UINT32 offset, UINT &length);

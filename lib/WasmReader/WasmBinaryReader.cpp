@@ -158,6 +158,9 @@ WasmBinaryReader::ProcessCurrentSection()
     case bSectImportTable:
         ReadImportEntries();
         break;
+    case bSectNames:
+        ReadNamesSection();
+        break;
     default:
         Assert(false);
         return false;
@@ -700,25 +703,40 @@ WasmBinaryReader::ReadDataSegments()
     }
 }
 
+void
+WasmBinaryReader::ReadNamesSection()
+{
+    UINT len = 0;
+    UINT numEntries = LEB128(len);
+
+    for (UINT i = 0; i < numEntries; ++i)
+    {
+        UINT fnNameLen = 0;
+        WasmFunctionInfo* funsig = m_moduleInfo->GetFunSig(i);
+        funsig->SetName(ReadInlineName(len, fnNameLen));
+        UINT numLocals = LEB128(len);
+        if (numLocals != funsig->GetLocalCount())
+        {
+            ThrowDecodingError(_u("num locals mismatch in names section"));
+        }
+        for (UINT j = 0; j < numLocals; ++j)
+        {
+            UINT localNameLen = 0;
+            ReadInlineName(len, localNameLen);
+        }
+    }
+}
+
 char16* WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
     nameLength = LEB128(length);
     CheckBytesLeft(nameLength);
-    LPCUTF8 rawName = (LPCUTF8)(m_pc);
+    LPUTF8 rawName = m_pc;
 
     m_pc += nameLength;
     length += nameLength;
 
-    utf8::DecodeOptions decodeOptions = utf8::doDefault;
-    charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(rawName, nameLength, decodeOptions);
-    char16* contents = AnewArray(&m_alloc, char16, utf16Len + 1);
-    if (contents == nullptr)
-    {
-        Js::Throw::OutOfMemory();
-    }
-    utf8::DecodeIntoAndNullTerminate((char16*)contents, rawName, utf16Len, decodeOptions);
-
-    return contents;
+    return CvtUtf8Str(&m_alloc, rawName, nameLength);
 }
 
 void

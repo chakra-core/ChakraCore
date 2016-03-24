@@ -23,10 +23,10 @@ namespace Wasm
         uint32 GetLocalCount() const;
         uint32 GetParamCount() const;
 
-        void SetName(LPCUTF8 name);
-        LPCUTF8 GetName() const;
-        void SetModuleName(LPCUTF8 name);
-        LPCUTF8 GetModuleName() const;
+        void SetName(char16* name);
+        char16* GetName() const;
+        void SetModuleName(char16* name);
+        char16* GetModuleName() const;
 
         void SetNumber(UINT32 number);
         UINT32 GetNumber() const;
@@ -35,6 +35,10 @@ namespace Wasm
 
         void SetExitLabel(Js::ByteCodeLabel label);
         Js::ByteCodeLabel GetExitLabel() const;
+
+        void SetLocalName(uint i, char16* n);
+        char16* GetLocalName(uint i);
+
     private:
 
         // TODO: need custom comparator so -0 != 0
@@ -50,8 +54,8 @@ namespace Wasm
         ArenaAllocator * m_alloc;
         WasmSignature * m_signature;
         Js::ByteCodeLabel m_ExitLabel;
-        LPCUTF8 m_name;
-        LPCUTF8 m_mod; // imported module
+        char16* m_name;
+        char16* m_mod; // imported module
         UINT32 m_number;
     };
 

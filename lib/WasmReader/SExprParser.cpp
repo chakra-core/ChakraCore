@@ -274,7 +274,8 @@ SExprParser::ParseFunctionHeader()
     {
         if (type == funcImport)
         {
-            m_funcInfo->SetName(m_token.u.m_sz);
+            uint32 nameLen = (uint32)strlen((const char*)m_token.u.m_sz);
+            m_funcInfo->SetName(CvtUtf8Str(&m_alloc, m_token.u.m_sz, nameLen));
         }
         m_nameToFuncMap->AddNew(m_token.u.m_sz, m_funcNumber);
 
